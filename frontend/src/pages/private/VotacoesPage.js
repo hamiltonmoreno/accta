@@ -8,7 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 
 export const VotacoesPage = () => {
-  const { user, isAtivo } = useAuth();
+  const { isAtivo } = useAuth();
   const [polls, setPolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPoll, setSelectedPoll] = useState(null);
@@ -65,7 +65,6 @@ export const VotacoesPage = () => {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div>
         <h1 className="font-outfit font-bold text-4xl text-primary mb-2" data-testid="polls-title">
           Votações
@@ -73,7 +72,6 @@ export const VotacoesPage = () => {
         <p className="text-slate-600">Participe das decisões da associação</p>
       </div>
 
-      {/* Status Alert */}
       {!isAtivo && (
         <div className="card-technical rounded-xl p-6 border-2 border-alert" data-testid="voting-restricted">
           <div className="flex items-start gap-4">
@@ -88,7 +86,6 @@ export const VotacoesPage = () => {
         </div>
       )}
 
-      {/* Open Polls */}
       <section>
         <h2 className="font-outfit font-semibold text-2xl text-primary mb-6 flex items-center gap-3">
           <Clock className="w-7 h-7 text-accent" />
@@ -171,7 +168,6 @@ export const VotacoesPage = () => {
         )}
       </section>
 
-      {/* Closed Polls */}
       {closedPolls.length > 0 && (
         <section>
           <h2 className="font-outfit font-semibold text-2xl text-primary mb-6 flex items-center gap-3">
@@ -213,9 +209,11 @@ export const VotacoesPage = () => {
                       Total de votos: {results[poll.id].total_votes}
                     </div>
                     <div className="space-y-2">
-                      {Object.entries(results[poll.id].results).map(([optionId, count]) => {
+                      {Object.entries(results[poll.id].results).map((entry) => {
+                        const optionId = entry[0];
+                        const count = entry[1];
                         const option = poll.options.find((o) => o.id === parseInt(optionId));
-                        const percentage = (count / results[poll.id].total_votes) * 100;
+                        const percentage = results[poll.id].total_votes > 0 ? (count / results[poll.id].total_votes) * 100 : 0;
                         return (
                           <div key={optionId}>
                             <div className="flex items-center justify-between text-sm mb-1">
