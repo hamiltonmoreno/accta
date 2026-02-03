@@ -139,9 +139,15 @@ async def seed_database():
         if user['role'] == 'socio':
             # Quotas dos últimos 6 meses
             for month in range(6):
-                due_date = datetime(current_year, datetime.now().month - month, 10, tzinfo=timezone.utc)
-                if due_date.month < 1:
-                    due_date = due_date.replace(year=current_year-1, month=12+due_date.month)
+                current_month = datetime.now().month
+                target_month = current_month - month
+                target_year = current_year
+                
+                if target_month < 1:
+                    target_month = 12 + target_month
+                    target_year = current_year - 1
+                
+                due_date = datetime(target_year, target_month, 10, tzinfo=timezone.utc)
                 
                 # Status pendente para inadimplente, pago para outros
                 status = "pendente" if user['status'] == 'inadimplente' and month < 3 else "pago"
