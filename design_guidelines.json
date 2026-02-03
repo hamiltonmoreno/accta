@@ -1,0 +1,180 @@
+{
+  "project_name": "ACCTA Portal & Management System",
+  "design_philosophy": {
+    "identity": "E1 - The Anti-AI Designer",
+    "core_principles": [
+      "Fusion: Aviation Precision x Swiss Clarity",
+      "Emotion: Trust, Authority, and Dynamic Motion",
+      "Content: Storytelling through Data and Imagery",
+      "Zoom: Focus on details (radar blips, glass textures)",
+      "Negative Space: Airy layouts like the open sky"
+    ],
+    "anti_patterns": [
+      "No generic 'Inter' everywhere - use Outfit/Manrope",
+      "No center-aligned boring text blocks",
+      "No gradients without noise/texture",
+      "No dark mode (Strict Light Mode mandate)",
+      "Avoid purple/teal for CTAs - use Navy/Green"
+    ]
+  },
+  "typography": {
+    "font_family": {
+      "headings": "Outfit, sans-serif",
+      "body": "Manrope, sans-serif",
+      "mono": "JetBrains Mono, monospace",
+      "accent": "Archivo Black, sans-serif"
+    },
+    "scale": {
+      "display": "text-6xl md:text-8xl tracking-tight font-bold",
+      "h1": "text-5xl md:text-6xl tracking-tight font-semibold",
+      "h2": "text-4xl md:text-5xl tracking-tight font-medium",
+      "h3": "text-2xl md:text-3xl tracking-normal font-medium",
+      "body": "text-base md:text-lg leading-relaxed text-slate-600",
+      "caption": "text-xs md:text-sm tracking-wide uppercase text-slate-500 font-mono",
+      "label": "text-xs font-bold uppercase tracking-widest text-slate-400"
+    },
+    "pairing_strategy": "The 'Aero-Swiss' Look: Wide, modern sans-serif headings (Outfit) for that aerodynamic feel, paired with highly legible, geometric body text (Manrope). Use JetBrains Mono for all data points, dates, and flight codes."
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "main": "#0A1F44",
+        "description": "Deep Navy - The Authority. Use for Sidebar, Footer, Primary Headings."
+      },
+      "secondary": {
+        "main": "#F4F6F8",
+        "description": "Cloud Grey - The Background. Use for app background, panels."
+      },
+      "accent": {
+        "main": "#00FF9C",
+        "description": "Radar Green - The Pulse. Use for active states, success, primary buttons, highlights."
+      },
+      "alert": {
+        "main": "#FF4C4C",
+        "description": "Cockpit Alert - The Warning. Use for errors, destructive actions, 'Inadimplente' status."
+      },
+      "neutral": {
+        "100": "#FFFFFF",
+        "200": "#F4F6F8",
+        "300": "#E2E8F0",
+        "800": "#1E293B",
+        "900": "#0F172A"
+      }
+    },
+    "rules": [
+      "STRICT LIGHT MODE ONLY.",
+      "Never use Primary (#0A1F44) for body text; use Slate-800.",
+      "Accent (#00FF9C) must be used sparingly - it's a signal light, not a wall paint.",
+      "Backgrounds should be #F4F6F8, cards #FFFFFF."
+    ]
+  },
+  "visual_enhancers": {
+    "surfaces": {
+      "glass": "bg-white/70 backdrop-blur-xl border border-white/40 shadow-sm",
+      "technical": "bg-white border border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.05)]",
+      "active_item": "bg-slate-100 border-l-4 border-[#00FF9C]"
+    },
+    "borders": {
+      "default": "border-slate-200",
+      "focus": "ring-2 ring-[#0A1F44] ring-offset-2",
+      "radius": "rounded-none md:rounded-lg (Sharp on mobile, smooth on desktop)"
+    },
+    "shadows": {
+      "elevation_1": "shadow-[0_2px_4px_rgba(10,31,68,0.04)]",
+      "elevation_2": "shadow-[0_8px_16px_rgba(10,31,68,0.08)]",
+      "elevation_3": "shadow-[0_24px_48px_rgba(10,31,68,0.12)]"
+    }
+  },
+  "layout_strategy": {
+    "public_portal": {
+      "grid": "Tetris Grid (Asymmetric)",
+      "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+      "hero": "Full height (min-h-[80vh]), content bottom-aligned or split asymmetrical."
+    },
+    "private_dashboard": {
+      "grid": "Bento Grid (High Density)",
+      "sidebar": "Fixed width (280px) on desktop, Drawer on mobile. Deep Navy bg.",
+      "content_area": "Fluid, p-6 or p-8. Cards must fill height."
+    },
+    "spacing": {
+      "section_gap": "py-24 or py-32",
+      "element_gap": "gap-6 or gap-8",
+      "internal_padding": "p-6 or p-8 (Generous padding inside cards)"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-[#0A1F44] text-white hover:bg-[#0A1F44]/90 h-12 px-6 rounded-md uppercase tracking-wider font-bold text-sm transition-all",
+      "secondary": "bg-white border border-slate-200 text-[#0A1F44] hover:bg-slate-50 h-12 px-6 rounded-md uppercase tracking-wider font-bold text-sm",
+      "accent": "bg-[#00FF9C] text-[#0A1F44] hover:bg-[#00FF9C]/90 h-12 px-6 rounded-md font-bold shadow-lg shadow-green-500/20"
+    },
+    "cards": {
+      "dashboard": "bg-white border border-slate-100 shadow-sm rounded-xl p-6 relative overflow-hidden group hover:border-slate-300 transition-colors",
+      "public": "bg-white/80 backdrop-blur-md border border-white/50 shadow-lg rounded-2xl p-8"
+    },
+    "digital_wallet": {
+      "style": "Physical ID Card simulation. Aspect ratio 1.586. Rounded corners (rounded-xl).",
+      "effects": "Holographic gradient overlay for 'Active' status. Grayscale for 'Inactive'.",
+      "mobile_view": "Vertical stack, tap to expand."
+    },
+    "data_display": {
+      "status_badge": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono uppercase tracking-wide",
+      "table": "w-full text-sm text-left border-collapse. Header: bg-slate-50 text-slate-500 uppercase font-mono. Row: hover:bg-slate-50 transition-colors."
+    }
+  },
+  "motion": {
+    "libraries": ["framer-motion"],
+    "preferences": "Reduced Motion aware.",
+    "effects": {
+      "page_transition": "initial={{opacity: 0, y: 20}} animate={{opacity: 1, y: 0}} exit={{opacity: 0, y: -20}} transition={{duration: 0.4, ease: 'easeOut'}}",
+      "hover_lift": "whileHover={{y: -4}} transition={{type: 'spring', stiffness: 300}}",
+      "radar_pulse": "animate={{scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5]}} transition={{repeat: Infinity, duration: 2}}"
+    }
+  },
+  "images": {
+    "hero_bg": {
+      "url": "https://images.unsplash.com/photo-1746129700182-bef672132578?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwxfHxhaXIlMjB0cmFmZmljJTIwY29udHJvbCUyMHRvd2VyJTIwc3Vuc2V0JTIwYXZpYXRpb258ZW58MHx8fHwxNzcwMTQ3Mjk2fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Air Traffic Control Tower at Sunset",
+      "usage": "Public Portal Hero Section Background"
+    },
+    "cape_verde_landscape": {
+      "url": "https://images.unsplash.com/photo-1621944668311-7a97c80f0190?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzF8MHwxfHNlYXJjaHwzfHxjYXBlJTIwdmVyZGUlMjBhZXJpYWwlMjBsYW5kc2NhcGUlMjBjb2FzdHxlbnwwfHx8fDE3NzAxNDcyOTZ8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Cape Verde Aerial Coastline",
+      "usage": "About Us / Context Section"
+    },
+    "aviation_detail": {
+      "url": "https://images.unsplash.com/photo-1760447197763-7f8caf035177?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHw0fHxhaXIlMjB0cmFmZmljJTIwY29udHJvbCUyMHRvd2VyJTIwc3Vuc2V0JTIwYXZpYXRpb258ZW58MHx8fHwxNzcwMTQ3Mjk2fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Airplane Wing in Flight",
+      "usage": "Parallax section or Card background"
+    }
+  },
+  "accessibility": {
+    "standard": "WCAG 2.1 AA",
+    "contrast_check": "Ensure text on #0A1F44 is Pure White (#FFFFFF). Text on #00FF9C must be #0A1F44 (Navy).",
+    "focus_states": "Visible thick outline (#00FF9C) for keyboard navigation."
+  },
+  "instructions_to_main_agent": [
+    "Install 'framer-motion' for animations.",
+    "Use 'lucide-react' for icons (already installed).",
+    "Install 'clsx' and 'tailwind-merge' for class handling if not present.",
+    "Implement the 'Digital Wallet' as a PWA-ready component with a 'Flip' animation for back-of-card details.",
+    "Use 'recharts' for the Dashboard analytics (Membership growth, financial stats).",
+    "Strictly separate Public Layout (Marketing) and Private Layout (Dashboard/Sidebar).",
+    "On the Public Home, use the 'Tetris Grid' to display latest news and events.",
+    "For the Validator, create a clean, central input field with a QR scan button."
+  ],
+  "universal_guidelines": [
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients",
+    "Create depth through layered design elements with z-index hierarchy",
+    "Use glass-morphism effects with backdrop filters (12-24px blur) where specified",
+    "You MUST NOT apply universal transition. Eg: transition: all. This results in breaking transforms.",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; }",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations",
+    "Every interaction needs micro-animations - hover states, transitions.",
+    "Use 2-3x more spacing than feels comfortable.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Components MUST use named exports (export const ComponentName = ...)",
+    "Pages MUST use default exports (export default function PageName() {...})",
+    "Use 'sonner' for toasts located in /app/src/components/ui/sonner.tsx"
+  ]
+}
