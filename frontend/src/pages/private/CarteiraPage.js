@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
-import { QRCodeSVG } from 'react-qr-code';
+import QRCode from 'react-qr-code';
 import { CreditCard, Download, Shield } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -106,7 +106,7 @@ export const CarteiraPage = () => {
 
               {user?.qr_code_hash && (
                 <div className="p-6 bg-white rounded-xl shadow-inner border border-slate-200" data-testid="qr-code">
-                  <QRCodeSVG value={user.qr_code_hash} size={200} />
+                  <QRCode value={user.qr_code_hash} size={200} />
                 </div>
               )}
 
