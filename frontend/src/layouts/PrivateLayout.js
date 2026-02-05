@@ -39,6 +39,7 @@ export const PrivateLayout = ({ children }) => {
     { label: 'Documentos', path: '/documentos', icon: FileText, roles: ['all'] },
     { label: 'Mural', path: '/mural', icon: MessageSquare, roles: ['all'] },
     { label: 'Benefícios', path: '/beneficios', icon: Gift, roles: ['all'] },
+    { label: 'Notificações', path: '/notificacoes', icon: Bell, roles: ['all'] },
     { label: 'Gestão de Usuários', path: '/admin/usuarios', icon: Users, roles: ['admin'] },
     { label: 'Audit Logs', path: '/admin/logs', icon: ClipboardList, roles: ['admin'] },
   ];
