@@ -26,6 +26,8 @@ export const VotacoesPage = () => {
       setPolls(response.data);
     } catch (error) {
       console.error('Erro ao carregar votações:', error);
+      // Se não conseguir carregar, pelo menos para o loading
+      setPolls([]);
     } finally {
       setLoading(false);
     }
