@@ -76,6 +76,18 @@ export const documentsAPI = {
   create: (data) => api.post('/documents', data),
 };
 
+// Upload API
+export const uploadAPI = {
+  uploadFile: (category, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/upload/${category}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  deleteFile: (category, filename) => api.delete(`/upload/${category}/${filename}`),
+};
+
 // Benefits API
 export const benefitsAPI = {
   getAll: () => api.get('/benefits'),
