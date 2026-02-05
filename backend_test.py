@@ -292,12 +292,12 @@ class ACCTAAPITester:
             200
         )
         
-        if not success1 or not polls_response.get('data'):
+        if not success1 or not polls_response:
             print("   No polls found, skipping voting test")
             return success1
         
         # Try to vote (should work for active user)
-        polls = polls_response.get('data', [])
+        polls = polls_response if isinstance(polls_response, list) else []
         if polls:
             poll_id = polls[0]['id']
             vote_data = {
