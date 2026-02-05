@@ -22,9 +22,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('accta_token');
-      localStorage.removeItem('accta_user');
-      window.location.href = '/login';
+      const currentPath = window.location.pathname;
+      // Don't redirect if already on login or public pages
+      if (!currentPath.startsWith('/login') && !currentPath.startsWith('/validador') && !currentPath.startsWith('/profissao') && !currentPath.startsWith('/noticias') && !currentPath.startsWith('/transparencia') && currentPath !== '/') {
+        localStorage.removeItem('accta_token');
+        localStorage.removeItem('accta_user');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
