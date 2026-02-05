@@ -142,18 +142,30 @@ export const DashboardPage = () => {
           animate={{ opacity: 1, y: 0 }}
           className="card-technical rounded-xl p-6"
         >
-          <h2 className="font-outfit font-semibold text-2xl text-primary mb-4">Quotas Pendentes</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-outfit font-semibold text-2xl text-primary">Quotas Pendentes</h2>
+            <div className="text-xs font-mono text-slate-500 uppercase">Folha Salarial</div>
+          </div>
           {pendingInvoices.length === 0 ? (
-            <p className="text-slate-500 text-center py-8" data-testid="no-pending-invoices">Nenhuma quota pendente</p>
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                <CheckCircle className="w-8 h-8 text-accent" />
+              </div>
+              <p className="text-slate-600 font-medium mb-1" data-testid="no-pending-invoices">Tudo em dia!</p>
+              <p className="text-sm text-slate-500">Suas quotas estão sendo descontadas automaticamente</p>
+            </div>
           ) : (
             <div className="space-y-3">
               {pendingInvoices.map((invoice) => (
-                <div key={invoice.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg" data-testid={`invoice-${invoice.id}`}>
+                <div key={invoice.id} className="flex items-center justify-between p-4 bg-alert/5 border border-alert/20 rounded-lg" data-testid={`invoice-${invoice.id}`}>
                   <div>
                     <div className="font-manrope font-semibold text-primary">{invoice.type}</div>
                     <div className="font-mono text-sm text-slate-500">
                       Vencimento: {new Date(invoice.due_date).toLocaleDateString('pt')}
                     </div>
+                    {invoice.source === 'folha_salarial' && (
+                      <div className="text-xs text-alert mt-1">Aguardando desconto em folha</div>
+                    )}
                   </div>
                   <div className="font-mono font-bold text-lg text-primary">{invoice.amount} CVE</div>
                 </div>
