@@ -418,6 +418,15 @@ async def create_poll(poll_data: PollCreate, current_user: User = Depends(get_cu
     
     await db.polls.insert_one(poll_dict)
     await create_audit_log(current_user.id, f"Criou votação {poll.id}", poll.id)
+    
+    # Notify all active users about new poll
+    await notify_all_active_users(
+        "poll_opened",
+        "Nova Votação Aberta",
+        f"{poll.title} - Participe agora!",
+        "/votacoes"
+    )
+    
     return poll
 
 @api_router.post("/polls/vote", response_model=UserVote)
