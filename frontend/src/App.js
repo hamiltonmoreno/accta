@@ -113,6 +113,14 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/notificacoes"
+        element={
+          <ProtectedRoute>
+            <PrivateLayout><NotificacoesPage /></PrivateLayout>
+          </ProtectedRoute>
+        }
+      />
 
       {/* Admin Routes */}
       <Route
