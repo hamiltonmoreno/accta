@@ -76,6 +76,7 @@ export const PrivateLayout = ({ children }) => {
             <div className="font-manrope font-semibold text-white truncate">{user?.name}</div>
             <div className="font-mono text-xs text-accent uppercase tracking-wider">{user?.role}</div>
           </div>
+          <NotificationBell />
         </div>
         {user?.status !== 'ativo' && (
           <div className="mt-3 px-3 py-1 bg-alert/20 border border-alert rounded text-xs text-white font-mono uppercase">
