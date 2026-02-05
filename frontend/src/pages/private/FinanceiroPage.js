@@ -68,6 +68,26 @@ export const FinanceiroPage = () => {
         <p className="text-slate-600">Acompanhe suas quotas e pagamentos</p>
       </div>
 
+      {/* Info Banner */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="card-technical rounded-xl p-6 bg-accent/5 border-accent/20"
+      >
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 bg-accent rounded-lg flex items-center justify-center flex-shrink-0">
+            <CheckCircle className="w-6 h-6 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-outfit font-semibold text-lg text-primary mb-2">Pagamento Automático por Folha Salarial</h3>
+            <p className="text-slate-600 leading-relaxed">
+              As quotas mensais são descontadas automaticamente em folha de pagamento quando você se torna associado. 
+              Esta página mostra o histórico dos descontos realizados e sua situação financeira perante a associação.
+            </p>
+          </div>
+        </div>
+      </motion.div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <motion.div
