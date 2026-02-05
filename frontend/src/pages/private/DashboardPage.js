@@ -9,6 +9,8 @@ import { useNavigate } from 'react-router-dom';
 
 export const DashboardPage = () => {
   const { user, isAdmin, isFinanceiro } = useAuth();
+  const { notifications, unreadCount } = useNotifications();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [myInvoices, setMyInvoices] = useState([]);
   const [activePolls, setActivePolls] = useState([]);
