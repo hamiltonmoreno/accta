@@ -1,0 +1,169 @@
+import React, { useState } from 'react';
+import { useNotifications } from '../contexts/NotificationContext';
+import { useNavigate } from 'react-router-dom';
+import { Bell, Check, CheckCheck, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+export const NotificationBell = () => {
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const unreadNotifications = notifications.filter((n) => !n.read);
+  const recentNotifications = notifications.slice(0, 10);
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case 'poll_opened':
+        return '📊';
+      case 'invoice_due':
+        return '💰';
+      case 'document_new':
+        return '📄';
+      case 'wall_post_approved':
+        return '✅';
+      default:
+        return '🔔';
+    }
+  };
+
+  const handleNotificationClick = (notification) => {
+    markAsRead(notification.id);
+    setIsOpen(false);
+    if (notification.link) {
+      navigate(notification.link);
+    }
+  };
+
+  return (
+    <div className="relative">
+      {/* Bell Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative p-2 rounded-lg hover:bg-white/10 transition-colors"
+        data-testid="notification-bell"
+      >
+        <Bell className="w-6 h-6 text-white/80" />
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-accent text-primary text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {/* Dropdown */}
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setIsOpen(false)}
+            />
+
+            {/* Panel */}
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="absolute right-0 top-full mt-2 w-[400px] max-w-[90vw] bg-white rounded-xl shadow-2xl border border-slate-200 z-50"
+              data-testid="notification-panel"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+                <div>
+                  <h3 className="font-outfit font-semibold text-lg text-primary">Notificações</h3>
+                  {unreadCount > 0 && (
+                    <p className="text-xs text-slate-500 font-mono">{unreadCount} não lida{unreadCount !== 1 ? 's' : ''}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllAsRead}
+                      className="text-xs text-accent hover:text-accent/80 font-mono uppercase tracking-wider flex items-center gap-1"
+                      data-testid="mark-all-read"
+                    >
+                      <CheckCheck className="w-4 h-4" />
+                      Marcar todas
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setIsOpen(false)}
+                    className="p-1 rounded hover:bg-slate-100 transition-colors"
+                  >
+                    <X className="w-5 h-5 text-slate-400" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Notifications List */}
+              <div className="max-h-[500px] overflow-y-auto">
+                {recentNotifications.length === 0 ? (
+                  <div className="px-6 py-12 text-center" data-testid="no-notifications">
+                    <Bell className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                    <p className="text-slate-500">Nenhuma notificação</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {recentNotifications.map((notification) => (
+                      <button
+                        key={notification.id}
+                        onClick={() => handleNotificationClick(notification)}
+                        className={`w-full px-6 py-4 hover:bg-slate-50 transition-colors text-left ${
+                          !notification.read ? 'bg-accent/5' : ''
+                        }`}
+                        data-testid={`notification-${notification.id}`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="text-2xl flex-shrink-0">
+                            {getNotificationIcon(notification.type)}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <h4 className="font-manrope font-semibold text-primary">
+                                {notification.title}
+                              </h4>
+                              {!notification.read && (
+                                <div className="w-2 h-2 bg-accent rounded-full flex-shrink-0 mt-2" />
+                              )}
+                            </div>
+                            <p className="text-sm text-slate-600 mb-2">{notification.message}</p>
+                            <p className="text-xs text-slate-400 font-mono">
+                              {formatDistanceToNow(new Date(notification.created_at), {
+                                addSuffix: true,
+                                locale: ptBR,
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              {notifications.length > 10 && (
+                <div className="px-6 py-4 border-t border-slate-200 text-center">
+                  <button
+                    onClick={() => {
+                      setIsOpen(false);
+                      navigate('/notificacoes');
+                    }}
+                    className="text-sm text-primary hover:text-primary/80 font-mono uppercase tracking-wider"
+                  >
+                    Ver todas as notificações
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
