@@ -361,11 +361,12 @@ async def update_user_status(user_id: str, status: str, current_user: User = Dep
 
 # INVOICE ROUTES
 @api_router.get("/invoices", response_model=List[Invoice])
-async def get_invoices(current_user: User = Depends(get_current_user)):
+async def get_invoices(skip: int = 0, limit: int = 100, current_user: User = Depends(get_current_user)):
+    limit = min(limit, 100)
     if current_user.role in ["admin", "financeiro"]:
-        invoices = await db.invoices.find({}, {"_id": 0}).to_list(1000)
+        invoices = await db.invoices.find({}, {"_id": 0}).skip(skip).limit(limit).to_list(None)
     else:
-        invoices = await db.invoices.find({"user_id": current_user.id}, {"_id": 0}).to_list(1000)
+        invoices = await db.invoices.find({"user_id": current_user.id}, {"_id": 0}).skip(skip).limit(limit).to_list(None)
     
     for inv in invoices:
         if isinstance(inv.get('due_date'), str):
