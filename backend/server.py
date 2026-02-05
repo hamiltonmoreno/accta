@@ -194,6 +194,24 @@ class AuditLog(BaseModel):
     target_id: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class Notification(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    type: str  # poll_opened, invoice_due, document_new, wall_post_approved
+    title: str
+    message: str
+    link: Optional[str] = None
+    read: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class NotificationCreate(BaseModel):
+    user_id: str
+    type: str
+    title: str
+    message: str
+    link: Optional[str] = None
+
 # ===== HELPER FUNCTIONS =====
 
 def hash_password(password: str) -> str:
