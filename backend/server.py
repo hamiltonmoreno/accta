@@ -666,6 +666,89 @@ async def get_statistics(current_user: User = Depends(get_current_user)):
         "total_revenue": total_revenue[0]['total'] if total_revenue else 0
     }
 
+# FILE UPLOAD
+UPLOAD_DIR = Path(__file__).parent / "uploads"
+UPLOAD_DIR.mkdir(exist_ok=True)
+
+ALLOWED_EXTENSIONS = {
+    "documents": [".pdf", ".doc", ".docx"],
+    "proofs": [".pdf", ".jpg", ".jpeg", ".png"],
+    "logos": [".png", ".jpg", ".jpeg", ".svg"],
+    "avatars": [".jpg", ".jpeg", ".png"],
+}
+
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+
+def validate_file(file: UploadFile, category: str) -> None:
+    # Check extension
+    ext = Path(file.filename).suffix.lower()
+    if ext not in ALLOWED_EXTENSIONS.get(category, []):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Tipo de arquivo não permitido. Permitidos: {', '.join(ALLOWED_EXTENSIONS[category])}"
+        )
+
+@api_router.post("/upload/{category}")
+async def upload_file(
+    category: str,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    # Validate category
+    if category not in ["documents", "proofs", "logos", "avatars"]:
+        raise HTTPException(status_code=400, detail="Categoria inválida")
+    
+    # Permission check
+    if category in ["documents", "logos"] and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Sem permissão")
+    
+    # Validate file
+    validate_file(file, category)
+    
+    # Generate unique filename
+    file_ext = Path(file.filename).suffix
+    unique_filename = f"{uuid.uuid4()}{file_ext}"
+    file_path = UPLOAD_DIR / category / unique_filename
+    
+    # Save file
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Generate URL
+        file_url = f"/uploads/{category}/{unique_filename}"
+        
+        await create_audit_log(current_user.id, f"Upload de arquivo: {file.filename}", unique_filename)
+        
+        return {
+            "filename": file.filename,
+            "file_url": file_url,
+            "size": file_path.stat().st_size,
+            "category": category
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar arquivo: {str(e)}")
+
+@api_router.delete("/upload/{category}/{filename}")
+async def delete_file(
+    category: str,
+    filename: str,
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Sem permissão")
+    
+    file_path = UPLOAD_DIR / category / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+    
+    try:
+        file_path.unlink()
+        await create_audit_log(current_user.id, f"Deletou arquivo: {filename}", filename)
+        return {"message": "Arquivo deletado com sucesso"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao deletar arquivo: {str(e)}")
+
 app.include_router(api_router)
 
 app.add_middleware(
