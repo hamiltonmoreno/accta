@@ -20,6 +20,7 @@ export const AdminUsuariosPage = () => {
       setUsers(response.data);
     } catch (error) {
       console.error('Erro ao carregar usuários:', error);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
