@@ -259,10 +259,22 @@ async def create_notification(user_id: str, type: str, title: str, message: str,
     await db.notifications.insert_one(notif_dict)
 
 async def notify_all_active_users(type: str, title: str, message: str, link: Optional[str] = None):
-    """Send notification to all active members"""
+    """Send notification to all active members - Batch insert for performance"""
     users = await db.users.find({"status": "ativo"}, {"_id": 0, "id": 1}).to_list(1000)
+    
+    if not users:
+        return
+    
+    # Batch insert all notifications at once
+    notifications = []
     for user in users:
-        await create_notification(user['id'], type, title, message, link)
+        notification = Notification(user_id=user['id'], type=type, title=title, message=message, link=link)
+        notif_dict = notification.model_dump()
+        notif_dict['created_at'] = notif_dict['created_at'].isoformat()
+        notifications.append(notif_dict)
+    
+    if notifications:
+        await db.notifications.insert_many(notifications)
 
 # ===== ROUTES =====
 
