@@ -11,6 +11,7 @@ import { NoticiasPage } from './pages/public/NoticiasPage';
 import { ValidadorPage } from './pages/public/ValidadorPage';
 import { LoginPage } from './pages/public/LoginPage';
 import { TransparenciaPage } from './pages/public/TransparenciaPage';
+import { NotificacoesPage } from './pages/private/NotificacoesPage';
 import { DashboardPage } from './pages/private/DashboardPage';
 import { CarteiraPage } from './pages/private/CarteiraPage';
 import { FinanceiroPage } from './pages/private/FinanceiroPage';
