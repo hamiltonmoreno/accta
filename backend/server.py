@@ -411,8 +411,9 @@ async def confirm_invoice(invoice_id: str, current_user: User = Depends(get_curr
 
 # POLL ROUTES
 @api_router.get("/polls", response_model=List[Poll])
-async def get_polls(current_user: User = Depends(get_current_user)):
-    polls = await db.polls.find({}, {"_id": 0}).to_list(1000)
+async def get_polls(skip: int = 0, limit: int = 100, current_user: User = Depends(get_current_user)):
+    limit = min(limit, 100)
+    polls = await db.polls.find({}, {"_id": 0}).skip(skip).limit(limit).to_list(None)
     for p in polls:
         if isinstance(p.get('start_date'), str):
             p['start_date'] = datetime.fromisoformat(p['start_date'])
