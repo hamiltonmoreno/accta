@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Vote, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { pollsAPI } from '../utils/api';
+import { pollsAPI } from '../../utils/api';
 
 export const VotingInterface = ({ poll, onVoteSuccess }) => {
   const [selected, setSelected] = useState(null);
