@@ -50,6 +50,7 @@ function AppRoutes() {
       <Route path="/" element={<PublicLayout><HomePage /></PublicLayout>} />
       <Route path="/profissao" element={<PublicLayout><ProfissaoPage /></PublicLayout>} />
       <Route path="/noticias" element={<PublicLayout><NoticiasPage /></PublicLayout>} />
+      <Route path="/transparencia" element={<PublicLayout><TransparenciaPage /></PublicLayout>} />
       <Route path="/validador" element={<PublicLayout><ValidadorPage /></PublicLayout>} />
       <Route path="/login" element={<LoginPage />} />
 
