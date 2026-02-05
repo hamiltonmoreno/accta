@@ -5,14 +5,13 @@ import { Vote, CheckCircle, Clock, BarChart3 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from 'sonner';
+import { PollVoteForm } from '../../components/PollVoteForm';
+import { PollResults } from '../../components/PollResults';
 
 export const VotacoesPage = () => {
   const { isAtivo } = useAuth();
   const [polls, setPolls] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedOptions, setSelectedOptions] = useState({});
-  const [voting, setVoting] = useState(false);
   const [results, setResults] = useState({});
   const [loadingResults, setLoadingResults] = useState({});
 
@@ -25,51 +24,26 @@ export const VotacoesPage = () => {
       const response = await pollsAPI.getAll();
       setPolls(response.data);
     } catch (error) {
-      console.error('Erro ao carregar votações:', error);
+      console.error('Erro:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVote = async (pollId) => {
-    const selectedOption = selectedOptions[pollId];
-    if (selectedOption === undefined) return;
-
-    setVoting(true);
-    try {
-      await pollsAPI.vote({
-        poll_id: pollId,
-        vote_option: selectedOption,
-      });
-      toast.success('Voto registrado com sucesso!');
-      setSelectedOptions((prev) => {
-        const newState = { ...prev };
-        delete newState[pollId];
-        return newState;
-      });
-      loadPolls();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Erro ao votar');
-    } finally {
-      setVoting(false);
-    }
-  };
-
   const loadResults = async (pollId) => {
-    setLoadingResults((prev) => ({ ...prev, [pollId]: true }));
+    setLoadingResults(prev => ({ ...prev, [pollId]: true }));
     try {
       const response = await pollsAPI.getResults(pollId);
-      setResults((prev) => ({ ...prev, [pollId]: response.data }));
+      setResults(prev => ({ ...prev, [pollId]: response.data }));
     } catch (error) {
-      console.error('Erro ao carregar resultados:', error);
-      toast.error('Erro ao carregar resultados');
+      console.error('Erro:', error);
     } finally {
-      setLoadingResults((prev) => ({ ...prev, [pollId]: false }));
+      setLoadingResults(prev => ({ ...prev, [pollId]: false }));
     }
   };
 
-  const openPolls = polls.filter((p) => p.status === 'aberta');
-  const closedPolls = polls.filter((p) => p.status === 'fechada');
+  const openPolls = polls.filter(p => p.status === 'aberta');
+  const closedPolls = polls.filter(p => p.status === 'fechada');
 
   if (loading) {
     return (
@@ -95,7 +69,7 @@ export const VotacoesPage = () => {
             <div>
               <h3 className="font-outfit font-semibold text-lg text-alert mb-2">Votação Restrita</h3>
               <p className="text-slate-600">
-                Apenas sócios com status ativo podem participar de votações. Por favor, regularize sua situação.
+                Apenas sócios com status ativo podem participar de votações.
               </p>
             </div>
           </div>
@@ -114,12 +88,12 @@ export const VotacoesPage = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6">
-            {openPolls.map((poll, index) => (
+            {openPolls.map((poll, idx) => (
               <motion.div
                 key={poll.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: idx * 0.1 }}
                 className="card-technical rounded-xl p-6"
                 data-testid={`poll-${poll.id}`}
               >
@@ -137,50 +111,7 @@ export const VotacoesPage = () => {
                   </span>
                 </div>
 
-                {isAtivo && (
-                  <div className="border-t border-slate-200 pt-6 mt-6">
-                    <div className="space-y-3 mb-4">
-                      {poll.options.map((option) => (
-                        <label
-                          key={option.id}
-                          className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors"
-                        >
-                          <input
-                            type="radio"
-                            name={`poll-${poll.id}`}
-                            value={option.id}
-                            checked={selectedOptions[poll.id] === option.id}
-                            onChange={() => {
-                              setSelectedOptions((prev) => ({
-                                ...prev,
-                                [poll.id]: option.id,
-                              }));
-                            }}
-                            className="w-5 h-5 text-accent focus:ring-accent"
-                            data-testid={`option-${option.id}`}
-                          />
-                          <span className="font-manrope font-medium text-primary">{option.label}</span>
-                        </label>
-                      ))}
-                    </div>
-
-                    <button
-                      onClick={() => handleVote(poll.id)}
-                      disabled={selectedOptions[poll.id] === undefined || voting}
-                      className="bg-primary text-white hover:bg-primary/90 h-12 px-6 rounded-lg uppercase tracking-wider font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      data-testid="vote-button"
-                    >
-                      {voting ? (
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          <Vote className="w-5 h-5" />
-                          Confirmar Voto
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
+                <PollVoteForm poll={poll} isAtivo={isAtivo} onVoteSuccess={loadPolls} />
               </motion.div>
             ))}
           </div>
@@ -195,12 +126,12 @@ export const VotacoesPage = () => {
           </h2>
 
           <div className="grid grid-cols-1 gap-6">
-            {closedPolls.map((poll, index) => (
+            {closedPolls.map((poll, idx) => (
               <motion.div
                 key={poll.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: idx * 0.1 }}
                 className="card-technical rounded-xl p-6 opacity-75"
               >
                 <div className="flex items-start justify-between mb-4">
@@ -227,38 +158,7 @@ export const VotacoesPage = () => {
                   {results[poll.id] ? 'Ocultar Resultados' : 'Ver Resultados'}
                 </button>
 
-                {results[poll.id] && (
-                  <div className="mt-4 pt-4 border-t border-slate-200">
-                    <div className="text-sm font-mono text-slate-500 mb-4">
-                      Total de votos: {results[poll.id].total_votes}
-                    </div>
-                    <div className="space-y-3">
-                      {poll.options.map((option) => {
-                        const count = results[poll.id].results[option.id] || 0;
-                        const percentage = results[poll.id].total_votes > 0 
-                          ? (count / results[poll.id].total_votes) * 100 
-                          : 0;
-                        
-                        return (
-                          <div key={option.id}>
-                            <div className="flex items-center justify-between text-sm mb-1">
-                              <span className="font-manrope">{option.label}</span>
-                              <span className="font-mono text-slate-500">
-                                {count} votos ({percentage.toFixed(1)}%)
-                              </span>
-                            </div>
-                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-accent rounded-full transition-all duration-500"
-                                style={{ width: `${percentage}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+                <PollResults poll={poll} results={results[poll.id]} />
               </motion.div>
             ))}
           </div>
