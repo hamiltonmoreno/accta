@@ -17,6 +17,7 @@ import {
   X,
   ShieldCheck,
   ClipboardList,
+  Bell,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
