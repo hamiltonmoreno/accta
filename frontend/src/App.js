@@ -140,12 +140,14 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <div className="App">
-          <AppRoutes />
-          <Toaster position="top-right" richColors />
-        </div>
-      </BrowserRouter>
+      <NotificationProvider>
+        <BrowserRouter>
+          <div className="App">
+            <AppRoutes />
+            <Toaster position="top-right" richColors />
+          </div>
+        </BrowserRouter>
+      </NotificationProvider>
     </AuthProvider>
   );
 }
