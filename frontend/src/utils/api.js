@@ -103,3 +103,12 @@ export const auditAPI = {
 export const statsAPI = {
   get: () => api.get('/stats'),
 };
+
+// Notifications API
+export const notificationsAPI = {
+  getAll: () => api.get('/notifications'),
+  getUnreadCount: () => api.get('/notifications/unread/count'),
+  markRead: (notificationId) => api.patch(`/notifications/${notificationId}/read`),
+  markAllRead: () => api.patch('/notifications/mark-all-read'),
+  create: (data) => api.post('/notifications', data),
+};
