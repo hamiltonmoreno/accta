@@ -53,9 +53,12 @@ function AppRoutes() {
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<PublicLayout><HomePage /></PublicLayout>} />
+      <Route path="/sobre" element={<PublicLayout><SobrePage /></PublicLayout>} />
       <Route path="/profissao" element={<PublicLayout><ProfissaoPage /></PublicLayout>} />
       <Route path="/noticias" element={<PublicLayout><NoticiasPage /></PublicLayout>} />
       <Route path="/transparencia" element={<PublicLayout><TransparenciaPage /></PublicLayout>} />
+      <Route path="/beneficios-publico" element={<PublicLayout><BeneficiosPublicoPage /></PublicLayout>} />
+      <Route path="/contactos" element={<PublicLayout><ContactosPage /></PublicLayout>} />
       <Route path="/validador" element={<PublicLayout><ValidadorPage /></PublicLayout>} />
       <Route path="/login" element={<LoginPage />} />
 
