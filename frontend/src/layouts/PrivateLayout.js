@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { NotificationBell } from '../components/NotificationBell';
 import {
   Plane,
   LayoutDashboard,
