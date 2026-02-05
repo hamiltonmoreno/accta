@@ -103,43 +103,50 @@ export const PublicLayout = ({ children }) => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-primary text-white mt-32">
+      <footer className="bg-primary text-white mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="md:col-span-2">
               <div className="flex items-center gap-3 mb-4">
-                <Plane className="w-8 h-8" />
+                <div className="w-12 h-12 bg-accent rounded-lg flex items-center justify-center">
+                  <Plane className="w-6 h-6 text-primary" />
+                </div>
                 <div>
                   <div className="font-outfit font-bold text-xl">ACCTA</div>
                   <div className="font-mono text-xs text-accent uppercase tracking-wider">Cabo Verde</div>
                 </div>
               </div>
-              <p className="text-sm text-slate-300">
-                Associação de Controladores de Tráfego Aéreo de Cabo Verde
+              <p className="text-sm text-slate-300 mb-4">
+                Associação dos Controladores de Tráfego Aéreo de Cabo Verde
+              </p>
+              <p className="text-accent font-semibold italic">
+                "Segurança no céu, união em terra."
               </p>
             </div>
 
             <div>
               <h3 className="font-outfit font-semibold mb-4">Links Rápidos</h3>
               <ul className="space-y-2 text-sm text-slate-300">
-                <li><Link to="/" className="hover:text-accent transition-colors">Início</Link></li>
-                <li><Link to="/profissao" className="hover:text-accent transition-colors">Sobre a Profissão</Link></li>
-                <li><Link to="/noticias" className="hover:text-accent transition-colors">Notícias</Link></li>
+                <li><Link to="/sobre" className="hover:text-accent transition-colors">Sobre</Link></li>
+                <li><Link to="/profissao" className="hover:text-accent transition-colors">A Profissão</Link></li>
+                <li><Link to="/transparencia" className="hover:text-accent transition-colors">Transparência</Link></li>
+                <li><Link to="/beneficios-publico" className="hover:text-accent transition-colors">Benefícios</Link></li>
+                <li><Link to="/contactos" className="hover:text-accent transition-colors">Contactos</Link></li>
               </ul>
             </div>
 
             <div>
-              <h3 className="font-outfit font-semibold mb-4">Contato</h3>
+              <h3 className="font-outfit font-semibold mb-4">Área Reservada</h3>
               <ul className="space-y-2 text-sm text-slate-300">
-                <li>Email: info@accta.cv</li>
-                <li>Tel: +238 XXX XXXX</li>
-                <li>Cabo Verde</li>
+                <li><Link to="/login" className="hover:text-accent transition-colors">Login Associados</Link></li>
+                <li><Link to="/validador" className="hover:text-accent transition-colors">Validador QR</Link></li>
               </ul>
             </div>
           </div>
 
-          <div className="border-t border-white/10 mt-8 pt-8 text-center text-sm text-slate-400">
+          <div className="border-t border-white/10 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-400">
             <p>&copy; {new Date().getFullYear()} ACCTA - Todos os direitos reservados</p>
+            <Link to="/privacidade" className="hover:text-accent transition-colors">Política de Privacidade</Link>
           </div>
         </div>
       </footer>
