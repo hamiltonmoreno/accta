@@ -334,11 +334,13 @@ async def get_me(current_user: User = Depends(get_current_user)):
 
 # USER ROUTES
 @api_router.get("/users", response_model=List[User])
-async def get_users(current_user: User = Depends(get_current_user)):
+async def get_users(skip: int = 0, limit: int = 100, current_user: User = Depends(get_current_user)):
     if current_user.role not in ["admin", "financeiro"]:
         raise HTTPException(status_code=403, detail="Sem permissão")
     
-    users = await db.users.find({}, {"_id": 0, "password": 0}).to_list(1000)
+    # Enforce max limit of 100 per request
+    limit = min(limit, 100)
+    users = await db.users.find({}, {"_id": 0, "password": 0}).skip(skip).limit(limit).to_list(None)
     for u in users:
         if isinstance(u.get('created_at'), str):
             u['created_at'] = datetime.fromisoformat(u['created_at'])
