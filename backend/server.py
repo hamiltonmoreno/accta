@@ -749,6 +749,9 @@ async def delete_file(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao deletar arquivo: {str(e)}")
 
+# Mount static files for uploads
+app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
+
 app.include_router(api_router)
 
 app.add_middleware(
