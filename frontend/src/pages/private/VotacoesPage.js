@@ -208,29 +208,8 @@ export const VotacoesPage = () => {
                     <div className="text-sm font-mono text-slate-500 mb-2">
                       Total de votos: {results[poll.id].total_votes}
                     </div>
-                    <div className="space-y-2">
-                      {Object.entries(results[poll.id].results).map((entry) => {
-                        const optionId = entry[0];
-                        const count = entry[1];
-                        const option = poll.options.find((o) => o.id === parseInt(optionId));
-                        const percentage = results[poll.id].total_votes > 0 ? (count / results[poll.id].total_votes) * 100 : 0;
-                        return (
-                          <div key={optionId}>
-                            <div className="flex items-center justify-between text-sm mb-1">
-                              <span className="font-manrope">{option?.label}</span>
-                              <span className="font-mono text-slate-500">
-                                {count} votos ({percentage.toFixed(1)}%)
-                              </span>
-                            </div>
-                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-accent rounded-full transition-all"
-                                style={{ width: `${percentage}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
+                    <div className="text-sm text-slate-600">
+                      Resultados disponíveis. Total: {results[poll.id].total_votes} votos
                     </div>
                   </div>
                 )}
