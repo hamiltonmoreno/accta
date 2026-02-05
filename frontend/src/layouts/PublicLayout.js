@@ -10,6 +10,7 @@ export const PublicLayout = ({ children }) => {
     { label: 'Início', path: '/' },
     { label: 'Sobre a Profissão', path: '/profissao' },
     { label: 'Notícias', path: '/noticias' },
+    { label: 'Transparência', path: '/transparencia' },
     { label: 'Validador', path: '/validador' },
   ];
 
