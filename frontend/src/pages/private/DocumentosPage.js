@@ -1,15 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { documentsAPI } from '../../utils/api';
-import { FileText, Download, Search } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { documentsAPI, uploadAPI } from '../../utils/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { FileText, Download, Search, Upload, X, Plus, Check, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 export const DocumentosPage = () => {
+  const { isAdmin } = useAuth();
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   useEffect(() => {
     loadDocuments();
@@ -33,11 +37,24 @@ export const DocumentosPage = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="font-outfit font-bold text-4xl text-primary mb-2" data-testid="documents-title">
-          Secretaria & Documentos
-        </h1>
-        <p className="text-slate-600">Acesse atas, estatutos, balancetes e outros documentos oficiais</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="font-outfit font-bold text-4xl text-primary mb-2" data-testid="documents-title">
+            Secretaria & Documentos
+          </h1>
+          <p className="text-slate-600">Acesse atas, estatutos, balancetes e outros documentos oficiais</p>
+        </div>
+        
+        {isAdmin && (
+          <button
+            onClick={() => setShowUploadModal(true)}
+            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-all font-mono text-sm uppercase tracking-wider"
+            data-testid="upload-document-btn"
+          >
+            <Upload className="w-4 h-4" />
+            Novo Documento
+          </button>
+        )}
       </div>
 
       {/* Search & Filters */}
@@ -54,43 +71,19 @@ export const DocumentosPage = () => {
           />
         </div>
 
-        <div className="flex gap-2">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-lg font-mono text-sm uppercase tracking-wider transition-all ${
-              filter === 'all' ? 'bg-primary text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
-            }`}
-            data-testid="filter-all"
-          >
-            Todos
-          </button>
-          <button
-            onClick={() => setFilter('ata')}
-            className={`px-4 py-2 rounded-lg font-mono text-sm uppercase tracking-wider transition-all ${
-              filter === 'ata' ? 'bg-primary text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
-            }`}
-            data-testid="filter-ata"
-          >
-            Atas
-          </button>
-          <button
-            onClick={() => setFilter('estatuto')}
-            className={`px-4 py-2 rounded-lg font-mono text-sm uppercase tracking-wider transition-all ${
-              filter === 'estatuto' ? 'bg-primary text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
-            }`}
-            data-testid="filter-estatuto"
-          >
-            Estatutos
-          </button>
-          <button
-            onClick={() => setFilter('balancete')}
-            className={`px-4 py-2 rounded-lg font-mono text-sm uppercase tracking-wider transition-all ${
-              filter === 'balancete' ? 'bg-primary text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
-            }`}
-            data-testid="filter-balancete"
-          >
-            Balancetes
-          </button>
+        <div className="flex gap-2 flex-wrap">
+          {['all', 'ata', 'estatuto', 'balancete'].map((type) => (
+            <button
+              key={type}
+              onClick={() => setFilter(type)}
+              className={`px-4 py-2 rounded-lg font-mono text-sm uppercase tracking-wider transition-all ${
+                filter === type ? 'bg-primary text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+              data-testid={`filter-${type}`}
+            >
+              {type === 'all' ? 'Todos' : type === 'ata' ? 'Atas' : type === 'estatuto' ? 'Estatutos' : 'Balancetes'}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -101,7 +94,11 @@ export const DocumentosPage = () => {
         </div>
       ) : filteredDocuments.length === 0 ? (
         <div className="card-technical rounded-xl p-12 text-center" data-testid="no-documents">
-          <p className="text-slate-500">Nenhum documento encontrado</p>
+          <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+          <p className="text-slate-500 font-medium mb-1">Nenhum documento encontrado</p>
+          <p className="text-sm text-slate-400">
+            {isAdmin ? 'Clique em "Novo Documento" para adicionar' : 'Os documentos serão exibidos aqui quando disponíveis'}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -155,6 +152,296 @@ export const DocumentosPage = () => {
           ))}
         </div>
       )}
+
+      {/* Upload Modal */}
+      <AnimatePresence>
+        {showUploadModal && (
+          <UploadDocumentModal
+            onClose={() => setShowUploadModal(false)}
+            onSuccess={() => {
+              setShowUploadModal(false);
+              loadDocuments();
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
+  );
+};
+
+const UploadDocumentModal = ({ onClose, onSuccess }) => {
+  const fileInputRef = useRef(null);
+  const [title, setTitle] = useState('');
+  const [type, setType] = useState('ata');
+  const [visibility, setVisibility] = useState('socios');
+  const [tags, setTags] = useState('');
+  const [file, setFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  const handleFileSelect = (e) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      // Validate file type
+      const allowedTypes = ['.pdf', '.doc', '.docx'];
+      const ext = '.' + selectedFile.name.split('.').pop().toLowerCase();
+      if (!allowedTypes.includes(ext)) {
+        toast.error('Tipo de arquivo não permitido. Use PDF, DOC ou DOCX.');
+        return;
+      }
+      // Validate size (10MB)
+      if (selectedFile.size > 10 * 1024 * 1024) {
+        toast.error('Arquivo muito grande. Máximo 10MB.');
+        return;
+      }
+      setFile(selectedFile);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!title || !file) {
+      toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(20);
+
+    try {
+      // 1. Upload the file
+      const uploadResponse = await uploadAPI.uploadFile('documents', file);
+      setUploadProgress(60);
+      
+      // 2. Create the document entry
+      const documentData = {
+        title,
+        file_url: uploadResponse.data.file_url,
+        type,
+        visibility,
+        tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+      };
+      
+      await documentsAPI.create(documentData);
+      setUploadProgress(100);
+      
+      toast.success('Documento enviado com sucesso!');
+      onSuccess();
+    } catch (error) {
+      console.error('Erro ao enviar documento:', error);
+      toast.error(error.response?.data?.detail || 'Erro ao enviar documento');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <>
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 z-40"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg" data-testid="upload-modal">
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-slate-200">
+            <div>
+              <h2 className="font-outfit font-bold text-2xl text-primary">Novo Documento</h2>
+              <p className="text-sm text-slate-500">Faça upload de um documento para a secretaria</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              data-testid="close-modal"
+            >
+              <X className="w-5 h-5 text-slate-400" />
+            </button>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            {/* Title */}
+            <div>
+              <label className="block font-mono text-xs uppercase tracking-wider text-slate-500 mb-2">
+                Título *
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ex: Ata da Assembleia Geral - Março 2025"
+                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                required
+                data-testid="document-title-input"
+              />
+            </div>
+
+            {/* Type & Visibility */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block font-mono text-xs uppercase tracking-wider text-slate-500 mb-2">
+                  Tipo
+                </label>
+                <select
+                  value={type}
+                  onChange={(e) => setType(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  data-testid="document-type-select"
+                >
+                  <option value="ata">Ata</option>
+                  <option value="estatuto">Estatuto</option>
+                  <option value="balancete">Balancete</option>
+                </select>
+              </div>
+              <div>
+                <label className="block font-mono text-xs uppercase tracking-wider text-slate-500 mb-2">
+                  Visibilidade
+                </label>
+                <select
+                  value={visibility}
+                  onChange={(e) => setVisibility(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  data-testid="document-visibility-select"
+                >
+                  <option value="publico">Público</option>
+                  <option value="socios">Sócios</option>
+                  <option value="direcao">Direção</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Tags */}
+            <div>
+              <label className="block font-mono text-xs uppercase tracking-wider text-slate-500 mb-2">
+                Tags (separadas por vírgula)
+              </label>
+              <input
+                type="text"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                placeholder="Ex: assembleia, 2025, decisões"
+                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                data-testid="document-tags-input"
+              />
+            </div>
+
+            {/* File Upload */}
+            <div>
+              <label className="block font-mono text-xs uppercase tracking-wider text-slate-500 mb-2">
+                Arquivo *
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx"
+                onChange={handleFileSelect}
+                className="hidden"
+                data-testid="document-file-input"
+              />
+              
+              {file ? (
+                <div className="flex items-center justify-between p-4 bg-accent/5 border border-accent/20 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <div className="font-manrope font-semibold text-primary text-sm">{file.name}</div>
+                      <div className="font-mono text-xs text-slate-500">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFile(null)}
+                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                  >
+                    <X className="w-4 h-4 text-slate-400" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full p-8 border-2 border-dashed border-slate-200 rounded-lg hover:border-primary hover:bg-slate-50 transition-all group"
+                  data-testid="select-file-btn"
+                >
+                  <div className="flex flex-col items-center">
+                    <div className="w-12 h-12 bg-slate-100 group-hover:bg-primary/10 rounded-lg flex items-center justify-center mb-3 transition-colors">
+                      <Plus className="w-6 h-6 text-slate-400 group-hover:text-primary transition-colors" />
+                    </div>
+                    <span className="font-manrope font-semibold text-slate-600 mb-1">
+                      Clique para selecionar
+                    </span>
+                    <span className="text-xs text-slate-400">PDF, DOC ou DOCX (máx. 10MB)</span>
+                  </div>
+                </button>
+              )}
+            </div>
+
+            {/* Progress Bar */}
+            {uploading && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-600">Enviando...</span>
+                  <span className="font-mono text-accent">{uploadProgress}%</span>
+                </div>
+                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${uploadProgress}%` }}
+                    className="h-full bg-accent rounded-full"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-3 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors font-mono uppercase tracking-wider"
+                disabled={uploading}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={uploading || !file || !title}
+                className="flex-1 flex items-center justify-center gap-2 bg-primary text-white px-4 py-3 rounded-lg hover:bg-primary/90 transition-colors font-mono uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+                data-testid="submit-document-btn"
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Enviar
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </motion.div>
+    </>
   );
 };
