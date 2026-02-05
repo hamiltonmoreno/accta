@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 import { statsAPI, invoicesAPI, pollsAPI } from '../../utils/api';
-import { Users, DollarSign, AlertCircle, Vote, CheckCircle } from 'lucide-react';
+import { Users, DollarSign, AlertCircle, Vote, CheckCircle, Bell } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 
 export const DashboardPage = () => {
   const { user, isAdmin, isFinanceiro } = useAuth();
