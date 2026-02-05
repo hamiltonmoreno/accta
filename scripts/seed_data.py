@@ -421,6 +421,66 @@ async def seed_database():
     await db.audit_logs.insert_many(audit_logs)
     print(f"✅ {len(audit_logs)} logs de auditoria criados")
     
+    # ===== NOTIFICATIONS =====
+    notifications = []
+    
+    # Notificação de nova votação para sócios ativos
+    for socio in socio_users[:4]:
+        notif = {
+            "id": str(uuid.uuid4()),
+            "user_id": socio['id'],
+            "type": "poll_opened",
+            "title": "Nova Votação Aberta",
+            "message": "Proposta de Atualização do Estatuto - Participe agora!",
+            "link": "/votacoes",
+            "read": False,
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
+        }
+        notifications.append(notif)
+    
+    # Notificação de quota pendente para inadimplente
+    notif_quota = {
+        "id": str(uuid.uuid4()),
+        "user_id": inadimplente['id'],
+        "type": "invoice_due",
+        "title": "Quota Pendente",
+        "message": "Você possui quotas pendentes. Regularize sua situação.",
+        "link": "/financeiro",
+        "read": False,
+        "created_at": (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()
+    }
+    notifications.append(notif_quota)
+    
+    # Notificação de documento novo
+    for socio in socio_users[:3]:
+        notif_doc = {
+            "id": str(uuid.uuid4()),
+            "user_id": socio['id'],
+            "type": "document_new",
+            "title": "Novo Documento Publicado",
+            "message": "Ata da Assembleia Geral - Janeiro 2025 disponível",
+            "link": "/documentos",
+            "read": socio == socio_users[0],  # Primeiro já leu
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=15)).isoformat()
+        }
+        notifications.append(notif_doc)
+    
+    # Notificação de post aprovado
+    notif_wall = {
+        "id": str(uuid.uuid4()),
+        "user_id": socio_users[0]['id'],
+        "type": "wall_post_approved",
+        "title": "Post Aprovado",
+        "message": "Sua mensagem no mural foi aprovada e publicada!",
+        "link": "/mural",
+        "read": True,
+        "created_at": (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
+    }
+    notifications.append(notif_wall)
+    
+    await db.notifications.insert_many(notifications)
+    print(f"✅ {len(notifications)} notificações criadas")
+    
     print("\n🎉 Seed completo!")
     print("\n📝 Credenciais de acesso:")
     print("\nAdmin:")
