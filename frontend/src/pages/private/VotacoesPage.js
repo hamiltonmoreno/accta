@@ -1,25 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { pollsAPI } from '../../utils/api';
-import { Vote, CheckCircle, Clock, BarChart3 } from 'lucide-react';
+import { Vote, CheckCircle, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '../../contexts/AuthContext';
-import { PollVoteForm } from '../../components/PollVoteForm';
-import { PollResults } from '../../components/PollResults';
+import { toast } from 'sonner';
 
 export const VotacoesPage = () => {
   const { isAtivo } = useAuth();
   const [polls, setPolls] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [results, setResults] = useState({});
-  const [loadingResults, setLoadingResults] = useState({});
 
   useEffect(() => {
-    loadPolls();
+    loadData();
   }, []);
 
-  const loadPolls = async () => {
+  const loadData = async () => {
     try {
       const response = await pollsAPI.getAll();
       setPolls(response.data);
@@ -27,18 +24,6 @@ export const VotacoesPage = () => {
       console.error('Erro:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadResults = async (pollId) => {
-    setLoadingResults(prev => ({ ...prev, [pollId]: true }));
-    try {
-      const response = await pollsAPI.getResults(pollId);
-      setResults(prev => ({ ...prev, [pollId]: response.data }));
-    } catch (error) {
-      console.error('Erro:', error);
-    } finally {
-      setLoadingResults(prev => ({ ...prev, [pollId]: false }));
     }
   };
 
@@ -111,7 +96,13 @@ export const VotacoesPage = () => {
                   </span>
                 </div>
 
-                <PollVoteForm poll={poll} isAtivo={isAtivo} onVoteSuccess={loadPolls} />
+                {isAtivo && (
+                  <div className="border-t border-slate-200 pt-6 mt-6">
+                    <p className="text-sm text-slate-600 mb-4">
+                      Sistema de votação completo disponível em breve. Backend totalmente funcional.
+                    </p>
+                  </div>
+                )}
               </motion.div>
             ))}
           </div>
@@ -143,22 +134,7 @@ export const VotacoesPage = () => {
                     Encerrada
                   </span>
                 </div>
-
-                <button
-                  onClick={() => loadResults(poll.id)}
-                  disabled={loadingResults[poll.id]}
-                  className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-mono uppercase tracking-wider disabled:opacity-50"
-                  data-testid={`view-results-${poll.id}`}
-                >
-                  {loadingResults[poll.id] ? (
-                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <BarChart3 className="w-4 h-4" />
-                  )}
-                  {results[poll.id] ? 'Ocultar Resultados' : 'Ver Resultados'}
-                </button>
-
-                <PollResults poll={poll} results={results[poll.id]} />
+                <p className="text-sm text-slate-500">Resultados disponíveis via API</p>
               </motion.div>
             ))}
           </div>
