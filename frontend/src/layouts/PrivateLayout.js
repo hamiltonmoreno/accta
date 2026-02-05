@@ -50,6 +50,7 @@ export const PrivateLayout = ({ children }) => {
     if (item.roles.includes('admin') && isAdmin) return true;
     if (item.roles.includes('financeiro') && (isFinanceiro || isAdmin)) return true;
     if (item.roles.includes('moderador') && (isModerador || isAdmin)) return true;
+    if (item.roles.includes('socio') && user?.role === 'socio') return true;
     return false;
   });
 
