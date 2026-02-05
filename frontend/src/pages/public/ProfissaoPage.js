@@ -1,131 +1,392 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Radio, Clock, Headphones, BarChart3 } from 'lucide-react';
+import { 
+  Radio, 
+  Eye, 
+  Globe, 
+  Plane, 
+  Building2, 
+  Radar,
+  GraduationCap,
+  Brain,
+  Languages,
+  Heart,
+  ArrowRight,
+  CheckCircle,
+  AlertTriangle
+} from 'lucide-react';
 
 export const ProfissaoPage = () => {
   return (
-    <div className="py-16">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-16"
-        >
-          <h1 className="font-outfit font-bold text-5xl md:text-6xl text-primary mb-6" data-testid="profession-title">
-            Controlador de Tráfego Aéreo
-          </h1>
-          <p className="text-xl text-slate-600 leading-relaxed">
-            Uma profissão de precisão, responsabilidade e dedicação total à segurança aérea
-          </p>
-        </motion.div>
-
-        {/* Hero Image */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className="mb-16 rounded-2xl overflow-hidden shadow-xl"
-        >
-          <img
-            src="https://images.unsplash.com/photo-1760447197763-7f8caf035177?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHw0fHxhaXIlMjB0cmFmZmljJTIwY29udHJvbCUyMHRvd2VyJTIwc3Vuc2V0JTIwYXZpYXRpb258ZW58MHx8fHwxNzcwMTQ3Mjk2fDA&ixlib=rb-4.1.0&q=85"
-            alt="Aviation"
-            className="w-full h-[400px] object-cover"
-          />
-        </motion.div>
-
-        {/* Content */}
-        <div className="space-y-12">
-          <section>
-            <h2 className="font-outfit font-semibold text-3xl text-primary mb-6">O que faz um Controlador?</h2>
-            <p className="text-lg text-slate-600 leading-relaxed mb-4">
-              Os controladores de tráfego aéreo são responsáveis por coordenar o movimento de aeronaves no espaço aéreo e nos aeroportos, garantindo a segurança de todos os voos. Eles trabalham em torres de controle, centros de controle de área e instalações de controle de aproximação.
-            </p>
-            <p className="text-lg text-slate-600 leading-relaxed">
-              Esta é uma profissão que exige alta concentração, tomada de decisão rápida, excelente comunicação e capacidade de trabalhar sob pressão. Cada decisão pode impactar a segurança de centenas de pessoas.
-            </p>
-          </section>
-
-          {/* Responsibilities */}
-          <section>
-            <h2 className="font-outfit font-semibold text-3xl text-primary mb-6">Responsabilidades Principais</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="card-technical rounded-xl p-6">
-                <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-4">
-                  <Radio className="w-6 h-6 text-accent" />
-                </div>
-                <h3 className="font-outfit font-semibold text-xl text-primary mb-3">Comunicação</h3>
-                <p className="text-slate-600">
-                  Manter comunicação constante e clara com pilotos, fornecendo instruções precisas para navegação segura
-                </p>
-              </div>
-
-              <div className="card-technical rounded-xl p-6">
-                <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-4">
-                  <Clock className="w-6 h-6 text-accent" />
-                </div>
-                <h3 className="font-outfit font-semibold text-xl text-primary mb-3">Gestão de Tempo</h3>
-                <p className="text-slate-600">
-                  Coordenar horários de decolagem e aterrissagem, otimizando o fluxo de tráfego aéreo
-                </p>
-              </div>
-
-              <div className="card-technical rounded-xl p-6">
-                <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-4">
-                  <BarChart3 className="w-6 h-6 text-accent" />
-                </div>
-                <h3 className="font-outfit font-semibold text-xl text-primary mb-3">Monitoramento</h3>
-                <p className="text-slate-600">
-                  Acompanhar múltiplas aeronaves simultaneamente usando sistemas de radar e tecnologia avançada
-                </p>
-              </div>
-
-              <div className="card-technical rounded-xl p-6">
-                <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-4">
-                  <Headphones className="w-6 h-6 text-accent" />
-                </div>
-                <h3 className="font-outfit font-semibold text-xl text-primary mb-3">Emergências</h3>
-                <p className="text-slate-600">
-                  Responder rapidamente a situações de emergência, coordenando ações de segurança
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* Requirements */}
-          <section>
-            <h2 className="font-outfit font-semibold text-3xl text-primary mb-6">Requisitos da Profissão</h2>
-            <div className="card-technical rounded-xl p-8">
-              <ul className="space-y-4 text-slate-600">
-                <li className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-accent rounded-full mt-2" />
-                  <span className="flex-1">Formação especializada em controle de tráfego aéreo</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-accent rounded-full mt-2" />
-                  <span className="flex-1">Certificação pela autoridade de aviação civil</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-accent rounded-full mt-2" />
-                  <span className="flex-1">Excelência em comunicação em português e inglês</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-accent rounded-full mt-2" />
-                  <span className="flex-1">Capacidade de trabalhar sob pressão e tomar decisões rápidas</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-accent rounded-full mt-2" />
-                  <span className="flex-1">Excelente visão, audição e saúde física e mental</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-accent rounded-full mt-2" />
-                  <span className="flex-1">Formação contínua e atualização de competências</span>
-                </li>
-              </ul>
-            </div>
-          </section>
+    <div className="min-h-screen bg-slate-50">
+      {/* Hero Section */}
+      <section className="relative py-24 bg-primary overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0" style={{ 
+            backgroundImage: 'linear-gradient(rgba(0,255,156,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,156,0.3) 1px, transparent 1px)',
+            backgroundSize: '40px 40px'
+          }} />
         </div>
-      </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center"
+          >
+            <span className="inline-block px-4 py-2 bg-accent/10 border border-accent/30 text-accent rounded-full font-mono text-sm uppercase tracking-wider mb-6">
+              Educativo
+            </span>
+            <h1 className="font-outfit font-bold text-5xl lg:text-6xl text-white mb-6" data-testid="profession-title">
+              O que é ser um{' '}
+              <span className="text-accent">Controlador de Tráfego Aéreo?</span>
+            </h1>
+            <p className="text-xl text-white/80 max-w-3xl mx-auto leading-relaxed">
+              Uma profissão de raciocínio rápido, alta responsabilidade e precisão absoluta
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Introduction */}
+      <section className="py-24">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <h2 className="font-outfit font-bold text-4xl text-primary mb-8">
+                A Autoridade nos{' '}
+                <span className="text-accent">Céus</span>
+              </h2>
+              <div className="space-y-6 text-lg text-slate-600 leading-relaxed">
+                <p>
+                  O <strong className="text-primary">Controlador de Tráfego Aéreo (CTA)</strong> é a autoridade que emite 
+                  instruções aos pilotos para garantir que as aeronaves mantenham distâncias seguras entre si, 
+                  tanto no ar quanto no solo.
+                </p>
+                <p>
+                  É uma profissão que exige <span className="text-accent font-semibold">concentração extrema</span>, 
+                  capacidade de tomar decisões rápidas sob pressão e uma comunicação clara e precisa em inglês técnico.
+                </p>
+                <p>
+                  Os controladores trabalham em turnos de 24 horas, garantindo que cada voo chegue ao seu destino em segurança, 
+                  seja um voo doméstico ou uma aeronave cruzando o Atlântico.
+                </p>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-8 text-white">
+                <h3 className="font-outfit font-bold text-2xl mb-6">Principais Responsabilidades</h3>
+                <ul className="space-y-4">
+                  {[
+                    'Evitar colisões entre aeronaves',
+                    'Organizar descolagens e aterragens',
+                    'Guiar aeronaves em rotas seguras',
+                    'Gerir emergências aéreas',
+                    'Coordenar com outros centros de controlo',
+                    'Informar condições meteorológicas críticas'
+                  ].map((item, index) => (
+                    <li key={index} className="flex items-start gap-3">
+                      <CheckCircle className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
+                      <span className="text-white/90">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Types of Control */}
+      <section className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <span className="inline-block px-4 py-2 bg-accent/10 text-accent rounded-full font-mono text-sm uppercase tracking-wider mb-6">
+              Tipos de Controlo
+            </span>
+            <h2 className="font-outfit font-bold text-4xl text-primary mb-4">
+              Os Tipos de Controlo em Cabo Verde
+            </h2>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              Conheça as diferentes funções desempenhadas pelos controladores de tráfego aéreo
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* TWR */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="card-technical rounded-2xl overflow-hidden"
+            >
+              <div className="h-48 bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center relative">
+                <Building2 className="w-20 h-20 text-white/30 absolute" />
+                <Eye className="w-16 h-16 text-white relative z-10" />
+              </div>
+              <div className="p-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-mono text-sm font-bold">TWR</span>
+                  <h3 className="font-outfit font-bold text-xl text-primary">Torre de Controlo</h3>
+                </div>
+                <p className="text-slate-600 leading-relaxed mb-4">
+                  São os <strong>"olhos" do aeroporto</strong>. Gerem as aeronaves que estão a aterrar, a descolar e 
+                  a movimentar-se nas pistas e pátios.
+                </p>
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <div className="font-mono text-xs text-slate-500 uppercase tracking-wider mb-2">Localizações</div>
+                  <p className="text-sm text-primary font-medium">Sal, Praia, São Vicente, Boa Vista</p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* APP */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="card-technical rounded-2xl overflow-hidden"
+            >
+              <div className="h-48 bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center relative">
+                <Radar className="w-20 h-20 text-white/30 absolute animate-spin" style={{ animationDuration: '10s' }} />
+                <Radio className="w-16 h-16 text-white relative z-10" />
+              </div>
+              <div className="p-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full font-mono text-sm font-bold">APP</span>
+                  <h3 className="font-outfit font-bold text-xl text-primary">Controlo de Aproximação</h3>
+                </div>
+                <p className="text-slate-600 leading-relaxed mb-4">
+                  Cuidam das aeronaves numa área maior ao redor do aeroporto (geralmente até <strong>40-50 milhas</strong>), 
+                  organizando a fila para aterragem.
+                </p>
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <div className="font-mono text-xs text-slate-500 uppercase tracking-wider mb-2">Tecnologia</div>
+                  <p className="text-sm text-primary font-medium">Radares de aproximação</p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* ACC */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="card-technical rounded-2xl overflow-hidden"
+            >
+              <div className="h-48 bg-gradient-to-br from-primary to-[#0A3A5A] flex items-center justify-center relative">
+                <Globe className="w-20 h-20 text-white/30 absolute" />
+                <Plane className="w-16 h-16 text-accent relative z-10 -rotate-45" />
+              </div>
+              <div className="p-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="px-3 py-1 bg-accent/20 text-primary rounded-full font-mono text-sm font-bold">ACC</span>
+                  <h3 className="font-outfit font-bold text-xl text-primary">Centro Oceânico</h3>
+                </div>
+                <p className="text-slate-600 leading-relaxed mb-4">
+                  Gerem as aeronaves em voo de cruzeiro, muitas vezes atravessando o <strong>espaço aéreo FIR Sal</strong> 
+                  entre continentes.
+                </p>
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <div className="font-mono text-xs text-slate-500 uppercase tracking-wider mb-2">Rotas</div>
+                  <p className="text-sm text-primary font-medium">Europa ↔ América do Sul, África ↔ América do Norte</p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* How to Become */}
+      <section className="py-24 bg-slate-50">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-16 items-start">
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <span className="inline-block px-4 py-2 bg-primary/5 text-primary rounded-full font-mono text-sm uppercase tracking-wider mb-6">
+                Carreira
+              </span>
+              <h2 className="font-outfit font-bold text-4xl text-primary mb-6">
+                Como se tornar um{' '}
+                <span className="text-accent">Controlador?</span>
+              </h2>
+              <p className="text-lg text-slate-600 leading-relaxed mb-8">
+                A carreira exige formação especializada e um perfil muito específico. Em Cabo Verde, 
+                a formação segue padrões internacionais <strong>(ICAO)</strong> e é validada pela 
+                Autoridade de Aviação Civil (AAC).
+              </p>
+              
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-8">
+                <div className="flex items-start gap-4">
+                  <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-1" />
+                  <div>
+                    <h4 className="font-outfit font-semibold text-amber-800 mb-2">Seleção Rigorosa</h4>
+                    <p className="text-amber-700 text-sm">
+                      Apenas uma pequena percentagem dos candidatos consegue concluir todo o processo de formação 
+                      e obter a licença de CTA.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="space-y-6"
+            >
+              <h3 className="font-outfit font-semibold text-2xl text-primary mb-6">Requisitos Essenciais</h3>
+              
+              {[
+                { 
+                  icon: GraduationCap, 
+                  title: 'Formação Especializada', 
+                  desc: 'Curso teórico e prático em instituição certificada, com simuladores e estágios em ambiente operacional real.',
+                  color: 'bg-blue-50 text-blue-600'
+                },
+                { 
+                  icon: Languages, 
+                  title: 'Domínio do Inglês', 
+                  desc: 'Proficiência mínima nível 4 ICAO. A comunicação aeronáutica internacional é exclusivamente em inglês.',
+                  color: 'bg-green-50 text-green-600'
+                },
+                { 
+                  icon: Brain, 
+                  title: 'Aptidão Cognitiva', 
+                  desc: 'Testes psicotécnicos rigorosos que avaliam raciocínio espacial, memória, atenção dividida e gestão de stress.',
+                  color: 'bg-purple-50 text-purple-600'
+                },
+                { 
+                  icon: Heart, 
+                  title: 'Saúde e Estabilidade', 
+                  desc: 'Exames médicos classe 3 (ICAO) periódicos e avaliação psicológica para garantir aptidão para a função.',
+                  color: 'bg-red-50 text-red-600'
+                },
+              ].map((req, index) => (
+                <div
+                  key={index}
+                  className="card-technical rounded-xl p-6 flex gap-5"
+                >
+                  <div className={`w-14 h-14 ${req.color} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                    <req.icon className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h4 className="font-outfit font-semibold text-lg text-primary mb-2">{req.title}</h4>
+                    <p className="text-slate-600">{req.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* FIR Sal Section */}
+      <section className="py-24 bg-primary relative overflow-hidden">
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute inset-0" style={{ 
+            backgroundImage: 'radial-gradient(circle at 30% 50%, rgba(0,255,156,0.3) 0%, transparent 50%)',
+          }} />
+        </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+            >
+              <div className="relative">
+                <div className="w-80 h-80 mx-auto border-2 border-accent/30 rounded-full flex items-center justify-center">
+                  <div className="w-60 h-60 border border-accent/20 rounded-full flex items-center justify-center">
+                    <div className="w-40 h-40 bg-accent/10 rounded-full flex items-center justify-center">
+                      <Globe className="w-20 h-20 text-accent" />
+                    </div>
+                  </div>
+                </div>
+                <div className="absolute top-10 right-10">
+                  <Plane className="w-8 h-8 text-white animate-pulse" />
+                </div>
+                <div className="absolute bottom-20 left-5">
+                  <Plane className="w-6 h-6 text-accent -rotate-45" />
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <span className="inline-block px-4 py-2 bg-accent/10 text-accent rounded-full font-mono text-sm uppercase tracking-wider mb-6">
+                Espaço Aéreo
+              </span>
+              <h2 className="font-outfit font-bold text-4xl text-white mb-6">
+                A FIR Sal: Um Espaço Estratégico
+              </h2>
+              <p className="text-xl text-white/80 leading-relaxed mb-6">
+                A <strong className="text-accent">Flight Information Region (FIR) de Sal</strong> é uma das maiores 
+                regiões de informação de voo do Atlântico, cobrindo milhões de quilómetros quadrados de oceano.
+              </p>
+              <p className="text-lg text-white/70 leading-relaxed mb-8">
+                Os controladores cabo-verdianos gerem diariamente centenas de voos intercontinentais que atravessam 
+                este corredor vital entre a Europa, África e as Américas.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
+                  <div className="font-outfit font-bold text-3xl text-accent mb-1">500+</div>
+                  <div className="font-mono text-xs text-white/60 uppercase tracking-wider">Voos/dia em média</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
+                  <div className="font-outfit font-bold text-3xl text-accent mb-1">24/7</div>
+                  <div className="font-mono text-xs text-white/60 uppercase tracking-wider">Operação contínua</div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-24 bg-white">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="font-outfit font-bold text-4xl text-primary mb-6">
+            Quer conhecer a nossa associação?
+          </h2>
+          <p className="text-xl text-slate-600 mb-10">
+            A ACCTA representa e defende os interesses dos controladores de tráfego aéreo em Cabo Verde
+          </p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Link
+              to="/sobre"
+              className="inline-flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary/90 transition-all"
+            >
+              Sobre a ACCTA
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+            <Link
+              to="/contactos"
+              className="inline-flex items-center gap-2 border-2 border-primary text-primary px-8 py-4 rounded-lg font-bold text-lg hover:bg-primary hover:text-white transition-all"
+            >
+              Entre em Contacto
+            </Link>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };
