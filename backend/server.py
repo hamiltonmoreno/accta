@@ -249,6 +249,19 @@ async def create_audit_log(user_id: str, action: str, target_id: Optional[str] =
     log_dict['created_at'] = log_dict['created_at'].isoformat()
     await db.audit_logs.insert_one(log_dict)
 
+async def create_notification(user_id: str, type: str, title: str, message: str, link: Optional[str] = None):
+    """Helper function to create notifications"""
+    notification = Notification(user_id=user_id, type=type, title=title, message=message, link=link)
+    notif_dict = notification.model_dump()
+    notif_dict['created_at'] = notif_dict['created_at'].isoformat()
+    await db.notifications.insert_one(notif_dict)
+
+async def notify_all_active_users(type: str, title: str, message: str, link: Optional[str] = None):
+    """Send notification to all active members"""
+    users = await db.users.find({"status": "ativo"}, {"_id": 0, "id": 1}).to_list(1000)
+    for user in users:
+        await create_notification(user['id'], type, title, message, link)
+
 # ===== ROUTES =====
 
 @api_router.get("/")
