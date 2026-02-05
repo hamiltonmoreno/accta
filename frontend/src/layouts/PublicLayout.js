@@ -8,10 +8,11 @@ export const PublicLayout = ({ children }) => {
 
   const navItems = [
     { label: 'Início', path: '/' },
-    { label: 'Sobre a Profissão', path: '/profissao' },
-    { label: 'Notícias', path: '/noticias' },
+    { label: 'Sobre', path: '/sobre' },
+    { label: 'A Profissão', path: '/profissao' },
+    { label: 'Benefícios', path: '/beneficios-publico' },
     { label: 'Transparência', path: '/transparencia' },
-    { label: 'Validador', path: '/validador' },
+    { label: 'Contactos', path: '/contactos' },
   ];
 
   return (
