@@ -11,12 +11,15 @@ Ecossistema digital integrado para a Associação dos Controladores de Tráfego 
 
 ## Funcionalidades Implementadas
 
-### Área Pública
-- [x] Homepage com apresentação da associação
-- [x] Página de Notícias
-- [x] Página "A Profissão"
-- [x] Transparência Institucional
-- [x] Validador QR Code Público
+### Área Pública (ATUALIZADO)
+- [x] **Homepage** com hero impactante (imagem de avião), estatísticas, seção educativa e notícias
+- [x] **Sobre Nós (A Associação)** - Quem Somos, Missão, Visão, Valores, Corpos Sociais
+- [x] **A Profissão** - Educativo sobre CTA, tipos de controlo (TWR, APP, ACC), FIR Sal, como se tornar controlador
+- [x] **Clube de Benefícios (Público)** - Parcerias, como funciona, grid de parceiros
+- [x] **Transparência** - Documentos institucionais, relatórios, indicadores de governança
+- [x] **Contactos** - Formulário, informações de contacto, FAQ
+- [x] **Validador QR Code Público**
+- [x] **Página de Notícias**
 
 ### Área Reservada (Portal do Associado)
 - [x] **Dashboard** - Resumo personalizado com quotas, votações e notificações

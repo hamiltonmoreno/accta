@@ -41,31 +41,26 @@ export const HomePage = () => {
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex items-center overflow-hidden">
-        {/* Background with gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-[#0A3A5A]">
-          {/* Animated radar effect */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px]">
-              <div className="absolute inset-0 border border-accent/30 rounded-full animate-ping" style={{ animationDuration: '3s' }} />
-              <div className="absolute inset-[100px] border border-accent/20 rounded-full animate-ping" style={{ animationDuration: '3s', animationDelay: '0.5s' }} />
-              <div className="absolute inset-[200px] border border-accent/10 rounded-full animate-ping" style={{ animationDuration: '3s', animationDelay: '1s' }} />
-            </div>
-          </div>
-          {/* Grid pattern */}
-          <div className="absolute inset-0 opacity-5" style={{ 
-            backgroundImage: 'linear-gradient(rgba(0,255,156,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,156,0.3) 1px, transparent 1px)',
-            backgroundSize: '50px 50px'
-          }} />
+        {/* Background Image */}
+        <div className="absolute inset-0">
+          <img 
+            src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=2074&auto=format&fit=crop"
+            alt="Avião voando no céu"
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="eager"
+          />
+          {/* Dark overlay for text readability - gradient from solid to semi-transparent */}
+          <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/80 to-primary/40" />
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 py-20">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="max-w-2xl">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 border border-accent/30 rounded-full mb-8">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/20 backdrop-blur-sm border border-accent/30 rounded-full mb-8">
                 <Radio className="w-4 h-4 text-accent" />
                 <span className="text-accent font-mono text-sm uppercase tracking-wider">ACCTA Cabo Verde</span>
               </div>
@@ -76,7 +71,7 @@ export const HomePage = () => {
                 dos Céus de Cabo Verde
               </h1>
 
-              <p className="text-xl lg:text-2xl text-white/80 leading-relaxed mb-10 max-w-xl">
+              <p className="text-xl lg:text-2xl text-white/90 leading-relaxed mb-10 max-w-xl">
                 24 horas por dia, garantimos a segurança, a fluidez e a soberania do espaço aéreo no meio do Atlântico.{' '}
                 <span className="text-accent font-semibold">Nós somos a CTA.</span>
               </p>
@@ -84,7 +79,7 @@ export const HomePage = () => {
               <div className="flex flex-wrap gap-4">
                 <Link
                   to="/profissao"
-                  className="group inline-flex items-center gap-3 bg-accent text-primary px-8 py-4 rounded-lg font-bold text-lg hover:bg-accent/90 transition-all"
+                  className="group inline-flex items-center gap-3 bg-accent text-primary px-8 py-4 rounded-lg font-bold text-lg hover:bg-accent/90 transition-all shadow-lg shadow-accent/25"
                   data-testid="hero-cta-primary"
                 >
                   Conheça a Profissão
@@ -92,29 +87,11 @@ export const HomePage = () => {
                 </Link>
                 <Link
                   to="/login"
-                  className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm text-white border border-white/20 px-8 py-4 rounded-lg font-bold text-lg hover:bg-white/20 transition-all"
+                  className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm text-white border border-white/30 px-8 py-4 rounded-lg font-bold text-lg hover:bg-white/20 transition-all"
                   data-testid="hero-cta-secondary"
                 >
                   Área do Associado
                 </Link>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="hidden lg:block"
-            >
-              <div className="relative">
-                {/* Control Tower Illustration */}
-                <div className="w-80 h-80 mx-auto bg-gradient-to-b from-accent/20 to-transparent rounded-full flex items-center justify-center">
-                  <div className="relative">
-                    <Plane className="w-32 h-32 text-accent transform -rotate-45" />
-                    <div className="absolute -top-4 -right-4 w-6 h-6 bg-accent rounded-full animate-pulse" />
-                    <div className="absolute -bottom-2 -left-6 w-4 h-4 bg-white/50 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }} />
-                  </div>
-                </div>
               </div>
             </motion.div>
           </div>
@@ -327,77 +304,6 @@ export const HomePage = () => {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-[#061525] py-16">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-12 mb-12">
-            <div className="md:col-span-2">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-accent rounded-lg flex items-center justify-center">
-                  <Plane className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <div className="font-outfit font-bold text-xl text-white">ACCTA</div>
-                  <div className="font-mono text-xs text-accent uppercase tracking-wider">Cabo Verde</div>
-                </div>
-              </div>
-              <p className="text-white/60 leading-relaxed mb-4">
-                Associação dos Controladores de Tráfego Aéreo de Cabo Verde
-              </p>
-              <p className="text-accent font-semibold italic">
-                "Segurança no céu, união em terra."
-              </p>
-            </div>
-
-            <div>
-              <h4 className="font-outfit font-semibold text-white mb-4">Links Rápidos</h4>
-              <ul className="space-y-3">
-                {[
-                  { to: '/sobre', label: 'Sobre' },
-                  { to: '/profissao', label: 'A Profissão' },
-                  { to: '/transparencia', label: 'Transparência' },
-                  { to: '/beneficios-publico', label: 'Benefícios' },
-                  { to: '/contactos', label: 'Contactos' },
-                ].map((link) => (
-                  <li key={link.to}>
-                    <Link to={link.to} className="text-white/60 hover:text-accent transition-colors">
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-outfit font-semibold text-white mb-4">Área Reservada</h4>
-              <ul className="space-y-3">
-                <li>
-                  <Link to="/login" className="text-white/60 hover:text-accent transition-colors">
-                    Login Associados
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/validador" className="text-white/60 hover:text-accent transition-colors">
-                    Validador QR
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-white/40 text-sm">
-              © {new Date().getFullYear()} ACCTA - Todos os direitos reservados
-            </p>
-            <div className="flex gap-6">
-              <Link to="/privacidade" className="text-white/40 text-sm hover:text-accent transition-colors">
-                Política de Privacidade
-              </Link>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };
