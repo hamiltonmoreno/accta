@@ -481,6 +481,78 @@ async def seed_database():
     await db.notifications.insert_many(notifications)
     print(f"✅ {len(notifications)} notificações criadas")
     
+    # ===== EVENTS =====
+    events = [
+        {
+            "id": str(uuid.uuid4()),
+            "title": "Assembleia Geral Ordinária",
+            "description": "Assembleia Geral Ordinária para aprovação de contas e plano de atividades 2025. Todos os sócios são convocados.",
+            "type": "assembleia",
+            "date": (datetime.now(timezone.utc) + timedelta(days=15)).isoformat(),
+            "location": "Sede da ACCTA, Aeroporto Internacional Nelson Mandela, Praia",
+            "visibility": "socios",
+            "max_attendees": 100,
+            "attendees": [socio_users[0]['id'], socio_users[1]['id']],
+            "created_by": admin_id,
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "title": "Workshop de Segurança Operacional",
+            "description": "Formação sobre novas práticas de segurança e gestão de incidentes no espaço aéreo.",
+            "type": "formacao",
+            "date": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
+            "location": "Centro de Formação, Aeroporto do Sal",
+            "visibility": "socios",
+            "max_attendees": 30,
+            "attendees": [socio_users[2]['id']],
+            "created_by": admin_id,
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "title": "Jantar de Confraternização Anual",
+            "description": "Encontro social para celebrar as conquistas do ano e fortalecer os laços entre associados.",
+            "type": "social",
+            "date": (datetime.now(timezone.utc) + timedelta(days=60)).isoformat(),
+            "location": "Hotel Pestana Tropico, Praia",
+            "visibility": "socios",
+            "max_attendees": 80,
+            "attendees": [],
+            "created_by": admin_id,
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "title": "Dia da Aviação Civil - Evento Público",
+            "description": "Celebração do Dia Internacional da Aviação Civil com demonstrações e informações sobre a carreira de CTA.",
+            "type": "outro",
+            "date": (datetime.now(timezone.utc) + timedelta(days=45)).isoformat(),
+            "location": "Aeroporto Internacional da Praia",
+            "visibility": "publico",
+            "max_attendees": None,
+            "attendees": [],
+            "created_by": admin_id,
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "title": "Reunião de Direção Extraordinária",
+            "description": "Reunião urgente da direção para discutir novos acordos coletivos.",
+            "type": "reuniao",
+            "date": (datetime.now(timezone.utc) - timedelta(days=10)).isoformat(),  # Past event
+            "location": "Sala de Reuniões ACCTA",
+            "visibility": "direcao",
+            "max_attendees": 10,
+            "attendees": [admin_id, fin_id],
+            "created_by": admin_id,
+            "created_at": (datetime.now(timezone.utc) - timedelta(days=20)).isoformat()
+        }
+    ]
+    
+    await db.events.insert_many(events)
+    print(f"✅ {len(events)} eventos criados")
+    
     print("\n🎉 Seed completo!")
     print("\n📝 Credenciais de acesso:")
     print("\nAdmin:")

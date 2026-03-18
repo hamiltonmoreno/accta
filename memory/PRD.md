@@ -22,10 +22,11 @@ Ecossistema digital integrado para a Associação dos Controladores de Tráfego 
 - [x] **Página de Notícias**
 
 ### Área Reservada (Portal do Associado)
-- [x] **Dashboard** - Resumo personalizado com quotas, votações e notificações
+- [x] **Dashboard** - Resumo personalizado com quotas, votações, eventos e notificações
 - [x] **Gestão Financeira** - Histórico de quotas com desconto automático em folha salarial
 - [x] **Carteira Digital** - Cartão interativo com QR Code para validação
 - [x] **Sistema de Votações** - Votações abertas/fechadas com resultados
+- [x] **Sistema de Eventos/Agenda** - Criar, visualizar, inscrever-se em eventos
 - [x] **Documentos** - Secretaria digital com upload para administradores
 - [x] **Mural Interno** - Comunicação entre associados
 - [x] **Clube de Benefícios** - Parcerias com desconto

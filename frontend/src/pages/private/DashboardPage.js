@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
-import { statsAPI, invoicesAPI, pollsAPI } from '../../utils/api';
-import { Users, DollarSign, AlertCircle, Vote, CheckCircle, Bell } from 'lucide-react';
+import { statsAPI, invoicesAPI, pollsAPI, eventsAPI } from '../../utils/api';
+import { Users, DollarSign, AlertCircle, Vote, CheckCircle, Bell, Calendar, MapPin, Clock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 export const DashboardPage = () => {
   const { user, isAdmin, isFinanceiro } = useAuth();
@@ -14,6 +16,7 @@ export const DashboardPage = () => {
   const [stats, setStats] = useState(null);
   const [myInvoices, setMyInvoices] = useState([]);
   const [activePolls, setActivePolls] = useState([]);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,6 +37,14 @@ export const DashboardPage = () => {
       const pollsRes = await pollsAPI.getAll();
       const active = pollsRes.data.filter((p) => p.status === 'aberta');
       setActivePolls(active);
+
+      // Load upcoming events
+      try {
+        const eventsRes = await eventsAPI.getUpcoming();
+        setUpcomingEvents(eventsRes.data.slice(0, 3));
+      } catch (e) {
+        console.log('Eventos não disponíveis');
+      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
@@ -206,6 +217,60 @@ export const DashboardPage = () => {
           )}
         </motion.div>
       </div>
+
+      {/* Upcoming Events Widget */}
+      {upcomingEvents.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="card-technical rounded-xl p-6"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-outfit font-semibold text-2xl text-primary">Próximos Eventos</h2>
+            <button
+              onClick={() => navigate('/eventos')}
+              className="text-sm text-accent hover:text-accent/80 font-mono uppercase tracking-wider"
+            >
+              Ver todos
+            </button>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            {upcomingEvents.map((event) => (
+              <div
+                key={event.id}
+                className="p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                onClick={() => navigate('/eventos')}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-accent" />
+                  </div>
+                  <div>
+                    <div className="font-outfit font-bold text-lg text-primary">
+                      {format(new Date(event.date), 'dd')}
+                    </div>
+                    <div className="text-xs text-accent uppercase font-mono">
+                      {format(new Date(event.date), 'MMM', { locale: ptBR })}
+                    </div>
+                  </div>
+                </div>
+                <h3 className="font-manrope font-semibold text-primary mb-2 line-clamp-2">
+                  {event.title}
+                </h3>
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <Clock className="w-3 h-3" />
+                  <span>{format(new Date(event.date), 'HH:mm')}</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                  <MapPin className="w-3 h-3" />
+                  <span className="truncate">{event.location}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Recent Notifications Widget */}
       {unreadCount > 0 && (

@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   ClipboardList,
   Bell,
+  Calendar,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -37,6 +38,7 @@ export const PrivateLayout = ({ children }) => {
     { label: 'Carteira Digital', path: '/carteira', icon: CreditCard, roles: ['socio'] },
     { label: 'Financeiro', path: '/financeiro', icon: CreditCard, roles: ['all'] },
     { label: 'Votações', path: '/votacoes', icon: Vote, roles: ['all'] },
+    { label: 'Eventos', path: '/eventos', icon: Calendar, roles: ['all'] },
     { label: 'Documentos', path: '/documentos', icon: FileText, roles: ['all'] },
     { label: 'Mural', path: '/mural', icon: MessageSquare, roles: ['all'] },
     { label: 'Benefícios', path: '/beneficios', icon: Gift, roles: ['all'] },

@@ -14,6 +14,7 @@ import { LoginPage } from './pages/public/LoginPage';
 import { TransparenciaPage } from './pages/public/TransparenciaPage';
 import { BeneficiosPublicoPage } from './pages/public/BeneficiosPublicoPage';
 import { ContactosPage } from './pages/public/ContactosPage';
+import { EventosPublicoPage } from './pages/public/EventosPublicoPage';
 import { NotificacoesPage } from './pages/private/NotificacoesPage';
 import { DashboardPage } from './pages/private/DashboardPage';
 import { CarteiraPage } from './pages/private/CarteiraPage';
@@ -22,6 +23,7 @@ import { VotacoesPage } from './pages/private/VotacoesPage';
 import { DocumentosPage } from './pages/private/DocumentosPage';
 import { MuralPage } from './pages/private/MuralPage';
 import { BeneficiosPage } from './pages/private/BeneficiosPage';
+import { EventosPage } from './pages/private/EventosPage';
 import { AdminUsuariosPage } from './pages/private/AdminUsuariosPage';
 import { AdminLogsPage } from './pages/private/AdminLogsPage';
 import './App.css';
@@ -59,6 +61,7 @@ function AppRoutes() {
       <Route path="/transparencia" element={<PublicLayout><TransparenciaPage /></PublicLayout>} />
       <Route path="/beneficios-publico" element={<PublicLayout><BeneficiosPublicoPage /></PublicLayout>} />
       <Route path="/contactos" element={<PublicLayout><ContactosPage /></PublicLayout>} />
+      <Route path="/eventos-publico" element={<PublicLayout><EventosPublicoPage /></PublicLayout>} />
       <Route path="/validador" element={<PublicLayout><ValidadorPage /></PublicLayout>} />
       <Route path="/login" element={<LoginPage />} />
 
@@ -124,6 +127,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <PrivateLayout><NotificacoesPage /></PrivateLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/eventos"
+        element={
+          <ProtectedRoute>
+            <PrivateLayout><EventosPage /></PrivateLayout>
           </ProtectedRoute>
         }
       />

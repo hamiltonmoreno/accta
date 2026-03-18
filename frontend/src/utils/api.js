@@ -124,3 +124,17 @@ export const notificationsAPI = {
   markAllRead: () => api.patch('/notifications/mark-all-read'),
   create: (data) => api.post('/notifications', data),
 };
+
+// Events API
+export const eventsAPI = {
+  getAll: (visibility) => api.get('/events', { params: { visibility } }),
+  getPublic: () => api.get('/events/public'),
+  getUpcoming: () => api.get('/events/upcoming'),
+  getById: (eventId) => api.get(`/events/${eventId}`),
+  create: (data) => api.post('/events', data),
+  update: (eventId, data) => api.patch(`/events/${eventId}`, data),
+  delete: (eventId) => api.delete(`/events/${eventId}`),
+  register: (eventId) => api.post(`/events/${eventId}/register`),
+  unregister: (eventId) => api.delete(`/events/${eventId}/register`),
+  getAttendees: (eventId) => api.get(`/events/${eventId}/attendees`),
+};
