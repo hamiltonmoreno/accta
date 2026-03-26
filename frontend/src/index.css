@@ -40,10 +40,32 @@
     body {
         @apply bg-gray-50 text-foreground antialiased;
         font-family: 'Open Sans', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
     h1, h2, h3, h4, h5, h6 {
         font-family: 'Open Sans', sans-serif;
         font-weight: 700;
+    }
+
+    /* Better focus states */
+    *:focus-visible {
+        @apply outline-none ring-2 ring-carmesim/50 ring-offset-2;
+    }
+
+    /* Better scrollbar */
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+        @apply bg-transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        @apply bg-gray-300 rounded-full;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        @apply bg-gray-400;
     }
 }
 
@@ -52,6 +74,64 @@
         @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-sm;
     }
     .card-technical {
-        @apply bg-white border border-gray-200 shadow-[0_1px_2px_rgba(0,0,0,0.05)];
+        @apply bg-white border border-gray-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] rounded-xl;
+    }
+    .card-hover {
+        @apply hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:border-gray-300/80 transition-all duration-200;
+    }
+    .card-elevated {
+        @apply bg-white border border-gray-100 shadow-[0_4px_12px_rgba(0,0,0,0.05)] rounded-xl;
+    }
+
+    /* Page title styles */
+    .page-title {
+        @apply font-sans font-bold text-2xl sm:text-3xl lg:text-4xl text-grafite;
+    }
+    .page-subtitle {
+        @apply text-sm sm:text-base text-gray-500 mt-1;
+    }
+
+    /* Better button base */
+    .btn-primary {
+        @apply bg-carmesim text-white hover:bg-carmesim-dark h-10 sm:h-11 px-5 sm:px-6 rounded-lg uppercase tracking-wider font-bold text-xs sm:text-sm transition-colors;
+    }
+    .btn-secondary {
+        @apply bg-grafite text-white hover:bg-grafite-dark h-10 sm:h-11 px-5 sm:px-6 rounded-lg uppercase tracking-wider font-bold text-xs sm:text-sm transition-colors;
+    }
+    .btn-outline {
+        @apply border border-gray-200 text-grafite hover:bg-gray-50 h-10 sm:h-11 px-5 sm:px-6 rounded-lg text-xs sm:text-sm font-semibold transition-colors;
+    }
+
+    /* Responsive text truncation */
+    .text-truncate {
+        @apply overflow-hidden text-ellipsis whitespace-nowrap;
+    }
+
+    /* Mobile-friendly touch targets */
+    .touch-target {
+        @apply min-h-[44px] min-w-[44px];
+    }
+
+    /* Stagger animation helper */
+    .stagger-1 { animation-delay: 0.05s; }
+    .stagger-2 { animation-delay: 0.1s; }
+    .stagger-3 { animation-delay: 0.15s; }
+    .stagger-4 { animation-delay: 0.2s; }
+}
+
+/* Smooth page transitions */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Mobile-first improvements */
+@media (max-width: 640px) {
+    .card-technical {
+        @apply rounded-lg;
     }
 }

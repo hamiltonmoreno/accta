@@ -1,63 +1,72 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { Menu, X, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ACCTALogoHorizontal } from '../components/ACCTALogo';
 
 export const PublicLayout = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const location = useLocation();
+  const currentPath = location.pathname;
 
   const navItems = [
-    { label: 'Início', path: '/' },
+    { label: 'Inicio', path: '/' },
     { label: 'Sobre', path: '/sobre' },
-    { label: 'A Profissão', path: '/profissao' },
-    { label: 'Benefícios', path: '/beneficios-publico' },
-    { label: 'Transparência', path: '/transparencia' },
+    { label: 'A Profissao', path: '/profissao' },
+    { label: 'Beneficios', path: '/beneficios-publico' },
+    { label: 'Transparencia', path: '/transparencia' },
     { label: 'Contactos', path: '/contactos' },
   ];
 
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center justify-between">
-            {/* Logo */}
-            <Link to="/" className="group">
+            <Link to="/" className="flex-shrink-0">
               <ACCTALogoHorizontal />
             </Link>
 
             {/* Desktop Nav */}
-            <div className="hidden md:flex items-center gap-8">
-              {navItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className="text-sm font-medium text-grafite hover:text-carmesim transition-colors"
-                  data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                >
-                  {item.label}
-                </Link>
-              ))}
+            <div className="hidden lg:flex items-center gap-1">
+              {navItems.map((item) => {
+                const isActive = item.path === '/' ? currentPath === '/' : currentPath.startsWith(item.path);
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'text-carmesim bg-carmesim/5'
+                        : 'text-grafite/80 hover:text-grafite hover:bg-gray-50'
+                    }`}
+                    data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
               <Link
                 to="/login"
-                className="bg-carmesim text-white hover:bg-carmesim-dark h-10 px-6 rounded-md uppercase tracking-wider font-bold text-sm transition-all flex items-center"
+                className="ml-3 bg-carmesim text-white hover:bg-carmesim-dark h-9 px-5 rounded-lg uppercase tracking-wider font-bold text-xs transition-colors flex items-center gap-2"
                 data-testid="nav-login-button"
               >
                 Entrar
+                <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
               data-testid="mobile-menu-button"
             >
               {mobileMenuOpen ? (
-                <X className="w-6 h-6 text-grafite" />
+                <X className="w-5 h-5 text-grafite" />
               ) : (
-                <Menu className="w-6 h-6 text-grafite" />
+                <Menu className="w-5 h-5 text-grafite" />
               )}
             </button>
           </div>
@@ -70,26 +79,38 @@ export const PublicLayout = ({ children }) => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="md:hidden bg-white border-t border-gray-100"
+              transition={{ duration: 0.2 }}
+              className="lg:hidden bg-white border-t border-gray-100 overflow-hidden"
             >
-              <div className="px-4 py-4 space-y-2">
-                {navItems.map((item) => (
+              <div className="px-4 py-3 space-y-1">
+                {navItems.map((item) => {
+                  const isActive = item.path === '/' ? currentPath === '/' : currentPath.startsWith(item.path);
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center justify-between py-3 px-4 rounded-lg font-medium transition-colors ${
+                        isActive
+                          ? 'text-carmesim bg-carmesim/5'
+                          : 'text-grafite hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="text-sm">{item.label}</span>
+                      {isActive && <div className="w-1.5 h-1.5 bg-carmesim rounded-full" />}
+                    </Link>
+                  );
+                })}
+                <div className="pt-2">
                   <Link
-                    key={item.path}
-                    to={item.path}
+                    to="/login"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block py-3 px-4 rounded-lg text-grafite hover:bg-gray-50 hover:text-carmesim transition-colors font-medium"
+                    className="flex items-center justify-center gap-2 py-3 px-4 bg-carmesim text-white rounded-lg font-bold uppercase tracking-wider text-sm"
                   >
-                    {item.label}
+                    Entrar
+                    <ArrowRight className="w-4 h-4" />
                   </Link>
-                ))}
-                <Link
-                  to="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block py-3 px-4 bg-carmesim text-white rounded-lg text-center font-bold uppercase tracking-wider"
-                >
-                  Entrar
-                </Link>
+                </div>
               </div>
             </motion.div>
           )}
@@ -97,47 +118,48 @@ export const PublicLayout = ({ children }) => {
       </header>
 
       {/* Page Content */}
-      <main className="flex-grow pt-20">
+      <main className="flex-grow pt-16 lg:pt-[60px]">
         {children}
       </main>
 
       {/* Footer */}
       <footer className="bg-grafite text-white mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="md:col-span-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="col-span-2 sm:col-span-2 md:col-span-2">
               <ACCTALogoHorizontal dark className="mb-4" />
-              <p className="text-sm text-gray-300 mb-4">
-                Associação dos Controladores de Tráfego Aéreo de Cabo Verde
+              <p className="text-sm text-gray-400 mb-3 max-w-sm">
+                Associacao dos Controladores de Trafego Aereo de Cabo Verde
               </p>
-              <p className="text-carmesim font-semibold italic">
-                "Segurança no céu, união em terra."
+              <p className="text-carmesim font-semibold italic text-sm">
+                "Seguranca no ceu, uniao em terra."
               </p>
             </div>
 
             <div>
-              <h3 className="font-semibold mb-4">Links Rápidos</h3>
-              <ul className="space-y-2 text-sm text-gray-300">
+              <h3 className="font-semibold text-sm uppercase tracking-wider mb-4 text-white/80">Links Rapidos</h3>
+              <ul className="space-y-2.5 text-sm text-gray-400">
                 <li><Link to="/sobre" className="hover:text-carmesim transition-colors">Sobre</Link></li>
-                <li><Link to="/profissao" className="hover:text-carmesim transition-colors">A Profissão</Link></li>
-                <li><Link to="/transparencia" className="hover:text-carmesim transition-colors">Transparência</Link></li>
-                <li><Link to="/beneficios-publico" className="hover:text-carmesim transition-colors">Benefícios</Link></li>
+                <li><Link to="/profissao" className="hover:text-carmesim transition-colors">A Profissao</Link></li>
+                <li><Link to="/transparencia" className="hover:text-carmesim transition-colors">Transparencia</Link></li>
+                <li><Link to="/beneficios-publico" className="hover:text-carmesim transition-colors">Beneficios</Link></li>
                 <li><Link to="/contactos" className="hover:text-carmesim transition-colors">Contactos</Link></li>
               </ul>
             </div>
 
             <div>
-              <h3 className="font-semibold mb-4">Área Reservada</h3>
-              <ul className="space-y-2 text-sm text-gray-300">
+              <h3 className="font-semibold text-sm uppercase tracking-wider mb-4 text-white/80">Area Reservada</h3>
+              <ul className="space-y-2.5 text-sm text-gray-400">
                 <li><Link to="/login" className="hover:text-carmesim transition-colors">Login Associados</Link></li>
                 <li><Link to="/validador" className="hover:text-carmesim transition-colors">Validador QR</Link></li>
+                <li><Link to="/eventos-publico" className="hover:text-carmesim transition-colors">Eventos</Link></li>
               </ul>
             </div>
           </div>
 
-          <div className="border-t border-white/10 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-400">
+          <div className="border-t border-white/10 mt-8 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-gray-500">
             <p>&copy; {new Date().getFullYear()} ACCTA - Todos os direitos reservados</p>
-            <Link to="/privacidade" className="hover:text-carmesim transition-colors">Política de Privacidade</Link>
+            <Link to="/privacidade" className="hover:text-carmesim transition-colors">Politica de Privacidade</Link>
           </div>
         </div>
       </footer>

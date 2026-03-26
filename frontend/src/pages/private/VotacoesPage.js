@@ -70,13 +70,13 @@ export const VotacoesPage = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-8">
       {/* Header */}
       <div>
-        <h1 className="font-sans font-bold text-4xl text-grafite mb-2" data-testid="polls-title">
-          Votações
+        <h1 className="page-title" data-testid="polls-title">
+          Votacoes
         </h1>
-        <p className="text-gray-600">Participe das decisões da associação</p>
+        <p className="page-subtitle">Participe das decisoes da associacao</p>
       </div>
 
       {/* Status Alert for Inactive Members */}
@@ -84,16 +84,15 @@ export const VotacoesPage = () => {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="card-technical rounded-xl p-6 border-2 border-alert"
+          className="card-technical p-4 sm:p-6 border-l-4 border-l-orange-500"
           data-testid="voting-restricted"
         >
-          <div className="flex items-start gap-4">
-            <AlertCircle className="w-6 h-6 text-alert flex-shrink-0 mt-1" />
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-sans font-semibold text-lg text-alert mb-2">Votação Restrita</h3>
-              <p className="text-gray-600">
-                Apenas sócios com status <strong>ativo</strong> podem participar de votações. 
-                Por favor, regularize sua situação junto à administração para poder exercer seus direitos de voto.
+              <h3 className="font-semibold text-sm text-orange-700 mb-1">Votacao Restrita</h3>
+              <p className="text-xs sm:text-sm text-gray-600">
+                Apenas socios com status <strong>ativo</strong> podem participar de votacoes.
               </p>
             </div>
           </div>
@@ -102,13 +101,13 @@ export const VotacoesPage = () => {
 
       {/* Open Polls Section */}
       <section>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="font-sans font-semibold text-2xl text-grafite flex items-center gap-3">
-            <Clock className="w-7 h-7 text-carmesim" />
-            Votações Abertas
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h2 className="font-semibold text-lg sm:text-2xl text-grafite flex items-center gap-2 sm:gap-3">
+            <Clock className="w-5 sm:w-7 h-5 sm:h-7 text-carmesim" />
+            Votacoes Abertas
           </h2>
           {openPolls.length > 0 && (
-            <span className="px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm font-mono font-semibold">
+            <span className="px-2.5 sm:px-4 py-1 sm:py-2 bg-carmesim/10 text-carmesim rounded-full text-xs sm:text-sm font-mono font-semibold">
               {openPolls.length} ativa{openPolls.length !== 1 ? 's' : ''}
             </span>
           )}
@@ -149,13 +148,13 @@ export const VotacoesPage = () => {
       {/* Closed Polls Section */}
       {closedPolls.length > 0 && (
         <section>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="font-sans font-semibold text-2xl text-grafite flex items-center gap-3">
-              <CheckCircle className="w-7 h-7 text-gray-400" />
-              Votações Encerradas
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <h2 className="font-semibold text-lg sm:text-2xl text-grafite flex items-center gap-2 sm:gap-3">
+              <CheckCircle className="w-5 sm:w-7 h-5 sm:h-7 text-gray-400" />
+              Votacoes Encerradas
             </h2>
-            <span className="px-4 py-2 bg-gray-100 text-gray-500 rounded-full text-sm font-mono font-semibold">
-              {closedPolls.length} encerrada{closedPolls.length !== 1 ? 's' : ''}
+            <span className="px-2.5 sm:px-4 py-1 sm:py-2 bg-gray-100 text-gray-500 rounded-full text-xs sm:text-sm font-mono font-semibold">
+              {closedPolls.length}
             </span>
           </div>
 
