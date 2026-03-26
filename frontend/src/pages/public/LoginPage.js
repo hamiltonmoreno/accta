@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plane, LogIn } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
+import { ACCTALogoHorizontal } from '../../components/ACCTALogo';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
@@ -37,7 +38,7 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -45,20 +46,18 @@ export const LoginPage = () => {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-3 group mb-4">
-            <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center group-hover:bg-primary/90 transition-colors">
-              <Plane className="w-8 h-8 text-accent" />
-            </div>
+          <Link to="/" className="inline-flex justify-center mb-6">
+            <ACCTALogoHorizontal />
           </Link>
-          <h1 className="font-outfit font-bold text-3xl text-primary mb-2" data-testid="login-title">Portal ACCTA</h1>
-          <p className="text-slate-600">Acesse sua conta de sócio</p>
+          <h1 className="font-bold text-3xl text-grafite mb-2" data-testid="login-title">Portal do Associado</h1>
+          <p className="text-gray-600">Acesse sua conta de sócio</p>
         </div>
 
         {/* Form */}
         <div className="card-technical rounded-2xl p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block font-mono text-xs uppercase tracking-widest text-slate-500 mb-2">
+              <label htmlFor="email" className="block text-xs uppercase tracking-widest text-gray-500 mb-2 font-semibold">
                 Email
               </label>
               <input
@@ -68,14 +67,14 @@ export const LoginPage = () => {
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-carmesim focus:border-transparent transition-all"
                 placeholder="seu@email.cv"
                 data-testid="login-email"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block font-mono text-xs uppercase tracking-widest text-slate-500 mb-2">
+              <label htmlFor="password" className="block text-xs uppercase tracking-widest text-gray-500 mb-2 font-semibold">
                 Senha
               </label>
               <input
@@ -85,7 +84,7 @@ export const LoginPage = () => {
                 required
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-carmesim focus:border-transparent transition-all"
                 placeholder="••••••••"
                 data-testid="login-password"
               />
@@ -94,7 +93,7 @@ export const LoginPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary text-white hover:bg-primary/90 h-12 px-6 rounded-lg uppercase tracking-wider font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-carmesim text-white hover:bg-carmesim-dark h-12 px-6 rounded-lg uppercase tracking-wider font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               data-testid="login-submit"
             >
               {loading ? (
@@ -109,16 +108,16 @@ export const LoginPage = () => {
           </form>
 
           <div className="mt-6 text-center">
-            <Link to="/" className="text-sm text-slate-500 hover:text-primary transition-colors">
+            <Link to="/" className="text-sm text-gray-500 hover:text-carmesim transition-colors">
               Voltar ao início
             </Link>
           </div>
         </div>
 
         {/* Demo Info */}
-        <div className="mt-6 p-4 bg-accent/10 border border-accent/20 rounded-lg">
-          <p className="text-sm text-slate-600 text-center">
-            <strong className="text-primary">Demo:</strong> Use as credenciais de teste fornecidas
+        <div className="mt-6 p-4 bg-carmesim/10 border border-carmesim/20 rounded-lg">
+          <p className="text-sm text-gray-600 text-center">
+            <strong className="text-grafite">Demo:</strong> socio1@accta.cv / socio123
           </p>
         </div>
       </motion.div>

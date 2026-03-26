@@ -31,12 +31,12 @@ export const VotingInterface = ({ poll, onVoteSuccess }) => {
 
   if (voted) {
     return (
-      <div className="border-t border-slate-200 pt-6 mt-6">
-        <div className="flex items-center gap-3 p-4 bg-accent/5 rounded-lg border border-accent/20">
-          <CheckCircle className="w-6 h-6 text-accent" />
+      <div className="border-t border-gray-200 pt-6 mt-6">
+        <div className="flex items-center gap-3 p-4 bg-carmesim/5 rounded-lg border border-accent/20">
+          <CheckCircle className="w-6 h-6 text-carmesim" />
           <div>
-            <div className="font-semibold text-primary">Voto Registrado</div>
-            <div className="text-sm text-slate-600">Obrigado pela participação!</div>
+            <div className="font-semibold text-grafite">Voto Registrado</div>
+            <div className="text-sm text-gray-600">Obrigado pela participação!</div>
           </div>
         </div>
       </div>
@@ -46,7 +46,7 @@ export const VotingInterface = ({ poll, onVoteSuccess }) => {
   const options = poll.options || [];
 
   return (
-    <div className="border-t border-slate-200 pt-6 mt-6">
+    <div className="border-t border-gray-200 pt-6 mt-6">
       <div className="space-y-3 mb-6">
         {options.map((opt) => {
           const isSelected = selected === opt.id;
@@ -55,8 +55,8 @@ export const VotingInterface = ({ poll, onVoteSuccess }) => {
               key={opt.id}
               className={`flex items-center gap-3 p-4 rounded-lg cursor-pointer transition ${
                 isSelected
-                  ? 'bg-accent/10 border-2 border-accent'
-                  : 'bg-slate-50 border-2 border-transparent hover:bg-slate-100'
+                  ? 'bg-carmesim/10 border-2 border-accent'
+                  : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
               }`}
             >
               <input
@@ -68,7 +68,7 @@ export const VotingInterface = ({ poll, onVoteSuccess }) => {
                 data-testid={`option-${opt.id}`}
               />
               <span className="flex-1">{opt.label}</span>
-              {isSelected && <CheckCircle className="w-5 h-5 text-accent" />}
+              {isSelected && <CheckCircle className="w-5 h-5 text-carmesim" />}
             </label>
           );
         })}
@@ -77,7 +77,7 @@ export const VotingInterface = ({ poll, onVoteSuccess }) => {
       <button
         onClick={handleVote}
         disabled={!selected || voting}
-        className="w-full bg-primary text-white h-12 rounded-lg font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+        className="w-full bg-grafite text-white h-12 rounded-lg font-bold disabled:opacity-50 flex items-center justify-center gap-2"
         data-testid="vote-button"
       >
         {voting ? (

@@ -91,9 +91,9 @@ export const TransparenciaPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative py-24 bg-primary overflow-hidden">
+      <section className="relative py-24 bg-grafite overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{ 
             backgroundImage: 'linear-gradient(rgba(0,255,156,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,156,0.3) 1px, transparent 1px)',
@@ -106,12 +106,12 @@ export const TransparenciaPage = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-center"
           >
-            <span className="inline-block px-4 py-2 bg-accent/10 border border-accent/30 text-accent rounded-full font-mono text-sm uppercase tracking-wider mb-6">
+            <span className="inline-block px-4 py-2 bg-carmesim/10 border border-accent/30 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
               Governança
             </span>
-            <h1 className="font-outfit font-bold text-5xl lg:text-6xl text-white mb-6" data-testid="transparency-title">
+            <h1 className="font-sans font-bold text-5xl lg:text-6xl text-white mb-6" data-testid="transparency-title">
               Transparência e{' '}
-              <span className="text-accent">Prestação de Contas</span>
+              <span className="text-carmesim">Prestação de Contas</span>
             </h1>
             <p className="text-xl text-white/80 max-w-3xl mx-auto leading-relaxed">
               A credibilidade da ACCTA baseia-se na transparência com os seus associados e com a sociedade
@@ -127,10 +127,10 @@ export const TransparenciaPage = () => {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200"
+            className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200"
           >
-            <Shield className="w-12 h-12 text-accent mx-auto mb-4" />
-            <p className="text-lg text-slate-600 leading-relaxed">
+            <Shield className="w-12 h-12 text-carmesim mx-auto mb-4" />
+            <p className="text-lg text-gray-600 leading-relaxed">
               Nesta secção, disponibilizamos os documentos que regem a nossa atuação e os relatórios que comprovam 
               a nossa gestão responsável. A transparência é um dos nossos valores fundamentais.
             </p>
@@ -142,10 +142,10 @@ export const TransparenciaPage = () => {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
-            <span className="inline-block px-4 py-2 bg-primary/5 text-primary rounded-full font-mono text-sm uppercase tracking-wider mb-4">
+            <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-4">
               Documentos Institucionais
             </span>
-            <h2 className="font-outfit font-bold text-3xl text-primary">
+            <h2 className="font-sans font-bold text-3xl text-grafite">
               Regulamentos e Estatutos
             </h2>
           </div>
@@ -162,18 +162,18 @@ export const TransparenciaPage = () => {
                   transition={{ delay: index * 0.1 }}
                   className="card-technical rounded-xl p-6 hover:shadow-lg transition-all group"
                 >
-                  <div className="w-14 h-14 bg-primary rounded-xl flex items-center justify-center mb-5">
-                    <IconComponent className="w-7 h-7 text-accent" />
+                  <div className="w-14 h-14 bg-grafite rounded-xl flex items-center justify-center mb-5">
+                    <IconComponent className="w-7 h-7 text-carmesim" />
                   </div>
-                  <h3 className="font-outfit font-semibold text-xl text-primary mb-3 group-hover:text-accent transition-colors">
+                  <h3 className="font-sans font-semibold text-xl text-grafite mb-3 group-hover:text-carmesim transition-colors">
                     {doc.title}
                   </h3>
-                  <p className="text-slate-600 mb-6">{doc.description}</p>
+                  <p className="text-gray-600 mb-6">{doc.description}</p>
                   <a
                     href={doc.file_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-primary font-semibold hover:text-accent transition-colors"
+                    className="inline-flex items-center gap-2 text-grafite font-semibold hover:text-carmesim transition-colors"
                   >
                     <Download className="w-5 h-5" />
                     Download PDF
@@ -186,13 +186,13 @@ export const TransparenciaPage = () => {
       </section>
 
       {/* Reports */}
-      <section className="py-16 bg-slate-50">
+      <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
-            <span className="inline-block px-4 py-2 bg-accent/10 text-accent rounded-full font-mono text-sm uppercase tracking-wider mb-4">
+            <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-4">
               Relatórios de Gestão
             </span>
-            <h2 className="font-outfit font-bold text-3xl text-primary">
+            <h2 className="font-sans font-bold text-3xl text-grafite">
               Contas e Planos de Atividades
             </h2>
           </div>
@@ -211,22 +211,22 @@ export const TransparenciaPage = () => {
                 >
                   <div className="h-24 bg-gradient-to-r from-primary to-[#0A3A5A] flex items-center px-6">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-accent rounded-lg flex items-center justify-center">
-                        <IconComponent className="w-6 h-6 text-primary" />
+                      <div className="w-12 h-12 bg-carmesim rounded-lg flex items-center justify-center">
+                        <IconComponent className="w-6 h-6 text-grafite" />
                       </div>
                       <div>
-                        <span className="font-mono text-xs text-accent uppercase tracking-wider">{report.year}</span>
-                        <h3 className="font-outfit font-semibold text-lg text-white">{report.title}</h3>
+                        <span className="text-xs text-carmesim uppercase tracking-wider">{report.year}</span>
+                        <h3 className="font-sans font-semibold text-lg text-white">{report.title}</h3>
                       </div>
                     </div>
                   </div>
                   <div className="p-6">
-                    <p className="text-slate-600 mb-6">{report.description}</p>
+                    <p className="text-gray-600 mb-6">{report.description}</p>
                     <a
                       href={report.file_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-primary/90 transition-all"
+                      className="inline-flex items-center gap-2 bg-grafite text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-grafite/90 transition-all"
                     >
                       <Download className="w-4 h-4" />
                       Ver Documento
@@ -243,10 +243,10 @@ export const TransparenciaPage = () => {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
-            <h2 className="font-outfit font-bold text-3xl text-primary mb-4">
+            <h2 className="font-sans font-bold text-3xl text-grafite mb-4">
               Indicadores de Governança
             </h2>
-            <p className="text-slate-600 max-w-2xl mx-auto">
+            <p className="text-gray-600 max-w-2xl mx-auto">
               Números que demonstram o nosso compromisso com a gestão responsável
             </p>
           </div>
@@ -266,9 +266,9 @@ export const TransparenciaPage = () => {
                 transition={{ delay: index * 0.1 }}
                 className="card-technical rounded-xl p-6 text-center"
               >
-                <stat.icon className="w-8 h-8 text-accent mx-auto mb-3" />
-                <div className="font-outfit font-bold text-3xl text-primary mb-1">{stat.value}</div>
-                <div className="font-mono text-xs text-slate-500 uppercase tracking-wider">{stat.label}</div>
+                <stat.icon className="w-8 h-8 text-carmesim mx-auto mb-3" />
+                <div className="font-sans font-bold text-3xl text-grafite mb-1">{stat.value}</div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider">{stat.label}</div>
               </motion.div>
             ))}
           </div>
@@ -276,9 +276,9 @@ export const TransparenciaPage = () => {
       </section>
 
       {/* CTA */}
-      <section className="py-16 bg-primary">
+      <section className="py-16 bg-grafite">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="font-outfit font-bold text-3xl text-white mb-6">
+          <h2 className="font-sans font-bold text-3xl text-white mb-6">
             Tem dúvidas sobre os nossos documentos?
           </h2>
           <p className="text-lg text-white/80 mb-8">
@@ -286,7 +286,7 @@ export const TransparenciaPage = () => {
           </p>
           <Link
             to="/contactos"
-            className="inline-flex items-center gap-2 bg-accent text-primary px-8 py-4 rounded-lg font-bold hover:bg-accent/90 transition-all"
+            className="inline-flex items-center gap-2 bg-carmesim text-grafite px-8 py-4 rounded-lg font-bold hover:bg-carmesim/90 transition-all"
           >
             Fale Conosco
             <ExternalLink className="w-5 h-5" />

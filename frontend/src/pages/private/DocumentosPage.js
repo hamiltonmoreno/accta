@@ -39,16 +39,16 @@ export const DocumentosPage = () => {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="font-outfit font-bold text-4xl text-primary mb-2" data-testid="documents-title">
+          <h1 className="font-sans font-bold text-4xl text-grafite mb-2" data-testid="documents-title">
             Secretaria & Documentos
           </h1>
-          <p className="text-slate-600">Acesse atas, estatutos, balancetes e outros documentos oficiais</p>
+          <p className="text-gray-600">Acesse atas, estatutos, balancetes e outros documentos oficiais</p>
         </div>
         
         {isAdmin && (
           <button
             onClick={() => setShowUploadModal(true)}
-            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-all font-mono text-sm uppercase tracking-wider"
+            className="flex items-center gap-2 bg-grafite text-white px-4 py-2 rounded-lg hover:bg-grafite/90 transition-all font-mono text-sm uppercase tracking-wider"
             data-testid="upload-document-btn"
           >
             <Upload className="w-4 h-4" />
@@ -60,13 +60,13 @@ export const DocumentosPage = () => {
       {/* Search & Filters */}
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar documentos..."
-            className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
             data-testid="search-input"
           />
         </div>
@@ -77,7 +77,7 @@ export const DocumentosPage = () => {
               key={type}
               onClick={() => setFilter(type)}
               className={`px-4 py-2 rounded-lg font-mono text-sm uppercase tracking-wider transition-all ${
-                filter === type ? 'bg-primary text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
+                filter === type ? 'bg-grafite text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
               }`}
               data-testid={`filter-${type}`}
             >
@@ -94,9 +94,9 @@ export const DocumentosPage = () => {
         </div>
       ) : filteredDocuments.length === 0 ? (
         <div className="card-technical rounded-xl p-12 text-center" data-testid="no-documents">
-          <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <p className="text-slate-500 font-medium mb-1">Nenhum documento encontrado</p>
-          <p className="text-sm text-slate-400">
+          <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500 font-medium mb-1">Nenhum documento encontrado</p>
+          <p className="text-sm text-gray-400">
             {isAdmin ? 'Clique em "Novo Documento" para adicionar' : 'Os documentos serão exibidos aqui quando disponíveis'}
           </p>
         </div>
@@ -112,18 +112,18 @@ export const DocumentosPage = () => {
               data-testid={`document-${doc.id}`}
             >
               <div className="flex items-start gap-4 mb-4">
-                <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-6 h-6 text-accent" />
+                <div className="w-12 h-12 bg-grafite rounded-lg flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-6 h-6 text-carmesim" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="inline-block px-3 py-1 bg-accent/10 text-accent rounded-full text-xs font-mono uppercase tracking-wider mb-2">
+                  <span className="inline-block px-3 py-1 bg-carmesim/10 text-carmesim rounded-full text-xs font-mono uppercase tracking-wider mb-2">
                     {doc.type}
                   </span>
-                  <h3 className="font-outfit font-semibold text-lg text-primary line-clamp-2">{doc.title}</h3>
+                  <h3 className="font-sans font-semibold text-lg text-grafite line-clamp-2">{doc.title}</h3>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-xs font-mono text-slate-500 mb-4">
+              <div className="flex items-center justify-between text-xs font-mono text-gray-500 mb-4">
                 <span>{format(new Date(doc.created_at), 'dd MMM yyyy', { locale: ptBR })}</span>
                 <span className="uppercase">{doc.visibility}</span>
               </div>
@@ -131,7 +131,7 @@ export const DocumentosPage = () => {
               {doc.tags && doc.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
                   {doc.tags.slice(0, 3).map((tag, i) => (
-                    <span key={i} className="text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded">
+                    <span key={i} className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
                       {tag}
                     </span>
                   ))}
@@ -142,7 +142,7 @@ export const DocumentosPage = () => {
                 href={doc.file_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-primary text-white hover:bg-primary/90 h-10 px-4 rounded-lg uppercase tracking-wider font-bold text-sm transition-all"
+                className="flex items-center justify-center gap-2 bg-grafite text-white hover:bg-grafite/90 h-10 px-4 rounded-lg uppercase tracking-wider font-bold text-sm transition-all"
                 data-testid={`download-${doc.id}`}
               >
                 <Download className="w-4 h-4" />
@@ -257,17 +257,17 @@ const UploadDocumentModal = ({ onClose, onSuccess }) => {
       >
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg" data-testid="upload-modal">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-slate-200">
+          <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div>
-              <h2 className="font-outfit font-bold text-2xl text-primary">Novo Documento</h2>
-              <p className="text-sm text-slate-500">Faça upload de um documento para a secretaria</p>
+              <h2 className="font-sans font-bold text-2xl text-grafite">Novo Documento</h2>
+              <p className="text-sm text-gray-500">Faça upload de um documento para a secretaria</p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               data-testid="close-modal"
             >
-              <X className="w-5 h-5 text-slate-400" />
+              <X className="w-5 h-5 text-gray-400" />
             </button>
           </div>
 
@@ -275,7 +275,7 @@ const UploadDocumentModal = ({ onClose, onSuccess }) => {
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Title */}
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-slate-500 mb-2">
+              <label className="block font-mono text-xs uppercase tracking-wider text-gray-500 mb-2">
                 Título *
               </label>
               <input
@@ -283,7 +283,7 @@ const UploadDocumentModal = ({ onClose, onSuccess }) => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Ex: Ata da Assembleia Geral - Março 2025"
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 required
                 data-testid="document-title-input"
               />
@@ -292,13 +292,13 @@ const UploadDocumentModal = ({ onClose, onSuccess }) => {
             {/* Type & Visibility */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block font-mono text-xs uppercase tracking-wider text-slate-500 mb-2">
+                <label className="block font-mono text-xs uppercase tracking-wider text-gray-500 mb-2">
                   Tipo
                 </label>
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value)}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                   data-testid="document-type-select"
                 >
                   <option value="ata">Ata</option>
@@ -307,13 +307,13 @@ const UploadDocumentModal = ({ onClose, onSuccess }) => {
                 </select>
               </div>
               <div>
-                <label className="block font-mono text-xs uppercase tracking-wider text-slate-500 mb-2">
+                <label className="block font-mono text-xs uppercase tracking-wider text-gray-500 mb-2">
                   Visibilidade
                 </label>
                 <select
                   value={visibility}
                   onChange={(e) => setVisibility(e.target.value)}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                   data-testid="document-visibility-select"
                 >
                   <option value="publico">Público</option>
@@ -325,7 +325,7 @@ const UploadDocumentModal = ({ onClose, onSuccess }) => {
 
             {/* Tags */}
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-slate-500 mb-2">
+              <label className="block font-mono text-xs uppercase tracking-wider text-gray-500 mb-2">
                 Tags (separadas por vírgula)
               </label>
               <input
@@ -333,14 +333,14 @@ const UploadDocumentModal = ({ onClose, onSuccess }) => {
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
                 placeholder="Ex: assembleia, 2025, decisões"
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 data-testid="document-tags-input"
               />
             </div>
 
             {/* File Upload */}
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-slate-500 mb-2">
+              <label className="block font-mono text-xs uppercase tracking-wider text-gray-500 mb-2">
                 Arquivo *
               </label>
               <input
@@ -353,14 +353,14 @@ const UploadDocumentModal = ({ onClose, onSuccess }) => {
               />
               
               {file ? (
-                <div className="flex items-center justify-between p-4 bg-accent/5 border border-accent/20 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-carmesim/5 border border-accent/20 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-primary" />
+                    <div className="w-10 h-10 bg-carmesim rounded-lg flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-grafite" />
                     </div>
                     <div>
-                      <div className="font-manrope font-semibold text-primary text-sm">{file.name}</div>
-                      <div className="font-mono text-xs text-slate-500">
+                      <div className="font-sans font-semibold text-grafite text-sm">{file.name}</div>
+                      <div className="font-mono text-xs text-gray-500">
                         {(file.size / 1024 / 1024).toFixed(2)} MB
                       </div>
                     </div>
@@ -368,26 +368,26 @@ const UploadDocumentModal = ({ onClose, onSuccess }) => {
                   <button
                     type="button"
                     onClick={() => setFile(null)}
-                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                   >
-                    <X className="w-4 h-4 text-slate-400" />
+                    <X className="w-4 h-4 text-gray-400" />
                   </button>
                 </div>
               ) : (
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full p-8 border-2 border-dashed border-slate-200 rounded-lg hover:border-primary hover:bg-slate-50 transition-all group"
+                  className="w-full p-8 border-2 border-dashed border-gray-200 rounded-lg hover:border-primary hover:bg-gray-50 transition-all group"
                   data-testid="select-file-btn"
                 >
                   <div className="flex flex-col items-center">
-                    <div className="w-12 h-12 bg-slate-100 group-hover:bg-primary/10 rounded-lg flex items-center justify-center mb-3 transition-colors">
-                      <Plus className="w-6 h-6 text-slate-400 group-hover:text-primary transition-colors" />
+                    <div className="w-12 h-12 bg-gray-100 group-hover:bg-grafite/10 rounded-lg flex items-center justify-center mb-3 transition-colors">
+                      <Plus className="w-6 h-6 text-gray-400 group-hover:text-grafite transition-colors" />
                     </div>
-                    <span className="font-manrope font-semibold text-slate-600 mb-1">
+                    <span className="font-sans font-semibold text-gray-600 mb-1">
                       Clique para selecionar
                     </span>
-                    <span className="text-xs text-slate-400">PDF, DOC ou DOCX (máx. 10MB)</span>
+                    <span className="text-xs text-gray-400">PDF, DOC ou DOCX (máx. 10MB)</span>
                   </div>
                 </button>
               )}
@@ -397,14 +397,14 @@ const UploadDocumentModal = ({ onClose, onSuccess }) => {
             {uploading && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Enviando...</span>
-                  <span className="font-mono text-accent">{uploadProgress}%</span>
+                  <span className="text-gray-600">Enviando...</span>
+                  <span className="font-mono text-carmesim">{uploadProgress}%</span>
                 </div>
-                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${uploadProgress}%` }}
-                    className="h-full bg-accent rounded-full"
+                    className="h-full bg-carmesim rounded-full"
                   />
                 </div>
               </div>
@@ -415,7 +415,7 @@ const UploadDocumentModal = ({ onClose, onSuccess }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-3 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors font-mono uppercase tracking-wider"
+                className="flex-1 px-4 py-3 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors font-mono uppercase tracking-wider"
                 disabled={uploading}
               >
                 Cancelar
@@ -423,7 +423,7 @@ const UploadDocumentModal = ({ onClose, onSuccess }) => {
               <button
                 type="submit"
                 disabled={uploading || !file || !title}
-                className="flex-1 flex items-center justify-center gap-2 bg-primary text-white px-4 py-3 rounded-lg hover:bg-primary/90 transition-colors font-mono uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 bg-grafite text-white px-4 py-3 rounded-lg hover:bg-grafite/90 transition-colors font-mono uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
                 data-testid="submit-document-btn"
               >
                 {uploading ? (

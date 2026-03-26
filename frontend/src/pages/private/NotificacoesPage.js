@@ -22,12 +22,12 @@ export const NotificacoesPage = () => {
 
   const getNotificationColor = (type) => {
     const colors = {
-      poll_opened: 'bg-accent/10 border-accent/20',
+      poll_opened: 'bg-carmesim/10 border-accent/20',
       invoice_due: 'bg-alert/10 border-alert/20',
       document_new: 'bg-blue-50 border-blue-200',
       wall_post_approved: 'bg-green-50 border-green-200',
     };
-    return colors[type] || 'bg-slate-50 border-slate-200';
+    return colors[type] || 'bg-gray-50 border-gray-200';
   };
 
   const handleNotificationClick = (notification) => {
@@ -44,15 +44,15 @@ export const NotificacoesPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-outfit font-bold text-4xl text-primary mb-2" data-testid="notifications-title">
+          <h1 className="font-sans font-bold text-4xl text-grafite mb-2" data-testid="notifications-title">
             Central de Notificações
           </h1>
-          <p className="text-slate-600">Acompanhe todas as atualizações importantes</p>
+          <p className="text-gray-600">Acompanhe todas as atualizações importantes</p>
         </div>
         {unreadCount > 0 && (
           <button
             onClick={markAllAsRead}
-            className="flex items-center gap-2 bg-accent text-primary hover:bg-accent/90 h-10 px-4 rounded-lg font-bold text-sm transition-all"
+            className="flex items-center gap-2 bg-carmesim text-grafite hover:bg-carmesim/90 h-10 px-4 rounded-lg font-bold text-sm transition-all"
             data-testid="mark-all-read-button"
           >
             <CheckCheck className="w-4 h-4" />
@@ -70,11 +70,11 @@ export const NotificacoesPage = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-mono text-3xl font-bold text-primary mb-1">{notifications.length}</div>
-              <div className="text-sm text-slate-500 uppercase tracking-wider">Total de Notificações</div>
+              <div className="font-mono text-3xl font-bold text-grafite mb-1">{notifications.length}</div>
+              <div className="text-sm text-gray-500 uppercase tracking-wider">Total de Notificações</div>
             </div>
-            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-              <Bell className="w-6 h-6 text-accent" />
+            <div className="w-12 h-12 bg-grafite rounded-lg flex items-center justify-center">
+              <Bell className="w-6 h-6 text-carmesim" />
             </div>
           </div>
         </motion.div>
@@ -87,11 +87,11 @@ export const NotificacoesPage = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-mono text-3xl font-bold text-accent mb-1">{unreadCount}</div>
-              <div className="text-sm text-slate-500 uppercase tracking-wider">Não Lidas</div>
+              <div className="font-mono text-3xl font-bold text-carmesim mb-1">{unreadCount}</div>
+              <div className="text-sm text-gray-500 uppercase tracking-wider">Não Lidas</div>
             </div>
-            <div className="w-12 h-12 bg-accent rounded-lg flex items-center justify-center">
-              <CheckCheck className="w-6 h-6 text-primary" />
+            <div className="w-12 h-12 bg-carmesim rounded-lg flex items-center justify-center">
+              <CheckCheck className="w-6 h-6 text-grafite" />
             </div>
           </div>
         </motion.div>
@@ -105,9 +105,9 @@ export const NotificacoesPage = () => {
           </div>
         ) : notifications.length === 0 ? (
           <div className="card-technical rounded-xl p-12 text-center" data-testid="no-notifications-page">
-            <Bell className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <p className="text-slate-500 font-medium mb-1">Nenhuma notificação</p>
-            <p className="text-sm text-slate-400">Você será notificado sobre eventos importantes</p>
+            <Bell className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500 font-medium mb-1">Nenhuma notificação</p>
+            <p className="text-sm text-gray-400">Você será notificado sobre eventos importantes</p>
           </div>
         ) : (
           notifications.map((notification, index) => (
@@ -126,20 +126,20 @@ export const NotificacoesPage = () => {
                 <span className="text-3xl flex-shrink-0">{getNotificationIcon(notification.type)}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-3 mb-2">
-                    <h3 className="font-outfit font-semibold text-xl text-primary">{notification.title}</h3>
+                    <h3 className="font-sans font-semibold text-xl text-grafite">{notification.title}</h3>
                     {!notification.read && (
-                      <span className="px-3 py-1 bg-accent text-primary rounded-full text-xs font-mono font-semibold uppercase tracking-wider flex-shrink-0">
+                      <span className="px-3 py-1 bg-carmesim text-grafite rounded-full text-xs font-mono font-semibold uppercase tracking-wider flex-shrink-0">
                         Nova
                       </span>
                     )}
                   </div>
-                  <p className="text-slate-600 mb-3">{notification.message}</p>
+                  <p className="text-gray-600 mb-3">{notification.message}</p>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-400 font-mono">
+                    <span className="text-sm text-gray-400 font-mono">
                       {format(new Date(notification.created_at), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
                     </span>
                     {notification.link && (
-                      <span className="flex items-center gap-1 text-sm text-accent font-mono uppercase tracking-wider">
+                      <span className="flex items-center gap-1 text-sm text-carmesim font-mono uppercase tracking-wider">
                         Ver detalhes
                         <ArrowRight className="w-4 h-4" />
                       </span>

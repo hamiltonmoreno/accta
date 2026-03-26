@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Manrope:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,25 +7,29 @@
 @layer base {
     :root {
         --background: 0 0% 100%;
-        --foreground: 215 25% 27%;
+        --foreground: 0 0% 23%;
         --card: 0 0% 100%;
-        --card-foreground: 215 25% 27%;
+        --card-foreground: 0 0% 23%;
         --popover: 0 0% 100%;
-        --popover-foreground: 215 25% 27%;
-        --primary: 215 65% 16%;
+        --popover-foreground: 0 0% 23%;
+        --primary: 0 0% 23%;
         --primary-foreground: 0 0% 100%;
-        --secondary: 210 20% 96%;
-        --secondary-foreground: 215 65% 16%;
-        --muted: 210 20% 96%;
-        --muted-foreground: 215 10% 45%;
-        --accent: 156 100% 50%;
-        --accent-foreground: 215 65% 16%;
-        --destructive: 0 84% 60%;
+        --secondary: 0 0% 96%;
+        --secondary-foreground: 0 0% 23%;
+        --muted: 0 0% 96%;
+        --muted-foreground: 0 0% 45%;
+        --accent: 355 73% 46%;
+        --accent-foreground: 0 0% 100%;
+        --destructive: 355 73% 46%;
         --destructive-foreground: 0 0% 100%;
-        --border: 214 32% 91%;
-        --input: 214 32% 91%;
-        --ring: 215 65% 16%;
+        --border: 0 0% 90%;
+        --input: 0 0% 90%;
+        --ring: 355 73% 46%;
         --radius: 0.5rem;
+        
+        /* ACCTA Brand Colors */
+        --accta-grafite: #3A3A3A;
+        --accta-carmesim: #C7202F;
     }
 }
 
@@ -34,10 +38,12 @@
         @apply border-border;
     }
     body {
-        @apply bg-[#F4F6F8] text-foreground font-manrope antialiased;
+        @apply bg-gray-50 text-foreground antialiased;
+        font-family: 'Open Sans', sans-serif;
     }
     h1, h2, h3, h4, h5, h6 {
-        @apply font-outfit;
+        font-family: 'Open Sans', sans-serif;
+        font-weight: 700;
     }
 }
 
@@ -46,6 +52,6 @@
         @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-sm;
     }
     .card-technical {
-        @apply bg-white border border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.05)];
+        @apply bg-white border border-gray-200 shadow-[0_1px_2px_rgba(0,0,0,0.05)];
     }
 }

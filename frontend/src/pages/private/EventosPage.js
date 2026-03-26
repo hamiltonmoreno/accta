@@ -24,7 +24,7 @@ const getEventStyle = (type) => {
     formacao: { color: 'bg-green-100 text-green-700', border: 'border-green-500' },
     social: { color: 'bg-pink-100 text-pink-700', border: 'border-pink-500' },
     reuniao: { color: 'bg-amber-100 text-amber-700', border: 'border-amber-500' },
-    outro: { color: 'bg-slate-100 text-slate-700', border: 'border-slate-500' },
+    outro: { color: 'bg-gray-100 text-gray-700', border: 'border-gray-500' },
   };
   return styles[type] || styles.outro;
 };
@@ -105,16 +105,16 @@ export const EventosPage = () => {
     <div className="space-y-8">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="font-outfit font-bold text-4xl text-primary mb-2" data-testid="events-title">
+          <h1 className="font-sans font-bold text-4xl text-grafite mb-2" data-testid="events-title">
             Eventos & Agenda
           </h1>
-          <p className="text-slate-600">Assembleias, formações e encontros da associação</p>
+          <p className="text-gray-600">Assembleias, formações e encontros da associação</p>
         </div>
         
         {isAdmin && (
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-all font-mono text-sm uppercase tracking-wider"
+            className="flex items-center gap-2 bg-grafite text-white px-4 py-2 rounded-lg hover:bg-grafite/90 transition-all font-mono text-sm uppercase tracking-wider"
             data-testid="create-event-btn"
           >
             <Plus className="w-4 h-4" />
@@ -129,7 +129,7 @@ export const EventosPage = () => {
             key={f}
             onClick={() => setFilter(f)}
             className={`px-4 py-2 rounded-lg font-mono text-sm uppercase tracking-wider transition-all ${
-              filter === f ? 'bg-primary text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
+              filter === f ? 'bg-grafite text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
             }`}
           >
             {f === 'upcoming' ? 'Próximos' : f === 'past' ? 'Realizados' : 'Todos'}
@@ -139,13 +139,13 @@ export const EventosPage = () => {
 
       {loading ? (
         <div className="text-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-grafite" />
         </div>
       ) : filteredEvents.length === 0 ? (
         <div className="card-technical rounded-xl p-12 text-center">
-          <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <p className="text-slate-500 font-medium mb-1">Nenhum evento encontrado</p>
-          <p className="text-sm text-slate-400">
+          <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500 font-medium mb-1">Nenhum evento encontrado</p>
+          <p className="text-sm text-gray-400">
             {isAdmin ? 'Clique em "Novo Evento" para criar' : 'Os eventos serão exibidos aqui quando disponíveis'}
           </p>
         </div>
@@ -170,14 +170,14 @@ export const EventosPage = () => {
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-                        <Calendar className="w-6 h-6 text-accent" />
+                      <div className="w-12 h-12 bg-grafite rounded-lg flex items-center justify-center">
+                        <Calendar className="w-6 h-6 text-carmesim" />
                       </div>
                       <div>
                         <span className={`inline-block px-2 py-1 rounded text-xs font-mono uppercase ${style.color}`}>
                           {getEventLabel(event.type)}
                         </span>
-                        <div className="text-xs text-slate-500 mt-1">
+                        <div className="text-xs text-gray-500 mt-1">
                           {event.visibility === 'socios' ? 'Sócios' : event.visibility === 'direcao' ? 'Direção' : 'Público'}
                         </div>
                       </div>
@@ -193,30 +193,30 @@ export const EventosPage = () => {
                     )}
                   </div>
 
-                  <h3 className="font-outfit font-semibold text-xl text-primary mb-2">
+                  <h3 className="font-sans font-semibold text-xl text-grafite mb-2">
                     {event.title}
                   </h3>
-                  <p className="text-slate-600 text-sm line-clamp-2 mb-4">
+                  <p className="text-gray-600 text-sm line-clamp-2 mb-4">
                     {event.description}
                   </p>
 
                   <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <Calendar className="w-4 h-4 text-accent" />
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Calendar className="w-4 h-4 text-carmesim" />
                       <span>{format(eventDate, "dd MMM yyyy", { locale: ptBR })}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <Clock className="w-4 h-4 text-accent" />
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Clock className="w-4 h-4 text-carmesim" />
                       <span>{format(eventDate, 'HH:mm')}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-slate-600 col-span-2">
-                      <MapPin className="w-4 h-4 text-accent" />
+                    <div className="flex items-center gap-2 text-sm text-gray-600 col-span-2">
+                      <MapPin className="w-4 h-4 text-carmesim" />
                       <span className="line-clamp-1">{event.location}</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Users className="w-4 h-4" />
                       <span>
                         {event.attendees?.length || 0}
@@ -241,7 +241,7 @@ export const EventosPage = () => {
                         ) : (
                           <button
                             onClick={() => handleRegister(event.id)}
-                            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm"
+                            className="flex items-center gap-2 px-4 py-2 bg-grafite text-white rounded-lg hover:bg-grafite/90 transition-colors font-medium text-sm"
                           >
                             <Plus className="w-4 h-4" />
                             Inscrever-me
@@ -251,7 +251,7 @@ export const EventosPage = () => {
                     )}
 
                     {isPastEvent && (
-                      <span className="text-sm text-slate-400">Evento realizado</span>
+                      <span className="text-sm text-gray-400">Evento realizado</span>
                     )}
                   </div>
                 </div>
@@ -334,32 +334,32 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
       >
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-          <div className="flex items-center justify-between p-6 border-b border-slate-200">
-            <h2 className="font-outfit font-bold text-2xl text-primary">Novo Evento</h2>
-            <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-              <X className="w-5 h-5 text-slate-400" />
+          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <h2 className="font-sans font-bold text-2xl text-grafite">Novo Evento</h2>
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <X className="w-5 h-5 text-gray-400" />
             </button>
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-5">
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-slate-500 mb-2">Título *</label>
+              <label className="block font-mono text-xs uppercase tracking-wider text-gray-500 mb-2">Título *</label>
               <input
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="Ex: Assembleia Geral Ordinária"
                 required
               />
             </div>
 
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-slate-500 mb-2">Descrição</label>
+              <label className="block font-mono text-xs uppercase tracking-wider text-gray-500 mb-2">Descrição</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                 rows={3}
                 placeholder="Detalhes do evento..."
               />
@@ -367,11 +367,11 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block font-mono text-xs uppercase tracking-wider text-slate-500 mb-2">Tipo *</label>
+                <label className="block font-mono text-xs uppercase tracking-wider text-gray-500 mb-2">Tipo *</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="assembleia">Assembleia</option>
                   <option value="formacao">Formação</option>
@@ -381,11 +381,11 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
                 </select>
               </div>
               <div>
-                <label className="block font-mono text-xs uppercase tracking-wider text-slate-500 mb-2">Visibilidade</label>
+                <label className="block font-mono text-xs uppercase tracking-wider text-gray-500 mb-2">Visibilidade</label>
                 <select
                   value={formData.visibility}
                   onChange={(e) => setFormData({ ...formData, visibility: e.target.value })}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="publico">Público</option>
                   <option value="socios">Sócios</option>
@@ -396,46 +396,46 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block font-mono text-xs uppercase tracking-wider text-slate-500 mb-2">Data *</label>
+                <label className="block font-mono text-xs uppercase tracking-wider text-gray-500 mb-2">Data *</label>
                 <input
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                   required
                 />
               </div>
               <div>
-                <label className="block font-mono text-xs uppercase tracking-wider text-slate-500 mb-2">Hora *</label>
+                <label className="block font-mono text-xs uppercase tracking-wider text-gray-500 mb-2">Hora *</label>
                 <input
                   type="time"
                   value={formData.time}
                   onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-slate-500 mb-2">Local *</label>
+              <label className="block font-mono text-xs uppercase tracking-wider text-gray-500 mb-2">Local *</label>
               <input
                 type="text"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="Ex: Sede da ACCTA, Praia"
                 required
               />
             </div>
 
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-slate-500 mb-2">Limite de Participantes</label>
+              <label className="block font-mono text-xs uppercase tracking-wider text-gray-500 mb-2">Limite de Participantes</label>
               <input
                 type="number"
                 value={formData.max_attendees}
                 onChange={(e) => setFormData({ ...formData, max_attendees: e.target.value })}
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="Deixe vazio para ilimitado"
                 min="1"
               />
@@ -445,14 +445,14 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-3 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors font-mono uppercase tracking-wider"
+                className="flex-1 px-4 py-3 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors font-mono uppercase tracking-wider"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex-1 flex items-center justify-center gap-2 bg-primary text-white px-4 py-3 rounded-lg hover:bg-primary/90 transition-colors font-mono uppercase tracking-wider disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 bg-grafite text-white px-4 py-3 rounded-lg hover:bg-grafite/90 transition-colors font-mono uppercase tracking-wider disabled:opacity-50"
               >
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 Criar Evento

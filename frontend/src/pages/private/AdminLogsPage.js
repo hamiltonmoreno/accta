@@ -28,10 +28,10 @@ export const AdminLogsPage = () => {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="font-outfit font-bold text-4xl text-primary mb-2" data-testid="admin-logs-title">
+        <h1 className="font-sans font-bold text-4xl text-grafite mb-2" data-testid="admin-logs-title">
           Audit Logs
         </h1>
-        <p className="text-slate-600">Registro de todas as ações administrativas no sistema</p>
+        <p className="text-gray-600">Registro de todas as ações administrativas no sistema</p>
       </div>
 
       {/* Stats */}
@@ -42,12 +42,12 @@ export const AdminLogsPage = () => {
           className="card-technical rounded-xl p-6"
         >
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-              <ClipboardList className="w-6 h-6 text-accent" />
+            <div className="w-12 h-12 bg-grafite rounded-lg flex items-center justify-center">
+              <ClipboardList className="w-6 h-6 text-carmesim" />
             </div>
           </div>
-          <div className="font-mono text-3xl font-bold text-primary mb-1">{logs.length}</div>
-          <div className="text-sm text-slate-500 uppercase tracking-wider">Total de Registros</div>
+          <div className="font-mono text-3xl font-bold text-grafite mb-1">{logs.length}</div>
+          <div className="text-sm text-gray-500 uppercase tracking-wider">Total de Registros</div>
         </motion.div>
 
         <motion.div
@@ -57,18 +57,18 @@ export const AdminLogsPage = () => {
           className="card-technical rounded-xl p-6"
         >
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-accent rounded-lg flex items-center justify-center">
-              <Activity className="w-6 h-6 text-primary" />
+            <div className="w-12 h-12 bg-carmesim rounded-lg flex items-center justify-center">
+              <Activity className="w-6 h-6 text-grafite" />
             </div>
           </div>
-          <div className="font-mono text-3xl font-bold text-accent mb-1">
+          <div className="font-mono text-3xl font-bold text-carmesim mb-1">
             {logs.filter((log) => {
               const logDate = new Date(log.created_at);
               const today = new Date();
               return logDate.toDateString() === today.toDateString();
             }).length}
           </div>
-          <div className="text-sm text-slate-500 uppercase tracking-wider">Hoje</div>
+          <div className="text-sm text-gray-500 uppercase tracking-wider">Hoje</div>
         </motion.div>
       </div>
 
@@ -80,7 +80,7 @@ export const AdminLogsPage = () => {
           </div>
         ) : logs.length === 0 ? (
           <div className="text-center py-12" data-testid="no-logs">
-            <p className="text-slate-500">Nenhum registro de auditoria</p>
+            <p className="text-gray-500">Nenhum registro de auditoria</p>
           </div>
         ) : (
           <div className="space-y-4 max-h-[600px] overflow-y-auto">
@@ -90,13 +90,13 @@ export const AdminLogsPage = () => {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg"
+                className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg"
                 data-testid={`log-${log.id}`}
               >
-                <div className="w-2 h-2 bg-accent rounded-full mt-2 flex-shrink-0" />
+                <div className="w-2 h-2 bg-carmesim rounded-full mt-2 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="font-manrope text-primary mb-1">{log.action}</p>
-                  <div className="flex items-center gap-4 text-xs font-mono text-slate-500">
+                  <p className="font-sans text-grafite mb-1">{log.action}</p>
+                  <div className="flex items-center gap-4 text-xs font-mono text-gray-500">
                     <span>User ID: {log.user_id}</span>
                     {log.target_id && <span>Target: {log.target_id}</span>}
                     <span>

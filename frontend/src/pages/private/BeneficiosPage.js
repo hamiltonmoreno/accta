@@ -28,10 +28,10 @@ export const BeneficiosPage = () => {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="font-outfit font-bold text-4xl text-primary mb-2" data-testid="benefits-title">
+        <h1 className="font-sans font-bold text-4xl text-grafite mb-2" data-testid="benefits-title">
           Clube de Benefícios
         </h1>
-        <p className="text-slate-600">Descontos exclusivos para sócios ACCTA em parceiros selecionados</p>
+        <p className="text-gray-600">Descontos exclusivos para sócios ACCTA em parceiros selecionados</p>
       </div>
 
       {/* Status Alert */}
@@ -40,8 +40,8 @@ export const BeneficiosPage = () => {
           <div className="flex items-start gap-4">
             <Gift className="w-6 h-6 text-alert flex-shrink-0 mt-1" />
             <div>
-              <h3 className="font-outfit font-semibold text-lg text-alert mb-2">Benefícios Restritos</h3>
-              <p className="text-slate-600">
+              <h3 className="font-sans font-semibold text-lg text-alert mb-2">Benefícios Restritos</h3>
+              <p className="text-gray-600">
                 Apenas sócios com status ativo têm acesso ao clube de benefícios. Por favor, regularize sua situação.
               </p>
             </div>
@@ -54,18 +54,18 @@ export const BeneficiosPage = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="card-technical rounded-xl p-6 bg-accent/5 border-accent/20"
+          className="card-technical rounded-xl p-6 bg-carmesim/5 border-accent/20"
         >
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-accent rounded-lg flex items-center justify-center flex-shrink-0">
-              <Gift className="w-6 h-6 text-primary" />
+            <div className="w-12 h-12 bg-carmesim rounded-lg flex items-center justify-center flex-shrink-0">
+              <Gift className="w-6 h-6 text-grafite" />
             </div>
             <div>
-              <h3 className="font-outfit font-semibold text-lg text-primary mb-2">Como Usar</h3>
-              <p className="text-slate-600 mb-3">
+              <h3 className="font-sans font-semibold text-lg text-grafite mb-2">Como Usar</h3>
+              <p className="text-gray-600 mb-3">
                 Apresente sua carteira digital nos estabelecimentos parceiros para validar seu status de sócio e aproveitar os descontos.
               </p>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-gray-500">
                 Todos os descontos são válidos mediante apresentação do QR Code da carteira digital.
               </p>
             </div>
@@ -80,7 +80,7 @@ export const BeneficiosPage = () => {
         </div>
       ) : benefits.length === 0 ? (
         <div className="card-technical rounded-xl p-12 text-center" data-testid="no-benefits">
-          <p className="text-slate-500">Nenhum benefício disponível no momento</p>
+          <p className="text-gray-500">Nenhum benefício disponível no momento</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -94,21 +94,21 @@ export const BeneficiosPage = () => {
               data-testid={`benefit-${benefit.id}`}
             >
               {benefit.logo_url && (
-                <div className="h-48 bg-slate-100 flex items-center justify-center p-6">
+                <div className="h-48 bg-gray-100 flex items-center justify-center p-6">
                   <img src={benefit.logo_url} alt={benefit.name} className="max-h-full max-w-full object-contain" />
                 </div>
               )}
               
               <div className="p-6">
-                <h3 className="font-outfit font-semibold text-2xl text-primary mb-3">{benefit.name}</h3>
-                <p className="text-slate-600 mb-4 line-clamp-3">{benefit.description}</p>
+                <h3 className="font-sans font-semibold text-2xl text-grafite mb-3">{benefit.name}</h3>
+                <p className="text-gray-600 mb-4 line-clamp-3">{benefit.description}</p>
                 
-                <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+                <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                   <div className="flex items-center gap-2">
-                    <Percent className="w-5 h-5 text-accent" />
-                    <span className="font-mono font-bold text-2xl text-accent">{benefit.discount_percent}%</span>
+                    <Percent className="w-5 h-5 text-carmesim" />
+                    <span className="font-mono font-bold text-2xl text-carmesim">{benefit.discount_percent}%</span>
                   </div>
-                  <div className="text-xs font-mono text-slate-500 uppercase">
+                  <div className="text-xs font-mono text-gray-500 uppercase">
                     {benefit.validation_count} usos
                   </div>
                 </div>

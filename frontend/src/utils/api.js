@@ -96,9 +96,16 @@ export const benefitsAPI = {
 
 // Wall API
 export const wallAPI = {
-  getPosts: () => api.get('/wall'),
+  getPosts: (category) => api.get('/wall', { params: { category } }),
+  getPending: () => api.get('/wall/pending'),
   create: (data) => api.post('/wall', data),
   approve: (postId) => api.patch(`/wall/${postId}/approve`),
+  delete: (postId) => api.delete(`/wall/${postId}`),
+  pin: (postId) => api.patch(`/wall/${postId}/pin`),
+  like: (postId) => api.patch(`/wall/${postId}/like`),
+  getComments: (postId) => api.get(`/wall/${postId}/comments`),
+  createComment: (postId, data) => api.post(`/wall/${postId}/comments`, data),
+  deleteComment: (postId, commentId) => api.delete(`/wall/${postId}/comments/${commentId}`),
 };
 
 // Validator API

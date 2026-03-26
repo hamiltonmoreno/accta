@@ -28,9 +28,9 @@ export const BeneficiosPublicoPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative py-24 bg-primary overflow-hidden">
+      <section className="relative py-24 bg-grafite overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{ 
             backgroundImage: 'linear-gradient(rgba(0,255,156,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,156,0.3) 1px, transparent 1px)',
@@ -43,12 +43,12 @@ export const BeneficiosPublicoPage = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-center"
           >
-            <span className="inline-block px-4 py-2 bg-accent/10 border border-accent/30 text-accent rounded-full font-mono text-sm uppercase tracking-wider mb-6">
+            <span className="inline-block px-4 py-2 bg-carmesim/10 border border-accent/30 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
               Parcerias
             </span>
-            <h1 className="font-outfit font-bold text-5xl lg:text-6xl text-white mb-6" data-testid="benefits-title">
+            <h1 className="font-sans font-bold text-5xl lg:text-6xl text-white mb-6" data-testid="benefits-title">
               Clube de{' '}
-              <span className="text-accent">Benefícios</span>
+              <span className="text-carmesim">Benefícios</span>
             </h1>
             <p className="text-xl text-white/80 max-w-3xl mx-auto leading-relaxed">
               Vantagens exclusivas para os membros da ACCTA
@@ -66,16 +66,16 @@ export const BeneficiosPublicoPage = () => {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="font-outfit font-bold text-4xl text-primary mb-6">
+              <h2 className="font-sans font-bold text-4xl text-grafite mb-6">
                 Vantagens de ser{' '}
-                <span className="text-accent">ACCTA</span>
+                <span className="text-carmesim">ACCTA</span>
               </h2>
-              <p className="text-lg text-slate-600 leading-relaxed mb-6">
-                A nossa associação reúne um grupo seleto de <strong className="text-primary">profissionais altamente qualificados</strong>. 
+              <p className="text-lg text-gray-600 leading-relaxed mb-6">
+                A nossa associação reúne um grupo seleto de <strong className="text-grafite">profissionais altamente qualificados</strong>. 
                 Através do Clube de Benefícios, estabelecemos parcerias com empresas de excelência que oferecem 
                 condições exclusivas aos nossos membros.
               </p>
-              <p className="text-lg text-slate-600 leading-relaxed mb-8">
+              <p className="text-lg text-gray-600 leading-relaxed mb-8">
                 Hotéis, ginásios, clínicas, seguros, rent-a-car e muitos outros serviços com descontos especiais 
                 para quem faz parte da família ACCTA.
               </p>
@@ -99,8 +99,8 @@ export const BeneficiosPublicoPage = () => {
               viewport={{ once: true }}
             >
               <div className="bg-gradient-to-br from-primary to-[#0A3A5A] rounded-2xl p-8 text-white">
-                <Gift className="w-12 h-12 text-accent mb-6" />
-                <h3 className="font-outfit font-bold text-2xl mb-4">Benefícios Exclusivos</h3>
+                <Gift className="w-12 h-12 text-carmesim mb-6" />
+                <h3 className="font-sans font-bold text-2xl mb-4">Benefícios Exclusivos</h3>
                 <ul className="space-y-4">
                   {[
                     'Descontos em estabelecimentos parceiros',
@@ -110,7 +110,7 @@ export const BeneficiosPublicoPage = () => {
                     'Condições especiais para família'
                   ].map((item, index) => (
                     <li key={index} className="flex items-start gap-3">
-                      <CheckCircle className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
+                      <CheckCircle className="w-5 h-5 text-carmesim flex-shrink-0 mt-0.5" />
                       <span className="text-white/90">{item}</span>
                     </li>
                   ))}
@@ -125,13 +125,13 @@ export const BeneficiosPublicoPage = () => {
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
-            <span className="inline-block px-4 py-2 bg-accent/10 text-accent rounded-full font-mono text-sm uppercase tracking-wider mb-6">
+            <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
               Simples e Rápido
             </span>
-            <h2 className="font-outfit font-bold text-4xl text-primary mb-4">
+            <h2 className="font-sans font-bold text-4xl text-grafite mb-4">
               Como Funciona?
             </h2>
-            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Um processo totalmente digital e instantâneo
             </p>
           </div>
@@ -166,15 +166,15 @@ export const BeneficiosPublicoPage = () => {
                 className="text-center"
               >
                 <div className="relative mb-6">
-                  <div className="w-20 h-20 bg-primary rounded-2xl flex items-center justify-center mx-auto">
-                    <item.icon className="w-10 h-10 text-accent" />
+                  <div className="w-20 h-20 bg-grafite rounded-2xl flex items-center justify-center mx-auto">
+                    <item.icon className="w-10 h-10 text-carmesim" />
                   </div>
-                  <span className="absolute -top-2 -right-2 w-8 h-8 bg-accent rounded-full flex items-center justify-center font-outfit font-bold text-primary text-sm">
+                  <span className="absolute -top-2 -right-2 w-8 h-8 bg-carmesim rounded-full flex items-center justify-center font-sans font-bold text-grafite text-sm">
                     {item.step}
                   </span>
                 </div>
-                <h3 className="font-outfit font-semibold text-xl text-primary mb-3">{item.title}</h3>
-                <p className="text-slate-600">{item.desc}</p>
+                <h3 className="font-sans font-semibold text-xl text-grafite mb-3">{item.title}</h3>
+                <p className="text-gray-600">{item.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -182,16 +182,16 @@ export const BeneficiosPublicoPage = () => {
       </section>
 
       {/* Partners Placeholder */}
-      <section className="py-24 bg-slate-50">
+      <section className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
-            <span className="inline-block px-4 py-2 bg-primary/5 text-primary rounded-full font-mono text-sm uppercase tracking-wider mb-6">
+            <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-6">
               Rede de Parceiros
             </span>
-            <h2 className="font-outfit font-bold text-4xl text-primary mb-4">
+            <h2 className="font-sans font-bold text-4xl text-grafite mb-4">
               Nossos Parceiros
             </h2>
-            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Empresas que confiam na ACCTA e oferecem condições especiais aos nossos membros
             </p>
           </div>
@@ -207,8 +207,8 @@ export const BeneficiosPublicoPage = () => {
                 className="card-technical rounded-xl p-8 flex items-center justify-center h-32"
               >
                 <div className="text-center">
-                  <Building2 className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                  <span className="text-xs text-slate-400 font-mono">Parceiro</span>
+                  <Building2 className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                  <span className="text-xs text-gray-400 font-mono">Parceiro</span>
                 </div>
               </motion.div>
             ))}
@@ -217,7 +217,7 @@ export const BeneficiosPublicoPage = () => {
       </section>
 
       {/* Become a Partner CTA */}
-      <section className="py-24 bg-primary">
+      <section className="py-24 bg-grafite">
         <div className="max-w-4xl mx-auto px-6">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <motion.div
@@ -225,8 +225,8 @@ export const BeneficiosPublicoPage = () => {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <HandshakeIcon className="w-16 h-16 text-accent mb-6" />
-              <h2 className="font-outfit font-bold text-4xl text-white mb-6">
+              <HandshakeIcon className="w-16 h-16 text-carmesim mb-6" />
+              <h2 className="font-sans font-bold text-4xl text-white mb-6">
                 Quer ser nosso parceiro?
               </h2>
               <p className="text-xl text-white/80 leading-relaxed">
@@ -241,7 +241,7 @@ export const BeneficiosPublicoPage = () => {
               viewport={{ once: true }}
               className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20"
             >
-              <h3 className="font-outfit font-semibold text-xl text-white mb-6">Vantagens para Parceiros</h3>
+              <h3 className="font-sans font-semibold text-xl text-white mb-6">Vantagens para Parceiros</h3>
               <ul className="space-y-4 mb-8">
                 {[
                   'Acesso a profissionais qualificados',
@@ -250,14 +250,14 @@ export const BeneficiosPublicoPage = () => {
                   'Validação digital integrada'
                 ].map((item, index) => (
                   <li key={index} className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
+                    <CheckCircle className="w-5 h-5 text-carmesim flex-shrink-0 mt-0.5" />
                     <span className="text-white/90">{item}</span>
                   </li>
                 ))}
               </ul>
               <Link
                 to="/contactos"
-                className="inline-flex items-center gap-2 bg-accent text-primary px-6 py-3 rounded-lg font-bold hover:bg-accent/90 transition-all w-full justify-center"
+                className="inline-flex items-center gap-2 bg-carmesim text-grafite px-6 py-3 rounded-lg font-bold hover:bg-carmesim/90 transition-all w-full justify-center"
               >
                 <Mail className="w-5 h-5" />
                 Contactar-nos
@@ -270,16 +270,16 @@ export const BeneficiosPublicoPage = () => {
       {/* Validator CTA */}
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <QrCode className="w-12 h-12 text-primary mx-auto mb-4" />
-          <h2 className="font-outfit font-bold text-3xl text-primary mb-4">
+          <QrCode className="w-12 h-12 text-grafite mx-auto mb-4" />
+          <h2 className="font-sans font-bold text-3xl text-grafite mb-4">
             É um estabelecimento parceiro?
           </h2>
-          <p className="text-lg text-slate-600 mb-8">
+          <p className="text-lg text-gray-600 mb-8">
             Utilize o nosso validador online para verificar a carteira dos associados
           </p>
           <Link
             to="/validador"
-            className="inline-flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-lg font-bold hover:bg-primary/90 transition-all"
+            className="inline-flex items-center gap-2 bg-grafite text-white px-8 py-4 rounded-lg font-bold hover:bg-grafite/90 transition-all"
           >
             Aceder ao Validador
             <ArrowRight className="w-5 h-5" />

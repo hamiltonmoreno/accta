@@ -73,10 +73,10 @@ export const VotacoesPage = () => {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="font-outfit font-bold text-4xl text-primary mb-2" data-testid="polls-title">
+        <h1 className="font-sans font-bold text-4xl text-grafite mb-2" data-testid="polls-title">
           Votações
         </h1>
-        <p className="text-slate-600">Participe das decisões da associação</p>
+        <p className="text-gray-600">Participe das decisões da associação</p>
       </div>
 
       {/* Status Alert for Inactive Members */}
@@ -90,8 +90,8 @@ export const VotacoesPage = () => {
           <div className="flex items-start gap-4">
             <AlertCircle className="w-6 h-6 text-alert flex-shrink-0 mt-1" />
             <div>
-              <h3 className="font-outfit font-semibold text-lg text-alert mb-2">Votação Restrita</h3>
-              <p className="text-slate-600">
+              <h3 className="font-sans font-semibold text-lg text-alert mb-2">Votação Restrita</h3>
+              <p className="text-gray-600">
                 Apenas sócios com status <strong>ativo</strong> podem participar de votações. 
                 Por favor, regularize sua situação junto à administração para poder exercer seus direitos de voto.
               </p>
@@ -103,12 +103,12 @@ export const VotacoesPage = () => {
       {/* Open Polls Section */}
       <section>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="font-outfit font-semibold text-2xl text-primary flex items-center gap-3">
-            <Clock className="w-7 h-7 text-accent" />
+          <h2 className="font-sans font-semibold text-2xl text-grafite flex items-center gap-3">
+            <Clock className="w-7 h-7 text-carmesim" />
             Votações Abertas
           </h2>
           {openPolls.length > 0 && (
-            <span className="px-4 py-2 bg-accent/10 text-accent rounded-full text-sm font-mono font-semibold">
+            <span className="px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm font-mono font-semibold">
               {openPolls.length} ativa{openPolls.length !== 1 ? 's' : ''}
             </span>
           )}
@@ -116,9 +116,9 @@ export const VotacoesPage = () => {
 
         {openPolls.length === 0 ? (
           <div className="card-technical rounded-xl p-12 text-center" data-testid="no-open-polls">
-            <Vote className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <p className="text-slate-500 font-medium mb-1">Nenhuma votação aberta no momento</p>
-            <p className="text-sm text-slate-400">Você será notificado quando novas votações forem criadas</p>
+            <Vote className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500 font-medium mb-1">Nenhuma votação aberta no momento</p>
+            <p className="text-sm text-gray-400">Você será notificado quando novas votações forem criadas</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6">
@@ -133,8 +133,8 @@ export const VotacoesPage = () => {
                   {isAtivo ? (
                     <VotingInterface poll={poll} onVoteSuccess={loadPolls} />
                   ) : (
-                    <div className="border-t border-slate-200 pt-6 mt-6">
-                      <div className="text-center py-4 text-slate-500 text-sm">
+                    <div className="border-t border-gray-200 pt-6 mt-6">
+                      <div className="text-center py-4 text-gray-500 text-sm">
                         Regularize seu status para participar desta votação
                       </div>
                     </div>
@@ -150,11 +150,11 @@ export const VotacoesPage = () => {
       {closedPolls.length > 0 && (
         <section>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="font-outfit font-semibold text-2xl text-primary flex items-center gap-3">
-              <CheckCircle className="w-7 h-7 text-slate-400" />
+            <h2 className="font-sans font-semibold text-2xl text-grafite flex items-center gap-3">
+              <CheckCircle className="w-7 h-7 text-gray-400" />
               Votações Encerradas
             </h2>
-            <span className="px-4 py-2 bg-slate-100 text-slate-500 rounded-full text-sm font-mono font-semibold">
+            <span className="px-4 py-2 bg-gray-100 text-gray-500 rounded-full text-sm font-mono font-semibold">
               {closedPolls.length} encerrada{closedPolls.length !== 1 ? 's' : ''}
             </span>
           </div>
@@ -168,11 +168,11 @@ export const VotacoesPage = () => {
                 transition={{ delay: index * 0.1 }}
               >
                 <PollCard poll={poll} isActive={false}>
-                  <div className="border-t border-slate-200 pt-6 mt-6">
+                  <div className="border-t border-gray-200 pt-6 mt-6">
                     <button
                       onClick={() => toggleResults(poll.id)}
                       disabled={loadingResults[poll.id]}
-                      className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-mono uppercase tracking-wider transition-colors disabled:opacity-50"
+                      className="flex items-center gap-2 text-sm text-grafite hover:text-grafite/80 font-mono uppercase tracking-wider transition-colors disabled:opacity-50"
                       data-testid={`view-results-${poll.id}`}
                     >
                       {loadingResults[poll.id] ? (
@@ -204,29 +204,29 @@ export const VotacoesPage = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
-        className="card-technical rounded-xl p-6 bg-accent/5 border-accent/20"
+        className="card-technical rounded-xl p-6 bg-carmesim/5 border-accent/20"
       >
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 bg-accent rounded-lg flex items-center justify-center flex-shrink-0">
-            <Vote className="w-6 h-6 text-primary" />
+          <div className="w-12 h-12 bg-carmesim rounded-lg flex items-center justify-center flex-shrink-0">
+            <Vote className="w-6 h-6 text-grafite" />
           </div>
           <div>
-            <h3 className="font-outfit font-semibold text-lg text-primary mb-2">Como Funciona</h3>
-            <ul className="space-y-2 text-sm text-slate-600">
+            <h3 className="font-sans font-semibold text-lg text-grafite mb-2">Como Funciona</h3>
+            <ul className="space-y-2 text-sm text-gray-600">
               <li className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-accent rounded-full mt-2" />
+                <div className="w-1.5 h-1.5 bg-carmesim rounded-full mt-2" />
                 <span>Cada sócio ativo pode votar uma única vez por votação</span>
               </li>
               <li className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-accent rounded-full mt-2" />
+                <div className="w-1.5 h-1.5 bg-carmesim rounded-full mt-2" />
                 <span>Seu voto é anônimo e confidencial</span>
               </li>
               <li className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-accent rounded-full mt-2" />
+                <div className="w-1.5 h-1.5 bg-carmesim rounded-full mt-2" />
                 <span>Os resultados são publicados após o encerramento da votação</span>
               </li>
               <li className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-accent rounded-full mt-2" />
+                <div className="w-1.5 h-1.5 bg-carmesim rounded-full mt-2" />
                 <span>Você será notificado quando novas votações forem abertas</span>
               </li>
             </ul>

@@ -16,11 +16,11 @@ export const PollCard = ({ poll, isActive = false, children }) => {
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <h3 className="font-outfit font-semibold text-2xl text-primary mb-2">{poll.title}</h3>
-          <p className="text-slate-600 leading-relaxed mb-4">{poll.description}</p>
+          <h3 className="font-sans font-semibold text-2xl text-grafite mb-2">{poll.title}</h3>
+          <p className="text-gray-600 leading-relaxed mb-4">{poll.description}</p>
           
           {/* Meta Info */}
-          <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
+          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
               <span className="font-mono">
@@ -35,7 +35,7 @@ export const PollCard = ({ poll, isActive = false, children }) => {
             </div>
             {isActive && (
               <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${
-                isUrgent ? 'bg-alert/10 text-alert' : 'bg-accent/10 text-accent'
+                isUrgent ? 'bg-alert/10 text-alert' : 'bg-carmesim/10 text-carmesim'
               }`}>
                 <Clock className="w-4 h-4" />
                 <span className="font-mono text-xs font-semibold">
@@ -50,8 +50,8 @@ export const PollCard = ({ poll, isActive = false, children }) => {
         <span
           className={`px-4 py-2 rounded-full text-xs font-mono uppercase tracking-wider whitespace-nowrap ${
             isActive
-              ? 'bg-accent/10 text-accent'
-              : 'bg-slate-100 text-slate-500'
+              ? 'bg-carmesim/10 text-carmesim'
+              : 'bg-gray-100 text-gray-500'
           }`}
         >
           {isActive ? 'Aberta' : 'Encerrada'}
@@ -60,7 +60,7 @@ export const PollCard = ({ poll, isActive = false, children }) => {
 
       {/* Additional Info */}
       {poll.options && (
-        <div className="flex items-center gap-2 text-xs text-slate-500 mb-4">
+        <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
           <Users className="w-4 h-4" />
           <span>{poll.options.length} opções disponíveis</span>
         </div>

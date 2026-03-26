@@ -18,9 +18,9 @@ import {
 
 export const SobrePage = () => {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative py-24 bg-primary overflow-hidden">
+      <section className="relative py-24 bg-grafite overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{ 
             backgroundImage: 'linear-gradient(rgba(0,255,156,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,156,0.3) 1px, transparent 1px)',
@@ -33,10 +33,10 @@ export const SobrePage = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-center"
           >
-            <span className="inline-block px-4 py-2 bg-accent/10 border border-accent/30 text-accent rounded-full font-mono text-sm uppercase tracking-wider mb-6">
+            <span className="inline-block px-4 py-2 bg-carmesim/10 border border-accent/30 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
               A Associação
             </span>
-            <h1 className="font-outfit font-bold text-5xl lg:text-6xl text-white mb-6" data-testid="about-title">
+            <h1 className="font-sans font-bold text-5xl lg:text-6xl text-white mb-6" data-testid="about-title">
               Quem Somos
             </h1>
             <p className="text-xl text-white/80 max-w-3xl mx-auto leading-relaxed">
@@ -55,19 +55,19 @@ export const SobrePage = () => {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="font-outfit font-bold text-4xl text-primary mb-8">
+              <h2 className="font-sans font-bold text-4xl text-grafite mb-8">
                 Unidos pela{' '}
-                <span className="text-accent">Segurança Aérea</span>
+                <span className="text-carmesim">Segurança Aérea</span>
               </h2>
-              <div className="space-y-6 text-lg text-slate-600 leading-relaxed">
+              <div className="space-y-6 text-lg text-gray-600 leading-relaxed">
                 <p>
-                  A <strong className="text-primary">Associação dos Controladores de Tráfego Aéreo de Cabo Verde (ACCTA)</strong> é 
+                  A <strong className="text-grafite">Associação dos Controladores de Tráfego Aéreo de Cabo Verde (ACCTA)</strong> é 
                   a entidade representativa máxima da classe no arquipélago. Fundada com o propósito de unir os profissionais que 
                   gerem um dos espaços aéreos mais estratégicos do mundo, a nossa associação atua na defesa dos direitos laborais, 
                   na promoção da excelência técnica e na cooperação com autoridades nacionais e internacionais.
                 </p>
                 <p>
-                  <span className="text-accent font-semibold">Não somos apenas uma voz sindical;</span> somos parceiros estratégicos 
+                  <span className="text-carmesim font-semibold">Não somos apenas uma voz sindical;</span> somos parceiros estratégicos 
                   no desenvolvimento da aviação civil nacional.
                 </p>
               </div>
@@ -81,11 +81,11 @@ export const SobrePage = () => {
             >
               <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-8 text-white">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-16 h-16 bg-accent rounded-xl flex items-center justify-center">
-                    <Globe className="w-8 h-8 text-primary" />
+                  <div className="w-16 h-16 bg-carmesim rounded-xl flex items-center justify-center">
+                    <Globe className="w-8 h-8 text-grafite" />
                   </div>
                   <div>
-                    <div className="font-outfit font-bold text-2xl">FIR Sal</div>
+                    <div className="font-sans font-bold text-2xl">FIR Sal</div>
                     <div className="text-white/70">Flight Information Region</div>
                   </div>
                 </div>
@@ -103,10 +103,10 @@ export const SobrePage = () => {
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
-            <span className="inline-block px-4 py-2 bg-accent/10 text-accent rounded-full font-mono text-sm uppercase tracking-wider mb-6">
+            <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
               Os Nossos Pilares
             </span>
-            <h2 className="font-outfit font-bold text-4xl text-primary">
+            <h2 className="font-sans font-bold text-4xl text-grafite">
               Missão, Visão e Valores
             </h2>
           </div>
@@ -120,12 +120,12 @@ export const SobrePage = () => {
               className="card-technical rounded-2xl p-8 border-l-4 border-accent"
             >
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-14 h-14 bg-accent rounded-xl flex items-center justify-center">
-                  <Target className="w-7 h-7 text-primary" />
+                <div className="w-14 h-14 bg-carmesim rounded-xl flex items-center justify-center">
+                  <Target className="w-7 h-7 text-grafite" />
                 </div>
-                <h3 className="font-outfit font-bold text-2xl text-primary">Nossa Missão</h3>
+                <h3 className="font-sans font-bold text-2xl text-grafite">Nossa Missão</h3>
               </div>
-              <p className="text-slate-600 text-lg leading-relaxed">
+              <p className="text-gray-600 text-lg leading-relaxed">
                 Representar e valorizar os controladores de tráfego aéreo, promovendo a <strong>segurança operacional</strong>, 
                 o <strong>desenvolvimento contínuo</strong> e o <strong>bem-estar</strong> dos nossos associados.
               </p>
@@ -140,12 +140,12 @@ export const SobrePage = () => {
               className="card-technical rounded-2xl p-8 border-l-4 border-primary"
             >
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-14 h-14 bg-primary rounded-xl flex items-center justify-center">
-                  <Eye className="w-7 h-7 text-accent" />
+                <div className="w-14 h-14 bg-grafite rounded-xl flex items-center justify-center">
+                  <Eye className="w-7 h-7 text-carmesim" />
                 </div>
-                <h3 className="font-outfit font-bold text-2xl text-primary">Nossa Visão</h3>
+                <h3 className="font-sans font-bold text-2xl text-grafite">Nossa Visão</h3>
               </div>
-              <p className="text-slate-600 text-lg leading-relaxed">
+              <p className="text-gray-600 text-lg leading-relaxed">
                 Ser reconhecida nacional e internacionalmente como uma organização de referência na gestão associativa e na 
                 contribuição técnica para a <strong>segurança da navegação aérea no Atlântico</strong>.
               </p>
@@ -191,8 +191,8 @@ export const SobrePage = () => {
                 <div className={`w-16 h-16 ${value.color} rounded-full flex items-center justify-center mx-auto mb-4`}>
                   <value.icon className="w-8 h-8" />
                 </div>
-                <h4 className="font-outfit font-bold text-xl text-primary mb-2">{value.title}</h4>
-                <p className="text-slate-600">{value.desc}</p>
+                <h4 className="font-sans font-bold text-xl text-grafite mb-2">{value.title}</h4>
+                <p className="text-gray-600">{value.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -200,16 +200,16 @@ export const SobrePage = () => {
       </section>
 
       {/* Leadership / Corpos Sociais */}
-      <section className="py-24 bg-slate-50">
+      <section className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
-            <span className="inline-block px-4 py-2 bg-primary/5 text-primary rounded-full font-mono text-sm uppercase tracking-wider mb-6">
+            <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-6">
               Gestão Atual
             </span>
-            <h2 className="font-outfit font-bold text-4xl text-primary mb-4">
+            <h2 className="font-sans font-bold text-4xl text-grafite mb-4">
               Corpos Sociais
             </h2>
-            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Conheça os órgãos que dirigem e fiscalizam a nossa associação
             </p>
           </div>
@@ -222,19 +222,19 @@ export const SobrePage = () => {
               viewport={{ once: true }}
               className="card-technical rounded-2xl p-8"
             >
-              <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center mb-6">
-                <Building className="w-8 h-8 text-accent" />
+              <div className="w-16 h-16 bg-grafite rounded-xl flex items-center justify-center mb-6">
+                <Building className="w-8 h-8 text-carmesim" />
               </div>
-              <h3 className="font-outfit font-bold text-2xl text-primary mb-4">Mesa da Assembleia Geral</h3>
-              <p className="text-slate-600 mb-6">
+              <h3 className="font-sans font-bold text-2xl text-grafite mb-4">Mesa da Assembleia Geral</h3>
+              <p className="text-gray-600 mb-6">
                 O órgão deliberativo máximo da associação, responsável pelas decisões estratégicas.
               </p>
               <div className="space-y-4">
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                  <UserCircle className="w-10 h-10 text-primary" />
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <UserCircle className="w-10 h-10 text-grafite" />
                   <div>
-                    <div className="font-semibold text-primary">Presidente</div>
-                    <div className="text-sm text-slate-500">A nomear</div>
+                    <div className="font-semibold text-grafite">Presidente</div>
+                    <div className="text-sm text-gray-500">A nomear</div>
                   </div>
                 </div>
               </div>
@@ -248,26 +248,26 @@ export const SobrePage = () => {
               transition={{ delay: 0.1 }}
               className="card-technical rounded-2xl p-8 border-2 border-accent"
             >
-              <div className="w-16 h-16 bg-accent rounded-xl flex items-center justify-center mb-6">
-                <Users className="w-8 h-8 text-primary" />
+              <div className="w-16 h-16 bg-carmesim rounded-xl flex items-center justify-center mb-6">
+                <Users className="w-8 h-8 text-grafite" />
               </div>
-              <h3 className="font-outfit font-bold text-2xl text-primary mb-4">Direção</h3>
-              <p className="text-slate-600 mb-6">
+              <h3 className="font-sans font-bold text-2xl text-grafite mb-4">Direção</h3>
+              <p className="text-gray-600 mb-6">
                 Responsável pela gestão executiva e representação da classe perante entidades externas.
               </p>
               <div className="space-y-4">
-                <div className="flex items-center gap-3 p-3 bg-accent/5 rounded-lg">
-                  <UserCircle className="w-10 h-10 text-accent" />
+                <div className="flex items-center gap-3 p-3 bg-carmesim/5 rounded-lg">
+                  <UserCircle className="w-10 h-10 text-carmesim" />
                   <div>
-                    <div className="font-semibold text-primary">Presidente</div>
-                    <div className="text-sm text-slate-500">A nomear</div>
+                    <div className="font-semibold text-grafite">Presidente</div>
+                    <div className="text-sm text-gray-500">A nomear</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-accent/5 rounded-lg">
-                  <UserCircle className="w-10 h-10 text-accent" />
+                <div className="flex items-center gap-3 p-3 bg-carmesim/5 rounded-lg">
+                  <UserCircle className="w-10 h-10 text-carmesim" />
                   <div>
-                    <div className="font-semibold text-primary">Vice-Presidente</div>
-                    <div className="text-sm text-slate-500">A nomear</div>
+                    <div className="font-semibold text-grafite">Vice-Presidente</div>
+                    <div className="text-sm text-gray-500">A nomear</div>
                   </div>
                 </div>
               </div>
@@ -281,19 +281,19 @@ export const SobrePage = () => {
               transition={{ delay: 0.2 }}
               className="card-technical rounded-2xl p-8"
             >
-              <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center mb-6">
-                <Scale className="w-8 h-8 text-accent" />
+              <div className="w-16 h-16 bg-grafite rounded-xl flex items-center justify-center mb-6">
+                <Scale className="w-8 h-8 text-carmesim" />
               </div>
-              <h3 className="font-outfit font-bold text-2xl text-primary mb-4">Conselho Fiscal</h3>
-              <p className="text-slate-600 mb-6">
+              <h3 className="font-sans font-bold text-2xl text-grafite mb-4">Conselho Fiscal</h3>
+              <p className="text-gray-600 mb-6">
                 Garante a transparência e o rigor nas contas da associação.
               </p>
               <div className="space-y-4">
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                  <UserCircle className="w-10 h-10 text-primary" />
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <UserCircle className="w-10 h-10 text-grafite" />
                   <div>
-                    <div className="font-semibold text-primary">Presidente</div>
-                    <div className="text-sm text-slate-500">A nomear</div>
+                    <div className="font-semibold text-grafite">Presidente</div>
+                    <div className="text-sm text-gray-500">A nomear</div>
                   </div>
                 </div>
               </div>
@@ -303,9 +303,9 @@ export const SobrePage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-primary">
+      <section className="py-24 bg-grafite">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="font-outfit font-bold text-4xl text-white mb-6">
+          <h2 className="font-sans font-bold text-4xl text-white mb-6">
             Quer saber mais sobre a nossa atuação?
           </h2>
           <p className="text-xl text-white/80 mb-10">
@@ -314,7 +314,7 @@ export const SobrePage = () => {
           <div className="flex flex-wrap justify-center gap-4">
             <Link
               to="/transparencia"
-              className="inline-flex items-center gap-2 bg-accent text-primary px-8 py-4 rounded-lg font-bold text-lg hover:bg-accent/90 transition-all"
+              className="inline-flex items-center gap-2 bg-carmesim text-grafite px-8 py-4 rounded-lg font-bold text-lg hover:bg-carmesim/90 transition-all"
             >
               Ver Transparência
               <ArrowRight className="w-5 h-5" />

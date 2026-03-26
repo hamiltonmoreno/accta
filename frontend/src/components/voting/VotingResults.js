@@ -25,16 +25,16 @@ export const VotingResults = ({ poll, results }) => {
   const COLORS = ['#00FF9C', '#0A1F44', '#6B7280', '#9CA3AF'];
 
   return (
-    <div className="mt-6 pt-6 border-t border-slate-200">
+    <div className="mt-6 pt-6 border-t border-gray-200">
       {/* Summary */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <div className="font-outfit font-semibold text-xl text-primary mb-1">Resultados</div>
-          <div className="text-sm text-slate-500">Total de {totalVotes} voto{totalVotes !== 1 ? 's' : ''}</div>
+          <div className="font-sans font-semibold text-xl text-grafite mb-1">Resultados</div>
+          <div className="text-sm text-gray-500">Total de {totalVotes} voto{totalVotes !== 1 ? 's' : ''}</div>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-accent/10 rounded-lg">
-          <TrendingUp className="w-4 h-4 text-accent" />
-          <span className="font-mono text-sm font-semibold text-accent">
+        <div className="flex items-center gap-2 px-4 py-2 bg-carmesim/10 rounded-lg">
+          <TrendingUp className="w-4 h-4 text-carmesim" />
+          <span className="font-mono text-sm font-semibold text-carmesim">
             {totalVotes} participações
           </span>
         </div>
@@ -51,9 +51,9 @@ export const VotingResults = ({ poll, results }) => {
                 if (active && payload && payload.length) {
                   const data = payload[0].payload;
                   return (
-                    <div className="bg-white p-3 rounded-lg shadow-lg border border-slate-200">
-                      <div className="font-manrope font-semibold text-primary mb-1">{data.name}</div>
-                      <div className="text-sm text-slate-600">
+                    <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+                      <div className="font-sans font-semibold text-grafite mb-1">{data.name}</div>
+                      <div className="text-sm text-gray-600">
                         {data.votes} votos ({data.percentage.toFixed(1)}%)
                       </div>
                     </div>
@@ -77,12 +77,12 @@ export const VotingResults = ({ poll, results }) => {
           <div key={index} className="flex items-center gap-4">
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
-                <span className="font-manrope font-medium text-primary">{data.name}</span>
-                <span className="font-mono text-sm text-slate-500">
+                <span className="font-sans font-medium text-grafite">{data.name}</span>
+                <span className="font-mono text-sm text-gray-500">
                   {data.votes} voto{data.votes !== 1 ? 's' : ''} ({data.percentage.toFixed(1)}%)
                 </span>
               </div>
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{
@@ -98,14 +98,14 @@ export const VotingResults = ({ poll, results }) => {
 
       {/* Winner Highlight */}
       {chartData.length > 0 && chartData[0].votes > 0 && (
-        <div className="mt-6 p-4 bg-accent/5 rounded-lg border border-accent/20">
+        <div className="mt-6 p-4 bg-carmesim/5 rounded-lg border border-accent/20">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-accent rounded-full flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-primary" />
+            <div className="w-10 h-10 bg-carmesim rounded-full flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-grafite" />
             </div>
             <div>
-              <div className="text-sm text-slate-500 uppercase tracking-wider mb-1">Opção Mais Votada</div>
-              <div className="font-outfit font-semibold text-lg text-primary">
+              <div className="text-sm text-gray-500 uppercase tracking-wider mb-1">Opção Mais Votada</div>
+              <div className="font-sans font-semibold text-lg text-grafite">
                 {chartData[0].name} ({chartData[0].percentage.toFixed(1)}%)
               </div>
             </div>

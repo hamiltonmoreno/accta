@@ -38,13 +38,13 @@ export const ValidadorPage = () => {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
         >
-          <div className="w-20 h-20 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <QrCode className="w-10 h-10 text-accent" />
+          <div className="w-20 h-20 bg-grafite rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <QrCode className="w-10 h-10 text-carmesim" />
           </div>
-          <h1 className="font-outfit font-bold text-4xl md:text-5xl text-primary mb-4" data-testid="validator-title">
+          <h1 className="font-sans font-bold text-4xl md:text-5xl text-grafite mb-4" data-testid="validator-title">
             Validador de Carteira
           </h1>
-          <p className="text-lg text-slate-600">
+          <p className="text-lg text-gray-600">
             Insira o código QR para validar a carteira de sócio ACCTA
           </p>
         </motion.div>
@@ -58,7 +58,7 @@ export const ValidadorPage = () => {
         >
           <form onSubmit={handleValidate} className="space-y-6">
             <div>
-              <label htmlFor="qr-hash" className="block font-mono text-xs uppercase tracking-widest text-slate-500 mb-2">
+              <label htmlFor="qr-hash" className="block text-xs uppercase tracking-widest text-gray-500 mb-2">
                 Código QR
               </label>
               <input
@@ -67,7 +67,7 @@ export const ValidadorPage = () => {
                 value={qrHash}
                 onChange={(e) => setQrHash(e.target.value)}
                 placeholder="Cole o código QR aqui"
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 data-testid="qr-input"
               />
             </div>
@@ -75,7 +75,7 @@ export const ValidadorPage = () => {
             <button
               type="submit"
               disabled={loading || !qrHash.trim()}
-              className="w-full bg-primary text-white hover:bg-primary/90 h-12 px-6 rounded-lg uppercase tracking-wider font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-grafite text-white hover:bg-grafite/90 h-12 px-6 rounded-lg uppercase tracking-wider font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               data-testid="validate-button"
             >
               {loading ? (
@@ -103,8 +103,8 @@ export const ValidadorPage = () => {
                 <XCircle className="w-6 h-6 text-alert" />
               </div>
               <div>
-                <h3 className="font-outfit font-semibold text-xl text-alert">Carteira Inválida</h3>
-                <p className="text-slate-600">{error}</p>
+                <h3 className="font-sans font-semibold text-xl text-alert">Carteira Inválida</h3>
+                <p className="text-gray-600">{error}</p>
               </div>
             </div>
           </motion.div>
@@ -118,38 +118,38 @@ export const ValidadorPage = () => {
             data-testid="validation-success"
           >
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-accent" />
+              <div className="w-12 h-12 bg-carmesim/10 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-6 h-6 text-carmesim" />
               </div>
               <div>
-                <h3 className="font-outfit font-semibold text-xl text-primary">Carteira Válida</h3>
-                <p className="text-slate-600">Esta carteira é autêntica</p>
+                <h3 className="font-sans font-semibold text-xl text-grafite">Carteira Válida</h3>
+                <p className="text-gray-600">Esta carteira é autêntica</p>
               </div>
             </div>
 
             <div className="space-y-4">
-              <div className="border-t border-slate-200 pt-4">
+              <div className="border-t border-gray-200 pt-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-mono text-xs uppercase tracking-widest text-slate-500 mb-1">
+                    <label className="block text-xs uppercase tracking-widest text-gray-500 mb-1">
                       Nome
                     </label>
-                    <p className="font-manrope font-semibold text-primary" data-testid="validated-name">{result.name}</p>
+                    <p className="font-sans font-semibold text-grafite" data-testid="validated-name">{result.name}</p>
                   </div>
                   <div>
-                    <label className="block font-mono text-xs uppercase tracking-widest text-slate-500 mb-1">
+                    <label className="block text-xs uppercase tracking-widest text-gray-500 mb-1">
                       Nº Sócio
                     </label>
-                    <p className="font-mono font-semibold text-primary" data-testid="validated-member-id">{result.member_id || 'N/A'}</p>
+                    <p className="font-semibold text-grafite" data-testid="validated-member-id">{result.member_id || 'N/A'}</p>
                   </div>
                   <div>
-                    <label className="block font-mono text-xs uppercase tracking-widest text-slate-500 mb-1">
+                    <label className="block text-xs uppercase tracking-widest text-gray-500 mb-1">
                       Status
                     </label>
                     <span
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-mono uppercase tracking-wide ${
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs uppercase tracking-wide ${
                         result.status === 'ativo'
-                          ? 'bg-accent/10 text-accent'
+                          ? 'bg-carmesim/10 text-carmesim'
                           : 'bg-alert/10 text-alert'
                       }`}
                       data-testid="validated-status"
@@ -159,10 +159,10 @@ export const ValidadorPage = () => {
                   </div>
                   {result.admission_date && (
                     <div>
-                      <label className="block font-mono text-xs uppercase tracking-widest text-slate-500 mb-1">
+                      <label className="block text-xs uppercase tracking-widest text-gray-500 mb-1">
                         Admissão
                       </label>
-                      <p className="font-mono text-primary">
+                      <p className="text-grafite">
                         {format(new Date(result.admission_date), 'dd/MM/yyyy', { locale: ptBR })}
                       </p>
                     </div>

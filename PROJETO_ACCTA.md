@@ -55,8 +55,8 @@ Portal institucional completo e sistema de gestão associativa (SGA) para a ACCT
 
 ## 🌐 URLs
 
-- **Frontend**: https://actacv-portal.preview.emergentagent.com
-- **Backend API**: https://actacv-portal.preview.emergentagent.com/api
+- **Frontend**: https://traffic-portal-2.preview.emergentagent.com
+- **Backend API**: https://traffic-portal-2.preview.emergentagent.com/api
 
 ---
 

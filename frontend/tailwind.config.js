@@ -23,24 +23,35 @@ module.exports = {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        // ACCTA Brand Colors
         primary: {
-          DEFAULT: "#0A1F44",
+          DEFAULT: "#3A3A3A", // Cinza Grafite
           foreground: "#FFFFFF",
         },
         secondary: {
-          DEFAULT: "#F4F6F8",
-          foreground: "#0A1F44",
+          DEFAULT: "#F5F5F5",
+          foreground: "#3A3A3A",
         },
         accent: {
-          DEFAULT: "#00FF9C",
-          foreground: "#0A1F44",
+          DEFAULT: "#C7202F", // Vermelho Carmesim
+          foreground: "#FFFFFF",
+        },
+        carmesim: {
+          DEFAULT: "#C7202F",
+          light: "#E8444F",
+          dark: "#9E1925",
+        },
+        grafite: {
+          DEFAULT: "#3A3A3A",
+          light: "#5A5A5A",
+          dark: "#2A2A2A",
         },
         alert: {
-          DEFAULT: "#FF4C4C",
+          DEFAULT: "#C7202F",
           foreground: "#FFFFFF",
         },
         destructive: {
-          DEFAULT: "#FF4C4C",
+          DEFAULT: "#C7202F",
           foreground: "#FFFFFF",
         },
         muted: {
@@ -62,8 +73,8 @@ module.exports = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        outfit: ['Outfit', 'sans-serif'],
-        manrope: ['Manrope', 'sans-serif'],
+        sans: ['Open Sans', 'sans-serif'],
+        heading: ['Open Sans', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
       keyframes: {

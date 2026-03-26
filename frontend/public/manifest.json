@@ -21,7 +21,7 @@
   ],
   "start_url": "/carteira",
   "display": "standalone",
-  "theme_color": "#0A1F44",
+  "theme_color": "#3A3A3A",
   "background_color": "#F4F6F8",
   "orientation": "portrait",
   "scope": "/",

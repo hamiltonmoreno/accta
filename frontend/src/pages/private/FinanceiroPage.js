@@ -35,11 +35,11 @@ export const FinanceiroPage = () => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'pago':
-        return <CheckCircle className="w-5 h-5 text-accent" />;
+        return <CheckCircle className="w-5 h-5 text-carmesim" />;
       case 'pendente':
         return <Clock className="w-5 h-5 text-alert" />;
       case 'cancelado':
-        return <XCircle className="w-5 h-5 text-slate-400" />;
+        return <XCircle className="w-5 h-5 text-gray-400" />;
       default:
         return null;
     }
@@ -48,13 +48,13 @@ export const FinanceiroPage = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'pago':
-        return 'bg-accent/10 text-accent';
+        return 'bg-carmesim/10 text-carmesim';
       case 'pendente':
         return 'bg-alert/10 text-alert';
       case 'cancelado':
-        return 'bg-slate-100 text-slate-500';
+        return 'bg-gray-100 text-gray-500';
       default:
-        return 'bg-slate-100 text-slate-500';
+        return 'bg-gray-100 text-gray-500';
     }
   };
 
@@ -62,25 +62,25 @@ export const FinanceiroPage = () => {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="font-outfit font-bold text-4xl text-primary mb-2" data-testid="finance-title">
+        <h1 className="font-sans font-bold text-4xl text-grafite mb-2" data-testid="finance-title">
           Gestão Financeira
         </h1>
-        <p className="text-slate-600">Acompanhe suas quotas e pagamentos</p>
+        <p className="text-gray-600">Acompanhe suas quotas e pagamentos</p>
       </div>
 
       {/* Info Banner */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="card-technical rounded-xl p-6 bg-accent/5 border-accent/20"
+        className="card-technical rounded-xl p-6 bg-carmesim/5 border-accent/20"
       >
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 bg-accent rounded-lg flex items-center justify-center flex-shrink-0">
-            <CheckCircle className="w-6 h-6 text-primary" />
+          <div className="w-12 h-12 bg-carmesim rounded-lg flex items-center justify-center flex-shrink-0">
+            <CheckCircle className="w-6 h-6 text-grafite" />
           </div>
           <div>
-            <h3 className="font-outfit font-semibold text-lg text-primary mb-2">Pagamento Automático por Folha Salarial</h3>
-            <p className="text-slate-600 leading-relaxed">
+            <h3 className="font-sans font-semibold text-lg text-grafite mb-2">Pagamento Automático por Folha Salarial</h3>
+            <p className="text-gray-600 leading-relaxed">
               As quotas mensais são descontadas automaticamente em folha de pagamento quando você se torna associado. 
               Esta página mostra o histórico dos descontos realizados e sua situação financeira perante a associação.
             </p>
@@ -97,12 +97,12 @@ export const FinanceiroPage = () => {
           className="card-technical rounded-xl p-6"
         >
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-accent" />
+            <div className="w-12 h-12 bg-grafite rounded-lg flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-carmesim" />
             </div>
           </div>
-          <div className="font-mono text-3xl font-bold text-primary mb-1">{invoices.length}</div>
-          <div className="text-sm text-slate-500 uppercase tracking-wider">Total de Registros</div>
+          <div className="font-mono text-3xl font-bold text-grafite mb-1">{invoices.length}</div>
+          <div className="text-sm text-gray-500 uppercase tracking-wider">Total de Registros</div>
         </motion.div>
 
         <motion.div
@@ -117,7 +117,7 @@ export const FinanceiroPage = () => {
             </div>
           </div>
           <div className="font-mono text-3xl font-bold text-alert mb-1">{totalPendente.toFixed(0)} CVE</div>
-          <div className="text-sm text-slate-500 uppercase tracking-wider">Pendente</div>
+          <div className="text-sm text-gray-500 uppercase tracking-wider">Pendente</div>
         </motion.div>
 
         <motion.div
@@ -127,12 +127,12 @@ export const FinanceiroPage = () => {
           className="card-technical rounded-xl p-6"
         >
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-accent rounded-lg flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-primary" />
+            <div className="w-12 h-12 bg-carmesim rounded-lg flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-grafite" />
             </div>
           </div>
-          <div className="font-mono text-3xl font-bold text-accent mb-1">{totalPago.toFixed(0)} CVE</div>
-          <div className="text-sm text-slate-500 uppercase tracking-wider">Pago</div>
+          <div className="font-mono text-3xl font-bold text-carmesim mb-1">{totalPago.toFixed(0)} CVE</div>
+          <div className="text-sm text-gray-500 uppercase tracking-wider">Pago</div>
         </motion.div>
       </div>
 
@@ -141,7 +141,7 @@ export const FinanceiroPage = () => {
         <button
           onClick={() => setFilter('all')}
           className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-sm uppercase tracking-wider transition-all ${
-            filter === 'all' ? 'bg-primary text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
+            filter === 'all' ? 'bg-grafite text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
           }`}
           data-testid="filter-all"
         >
@@ -151,7 +151,7 @@ export const FinanceiroPage = () => {
         <button
           onClick={() => setFilter('pendente')}
           className={`px-4 py-2 rounded-lg font-mono text-sm uppercase tracking-wider transition-all ${
-            filter === 'pendente' ? 'bg-alert text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
+            filter === 'pendente' ? 'bg-alert text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
           }`}
           data-testid="filter-pending"
         >
@@ -160,7 +160,7 @@ export const FinanceiroPage = () => {
         <button
           onClick={() => setFilter('pago')}
           className={`px-4 py-2 rounded-lg font-mono text-sm uppercase tracking-wider transition-all ${
-            filter === 'pago' ? 'bg-accent text-primary' : 'bg-white text-slate-600 hover:bg-slate-50'
+            filter === 'pago' ? 'bg-carmesim text-grafite' : 'bg-white text-gray-600 hover:bg-gray-50'
           }`}
           data-testid="filter-paid"
         >
@@ -169,7 +169,7 @@ export const FinanceiroPage = () => {
         <button
           onClick={() => setFilter('cancelado')}
           className={`px-4 py-2 rounded-lg font-mono text-sm uppercase tracking-wider transition-all ${
-            filter === 'cancelado' ? 'bg-slate-400 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
+            filter === 'cancelado' ? 'bg-gray-400 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
           }`}
           data-testid="filter-cancelled"
         >
@@ -185,12 +185,12 @@ export const FinanceiroPage = () => {
           </div>
         ) : filteredInvoices.length === 0 ? (
           <div className="p-12 text-center" data-testid="no-invoices">
-            <p className="text-slate-500">Nenhum registro encontrado</p>
+            <p className="text-gray-500">Nenhum registro encontrado</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 text-slate-500 uppercase font-mono text-xs">
+              <thead className="bg-gray-50 text-gray-500 uppercase font-mono text-xs">
                 <tr>
                   <th className="px-6 py-4">Tipo</th>
                   <th className="px-6 py-4">Valor</th>
@@ -203,12 +203,12 @@ export const FinanceiroPage = () => {
                 {filteredInvoices.map((invoice, index) => (
                   <tr
                     key={invoice.id}
-                    className="border-t border-slate-100 hover:bg-slate-50 transition-colors"
+                    className="border-t border-gray-100 hover:bg-gray-50 transition-colors"
                     data-testid={`invoice-row-${invoice.id}`}
                   >
-                    <td className="px-6 py-4 font-manrope font-semibold text-primary">{invoice.type}</td>
-                    <td className="px-6 py-4 font-mono font-bold text-primary">{invoice.amount} CVE</td>
-                    <td className="px-6 py-4 font-mono text-slate-600">
+                    <td className="px-6 py-4 font-sans font-semibold text-grafite">{invoice.type}</td>
+                    <td className="px-6 py-4 font-mono font-bold text-grafite">{invoice.amount} CVE</td>
+                    <td className="px-6 py-4 font-mono text-gray-600">
                       {format(new Date(invoice.due_date), 'dd/MM/yyyy', { locale: ptBR })}
                     </td>
                     <td className="px-6 py-4">
@@ -221,7 +221,7 @@ export const FinanceiroPage = () => {
                         {invoice.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-mono text-xs text-slate-500">{invoice.source}</td>
+                    <td className="px-6 py-4 font-mono text-xs text-gray-500">{invoice.source}</td>
                   </tr>
                 ))}
               </tbody>

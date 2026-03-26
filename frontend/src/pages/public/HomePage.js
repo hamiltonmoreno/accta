@@ -49,8 +49,8 @@ export const HomePage = () => {
             className="absolute inset-0 w-full h-full object-cover"
             loading="eager"
           />
-          {/* Dark overlay for text readability - gradient from solid to semi-transparent */}
-          <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/80 to-primary/40" />
+          {/* Dark overlay - ACCTA Grafite */}
+          <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 py-20">
@@ -60,26 +60,26 @@ export const HomePage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/20 backdrop-blur-sm border border-accent/30 rounded-full mb-8">
-                <Radio className="w-4 h-4 text-accent" />
-                <span className="text-accent font-mono text-sm uppercase tracking-wider">ACCTA Cabo Verde</span>
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-carmesim/20 backdrop-blur-sm border border-carmesim/40 rounded-full mb-8">
+                <Radio className="w-4 h-4 text-carmesim" />
+                <span className="text-white font-sans text-sm uppercase tracking-wider font-semibold">ACCTA Cabo Verde</span>
               </div>
 
-              <h1 className="font-outfit font-bold text-5xl lg:text-6xl xl:text-7xl text-white leading-tight mb-6" data-testid="hero-title">
+              <h1 className="font-bold text-5xl lg:text-6xl xl:text-7xl text-white leading-tight mb-6" data-testid="hero-title">
                 Os Guardiões{' '}
-                <span className="text-accent">Invisíveis</span>{' '}
+                <span className="text-carmesim">Invisíveis</span>{' '}
                 dos Céus de Cabo Verde
               </h1>
 
               <p className="text-xl lg:text-2xl text-white/90 leading-relaxed mb-10 max-w-xl">
                 24 horas por dia, garantimos a segurança, a fluidez e a soberania do espaço aéreo no meio do Atlântico.{' '}
-                <span className="text-accent font-semibold">Nós somos a CTA.</span>
+                <span className="text-carmesim font-semibold">Nós somos a CTA.</span>
               </p>
 
               <div className="flex flex-wrap gap-4">
                 <Link
                   to="/profissao"
-                  className="group inline-flex items-center gap-3 bg-accent text-primary px-8 py-4 rounded-lg font-bold text-lg hover:bg-accent/90 transition-all shadow-lg shadow-accent/25"
+                  className="group inline-flex items-center gap-3 bg-carmesim text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-carmesim-dark transition-all shadow-lg shadow-carmesim/25"
                   data-testid="hero-cta-primary"
                 >
                   Conheça a Profissão
@@ -105,13 +105,13 @@ export const HomePage = () => {
           className="absolute bottom-8 left-1/2 -translate-x-1/2"
         >
           <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center">
-            <div className="w-1.5 h-3 bg-accent rounded-full mt-2 animate-bounce" />
+            <div className="w-1.5 h-3 bg-carmesim rounded-full mt-2 animate-bounce" />
           </div>
         </motion.div>
       </section>
 
       {/* Stats Bar */}
-      <section className="bg-primary py-8 border-y border-accent/20">
+      <section className="bg-grafite py-8 border-y border-carmesim/20">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
@@ -128,9 +128,9 @@ export const HomePage = () => {
                 transition={{ delay: index * 0.1 }}
                 className="text-center"
               >
-                <stat.icon className="w-8 h-8 text-accent mx-auto mb-3" />
-                <div className="font-outfit font-bold text-3xl lg:text-4xl text-white mb-1">{stat.value}</div>
-                <div className="font-mono text-xs text-white/60 uppercase tracking-wider">{stat.label}</div>
+                <stat.icon className="w-8 h-8 text-carmesim mx-auto mb-3" />
+                <div className="font-bold text-3xl lg:text-4xl text-white mb-1">{stat.value}</div>
+                <div className="text-xs text-white/60 uppercase tracking-wider">{stat.label}</div>
               </motion.div>
             ))}
           </div>
@@ -138,7 +138,7 @@ export const HomePage = () => {
       </section>
 
       {/* What We Do Section */}
-      <section className="py-24 bg-slate-50">
+      <section className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <motion.div
@@ -146,24 +146,24 @@ export const HomePage = () => {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <span className="inline-block px-4 py-2 bg-accent/10 text-accent rounded-full font-mono text-sm uppercase tracking-wider mb-6">
+              <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider font-semibold mb-6">
                 O que fazemos
               </span>
-              <h2 className="font-outfit font-bold text-4xl lg:text-5xl text-primary mb-6">
+              <h2 className="font-bold text-4xl lg:text-5xl text-grafite mb-6">
                 Muito além da{' '}
-                <span className="text-accent">Torre de Controlo</span>
+                <span className="text-carmesim">Torre de Controlo</span>
               </h2>
-              <p className="text-lg text-slate-600 leading-relaxed mb-6">
+              <p className="text-lg text-gray-600 leading-relaxed mb-6">
                 Quando você embarca num avião, vê o piloto e a tripulação. Mas existe uma{' '}
-                <strong className="text-primary">equipa de elite em terra</strong>, monitorizando cada metro do seu voo.
+                <strong className="text-grafite">equipa de elite em terra</strong>, monitorizando cada metro do seu voo.
               </p>
-              <p className="text-lg text-slate-600 leading-relaxed mb-8">
+              <p className="text-lg text-gray-600 leading-relaxed mb-8">
                 O Controlador de Tráfego Aéreo (CTA) é o responsável por evitar colisões, organizar descolagens e aterragens 
                 e guiar aeronaves em segurança através das complexas rotas do Atlântico.
               </p>
               <Link
                 to="/profissao"
-                className="inline-flex items-center gap-2 text-primary font-semibold hover:text-accent transition-colors group"
+                className="inline-flex items-center gap-2 text-carmesim font-semibold hover:text-carmesim-dark transition-colors group"
               >
                 Saiba como funciona o controlo aéreo
                 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -186,11 +186,11 @@ export const HomePage = () => {
                   key={index}
                   className="card-technical rounded-xl p-6 hover:shadow-lg transition-shadow"
                 >
-                  <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-4">
-                    <item.icon className="w-6 h-6 text-accent" />
+                  <div className="w-12 h-12 bg-grafite rounded-lg flex items-center justify-center mb-4">
+                    <item.icon className="w-6 h-6 text-carmesim" />
                   </div>
-                  <h3 className="font-outfit font-semibold text-lg text-primary mb-2">{item.title}</h3>
-                  <p className="text-sm text-slate-600">{item.desc}</p>
+                  <h3 className="font-semibold text-lg text-grafite mb-2">{item.title}</h3>
+                  <p className="text-sm text-gray-600">{item.desc}</p>
                 </div>
               ))}
             </motion.div>
@@ -202,25 +202,25 @@ export const HomePage = () => {
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
-            <span className="inline-block px-4 py-2 bg-primary/5 text-primary rounded-full font-mono text-sm uppercase tracking-wider mb-6">
+            <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider font-semibold mb-6">
               Últimas Notícias
             </span>
-            <h2 className="font-outfit font-bold text-4xl lg:text-5xl text-primary mb-4">
+            <h2 className="font-bold text-4xl lg:text-5xl text-grafite mb-4">
               Fique por dentro da{' '}
-              <span className="text-accent">Aviação em CV</span>
+              <span className="text-carmesim">Aviação em CV</span>
             </h2>
-            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Acompanhe as novidades da associação e do setor aeronáutico em Cabo Verde
             </p>
           </div>
 
           {loadingNews ? (
             <div className="flex justify-center py-12">
-              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
             </div>
           ) : news.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-slate-500">Nenhuma notícia disponível no momento</p>
+              <p className="text-gray-500">Nenhuma notícia disponível no momento</p>
             </div>
           ) : (
             <div className="grid md:grid-cols-3 gap-8">
@@ -234,21 +234,21 @@ export const HomePage = () => {
                   className="group"
                 >
                   <div className="card-technical rounded-xl overflow-hidden hover:shadow-xl transition-all">
-                    <div className="h-48 bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-                      <Plane className="w-16 h-16 text-accent/50" />
+                    <div className="h-48 bg-gradient-to-br from-grafite to-grafite-light flex items-center justify-center">
+                      <Plane className="w-16 h-16 text-carmesim/30" />
                     </div>
                     <div className="p-6">
-                      <div className="flex items-center gap-2 text-xs font-mono text-slate-500 mb-3">
+                      <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
                         <Calendar className="w-4 h-4" />
                         {format(new Date(post.created_at), "dd MMM yyyy", { locale: ptBR })}
                       </div>
-                      <h3 className="font-outfit font-semibold text-xl text-primary mb-3 line-clamp-2 group-hover:text-accent transition-colors">
+                      <h3 className="font-semibold text-xl text-grafite mb-3 line-clamp-2 group-hover:text-carmesim transition-colors">
                         {post.title}
                       </h3>
-                      <p className="text-slate-600 text-sm line-clamp-3 mb-4">{post.content}</p>
+                      <p className="text-gray-600 text-sm line-clamp-3 mb-4">{post.content}</p>
                       <Link
                         to="/noticias"
-                        className="inline-flex items-center gap-2 text-sm text-primary font-semibold hover:text-accent transition-colors"
+                        className="inline-flex items-center gap-2 text-sm text-carmesim font-semibold hover:text-carmesim-dark transition-colors"
                       >
                         Ler mais
                         <ChevronRight className="w-4 h-4" />
@@ -263,7 +263,7 @@ export const HomePage = () => {
           <div className="text-center mt-12">
             <Link
               to="/noticias"
-              className="inline-flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-lg font-bold hover:bg-primary/90 transition-all"
+              className="inline-flex items-center gap-2 bg-grafite text-white px-8 py-4 rounded-lg font-bold hover:bg-grafite-dark transition-all"
             >
               Ver Todas as Notícias
               <ArrowRight className="w-5 h-5" />
@@ -273,17 +273,17 @@ export const HomePage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-primary relative overflow-hidden">
+      <section className="py-24 bg-grafite relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{ 
-            backgroundImage: 'linear-gradient(rgba(0,255,156,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,156,0.3) 1px, transparent 1px)',
+            backgroundImage: 'linear-gradient(rgba(199,32,47,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(199,32,47,0.3) 1px, transparent 1px)',
             backgroundSize: '30px 30px'
           }} />
         </div>
         <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
-          <h2 className="font-outfit font-bold text-4xl lg:text-5xl text-white mb-6">
+          <h2 className="font-bold text-4xl lg:text-5xl text-white mb-6">
             Junte-se aos profissionais que garantem a{' '}
-            <span className="text-accent">segurança dos céus</span>
+            <span className="text-carmesim">segurança dos céus</span>
           </h2>
           <p className="text-xl text-white/80 mb-10">
             A ACCTA representa e valoriza os controladores de tráfego aéreo de Cabo Verde
@@ -291,7 +291,7 @@ export const HomePage = () => {
           <div className="flex flex-wrap justify-center gap-4">
             <Link
               to="/sobre"
-              className="inline-flex items-center gap-2 bg-accent text-primary px-8 py-4 rounded-lg font-bold text-lg hover:bg-accent/90 transition-all"
+              className="inline-flex items-center gap-2 bg-carmesim text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-carmesim-dark transition-all"
             >
               Conheça a Associação
             </Link>

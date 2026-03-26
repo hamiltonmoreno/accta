@@ -1,12 +1,48 @@
-/* Minimal global styles - most styling via Tailwind */
+/* ACCTA Brand Identity Styles */
+
+/* Base Typography */
+html {
+  scroll-behavior: smooth;
+  font-family: 'Open Sans', sans-serif;
+}
+
+body {
+  font-family: 'Open Sans', sans-serif;
+  color: #3A3A3A;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
 .App {
   min-height: 100vh;
 }
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
+/* ACCTA Brand Colors */
+:root {
+  --accta-grafite: #3A3A3A;
+  --accta-carmesim: #C7202F;
+  --accta-grafite-light: #5A5A5A;
+  --accta-carmesim-light: #E8444F;
+  --accta-bg-light: #F5F5F5;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 700;
+  color: #3A3A3A;
+}
+
+/* Card Style - ACCTA Brand */
+.card-technical {
+  background: white;
+  box-shadow: 0 1px 3px rgba(58, 58, 58, 0.1);
+  border: 1px solid rgba(58, 58, 58, 0.08);
+  transition: all 0.2s ease;
+}
+
+.card-technical:hover {
+  box-shadow: 0 4px 12px rgba(58, 58, 58, 0.12);
 }
 
 /* Custom scrollbar */
@@ -16,16 +52,16 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-  background: #F4F6F8;
+  background: #F5F5F5;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: #C7202F;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: #9E1925;
 }
 
 /* Loading animation */
@@ -42,10 +78,58 @@ html {
   animation: shimmer 2s infinite linear;
   background: linear-gradient(
     to right,
-    #F4F6F8 0%,
-    #E2E8F0 20%,
-    #F4F6F8 40%,
-    #F4F6F8 100%
+    #F5F5F5 0%,
+    #E8E8E8 20%,
+    #F5F5F5 40%,
+    #F5F5F5 100%
   );
   background-size: 1000px 100%;
+}
+
+/* Button Styles */
+.btn-primary {
+  background-color: #C7202F;
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background-color: #9E1925;
+}
+
+.btn-secondary {
+  background-color: #3A3A3A;
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background-color: #2A2A2A;
+}
+
+/* Link accent color */
+a {
+  color: #C7202F;
+}
+
+a:hover {
+  color: #9E1925;
+}
+
+/* Selection color */
+::selection {
+  background-color: #C7202F;
+  color: white;
+}
+
+/* Focus ring */
+*:focus-visible {
+  outline: 2px solid #C7202F;
+  outline-offset: 2px;
+}
+
+/* Form inputs focus */
+input:focus, select:focus, textarea:focus {
+  border-color: #C7202F !important;
+  box-shadow: 0 0 0 3px rgba(199, 32, 47, 0.1) !important;
 }

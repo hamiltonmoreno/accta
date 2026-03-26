@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Plane, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ACCTALogoHorizontal } from '../components/ACCTALogo';
 
 export const PublicLayout = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
@@ -18,18 +19,12 @@ export const PublicLayout = ({ children }) => {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 glass-effect">
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm">
+        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center justify-between">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-3 group">
-              <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center group-hover:bg-primary/90 transition-colors">
-                <Plane className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <div className="font-outfit font-bold text-xl text-primary">ACCTA</div>
-                <div className="font-mono text-xs text-slate-500 uppercase tracking-wider">Cabo Verde</div>
-              </div>
+            <Link to="/" className="group">
+              <ACCTALogoHorizontal />
             </Link>
 
             {/* Desktop Nav */}
@@ -38,7 +33,7 @@ export const PublicLayout = ({ children }) => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className="font-manrope text-sm font-medium text-slate-700 hover:text-primary transition-colors"
+                  className="text-sm font-medium text-grafite hover:text-carmesim transition-colors"
                   data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                 >
                   {item.label}
@@ -46,7 +41,7 @@ export const PublicLayout = ({ children }) => {
               ))}
               <Link
                 to="/login"
-                className="bg-primary text-white hover:bg-primary/90 h-10 px-6 rounded-md uppercase tracking-wider font-bold text-sm transition-all"
+                className="bg-carmesim text-white hover:bg-carmesim-dark h-10 px-6 rounded-md uppercase tracking-wider font-bold text-sm transition-all flex items-center"
                 data-testid="nav-login-button"
               >
                 Entrar
@@ -56,97 +51,93 @@ export const PublicLayout = ({ children }) => {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors"
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
               data-testid="mobile-menu-button"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6 text-grafite" />
+              ) : (
+                <Menu className="w-6 h-6 text-grafite" />
+              )}
             </button>
           </div>
-
-          {/* Mobile Menu */}
-          <AnimatePresence>
-            {mobileMenuOpen && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="md:hidden mt-4 pt-4 border-t border-slate-200"
-              >
-                <div className="flex flex-col gap-4">
-                  {navItems.map((item) => (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="font-manrope text-sm font-medium text-slate-700 hover:text-primary transition-colors"
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                  <Link
-                    to="/login"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="bg-primary text-white hover:bg-primary/90 h-10 px-6 rounded-md uppercase tracking-wider font-bold text-sm transition-all text-center flex items-center justify-center"
-                  >
-                    Entrar
-                  </Link>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </nav>
+
+        {/* Mobile Menu */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden bg-white border-t border-gray-100"
+            >
+              <div className="px-4 py-4 space-y-2">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block py-3 px-4 rounded-lg text-grafite hover:bg-gray-50 hover:text-carmesim transition-colors font-medium"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block py-3 px-4 bg-carmesim text-white rounded-lg text-center font-bold uppercase tracking-wider"
+                >
+                  Entrar
+                </Link>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 pt-20">
+      {/* Page Content */}
+      <main className="flex-grow pt-20">
         {children}
       </main>
 
       {/* Footer */}
-      <footer className="bg-primary text-white mt-auto">
+      <footer className="bg-grafite text-white mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="md:col-span-2">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-accent rounded-lg flex items-center justify-center">
-                  <Plane className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <div className="font-outfit font-bold text-xl">ACCTA</div>
-                  <div className="font-mono text-xs text-accent uppercase tracking-wider">Cabo Verde</div>
-                </div>
-              </div>
-              <p className="text-sm text-slate-300 mb-4">
+              <ACCTALogoHorizontal dark className="mb-4" />
+              <p className="text-sm text-gray-300 mb-4">
                 Associação dos Controladores de Tráfego Aéreo de Cabo Verde
               </p>
-              <p className="text-accent font-semibold italic">
+              <p className="text-carmesim font-semibold italic">
                 "Segurança no céu, união em terra."
               </p>
             </div>
 
             <div>
-              <h3 className="font-outfit font-semibold mb-4">Links Rápidos</h3>
-              <ul className="space-y-2 text-sm text-slate-300">
-                <li><Link to="/sobre" className="hover:text-accent transition-colors">Sobre</Link></li>
-                <li><Link to="/profissao" className="hover:text-accent transition-colors">A Profissão</Link></li>
-                <li><Link to="/transparencia" className="hover:text-accent transition-colors">Transparência</Link></li>
-                <li><Link to="/beneficios-publico" className="hover:text-accent transition-colors">Benefícios</Link></li>
-                <li><Link to="/contactos" className="hover:text-accent transition-colors">Contactos</Link></li>
+              <h3 className="font-semibold mb-4">Links Rápidos</h3>
+              <ul className="space-y-2 text-sm text-gray-300">
+                <li><Link to="/sobre" className="hover:text-carmesim transition-colors">Sobre</Link></li>
+                <li><Link to="/profissao" className="hover:text-carmesim transition-colors">A Profissão</Link></li>
+                <li><Link to="/transparencia" className="hover:text-carmesim transition-colors">Transparência</Link></li>
+                <li><Link to="/beneficios-publico" className="hover:text-carmesim transition-colors">Benefícios</Link></li>
+                <li><Link to="/contactos" className="hover:text-carmesim transition-colors">Contactos</Link></li>
               </ul>
             </div>
 
             <div>
-              <h3 className="font-outfit font-semibold mb-4">Área Reservada</h3>
-              <ul className="space-y-2 text-sm text-slate-300">
-                <li><Link to="/login" className="hover:text-accent transition-colors">Login Associados</Link></li>
-                <li><Link to="/validador" className="hover:text-accent transition-colors">Validador QR</Link></li>
+              <h3 className="font-semibold mb-4">Área Reservada</h3>
+              <ul className="space-y-2 text-sm text-gray-300">
+                <li><Link to="/login" className="hover:text-carmesim transition-colors">Login Associados</Link></li>
+                <li><Link to="/validador" className="hover:text-carmesim transition-colors">Validador QR</Link></li>
               </ul>
             </div>
           </div>
 
-          <div className="border-t border-white/10 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-400">
+          <div className="border-t border-white/10 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-400">
             <p>&copy; {new Date().getFullYear()} ACCTA - Todos os direitos reservados</p>
-            <Link to="/privacidade" className="hover:text-accent transition-colors">Política de Privacidade</Link>
+            <Link to="/privacidade" className="hover:text-carmesim transition-colors">Política de Privacidade</Link>
           </div>
         </div>
       </footer>
