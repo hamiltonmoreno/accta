@@ -1,9 +1,9 @@
 # Portal ACTACV - Product Requirements Document
 
-## Visão Geral
-Ecossistema digital integrado para a Associação dos Controladores de Tráfego Aéreo de Cabo Verde (ACTACV).
+## Visao Geral
+Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aereo de Cabo Verde (ACTACV).
 
-## Stack Tecnológica
+## Stack Tecnologica
 - **Frontend:** React 18, Tailwind CSS, Framer Motion, React Router, Axios
 - **Backend:** FastAPI (Python), MongoDB, JWT Authentication
 - **UI Components:** Shadcn/UI
@@ -11,40 +11,47 @@ Ecossistema digital integrado para a Associação dos Controladores de Tráfego 
 
 ## Funcionalidades Implementadas
 
-### Área Pública (ATUALIZADO)
-- [x] **Homepage** com hero impactante (imagem de avião), estatísticas, seção educativa e notícias
-- [x] **Sobre Nós (A Associação)** - Quem Somos, Missão, Visão, Valores, Corpos Sociais
-- [x] **A Profissão** - Educativo sobre CTA, tipos de controlo (TWR, APP, ACC), FIR Sal, como se tornar controlador
-- [x] **Clube de Benefícios (Público)** - Parcerias, como funciona, grid de parceiros
-- [x] **Transparência** - Documentos institucionais, relatórios, indicadores de governança
-- [x] **Contactos** - Formulário, informações de contacto, FAQ
-- [x] **Validador QR Code Público**
-- [x] **Página de Notícias**
+### Area Publica
+- [x] **Homepage** com hero impactante (imagem de aviao), estatisticas, secao educativa e noticias
+- [x] **Sobre Nos (A Associacao)** - Quem Somos, Missao, Visao, Valores, Corpos Sociais
+- [x] **A Profissao** - Educativo sobre CTA, tipos de controlo (TWR, APP, ACC), FIR Sal
+- [x] **Clube de Beneficios (Publico)** - Parcerias, como funciona, grid de parceiros
+- [x] **Transparencia** - Documentos institucionais, relatorios, indicadores de governanca
+- [x] **Contactos** - Formulario, informacoes de contacto, FAQ
+- [x] **Validador QR Code Publico**
+- [x] **Pagina de Noticias**
+- [x] **Eventos Publicos**
 
-### Área Reservada (Portal do Associado)
-- [x] **Dashboard** - Resumo personalizado com quotas, votações, eventos e notificações
-- [x] **Gestão Financeira** - Histórico de quotas com desconto automático em folha salarial
-- [x] **Carteira Digital** - Cartão interativo com QR Code para validação
-- [x] **Sistema de Votações** - Votações abertas/fechadas com resultados
+### Area Reservada (Portal do Associado)
+- [x] **Dashboard** - Resumo personalizado com quotas, votacoes, eventos e notificacoes
+- [x] **Gestao Financeira** - Historico de quotas com desconto automatico em folha salarial
+- [x] **Carteira Digital (PWA)** - Cartao interativo com QR Code, flip animation, download QR, partilha, acesso offline, indicador de conexao, service worker para cache
+- [x] **Sistema de Votacoes** - Votacoes abertas/fechadas com resultados
 - [x] **Sistema de Eventos/Agenda** - Criar, visualizar, inscrever-se em eventos
 - [x] **Documentos** - Secretaria digital com upload para administradores
-- [x] **Mural Interno** - Comunicação entre associados
-- [x] **Clube de Benefícios** - Parcerias com desconto
-- [x] **Notificações In-App** - Sistema completo de alertas
+- [x] **Mural de Comunicacao Interna** - Posts com categorias (geral, sugestao, discussao, aviso), likes/reacoes, comentarios, moderacao admin (aprovar/rejeitar pendentes), fixar posts, filtros por categoria, auto-aprovacao para admins
+- [x] **Clube de Beneficios** - Parcerias com desconto
+- [x] **Notificacoes In-App** - Sistema completo de alertas
 
-### Administração
-- [x] **Gestão de Usuários** - CRUD de sócios com alteração de status
-- [x] **Audit Logs** - Histórico de ações
+### Administracao
+- [x] **Gestao de Usuarios** - CRUD de socios com alteracao de status
+- [x] **Audit Logs** - Historico de acoes
 - [x] **Upload de Documentos** - Modal de upload para administradores
+- [x] **Moderacao do Mural** - Painel de posts pendentes, aprovar/rejeitar/fixar/deletar
+
+### Identidade Visual
+- [x] Cores ACCTA: Vermelho Carmesim (#C7202F) e Cinza Grafite (#3A3A3A)
+- [x] Tipografia: Open Sans (headings + body), JetBrains Mono (dados)
+- [x] Logo customizado ACCTALogo component
 
 ## Perfis de Utilizador
-| Perfil | Permissões |
+| Perfil | Permissoes |
 |--------|-----------|
-| Público | Acesso às páginas públicas |
-| Sócio Ativo | Acesso completo à área reservada, direito a voto |
-| Sócio Inadimplente | Acesso restrito, sem direito a voto |
-| Financeiro | Gestão financeira + funcionalidades de sócio |
-| Admin | Acesso total + gestão de usuários |
+| Publico | Acesso as paginas publicas |
+| Socio Ativo | Acesso completo a area reservada, direito a voto |
+| Socio Inadimplente | Acesso restrito, sem direito a voto |
+| Financeiro | Gestao financeira + funcionalidades de socio |
+| Admin | Acesso total + gestao de usuarios + moderacao |
 
 ## Credenciais de Teste
 ```
@@ -56,47 +63,42 @@ Financeiro:
   Email: financeiro@accta.cv
   Senha: fin123
 
-Sócio Ativo:
+Socio Ativo:
   Email: socio1@accta.cv
   Senha: socio123
 
-Sócio Inadimplente:
+Socio Inadimplente:
   Email: inadimplente@accta.cv
   Senha: socio123
 ```
 
 ## API Endpoints Principais
 
-### Autenticação
+### Autenticacao
 - `POST /api/auth/login` - Login
 - `POST /api/auth/register` - Registo
 - `GET /api/auth/me` - Dados do utilizador atual
 
-### Utilizadores
-- `GET /api/users` - Listar utilizadores (admin/financeiro)
-- `PATCH /api/users/{id}/status` - Alterar status (admin)
+### Mural (Wall) - NOVO
+- `GET /api/wall` - Listar posts aprovados (filtro por categoria)
+- `GET /api/wall/pending` - Posts pendentes (admin/moderador)
+- `POST /api/wall` - Criar post (auto-approve para admin)
+- `PATCH /api/wall/{id}/approve` - Aprovar post
+- `DELETE /api/wall/{id}` - Remover post
+- `PATCH /api/wall/{id}/pin` - Fixar/desfixar post
+- `PATCH /api/wall/{id}/like` - Like/unlike toggle
+- `GET /api/wall/{id}/comments` - Listar comentarios
+- `POST /api/wall/{id}/comments` - Criar comentario
+- `DELETE /api/wall/{id}/comments/{cid}` - Remover comentario
 
-### Financeiro
-- `GET /api/invoices` - Listar quotas
-- `POST /api/invoices` - Criar quota (admin/financeiro)
-- `PATCH /api/invoices/{id}/confirm` - Confirmar pagamento
+### Eventos
+- `GET /api/events`, `POST /api/events`
+- `PATCH /api/events/{id}/register`
 
-### Votações
-- `GET /api/polls` - Listar votações
-- `POST /api/polls` - Criar votação (admin)
-- `POST /api/polls/vote` - Votar
-- `GET /api/polls/{id}/results` - Resultados
-
-### Documentos
-- `GET /api/documents` - Listar documentos
-- `POST /api/documents` - Criar documento (admin)
-- `POST /api/upload/{category}` - Upload de ficheiro
-
-### Notificações
-- `GET /api/notifications` - Listar notificações
-- `GET /api/notifications/unread/count` - Contagem não lidas
-- `PATCH /api/notifications/{id}/read` - Marcar como lida
-- `PATCH /api/notifications/mark-all-read` - Marcar todas como lidas
+### Outros
+- `GET /api/users`, `GET /api/invoices`, `GET /api/polls`
+- `GET /api/documents`, `GET /api/benefits`
+- `GET /api/notifications`, `GET /api/stats`
 
 ## Arquitetura de Ficheiros
 ```
@@ -104,39 +106,36 @@ Sócio Inadimplente:
 ├── backend/
 │   ├── server.py          # API FastAPI completa
 │   ├── uploads/           # Ficheiros enviados
-│   │   ├── documents/
-│   │   ├── avatars/
-│   │   ├── logos/
-│   │   └── proofs/
+│   ├── tests/             # Testes pytest
 │   └── .env
 ├── frontend/
+│   ├── public/
+│   │   ├── sw.js          # Service Worker (PWA)
+│   │   └── manifest.json  # PWA Manifest
 │   ├── src/
-│   │   ├── components/    # Componentes reutilizáveis
+│   │   ├── components/    # ACCTALogo, NotificationBell, etc.
 │   │   ├── contexts/      # AuthContext, NotificationContext
 │   │   ├── layouts/       # PublicLayout, PrivateLayout
 │   │   ├── pages/
 │   │   │   ├── public/    # HomePage, LoginPage, etc.
-│   │   │   └── private/   # DashboardPage, VotacoesPage, etc.
-│   │   └── utils/
-│   │       └── api.js     # Axios config + API calls
+│   │   │   └── private/   # Dashboard, Mural, Carteira, etc.
+│   │   └── utils/api.js   # Axios config + API calls
 │   └── .env
-├── scripts/
-│   └── seed_data.py       # Script de dados de demonstração
+├── scripts/seed_data.py
 └── test_reports/
-    ├── iteration_1.json
-    └── iteration_2.json
 ```
 
 ## Status de Testes
-- **Backend:** 100% (28/28 testes passaram)
-- **Frontend:** 100% (todas as páginas funcionando)
+- **Backend:** 100% (51/51 testes passaram - iteration_3)
+- **Frontend:** 100% (todas as paginas funcionando)
 
-## Data de Última Atualização
-Fevereiro 2026
+## Data de Ultima Atualizacao
+Marco 2026
 
-## Próximas Melhorias Sugeridas
-1. Sistema de recuperação de senha
-2. Exportação de relatórios financeiros em PDF
-3. Sistema de eventos/agenda
-4. Chat interno entre sócios
-5. Integração com calendário para assembleias
+## Proximas Tarefas (Backlog)
+- P1: Clube de Beneficios - Logica de validacao QR Code
+- P2: Exportar eventos para calendarios pessoais (Google/Apple Calendar)
+- P2: Galeria de fotos da equipa e aeroportos
+- P2: Sistema de recuperacao de senha
+- P2: Exportacao de relatorios financeiros em PDF
+- P3: Refactoring - Dividir server.py em routers/models separados
