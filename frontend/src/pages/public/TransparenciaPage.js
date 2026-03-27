@@ -93,28 +93,28 @@ export const TransparenciaPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative py-24 bg-grafite overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{ 
-            backgroundImage: 'linear-gradient(rgba(0,255,156,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,156,0.3) 1px, transparent 1px)',
-            backgroundSize: '40px 40px'
-          }} />
-        </div>
-        <div className="relative z-10 max-w-7xl mx-auto px-6">
+      <section className="relative py-20 sm:py-28 overflow-hidden">
+        <img
+          src="https://images.unsplash.com/photo-1618506060789-b63788b0cecd?q=80&w=2070&auto=format&fit=crop"
+          alt="Transparencia institucional"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
+        <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center"
+            className="max-w-2xl"
           >
-            <span className="inline-block px-4 py-2 bg-carmesim/10 border border-accent/30 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
-              Governança
+            <span className="inline-block px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
+              Governanca
             </span>
-            <h1 className="font-sans font-bold text-5xl lg:text-6xl text-white mb-6" data-testid="transparency-title">
-              Transparência e{' '}
-              <span className="text-carmesim">Prestação de Contas</span>
+            <h1 className="font-bold text-3xl sm:text-5xl lg:text-6xl text-white mb-4" data-testid="transparency-title">
+              Transparencia e{' '}
+              <span className="text-carmesim">Prestacao de Contas</span>
             </h1>
-            <p className="text-xl text-white/80 max-w-3xl mx-auto leading-relaxed">
-              A credibilidade da ACCTA baseia-se na transparência com os seus associados e com a sociedade
+            <p className="text-base sm:text-xl text-white/80 max-w-xl leading-relaxed">
+              A credibilidade da ACCTA baseia-se na transparencia com os seus associados e com a sociedade
             </p>
           </motion.div>
         </div>

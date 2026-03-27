@@ -30,27 +30,27 @@ export const BeneficiosPublicoPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative py-24 bg-grafite overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{ 
-            backgroundImage: 'linear-gradient(rgba(0,255,156,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,156,0.3) 1px, transparent 1px)',
-            backgroundSize: '40px 40px'
-          }} />
-        </div>
-        <div className="relative z-10 max-w-7xl mx-auto px-6">
+      <section className="relative py-20 sm:py-28 overflow-hidden">
+        <img
+          src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?q=80&w=2070&auto=format&fit=crop"
+          alt="Parcerias e beneficios"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
+        <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center"
+            className="max-w-2xl"
           >
-            <span className="inline-block px-4 py-2 bg-carmesim/10 border border-accent/30 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
+            <span className="inline-block px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
               Parcerias
             </span>
-            <h1 className="font-sans font-bold text-5xl lg:text-6xl text-white mb-6" data-testid="benefits-title">
+            <h1 className="font-bold text-3xl sm:text-5xl lg:text-6xl text-white mb-4" data-testid="benefits-title">
               Clube de{' '}
-              <span className="text-carmesim">Benefícios</span>
+              <span className="text-carmesim">Beneficios</span>
             </h1>
-            <p className="text-xl text-white/80 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-base sm:text-xl text-white/80 max-w-xl leading-relaxed">
               Vantagens exclusivas para os membros da ACCTA
             </p>
           </motion.div>
