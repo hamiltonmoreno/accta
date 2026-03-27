@@ -47,6 +47,9 @@
         font-family: 'Open Sans', sans-serif;
         font-weight: 700;
     }
+    p {
+        line-height: 1.75;
+    }
 
     /* Better focus states */
     *:focus-visible {
