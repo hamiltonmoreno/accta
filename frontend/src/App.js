@@ -15,6 +15,7 @@ import { TransparenciaPage } from './pages/public/TransparenciaPage';
 import { BeneficiosPublicoPage } from './pages/public/BeneficiosPublicoPage';
 import { ContactosPage } from './pages/public/ContactosPage';
 import { EventosPublicoPage } from './pages/public/EventosPublicoPage';
+import { GaleriaPage } from './pages/public/GaleriaPage';
 import { NotificacoesPage } from './pages/private/NotificacoesPage';
 import { DashboardPage } from './pages/private/DashboardPage';
 import { CarteiraPage } from './pages/private/CarteiraPage';
@@ -62,6 +63,7 @@ function AppRoutes() {
       <Route path="/beneficios-publico" element={<PublicLayout><BeneficiosPublicoPage /></PublicLayout>} />
       <Route path="/contactos" element={<PublicLayout><ContactosPage /></PublicLayout>} />
       <Route path="/eventos-publico" element={<PublicLayout><EventosPublicoPage /></PublicLayout>} />
+      <Route path="/galeria" element={<PublicLayout><GaleriaPage /></PublicLayout>} />
       <Route path="/validador" element={<PublicLayout><ValidadorPage /></PublicLayout>} />
       <Route path="/login" element={<LoginPage />} />
 

@@ -16,6 +16,7 @@ export const PublicLayout = ({ children }) => {
     { label: 'Beneficios', path: '/beneficios-publico' },
     { label: 'Transparencia', path: '/transparencia' },
     { label: 'Contactos', path: '/contactos' },
+    { label: 'Galeria', path: '/galeria' },
   ];
 
   return (
@@ -144,6 +145,7 @@ export const PublicLayout = ({ children }) => {
                 <li><Link to="/transparencia" className="hover:text-carmesim transition-colors">Transparencia</Link></li>
                 <li><Link to="/beneficios-publico" className="hover:text-carmesim transition-colors">Beneficios</Link></li>
                 <li><Link to="/contactos" className="hover:text-carmesim transition-colors">Contactos</Link></li>
+                <li><Link to="/galeria" className="hover:text-carmesim transition-colors">Galeria</Link></li>
               </ul>
             </div>
 

@@ -145,3 +145,23 @@ export const eventsAPI = {
   unregister: (eventId) => api.delete(`/events/${eventId}/register`),
   getAttendees: (eventId) => api.get(`/events/${eventId}/attendees`),
 };
+
+// Gallery API
+export const galleryAPI = {
+  getAlbums: () => api.get('/gallery/albums'),
+  getAlbum: (albumId) => api.get(`/gallery/albums/${albumId}`),
+  createAlbum: (data) => api.post('/gallery/albums', data),
+  updateAlbum: (albumId, data) => api.patch(`/gallery/albums/${albumId}`, data),
+  deleteAlbum: (albumId) => api.delete(`/gallery/albums/${albumId}`),
+  getPhotos: (albumId) => api.get('/gallery/photos', { params: { album_id: albumId } }),
+  uploadPhoto: (albumId, file, caption) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('album_id', albumId);
+    if (caption) formData.append('caption', caption);
+    return api.post(`/gallery/photos/upload?album_id=${albumId}&caption=${encodeURIComponent(caption || '')}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  deletePhoto: (photoId) => api.delete(`/gallery/photos/${photoId}`),
+};
