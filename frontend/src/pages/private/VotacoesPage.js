@@ -74,9 +74,9 @@ export const VotacoesPage = () => {
       {/* Header */}
       <div>
         <h1 className="page-title" data-testid="polls-title">
-          Votacoes
+          Votações
         </h1>
-        <p className="page-subtitle">Participe das decisoes da associacao</p>
+        <p className="page-subtitle">Participe das decisões da associação</p>
       </div>
 
       {/* Status Alert for Inactive Members */}
@@ -90,9 +90,9 @@ export const VotacoesPage = () => {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-sm text-orange-700 mb-1">Votacao Restrita</h3>
+              <h3 className="font-semibold text-sm text-orange-700 mb-1">Votação Restrita</h3>
               <p className="text-xs sm:text-sm text-gray-600">
-                Apenas socios com status <strong>ativo</strong> podem participar de votacoes.
+                Apenas sócios com status <strong>ativo</strong> podem participar de votações.
               </p>
             </div>
           </div>
@@ -104,7 +104,7 @@ export const VotacoesPage = () => {
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <h2 className="font-semibold text-lg sm:text-2xl text-grafite flex items-center gap-2 sm:gap-3">
             <Clock className="w-5 sm:w-7 h-5 sm:h-7 text-carmesim" />
-            Votacoes Abertas
+            Votações Abertas
           </h2>
           {openPolls.length > 0 && (
             <span className="px-2.5 sm:px-4 py-1 sm:py-2 bg-carmesim/10 text-carmesim rounded-full text-xs sm:text-sm font-mono font-semibold">
@@ -151,7 +151,7 @@ export const VotacoesPage = () => {
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <h2 className="font-semibold text-lg sm:text-2xl text-grafite flex items-center gap-2 sm:gap-3">
               <CheckCircle className="w-5 sm:w-7 h-5 sm:h-7 text-gray-400" />
-              Votacoes Encerradas
+              Votações Encerradas
             </h2>
             <span className="px-2.5 sm:px-4 py-1 sm:py-2 bg-gray-100 text-gray-500 rounded-full text-xs sm:text-sm font-mono font-semibold">
               {closedPolls.length}

@@ -33,13 +33,13 @@ export const PrivateLayout = ({ children }) => {
     if (pathname === '/dashboard') return 'Dashboard';
     if (pathname === '/carteira') return 'Carteira Digital';
     if (pathname === '/financeiro') return 'Financeiro';
-    if (pathname === '/votacoes') return 'Votacoes';
+    if (pathname === '/votacoes') return 'Votações';
     if (pathname === '/eventos') return 'Eventos';
     if (pathname === '/documentos') return 'Documentos';
     if (pathname === '/mural') return 'Mural';
-    if (pathname === '/beneficios') return 'Beneficios';
-    if (pathname === '/notificacoes') return 'Notificacoes';
-    if (pathname === '/admin/usuarios') return 'Usuarios';
+    if (pathname === '/beneficios') return 'Benefícios';
+    if (pathname === '/notificacoes') return 'Notificações';
+    if (pathname === '/admin/usuarios') return 'Utilizadores';
     if (pathname === '/admin/logs') return 'Audit Logs';
     return 'Portal';
   })();
@@ -53,13 +53,13 @@ export const PrivateLayout = ({ children }) => {
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['all'] },
     { label: 'Carteira Digital', path: '/carteira', icon: CreditCard, roles: ['socio'] },
     { label: 'Financeiro', path: '/financeiro', icon: DollarSign, roles: ['all'] },
-    { label: 'Votacoes', path: '/votacoes', icon: Vote, roles: ['all'] },
+    { label: 'Votações', path: '/votacoes', icon: Vote, roles: ['all'] },
     { label: 'Eventos', path: '/eventos', icon: Calendar, roles: ['all'] },
     { label: 'Documentos', path: '/documentos', icon: FileText, roles: ['all'] },
     { label: 'Mural', path: '/mural', icon: MessageSquare, roles: ['all'] },
-    { label: 'Beneficios', path: '/beneficios', icon: Gift, roles: ['all'] },
-    { label: 'Notificacoes', path: '/notificacoes', icon: Bell, roles: ['all'] },
-    { label: 'Gestao de Usuarios', path: '/admin/usuarios', icon: Users, roles: ['admin'] },
+    { label: 'Benefícios', path: '/beneficios', icon: Gift, roles: ['all'] },
+    { label: 'Notificações', path: '/notificacoes', icon: Bell, roles: ['all'] },
+    { label: 'Gestão de Utilizadores', path: '/admin/usuarios', icon: Users, roles: ['admin'] },
     { label: 'Audit Logs', path: '/admin/logs', icon: ClipboardList, roles: ['admin'] },
   ];
 

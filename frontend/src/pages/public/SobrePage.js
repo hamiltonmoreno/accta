@@ -34,13 +34,13 @@ export const SobrePage = () => {
             className="max-w-2xl"
           >
             <span className="inline-block px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
-              A Associacao
+              A Associação
             </span>
             <h1 className="font-bold text-3xl sm:text-5xl lg:text-6xl text-white mb-4" data-testid="about-title">
               Quem Somos
             </h1>
             <p className="text-base sm:text-xl text-white/80 max-w-xl leading-relaxed">
-              A entidade representativa maxima dos controladores de trafego aereo em Cabo Verde
+              A entidade representativa máxima dos controladores de tráfego aéreo em Cabo Verde
             </p>
           </motion.div>
         </div>
@@ -314,7 +314,7 @@ export const SobrePage = () => {
           <div className="flex flex-wrap justify-center gap-4">
             <Link
               to="/transparencia"
-              className="inline-flex items-center gap-2 bg-carmesim text-grafite px-8 py-4 rounded-lg font-bold text-lg hover:bg-carmesim/90 transition-all"
+              className="inline-flex items-center gap-2 bg-carmesim text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-carmesim/90 transition-all"
             >
               Ver Transparência
               <ArrowRight className="w-5 h-5" />

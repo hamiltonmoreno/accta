@@ -38,11 +38,11 @@ export const ProfissaoPage = () => {
               Educativo
             </span>
             <h1 className="font-bold text-3xl sm:text-5xl lg:text-6xl text-white mb-4" data-testid="profession-title">
-              O que e ser um{' '}
-              <span className="text-carmesim">Controlador de Trafego Aereo?</span>
+              O que é ser um{' '}
+              <span className="text-carmesim">Controlador de Tráfego Aéreo?</span>
             </h1>
             <p className="text-base sm:text-xl text-white/80 max-w-xl leading-relaxed">
-              Uma profissao de raciocinio rapido, alta responsabilidade e precisao absoluta
+              Uma profissão de raciocínio rápido, alta responsabilidade e precisão absoluta
             </p>
           </motion.div>
         </div>

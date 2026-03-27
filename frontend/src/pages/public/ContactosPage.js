@@ -84,7 +84,7 @@ export const ContactosPage = () => {
               <span className="text-carmesim">Conosco</span>
             </h1>
             <p className="text-base sm:text-xl text-white/80 max-w-xl leading-relaxed">
-              Tem duvidas sobre a associacao, a profissao ou deseja propor uma parceria? Utilize os canais oficiais.
+              Tem dúvidas sobre a associação, a profissão ou deseja propor uma parceria? Utilize os canais oficiais.
             </p>
           </motion.div>
         </div>

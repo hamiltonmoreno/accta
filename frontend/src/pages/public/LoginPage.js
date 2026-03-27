@@ -36,7 +36,7 @@ export const LoginPage = () => {
       <div className="hidden lg:flex lg:w-1/2 relative bg-grafite overflow-hidden">
         <img
           src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=2074&auto=format&fit=crop"
-          alt="Aviacao"
+          alt="Aviação"
           className="absolute inset-0 w-full h-full object-cover opacity-30"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-grafite via-grafite/80 to-grafite/40" />

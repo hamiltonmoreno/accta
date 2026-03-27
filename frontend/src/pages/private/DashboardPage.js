@@ -117,7 +117,7 @@ export const DashboardPage = () => {
             <div>
               <h3 className="font-semibold text-sm text-carmesim mb-1">Status: {user?.status}</h3>
               <p className="text-xs sm:text-sm text-gray-600">
-                Algumas funcionalidades podem estar restritas. Regularize sua situacao.
+                Algumas funcionalidades podem estar restritas. Regularize a sua situação.
               </p>
             </div>
           </div>
@@ -127,8 +127,8 @@ export const DashboardPage = () => {
       {/* Admin Stats */}
       {(isAdmin || isFinanceiro) && stats && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <StatCard icon={Users} value={stats.total_users} label="Total Socios" color="bg-grafite" delay={0.05} />
-          <StatCard icon={CheckCircle} value={stats.active_users} label="Socios Ativos" color="bg-green-600" delay={0.1} />
+          <StatCard icon={Users} value={stats.total_users} label="Total Sócios" color="bg-grafite" delay={0.05} />
+          <StatCard icon={CheckCircle} value={stats.active_users} label="Sócios Ativos" color="bg-green-600" delay={0.1} />
           <StatCard icon={AlertCircle} value={stats.pending_invoices} label="Quotas Pendentes" color="bg-carmesim" delay={0.15} />
           <StatCard icon={DollarSign} value={`${stats.total_revenue.toFixed(0)} CVE`} label="Receita Total" color="bg-grafite" delay={0.2} />
         </div>
@@ -179,7 +179,7 @@ export const DashboardPage = () => {
           className="card-technical card-hover p-4 sm:p-5"
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg sm:text-xl text-grafite">Votacoes Abertas</h2>
+            <h2 className="font-semibold text-lg sm:text-xl text-grafite">Votações Abertas</h2>
             {activePolls.length > 0 && (
               <button onClick={() => navigate('/votacoes')} className="text-xs text-carmesim font-semibold uppercase tracking-wider hover:text-carmesim-dark">
                 Ver todas
@@ -189,7 +189,7 @@ export const DashboardPage = () => {
           {activePolls.length === 0 ? (
             <div className="text-center py-6 sm:py-8">
               <Vote className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-              <p className="text-sm text-gray-400" data-testid="no-active-polls">Nenhuma votacao aberta</p>
+              <p className="text-sm text-gray-400" data-testid="no-active-polls">Nenhuma votação aberta</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -270,7 +270,7 @@ export const DashboardPage = () => {
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4 text-carmesim" />
               <h3 className="font-semibold text-sm text-grafite">
-                {unreadCount} notificacao{unreadCount !== 1 ? 'es' : ''} nova{unreadCount !== 1 ? 's' : ''}
+                {unreadCount} notificação{unreadCount !== 1 ? 'ões' : ''} nova{unreadCount !== 1 ? 's' : ''}
               </h3>
             </div>
             <button

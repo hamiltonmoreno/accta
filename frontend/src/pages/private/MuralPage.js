@@ -13,8 +13,8 @@ import { toast } from 'sonner';
 const CATEGORIES = [
   { value: 'todos', label: 'Todos', color: 'bg-gray-100 text-gray-700' },
   { value: 'geral', label: 'Geral', color: 'bg-blue-100 text-blue-700' },
-  { value: 'sugestao', label: 'Sugestao', color: 'bg-green-100 text-green-700' },
-  { value: 'discussao', label: 'Discussao', color: 'bg-purple-100 text-purple-700' },
+  { value: 'sugestao', label: 'Sugestão', color: 'bg-green-100 text-green-700' },
+  { value: 'discussao', label: 'Discussão', color: 'bg-purple-100 text-purple-700' },
   { value: 'aviso', label: 'Aviso', color: 'bg-orange-100 text-orange-700' },
 ];
 
@@ -363,9 +363,9 @@ export const MuralPage = () => {
       {/* Header */}
       <div>
         <h1 className="font-sans font-bold text-4xl text-grafite mb-2" data-testid="wall-title">
-          Mural de Comunicacao
+          Mural de Comunicação
         </h1>
-        <p className="text-gray-600">Espaco de partilha e discussao entre associados ACCTA</p>
+        <p className="text-gray-600">Espaço de partilha e discussão entre associados ACCTA</p>
       </div>
 
       {/* Status Alert */}
@@ -376,7 +376,7 @@ export const MuralPage = () => {
             <div>
               <h3 className="font-sans font-semibold text-lg text-carmesim mb-2">Acesso Restrito</h3>
               <p className="text-gray-600">
-                Apenas socios com status ativo podem participar no mural. Por favor, regularize sua situacao.
+                Apenas sócios com status ativo podem participar no mural. Por favor, regularize a sua situação.
               </p>
             </div>
           </div>

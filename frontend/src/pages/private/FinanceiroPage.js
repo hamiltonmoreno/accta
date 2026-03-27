@@ -57,7 +57,7 @@ export const FinanceiroPage = () => {
     <div className="space-y-5 sm:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="page-title" data-testid="finance-title">Gestao Financeira</h1>
+        <h1 className="page-title" data-testid="finance-title">Gestão Financeira</h1>
         <p className="page-subtitle">Acompanhe suas quotas e pagamentos</p>
       </div>
 

@@ -10,11 +10,11 @@ export const PublicLayout = ({ children }) => {
   const currentPath = location.pathname;
 
   const navItems = [
-    { label: 'Inicio', path: '/' },
+    { label: 'Início', path: '/' },
     { label: 'Sobre', path: '/sobre' },
-    { label: 'A Profissao', path: '/profissao' },
-    { label: 'Beneficios', path: '/beneficios-publico' },
-    { label: 'Transparencia', path: '/transparencia' },
+    { label: 'A Profissão', path: '/profissao' },
+    { label: 'Benefícios', path: '/beneficios-publico' },
+    { label: 'Transparência', path: '/transparencia' },
     { label: 'Contactos', path: '/contactos' },
     { label: 'Galeria', path: '/galeria' },
   ];
@@ -129,29 +129,29 @@ export const PublicLayout = ({ children }) => {
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-8">
             <div className="col-span-2 sm:col-span-2 md:col-span-2">
               <ACCTALogoHorizontal dark className="mb-4" />
-              <p className="text-sm text-gray-400 mb-3 max-w-sm">
-                Associacao dos Controladores de Trafego Aereo de Cabo Verde
+              <p className="text-sm text-white/70 mb-3 max-w-sm">
+                Associação dos Controladores de Tráfego Aéreo de Cabo Verde
               </p>
               <p className="text-carmesim font-semibold italic text-sm">
-                "Seguranca no ceu, uniao em terra."
+                "Segurança no céu, união em terra."
               </p>
             </div>
 
             <div>
-              <h3 className="font-semibold text-sm uppercase tracking-wider mb-4 text-white/80">Links Rapidos</h3>
-              <ul className="space-y-2.5 text-sm text-gray-400">
+              <h3 className="font-semibold text-sm uppercase tracking-wider mb-4 text-white/90">Links Rápidos</h3>
+              <ul className="space-y-2.5 text-sm text-white/60">
                 <li><Link to="/sobre" className="hover:text-carmesim transition-colors">Sobre</Link></li>
-                <li><Link to="/profissao" className="hover:text-carmesim transition-colors">A Profissao</Link></li>
-                <li><Link to="/transparencia" className="hover:text-carmesim transition-colors">Transparencia</Link></li>
-                <li><Link to="/beneficios-publico" className="hover:text-carmesim transition-colors">Beneficios</Link></li>
+                <li><Link to="/profissao" className="hover:text-carmesim transition-colors">A Profissão</Link></li>
+                <li><Link to="/transparencia" className="hover:text-carmesim transition-colors">Transparência</Link></li>
+                <li><Link to="/beneficios-publico" className="hover:text-carmesim transition-colors">Benefícios</Link></li>
                 <li><Link to="/contactos" className="hover:text-carmesim transition-colors">Contactos</Link></li>
                 <li><Link to="/galeria" className="hover:text-carmesim transition-colors">Galeria</Link></li>
               </ul>
             </div>
 
             <div>
-              <h3 className="font-semibold text-sm uppercase tracking-wider mb-4 text-white/80">Area Reservada</h3>
-              <ul className="space-y-2.5 text-sm text-gray-400">
+              <h3 className="font-semibold text-sm uppercase tracking-wider mb-4 text-white/90">Área Reservada</h3>
+              <ul className="space-y-2.5 text-sm text-white/60">
                 <li><Link to="/login" className="hover:text-carmesim transition-colors">Login Associados</Link></li>
                 <li><Link to="/validador" className="hover:text-carmesim transition-colors">Validador QR</Link></li>
                 <li><Link to="/eventos-publico" className="hover:text-carmesim transition-colors">Eventos</Link></li>
@@ -159,9 +159,9 @@ export const PublicLayout = ({ children }) => {
             </div>
           </div>
 
-          <div className="border-t border-white/10 mt-8 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-gray-500">
+          <div className="border-t border-white/10 mt-8 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-white/50">
             <p>&copy; {new Date().getFullYear()} ACCTA - Todos os direitos reservados</p>
-            <Link to="/privacidade" className="hover:text-carmesim transition-colors">Politica de Privacidade</Link>
+            <Link to="/privacidade" className="hover:text-carmesim transition-colors">Política de Privacidade</Link>
           </div>
         </div>
       </footer>

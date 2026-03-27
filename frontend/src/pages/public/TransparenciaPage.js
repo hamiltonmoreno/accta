@@ -96,7 +96,7 @@ export const TransparenciaPage = () => {
       <section className="relative py-20 sm:py-28 overflow-hidden">
         <img
           src="https://images.unsplash.com/photo-1618506060789-b63788b0cecd?q=80&w=2070&auto=format&fit=crop"
-          alt="Transparencia institucional"
+          alt="Transparência institucional"
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
@@ -107,14 +107,14 @@ export const TransparenciaPage = () => {
             className="max-w-2xl"
           >
             <span className="inline-block px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
-              Governanca
+              Governança
             </span>
             <h1 className="font-bold text-3xl sm:text-5xl lg:text-6xl text-white mb-4" data-testid="transparency-title">
-              Transparencia e{' '}
-              <span className="text-carmesim">Prestacao de Contas</span>
+              Transparência e{' '}
+              <span className="text-carmesim">Prestação de Contas</span>
             </h1>
             <p className="text-base sm:text-xl text-white/80 max-w-xl leading-relaxed">
-              A credibilidade da ACCTA baseia-se na transparencia com os seus associados e com a sociedade
+              A credibilidade da ACCTA baseia-se na transparência com os seus associados e com a sociedade
             </p>
           </motion.div>
         </div>
@@ -286,7 +286,7 @@ export const TransparenciaPage = () => {
           </p>
           <Link
             to="/contactos"
-            className="inline-flex items-center gap-2 bg-carmesim text-grafite px-8 py-4 rounded-lg font-bold hover:bg-carmesim/90 transition-all"
+            className="inline-flex items-center gap-2 bg-carmesim text-white px-8 py-4 rounded-lg font-bold hover:bg-carmesim/90 transition-all"
           >
             Fale Conosco
             <ExternalLink className="w-5 h-5" />

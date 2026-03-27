@@ -273,10 +273,10 @@ export const GaleriaPage = () => {
       <section className="bg-grafite py-12 sm:py-16">
         <div className="max-w-4xl mx-auto px-5 sm:px-6 text-center">
           <h2 className="font-bold text-2xl sm:text-3xl text-white mb-3">
-            Conheca a nossa <span className="text-carmesim">historia</span>
+            Conheça a nossa <span className="text-carmesim">história</span>
           </h2>
           <p className="text-white/60 text-sm sm:text-base mb-6">
-            Descubra mais sobre a associacao e a profissao de controlador de trafego aereo
+            Descubra mais sobre a associação e a profissão de controlador de tráfego aéreo
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-3">
             <Link
@@ -289,7 +289,7 @@ export const GaleriaPage = () => {
               to="/profissao"
               className="inline-flex items-center justify-center gap-2 bg-white/10 text-white border border-white/20 px-6 py-3 rounded-lg font-bold text-sm hover:bg-white/20 transition-colors"
             >
-              A Profissao
+              A Profissão
             </Link>
           </div>
         </div>

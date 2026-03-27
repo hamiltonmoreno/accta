@@ -178,7 +178,7 @@ export const EventosPage = () => {
                           {getEventLabel(event.type)}
                         </span>
                         <div className="text-[10px] sm:text-xs text-gray-400 mt-0.5">
-                          {event.visibility === 'socios' ? 'Socios' : event.visibility === 'direcao' ? 'Direcao' : 'Publico'}
+                          {event.visibility === 'socios' ? 'Sócios' : event.visibility === 'direcao' ? 'Direção' : 'Público'}
                         </div>
                       </div>
                     </div>
@@ -387,9 +387,9 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
                   onChange={(e) => setFormData({ ...formData, visibility: e.target.value })}
                   className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-carmesim/40"
                 >
-                  <option value="publico">Publico</option>
-                  <option value="socios">Socios</option>
-                  <option value="direcao">Direcao</option>
+                  <option value="publico">Público</option>
+                  <option value="socios">Sócios</option>
+                  <option value="direcao">Direção</option>
                 </select>
               </div>
             </div>
