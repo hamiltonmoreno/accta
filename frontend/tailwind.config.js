@@ -25,7 +25,7 @@ module.exports = {
         foreground: "hsl(var(--foreground))",
         // ACCTA Brand Colors
         primary: {
-          DEFAULT: "#3A3A3A", // Cinza Grafite
+          DEFAULT: "#3A3A3A",
           foreground: "#FFFFFF",
         },
         secondary: {
@@ -33,18 +33,40 @@ module.exports = {
           foreground: "#3A3A3A",
         },
         accent: {
-          DEFAULT: "#C7202F", // Vermelho Carmesim
+          DEFAULT: "#C7202F",
           foreground: "#FFFFFF",
         },
         carmesim: {
           DEFAULT: "#C7202F",
           light: "#E8444F",
           dark: "#9E1925",
+          50: "#FEF2F2",
+          100: "#FEE2E4",
         },
         grafite: {
           DEFAULT: "#3A3A3A",
           light: "#5A5A5A",
           dark: "#2A2A2A",
+          50: "#F7F7F7",
+        },
+        // Complementary colors
+        navy: {
+          DEFAULT: "#1B2B4B",
+          light: "#2D4A7A",
+          dark: "#0F1A30",
+          50: "#EFF3FA",
+        },
+        amber: {
+          DEFAULT: "#D4A843",
+          light: "#E6C56E",
+          dark: "#B08930",
+          50: "#FFF9EC",
+        },
+        slate: {
+          DEFAULT: "#64748B",
+          light: "#94A3B8",
+          dark: "#475569",
+          50: "#F8FAFC",
         },
         alert: {
           DEFAULT: "#C7202F",
