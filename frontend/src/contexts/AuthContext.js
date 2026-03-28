@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }) => {
 
   const refreshUser = async () => {
     try {
-      const res = await api.get('/auth/me');
+      const res = await authAPI.getMe();
       setUser(res.data);
       localStorage.setItem('accta_user', JSON.stringify(res.data));
     } catch {
