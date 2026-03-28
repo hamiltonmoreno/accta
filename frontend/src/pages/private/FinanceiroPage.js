@@ -8,7 +8,8 @@ import { ptBR } from 'date-fns/locale';
 import {
   DollarSign, TrendingUp, TrendingDown, Plus, Pencil, Trash2,
   FileBarChart, Settings, ArrowUpCircle, ArrowDownCircle,
-  Calendar, RefreshCw, ChevronDown, X, Filter, Wallet, Download,
+  RefreshCw, X, Filter, Wallet, Download,
+  Search, ChevronLeft, ChevronRight, FileSpreadsheet, CheckCircle, Users,
 } from 'lucide-react';
 
 const CATEGORY_LABELS = {
@@ -48,34 +49,61 @@ const StatBlock = ({ label, value, icon: Icon, color, delay = 0 }) => (
   </motion.div>
 );
 
+const PAGE_SIZE = 20;
+
 // ======== CASH FLOW TAB ========
 const CashFlowTab = ({ isAdmin }) => {
   const [transactions, setTransactions] = useState([]);
+  const [total, setTotal] = useState(0);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('');
+  const [searchText, setSearchText] = useState('');
+  const [searchDebounced, setSearchDebounced] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [page, setPage] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [editingTx, setEditingTx] = useState(null);
+  const [csvExporting, setCsvExporting] = useState(false);
 
   const currentYear = new Date().getFullYear();
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => setSearchDebounced(searchText), 400);
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  // Reset page on filter change
+  useEffect(() => { setPage(0); }, [filterType, searchDebounced, startDate, endDate]);
+
+  const buildParams = useCallback(() => {
+    const params = { skip: page * PAGE_SIZE, limit: PAGE_SIZE };
+    if (filterType) params.type = filterType;
+    if (searchDebounced) params.search = searchDebounced;
+    if (startDate) params.start_date = `${startDate}T00:00:00`;
+    if (endDate) params.end_date = `${endDate}T23:59:59`;
+    return params;
+  }, [filterType, searchDebounced, startDate, endDate, page]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const params = {};
-      if (filterType) params.type = filterType;
+      const params = buildParams();
       const [txRes, sumRes] = await Promise.all([
         financesAPI.getTransactions(params),
         financesAPI.getSummary({ year: currentYear }),
       ]);
-      setTransactions(txRes.data);
+      setTransactions(txRes.data.items);
+      setTotal(txRes.data.total);
       setSummary(sumRes.data);
-    } catch (err) {
+    } catch {
       toast.error('Erro ao carregar dados financeiros');
     } finally {
       setLoading(false);
     }
-  }, [filterType, currentYear]);
+  }, [buildParams, currentYear]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -88,8 +116,32 @@ const CashFlowTab = ({ isAdmin }) => {
     } catch { toast.error('Erro ao remover'); }
   };
 
+  const handleExportCSV = async () => {
+    setCsvExporting(true);
+    try {
+      const params = {};
+      if (filterType) params.type = filterType;
+      if (searchDebounced) params.search = searchDebounced;
+      if (startDate) params.start_date = `${startDate}T00:00:00`;
+      if (endDate) params.end_date = `${endDate}T23:59:59`;
+      const res = await financesAPI.exportTransactionsCsv(params);
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'Fluxo_Caixa_ACCTA.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('CSV exportado');
+    } catch { toast.error('Erro ao exportar CSV'); }
+    finally { setCsvExporting(false); }
+  };
+
   const openEdit = (tx) => { setEditingTx(tx); setShowModal(true); };
   const openNew = () => { setEditingTx(null); setShowModal(true); };
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
     <div className="space-y-5">
@@ -108,22 +160,95 @@ const CashFlowTab = ({ isAdmin }) => {
         <button onClick={openNew} className="btn-primary flex items-center gap-2 text-sm" data-testid="add-transaction-btn">
           <Plus className="w-4 h-4" /> Nova Transacao
         </button>
+        <button onClick={handleExportCSV} disabled={csvExporting} className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-white border border-gray-200 text-grafite hover:bg-gray-50 transition-all" data-testid="export-csv-btn">
+          <FileSpreadsheet className={`w-4 h-4 ${csvExporting ? 'animate-spin' : ''}`} />
+          {csvExporting ? 'A exportar...' : 'Exportar CSV'}
+        </button>
+      </div>
 
-        <div className="flex items-center gap-1.5 ml-auto">
-          <Filter className="w-4 h-4 text-gray-400" />
-          {['', 'receita', 'despesa'].map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilterType(f)}
-              data-testid={`filter-type-${f || 'all'}`}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${
-                filterType === f ? 'bg-grafite text-white' : 'bg-white text-gray-500 border border-gray-100 hover:bg-gray-50'
-              }`}
-            >
-              {f === '' ? 'Todos' : f === 'receita' ? 'Receitas' : 'Despesas'}
-            </button>
-          ))}
+      {/* Filters Bar */}
+      <div className="card-technical p-3 sm:p-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[180px] max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Pesquisar descricao..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              data-testid="search-input"
+            />
+          </div>
+
+          {/* Date Range */}
+          <div className="flex items-center gap-1.5">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="px-2.5 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              data-testid="start-date-filter"
+            />
+            <span className="text-gray-400 text-xs">a</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="px-2.5 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              data-testid="end-date-filter"
+            />
+          </div>
+
+          {/* Type filter */}
+          <div className="flex items-center gap-1.5 ml-auto">
+            <Filter className="w-4 h-4 text-gray-400 hidden sm:block" />
+            {['', 'receita', 'despesa'].map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilterType(f)}
+                data-testid={`filter-type-${f || 'all'}`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${
+                  filterType === f ? 'bg-grafite text-white' : 'bg-white text-gray-500 border border-gray-100 hover:bg-gray-50'
+                }`}
+              >
+                {f === '' ? 'Todos' : f === 'receita' ? 'Receitas' : 'Despesas'}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Active filters summary */}
+        {(searchDebounced || startDate || endDate) && (
+          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
+            <span className="text-[10px] text-gray-400 uppercase tracking-wider">Filtros ativos:</span>
+            {searchDebounced && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-[11px] text-gray-600">
+                "{searchDebounced}"
+                <button onClick={() => setSearchText('')} className="hover:text-carmesim"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            {startDate && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-[11px] text-gray-600">
+                De: {startDate}
+                <button onClick={() => setStartDate('')} className="hover:text-carmesim"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            {endDate && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-[11px] text-gray-600">
+                Ate: {endDate}
+                <button onClick={() => setEndDate('')} className="hover:text-carmesim"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            <button
+              onClick={() => { setSearchText(''); setStartDate(''); setEndDate(''); setFilterType(''); }}
+              className="text-[11px] text-carmesim font-semibold hover:underline ml-auto"
+            >
+              Limpar todos
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Transactions Table */}
@@ -213,6 +338,57 @@ const CashFlowTab = ({ isAdmin }) => {
                 </div>
               ))}
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+                <span className="text-[11px] text-gray-400">
+                  {page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, total)} de {total}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage(Math.max(0, page - 1))}
+                    disabled={page === 0}
+                    className="p-1.5 rounded-md hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                    data-testid="prev-page-btn"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-gray-500" />
+                  </button>
+                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i;
+                    } else if (page < 3) {
+                      pageNum = i;
+                    } else if (page > totalPages - 4) {
+                      pageNum = totalPages - 5 + i;
+                    } else {
+                      pageNum = page - 2 + i;
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setPage(pageNum)}
+                        className={`w-8 h-8 rounded-md text-xs font-semibold transition-all ${
+                          page === pageNum ? 'bg-carmesim text-white' : 'text-gray-500 hover:bg-gray-100'
+                        }`}
+                        data-testid={`page-${pageNum}`}
+                      >
+                        {pageNum + 1}
+                      </button>
+                    );
+                  })}
+                  <button
+                    onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+                    disabled={page >= totalPages - 1}
+                    className="p-1.5 rounded-md hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                    data-testid="next-page-btn"
+                  >
+                    <ChevronRight className="w-4 h-4 text-gray-500" />
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -309,7 +485,6 @@ const TransactionModal = ({ tx, onClose, onSaved }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          {/* Type */}
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Tipo</label>
             <div className="flex gap-2">
@@ -329,7 +504,6 @@ const TransactionModal = ({ tx, onClose, onSaved }) => {
             </div>
           </div>
 
-          {/* Category */}
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Categoria</label>
             <select
@@ -344,7 +518,6 @@ const TransactionModal = ({ tx, onClose, onSaved }) => {
             </select>
           </div>
 
-          {/* Description */}
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Descricao *</label>
             <input
@@ -357,7 +530,6 @@ const TransactionModal = ({ tx, onClose, onSaved }) => {
             />
           </div>
 
-          {/* Amount + Date */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Valor (CVE) *</label>
@@ -384,7 +556,6 @@ const TransactionModal = ({ tx, onClose, onSaved }) => {
             </div>
           </div>
 
-          {/* Reference */}
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Referencia</label>
             <input
@@ -411,7 +582,7 @@ const TransactionModal = ({ tx, onClose, onSaved }) => {
   );
 };
 
-// ======== DRE TAB ========
+// ======== DRE TAB (with percentages) ========
 const DRETab = () => {
   const [year, setYear] = useState(new Date().getFullYear());
   const [dre, setDRE] = useState(null);
@@ -464,6 +635,8 @@ const DRETab = () => {
     1
   );
 
+  const calcPct = (val, total) => total > 0 ? ((val / total) * 100).toFixed(0) : '0';
+
   return (
     <div className="space-y-5">
       {/* Year Selector + Export */}
@@ -513,7 +686,7 @@ const DRETab = () => {
         </div>
       </div>
 
-      {/* Monthly Chart (CSS bars) */}
+      {/* Monthly Chart */}
       <div className="card-technical p-4 sm:p-5">
         <h3 className="font-semibold text-grafite text-sm mb-4">Evolucao Mensal</h3>
         <div className="space-y-2">
@@ -548,9 +721,9 @@ const DRETab = () => {
         </div>
       </div>
 
-      {/* Category Breakdown */}
+      {/* Category Breakdown WITH PERCENTAGES */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Income by Category */}
+        {/* Income */}
         <div className="card-technical p-4 sm:p-5">
           <h3 className="font-semibold text-grafite text-sm mb-3 flex items-center gap-2">
             <ArrowUpCircle className="w-4 h-4 text-green-500" /> Receitas por Categoria
@@ -558,18 +731,26 @@ const DRETab = () => {
           {Object.keys(dre.receitas_por_categoria).length === 0 ? (
             <p className="text-xs text-gray-400">Sem receitas neste periodo</p>
           ) : (
-            <div className="space-y-2">
-              {Object.entries(dre.receitas_por_categoria).sort((a, b) => b[1] - a[1]).map(([cat, val]) => (
-                <div key={cat} className="flex items-center justify-between">
-                  <span className="text-xs text-gray-600 capitalize">{CATEGORY_LABELS[cat] || cat}</span>
-                  <span className="font-mono text-xs font-bold text-green-600">{val.toLocaleString('pt')} CVE</span>
-                </div>
-              ))}
+            <div className="space-y-2.5">
+              {Object.entries(dre.receitas_por_categoria).sort((a, b) => b[1] - a[1]).map(([cat, val]) => {
+                const pct = calcPct(val, dre.total_receitas);
+                return (
+                  <div key={cat}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-gray-600 capitalize">{CATEGORY_LABELS[cat] || cat}</span>
+                      <span className="font-mono text-xs font-bold text-green-600">{val.toLocaleString('pt')} CVE <span className="text-gray-400 font-normal">({pct}%)</span></span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                      <div className="bg-green-500 h-1.5 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Expenses by Category */}
+        {/* Expenses */}
         <div className="card-technical p-4 sm:p-5">
           <h3 className="font-semibold text-grafite text-sm mb-3 flex items-center gap-2">
             <ArrowDownCircle className="w-4 h-4 text-red-500" /> Despesas por Categoria
@@ -577,13 +758,21 @@ const DRETab = () => {
           {Object.keys(dre.despesas_por_categoria).length === 0 ? (
             <p className="text-xs text-gray-400">Sem despesas neste periodo</p>
           ) : (
-            <div className="space-y-2">
-              {Object.entries(dre.despesas_por_categoria).sort((a, b) => b[1] - a[1]).map(([cat, val]) => (
-                <div key={cat} className="flex items-center justify-between">
-                  <span className="text-xs text-gray-600 capitalize">{CATEGORY_LABELS[cat] || cat}</span>
-                  <span className="font-mono text-xs font-bold text-red-600">{val.toLocaleString('pt')} CVE</span>
-                </div>
-              ))}
+            <div className="space-y-2.5">
+              {Object.entries(dre.despesas_por_categoria).sort((a, b) => b[1] - a[1]).map(([cat, val]) => {
+                const pct = calcPct(val, dre.total_despesas);
+                return (
+                  <div key={cat}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-gray-600 capitalize">{CATEGORY_LABELS[cat] || cat}</span>
+                      <span className="font-mono text-xs font-bold text-red-600">{val.toLocaleString('pt')} CVE <span className="text-gray-400 font-normal">({pct}%)</span></span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-1.5">
+                      <div className="bg-red-400 h-1.5 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -592,7 +781,7 @@ const DRETab = () => {
   );
 };
 
-// ======== SETTINGS TAB ========
+// ======== SETTINGS TAB (with quota generation detail) ========
 const SettingsTab = () => {
   const [settings, setSettings] = useState(null);
   const [quotaAmount, setQuotaAmount] = useState('');
@@ -602,10 +791,9 @@ const SettingsTab = () => {
   const [generating, setGenerating] = useState(false);
   const [genMonth, setGenMonth] = useState(new Date().getMonth() + 1);
   const [genYear, setGenYear] = useState(new Date().getFullYear());
+  const [genResult, setGenResult] = useState(null);
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
+  useEffect(() => { loadSettings(); }, []);
 
   const loadSettings = async () => {
     try {
@@ -631,10 +819,12 @@ const SettingsTab = () => {
   };
 
   const handleGenerate = async () => {
-    if (!window.confirm(`Gerar quotas de ${genMonth}/${genYear} para todos os socios ativos?`)) return;
+    if (!window.confirm(`Gerar quotas de ${MONTH_NAMES[genMonth - 1]}/${genYear} para todos os socios ativos?`)) return;
     setGenerating(true);
+    setGenResult(null);
     try {
       const res = await financesAPI.generateQuotas(genMonth, genYear);
+      setGenResult(res.data);
       toast.success(res.data.message);
     } catch (err) { toast.error(err.response?.data?.detail || 'Erro ao gerar quotas'); }
     finally { setGenerating(false); }
@@ -723,6 +913,35 @@ const SettingsTab = () => {
             {generating ? 'A gerar...' : 'Gerar Quotas'}
           </button>
         </div>
+
+        {/* Generation Result Detail */}
+        {genResult && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg"
+            data-testid="gen-result"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle className="w-4 h-4 text-green-600" />
+              <span className="font-semibold text-sm text-green-700">Quotas Geradas com Sucesso</span>
+            </div>
+            <div className="grid grid-cols-3 gap-3 mt-2">
+              <div className="text-center">
+                <div className="font-mono text-lg font-bold text-green-700" data-testid="gen-created">{genResult.created}</div>
+                <div className="text-[10px] text-green-600 uppercase tracking-wider">Criadas</div>
+              </div>
+              <div className="text-center">
+                <div className="font-mono text-lg font-bold text-gray-500" data-testid="gen-skipped">{genResult.skipped}</div>
+                <div className="text-[10px] text-gray-500 uppercase tracking-wider">Ignoradas</div>
+              </div>
+              <div className="text-center">
+                <div className="font-mono text-lg font-bold text-grafite" data-testid="gen-total-value">{genResult.total_value?.toLocaleString('pt')}</div>
+                <div className="text-[10px] text-gray-500 uppercase tracking-wider">CVE Total</div>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </div>
 
       {/* Info Banner */}
@@ -747,7 +966,6 @@ export const FinanceiroPage = () => {
   const hasFinanceAccess = isAdmin || isFinanceiro;
   const [activeTab, setActiveTab] = useState('cashflow');
 
-  // Regular members see a simpler read-only view
   if (!hasFinanceAccess) {
     return <MemberFinanceView />;
   }
@@ -759,7 +977,6 @@ export const FinanceiroPage = () => {
         <p className="page-subtitle">Fluxo de caixa, relatorios DRE e configuracoes</p>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
         <TabBtn active={activeTab === 'cashflow'} label="Fluxo de Caixa" icon={DollarSign} onClick={() => setActiveTab('cashflow')} testId="tab-cashflow" />
         <TabBtn active={activeTab === 'dre'} label="Relatorio DRE" icon={FileBarChart} onClick={() => setActiveTab('dre')} testId="tab-dre" />
@@ -768,7 +985,6 @@ export const FinanceiroPage = () => {
         )}
       </div>
 
-      {/* Tab Content */}
       {activeTab === 'cashflow' && <CashFlowTab isAdmin={isAdmin} />}
       {activeTab === 'dre' && <DRETab />}
       {activeTab === 'settings' && isAdmin && <SettingsTab />}
@@ -776,7 +992,7 @@ export const FinanceiroPage = () => {
   );
 };
 
-// ======== MEMBER VIEW (Non-admin) ========
+// ======== MEMBER VIEW ========
 const MemberFinanceView = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);

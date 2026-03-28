@@ -36,6 +36,7 @@ async def list_transactions(
     category: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
+    search: Optional[str] = None,
     skip: int = 0,
     limit: int = 100,
     current_user: User = Depends(get_current_user),
@@ -54,11 +55,14 @@ async def list_transactions(
         if end_date:
             date_filter["$lte"] = end_date
         query["date"] = date_filter
+    if search:
+        query["description"] = {"$regex": search, "$options": "i"}
 
+    total = await db.transactions.count_documents(query)
     transactions = await db.transactions.find(query, {"_id": 0}).sort("date", -1).skip(skip).limit(limit).to_list(None)
     for t in transactions:
         serialize_transaction(t)
-    return transactions
+    return {"items": transactions, "total": total, "skip": skip, "limit": limit}
 
 
 @router.get("/transactions/count")
@@ -375,10 +379,65 @@ CATEGORY_LABELS = {
     "outros_despesa": "Outras Despesas",
 }
 
+CATEGORY_LABELS_CSV = CATEGORY_LABELS
+
 MONTH_NAMES = [
     "Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ]
+
+
+# ===== CSV EXPORT =====
+
+@router.get("/transactions/csv")
+async def export_transactions_csv(
+    type: Optional[str] = None,
+    category: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    search: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+):
+    require_finance_role(current_user)
+
+    query = {}
+    if type:
+        query["type"] = type
+    if category:
+        query["category"] = category
+    if start_date or end_date:
+        date_filter = {}
+        if start_date:
+            date_filter["$gte"] = start_date
+        if end_date:
+            date_filter["$lte"] = end_date
+        query["date"] = date_filter
+    if search:
+        query["description"] = {"$regex": search, "$options": "i"}
+
+    transactions = await db.transactions.find(query, {"_id": 0}).sort("date", -1).to_list(None)
+
+    import csv
+    buf = io.StringIO()
+    writer = csv.writer(buf, delimiter=";")
+    writer.writerow(["Data", "Tipo", "Categoria", "Descricao", "Valor (CVE)", "Referencia"])
+    for t in transactions:
+        date_str = t.get("date", "")[:10] if t.get("date") else ""
+        writer.writerow([
+            date_str,
+            "Receita" if t["type"] == "receita" else "Despesa",
+            CATEGORY_LABELS_CSV.get(t.get("category", ""), t.get("category", "")),
+            t.get("description", ""),
+            f"{t['amount']:.2f}",
+            t.get("reference", "") or "",
+        ])
+
+    csv_bytes = buf.getvalue().encode("utf-8-sig")
+    return StreamingResponse(
+        io.BytesIO(csv_bytes),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=Fluxo_Caixa_ACCTA.csv"},
+    )
 
 
 # ===== PDF EXPORT =====

@@ -66,6 +66,7 @@ export const invoicesAPI = {
 export const financesAPI = {
   getTransactions: (params) => api.get('/finances/transactions', { params }),
   getTransactionCount: (params) => api.get('/finances/transactions/count', { params }),
+  exportTransactionsCsv: (params) => api.get('/finances/transactions/csv', { params, responseType: 'blob' }),
   createTransaction: (data) => api.post('/finances/transactions', data),
   updateTransaction: (id, data) => api.patch(`/finances/transactions/${id}`, data),
   deleteTransaction: (id) => api.delete(`/finances/transactions/${id}`),

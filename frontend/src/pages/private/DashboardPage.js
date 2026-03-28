@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
-import { statsAPI, invoicesAPI, pollsAPI, eventsAPI } from '../../utils/api';
-import { Users, DollarSign, AlertCircle, Vote, CheckCircle, Bell, Calendar, MapPin, Clock, ArrowRight } from 'lucide-react';
+import { statsAPI, invoicesAPI, pollsAPI, eventsAPI, financesAPI } from '../../utils/api';
+import { Users, DollarSign, AlertCircle, Vote, CheckCircle, Bell, Calendar, MapPin, Clock, ArrowRight, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -47,6 +47,7 @@ export const DashboardPage = () => {
   const { notifications, unreadCount } = useNotifications();
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
+  const [financeSummary, setFinanceSummary] = useState(null);
   const [myInvoices, setMyInvoices] = useState([]);
   const [activePolls, setActivePolls] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
@@ -62,6 +63,11 @@ export const DashboardPage = () => {
       if (isAdmin || isFinanceiro) {
         const statsRes = await statsAPI.get();
         setStats(statsRes.data);
+
+        try {
+          const finRes = await financesAPI.getSummary({ year: new Date().getFullYear() });
+          setFinanceSummary(finRes.data);
+        } catch { /* finance summary not critical */ }
       }
 
       const invoicesRes = await invoicesAPI.getAll();
@@ -132,6 +138,50 @@ export const DashboardPage = () => {
           <StatCard icon={AlertCircle} value={stats.pending_invoices} label="Quotas Pendentes" color="bg-carmesim" delay={0.15} />
           <StatCard icon={DollarSign} value={`${stats.total_revenue.toFixed(0)} CVE`} label="Receita Total" color="bg-grafite" delay={0.2} />
         </div>
+      )}
+
+      {/* Financial Summary Widget (Admin/Financeiro) */}
+      {(isAdmin || isFinanceiro) && financeSummary && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="card-technical p-4 sm:p-5 cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => navigate('/financeiro')}
+          data-testid="finance-summary-widget"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-sm text-grafite flex items-center gap-2">
+              <Wallet className="w-4 h-4 text-carmesim" /> Resumo Financeiro {new Date().getFullYear()}
+            </h3>
+            <ArrowRight className="w-4 h-4 text-gray-400" />
+          </div>
+          <div className="grid grid-cols-3 gap-3 sm:gap-4">
+            <div>
+              <div className="flex items-center gap-1 mb-0.5">
+                <TrendingUp className="w-3 h-3 text-green-500" />
+                <span className="text-[10px] text-gray-500 uppercase tracking-wider">Receitas</span>
+              </div>
+              <div className="font-mono text-sm sm:text-base font-bold text-green-600">{financeSummary.total_receitas.toLocaleString('pt')} CVE</div>
+            </div>
+            <div>
+              <div className="flex items-center gap-1 mb-0.5">
+                <TrendingDown className="w-3 h-3 text-red-500" />
+                <span className="text-[10px] text-gray-500 uppercase tracking-wider">Despesas</span>
+              </div>
+              <div className="font-mono text-sm sm:text-base font-bold text-red-600">{financeSummary.total_despesas.toLocaleString('pt')} CVE</div>
+            </div>
+            <div>
+              <div className="flex items-center gap-1 mb-0.5">
+                <DollarSign className="w-3 h-3 text-grafite" />
+                <span className="text-[10px] text-gray-500 uppercase tracking-wider">Saldo</span>
+              </div>
+              <div className={`font-mono text-sm sm:text-base font-bold ${financeSummary.resultado_liquido >= 0 ? 'text-grafite' : 'text-orange-600'}`}>
+                {financeSummary.resultado_liquido.toLocaleString('pt')} CVE
+              </div>
+            </div>
+          </div>
+        </motion.div>
       )}
 
       {/* Main Grid: Invoices + Polls */}
