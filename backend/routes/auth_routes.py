@@ -1,21 +1,31 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from datetime import datetime, timezone, timedelta
 from typing import List
 from models import User, UserCreate, UserLogin, Token, PasswordResetRequest, PasswordResetConfirm
 from database import db
 from auth import hash_password, verify_password, generate_qr_hash, create_access_token, get_current_user
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 import uuid
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post("/register", response_model=User)
-async def register(user_data: UserCreate):
+@limiter.limit("5/minute")
+async def register(request: Request, user_data: UserCreate):
     existing = await db.users.find_one({"email": user_data.email}, {"_id": 0})
     if existing:
         raise HTTPException(status_code=400, detail="Email já registrado")
 
-    user = User(**user_data.model_dump(exclude={"password"}))
+    # Security: public registration can only create "socio" accounts
+    safe_data = user_data.model_dump(exclude={"password"})
+    safe_data["role"] = "socio"
+    safe_data["status"] = "ativo"
+    safe_data["privileges"] = []
+
+    user = User(**safe_data)
     user.qr_code_hash = generate_qr_hash(user.id)
 
     user_dict = user.model_dump()
@@ -31,7 +41,8 @@ async def register(user_data: UserCreate):
 
 
 @router.post("/login", response_model=Token)
-async def login(credentials: UserLogin):
+@limiter.limit("10/minute")
+async def login(request: Request, credentials: UserLogin):
     from datetime import timezone
     user_doc = await db.users.find_one({"email": credentials.email}, {"_id": 0})
     if not user_doc or not verify_password(credentials.password, user_doc['password']):
@@ -61,7 +72,8 @@ async def get_me(current_user: User = Depends(get_current_user)):
 
 
 @router.post("/forgot-password")
-async def forgot_password(data: PasswordResetRequest):
+@limiter.limit("3/minute")
+async def forgot_password(request: Request, data: PasswordResetRequest):
     user = await db.users.find_one({"email": data.email}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Email não encontrado no sistema")
@@ -87,7 +99,8 @@ async def forgot_password(data: PasswordResetRequest):
 
 
 @router.post("/reset-password")
-async def reset_password(data: PasswordResetConfirm):
+@limiter.limit("5/minute")
+async def reset_password(request: Request, data: PasswordResetConfirm):
     reset_doc = await db.password_resets.find_one({"token": data.token, "used": False})
     if not reset_doc:
         raise HTTPException(status_code=400, detail="Token inválido ou já utilizado")

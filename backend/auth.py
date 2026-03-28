@@ -10,7 +10,9 @@ import hashlib
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
-SECRET_KEY = os.environ.get('SECRET_KEY', 'accta-secret-key-cabo-verde-2025')
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable is required. Set it in backend/.env")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 

@@ -5,7 +5,7 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 
 ## Stack Tecnica
 - **Frontend:** React, Tailwind CSS, Recharts, Framer Motion (Modo Claro exclusivo)
-- **Backend:** Python FastAPI (Router modular), MongoDB (Motor async), JWT Auth
+- **Backend:** Python FastAPI (Router modular), MongoDB (Motor async), JWT Auth, slowapi (rate limiting)
 - **Extras:** fpdf2 (PDF), date-fns (datas)
 
 ## Credenciais de Teste
@@ -19,11 +19,11 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 - [x] HomePage, Sobre, Profissao, Transparencia, Beneficios
 - [x] Validador QR Code
 - [x] Galeria de Fotos Publica
-- [x] **Evento em Destaque** com countdown timer animado na homepage
+- [x] Evento em Destaque com countdown timer animado
 
 ### Area Privada - Painel
 - [x] Dashboard redesenhado (Recharts) + Feed Atividade Recente
-- [x] **Relatorio de Atividade Pessoal** (8 metricas: eventos, votacoes, publicacoes, likes, projetos, fotos, beneficios, documentos)
+- [x] Relatorio de Atividade Pessoal (8 metricas)
 - [x] Meu Perfil, Autenticacao JWT
 - [x] Carteira Digital com QR Code
 
@@ -41,39 +41,36 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 
 ### Sistema
 - [x] Notificacoes Avancadas + Automaticas
-- [x] Feed de Atividade Recente
 - [x] CI/CD — GitHub Actions
 - [x] Dark Mode REMOVIDO
 - [x] Quotas pendentes REMOVIDAS
 
+### Seguranca (CORRIGIDO)
+- [x] SECRET_KEY sem fallback inseguro — erro se nao definida
+- [x] CORS seguro — credentials=True apenas com origens explicitas
+- [x] Registo publico restrito a role=socio
+- [x] Rate limiting: login 10/min, register 5/min, forgot 3/min, reset 5/min
+
 ## Backlog
 
 ### P1
-- [ ] Carteira Digital (PWA) - funcionalidade offline e identificacao digital
+- [ ] Carteira Digital (PWA) - funcionalidade offline
 - [ ] Clube de Beneficios - QR Code validation avancado
 
 ### P2
 - [ ] Exportar eventos para Google/Apple Calendar
 
 ## Regras de Negocio
-- NAO existe "Socio inadimplente" — quotas descontadas em folha salarial
-- NAO existem "Quotas Pendentes" — contribuicoes automaticas via folha
-- Dark Mode DESATIVADO e CSS dark mode REMOVIDO do codebase
-- Apenas estatutos: ativo e inativo
+- NAO existe "Socio inadimplente" — quotas descontadas em folha
+- NAO existem "Quotas Pendentes"
+- Dark Mode DESATIVADO
+- Registo publico so cria contas socio
 
-## API Endpoints Novos (esta sessao)
-- `GET /api/events/featured` — Proximo evento publico (sem auth)
-- `GET /api/report/personal` — Relatorio de atividade pessoal (com auth)
-
-## Arquitectura
+## Configuracao de Producao (.env)
 ```
-/app/backend/routes/
-├── gallery.py, activity.py, finances.py, projects.py
-├── notifications.py, wall.py, auth_routes.py, events.py, stats.py
-├── report.py (NOVO - relatorio pessoal)
-
-/app/frontend/src/
-├── pages/public/HomePage.js (featured event countdown)
-├── pages/private/DashboardPage.js (personal report widget)
-├── utils/api.js (eventsAPI.getFeatured, reportAPI.getPersonal)
+SECRET_KEY=<chave-forte-64-chars>
+MONGO_URL=<connection-string>
+DB_NAME=<nome-db>
+CORS_ORIGINS=https://portal.accta.cv,https://www.accta.cv
 ```
+Nota: CORS_ORIGINS=* desativa allow_credentials automaticamente (seguro para dev).
