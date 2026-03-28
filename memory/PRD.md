@@ -1,73 +1,87 @@
 # Portal ACTACV - Product Requirements Document
 
 ## Problema Original
-Ecossistema digital integrado para a Associação dos Controladores de Tráfego Aéreo de Cabo Verde (ACTACV). Portal institucional público + área reservada para associados.
+Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aereo de Cabo Verde (ACTACV). Portal institucional publico + area reservada para associados.
 
-## Stack Técnica
-- **Frontend:** React, Tailwind CSS, Recharts, Framer Motion
+## Stack Tecnica
+- **Frontend:** React, Tailwind CSS, Recharts, Framer Motion (Modo Claro exclusivo)
 - **Backend:** Python FastAPI (Router modular), MongoDB (Motor async), JWT Auth
 - **Extras:** fpdf2 (PDF), date-fns (datas)
 
 ## Credenciais de Teste
 - Admin: admin@accta.cv / admin123
-- Sócio: socio1@accta.cv / socio123
+- Financeiro: financeiro@accta.cv / fin123
+- Socio: socio1@accta.cv / socio123
 
-## Módulos Implementados
+## Modulos Implementados
 
-### Área Pública (COMPLETA)
-- [x] HomePage, Sobre, Profissão, Transparência, Benefícios
+### Area Publica (COMPLETA)
+- [x] HomePage, Sobre, Profissao, Transparencia, Beneficios
 - [x] Validador QR Code
-- [x] **Galeria de Fotos Pública** — Álbuns públicos com fotos aprovadas
+- [x] Galeria de Fotos Publica — Albums publicos com fotos aprovadas
 
-### Área Privada - Painel
+### Area Privada - Painel
 - [x] Dashboard redesenhado (Recharts) + Feed Atividade Recente
-- [x] Meu Perfil, Autenticação JWT
+- [x] Meu Perfil, Autenticacao JWT
+- [x] Carteira Digital com QR Code
 
-### Área Privada - Gestão
-- [x] **Módulo Financeiro** (REFATORADO) — CashFlowTab, DRETab, SettingsTab, Export PDF/CSV
-- [x] **Módulo Projetos** — CRUD, tarefas, milestones, comentários, orçamento
-- [x] **Votações** — Sistema de votação interna
-- [x] **Eventos/Agenda** — CRUD com inscrição
-- [x] **Documentos** — Upload/download admin
+### Area Privada - Gestao
+- [x] Modulo Financeiro (REFATORADO) — CashFlowTab, DRETab, SettingsTab, Export PDF/CSV
+- [x] Modulo Projetos — CRUD, tarefas, milestones, comentarios, orcamento
+- [x] Votacoes — Sistema de votacao interna
+- [x] Eventos/Agenda — CRUD com inscricao
+- [x] Documentos — Upload/download admin
 
-### Área Privada - Comunidade
-- [x] **Mural de Comunicação** (MELHORADO) — pesquisa, filtros, likes, comentários, moderação
-- [x] **Galeria de Fotos** — Upload por sócios com workflow de aprovação, Lightbox, grid responsive
-- [x] **Clube de Benefícios** (básico)
+### Area Privada - Comunidade
+- [x] Mural de Comunicacao (MELHORADO) — pesquisa, filtros, likes, comentarios, moderacao
+- [x] Galeria de Fotos — Upload com workflow de aprovacao, Lightbox, grid responsive
+- [x] Clube de Beneficios (basico)
 
 ### Sistema
-- [x] **Notificações Avançadas** — Central com stats, broadcast admin, filtros por tipo
-- [x] **Notificações Automáticas** — Projetos + Finanças + Galeria
-- [x] **Feed de Atividade Recente** — Dashboard widget
-- [x] **Dark Mode** desativado (removido a pedido do utilizador)
-- [x] **Quotas pendentes removidas** — Não existe conceito de inadimplência (desconto em folha)
-- [x] **CI/CD** — GitHub Actions (ci.yml, deploy.yml)
+- [x] Notificacoes Avancadas — Central com stats, broadcast admin, filtros por tipo
+- [x] Notificacoes Automaticas — Projetos + Financas + Galeria
+- [x] Feed de Atividade Recente — Dashboard widget
+- [x] CI/CD — GitHub Actions (ci.yml, deploy.yml)
+- [x] Dark Mode REMOVIDO (codigo CSS e JS limpos)
+- [x] Quotas pendentes REMOVIDAS — Nao existe conceito de inadimplencia
 
 ## Backlog
 
 ### P1
-- [ ] Carteira Digital (PWA) - funcionalidade offline e identificação digital
-- [ ] Clube de Benefícios - QR Code validation avançado
+- [ ] Carteira Digital (PWA) - funcionalidade offline e identificacao digital
+- [ ] Clube de Beneficios - QR Code validation avancado
 
 ### P2
 - [ ] Evento em Destaque com countdown na homepage
 - [ ] Exportar eventos para Google/Apple Calendar
 
-## Regras de Negócio
-- NÃO existe "Sócio inadimplente" - quotas descontadas em folha salarial
-- NÃO existe "Quotas Pendentes" - todas as contribuições são automáticas via folha
-- Dark Mode desativado a pedido do utilizador
+## Regras de Negocio
+- NAO existe "Socio inadimplente" — quotas descontadas em folha salarial
+- NAO existem "Quotas Pendentes" — contribuicoes automaticas via folha
+- Dark Mode DESATIVADO e CSS dark mode REMOVIDO do codebase
+- Apenas estatutos: ativo e inativo
 - Todos os elementos interativos precisam de data-testid
 
-## Arquitetura
+## Arquitectura
 ```
 /app/backend/routes/
-├── gallery.py, activity.py, finances.py, projects.py, notifications.py, wall.py, auth_routes.py, events.py, stats.py
+├── gallery.py, activity.py, finances.py, projects.py
+├── notifications.py, wall.py, auth_routes.py, events.py, stats.py
 
 /app/frontend/src/
-├── pages/private/DashboardPage.js (sem quotas pendentes, com "Contribuições - Desconto em Folha")
+├── pages/private/DashboardPage.js (sem quotas pendentes)
 ├── pages/private/GaleriaAdminPage.js
 ├── pages/public/GaleriaPage.js
-├── pages/private/financeiro/ (módulos refatorados)
+├── pages/private/financeiro/ (modulos refatorados)
 ├── pages/private/AdminUsuariosPage.js (sem status inadimplente)
+├── layouts/PrivateLayout.js (sem toggle dark mode)
+├── contexts/ThemeContext.js (forcado modo claro)
 ```
+
+## Documentacao do Sistema
+- README.md — Quick start e overview
+- PROJETO_ACCTA.md — Detalhes completos do projeto
+- ANALISE_MELHORIAS.md — Estado actual e melhorias pendentes
+- SISTEMA_NOTIFICACOES.md — Documentacao do sistema de notificacoes
+- DEPLOY.md — Guia de deploy com GitHub Actions
+- SSH_SETUP.md — Configuracao SSH para CI/CD

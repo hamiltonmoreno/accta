@@ -51,7 +51,7 @@
       },
       "alert": {
         "main": "#FF4C4C",
-        "description": "Cockpit Alert - The Warning. Use for errors, destructive actions, 'Inadimplente' status."
+        "description": "Cockpit Alert - The Warning. Use for errors and destructive actions."
       },
       "neutral": {
         "100": "#FFFFFF",

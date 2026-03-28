@@ -1,63 +1,94 @@
-# Portal ACCTA - Associação de Controladores de Tráfego Aéreo de Cabo Verde
+# Portal ACCTA - Associacao de Controladores de Trafego Aereo de Cabo Verde
 
-## 🎯 Visão Geral
+## Visao Geral
 
-Portal institucional completo e sistema de gestão associativa (SGA) para a ACCTA, oferecendo transparência institucional, eficiência administrativa e valorização da profissão de Controlador de Tráfego Aéreo em Cabo Verde.
+Portal institucional completo e sistema de gestao associativa (SGA) para a ACCTA, oferecendo transparencia institucional, eficiencia administrativa e valorizacao da profissao de Controlador de Trafego Aereo em Cabo Verde.
 
-## ✨ Funcionalidades Principais
+## Funcionalidades
 
-### Área Pública (Institucional)
-- **Homepage Hero**: Apresentação impactante com temática aeronáutica
-- **Sobre a Profissão**: Informações completas sobre controladores de tráfego aéreo
-- **Notícias**: Sistema de publicações com filtros por categoria (notícia, institucional, educativo)
-- **Validador de Carteira**: Validação pública de carteiras de sócios via QR Code
+### Area Publica (Institucional)
+- **Homepage Hero**: Apresentacao impactante com tematica aeronautica
+- **Sobre a Profissao**: Informacoes completas sobre controladores de trafego aereo
+- **Transparencia Financeira**: Pagina publica com metricas e prestacao de contas
+- **Galeria de Fotos**: Albums publicos com fotos dos aeroportos e equipa
+- **Validador de Carteira**: Validacao publica de carteiras de socios via QR Code
 
-### Área Privada (Portal do Associado)
-- **Dashboard Personalizado**: Resumo financeiro, votações abertas e avisos por perfil
-- **Carteira Digital PWA**: Identificação digital com QR Code criptografado
-- **Gestão Financeira**: Acompanhamento de quotas e pagamentos
-- **Sistema de Votações**: Participação democrática em decisões da associação (placeholder)
-- **Documentos**: Acesso a atas, estatutos e balancetes
-- **Mural de Comunicação**: Canal de interação entre sócios (moderado)
-- **Clube de Benefícios**: Descontos exclusivos em parceiros
+### Area Privada (Portal do Associado)
+- **Dashboard Personalizado**: Resumo financeiro, votacoes abertas, eventos proximos, feed de atividade recente
+- **Carteira Digital**: Identificacao digital com QR Code criptografado (SHA-256)
+- **Gestao Financeira**: Acompanhamento de contribuicoes (desconto em folha salarial) com export PDF/CSV
+- **Sistema de Votacoes**: Participacao democratica em decisoes da associacao
+- **Gestao de Projetos**: CRUD completo com tarefas, milestones, comentarios e orcamento
+- **Eventos/Agenda**: Sistema de eventos com inscricao e calendario
+- **Documentos**: Acesso a atas, estatutos e balancetes (upload/download admin)
+- **Mural de Comunicacao**: Canal de interacao entre socios com pesquisa, filtros, likes e moderacao
+- **Galeria de Fotos Privada**: Upload com workflow de aprovacao, albuns privados
+- **Clube de Beneficios**: Descontos exclusivos com validacao QR Code
+- **Notificacoes Avancadas**: Central de notificacoes com broadcast admin, filtros por tipo, auto-trigger
 
-### Área Administrativa
-- **Gestão de Usuários**: CRUD completo com alteração de status
-- **Conciliação Financeira**: Confirmação de pagamentos e emissão de quotas
-- **Aprovação de Conteúdo**: Moderação de posts do mural
-- **Audit Logs**: Rastreio completo de ações administrativas
+### Area Administrativa
+- **Gestao de Utilizadores**: CRUD com alteracao de cargo, funcao e privilegios
+- **Dashboard Financeiro**: Graficos de receitas/despesas, DRE, cash flow
+- **Gestao de Galeria**: Aprovacao de fotos, CRUD de albuns
+- **Audit Logs**: Rastreio completo de acoes administrativas
 
-## 🚀 Credenciais de Demonstração
+## Credenciais de Demonstracao
 
-**Administrador:**
-- Email: admin@accta.cv
-- Senha: admin123
+| Perfil | Email | Senha |
+|--------|-------|-------|
+| Administrador | admin@accta.cv | admin123 |
+| Financeiro | financeiro@accta.cv | fin123 |
+| Socio Ativo | socio1@accta.cv | socio123 |
 
-**Financeiro:**
-- Email: financeiro@accta.cv
-- Senha: fin123
+> **Nota:** Nao existe o conceito de "socio inadimplente" nesta associacao. Todas as quotas sao descontadas diretamente na folha salarial.
 
-**Sócio Ativo:**
-- Email: socio1@accta.cv
-- Senha: socio123
+## Stack Tecnico
 
-**Sócio Inadimplente:**
-- Email: inadimplente@accta.cv
-- Senha: socio123
+| Camada | Tecnologia |
+|--------|-----------|
+| Frontend | React 19 + Tailwind CSS + Framer Motion + Shadcn/UI + Recharts |
+| Backend | FastAPI (Python) + Motor (async MongoDB) |
+| Base de Dados | MongoDB (colecoes: users, invoices, polls, events, documents, wall_posts, notifications, projects, gallery_albums, gallery_photos) |
+| Autenticacao | JWT + RBAC (admin, socio, financeiro, moderador) |
+| CI/CD | GitHub Actions (ci.yml + deploy.yml) |
+| Design | Identidade visual ACCTA (Vermelho Carmesim #C7202F, Cinza Grafite #3A3A3A, Open Sans) |
 
-## 🏗️ Stack Técnico
+## Regras de Negocio Importantes
 
-- **Frontend**: React 19 + Tailwind CSS + Framer Motion + Shadcn/UI
-- **Backend**: FastAPI + Motor (async MongoDB)
-- **Database**: MongoDB (9 coleções relacionais)
-- **Auth**: JWT + RBAC (6 perfis)
-- **Design**: Tema "Horizon Precision" - Aviation × Swiss Clarity
+- Quotas sao descontadas em folha salarial — nao existem cotas pendentes
+- Nao existe o status "inadimplente" — apenas ativo e inativo
+- Modo escuro esta desativado
+- Fotos submetidas por socios requerem aprovacao do admin
 
-## 🌐 URLs
+## URLs
 
 - **Frontend**: https://traffic-portal-2.preview.emergentagent.com
 - **Backend API**: https://traffic-portal-2.preview.emergentagent.com/api
 
+## Estrutura do Projeto
+
+```
+/app
+├── .github/workflows/          # CI/CD (ci.yml, deploy.yml)
+├── frontend/
+│   ├── src/
+│   │   ├── components/         # Componentes reutilizaveis (ACCTALogo, NotificationBell, etc.)
+│   │   ├── contexts/           # AuthContext, NotificationContext, ThemeContext
+│   │   ├── layouts/            # PublicLayout, PrivateLayout
+│   │   ├── pages/public/       # HomePage, Sobre, Profissao, Transparencia, Galeria
+│   │   ├── pages/private/      # Dashboard, Financeiro, Projetos, Votacoes, Eventos, etc.
+│   │   └── utils/api.js        # Camada de API centralizada
+│   └── tailwind.config.js
+├── backend/
+│   ├── routes/                 # Routers modulares (gallery, activity, notifications, etc.)
+│   ├── models.py               # Modelos Pydantic
+│   ├── server.py               # Entry point FastAPI
+│   └── .env                    # Variaveis de ambiente
+├── scripts/seed_data.py        # Seed de dados de demonstracao
+├── DEPLOY.md                   # Guia de deploy
+└── SSH_SETUP.md                # Configuracao SSH para CI/CD
+```
+
 ---
 
-**Desenvolvido com Emergent AI** | Janeiro 2025
+Desenvolvido com Emergent AI | 2025-2026

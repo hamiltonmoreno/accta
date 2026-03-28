@@ -22,13 +22,10 @@ import {
   Unlock,
   Search,
   UserCircle,
-  Sun,
-  Moon,
   FolderKanban,
   Camera,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTheme } from '../contexts/ThemeContext';
 
 /* ========== GROUPED MENU SECTIONS ========== */
 const menuSections = [
@@ -70,7 +67,6 @@ const menuSections = [
 
 export const PrivateLayout = ({ children }) => {
   const { user, logout, isAdmin, isFinanceiro, isModerador } = useAuth();
-  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const pathname = location.pathname;
