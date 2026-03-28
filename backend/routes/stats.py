@@ -13,7 +13,7 @@ async def get_statistics(current_user: User = Depends(get_current_user)):
 
     total_users = await db.users.count_documents({})
     active_users = await db.users.count_documents({"status": "ativo"})
-    pending_invoices = await db.invoices.count_documents({"status": "pendente"})
+    active_events = await db.events.count_documents({"status": "active"})
     total_revenue = await db.invoices.aggregate([
         {"$match": {"status": "pago"}},
         {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
@@ -22,7 +22,7 @@ async def get_statistics(current_user: User = Depends(get_current_user)):
     return {
         "total_users": total_users,
         "active_users": active_users,
-        "pending_invoices": pending_invoices,
+        "active_events": active_events,
         "total_revenue": total_revenue[0]['total'] if total_revenue else 0
     }
 

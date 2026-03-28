@@ -107,28 +107,8 @@ async def seed_database():
         users.append(socio)
         socio_users.append(socio)
     
-    # Sócio inadimplente
-    inad_id = str(uuid.uuid4())
-    inadimplente = {
-        "id": inad_id,
-        "name": "Manuel Oliveira",
-        "email": "inadimplente@accta.cv",
-        "password": hash_password("socio123"),
-        "role": "socio",
-        "status": "inadimplente",
-        "member_id": "ACCTA-011",
-        "license_number": "ATC-CV-2018-011",
-        "admission_date": datetime(2018, 5, 10, tzinfo=timezone.utc).isoformat(),
-        "phone_number": "+238 9876555",
-        "consent_data": True,
-        "qr_code_hash": generate_qr_hash(inad_id),
-        "last_login_at": None,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    users.append(inadimplente)
-    
     await db.users.insert_many(users)
-    print(f"✅ {len(users)} usuários criados")
+    print(f"  {len(users)} usuarios criados")
     
     # ===== INVOICES =====
     invoices = []
@@ -149,8 +129,7 @@ async def seed_database():
                 
                 due_date = datetime(target_year, target_month, 10, tzinfo=timezone.utc)
                 
-                # Status pendente para inadimplente, pago para outros
-                status = "pendente" if user['status'] == 'inadimplente' and month < 3 else "pago"
+                status = "pago"
                 
                 invoice = {
                     "id": str(uuid.uuid4()),
@@ -438,19 +417,6 @@ async def seed_database():
         }
         notifications.append(notif)
     
-    # Notificação de quota pendente para inadimplente
-    notif_quota = {
-        "id": str(uuid.uuid4()),
-        "user_id": inadimplente['id'],
-        "type": "invoice_due",
-        "title": "Quota Pendente",
-        "message": "Você possui quotas pendentes. Regularize sua situação.",
-        "link": "/financeiro",
-        "read": False,
-        "created_at": (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()
-    }
-    notifications.append(notif_quota)
-    
     # Notificação de documento novo
     for socio in socio_users[:3]:
         notif_doc = {
@@ -563,9 +529,6 @@ async def seed_database():
     print("  Senha: fin123")
     print("\nSócio Ativo:")
     print("  Email: socio1@accta.cv")
-    print("  Senha: socio123")
-    print("\nSócio Inadimplente:")
-    print("  Email: inadimplente@accta.cv")
     print("  Senha: socio123")
     print("\n" + "="*60)
 

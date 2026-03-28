@@ -9,7 +9,7 @@ import {
 
 const ROLE_LABELS = { admin: 'Administrador', socio: 'Sócio', financeiro: 'Financeiro', moderador: 'Moderador' };
 const ROLE_COLORS = { admin: 'bg-red-100 text-red-700', socio: 'bg-blue-100 text-blue-700', financeiro: 'bg-amber-100 text-amber-700', moderador: 'bg-purple-100 text-purple-700' };
-const STATUS_COLORS = { ativo: 'bg-green-100 text-green-700', inadimplente: 'bg-red-100 text-red-700', inativo: 'bg-gray-100 text-gray-500' };
+const STATUS_COLORS = { ativo: 'bg-green-100 text-green-700', inativo: 'bg-gray-100 text-gray-500' };
 
 const PRIVILEGE_LABELS = {
   manage_users: 'Gerir Utilizadores',
@@ -26,7 +26,7 @@ const CARGOS = [
   'Tesoureiro', 'Vogal', 'Membro da Direção', 'Sócio'
 ];
 const ROLES = ['admin', 'socio', 'financeiro', 'moderador'];
-const STATUSES = ['ativo', 'inadimplente', 'inativo'];
+const STATUSES = ['ativo', 'inativo'];
 const PRIVILEGES = Object.keys(PRIVILEGE_LABELS);
 
 export const AdminUsuariosPage = () => {

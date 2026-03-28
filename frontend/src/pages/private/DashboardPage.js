@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
-import { statsAPI, invoicesAPI, pollsAPI, eventsAPI, financesAPI, activityAPI } from '../../utils/api';
+import { statsAPI, pollsAPI, eventsAPI, financesAPI, activityAPI } from '../../utils/api';
 import {
-  Users, DollarSign, AlertCircle, Vote, CheckCircle, Bell,
+  Users, DollarSign, Vote, CheckCircle, Bell,
   Calendar, MapPin, Clock, ArrowRight, TrendingUp, TrendingDown,
   Wallet, ArrowUpRight, ArrowDownRight, BarChart3, MessageSquare,
   FolderKanban, Trophy, Activity,
@@ -166,7 +166,6 @@ export const DashboardPage = () => {
   const [stats, setStats] = useState(null);
   const [financeSummary, setFinanceSummary] = useState(null);
   const [dreData, setDreData] = useState(null);
-  const [myInvoices, setMyInvoices] = useState([]);
   const [activePolls, setActivePolls] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
@@ -183,7 +182,6 @@ export const DashboardPage = () => {
   const loadData = async () => {
     try {
       const promises = [
-        invoicesAPI.getAll(),
         pollsAPI.getAll(),
         eventsAPI.getUpcoming().catch(() => ({ data: [] })),
         activityAPI.getRecent(15).catch(() => ({ data: [] })),
@@ -199,15 +197,14 @@ export const DashboardPage = () => {
 
       const results = await Promise.all(promises);
 
-      setMyInvoices(results[0].data.slice(0, 5));
-      setActivePolls(results[1].data.filter((p) => p.status === 'aberta'));
-      setUpcomingEvents(results[2].data.slice(0, 3));
-      setRecentActivity(results[3].data || []);
+      setActivePolls(results[0].data.filter((p) => p.status === 'aberta'));
+      setUpcomingEvents(results[1].data.slice(0, 3));
+      setRecentActivity(results[2].data || []);
 
       if (hasFinance) {
-        setStats(results[4].data);
-        setFinanceSummary(results[5].data);
-        setDreData(results[6].data);
+        setStats(results[3].data);
+        setFinanceSummary(results[4].data);
+        setDreData(results[5].data);
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -230,8 +227,6 @@ export const DashboardPage = () => {
       value: val,
     })) : [];
 
-  const pendingInvoices = myInvoices.filter((inv) => inv.status === 'pendente');
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -249,26 +244,6 @@ export const DashboardPage = () => {
         </h1>
         <p className="page-subtitle">Resumo da sua conta e atividades</p>
       </div>
-
-      {/* Status Alert */}
-      {user?.status !== 'ativo' && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white border border-gray-200/80 rounded-2xl p-4 sm:p-5 border-l-4 border-l-carmesim"
-          data-testid="status-alert"
-        >
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-carmesim flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-semibold text-sm text-carmesim mb-1">Status: {user?.status}</h3>
-              <p className="text-xs sm:text-sm text-gray-600">
-                Algumas funcionalidades podem estar restritas. Regularize a sua situacao.
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      )}
 
       {/* ===== ADMIN/FINANCEIRO: Stat Cards (Reference style) ===== */}
       {hasFinance && stats && (
@@ -288,9 +263,9 @@ export const DashboardPage = () => {
             delay={0.1}
           />
           <StatCard
-            title="Quotas Pendentes"
-            value={stats.pending_invoices}
-            icon={AlertCircle}
+            title="Eventos Ativos"
+            value={stats.active_events}
+            icon={Calendar}
             iconBg="bg-carmesim/10 text-carmesim"
             delay={0.15}
           />
@@ -439,7 +414,7 @@ export const DashboardPage = () => {
 
       {/* ===== MAIN GRID: Invoices + Polls ===== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-        {/* Pending Invoices */}
+        {/* Contribuicoes - Desconto em Folha */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -447,32 +422,16 @@ export const DashboardPage = () => {
           className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6"
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-grafite">Quotas Pendentes</h2>
-            <span className="text-[10px] text-gray-400 uppercase tracking-wider hidden sm:block">Folha Salarial</span>
+            <h2 className="text-lg font-semibold text-grafite" data-testid="contributions-title">Contribuicoes</h2>
+            <span className="text-[10px] text-gray-400 uppercase tracking-wider hidden sm:block">Desconto em Folha</span>
           </div>
-          {pendingInvoices.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                <CheckCircle className="w-7 h-7 text-green-500" />
-              </div>
-              <p className="text-sm text-grafite font-semibold" data-testid="no-pending-invoices">Tudo em dia!</p>
-              <p className="text-xs text-gray-400 mt-1">Quotas descontadas automaticamente</p>
+          <div className="text-center py-8">
+            <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <CheckCircle className="w-7 h-7 text-green-500" />
             </div>
-          ) : (
-            <div className="space-y-2.5">
-              {pendingInvoices.map((invoice) => (
-                <div key={invoice.id} className="flex items-center justify-between p-3.5 bg-carmesim/5 border border-carmesim/10 rounded-xl" data-testid={`invoice-${invoice.id}`}>
-                  <div className="min-w-0">
-                    <div className="font-semibold text-sm text-grafite capitalize">{invoice.type}</div>
-                    <div className="text-xs text-gray-400">
-                      Vence: {new Date(invoice.due_date).toLocaleDateString('pt')}
-                    </div>
-                  </div>
-                  <div className="font-mono font-bold text-sm text-grafite flex-shrink-0 ml-3">{invoice.amount} CVE</div>
-                </div>
-              ))}
-            </div>
-          )}
+            <p className="text-sm text-grafite font-semibold" data-testid="contributions-status">Tudo em dia!</p>
+            <p className="text-xs text-gray-400 mt-1">Quotas descontadas automaticamente na folha salarial</p>
+          </div>
         </motion.div>
 
         {/* Active Polls */}

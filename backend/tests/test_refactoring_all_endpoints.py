@@ -645,9 +645,9 @@ class TestStatsRoutes:
         data = response.json()
         assert "total_users" in data
         assert "active_users" in data
-        assert "pending_invoices" in data
+        assert "active_events" in data
         assert "total_revenue" in data
-        print(f"✓ GET /stats - users: {data['total_users']}, active: {data['active_users']}, pending invoices: {data['pending_invoices']}")
+        print(f"✓ GET /stats - users: {data['total_users']}, active: {data['active_users']}, events: {data['active_events']}")
     
     def test_get_stats_as_socio_forbidden(self, socio_token):
         """Test GET /stats as socio (should be forbidden)"""

@@ -181,13 +181,13 @@ class TestStatsEndpoint:
         # Check required fields for stat cards
         assert "total_users" in data
         assert "active_users" in data
-        assert "pending_invoices" in data
+        assert "active_events" in data
         assert "total_revenue" in data
         
         # Verify data types
         assert isinstance(data["total_users"], int)
         assert isinstance(data["active_users"], int)
-        assert isinstance(data["pending_invoices"], int)
+        assert isinstance(data["active_events"], int)
         assert isinstance(data["total_revenue"], (int, float))
     
     def test_stats_forbidden_for_regular_socio(self, socio_token):
