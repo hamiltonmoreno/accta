@@ -188,3 +188,30 @@ export const galleryAPI = {
   },
   deletePhoto: (photoId) => api.delete(`/gallery/photos/${photoId}`),
 };
+
+// Projects API
+export const projectsAPI = {
+  getAll: (params) => api.get('/projects', { params }),
+  getOne: (id) => api.get(`/projects/${id}`),
+  create: (data) => api.post('/projects', data),
+  update: (id, data) => api.patch(`/projects/${id}`, data),
+  approve: (id) => api.patch(`/projects/${id}/approve`),
+  delete: (id) => api.delete(`/projects/${id}`),
+  // Tasks
+  createTask: (projectId, data) => api.post(`/projects/${projectId}/tasks`, data),
+  updateTask: (projectId, taskId, data) => api.patch(`/projects/${projectId}/tasks/${taskId}`, data),
+  deleteTask: (projectId, taskId) => api.delete(`/projects/${projectId}/tasks/${taskId}`),
+  // Comments
+  addComment: (projectId, content) => api.post(`/projects/${projectId}/comments`, { content }),
+  deleteComment: (projectId, commentId) => api.delete(`/projects/${projectId}/comments/${commentId}`),
+  // Expenses
+  addExpense: (projectId, data) => api.post(`/projects/${projectId}/expenses`, data),
+  deleteExpense: (projectId, expenseId) => api.delete(`/projects/${projectId}/expenses/${expenseId}`),
+  // Milestones
+  addMilestone: (projectId, data) => api.post(`/projects/${projectId}/milestones`, data),
+  updateMilestone: (projectId, milestoneId, data) => api.patch(`/projects/${projectId}/milestones/${milestoneId}`, data),
+  deleteMilestone: (projectId, milestoneId) => api.delete(`/projects/${projectId}/milestones/${milestoneId}`),
+  // Meta
+  getMembers: () => api.get('/projects/meta/members'),
+};
+

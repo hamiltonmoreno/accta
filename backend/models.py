@@ -411,6 +411,123 @@ class FinanceSettingsUpdate(BaseModel):
     quota_description: Optional[str] = None
 
 
+# ===== PROJECT MODELS =====
+
+PROJECT_STATUSES = ["proposta", "aprovado", "em_curso", "concluido", "cancelado"]
+PROJECT_VISIBILITIES = ["publico", "privado"]
+TASK_STATUSES = ["pendente", "em_curso", "concluido"]
+TASK_PRIORITIES = ["baixa", "media", "alta"]
+
+
+class Project(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    description: str = ""
+    status: str = "proposta"
+    visibility: str = "publico"
+    category: str = ""
+    created_by: str = ""
+    created_by_name: str = ""
+    responsible_id: Optional[str] = None
+    responsible_name: Optional[str] = None
+    budget: float = 0.0
+    spent: float = 0.0
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    progress: int = 0
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ProjectCreate(BaseModel):
+    title: str
+    description: str = ""
+    visibility: str = "publico"
+    category: str = ""
+    budget: float = 0.0
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+
+
+class ProjectUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    visibility: Optional[str] = None
+    category: Optional[str] = None
+    responsible_id: Optional[str] = None
+    budget: Optional[float] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    progress: Optional[int] = None
+
+
+class ProjectTask(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    project_id: str
+    title: str
+    description: str = ""
+    assignee_id: Optional[str] = None
+    assignee_name: Optional[str] = None
+    status: str = "pendente"
+    priority: str = "media"
+    due_date: Optional[str] = None
+    completed_at: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ProjectTaskCreate(BaseModel):
+    title: str
+    description: str = ""
+    assignee_id: Optional[str] = None
+    status: str = "pendente"
+    priority: str = "media"
+    due_date: Optional[str] = None
+
+
+class ProjectTaskUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    assignee_id: Optional[str] = None
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    due_date: Optional[str] = None
+
+
+class ProjectComment(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    project_id: str
+    user_id: str
+    user_name: str = ""
+    content: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ProjectExpense(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    project_id: str
+    description: str
+    amount: float
+    date: str
+    created_by: str
+    created_by_name: str = ""
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ProjectMilestone(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    project_id: str
+    title: str
+    date: str
+    completed: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
 # ===== PASSWORD RESET MODELS =====
 
 class PasswordResetRequest(BaseModel):

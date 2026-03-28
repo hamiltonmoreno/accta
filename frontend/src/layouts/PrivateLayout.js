@@ -24,6 +24,7 @@ import {
   UserCircle,
   Sun,
   Moon,
+  FolderKanban,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../contexts/ThemeContext';
@@ -42,6 +43,7 @@ const menuSections = [
     title: 'Gestão',
     items: [
       { label: 'Financeiro', path: '/financeiro', icon: DollarSign, roles: ['all'] },
+      { label: 'Projetos', path: '/projetos', icon: FolderKanban, roles: ['all'] },
       { label: 'Votações', path: '/votacoes', icon: Vote, roles: ['all'] },
       { label: 'Eventos', path: '/eventos', icon: Calendar, roles: ['all'] },
       { label: 'Documentos', path: '/documentos', icon: FileText, roles: ['all'] },
@@ -92,6 +94,8 @@ export const PrivateLayout = ({ children }) => {
     if (pathname === '/perfil') return 'Meu Perfil';
     if (pathname === '/carteira') return 'Carteira Digital';
     if (pathname === '/financeiro') return 'Financeiro';
+    if (pathname === '/projetos') return 'Projetos';
+    if (pathname.startsWith('/projetos/')) return 'Detalhe do Projeto';
     if (pathname === '/votacoes') return 'Votações';
     if (pathname === '/eventos') return 'Eventos';
     if (pathname === '/documentos') return 'Documentos';

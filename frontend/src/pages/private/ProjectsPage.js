@@ -1,0 +1,292 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import { motion } from 'framer-motion';
+import { projectsAPI } from '../../utils/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import {
+  FolderKanban, Plus, Search, Filter, ArrowRight, Calendar,
+  DollarSign, CheckCircle, Clock, Users, Eye, EyeOff, X,
+  Target, AlertCircle,
+} from 'lucide-react';
+
+const STATUS_CONFIG = {
+  proposta: { label: 'Proposta', color: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' },
+  aprovado: { label: 'Aprovado', color: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
+  em_curso: { label: 'Em Curso', color: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
+  concluido: { label: 'Concluido', color: 'bg-gray-100 text-gray-600', dot: 'bg-gray-400' },
+  cancelado: { label: 'Cancelado', color: 'bg-red-100 text-red-600', dot: 'bg-red-400' },
+};
+
+const ProjectCard = ({ project, onClick }) => {
+  const st = STATUS_CONFIG[project.status] || STATUS_CONFIG.proposta;
+  const progress = project.progress || 0;
+  const budgetPct = project.budget > 0 ? Math.round((project.spent / project.budget) * 100) : 0;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white border border-gray-200/80 rounded-2xl p-5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+      onClick={onClick}
+      data-testid={`project-card-${project.id}`}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1 min-w-0 mr-3">
+          <h3 className="font-semibold text-grafite text-base truncate">{project.title}</h3>
+          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{project.description || 'Sem descricao'}</p>
+        </div>
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${st.color}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
+          {st.label}
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="mb-3">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Progresso</span>
+          <span className="text-xs font-mono font-bold text-grafite">{progress}%</span>
+        </div>
+        <div className="w-full bg-gray-100 rounded-full h-1.5">
+          <div
+            className="bg-carmesim h-1.5 rounded-full transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Meta row */}
+      <div className="flex items-center gap-4 text-[11px] text-gray-500">
+        {project.end_date && (
+          <span className="flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            {project.end_date}
+          </span>
+        )}
+        {project.budget > 0 && (
+          <span className="flex items-center gap-1">
+            <DollarSign className="w-3 h-3" />
+            {budgetPct}% do orcamento
+          </span>
+        )}
+        <span className="flex items-center gap-1">
+          <CheckCircle className="w-3 h-3" />
+          {project.task_done || 0}/{project.task_count || 0} tarefas
+        </span>
+        {project.visibility === 'privado' && (
+          <span className="flex items-center gap-1 text-carmesim">
+            <EyeOff className="w-3 h-3" /> Privado
+          </span>
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
+// ===== CREATE PROJECT MODAL =====
+const CreateProjectModal = ({ onClose, onCreated }) => {
+  const [form, setForm] = useState({
+    title: '', description: '', visibility: 'publico',
+    category: '', budget: '', start_date: '', end_date: '',
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.title.trim()) { toast.error('Titulo e obrigatorio'); return; }
+    setSaving(true);
+    try {
+      const payload = { ...form, budget: form.budget ? parseFloat(form.budget) : 0 };
+      await projectsAPI.create(payload);
+      toast.success('Projeto criado');
+      onCreated();
+    } catch (err) { toast.error(err.response?.data?.detail || 'Erro ao criar'); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+          <h2 className="font-bold text-grafite text-lg">Novo Projeto</h2>
+          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" data-testid="close-modal-btn"><X className="w-5 h-5" /></button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Titulo *</label>
+            <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
+              placeholder="Ex: Festa do Dia do Controlador 2026"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              data-testid="project-title-input" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Descricao</label>
+            <textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="Descreva o objetivo e escopo do projeto..."
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none resize-none"
+              data-testid="project-desc-input" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Visibilidade</label>
+              <select value={form.visibility} onChange={(e) => setForm({ ...form, visibility: e.target.value })}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+                data-testid="project-visibility-select">
+                <option value="publico">Publico</option>
+                <option value="privado">Privado (Direcao)</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Categoria</label>
+              <input type="text" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
+                placeholder="Ex: Social, Formacao"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Orcamento (CVE)</label>
+              <input type="number" min="0" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })}
+                placeholder="0"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+                data-testid="project-budget-input" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Inicio</label>
+              <input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Fim</label>
+              <input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" />
+            </div>
+          </div>
+          <button type="submit" disabled={saving} className="w-full btn-primary py-3 text-sm font-semibold" data-testid="create-project-btn">
+            {saving ? 'A criar...' : 'Propor Projeto'}
+          </button>
+        </form>
+      </motion.div>
+    </div>
+  );
+};
+
+// ===== MAIN PAGE =====
+const ProjectsPage = () => {
+  const { isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const [projects, setProjects] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState('');
+  const [searchText, setSearchText] = useState('');
+  const [showCreate, setShowCreate] = useState(false);
+
+  const loadProjects = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = {};
+      if (filterStatus) params.status = filterStatus;
+      const res = await projectsAPI.getAll(params);
+      let items = res.data.items || [];
+      if (searchText) {
+        const q = searchText.toLowerCase();
+        items = items.filter(p => p.title.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q));
+      }
+      setProjects(items);
+      setTotal(res.data.total);
+    } catch { toast.error('Erro ao carregar projetos'); }
+    finally { setLoading(false); }
+  }, [filterStatus, searchText]);
+
+  useEffect(() => { loadProjects(); }, [loadProjects]);
+
+  const statusFilters = [
+    { val: '', label: 'Todos' },
+    { val: 'proposta', label: 'Propostas' },
+    { val: 'aprovado', label: 'Aprovados' },
+    { val: 'em_curso', label: 'Em Curso' },
+    { val: 'concluido', label: 'Concluidos' },
+  ];
+
+  return (
+    <div className="space-y-5 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="page-title" data-testid="projects-title">Projetos</h1>
+          <p className="page-subtitle">Gestao e acompanhamento de projetos da associacao</p>
+        </div>
+        <button onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-2 text-sm w-fit" data-testid="new-project-btn">
+          <Plus className="w-4 h-4" /> Novo Projeto
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="card-technical p-3 sm:p-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="relative flex-1 min-w-[180px] max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input type="text" placeholder="Pesquisar projetos..." value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              data-testid="projects-search" />
+          </div>
+          <div className="flex items-center gap-1.5 ml-auto">
+            <Filter className="w-4 h-4 text-gray-400 hidden sm:block" />
+            {statusFilters.map((f) => (
+              <button key={f.val} onClick={() => setFilterStatus(f.val)}
+                data-testid={`filter-${f.val || 'all'}`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${
+                  filterStatus === f.val ? 'bg-grafite text-white' : 'bg-white text-gray-500 border border-gray-100 hover:bg-gray-50'
+                }`}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Projects Grid */}
+      {loading ? (
+        <div className="text-center py-16">
+          <div className="inline-block w-8 h-8 border-3 border-carmesim border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : projects.length === 0 ? (
+        <div className="text-center py-16" data-testid="no-projects">
+          <FolderKanban className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+          <p className="text-gray-500 font-medium">Nenhum projeto encontrado</p>
+          <p className="text-xs text-gray-400 mt-1">Crie um novo projeto para comecar</p>
+        </div>
+      ) : (
+        <>
+          {/* Pending approval banner for admin */}
+          {isAdmin && projects.some(p => p.status === 'proposta') && (
+            <div className="bg-white border border-amber-200 rounded-xl p-4 flex items-center gap-3" data-testid="pending-approval-banner">
+              <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0" />
+              <span className="text-sm text-gray-700">
+                <strong>{projects.filter(p => p.status === 'proposta').length}</strong> projeto(s) aguardam a sua aprovacao
+              </span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {projects.map((project) => (
+              <ProjectCard key={project.id} project={project} onClick={() => navigate(`/projetos/${project.id}`)} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {showCreate && <CreateProjectModal onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); loadProjects(); }} />}
+    </div>
+  );
+};
+
+export default ProjectsPage;

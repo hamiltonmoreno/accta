@@ -23,6 +23,8 @@ import { NotificacoesPage } from './pages/private/NotificacoesPage';
 import { DashboardPage } from './pages/private/DashboardPage';
 import { CarteiraPage } from './pages/private/CarteiraPage';
 import { FinanceiroPage } from './pages/private/FinanceiroPage';
+import ProjectsPage from './pages/private/ProjectsPage';
+import ProjectDetailPage from './pages/private/ProjectDetailPage';
 import { VotacoesPage } from './pages/private/VotacoesPage';
 import { DocumentosPage } from './pages/private/DocumentosPage';
 import { MuralPage } from './pages/private/MuralPage';
@@ -111,6 +113,22 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <PrivateLayout><DocumentosPage /></PrivateLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/projetos"
+        element={
+          <ProtectedRoute>
+            <PrivateLayout><ProjectsPage /></PrivateLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/projetos/:id"
+        element={
+          <ProtectedRoute>
+            <PrivateLayout><ProjectDetailPage /></PrivateLayout>
           </ProtectedRoute>
         }
       />

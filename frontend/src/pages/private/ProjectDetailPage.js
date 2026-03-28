@@ -1,0 +1,631 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import { motion } from 'framer-motion';
+import { projectsAPI } from '../../utils/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { toast } from 'sonner';
+import { useParams, useNavigate } from 'react-router-dom';
+import {
+  ArrowLeft, CheckCircle, Clock, Plus, Trash2, Send,
+  DollarSign, Target, MessageSquare, Calendar, Users,
+  Pencil, Eye, EyeOff, X, AlertCircle, Flag,
+} from 'lucide-react';
+
+const STATUS_CONFIG = {
+  proposta: { label: 'Proposta', color: 'bg-amber-100 text-amber-700' },
+  aprovado: { label: 'Aprovado', color: 'bg-blue-100 text-blue-700' },
+  em_curso: { label: 'Em Curso', color: 'bg-green-100 text-green-700' },
+  concluido: { label: 'Concluido', color: 'bg-gray-100 text-gray-600' },
+  cancelado: { label: 'Cancelado', color: 'bg-red-100 text-red-600' },
+};
+
+const PRIORITY_CONFIG = {
+  baixa: { label: 'Baixa', color: 'text-gray-500' },
+  media: { label: 'Media', color: 'text-blue-500' },
+  alta: { label: 'Alta', color: 'text-carmesim' },
+};
+
+const TabBtn = ({ active, label, icon: Icon, onClick, badge, testId }) => (
+  <button onClick={onClick} data-testid={testId}
+    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all whitespace-nowrap ${
+      active ? 'bg-carmesim text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100 hover:text-grafite'
+    }`}>
+    <Icon className="w-4 h-4" />
+    {label}
+    {badge > 0 && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${active ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>{badge}</span>}
+  </button>
+);
+
+// ===== TASKS TAB =====
+const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ title: '', description: '', assignee_id: '', priority: 'media', due_date: '' });
+  const [saving, setSaving] = useState(false);
+
+  const handleAdd = async () => {
+    if (!form.title.trim()) { toast.error('Titulo da tarefa obrigatorio'); return; }
+    setSaving(true);
+    try {
+      await projectsAPI.createTask(project.id, form);
+      toast.success('Tarefa criada');
+      setForm({ title: '', description: '', assignee_id: '', priority: 'media', due_date: '' });
+      setShowAdd(false);
+      onReload();
+    } catch (err) { toast.error(err.response?.data?.detail || 'Erro'); }
+    finally { setSaving(false); }
+  };
+
+  const toggleStatus = async (task) => {
+    const next = task.status === 'concluido' ? 'pendente' : task.status === 'pendente' ? 'em_curso' : 'concluido';
+    try {
+      await projectsAPI.updateTask(project.id, task.id, { status: next });
+      onReload();
+    } catch { toast.error('Erro ao atualizar'); }
+  };
+
+  const handleDelete = async (taskId) => {
+    try { await projectsAPI.deleteTask(project.id, taskId); onReload(); }
+    catch { toast.error('Erro'); }
+  };
+
+  const taskStatusIcon = (status) => {
+    if (status === 'concluido') return <CheckCircle className="w-4 h-4 text-green-500" />;
+    if (status === 'em_curso') return <Clock className="w-4 h-4 text-blue-500" />;
+    return <div className="w-4 h-4 rounded-full border-2 border-gray-300" />;
+  };
+
+  return (
+    <div className="space-y-4">
+      {canManage && (
+        <div className="flex justify-end">
+          <button onClick={() => setShowAdd(!showAdd)} className="btn-primary flex items-center gap-2 text-sm" data-testid="add-task-btn">
+            <Plus className="w-4 h-4" /> Tarefa
+          </button>
+        </div>
+      )}
+
+      {showAdd && (
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+          className="bg-white border border-gray-200/80 rounded-xl p-4 space-y-3">
+          <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
+            placeholder="Titulo da tarefa" data-testid="task-title-input"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" />
+          <textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
+            placeholder="Descricao (opcional)"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none resize-none" />
+          <div className="flex flex-wrap gap-2">
+            <select value={form.assignee_id} onChange={(e) => setForm({ ...form, assignee_id: e.target.value })}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm flex-1 min-w-[140px] focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              data-testid="task-assignee-select">
+              <option value="">Sem responsavel</option>
+              {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </select>
+            <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none">
+              <option value="baixa">Baixa</option>
+              <option value="media">Media</option>
+              <option value="alta">Alta</option>
+            </select>
+            <input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" />
+            <button onClick={handleAdd} disabled={saving} className="btn-primary text-sm px-5" data-testid="save-task-btn">
+              {saving ? '...' : 'Adicionar'}
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      {tasks.length === 0 ? (
+        <div className="text-center py-10">
+          <CheckCircle className="w-10 h-10 text-gray-200 mx-auto mb-2" />
+          <p className="text-sm text-gray-400">Nenhuma tarefa criada</p>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {tasks.map((task) => {
+            const pri = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.media;
+            return (
+              <div key={task.id}
+                className={`bg-white border border-gray-200/80 rounded-xl p-3.5 flex items-start gap-3 transition-all ${task.status === 'concluido' ? 'opacity-60' : ''}`}
+                data-testid={`task-${task.id}`}>
+                <button onClick={() => toggleStatus(task)} className="mt-0.5 flex-shrink-0" data-testid={`toggle-task-${task.id}`}>
+                  {taskStatusIcon(task.status)}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <div className={`font-medium text-sm ${task.status === 'concluido' ? 'line-through text-gray-400' : 'text-grafite'}`}>
+                    {task.title}
+                  </div>
+                  {task.description && <p className="text-xs text-gray-500 mt-0.5">{task.description}</p>}
+                  <div className="flex items-center gap-3 mt-1.5 text-[11px] text-gray-400">
+                    {task.assignee_name && <span className="flex items-center gap-1"><Users className="w-3 h-3" />{task.assignee_name}</span>}
+                    {task.due_date && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{task.due_date}</span>}
+                    <span className={`flex items-center gap-1 ${pri.color} font-semibold`}>
+                      <Flag className="w-3 h-3" />{pri.label}
+                    </span>
+                  </div>
+                </div>
+                {canManage && (
+                  <button onClick={() => handleDelete(task.id)} className="p-1 text-gray-400 hover:text-red-500 flex-shrink-0">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ===== COMMENTS TAB =====
+const CommentsTab = ({ project, comments, onReload }) => {
+  const { user } = useAuth();
+  const [text, setText] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const handleSend = async () => {
+    if (!text.trim()) return;
+    setSending(true);
+    try {
+      await projectsAPI.addComment(project.id, text);
+      setText('');
+      onReload();
+    } catch (err) { toast.error(err.response?.data?.detail || 'Erro'); }
+    finally { setSending(false); }
+  };
+
+  const handleDelete = async (commentId) => {
+    try { await projectsAPI.deleteComment(project.id, commentId); onReload(); }
+    catch { toast.error('Erro'); }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Input */}
+      <div className="bg-white border border-gray-200/80 rounded-xl p-3.5 flex items-start gap-3">
+        <div className="w-8 h-8 bg-carmesim rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+          {user?.name?.charAt(0).toUpperCase()}
+        </div>
+        <div className="flex-1">
+          <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)}
+            placeholder="Partilhe uma ideia ou comentario..."
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none resize-none"
+            data-testid="comment-input" />
+          <div className="flex justify-end mt-2">
+            <button onClick={handleSend} disabled={sending || !text.trim()}
+              className="btn-primary text-xs px-4 py-2 flex items-center gap-1.5 disabled:opacity-40" data-testid="send-comment-btn">
+              <Send className="w-3.5 h-3.5" /> {sending ? '...' : 'Enviar'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* List */}
+      {comments.length === 0 ? (
+        <div className="text-center py-10">
+          <MessageSquare className="w-10 h-10 text-gray-200 mx-auto mb-2" />
+          <p className="text-sm text-gray-400">Nenhum comentario ainda</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {comments.map((c) => (
+            <div key={c.id} className="bg-white border border-gray-200/80 rounded-xl p-4" data-testid={`comment-${c.id}`}>
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="w-7 h-7 bg-grafite rounded-full flex items-center justify-center text-white text-[10px] font-bold">
+                  {c.user_name?.charAt(0)?.toUpperCase() || '?'}
+                </div>
+                <span className="font-semibold text-sm text-grafite">{c.user_name}</span>
+                <span className="text-[11px] text-gray-400 ml-auto">
+                  {c.created_at ? new Date(c.created_at).toLocaleDateString('pt') : ''}
+                </span>
+                {(c.user_id === user?.id || user?.role === 'admin') && (
+                  <button onClick={() => handleDelete(c.id)} className="p-1 text-gray-400 hover:text-red-500">
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+              <p className="text-sm text-gray-600 leading-relaxed">{c.content}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ===== BUDGET TAB =====
+const BudgetTab = ({ project, expenses, canManage, onReload }) => {
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ description: '', amount: '', date: new Date().toISOString().split('T')[0] });
+  const [saving, setSaving] = useState(false);
+
+  const spent = expenses.reduce((s, e) => s + e.amount, 0);
+  const budget = project.budget || 0;
+  const pct = budget > 0 ? Math.round((spent / budget) * 100) : 0;
+  const remaining = budget - spent;
+
+  const handleAdd = async () => {
+    if (!form.description.trim() || !form.amount) { toast.error('Preencha os campos'); return; }
+    setSaving(true);
+    try {
+      await projectsAPI.addExpense(project.id, { ...form, amount: parseFloat(form.amount) });
+      setForm({ description: '', amount: '', date: new Date().toISOString().split('T')[0] });
+      setShowAdd(false);
+      onReload();
+      toast.success('Despesa registrada');
+    } catch (err) { toast.error(err.response?.data?.detail || 'Erro'); }
+    finally { setSaving(false); }
+  };
+
+  const handleDelete = async (expenseId) => {
+    try { await projectsAPI.deleteExpense(project.id, expenseId); onReload(); }
+    catch { toast.error('Erro'); }
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Summary */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white border border-gray-200/80 rounded-xl p-4">
+          <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Orcamento</div>
+          <div className="font-mono text-xl font-bold text-grafite" data-testid="budget-total">{budget.toLocaleString('pt')} CVE</div>
+        </div>
+        <div className="bg-white border border-gray-200/80 rounded-xl p-4">
+          <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Gasto</div>
+          <div className="font-mono text-xl font-bold text-red-600" data-testid="budget-spent">{spent.toLocaleString('pt')} CVE</div>
+          {budget > 0 && <div className="text-[11px] text-gray-400 mt-0.5">{pct}% do orcamento</div>}
+        </div>
+        <div className="bg-white border border-gray-200/80 rounded-xl p-4">
+          <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Disponivel</div>
+          <div className={`font-mono text-xl font-bold ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`} data-testid="budget-remaining">
+            {remaining.toLocaleString('pt')} CVE
+          </div>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      {budget > 0 && (
+        <div className="bg-white border border-gray-200/80 rounded-xl p-4">
+          <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+            <span>Execucao Orcamental</span>
+            <span className="font-mono font-bold">{pct}%</span>
+          </div>
+          <div className="w-full bg-gray-100 rounded-full h-2.5">
+            <div className={`h-2.5 rounded-full transition-all ${pct > 90 ? 'bg-red-500' : pct > 70 ? 'bg-amber-500' : 'bg-green-500'}`}
+              style={{ width: `${Math.min(pct, 100)}%` }} />
+          </div>
+        </div>
+      )}
+
+      {/* Expenses list */}
+      {canManage && (
+        <div className="flex justify-end">
+          <button onClick={() => setShowAdd(!showAdd)} className="btn-primary flex items-center gap-2 text-sm" data-testid="add-expense-btn">
+            <Plus className="w-4 h-4" /> Despesa
+          </button>
+        </div>
+      )}
+
+      {showAdd && (
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+          className="bg-white border border-gray-200/80 rounded-xl p-4 flex flex-wrap items-end gap-2">
+          <div className="flex-1 min-w-[180px]">
+            <label className="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Descricao</label>
+            <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              data-testid="expense-desc-input" />
+          </div>
+          <div className="w-28">
+            <label className="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Valor (CVE)</label>
+            <input type="number" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              data-testid="expense-amount-input" />
+          </div>
+          <div className="w-36">
+            <label className="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Data</label>
+            <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" />
+          </div>
+          <button onClick={handleAdd} disabled={saving} className="btn-primary text-sm px-5" data-testid="save-expense-btn">
+            {saving ? '...' : 'Adicionar'}
+          </button>
+        </motion.div>
+      )}
+
+      {expenses.length === 0 ? (
+        <div className="text-center py-8">
+          <DollarSign className="w-10 h-10 text-gray-200 mx-auto mb-2" />
+          <p className="text-sm text-gray-400">Nenhuma despesa registrada</p>
+        </div>
+      ) : (
+        <div className="bg-white border border-gray-200/80 rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50/80 text-gray-400 uppercase text-[10px] tracking-wider">
+              <tr>
+                <th className="px-4 py-3 text-left font-semibold">Descricao</th>
+                <th className="px-4 py-3 text-right font-semibold">Valor</th>
+                <th className="px-4 py-3 text-left font-semibold">Data</th>
+                <th className="px-4 py-3 text-left font-semibold">Por</th>
+                {canManage && <th className="px-4 py-3 w-10"></th>}
+              </tr>
+            </thead>
+            <tbody>
+              {expenses.map(e => (
+                <tr key={e.id} className="border-t border-gray-50" data-testid={`expense-${e.id}`}>
+                  <td className="px-4 py-3 text-grafite">{e.description}</td>
+                  <td className="px-4 py-3 text-right font-mono font-bold text-red-600">{e.amount.toLocaleString('pt')} CVE</td>
+                  <td className="px-4 py-3 text-gray-500 text-xs">{e.date}</td>
+                  <td className="px-4 py-3 text-gray-500 text-xs">{e.created_by_name}</td>
+                  {canManage && (
+                    <td className="px-4 py-3"><button onClick={() => handleDelete(e.id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button></td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ===== TIMELINE TAB =====
+const TimelineTab = ({ project, milestones, canManage, onReload }) => {
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ title: '', date: '' });
+  const [saving, setSaving] = useState(false);
+
+  const handleAdd = async () => {
+    if (!form.title.trim() || !form.date) { toast.error('Preencha titulo e data'); return; }
+    setSaving(true);
+    try {
+      await projectsAPI.addMilestone(project.id, form);
+      setForm({ title: '', date: '' });
+      setShowAdd(false);
+      onReload();
+    } catch (err) { toast.error(err.response?.data?.detail || 'Erro'); }
+    finally { setSaving(false); }
+  };
+
+  const toggleComplete = async (milestone) => {
+    try {
+      await projectsAPI.updateMilestone(project.id, milestone.id, { completed: !milestone.completed });
+      onReload();
+    } catch { toast.error('Erro'); }
+  };
+
+  const handleDelete = async (milestoneId) => {
+    try { await projectsAPI.deleteMilestone(project.id, milestoneId); onReload(); }
+    catch { toast.error('Erro'); }
+  };
+
+  return (
+    <div className="space-y-4">
+      {canManage && (
+        <div className="flex justify-end">
+          <button onClick={() => setShowAdd(!showAdd)} className="btn-primary flex items-center gap-2 text-sm" data-testid="add-milestone-btn">
+            <Plus className="w-4 h-4" /> Milestone
+          </button>
+        </div>
+      )}
+
+      {showAdd && (
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+          className="bg-white border border-gray-200/80 rounded-xl p-4 flex flex-wrap items-end gap-2">
+          <div className="flex-1 min-w-[180px]">
+            <label className="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Titulo</label>
+            <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
+              placeholder="Ex: Reservar local do evento"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              data-testid="milestone-title-input" />
+          </div>
+          <div className="w-40">
+            <label className="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Data</label>
+            <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              data-testid="milestone-date-input" />
+          </div>
+          <button onClick={handleAdd} disabled={saving} className="btn-primary text-sm px-5" data-testid="save-milestone-btn">
+            {saving ? '...' : 'Adicionar'}
+          </button>
+        </motion.div>
+      )}
+
+      {milestones.length === 0 ? (
+        <div className="text-center py-10">
+          <Target className="w-10 h-10 text-gray-200 mx-auto mb-2" />
+          <p className="text-sm text-gray-400">Nenhum milestone definido</p>
+        </div>
+      ) : (
+        <div className="relative pl-6">
+          {/* Timeline line */}
+          <div className="absolute left-2.5 top-2 bottom-2 w-0.5 bg-gray-200" />
+          <div className="space-y-4">
+            {milestones.map((m, i) => (
+              <div key={m.id} className="relative flex items-start gap-4" data-testid={`milestone-${m.id}`}>
+                <button onClick={() => toggleComplete(m)}
+                  className={`absolute -left-3.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 z-10 transition-colors ${
+                    m.completed ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-gray-300'
+                  }`} data-testid={`toggle-milestone-${m.id}`}>
+                  {m.completed && <CheckCircle className="w-3 h-3" />}
+                </button>
+                <div className="bg-white border border-gray-200/80 rounded-xl p-4 flex-1 ml-2">
+                  <div className="flex items-center justify-between">
+                    <span className={`font-semibold text-sm ${m.completed ? 'text-gray-400 line-through' : 'text-grafite'}`}>{m.title}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400 font-mono">{m.date}</span>
+                      {canManage && (
+                        <button onClick={() => handleDelete(m.id)} className="p-1 text-gray-400 hover:text-red-500">
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ===== MAIN DETAIL PAGE =====
+const ProjectDetailPage = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user, isAdmin } = useAuth();
+  const [project, setProject] = useState(null);
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState('tasks');
+  const [editingStatus, setEditingStatus] = useState(false);
+
+  const loadProject = useCallback(async () => {
+    try {
+      const [projRes, membersRes] = await Promise.all([
+        projectsAPI.getOne(id),
+        projectsAPI.getMembers(),
+      ]);
+      setProject(projRes.data);
+      setMembers(membersRes.data);
+    } catch (err) {
+      if (err.response?.status === 404) navigate('/projetos');
+      else toast.error('Erro ao carregar projeto');
+    } finally { setLoading(false); }
+  }, [id, navigate]);
+
+  useEffect(() => { loadProject(); }, [loadProject]);
+
+  if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-3 border-carmesim border-t-transparent rounded-full animate-spin" /></div>;
+  if (!project) return null;
+
+  const canManage = isAdmin || project.created_by === user?.id || project.responsible_id === user?.id;
+  const st = STATUS_CONFIG[project.status] || STATUS_CONFIG.proposta;
+
+  const handleStatusChange = async (newStatus) => {
+    try {
+      await projectsAPI.update(project.id, { status: newStatus });
+      loadProject();
+      toast.success(`Status atualizado para ${STATUS_CONFIG[newStatus]?.label || newStatus}`);
+    } catch (err) { toast.error(err.response?.data?.detail || 'Erro'); }
+    setEditingStatus(false);
+  };
+
+  const handleApprove = async () => {
+    try { await projectsAPI.approve(project.id); loadProject(); toast.success('Projeto aprovado'); }
+    catch (err) { toast.error(err.response?.data?.detail || 'Erro'); }
+  };
+
+  const handleProgressChange = async (val) => {
+    try { await projectsAPI.update(project.id, { progress: parseInt(val) }); loadProject(); }
+    catch { /* silent */ }
+  };
+
+  return (
+    <div className="space-y-5 sm:space-y-6">
+      {/* Back + Title */}
+      <div>
+        <button onClick={() => navigate('/projetos')} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-carmesim mb-3 transition-colors" data-testid="back-to-projects">
+          <ArrowLeft className="w-4 h-4" /> Voltar aos projetos
+        </button>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div>
+            <h1 className="page-title" data-testid="project-title">{project.title}</h1>
+            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+              <div className="relative">
+                <button onClick={() => canManage && setEditingStatus(!editingStatus)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${st.color} ${canManage ? 'cursor-pointer hover:opacity-80' : ''}`}
+                  data-testid="project-status-badge">
+                  {st.label}
+                </button>
+                {editingStatus && (
+                  <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1 min-w-[140px]">
+                    {Object.entries(STATUS_CONFIG).map(([key, val]) => (
+                      <button key={key} onClick={() => handleStatusChange(key)}
+                        className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${val.color.split(' ')[0]}`} />
+                        {val.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {project.visibility === 'privado' && (
+                <span className="flex items-center gap-1 text-xs text-carmesim font-semibold"><EyeOff className="w-3.5 h-3.5" /> Privado</span>
+              )}
+              {project.category && <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{project.category}</span>}
+            </div>
+          </div>
+
+          {/* Admin approve button */}
+          {isAdmin && project.status === 'proposta' && (
+            <button onClick={handleApprove} className="btn-primary flex items-center gap-2 text-sm" data-testid="approve-project-btn">
+              <CheckCircle className="w-4 h-4" /> Aprovar Projeto
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Info cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-white border border-gray-200/80 rounded-xl p-3.5">
+          <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Progresso</div>
+          <div className="flex items-center gap-2">
+            {canManage ? (
+              <input type="range" min="0" max="100" step="5" value={project.progress}
+                onChange={(e) => handleProgressChange(e.target.value)}
+                className="flex-1 accent-carmesim" data-testid="progress-slider" />
+            ) : (
+              <div className="flex-1 bg-gray-100 rounded-full h-2">
+                <div className="bg-carmesim h-2 rounded-full" style={{ width: `${project.progress}%` }} />
+              </div>
+            )}
+            <span className="font-mono text-sm font-bold text-grafite">{project.progress}%</span>
+          </div>
+        </div>
+        <div className="bg-white border border-gray-200/80 rounded-xl p-3.5">
+          <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Responsavel</div>
+          <div className="text-sm font-medium text-grafite truncate">{project.responsible_name || project.created_by_name || '-'}</div>
+        </div>
+        <div className="bg-white border border-gray-200/80 rounded-xl p-3.5">
+          <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Periodo</div>
+          <div className="text-xs text-gray-600">{project.start_date || '?'} - {project.end_date || '?'}</div>
+        </div>
+        <div className="bg-white border border-gray-200/80 rounded-xl p-3.5">
+          <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Orcamento</div>
+          <div className="font-mono text-sm font-bold text-grafite">{(project.budget || 0).toLocaleString('pt')} CVE</div>
+        </div>
+      </div>
+
+      {/* Description */}
+      {project.description && (
+        <div className="bg-white border border-gray-200/80 rounded-xl p-5">
+          <h3 className="font-semibold text-sm text-grafite mb-2">Descricao</h3>
+          <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{project.description}</p>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+        <TabBtn active={tab === 'tasks'} label="Tarefas" icon={CheckCircle} onClick={() => setTab('tasks')}
+          badge={project.tasks?.length || 0} testId="tab-tasks" />
+        <TabBtn active={tab === 'comments'} label="Comentarios" icon={MessageSquare} onClick={() => setTab('comments')}
+          badge={project.comments?.length || 0} testId="tab-comments" />
+        <TabBtn active={tab === 'budget'} label="Orcamento" icon={DollarSign} onClick={() => setTab('budget')}
+          badge={project.expenses?.length || 0} testId="tab-budget" />
+        <TabBtn active={tab === 'timeline'} label="Timeline" icon={Target} onClick={() => setTab('timeline')}
+          badge={project.milestones?.length || 0} testId="tab-timeline" />
+      </div>
+
+      {/* Tab Content */}
+      {tab === 'tasks' && <TasksTab project={project} tasks={project.tasks || []} members={members} canManage={canManage} onReload={loadProject} />}
+      {tab === 'comments' && <CommentsTab project={project} comments={project.comments || []} onReload={loadProject} />}
+      {tab === 'budget' && <BudgetTab project={project} expenses={project.expenses || []} canManage={canManage} onReload={loadProject} />}
+      {tab === 'timeline' && <TimelineTab project={project} milestones={project.milestones || []} canManage={canManage} onReload={loadProject} />}
+    </div>
+  );
+};
+
+export default ProjectDetailPage;
