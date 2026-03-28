@@ -147,3 +147,12 @@ html, body {
         @apply rounded-lg;
     }
 }
+
+/* Sidebar scroll — hidden scrollbar */
+.sidebar-scroll::-webkit-scrollbar {
+    display: none;
+}
+.sidebar-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
