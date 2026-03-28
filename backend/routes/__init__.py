@@ -1,0 +1,30 @@
+from fastapi import APIRouter
+from routes.auth_routes import router as auth_router
+from routes.users import router as users_router
+from routes.invoices import router as invoices_router
+from routes.polls import router as polls_router
+from routes.posts import router as posts_router
+from routes.documents import router as documents_router
+from routes.benefits import router as benefits_router
+from routes.wall import router as wall_router
+from routes.events import router as events_router
+from routes.gallery import router as gallery_router
+from routes.notifications import router as notifications_router
+from routes.stats import router as stats_router
+from routes.upload import router as upload_router
+
+api_router = APIRouter(prefix="/api")
+
+api_router.include_router(auth_router)
+api_router.include_router(users_router)
+api_router.include_router(invoices_router)
+api_router.include_router(polls_router)
+api_router.include_router(posts_router)
+api_router.include_router(documents_router)
+api_router.include_router(benefits_router)
+api_router.include_router(wall_router)
+api_router.include_router(events_router)
+api_router.include_router(gallery_router)
+api_router.include_router(notifications_router)
+api_router.include_router(stats_router)
+api_router.include_router(upload_router)
