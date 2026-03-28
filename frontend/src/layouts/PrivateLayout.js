@@ -279,26 +279,6 @@ export const PrivateLayout = ({ children }) => {
           </div>
         )}
 
-        {/* Theme toggle */}
-        <button
-          onClick={toggleTheme}
-          className="w-full flex items-center rounded-lg transition-colors"
-          style={{ color: 'var(--text-secondary)' }}
-          data-testid="theme-toggle-btn"
-          title={isDark ? 'Modo claro' : 'Modo escuro'}
-        >
-          <span className="flex items-center justify-center min-w-[48px] h-[40px]">
-            {isDark ? <Sun className="w-[18px] h-[18px] text-amber-400" /> : <Moon className="w-[18px] h-[18px]" />}
-          </span>
-          <span
-            className={`text-[13px] whitespace-nowrap transition-opacity duration-300 ${
-              collapsed && !isMobile ? 'opacity-0 pointer-events-none w-0' : 'opacity-100'
-            }`}
-          >
-            {isDark ? 'Modo Claro' : 'Modo Escuro'}
-          </span>
-        </button>
-
         {/* Logout button */}
         <button
           onClick={handleLogout}
