@@ -253,6 +253,7 @@ class GalleryAlbum(BaseModel):
     cover_url: str = ""
     photo_count: int = 0
     order: int = 0
+    visibility: str = "public"  # public, private
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -261,6 +262,7 @@ class GalleryAlbumCreate(BaseModel):
     description: str = ""
     cover_url: str = ""
     order: int = 0
+    visibility: str = "public"
 
 
 class GalleryPhoto(BaseModel):
@@ -270,7 +272,9 @@ class GalleryPhoto(BaseModel):
     url: str
     caption: str = ""
     order: int = 0
+    status: str = "pending"  # pending, approved, rejected
     uploaded_by: Optional[str] = None
+    uploaded_by_name: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 

@@ -25,6 +25,7 @@ import {
   Sun,
   Moon,
   FolderKanban,
+  Camera,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../contexts/ThemeContext';
@@ -53,6 +54,7 @@ const menuSections = [
     title: 'Comunidade',
     items: [
       { label: 'Mural', path: '/mural', icon: MessageSquare, roles: ['all'] },
+      { label: 'Galeria', path: '/galeria-admin', icon: Camera, roles: ['all'] },
       { label: 'Benefícios', path: '/beneficios', icon: Gift, roles: ['all'] },
     ],
   },

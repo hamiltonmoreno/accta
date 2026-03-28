@@ -30,6 +30,7 @@ import { DocumentosPage } from './pages/private/DocumentosPage';
 import { MuralPage } from './pages/private/MuralPage';
 import { BeneficiosPage } from './pages/private/BeneficiosPage';
 import { EventosPage } from './pages/private/EventosPage';
+import { GaleriaAdminPage } from './pages/private/GaleriaAdminPage';
 import { AdminUsuariosPage } from './pages/private/AdminUsuariosPage';
 import { PerfilPage } from './pages/private/PerfilPage';
 import { AdminLogsPage } from './pages/private/AdminLogsPage';
@@ -161,6 +162,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <PrivateLayout><EventosPage /></PrivateLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/galeria-admin"
+        element={
+          <ProtectedRoute>
+            <PrivateLayout><GaleriaAdminPage /></PrivateLayout>
           </ProtectedRoute>
         }
       />

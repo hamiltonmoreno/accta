@@ -178,21 +178,26 @@ export const eventsAPI = {
 
 // Gallery API
 export const galleryAPI = {
+  // Public (no auth)
+  getPublicAlbums: () => api.get('/gallery/public/albums'),
+  getPublicPhotos: (albumId) => api.get('/gallery/public/photos', { params: albumId ? { album_id: albumId } : {} }),
+  // Authenticated
   getAlbums: () => api.get('/gallery/albums'),
   getAlbum: (albumId) => api.get(`/gallery/albums/${albumId}`),
   createAlbum: (data) => api.post('/gallery/albums', data),
   updateAlbum: (albumId, data) => api.patch(`/gallery/albums/${albumId}`, data),
   deleteAlbum: (albumId) => api.delete(`/gallery/albums/${albumId}`),
-  getPhotos: (albumId) => api.get('/gallery/photos', { params: { album_id: albumId } }),
+  getPhotos: (albumId, status) => api.get('/gallery/photos', { params: { ...(albumId && { album_id: albumId }), ...(status && { status }) } }),
+  getPending: () => api.get('/gallery/photos/pending'),
   uploadPhoto: (albumId, file, caption) => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('album_id', albumId);
-    if (caption) formData.append('caption', caption);
     return api.post(`/gallery/photos/upload?album_id=${albumId}&caption=${encodeURIComponent(caption || '')}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+  approvePhoto: (photoId) => api.patch(`/gallery/photos/${photoId}/approve`),
+  rejectPhoto: (photoId) => api.patch(`/gallery/photos/${photoId}/reject`),
   deletePhoto: (photoId) => api.delete(`/gallery/photos/${photoId}`),
 };
 

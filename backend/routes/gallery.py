@@ -1,30 +1,72 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from datetime import datetime
 from typing import Optional
 from pathlib import Path
 from models import User, GalleryAlbum, GalleryAlbumCreate, GalleryPhoto
 from database import db, UPLOAD_DIR
 from auth import get_current_user
+from helpers import notify_admins, create_notification
 import uuid
 import shutil
 
 router = APIRouter(prefix="/gallery", tags=["gallery"])
 
+GALLERY_DIR = UPLOAD_DIR / "gallery"
+GALLERY_DIR.mkdir(exist_ok=True)
+
+
+# ===== PUBLIC ENDPOINTS (no auth) =====
+
+@router.get("/public/albums")
+async def get_public_albums():
+    albums = await db.gallery_albums.find(
+        {"visibility": "public"},
+        {"_id": 0}
+    ).sort("order", 1).to_list(50)
+
+    for a in albums:
+        approved_count = await db.gallery_photos.count_documents({
+            "album_id": a["id"], "status": "approved"
+        })
+        a["photo_count"] = approved_count
+    return [a for a in albums if a["photo_count"] > 0]
+
+
+@router.get("/public/photos")
+async def get_public_photos(album_id: Optional[str] = None):
+    query = {"status": "approved"}
+    if album_id:
+        album = await db.gallery_albums.find_one({"id": album_id, "visibility": "public"}, {"_id": 0})
+        if not album:
+            raise HTTPException(status_code=404, detail="Album nao encontrado")
+        query["album_id"] = album_id
+    else:
+        public_albums = await db.gallery_albums.find({"visibility": "public"}, {"_id": 0, "id": 1}).to_list(100)
+        public_ids = [a["id"] for a in public_albums]
+        query["album_id"] = {"$in": public_ids}
+
+    photos = await db.gallery_photos.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return photos
+
+
+# ===== AUTHENTICATED ENDPOINTS =====
 
 @router.get("/albums")
-async def get_gallery_albums():
+async def get_gallery_albums(current_user: User = Depends(get_current_user)):
     albums = await db.gallery_albums.find({}, {"_id": 0}).sort("order", 1).to_list(50)
     for a in albums:
-        if isinstance(a.get('created_at'), str):
-            a['created_at'] = datetime.fromisoformat(a['created_at'])
+        approved_count = await db.gallery_photos.count_documents({
+            "album_id": a["id"], "status": "approved"
+        })
+        a["photo_count"] = approved_count
     return albums
 
 
 @router.get("/albums/{album_id}")
-async def get_gallery_album(album_id: str):
+async def get_gallery_album(album_id: str, current_user: User = Depends(get_current_user)):
     album = await db.gallery_albums.find_one({"id": album_id}, {"_id": 0})
     if not album:
-        raise HTTPException(status_code=404, detail="Álbum não encontrado")
+        raise HTTPException(status_code=404, detail="Album nao encontrado")
     return album
 
 
@@ -46,27 +88,63 @@ async def update_gallery_album(album_id: str, album_data: GalleryAlbumCreate, cu
         raise HTTPException(status_code=403, detail="Apenas administradores")
     existing = await db.gallery_albums.find_one({"id": album_id}, {"_id": 0})
     if not existing:
-        raise HTTPException(status_code=404, detail="Álbum não encontrado")
+        raise HTTPException(status_code=404, detail="Album nao encontrado")
     update_data = {k: v for k, v in album_data.model_dump().items() if v is not None}
     await db.gallery_albums.update_one({"id": album_id}, {"$set": update_data})
-    return {"message": "Álbum atualizado"}
+    return {"message": "Album atualizado"}
 
 
 @router.delete("/albums/{album_id}")
 async def delete_gallery_album(album_id: str, current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Apenas administradores")
+
+    photos = await db.gallery_photos.find({"album_id": album_id}, {"_id": 0, "url": 1}).to_list(500)
+    for photo in photos:
+        if photo['url'].startswith("/uploads/"):
+            from database import ROOT_DIR
+            fp = ROOT_DIR / photo['url'].lstrip("/")
+            if fp.exists():
+                fp.unlink()
+
     await db.gallery_albums.delete_one({"id": album_id})
     await db.gallery_photos.delete_many({"album_id": album_id})
-    return {"message": "Álbum e fotos removidos"}
+    return {"message": "Album e fotos removidos"}
 
+
+# ===== PHOTOS =====
 
 @router.get("/photos")
-async def get_gallery_photos(album_id: Optional[str] = None):
+async def get_gallery_photos(
+    album_id: Optional[str] = None,
+    status: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_user)
+):
     query = {}
     if album_id:
         query["album_id"] = album_id
-    photos = await db.gallery_photos.find(query, {"_id": 0}).sort("order", 1).to_list(200)
+
+    is_admin = current_user.role == "admin"
+    if status and is_admin:
+        query["status"] = status
+    elif not is_admin:
+        query["status"] = "approved"
+
+    photos = await db.gallery_photos.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return photos
+
+
+@router.get("/photos/pending")
+async def get_pending_photos(current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Apenas administradores")
+    photos = await db.gallery_photos.find(
+        {"status": "pending"}, {"_id": 0}
+    ).sort("created_at", -1).to_list(200)
+
+    for p in photos:
+        album = await db.gallery_albums.find_one({"id": p.get("album_id")}, {"_id": 0, "title": 1})
+        p["album_title"] = album["title"] if album else "?"
     return photos
 
 
@@ -77,61 +155,121 @@ async def upload_gallery_photo(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Apenas administradores")
+    if current_user.status != "ativo" and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Apenas socios ativos podem submeter fotos")
 
     album = await db.gallery_albums.find_one({"id": album_id}, {"_id": 0})
     if not album:
-        raise HTTPException(status_code=404, detail="Álbum não encontrado")
+        raise HTTPException(status_code=404, detail="Album nao encontrado")
 
     ext = Path(file.filename).suffix.lower()
     if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
-        raise HTTPException(status_code=400, detail="Formato não suportado. Use JPG, PNG ou WEBP")
+        raise HTTPException(status_code=400, detail="Formato nao suportado. Use JPG, PNG ou WEBP")
 
-    gallery_dir = UPLOAD_DIR / "gallery"
-    gallery_dir.mkdir(exist_ok=True)
     unique_filename = f"{uuid.uuid4()}{ext}"
-    file_path = gallery_dir / unique_filename
+    file_path = GALLERY_DIR / unique_filename
 
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
     photo_url = f"/uploads/gallery/{unique_filename}"
-    count = await db.gallery_photos.count_documents({"album_id": album_id})
+    is_admin = current_user.role == "admin"
 
     photo = GalleryPhoto(
-        album_id=album_id, url=photo_url, caption=caption,
-        order=count, uploaded_by=current_user.id,
+        album_id=album_id,
+        url=photo_url,
+        caption=caption,
+        status="approved" if is_admin else "pending",
+        uploaded_by=current_user.id,
+        uploaded_by_name=current_user.name,
     )
     photo_dict = photo.model_dump()
     photo_dict['created_at'] = photo_dict['created_at'].isoformat()
     await db.gallery_photos.insert_one(photo_dict)
     photo_dict.pop('_id', None)
 
-    await db.gallery_albums.update_one(
-        {"id": album_id},
-        {"$inc": {"photo_count": 1}, "$set": {"cover_url": photo_url} if count == 0 else {}}
-    )
-    if count == 0:
-        await db.gallery_albums.update_one({"id": album_id}, {"$set": {"cover_url": photo_url}})
+    if is_admin:
+        count = await db.gallery_photos.count_documents({"album_id": album_id, "status": "approved"})
+        if count == 1:
+            await db.gallery_albums.update_one({"id": album_id}, {"$set": {"cover_url": photo_url}})
+    else:
+        await notify_admins(
+            "geral",
+            "Nova Foto para Aprovacao",
+            f"{current_user.name} submeteu uma foto no album '{album['title']}'.",
+            "/galeria-admin"
+        )
 
     return photo_dict
 
 
-@router.delete("/photos/{photo_id}")
-async def delete_gallery_photo(photo_id: str, current_user: User = Depends(get_current_user)):
+@router.patch("/photos/{photo_id}/approve")
+async def approve_photo(photo_id: str, current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Apenas administradores")
     photo = await db.gallery_photos.find_one({"id": photo_id}, {"_id": 0})
     if not photo:
-        raise HTTPException(status_code=404, detail="Foto não encontrada")
+        raise HTTPException(status_code=404, detail="Foto nao encontrada")
+
+    await db.gallery_photos.update_one({"id": photo_id}, {"$set": {"status": "approved"}})
+
+    album = await db.gallery_albums.find_one({"id": photo["album_id"]}, {"_id": 0})
+    approved_count = await db.gallery_photos.count_documents({"album_id": photo["album_id"], "status": "approved"})
+    if approved_count == 1 and album:
+        await db.gallery_albums.update_one({"id": photo["album_id"]}, {"$set": {"cover_url": photo["url"]}})
+
+    if photo.get("uploaded_by"):
+        await create_notification(
+            photo["uploaded_by"], "geral", "Foto Aprovada!",
+            f"A sua foto no album '{album['title'] if album else '?'}' foi aprovada e esta visivel na galeria.",
+            "/galeria"
+        )
+
+    return {"message": "Foto aprovada"}
+
+
+@router.patch("/photos/{photo_id}/reject")
+async def reject_photo(photo_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Apenas administradores")
+    photo = await db.gallery_photos.find_one({"id": photo_id}, {"_id": 0})
+    if not photo:
+        raise HTTPException(status_code=404, detail="Foto nao encontrada")
 
     if photo['url'].startswith("/uploads/"):
         from database import ROOT_DIR
-        file_path = ROOT_DIR / photo['url'].lstrip("/")
-        if file_path.exists():
-            file_path.unlink()
+        fp = ROOT_DIR / photo['url'].lstrip("/")
+        if fp.exists():
+            fp.unlink()
 
     await db.gallery_photos.delete_one({"id": photo_id})
-    await db.gallery_albums.update_one({"id": photo['album_id']}, {"$inc": {"photo_count": -1}})
+
+    if photo.get("uploaded_by"):
+        await create_notification(
+            photo["uploaded_by"], "geral", "Foto Rejeitada",
+            "A sua submissao de foto na galeria foi rejeitada pelo administrador.",
+            None
+        )
+
+    return {"message": "Foto rejeitada e removida"}
+
+
+@router.delete("/photos/{photo_id}")
+async def delete_gallery_photo(photo_id: str, current_user: User = Depends(get_current_user)):
+    photo = await db.gallery_photos.find_one({"id": photo_id}, {"_id": 0})
+    if not photo:
+        raise HTTPException(status_code=404, detail="Foto nao encontrada")
+
+    is_admin = current_user.role == "admin"
+    is_owner = photo.get("uploaded_by") == current_user.id
+    if not is_admin and not is_owner:
+        raise HTTPException(status_code=403, detail="Sem permissao")
+
+    if photo['url'].startswith("/uploads/"):
+        from database import ROOT_DIR
+        fp = ROOT_DIR / photo['url'].lstrip("/")
+        if fp.exists():
+            fp.unlink()
+
+    await db.gallery_photos.delete_one({"id": photo_id})
     return {"message": "Foto removida"}

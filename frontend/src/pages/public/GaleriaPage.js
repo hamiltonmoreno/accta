@@ -179,7 +179,7 @@ export const GaleriaPage = () => {
 
   const loadAlbums = useCallback(async () => {
     try {
-      const res = await galleryAPI.getAlbums();
+      const res = await galleryAPI.getPublicAlbums();
       setAlbums(res.data);
     } catch (err) {
       console.error('Erro ao carregar albuns:', err);
@@ -194,7 +194,7 @@ export const GaleriaPage = () => {
     setSelectedAlbum(album);
     setLoading(true);
     try {
-      const res = await galleryAPI.getPhotos(album.id);
+      const res = await galleryAPI.getPublicPhotos(album.id);
       setPhotos(res.data);
     } catch (err) {
       console.error('Erro ao carregar fotos:', err);
