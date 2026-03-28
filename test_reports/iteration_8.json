@@ -1,0 +1,73 @@
+{
+  "summary": "Password Recovery Feature COMPLETE. Fixed API URL bug in frontend (double /api prefix). All 9 backend tests passed. Full E2E flow tested: forgot password -> token generation -> reset password -> login with new password. Test user password restored to original.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "bugs_fixed": [
+    {
+      "file": "/app/frontend/src/pages/public/ForgotPasswordPage.js",
+      "issue": "API call used '/api/auth/forgot-password' but api.js already has '/api' as baseURL, causing double prefix '/api/api/auth/forgot-password' resulting in 404",
+      "fix": "Changed to '/auth/forgot-password'"
+    },
+    {
+      "file": "/app/frontend/src/pages/public/ResetPasswordPage.js",
+      "issue": "Same double /api prefix issue",
+      "fix": "Changed to '/auth/reset-password'"
+    }
+  ],
+  "passed_tests": [
+    "=== BACKEND TESTS (9/9 passed) ===",
+    "POST /api/auth/forgot-password (valid email) - returns demo_token - PASS",
+    "POST /api/auth/forgot-password (invalid email) - returns 404 - PASS",
+    "POST /api/auth/forgot-password (invalid email format) - returns 422 - PASS",
+    "POST /api/auth/reset-password (valid token) - succeeds - PASS",
+    "POST /api/auth/reset-password (used token) - returns 400 - PASS",
+    "POST /api/auth/reset-password (invalid token) - returns 400 - PASS",
+    "POST /api/auth/reset-password (short password <6 chars) - returns 400 - PASS",
+    "Full E2E: forgot -> reset -> login with new password - PASS",
+    "Restore original password (socio123) - PASS",
+    "=== FRONTEND TESTS (6/6 passed) ===",
+    "Login page has 'Esqueceu a senha?' link (data-testid: forgot-password-link) - PASS",
+    "Forgot Password page renders with email form - PASS",
+    "Submit email shows success view with demo token and 'Redefinir senha agora' button - PASS",
+    "Reset Password page renders with new password form - PASS",
+    "After successful reset, success message shown with 'Ir para o login' button - PASS",
+    "Full E2E: forgot password -> get token -> reset -> login with new password - PASS"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_password_recovery.py",
+    "/app/test_reports/pytest/pytest_password_recovery.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Password reset tokens stored in MongoDB 'password_resets' collection with 1-hour expiration - CORRECT",
+    "Tokens are single-use (marked as 'used' after consumption) - CORRECT",
+    "Password minimum length validation (6 chars) implemented in backend - CORRECT",
+    "Frontend properly displays demo token for testing (email sending is MOCKED) - CORRECT",
+    "All data-testid attributes present for testing - CORRECT"
+  ],
+  "updated_files": [
+    "/app/frontend/src/pages/public/ForgotPasswordPage.js",
+    "/app/frontend/src/pages/public/ResetPasswordPage.js",
+    "/app/backend/tests/test_password_recovery.py"
+  ],
+  "success_rate": {
+    "backend": "100% - 9/9 tests passed",
+    "frontend": "100% - 6/6 tests passed"
+  },
+  "test_credentials": {
+    "socio_user": "socio1@accta.cv / socio123 (restored after testing)",
+    "admin_user": "admin@accta.cv / admin123"
+  },
+  "seed_data_creation": "None - used existing seed data",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Password recovery feature fully tested and working. Bug fixed: frontend was using '/api/auth/forgot-password' but api.js already has '/api' as baseURL, causing 404. Fixed by removing the '/api' prefix from the API calls in ForgotPasswordPage.js and ResetPasswordPage.js. Test user password restored to 'socio123' after testing.",
+  "mocked_api_note": "Email sending is MOCKED - token is returned in API response instead of sent via email. This is by design for demo mode."
+}

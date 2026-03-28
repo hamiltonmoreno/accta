@@ -11,6 +11,8 @@ import { ProfissaoPage } from './pages/public/ProfissaoPage';
 import { NoticiasPage } from './pages/public/NoticiasPage';
 import { ValidadorPage } from './pages/public/ValidadorPage';
 import { LoginPage } from './pages/public/LoginPage';
+import { ForgotPasswordPage } from './pages/public/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/public/ResetPasswordPage';
 import { TransparenciaPage } from './pages/public/TransparenciaPage';
 import { BeneficiosPublicoPage } from './pages/public/BeneficiosPublicoPage';
 import { ContactosPage } from './pages/public/ContactosPage';
@@ -66,6 +68,8 @@ function AppRoutes() {
       <Route path="/galeria" element={<PublicLayout><GaleriaPage /></PublicLayout>} />
       <Route path="/validador" element={<PublicLayout><ValidadorPage /></PublicLayout>} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* Private Routes */}
       <Route

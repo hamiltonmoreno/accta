@@ -311,3 +311,14 @@ class NotificationCreate(BaseModel):
     title: str
     message: str
     link: Optional[str] = None
+
+
+# ===== PASSWORD RESET MODELS =====
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str

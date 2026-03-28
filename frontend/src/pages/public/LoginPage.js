@@ -60,7 +60,7 @@ export const LoginPage = () => {
               <span className="text-carmesim">Associado</span>
             </h2>
             <p className="text-white/60 text-lg max-w-sm leading-relaxed">
-              Aceda a sua carteira digital, votacoes, documentos e muito mais.
+              Aceda à sua carteira digital, votações, documentos e muito mais.
             </p>
           </div>
 
@@ -120,9 +120,18 @@ export const LoginPage = () => {
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-xs uppercase tracking-widest text-gray-400 mb-2 font-semibold">
-                  Senha
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label htmlFor="password" className="block text-xs uppercase tracking-widest text-gray-400 font-semibold">
+                    Senha
+                  </label>
+                  <Link
+                    to="/forgot-password"
+                    className="text-xs text-carmesim hover:text-carmesim-dark transition-colors font-medium"
+                    data-testid="forgot-password-link"
+                  >
+                    Esqueceu a senha?
+                  </Link>
+                </div>
                 <input
                   id="password"
                   name="password"
