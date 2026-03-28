@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from datetime import datetime, timezone
 from typing import List, Optional
 from models import (
@@ -9,6 +10,8 @@ from models import (
 from database import db
 from auth import get_current_user
 from helpers import create_audit_log
+from fpdf import FPDF
+import io
 
 router = APIRouter(prefix="/finances", tags=["finances"])
 
@@ -357,6 +360,265 @@ async def generate_monthly_quotas(
         "skipped": len(existing_user_ids),
         "total_value": created_count * quota_amount,
     }
+
+
+CATEGORY_LABELS = {
+    "quotas": "Quotas de Socios",
+    "patrocinios": "Patrocinios",
+    "doacoes": "Doacoes",
+    "eventos": "Eventos",
+    "outros_receita": "Outras Receitas",
+    "operacional": "Operacional",
+    "juridico": "Juridico",
+    "comunicacao": "Comunicacao",
+    "viagens": "Viagens",
+    "outros_despesa": "Outras Despesas",
+}
+
+MONTH_NAMES = [
+    "Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+]
+
+
+# ===== PDF EXPORT =====
+
+@router.get("/dre/pdf")
+async def export_dre_pdf(
+    year: int = Query(..., description="Ano do relatorio"),
+    current_user: User = Depends(get_current_user),
+):
+    require_finance_role(current_user)
+
+    start = f"{year}-01-01T00:00:00"
+    end = f"{year}-12-31T23:59:59"
+    transactions = await db.transactions.find(
+        {"date": {"$gte": start, "$lte": end}}, {"_id": 0}
+    ).to_list(None)
+
+    monthly = {}
+    for m in range(1, 13):
+        monthly[m] = {"receitas": 0, "despesas": 0}
+
+    receitas_cat = {}
+    despesas_cat = {}
+
+    for t in transactions:
+        date_str = t.get("date", "")
+        try:
+            m = int(date_str[5:7])
+        except (ValueError, IndexError):
+            continue
+        if t["type"] == "receita":
+            monthly[m]["receitas"] += t["amount"]
+            receitas_cat[t["category"]] = receitas_cat.get(t["category"], 0) + t["amount"]
+        else:
+            monthly[m]["despesas"] += t["amount"]
+            despesas_cat[t["category"]] = despesas_cat.get(t["category"], 0) + t["amount"]
+
+    total_receitas = sum(v["receitas"] for v in monthly.values())
+    total_despesas = sum(v["despesas"] for v in monthly.values())
+    resultado = total_receitas - total_despesas
+
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=20)
+    pdf.add_page()
+
+    # --- Header ---
+    pdf.set_fill_color(199, 32, 47)  # Carmesim
+    pdf.rect(0, 0, 210, 40, "F")
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Helvetica", "B", 20)
+    pdf.set_y(10)
+    pdf.cell(0, 10, "ACCTA - Cabo Verde", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 11)
+    pdf.cell(0, 8, f"Demonstracao do Resultado do Exercicio - {year}", align="C", new_x="LMARGIN", new_y="NEXT")
+
+    pdf.set_text_color(58, 58, 58)  # Grafite
+    pdf.set_y(48)
+    pdf.set_font("Helvetica", "", 8)
+    pdf.cell(0, 5, f"Gerado em {datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M')} UTC", align="R", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(4)
+
+    # --- Summary Box ---
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 8, "Resumo Anual", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(2)
+
+    box_w = 58
+    box_h = 22
+    x_start = pdf.get_x()
+    y_start = pdf.get_y()
+
+    # Receitas box
+    pdf.set_fill_color(240, 253, 244)
+    pdf.rect(x_start, y_start, box_w, box_h, "F")
+    pdf.set_xy(x_start + 3, y_start + 3)
+    pdf.set_font("Helvetica", "", 7)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(box_w - 6, 4, "TOTAL RECEITAS")
+    pdf.set_xy(x_start + 3, y_start + 10)
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.set_text_color(22, 163, 74)
+    pdf.cell(box_w - 6, 8, f"{total_receitas:,.0f} CVE".replace(",", "."))
+
+    # Despesas box
+    pdf.set_fill_color(254, 242, 242)
+    pdf.rect(x_start + box_w + 3, y_start, box_w, box_h, "F")
+    pdf.set_xy(x_start + box_w + 6, y_start + 3)
+    pdf.set_font("Helvetica", "", 7)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(box_w - 6, 4, "TOTAL DESPESAS")
+    pdf.set_xy(x_start + box_w + 6, y_start + 10)
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.set_text_color(220, 38, 38)
+    pdf.cell(box_w - 6, 8, f"{total_despesas:,.0f} CVE".replace(",", "."))
+
+    # Resultado box
+    is_positive = resultado >= 0
+    pdf.set_fill_color(243, 244, 246)
+    pdf.rect(x_start + 2 * (box_w + 3), y_start, box_w, box_h, "F")
+    pdf.set_xy(x_start + 2 * (box_w + 3) + 3, y_start + 3)
+    pdf.set_font("Helvetica", "", 7)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(box_w - 6, 4, "RESULTADO LIQUIDO")
+    pdf.set_xy(x_start + 2 * (box_w + 3) + 3, y_start + 10)
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.set_text_color(58, 58, 58) if is_positive else pdf.set_text_color(234, 88, 12)
+    pdf.cell(box_w - 6, 8, f"{resultado:,.0f} CVE".replace(",", "."))
+
+    pdf.set_y(y_start + box_h + 10)
+
+    # --- Monthly Table ---
+    pdf.set_text_color(58, 58, 58)
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 8, "Evolucao Mensal", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(2)
+
+    col_w = [45, 45, 45, 45]
+    # Table header
+    pdf.set_fill_color(199, 32, 47)
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Helvetica", "B", 9)
+    headers = ["Mes", "Receitas (CVE)", "Despesas (CVE)", "Saldo (CVE)"]
+    for i, h in enumerate(headers):
+        pdf.cell(col_w[i], 8, h, border=0, fill=True, align="C")
+    pdf.ln()
+
+    pdf.set_text_color(58, 58, 58)
+    pdf.set_font("Helvetica", "", 9)
+    for m in range(1, 13):
+        d = monthly[m]
+        saldo = d["receitas"] - d["despesas"]
+        bg = (m % 2 == 0)
+        if bg:
+            pdf.set_fill_color(249, 250, 251)
+        pdf.cell(col_w[0], 7, MONTH_NAMES[m - 1], border=0, fill=bg, align="C")
+        pdf.cell(col_w[1], 7, f"{d['receitas']:,.0f}".replace(",", "."), border=0, fill=bg, align="R")
+        pdf.cell(col_w[2], 7, f"{d['despesas']:,.0f}".replace(",", "."), border=0, fill=bg, align="R")
+
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.cell(col_w[3], 7, f"{saldo:,.0f}".replace(",", "."), border=0, fill=bg, align="R")
+        pdf.set_font("Helvetica", "", 9)
+        pdf.ln()
+
+    # Totals row
+    pdf.set_fill_color(58, 58, 58)
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.cell(col_w[0], 8, "TOTAL", border=0, fill=True, align="C")
+    pdf.cell(col_w[1], 8, f"{total_receitas:,.0f}".replace(",", "."), border=0, fill=True, align="R")
+    pdf.cell(col_w[2], 8, f"{total_despesas:,.0f}".replace(",", "."), border=0, fill=True, align="R")
+    pdf.cell(col_w[3], 8, f"{resultado:,.0f}".replace(",", "."), border=0, fill=True, align="R")
+    pdf.ln(12)
+
+    # --- Category Breakdown ---
+    pdf.set_text_color(58, 58, 58)
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 8, "Detalhamento por Categoria", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(2)
+
+    half_w = 88
+
+    # Income categories
+    cat_y = pdf.get_y()
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.set_text_color(22, 163, 74)
+    pdf.cell(half_w, 7, "(+) Receitas", new_x="LMARGIN", new_y="NEXT")
+
+    pdf.set_font("Helvetica", "", 9)
+    pdf.set_text_color(58, 58, 58)
+    if receitas_cat:
+        for cat, val in sorted(receitas_cat.items(), key=lambda x: -x[1]):
+            label = CATEGORY_LABELS.get(cat, cat)
+            pct = (val / total_receitas * 100) if total_receitas > 0 else 0
+            pdf.cell(half_w - 30, 6, f"    {label}", border=0)
+            pdf.cell(30, 6, f"{val:,.0f} ({pct:.0f}%)".replace(",", "."), border=0, align="R")
+            pdf.ln()
+    else:
+        pdf.cell(half_w, 6, "    Sem receitas registradas")
+        pdf.ln()
+
+    pdf.ln(3)
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.set_text_color(22, 163, 74)
+    pdf.cell(half_w, 6, f"    Total Receitas: {total_receitas:,.0f} CVE".replace(",", "."))
+    pdf.ln(8)
+
+    # Expense categories
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.set_text_color(220, 38, 38)
+    pdf.cell(half_w, 7, "(-) Despesas", new_x="LMARGIN", new_y="NEXT")
+
+    pdf.set_font("Helvetica", "", 9)
+    pdf.set_text_color(58, 58, 58)
+    if despesas_cat:
+        for cat, val in sorted(despesas_cat.items(), key=lambda x: -x[1]):
+            label = CATEGORY_LABELS.get(cat, cat)
+            pct = (val / total_despesas * 100) if total_despesas > 0 else 0
+            pdf.cell(half_w - 30, 6, f"    {label}", border=0)
+            pdf.cell(30, 6, f"{val:,.0f} ({pct:.0f}%)".replace(",", "."), border=0, align="R")
+            pdf.ln()
+    else:
+        pdf.cell(half_w, 6, "    Sem despesas registradas")
+        pdf.ln()
+
+    pdf.ln(3)
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.set_text_color(220, 38, 38)
+    pdf.cell(half_w, 6, f"    Total Despesas: {total_despesas:,.0f} CVE".replace(",", "."))
+    pdf.ln(10)
+
+    # Final result
+    pdf.set_draw_color(199, 32, 47)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(3)
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.set_text_color(58, 58, 58)
+    label = "RESULTADO LIQUIDO DO EXERCICIO"
+    pdf.cell(120, 10, label)
+    color = (22, 163, 74) if resultado >= 0 else (234, 88, 12)
+    pdf.set_text_color(*color)
+    pdf.cell(60, 10, f"{resultado:,.0f} CVE".replace(",", "."), align="R")
+    pdf.ln(14)
+
+    # Footer
+    pdf.set_font("Helvetica", "I", 7)
+    pdf.set_text_color(160, 160, 160)
+    pdf.cell(0, 5, "Associacao dos Controladores de Trafego Aereo de Cabo Verde (ACCTA)", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 5, "Documento gerado automaticamente pelo Portal ACCTA. Nao requer assinatura.", align="C")
+
+    # Output
+    buf = io.BytesIO()
+    pdf.output(buf)
+    buf.seek(0)
+
+    filename = f"DRE_ACCTA_{year}.pdf"
+    return StreamingResponse(
+        buf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 # ===== META ENDPOINTS =====

@@ -8,7 +8,7 @@ import { ptBR } from 'date-fns/locale';
 import {
   DollarSign, TrendingUp, TrendingDown, Plus, Pencil, Trash2,
   FileBarChart, Settings, ArrowUpCircle, ArrowDownCircle,
-  Calendar, RefreshCw, ChevronDown, X, Filter, Wallet,
+  Calendar, RefreshCw, ChevronDown, X, Filter, Wallet, Download,
 } from 'lucide-react';
 
 const CATEGORY_LABELS = {
@@ -416,6 +416,7 @@ const DRETab = () => {
   const [year, setYear] = useState(new Date().getFullYear());
   const [dre, setDRE] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   const loadDRE = useCallback(async () => {
     setLoading(true);
@@ -427,6 +428,26 @@ const DRETab = () => {
   }, [year]);
 
   useEffect(() => { loadDRE(); }, [loadDRE]);
+
+  const handleExportPDF = async () => {
+    setExporting(true);
+    try {
+      const res = await financesAPI.exportDREPdf(year);
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `DRE_ACCTA_${year}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('PDF exportado com sucesso');
+    } catch {
+      toast.error('Erro ao exportar PDF');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -445,7 +466,7 @@ const DRETab = () => {
 
   return (
     <div className="space-y-5">
-      {/* Year Selector */}
+      {/* Year Selector + Export */}
       <div className="flex items-center gap-3">
         <label className="text-sm font-semibold text-gray-500">Ano:</label>
         <select
@@ -458,6 +479,16 @@ const DRETab = () => {
             <option key={y} value={y}>{y}</option>
           ))}
         </select>
+
+        <button
+          onClick={handleExportPDF}
+          disabled={exporting || loading}
+          className="ml-auto btn-primary flex items-center gap-2 text-sm"
+          data-testid="export-dre-pdf-btn"
+        >
+          <Download className={`w-4 h-4 ${exporting ? 'animate-bounce' : ''}`} />
+          {exporting ? 'A exportar...' : 'Exportar PDF'}
+        </button>
       </div>
 
       {/* Totals */}

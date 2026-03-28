@@ -71,6 +71,7 @@ export const financesAPI = {
   deleteTransaction: (id) => api.delete(`/finances/transactions/${id}`),
   getSummary: (params) => api.get('/finances/summary', { params }),
   getDRE: (year) => api.get('/finances/dre', { params: { year } }),
+  exportDREPdf: (year) => api.get(`/finances/dre/pdf?year=${year}`, { responseType: 'blob' }),
   getSettings: () => api.get('/finances/settings'),
   updateSettings: (data) => api.patch('/finances/settings', data),
   generateQuotas: (month, year) => api.post(`/finances/generate-quotas?month=${month}&year=${year}`),

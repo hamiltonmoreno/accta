@@ -19,9 +19,10 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 - [x] Clube de Beneficios, Notificacoes In-App
 - [x] Recuperacao de Senha (modo demo)
 - [x] CRUD Perfil do Membro com Cargos e Privilegios
-- [x] **Sistema Financeiro Completo** (novo)
+- [x] **Sistema Financeiro Completo**
   - Fluxo de Caixa: CRUD completo de transacoes (receitas/despesas)
   - Relatorio DRE com grafico mensal e categorias
+  - **Export PDF do DRE** com layout profissional (header ACCTA, tabela mensal, categorias)
   - Configuracao de quota mensal (padrao 2.000 CVE)
   - Geracao em lote de quotas mensais para todos os socios ativos
   - Categorias: Quotas, Patrocinios, Doacoes, Eventos, Operacional, Juridico, Comunicacao, Viagens
