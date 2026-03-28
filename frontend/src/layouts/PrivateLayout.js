@@ -22,8 +22,11 @@ import {
   Unlock,
   Search,
   UserCircle,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from '../contexts/ThemeContext';
 
 /* ========== GROUPED MENU SECTIONS ========== */
 const menuSections = [
@@ -63,6 +66,7 @@ const menuSections = [
 
 export const PrivateLayout = ({ children }) => {
   const { user, logout, isAdmin, isFinanceiro, isModerador } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const pathname = location.pathname;
@@ -143,16 +147,17 @@ export const PrivateLayout = ({ children }) => {
   const SidebarInner = ({ isMobile = false }) => (
     <div className="flex flex-col h-full">
       {/* ---- Logo row ---- */}
-      <div className="flex items-center gap-2 px-3 py-4 border-b border-gray-100 min-h-[64px]">
+      <div className="flex items-center gap-2 px-3 py-4 min-h-[64px]" style={{ borderBottom: '1px solid var(--surface-border)' }}>
         <span className="flex items-center justify-center min-w-[48px]">
           <div className="w-9 h-9 bg-carmesim rounded-lg flex items-center justify-center">
             <span className="text-white font-extrabold text-sm tracking-tight">AC</span>
           </div>
         </span>
         <span
-          className={`font-bold text-grafite text-[15px] whitespace-nowrap transition-opacity duration-300 ${
+          className={`font-bold text-[15px] whitespace-nowrap transition-opacity duration-300 ${
             collapsed && !isMobile ? 'opacity-0 pointer-events-none w-0' : 'opacity-100'
           }`}
+          style={{ color: 'var(--text-primary)' }}
         >
           ACCTA
         </span>
@@ -188,9 +193,10 @@ export const PrivateLayout = ({ children }) => {
               {/* Section title */}
               <div className="flex items-center h-9 px-1 mb-0.5">
                 <span
-                  className={`text-[10px] uppercase tracking-[0.12em] font-semibold text-gray-400 whitespace-nowrap transition-opacity duration-300 ${
+                  className={`text-[10px] uppercase tracking-[0.12em] font-semibold whitespace-nowrap transition-opacity duration-300 ${
                     collapsed && !isMobile ? 'opacity-0 w-0' : 'opacity-100 ml-2'
                   }`}
+                  style={{ color: 'var(--text-muted)' }}
                 >
                   {section.title}
                 </span>
@@ -212,16 +218,18 @@ export const PrivateLayout = ({ children }) => {
                         className={`flex items-center rounded-lg transition-all duration-200 group relative ${
                           isActive
                             ? 'bg-carmesim text-white shadow-sm'
-                            : 'text-gray-600 hover:bg-carmesim hover:text-white'
+                            : 'hover:bg-carmesim hover:text-white'
                         }`}
+                        style={!isActive ? { color: 'var(--text-secondary)' } : undefined}
                         data-testid={`sidebar-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                         title={collapsed && !isMobile ? item.label : undefined}
                       >
                         <span className="flex items-center justify-center min-w-[48px] h-[44px]">
                           <Icon
                             className={`w-[20px] h-[20px] transition-colors ${
-                              isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'
+                              isActive ? 'text-white' : 'group-hover:text-white'
                             }`}
+                            style={!isActive ? { color: 'var(--text-muted)' } : undefined}
                           />
                         </span>
                         <span
@@ -242,7 +250,7 @@ export const PrivateLayout = ({ children }) => {
       </nav>
 
       {/* ---- Profile & Logout ---- */}
-      <div className="border-t border-gray-100 px-2 py-3">
+      <div className="px-2 py-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
         {/* User profile */}
         <div className="flex items-center gap-3 px-1 mb-2">
           <div className="w-9 h-9 bg-carmesim rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
@@ -253,8 +261,8 @@ export const PrivateLayout = ({ children }) => {
               collapsed && !isMobile ? 'opacity-0 pointer-events-none w-0' : 'opacity-100'
             }`}
           >
-            <div className="text-[13px] font-semibold text-grafite truncate">{user?.name}</div>
-            <div className="text-[11px] text-gray-400 truncate">{user?.email}</div>
+            <div className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{user?.name}</div>
+            <div className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>{user?.email}</div>
           </div>
         </div>
 
@@ -265,10 +273,31 @@ export const PrivateLayout = ({ children }) => {
           </div>
         )}
 
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          className="w-full flex items-center rounded-lg transition-colors"
+          style={{ color: 'var(--text-secondary)' }}
+          data-testid="theme-toggle-btn"
+          title={isDark ? 'Modo claro' : 'Modo escuro'}
+        >
+          <span className="flex items-center justify-center min-w-[48px] h-[40px]">
+            {isDark ? <Sun className="w-[18px] h-[18px] text-amber-400" /> : <Moon className="w-[18px] h-[18px]" />}
+          </span>
+          <span
+            className={`text-[13px] whitespace-nowrap transition-opacity duration-300 ${
+              collapsed && !isMobile ? 'opacity-0 pointer-events-none w-0' : 'opacity-100'
+            }`}
+          >
+            {isDark ? 'Modo Claro' : 'Modo Escuro'}
+          </span>
+        </button>
+
         {/* Logout button */}
         <button
           onClick={handleLogout}
-          className="w-full flex items-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-carmesim transition-colors"
+          className="w-full flex items-center rounded-lg transition-colors"
+          style={{ color: 'var(--text-secondary)' }}
           data-testid="logout-button"
         >
           <span className="flex items-center justify-center min-w-[48px] h-[40px]">
@@ -287,11 +316,11 @@ export const PrivateLayout = ({ children }) => {
   );
 
   return (
-    <div className="min-h-screen flex bg-[#f4f6fa]">
+    <div className="min-h-screen flex" style={{ backgroundColor: 'var(--surface-bg)' }}>
       {/* ======= Desktop Sidebar ======= */}
       <aside
-        className="hidden md:flex md:flex-col fixed h-screen z-30 bg-white shadow-[0_0_6px_rgba(0,0,0,0.06)] transition-all duration-300 ease-in-out"
-        style={{ width: sidebarWidth }}
+        className="hidden md:flex md:flex-col fixed h-screen z-30 transition-all duration-300 ease-in-out"
+        style={{ width: sidebarWidth, backgroundColor: 'var(--surface-sidebar)', boxShadow: '0 0 6px rgba(0,0,0,0.06)' }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         data-testid="desktop-sidebar"
@@ -315,8 +344,8 @@ export const PrivateLayout = ({ children }) => {
               animate={{ x: 0 }}
               exit={{ x: -SIDEBAR_W }}
               transition={{ type: 'tween', duration: 0.28 }}
-              className="fixed left-0 top-0 bottom-0 z-50 md:hidden flex flex-col bg-white shadow-xl"
-              style={{ width: SIDEBAR_W }}
+              className="fixed left-0 top-0 bottom-0 z-50 md:hidden flex flex-col shadow-xl"
+              style={{ width: SIDEBAR_W, backgroundColor: 'var(--surface-sidebar)' }}
             >
               <SidebarInner isMobile />
             </motion.aside>
@@ -327,17 +356,18 @@ export const PrivateLayout = ({ children }) => {
       {/* ======= Main Content ======= */}
       <div className="flex-1 min-w-0">
         {/* Mobile Header */}
-        <header className="md:hidden sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-200 px-4 py-3">
+        <header className="md:hidden sticky top-0 z-30 backdrop-blur-md px-4 py-3" style={{ backgroundColor: 'var(--surface-header)', borderBottom: '1px solid var(--surface-border)' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileOpen(true)}
-                className="p-2 -ml-2 rounded-lg hover:bg-gray-100 transition-colors touch-target"
+                className="p-2 -ml-2 rounded-lg transition-colors touch-target"
+                style={{ color: 'var(--text-primary)' }}
                 data-testid="mobile-sidebar-button"
               >
-                <Menu className="w-5 h-5 text-grafite" />
+                <Menu className="w-5 h-5" />
               </button>
-              <span className="font-bold text-sm text-grafite">{currentPageTitle}</span>
+              <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{currentPageTitle}</span>
             </div>
             <div className="flex items-center gap-2">
               <NotificationBell />
@@ -350,18 +380,18 @@ export const PrivateLayout = ({ children }) => {
 
         {/* Desktop Top Bar */}
         <header
-          className="hidden md:block sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-gray-100 py-3 transition-all duration-300"
-          style={{ paddingLeft: isDesktop ? `calc(${sidebarWidth}px + 1.5rem)` : undefined, paddingRight: '1.5rem' }}
+          className="hidden md:block sticky top-0 z-20 backdrop-blur-md py-3 transition-all duration-300"
+          style={{ paddingLeft: isDesktop ? `calc(${sidebarWidth}px + 1.5rem)` : undefined, paddingRight: '1.5rem', backgroundColor: 'var(--surface-header)', borderBottom: '1px solid var(--surface-border)' }}
         >
           <div className="flex items-center justify-between">
-            <h1 className="font-semibold text-grafite text-base">{currentPageTitle}</h1>
+            <h1 className="font-semibold text-base" style={{ color: 'var(--text-primary)' }}>{currentPageTitle}</h1>
             <div className="flex items-center gap-3">
               <NotificationBell />
-              <div className="flex items-center gap-2 pl-3 border-l border-gray-200">
+              <div className="flex items-center gap-2 pl-3" style={{ borderLeft: '1px solid var(--surface-border)' }}>
                 <div className="w-8 h-8 bg-carmesim rounded-full flex items-center justify-center text-white text-xs font-bold">
                   {user?.name?.charAt(0).toUpperCase()}
                 </div>
-                <span className="text-sm text-grafite font-medium hidden lg:block">{user?.name}</span>
+                <span className="text-sm font-medium hidden lg:block" style={{ color: 'var(--text-primary)' }}>{user?.name}</span>
               </div>
             </div>
           </div>

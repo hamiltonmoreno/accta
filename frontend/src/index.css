@@ -39,6 +39,53 @@ html, body {
         /* ACCTA Brand Colors */
         --accta-grafite: #3A3A3A;
         --accta-carmesim: #C7202F;
+
+        /* Surface tokens */
+        --surface-bg: #f4f6fa;
+        --surface-card: #ffffff;
+        --surface-card-hover: #f9fafb;
+        --surface-sidebar: #ffffff;
+        --surface-header: rgba(255,255,255,0.8);
+        --surface-border: rgba(229,231,235,0.8);
+        --surface-border-light: #f3f4f6;
+        --text-primary: #3A3A3A;
+        --text-secondary: #6b7280;
+        --text-muted: #9ca3af;
+        --text-inverted: #ffffff;
+    }
+
+    .dark {
+        --background: 222 47% 7%;
+        --foreground: 210 40% 98%;
+        --card: 223 39% 10%;
+        --card-foreground: 210 40% 98%;
+        --popover: 223 39% 10%;
+        --popover-foreground: 210 40% 98%;
+        --primary: 210 40% 98%;
+        --primary-foreground: 222 47% 11%;
+        --secondary: 217 33% 17%;
+        --secondary-foreground: 210 40% 98%;
+        --muted: 217 33% 17%;
+        --muted-foreground: 215 20% 65%;
+        --accent: 355 73% 46%;
+        --accent-foreground: 0 0% 100%;
+        --destructive: 0 63% 55%;
+        --destructive-foreground: 210 40% 98%;
+        --border: 217 33% 22%;
+        --input: 217 33% 22%;
+        --ring: 355 73% 50%;
+
+        --surface-bg: #0f1729;
+        --surface-card: #1a2332;
+        --surface-card-hover: #1f2b3d;
+        --surface-sidebar: #111827;
+        --surface-header: rgba(17,24,39,0.85);
+        --surface-border: rgba(55,65,81,0.6);
+        --surface-border-light: rgba(55,65,81,0.3);
+        --text-primary: #f1f5f9;
+        --text-secondary: #94a3b8;
+        --text-muted: #64748b;
+        --text-inverted: #0f172a;
     }
 }
 
@@ -47,7 +94,9 @@ html, body {
         @apply border-border;
     }
     body {
-        @apply bg-gray-50 text-foreground antialiased;
+        @apply antialiased;
+        background-color: var(--surface-bg);
+        color: var(--text-primary);
         font-family: 'Open Sans', sans-serif;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
@@ -64,14 +113,17 @@ html, body {
     *:focus-visible {
         @apply outline-none ring-2 ring-carmesim/50 ring-offset-2;
     }
+    .dark *:focus-visible {
+        ring-offset-color: var(--surface-bg);
+    }
 
-    /* Better scrollbar */
+    /* Scrollbar */
     ::-webkit-scrollbar {
         width: 6px;
         height: 6px;
     }
     ::-webkit-scrollbar-track {
-        @apply bg-transparent;
+        background: transparent;
     }
     ::-webkit-scrollbar-thumb {
         @apply bg-gray-300 rounded-full;
@@ -79,31 +131,56 @@ html, body {
     ::-webkit-scrollbar-thumb:hover {
         @apply bg-gray-400;
     }
+    .dark ::-webkit-scrollbar-thumb {
+        background-color: #374151;
+    }
+    .dark ::-webkit-scrollbar-thumb:hover {
+        background-color: #4b5563;
+    }
 }
 
 @layer utilities {
+    /* ===== DARK-AWARE UTILITY CLASSES ===== */
     .glass-effect {
-        @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-sm;
+        background-color: var(--surface-card);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--surface-border);
+        @apply shadow-sm;
     }
     .card-technical {
-        @apply bg-white border border-gray-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)] rounded-xl;
+        background-color: var(--surface-card);
+        border: 1px solid var(--surface-border);
+        @apply shadow-[0_1px_3px_rgba(0,0,0,0.04)] rounded-xl;
+    }
+    .dark .card-technical {
+        @apply shadow-[0_1px_3px_rgba(0,0,0,0.2)];
     }
     .card-hover {
-        @apply hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:border-gray-300/80 transition-all duration-200;
+        @apply hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-200;
+    }
+    .dark .card-hover {
+        @apply hover:shadow-[0_8px_24px_rgba(0,0,0,0.3)];
     }
     .card-elevated {
-        @apply bg-white border border-gray-100 shadow-[0_4px_12px_rgba(0,0,0,0.05)] rounded-xl;
+        background-color: var(--surface-card);
+        border: 1px solid var(--surface-border-light);
+        @apply shadow-[0_4px_12px_rgba(0,0,0,0.05)] rounded-xl;
+    }
+    .dark .card-elevated {
+        @apply shadow-[0_4px_12px_rgba(0,0,0,0.25)];
     }
 
     /* Page title styles */
     .page-title {
-        @apply font-sans font-bold text-2xl sm:text-3xl lg:text-4xl text-grafite;
+        @apply font-sans font-bold text-2xl sm:text-3xl lg:text-4xl;
+        color: var(--text-primary);
     }
     .page-subtitle {
-        @apply text-sm sm:text-base text-gray-500 mt-1;
+        @apply text-sm sm:text-base mt-1;
+        color: var(--text-secondary);
     }
 
-    /* Better button base */
+    /* Buttons */
     .btn-primary {
         @apply bg-carmesim text-white hover:bg-carmesim-dark h-10 sm:h-11 px-5 sm:px-6 rounded-lg uppercase tracking-wider font-bold text-xs sm:text-sm transition-colors;
     }
@@ -111,7 +188,23 @@ html, body {
         @apply bg-grafite text-white hover:bg-grafite-dark h-10 sm:h-11 px-5 sm:px-6 rounded-lg uppercase tracking-wider font-bold text-xs sm:text-sm transition-colors;
     }
     .btn-outline {
-        @apply border border-gray-200 text-grafite hover:bg-gray-50 h-10 sm:h-11 px-5 sm:px-6 rounded-lg text-xs sm:text-sm font-semibold transition-colors;
+        @apply h-10 sm:h-11 px-5 sm:px-6 rounded-lg text-xs sm:text-sm font-semibold transition-colors;
+        border: 1px solid var(--surface-border);
+        color: var(--text-primary);
+    }
+    .btn-outline:hover {
+        background-color: var(--surface-card-hover);
+    }
+
+    /* Dark-aware text helpers */
+    .text-grafite-auto {
+        color: var(--text-primary);
+    }
+    .text-secondary-auto {
+        color: var(--text-secondary);
+    }
+    .text-muted-auto {
+        color: var(--text-muted);
     }
 
     /* Responsive text truncation */
@@ -155,4 +248,157 @@ html, body {
 .sidebar-scroll {
     -ms-overflow-style: none;
     scrollbar-width: none;
+}
+
+/* ===== DARK-AWARE FORM INPUTS ===== */
+.dark input,
+.dark select,
+.dark textarea {
+    background-color: var(--surface-card);
+    border-color: rgba(55,65,81,0.6);
+    color: var(--text-primary);
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+    color: var(--text-muted);
+}
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+    border-color: #C7202F;
+}
+
+/* ===== GLOBAL DARK OVERRIDES ===== */
+.dark .bg-white {
+    background-color: var(--surface-card) !important;
+}
+.dark .bg-gray-50 {
+    background-color: color-mix(in srgb, var(--surface-card), white 3%) !important;
+}
+.dark .bg-gray-50\/80 {
+    background-color: rgba(31,43,61,0.8) !important;
+}
+.dark .bg-gray-100 {
+    background-color: rgba(55,65,81,0.3) !important;
+}
+.dark .hover\:bg-gray-50:hover {
+    background-color: var(--surface-card-hover) !important;
+}
+.dark .hover\:bg-gray-100:hover {
+    background-color: rgba(55,65,81,0.3) !important;
+}
+.dark .bg-\[\#f4f6fa\] {
+    background-color: var(--surface-bg) !important;
+}
+
+/* Dark borders */
+.dark .border-gray-200\/80,
+.dark .border-gray-200,
+.dark .border-gray-100 {
+    border-color: var(--surface-border) !important;
+}
+.dark .border-gray-50 {
+    border-color: var(--surface-border-light) !important;
+}
+.dark .divide-gray-50 > :not([hidden]) ~ :not([hidden]) {
+    border-color: var(--surface-border-light) !important;
+}
+.dark .border-b {
+    border-color: var(--surface-border);
+}
+.dark .border-t {
+    border-color: var(--surface-border);
+}
+
+/* Dark text */
+.dark .text-grafite {
+    color: var(--text-primary) !important;
+}
+.dark .text-gray-600,
+.dark .text-gray-500 {
+    color: var(--text-secondary) !important;
+}
+.dark .text-gray-400 {
+    color: var(--text-muted) !important;
+}
+.dark .text-gray-300 {
+    color: rgba(100,116,139,0.6) !important;
+}
+
+/* Dark hover text */
+.dark .hover\:text-grafite:hover {
+    color: var(--text-primary) !important;
+}
+
+/* Dark shadows */
+.dark .shadow-sm {
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3) !important;
+}
+.dark .shadow-lg {
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4) !important;
+}
+.dark .shadow-xl {
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5) !important;
+}
+.dark .shadow-2xl {
+    box-shadow: 0 25px 50px rgba(0,0,0,0.5) !important;
+}
+
+/* Dark mode table/grid specifics */
+.dark th {
+    color: var(--text-muted) !important;
+}
+.dark tr:hover {
+    background-color: var(--surface-card-hover) !important;
+}
+
+/* Dark bg-white/95 and bg-white/80 */
+.dark .bg-white\/95,
+.dark .bg-white\/80 {
+    background-color: var(--surface-header) !important;
+}
+
+/* Dark modals */
+.dark .bg-black\/40 {
+    background-color: rgba(0,0,0,0.6) !important;
+}
+
+/* Dark carmesim soft backgrounds */
+.dark .bg-carmesim\/5 {
+    background-color: rgba(199,32,47,0.1) !important;
+}
+.dark .bg-carmesim\/10 {
+    background-color: rgba(199,32,47,0.15) !important;
+}
+
+/* Dark soft color backgrounds */
+.dark .bg-green-50 {
+    background-color: rgba(16,185,129,0.1) !important;
+}
+.dark .bg-red-50 {
+    background-color: rgba(220,38,38,0.1) !important;
+}
+.dark .bg-blue-50 {
+    background-color: rgba(59,130,246,0.1) !important;
+}
+.dark .bg-orange-50 {
+    background-color: rgba(245,158,11,0.1) !important;
+}
+.dark .bg-purple-50 {
+    background-color: rgba(139,92,246,0.1) !important;
+}
+.dark .bg-green-100 {
+    background-color: rgba(16,185,129,0.15) !important;
+}
+.dark .bg-blue-100 {
+    background-color: rgba(59,130,246,0.15) !important;
+}
+
+/* Dark Recharts overrides */
+.dark .recharts-cartesian-grid-horizontal line,
+.dark .recharts-cartesian-grid-vertical line {
+    stroke: rgba(55,65,81,0.3) !important;
+}
+.dark .recharts-text {
+    fill: var(--text-muted) !important;
 }
