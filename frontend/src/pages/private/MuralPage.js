@@ -310,7 +310,7 @@ export const MuralPage = () => {
     try {
       await wallAPI.create({ content: newPost, category });
       const isAutoApproved = canModerate;
-      toast.success(isAutoApproved ? 'Post publicado!' : 'Post enviado para aprovacao!');
+      toast.success(isAutoApproved ? 'Post publicado!' : 'Post enviado para aprovação!');
       setNewPost('');
       setCategory('geral');
       loadPosts();
@@ -401,7 +401,7 @@ export const MuralPage = () => {
               <textarea
                 value={newPost}
                 onChange={(e) => setNewPost(e.target.value)}
-                placeholder="Compartilhe suas ideias, sugestoes ou mensagens com a comunidade..."
+                placeholder="Compartilhe as suas ideias, sugestões ou mensagens com a comunidade..."
                 rows={4}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-carmesim/50 focus:border-carmesim/50 transition-all resize-none"
                 data-testid="post-textarea"
@@ -425,7 +425,7 @@ export const MuralPage = () => {
 
               <div className="flex items-center gap-3">
                 {!canModerate && (
-                  <p className="text-xs text-gray-400">Aguarda aprovacao</p>
+                  <p className="text-xs text-gray-400">Aguarda aprovação</p>
                 )}
                 <button
                   type="submit"

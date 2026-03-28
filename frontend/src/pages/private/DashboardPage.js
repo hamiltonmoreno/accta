@@ -13,15 +13,15 @@ const StatCard = ({ icon: Icon, value, label, color, delay = 0 }) => (
     initial={{ opacity: 0, y: 16 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay }}
-    className="card-technical card-hover p-4 sm:p-5"
+    className="card-technical card-hover p-3 sm:p-5"
   >
-    <div className="flex items-center gap-3 sm:gap-4">
-      <div className={`w-10 h-10 sm:w-11 sm:h-11 ${color} rounded-lg flex items-center justify-center flex-shrink-0`}>
-        <Icon className="w-5 h-5 text-white" />
+    <div className="flex items-center gap-2.5 sm:gap-4">
+      <div className={`w-9 h-9 sm:w-11 sm:h-11 ${color} rounded-lg flex items-center justify-center flex-shrink-0`}>
+        <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
       </div>
-      <div className="min-w-0">
-        <div className="font-mono text-xl sm:text-2xl font-bold text-grafite truncate">{value}</div>
-        <div className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wider">{label}</div>
+      <div className="min-w-0 flex-1">
+        <div className="font-bold text-lg sm:text-2xl text-grafite leading-tight break-words">{value}</div>
+        <div className="text-[9px] sm:text-xs text-gray-500 uppercase tracking-wider leading-tight mt-0.5">{label}</div>
       </div>
     </div>
   </motion.div>
@@ -219,7 +219,7 @@ export const DashboardPage = () => {
           className="card-technical card-hover p-4 sm:p-5"
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg sm:text-xl text-grafite">Proximos Eventos</h2>
+            <h2 className="font-semibold text-lg sm:text-xl text-grafite">Próximos Eventos</h2>
             <button
               onClick={() => navigate('/eventos')}
               className="text-xs text-carmesim hover:text-carmesim-dark uppercase tracking-wider font-semibold"
@@ -270,7 +270,7 @@ export const DashboardPage = () => {
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4 text-carmesim" />
               <h3 className="font-semibold text-sm text-grafite">
-                {unreadCount} notificação{unreadCount !== 1 ? 'ões' : ''} nova{unreadCount !== 1 ? 's' : ''}
+                {unreadCount} {unreadCount === 1 ? 'notificação nova' : 'notificações novas'}
               </h3>
             </div>
             <button

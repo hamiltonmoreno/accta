@@ -70,9 +70,9 @@ export const FinanceiroPage = () => {
         <div className="flex items-start gap-3">
           <CheckCircle className="w-5 h-5 text-carmesim flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="font-semibold text-sm text-grafite mb-1">Pagamento Automatico</h3>
+            <h3 className="font-semibold text-sm text-grafite mb-1">Pagamento Automático</h3>
             <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-              As quotas mensais sao descontadas automaticamente em folha de pagamento.
+              As quotas mensais são descontadas automaticamente em folha de pagamento.
             </p>
           </div>
         </div>

@@ -132,7 +132,7 @@ export const EventosPage = () => {
               filter === f ? 'bg-grafite text-white' : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-100'
             }`}
           >
-            {f === 'upcoming' ? 'Proximos' : f === 'past' ? 'Realizados' : 'Todos'}
+            {f === 'upcoming' ? 'Próximos' : f === 'past' ? 'Realizados' : 'Todos'}
           </button>
         ))}
       </div>

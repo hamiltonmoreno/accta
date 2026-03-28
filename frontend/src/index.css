@@ -4,6 +4,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== RESPONSIVE: Min-width & overflow prevention ===== */
+html {
+    min-width: 320px;
+}
+
+html, body {
+    overflow-x: hidden;
+}
+
 @layer base {
     :root {
         --background: 0 0% 100%;
