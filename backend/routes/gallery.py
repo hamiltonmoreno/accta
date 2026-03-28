@@ -99,11 +99,10 @@ async def delete_gallery_album(album_id: str, current_user: User = Depends(get_c
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Apenas administradores")
 
-    photos = await db.gallery_photos.find({"album_id": album_id}, {"_id": 0, "url": 1}).to_list(500)
+    photos = await db.gallery_photos.find({"album_id": album_id}, {"_id": 0, "url": 1}).to_list(None)
     for photo in photos:
         if photo['url'].startswith("/uploads/"):
-            from database import ROOT_DIR
-            fp = ROOT_DIR / photo['url'].lstrip("/")
+            fp = GALLERY_DIR.parent.parent / photo['url'].lstrip("/")
             if fp.exists():
                 fp.unlink()
 
@@ -142,9 +141,13 @@ async def get_pending_photos(current_user: User = Depends(get_current_user)):
         {"status": "pending"}, {"_id": 0}
     ).sort("created_at", -1).to_list(200)
 
+    # Batch fetch album titles to avoid N+1
+    album_ids = list(set(p.get("album_id") for p in photos if p.get("album_id")))
+    albums = await db.gallery_albums.find({"id": {"$in": album_ids}}, {"_id": 0, "id": 1, "title": 1}).to_list(None)
+    album_map = {a["id"]: a.get("title", "?") for a in albums}
+
     for p in photos:
-        album = await db.gallery_albums.find_one({"id": p.get("album_id")}, {"_id": 0, "title": 1})
-        p["album_title"] = album["title"] if album else "?"
+        p["album_title"] = album_map.get(p.get("album_id"), "?")
     return photos
 
 

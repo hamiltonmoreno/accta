@@ -189,7 +189,7 @@ async def get_financial_summary(
                 end = f"{year}-{month + 1:02d}-01T00:00:00"
         query["date"] = {"$gte": start, "$lt": end} if month else {"$gte": start, "$lte": end}
 
-    transactions = await db.transactions.find(query, {"_id": 0}).to_list(None)
+    transactions = await db.transactions.find(query, {"_id": 0}).limit(10000).to_list(None)
 
     total_receitas = sum(t["amount"] for t in transactions if t["type"] == "receita")
     total_despesas = sum(t["amount"] for t in transactions if t["type"] == "despesa")
@@ -223,7 +223,7 @@ async def get_dre_report(
     end = f"{year}-12-31T23:59:59"
     transactions = await db.transactions.find(
         {"date": {"$gte": start, "$lte": end}}, {"_id": 0}
-    ).to_list(None)
+    ).limit(10000).to_list(None)
 
     # Monthly breakdown
     monthly = {}
@@ -432,7 +432,7 @@ async def export_transactions_csv(
     if search:
         query["description"] = {"$regex": search, "$options": "i"}
 
-    transactions = await db.transactions.find(query, {"_id": 0}).sort("date", -1).to_list(None)
+    transactions = await db.transactions.find(query, {"_id": 0}).sort("date", -1).limit(5000).to_list(None)
 
     import csv
     buf = io.StringIO()
@@ -470,7 +470,7 @@ async def export_dre_pdf(
     end = f"{year}-12-31T23:59:59"
     transactions = await db.transactions.find(
         {"date": {"$gte": start, "$lte": end}}, {"_id": 0}
-    ).to_list(None)
+    ).limit(10000).to_list(None)
 
     monthly = {}
     for m in range(1, 13):
