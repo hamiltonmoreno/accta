@@ -146,7 +146,10 @@ export const statsAPI = {
   get: () => api.get('/stats'),
 };
 
-// Notifications API
+// Activity Feed API
+export const activityAPI = {
+  getRecent: (limit = 15) => api.get('/activity/recent', { params: { limit } }),
+};
 export const notificationsAPI = {
   getAll: (params) => api.get('/notifications', { params }),
   getUnreadCount: () => api.get('/notifications/unread/count'),

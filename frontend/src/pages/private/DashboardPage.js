@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
-import { statsAPI, invoicesAPI, pollsAPI, eventsAPI, financesAPI } from '../../utils/api';
+import { statsAPI, invoicesAPI, pollsAPI, eventsAPI, financesAPI, activityAPI } from '../../utils/api';
 import {
   Users, DollarSign, AlertCircle, Vote, CheckCircle, Bell,
   Calendar, MapPin, Clock, ArrowRight, TrendingUp, TrendingDown,
-  Wallet, ArrowUpRight, ArrowDownRight, BarChart3,
+  Wallet, ArrowUpRight, ArrowDownRight, BarChart3, MessageSquare,
+  FolderKanban, Trophy, Activity,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -112,6 +113,50 @@ const renderPieLabel = ({ name, percent }) => {
   return `${(percent * 100).toFixed(0)}%`;
 };
 
+// ===== ACTIVITY ICON =====
+const ACTIVITY_ICONS = {
+  mural: MessageSquare,
+  projeto: FolderKanban,
+  evento: Calendar,
+  financeiro: DollarSign,
+  votacao: Vote,
+  trophy: Trophy,
+};
+
+const ACTIVITY_COLORS = {
+  mural: { bg: 'bg-indigo-100', text: 'text-indigo-600' },
+  projeto: { bg: 'bg-amber-100', text: 'text-amber-600' },
+  evento: { bg: 'bg-purple-100', text: 'text-purple-600' },
+  financeiro: { bg: 'bg-green-100', text: 'text-green-600' },
+  votacao: { bg: 'bg-teal-100', text: 'text-teal-600' },
+};
+
+const ActivityIcon = ({ type }) => {
+  const Icon = ACTIVITY_ICONS[type] || Activity;
+  const colors = ACTIVITY_COLORS[type] || { bg: 'bg-gray-100', text: 'text-gray-500' };
+  return (
+    <div className={`w-9 h-9 ${colors.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+      <Icon className={`w-4 h-4 ${colors.text}`} />
+    </div>
+  );
+};
+
+const timeAgo = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diff = Math.floor((now - date) / 1000);
+    if (diff < 60) return 'agora mesmo';
+    if (diff < 3600) return `ha ${Math.floor(diff / 60)} min`;
+    if (diff < 86400) return `ha ${Math.floor(diff / 3600)}h`;
+    if (diff < 604800) return `ha ${Math.floor(diff / 86400)}d`;
+    return format(date, 'dd MMM', { locale: ptBR });
+  } catch {
+    return '';
+  }
+};
+
 // ===== MAIN DASHBOARD =====
 export const DashboardPage = () => {
   const { user, isAdmin, isFinanceiro } = useAuth();
@@ -124,6 +169,7 @@ export const DashboardPage = () => {
   const [myInvoices, setMyInvoices] = useState([]);
   const [activePolls, setActivePolls] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const currentYear = new Date().getFullYear();
@@ -140,6 +186,7 @@ export const DashboardPage = () => {
         invoicesAPI.getAll(),
         pollsAPI.getAll(),
         eventsAPI.getUpcoming().catch(() => ({ data: [] })),
+        activityAPI.getRecent(15).catch(() => ({ data: [] })),
       ];
 
       if (hasFinance) {
@@ -155,11 +202,12 @@ export const DashboardPage = () => {
       setMyInvoices(results[0].data.slice(0, 5));
       setActivePolls(results[1].data.filter((p) => p.status === 'aberta'));
       setUpcomingEvents(results[2].data.slice(0, 3));
+      setRecentActivity(results[3].data || []);
 
       if (hasFinance) {
-        setStats(results[3].data);
-        setFinanceSummary(results[4].data);
-        setDreData(results[5].data);
+        setStats(results[4].data);
+        setFinanceSummary(results[5].data);
+        setDreData(results[6].data);
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -563,6 +611,46 @@ export const DashboardPage = () => {
                     <span className="truncate">{event.location}</span>
                   </div>
                 </div>
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* ===== ACTIVITY FEED ===== */}
+      {recentActivity.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden"
+          data-testid="activity-feed"
+        >
+          <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-carmesim" />
+              <h2 className="text-lg font-semibold text-grafite">Atividade Recente</h2>
+            </div>
+            <span className="text-[10px] text-gray-400 uppercase tracking-wider hidden sm:block">Ultimas atualizacoes</span>
+          </div>
+
+          <div className="divide-y divide-gray-50 max-h-[420px] overflow-y-auto">
+            {recentActivity.map((item, i) => (
+              <button
+                key={`${item.type}-${i}`}
+                onClick={() => item.link && navigate(item.link)}
+                className="w-full flex items-start gap-3 px-5 sm:px-6 py-3.5 hover:bg-gray-50/80 transition-colors text-left"
+                data-testid={`activity-item-${i}`}
+              >
+                <ActivityIcon type={item.type} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-sm text-grafite truncate">{item.title}</span>
+                    <span className="text-[10px] text-gray-400 font-mono whitespace-nowrap">{timeAgo(item.created_at)}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 truncate mt-0.5">{item.description}</p>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-gray-300 flex-shrink-0 mt-1" />
               </button>
             ))}
           </div>
