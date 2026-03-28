@@ -24,11 +24,17 @@ async def get_public_albums():
         {"_id": 0}
     ).sort("order", 1).to_list(50)
 
+    # Batch count approved photos per album
+    album_ids = [a["id"] for a in albums]
+    pipeline = [
+        {"$match": {"album_id": {"$in": album_ids}, "status": "approved"}},
+        {"$group": {"_id": "$album_id", "count": {"$sum": 1}}}
+    ]
+    counts = await db.gallery_photos.aggregate(pipeline).to_list(None)
+    count_map = {c["_id"]: c["count"] for c in counts}
+
     for a in albums:
-        approved_count = await db.gallery_photos.count_documents({
-            "album_id": a["id"], "status": "approved"
-        })
-        a["photo_count"] = approved_count
+        a["photo_count"] = count_map.get(a["id"], 0)
     return [a for a in albums if a["photo_count"] > 0]
 
 
@@ -54,11 +60,18 @@ async def get_public_photos(album_id: Optional[str] = None):
 @router.get("/albums")
 async def get_gallery_albums(current_user: User = Depends(get_current_user)):
     albums = await db.gallery_albums.find({}, {"_id": 0}).sort("order", 1).to_list(50)
+
+    # Batch count approved photos per album
+    album_ids = [a["id"] for a in albums]
+    pipeline = [
+        {"$match": {"album_id": {"$in": album_ids}, "status": "approved"}},
+        {"$group": {"_id": "$album_id", "count": {"$sum": 1}}}
+    ]
+    counts = await db.gallery_photos.aggregate(pipeline).to_list(None)
+    count_map = {c["_id"]: c["count"] for c in counts}
+
     for a in albums:
-        approved_count = await db.gallery_photos.count_documents({
-            "album_id": a["id"], "status": "approved"
-        })
-        a["photo_count"] = approved_count
+        a["photo_count"] = count_map.get(a["id"], 0)
     return albums
 
 
