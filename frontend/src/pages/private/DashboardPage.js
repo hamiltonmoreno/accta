@@ -3,55 +3,131 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { statsAPI, invoicesAPI, pollsAPI, eventsAPI, financesAPI } from '../../utils/api';
-import { Users, DollarSign, AlertCircle, Vote, CheckCircle, Bell, Calendar, MapPin, Clock, ArrowRight, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import {
+  Users, DollarSign, AlertCircle, Vote, CheckCircle, Bell,
+  Calendar, MapPin, Clock, ArrowRight, TrendingUp, TrendingDown,
+  Wallet, ArrowUpRight, ArrowDownRight, BarChart3,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
+} from 'recharts';
 
-const StatCard = ({ icon: Icon, value, label, color, delay = 0 }) => (
+// ===== STAT CARD (Reference style: title top, big value, change indicator) =====
+const StatCard = ({ title, value, icon: Icon, iconBg, change, changeLabel, delay = 0 }) => (
   <motion.div
     initial={{ opacity: 0, y: 16 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay }}
-    className="card-technical card-hover p-3 sm:p-5"
+    className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-200"
   >
-    <div className="flex items-center gap-2.5 sm:gap-4">
-      <div className={`w-9 h-9 sm:w-11 sm:h-11 ${color} rounded-lg flex items-center justify-center flex-shrink-0`}>
-        <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="font-bold text-lg sm:text-2xl text-grafite leading-tight break-words">{value}</div>
-        <div className="text-[9px] sm:text-xs text-gray-500 uppercase tracking-wider leading-tight mt-0.5">{label}</div>
+    <div className="flex items-center justify-between mb-3">
+      <span className="text-sm text-gray-500 font-medium">{title}</span>
+      <div className={`w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center`}>
+        <Icon className="w-5 h-5" />
       </div>
     </div>
+    <div className="font-bold text-3xl sm:text-4xl text-grafite mb-1 font-sans tracking-tight">{value}</div>
+    {change !== undefined && (
+      <div className={`flex items-center gap-1 text-sm ${change >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+        {change >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+        <span className="font-semibold">{change >= 0 ? '+' : ''}{change}%</span>
+        {changeLabel && <span className="text-gray-400 font-normal ml-0.5">{changeLabel}</span>}
+      </div>
+    )}
   </motion.div>
 );
 
+// ===== CHART CARD WRAPPER =====
+const ChartCard = ({ title, subtitle, children, delay = 0, action }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 16 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay }}
+    className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6"
+  >
+    <div className="flex items-start justify-between mb-5">
+      <div>
+        <h3 className="text-lg font-semibold text-grafite">{title}</h3>
+        {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
+      </div>
+      {action}
+    </div>
+    {children}
+  </motion.div>
+);
+
+// ===== NOTIFICATION ICON =====
 const NotifIcon = ({ type }) => {
-  const icons = {
-    poll_opened: <Vote className="w-4 h-4 text-carmesim" />,
-    invoice_due: <DollarSign className="w-4 h-4 text-orange-500" />,
-    event_new: <Calendar className="w-4 h-4 text-blue-500" />,
-    wall_post_approved: <CheckCircle className="w-4 h-4 text-green-500" />,
-    wall_comment: <Bell className="w-4 h-4 text-purple-500" />,
+  const config = {
+    poll_opened: { icon: Vote, color: 'text-carmesim', bg: 'bg-carmesim/10' },
+    invoice_due: { icon: DollarSign, color: 'text-orange-500', bg: 'bg-orange-50' },
+    event_new: { icon: Calendar, color: 'text-blue-500', bg: 'bg-blue-50' },
+    wall_post_approved: { icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-50' },
+    wall_comment: { icon: Bell, color: 'text-purple-500', bg: 'bg-purple-50' },
   };
+  const c = config[type] || { icon: Bell, color: 'text-gray-400', bg: 'bg-gray-100' };
+  const IconComp = c.icon;
   return (
-    <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-      {icons[type] || <Bell className="w-4 h-4 text-gray-400" />}
+    <div className={`w-9 h-9 ${c.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+      <IconComp className={`w-4 h-4 ${c.color}`} />
     </div>
   );
 };
 
+// ===== CHART COLORS =====
+const CHART_COLORS = ['#C7202F', '#3A3A3A', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6'];
+const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+const CATEGORY_LABELS = {
+  quotas: 'Quotas', patrocinios: 'Patrocinios', doacoes: 'Doacoes',
+  eventos: 'Eventos', outros_receita: 'Outros',
+  operacional: 'Operacional', juridico: 'Juridico',
+  comunicacao: 'Comunicacao', viagens: 'Viagens', outros_despesa: 'Outros Desp.',
+};
+
+// ===== CUSTOM TOOLTIP =====
+const CustomTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl shadow-lg px-4 py-3 text-xs">
+      <p className="font-semibold text-grafite mb-1.5">{label}</p>
+      {payload.map((entry, i) => (
+        <div key={i} className="flex items-center gap-2 mb-0.5">
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+          <span className="text-gray-500">{entry.name}:</span>
+          <span className="font-bold text-grafite">{entry.value.toLocaleString('pt')} CVE</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ===== CUSTOM PIE LABEL =====
+const renderPieLabel = ({ name, percent }) => {
+  if (percent < 0.05) return null;
+  return `${(percent * 100).toFixed(0)}%`;
+};
+
+// ===== MAIN DASHBOARD =====
 export const DashboardPage = () => {
   const { user, isAdmin, isFinanceiro } = useAuth();
   const { notifications, unreadCount } = useNotifications();
   const navigate = useNavigate();
+
   const [stats, setStats] = useState(null);
   const [financeSummary, setFinanceSummary] = useState(null);
+  const [dreData, setDreData] = useState(null);
   const [myInvoices, setMyInvoices] = useState([]);
   const [activePolls, setActivePolls] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const currentYear = new Date().getFullYear();
+  const hasFinance = isAdmin || isFinanceiro;
 
   useEffect(() => {
     loadData();
@@ -60,28 +136,30 @@ export const DashboardPage = () => {
 
   const loadData = async () => {
     try {
-      if (isAdmin || isFinanceiro) {
-        const statsRes = await statsAPI.get();
-        setStats(statsRes.data);
+      const promises = [
+        invoicesAPI.getAll(),
+        pollsAPI.getAll(),
+        eventsAPI.getUpcoming().catch(() => ({ data: [] })),
+      ];
 
-        try {
-          const finRes = await financesAPI.getSummary({ year: new Date().getFullYear() });
-          setFinanceSummary(finRes.data);
-        } catch { /* finance summary not critical */ }
+      if (hasFinance) {
+        promises.push(
+          statsAPI.get(),
+          financesAPI.getSummary({ year: currentYear }).catch(() => ({ data: null })),
+          financesAPI.getDRE(currentYear).catch(() => ({ data: null })),
+        );
       }
 
-      const invoicesRes = await invoicesAPI.getAll();
-      setMyInvoices(invoicesRes.data.slice(0, 5));
+      const results = await Promise.all(promises);
 
-      const pollsRes = await pollsAPI.getAll();
-      const active = pollsRes.data.filter((p) => p.status === 'aberta');
-      setActivePolls(active);
+      setMyInvoices(results[0].data.slice(0, 5));
+      setActivePolls(results[1].data.filter((p) => p.status === 'aberta'));
+      setUpcomingEvents(results[2].data.slice(0, 3));
 
-      try {
-        const eventsRes = await eventsAPI.getUpcoming();
-        setUpcomingEvents(eventsRes.data.slice(0, 3));
-      } catch (e) {
-        // Events not available
+      if (hasFinance) {
+        setStats(results[3].data);
+        setFinanceSummary(results[4].data);
+        setDreData(results[5].data);
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -89,6 +167,20 @@ export const DashboardPage = () => {
       setLoading(false);
     }
   };
+
+  // Prepare chart data
+  const monthlyChartData = dreData ? Object.entries(dreData.monthly).map(([month, d]) => ({
+    name: MONTH_LABELS[parseInt(month) - 1],
+    Receitas: d.receitas,
+    Despesas: d.despesas,
+  })) : [];
+
+  const expensePieData = dreData ? Object.entries(dreData.despesas_por_categoria)
+    .filter(([, v]) => v > 0)
+    .map(([cat, val]) => ({
+      name: CATEGORY_LABELS[cat] || cat,
+      value: val,
+    })) : [];
 
   const pendingInvoices = myInvoices.filter((inv) => inv.status === 'pendente');
 
@@ -101,7 +193,7 @@ export const DashboardPage = () => {
   }
 
   return (
-    <div className="space-y-5 sm:space-y-6">
+    <div className="space-y-6 sm:space-y-7">
       {/* Header */}
       <div>
         <h1 className="page-title" data-testid="dashboard-title">
@@ -115,7 +207,7 @@ export const DashboardPage = () => {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="card-technical p-4 sm:p-5 border-l-4 border-l-carmesim"
+          className="bg-white border border-gray-200/80 rounded-2xl p-4 sm:p-5 border-l-4 border-l-carmesim"
           data-testid="status-alert"
         >
           <div className="flex items-start gap-3">
@@ -123,91 +215,205 @@ export const DashboardPage = () => {
             <div>
               <h3 className="font-semibold text-sm text-carmesim mb-1">Status: {user?.status}</h3>
               <p className="text-xs sm:text-sm text-gray-600">
-                Algumas funcionalidades podem estar restritas. Regularize a sua situação.
+                Algumas funcionalidades podem estar restritas. Regularize a sua situacao.
               </p>
             </div>
           </div>
         </motion.div>
       )}
 
-      {/* Admin Stats */}
-      {(isAdmin || isFinanceiro) && stats && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <StatCard icon={Users} value={stats.total_users} label="Total Sócios" color="bg-grafite" delay={0.05} />
-          <StatCard icon={CheckCircle} value={stats.active_users} label="Sócios Ativos" color="bg-green-600" delay={0.1} />
-          <StatCard icon={AlertCircle} value={stats.pending_invoices} label="Quotas Pendentes" color="bg-carmesim" delay={0.15} />
-          <StatCard icon={DollarSign} value={`${stats.total_revenue.toFixed(0)} CVE`} label="Receita Total" color="bg-grafite" delay={0.2} />
+      {/* ===== ADMIN/FINANCEIRO: Stat Cards (Reference style) ===== */}
+      {hasFinance && stats && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          <StatCard
+            title="Total Socios"
+            value={stats.total_users}
+            icon={Users}
+            iconBg="bg-grafite/10 text-grafite"
+            delay={0.05}
+          />
+          <StatCard
+            title="Socios Ativos"
+            value={stats.active_users}
+            icon={CheckCircle}
+            iconBg="bg-green-100 text-green-600"
+            delay={0.1}
+          />
+          <StatCard
+            title="Quotas Pendentes"
+            value={stats.pending_invoices}
+            icon={AlertCircle}
+            iconBg="bg-carmesim/10 text-carmesim"
+            delay={0.15}
+          />
+          <StatCard
+            title="Receita Anual"
+            value={financeSummary ? `${(financeSummary.total_receitas / 1000).toFixed(0)}k` : `${stats.total_revenue.toFixed(0)}`}
+            icon={DollarSign}
+            iconBg="bg-blue-100 text-blue-600"
+            change={financeSummary && financeSummary.total_receitas > 0 ? Math.round((financeSummary.resultado_liquido / financeSummary.total_receitas) * 100) : undefined}
+            changeLabel="margem"
+            delay={0.2}
+          />
         </div>
       )}
 
-      {/* Financial Summary Widget (Admin/Financeiro) */}
-      {(isAdmin || isFinanceiro) && financeSummary && (
+      {/* ===== CHARTS GRID (Reference style: 2 charts side by side) ===== */}
+      {hasFinance && dreData && (
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-5">
+          {/* Area Chart - Monthly Evolution (takes 3/5) */}
+          <div className="lg:col-span-3">
+            <ChartCard
+              title="Evolucao Financeira"
+              subtitle={`Receitas vs Despesas - ${currentYear}`}
+              delay={0.25}
+              action={
+                <button
+                  onClick={() => navigate('/financeiro')}
+                  className="text-xs text-carmesim font-semibold uppercase tracking-wider hover:text-carmesim-dark flex items-center gap-1"
+                  data-testid="chart-view-all"
+                >
+                  Ver tudo <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              }
+            >
+              <div className="h-[280px] -ml-2" data-testid="monthly-chart">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={monthlyChartData}>
+                    <defs>
+                      <linearGradient id="gradReceitas" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="gradDespesas" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#C7202F" stopOpacity={0.1} />
+                        <stop offset="95%" stopColor="#C7202F" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Area type="monotone" dataKey="Receitas" stroke="#10b981" strokeWidth={2.5} fill="url(#gradReceitas)" />
+                    <Area type="monotone" dataKey="Despesas" stroke="#C7202F" strokeWidth={2.5} fill="url(#gradDespesas)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </ChartCard>
+          </div>
+
+          {/* Donut Chart - Expense Distribution (takes 2/5) */}
+          <div className="lg:col-span-2">
+            <ChartCard
+              title="Distribuicao de Despesas"
+              subtitle="Por categoria"
+              delay={0.3}
+            >
+              <div className="h-[280px]" data-testid="expense-chart">
+                {expensePieData.length === 0 ? (
+                  <div className="h-full flex items-center justify-center">
+                    <div className="text-center">
+                      <BarChart3 className="w-10 h-10 text-gray-200 mx-auto mb-2" />
+                      <p className="text-sm text-gray-400">Sem despesas registradas</p>
+                    </div>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={expensePieData}
+                        cx="50%"
+                        cy="45%"
+                        innerRadius={55}
+                        outerRadius={90}
+                        paddingAngle={3}
+                        dataKey="value"
+                        label={renderPieLabel}
+                        labelLine={false}
+                      >
+                        {expensePieData.map((_, i) => (
+                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(v) => [`${v.toLocaleString('pt')} CVE`, '']} />
+                      <Legend
+                        verticalAlign="bottom"
+                        iconType="circle"
+                        iconSize={8}
+                        formatter={(value) => <span className="text-xs text-gray-600">{value}</span>}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </ChartCard>
+          </div>
+        </div>
+      )}
+
+      {/* ===== Financial Summary Banner (for admin) ===== */}
+      {hasFinance && financeSummary && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="card-technical p-4 sm:p-5 cursor-pointer hover:shadow-md transition-shadow"
+          transition={{ delay: 0.35 }}
+          className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 cursor-pointer hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all"
           onClick={() => navigate('/financeiro')}
           data-testid="finance-summary-widget"
         >
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-sm text-grafite flex items-center gap-2">
-              <Wallet className="w-4 h-4 text-carmesim" /> Resumo Financeiro {new Date().getFullYear()}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-grafite flex items-center gap-2">
+              <Wallet className="w-5 h-5 text-carmesim" /> Saldo Financeiro {currentYear}
             </h3>
             <ArrowRight className="w-4 h-4 text-gray-400" />
           </div>
-          <div className="grid grid-cols-3 gap-3 sm:gap-4">
+          <div className="grid grid-cols-3 gap-4 sm:gap-6">
             <div>
-              <div className="flex items-center gap-1 mb-0.5">
-                <TrendingUp className="w-3 h-3 text-green-500" />
-                <span className="text-[10px] text-gray-500 uppercase tracking-wider">Receitas</span>
-              </div>
-              <div className="font-mono text-sm sm:text-base font-bold text-green-600">{financeSummary.total_receitas.toLocaleString('pt')} CVE</div>
+              <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Receitas</div>
+              <div className="font-mono text-xl sm:text-2xl font-bold text-green-600">{financeSummary.total_receitas.toLocaleString('pt')}</div>
+              <div className="text-[11px] text-gray-400 mt-0.5">CVE</div>
             </div>
             <div>
-              <div className="flex items-center gap-1 mb-0.5">
-                <TrendingDown className="w-3 h-3 text-red-500" />
-                <span className="text-[10px] text-gray-500 uppercase tracking-wider">Despesas</span>
-              </div>
-              <div className="font-mono text-sm sm:text-base font-bold text-red-600">{financeSummary.total_despesas.toLocaleString('pt')} CVE</div>
+              <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Despesas</div>
+              <div className="font-mono text-xl sm:text-2xl font-bold text-red-500">{financeSummary.total_despesas.toLocaleString('pt')}</div>
+              <div className="text-[11px] text-gray-400 mt-0.5">CVE</div>
             </div>
             <div>
-              <div className="flex items-center gap-1 mb-0.5">
-                <DollarSign className="w-3 h-3 text-grafite" />
-                <span className="text-[10px] text-gray-500 uppercase tracking-wider">Saldo</span>
+              <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Resultado</div>
+              <div className={`font-mono text-xl sm:text-2xl font-bold ${financeSummary.resultado_liquido >= 0 ? 'text-grafite' : 'text-orange-600'}`}>
+                {financeSummary.resultado_liquido.toLocaleString('pt')}
               </div>
-              <div className={`font-mono text-sm sm:text-base font-bold ${financeSummary.resultado_liquido >= 0 ? 'text-grafite' : 'text-orange-600'}`}>
-                {financeSummary.resultado_liquido.toLocaleString('pt')} CVE
-              </div>
+              <div className="text-[11px] text-gray-400 mt-0.5">CVE</div>
             </div>
           </div>
         </motion.div>
       )}
 
-      {/* Main Grid: Invoices + Polls */}
+      {/* ===== MAIN GRID: Invoices + Polls ===== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
         {/* Pending Invoices */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="card-technical card-hover p-4 sm:p-5"
+          transition={{ delay: 0.1 }}
+          className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6"
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg sm:text-xl text-grafite">Quotas Pendentes</h2>
+            <h2 className="text-lg font-semibold text-grafite">Quotas Pendentes</h2>
             <span className="text-[10px] text-gray-400 uppercase tracking-wider hidden sm:block">Folha Salarial</span>
           </div>
           {pendingInvoices.length === 0 ? (
-            <div className="text-center py-6 sm:py-8">
-              <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-2">
-                <CheckCircle className="w-6 h-6 text-green-500" />
+            <div className="text-center py-8">
+              <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <CheckCircle className="w-7 h-7 text-green-500" />
               </div>
-              <p className="text-sm text-grafite font-medium" data-testid="no-pending-invoices">Tudo em dia!</p>
+              <p className="text-sm text-grafite font-semibold" data-testid="no-pending-invoices">Tudo em dia!</p>
               <p className="text-xs text-gray-400 mt-1">Quotas descontadas automaticamente</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {pendingInvoices.map((invoice) => (
-                <div key={invoice.id} className="flex items-center justify-between p-3 bg-carmesim/5 border border-carmesim/15 rounded-lg" data-testid={`invoice-${invoice.id}`}>
+                <div key={invoice.id} className="flex items-center justify-between p-3.5 bg-carmesim/5 border border-carmesim/10 rounded-xl" data-testid={`invoice-${invoice.id}`}>
                   <div className="min-w-0">
                     <div className="font-semibold text-sm text-grafite capitalize">{invoice.type}</div>
                     <div className="text-xs text-gray-400">
@@ -225,11 +431,11 @@ export const DashboardPage = () => {
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="card-technical card-hover p-4 sm:p-5"
+          transition={{ delay: 0.15 }}
+          className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6"
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg sm:text-xl text-grafite">Votações Abertas</h2>
+            <h2 className="text-lg font-semibold text-grafite">Votacoes Abertas</h2>
             {activePolls.length > 0 && (
               <button onClick={() => navigate('/votacoes')} className="text-xs text-carmesim font-semibold uppercase tracking-wider hover:text-carmesim-dark">
                 Ver todas
@@ -237,15 +443,19 @@ export const DashboardPage = () => {
             )}
           </div>
           {activePolls.length === 0 ? (
-            <div className="text-center py-6 sm:py-8">
-              <Vote className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-              <p className="text-sm text-gray-400" data-testid="no-active-polls">Nenhuma votação aberta</p>
+            <div className="text-center py-8">
+              <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <Vote className="w-7 h-7 text-gray-300" />
+              </div>
+              <p className="text-sm text-gray-400" data-testid="no-active-polls">Nenhuma votacao aberta</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {activePolls.slice(0, 3).map((poll) => (
-                <button key={poll.id} onClick={() => navigate('/votacoes')} className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left" data-testid={`poll-${poll.id}`}>
-                  <Vote className="w-4 h-4 text-carmesim flex-shrink-0" />
+                <button key={poll.id} onClick={() => navigate('/votacoes')} className="w-full flex items-center gap-3 p-3.5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left" data-testid={`poll-${poll.id}`}>
+                  <div className="w-9 h-9 bg-carmesim/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Vote className="w-4 h-4 text-carmesim" />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-sm text-grafite truncate">{poll.title}</div>
                     <div className="text-xs text-gray-400">
@@ -260,31 +470,82 @@ export const DashboardPage = () => {
         </motion.div>
       </div>
 
-      {/* Upcoming Events */}
+      {/* ===== UPCOMING EVENTS (Reference table style) ===== */}
       {upcomingEvents.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="card-technical card-hover p-4 sm:p-5"
+          transition={{ delay: 0.2 }}
+          className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden"
         >
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg sm:text-xl text-grafite">Próximos Eventos</h2>
+          <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100">
+            <h2 className="text-lg font-semibold text-grafite">Proximos Eventos</h2>
             <button
               onClick={() => navigate('/eventos')}
-              className="text-xs text-carmesim hover:text-carmesim-dark uppercase tracking-wider font-semibold"
+              className="text-xs text-carmesim hover:text-carmesim-dark uppercase tracking-wider font-semibold flex items-center gap-1"
             >
-              Ver todos
+              Ver todos <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+
+          {/* Desktop: Table style */}
+          <div className="hidden sm:block">
+            <table className="w-full">
+              <thead className="bg-gray-50/80">
+                <tr>
+                  <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Evento</th>
+                  <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Data</th>
+                  <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Local</th>
+                  <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Hora</th>
+                </tr>
+              </thead>
+              <tbody>
+                {upcomingEvents.map((event, i) => (
+                  <tr
+                    key={event.id}
+                    className="border-t border-gray-50 hover:bg-gray-50/50 cursor-pointer transition-colors"
+                    onClick={() => navigate('/eventos')}
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-grafite rounded-xl flex flex-col items-center justify-center flex-shrink-0">
+                          <span className="font-bold text-xs text-white leading-none">
+                            {format(new Date(event.date), 'dd')}
+                          </span>
+                          <span className="text-[8px] text-carmesim uppercase font-bold leading-none mt-0.5">
+                            {format(new Date(event.date), 'MMM', { locale: ptBR })}
+                          </span>
+                        </div>
+                        <span className="font-medium text-sm text-grafite">{event.title}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {format(new Date(event.date), "dd 'de' MMMM", { locale: ptBR })}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                        <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                        {event.location}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500 font-mono">
+                      {format(new Date(event.date), 'HH:mm')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile: Card style */}
+          <div className="sm:hidden divide-y divide-gray-50">
             {upcomingEvents.map((event) => (
               <button
                 key={event.id}
-                className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left w-full"
+                className="flex items-start gap-3 p-4 hover:bg-gray-50 transition-colors text-left w-full"
                 onClick={() => navigate('/eventos')}
               >
-                <div className="w-11 h-11 bg-grafite rounded-lg flex flex-col items-center justify-center flex-shrink-0">
+                <div className="w-11 h-11 bg-grafite rounded-xl flex flex-col items-center justify-center flex-shrink-0">
                   <span className="font-bold text-sm text-white leading-none">
                     {format(new Date(event.date), 'dd')}
                   </span>
@@ -297,8 +558,7 @@ export const DashboardPage = () => {
                   <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-1">
                     <Clock className="w-3 h-3 flex-shrink-0" />
                     <span>{format(new Date(event.date), 'HH:mm')}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5">
+                    <span className="text-gray-300 mx-0.5">|</span>
                     <MapPin className="w-3 h-3 flex-shrink-0" />
                     <span className="truncate">{event.location}</span>
                   </div>
@@ -309,18 +569,18 @@ export const DashboardPage = () => {
         </motion.div>
       )}
 
-      {/* Notifications */}
+      {/* ===== NOTIFICATIONS ===== */}
       {unreadCount > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="card-technical p-4 sm:p-5 border-l-4 border-l-carmesim"
+          className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 border-l-4 border-l-carmesim"
         >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4 text-carmesim" />
               <h3 className="font-semibold text-sm text-grafite">
-                {unreadCount} {unreadCount === 1 ? 'notificação nova' : 'notificações novas'}
+                {unreadCount} {unreadCount === 1 ? 'notificacao nova' : 'notificacoes novas'}
               </h3>
             </div>
             <button
@@ -330,12 +590,12 @@ export const DashboardPage = () => {
               Ver todas
             </button>
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {notifications.filter(n => !n.read).slice(0, 3).map((notif) => (
               <button
                 key={notif.id}
                 onClick={() => navigate('/notificacoes')}
-                className="w-full flex items-center gap-3 p-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
+                className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left"
               >
                 <NotifIcon type={notif.type} />
                 <div className="flex-1 min-w-0">
