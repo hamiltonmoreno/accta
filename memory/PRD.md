@@ -1,58 +1,58 @@
 # Portal ACTACV - Product Requirements Document
 
-## Visão Geral
-Ecossistema digital integrado para a Associação dos Controladores de Tráfego Aéreo de Cabo Verde (ACTACV).
+## Visao Geral
+Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aereo de Cabo Verde (ACTACV).
 
-## Stack Tecnológica
+## Stack Tecnologica
 - **Frontend:** React 18, Tailwind CSS, Framer Motion, React Router, Axios, PWA
 - **Backend:** FastAPI (Python), MongoDB, JWT Authentication
 
 ## Funcionalidades Implementadas
 
-### Área Pública
-- [x] Homepage, Sobre, Profissão, Transparência, Benefícios, Contactos, Galeria, Eventos
+### Area Publica
+- [x] Homepage, Sobre, Profissao, Transparencia, Beneficios, Contactos, Galeria, Eventos
 
-### Área Reservada
-- [x] Dashboard, Financeiro, Carteira Digital PWA
-- [x] Votações, Eventos/Agenda, Documentos
-- [x] Mural de Comunicação (categorias, likes, comentários, moderação)
-- [x] Clube de Benefícios, Notificações In-App
-- [x] Recuperação de Senha (modo demo)
-- [x] **CRUD Perfil do Membro** (novo)
-  - Página de perfil (/perfil) com edição de nome, telefone, biografia
-  - Gestão de membros (/admin/usuarios) com pesquisa e filtros
-  - Modal de edição com dropdowns para Função, Estado, Cargo
-  - 7 cargos: Presidente, Vice-Presidente, Secretário-Geral, Tesoureiro, Vogal, Membro da Direção, Sócio
-  - 7 privilégios granulares: manage_users, manage_finances, manage_events, manage_documents, moderate_content, manage_benefits, view_audit_logs
-  - Validação backend de cargos/privilégios/roles inválidos
-  - Notificação automática ao membro quando perfil é editado pelo admin
-  - Proteção contra auto-eliminação
+### Area Reservada
+- [x] Dashboard, Carteira Digital PWA
+- [x] Votacoes, Eventos/Agenda, Documentos
+- [x] Mural de Comunicacao (categorias, likes, comentarios, moderacao)
+- [x] Clube de Beneficios, Notificacoes In-App
+- [x] Recuperacao de Senha (modo demo)
+- [x] CRUD Perfil do Membro com Cargos e Privilegios
+- [x] **Sistema Financeiro Completo** (novo)
+  - Fluxo de Caixa: CRUD completo de transacoes (receitas/despesas)
+  - Relatorio DRE com grafico mensal e categorias
+  - Configuracao de quota mensal (padrao 2.000 CVE)
+  - Geracao em lote de quotas mensais para todos os socios ativos
+  - Categorias: Quotas, Patrocinios, Doacoes, Eventos, Operacional, Juridico, Comunicacao, Viagens
+  - Vista simplificada para socios (Minhas Quotas)
+  - Regra: Socio ativo NUNCA fica inadimplente (desconto em folha)
 
 ### Design & UX
 - [x] Identidade Visual ACCTA (Carmesim, Grafite, Open Sans)
-- [x] Sidebar collapsível com lock/hover (fundo branco, secções agrupadas)
+- [x] Sidebar collapsivel com lock/hover (fundo branco, seccoes agrupadas)
 - [x] Responsividade 320-1920px (mobile/tablet/desktop)
-- [x] Acentuação portuguesa completa
 
 ### Backend (Modular)
 ```
-server.py (40L) → database.py, auth.py, models.py, helpers.py
-routes/ → 13 módulos (auth, users, invoices, polls, posts, documents,
-          benefits, wall, events, gallery, notifications, stats, upload)
+server.py (40L) -> database.py, auth.py, models.py, helpers.py
+routes/ -> 14 modulos (auth, users, invoices, polls, posts, documents,
+          benefits, wall, events, gallery, notifications, stats, upload, finances)
 ```
 
 ## Credenciais
 - Admin: admin@accta.cv / admin123
-- Sócio: socio1@accta.cv / socio123
+- Socio: socio1@accta.cv / socio123
 
 ## Testes
-- iteration_11: 100% (19/19 backend + frontend) - CRUD Perfil Membro
+- iteration_12: 100% (25/25 backend + frontend) - Sistema Financeiro
+- iteration_11: 100% (19/19) - CRUD Perfil Membro
 - iteration_10: 100% (17/17) - Sidebar
 - iteration_9: 100% (16/16) - Responsividade
-- iteration_8: 100% (15/15) - Recuperação de senha
+- iteration_8: 100% (15/15) - Recuperacao de senha
 - iteration_7: 100% (38/38) - Refactoring backend
 
-## Próximas Tarefas
-- P1: Clube de Benefícios — Lógica de validação QR Code
+## Proximas Tarefas
+- P1: Clube de Beneficios - Logica de validacao QR Code
 - P2: Evento em Destaque com countdown na homepage
 - P2: Exportar eventos para Google/Apple Calendar
