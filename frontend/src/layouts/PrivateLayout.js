@@ -21,6 +21,7 @@ import {
   Lock,
   Unlock,
   Search,
+  UserCircle,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -30,6 +31,7 @@ const menuSections = [
     title: 'Painel',
     items: [
       { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['all'] },
+      { label: 'Meu Perfil', path: '/perfil', icon: UserCircle, roles: ['all'] },
       { label: 'Carteira Digital', path: '/carteira', icon: CreditCard, roles: ['socio'] },
     ],
   },
@@ -83,6 +85,7 @@ export const PrivateLayout = ({ children }) => {
 
   const currentPageTitle = (() => {
     if (pathname === '/dashboard') return 'Dashboard';
+    if (pathname === '/perfil') return 'Meu Perfil';
     if (pathname === '/carteira') return 'Carteira Digital';
     if (pathname === '/financeiro') return 'Financeiro';
     if (pathname === '/votacoes') return 'Votações';

@@ -1,0 +1,78 @@
+{
+  "summary": "Member Profile CRUD Testing COMPLETE. Backend: 19/19 tests passed. Frontend: All features working. Profile page shows user info (name, email, cargo, role, status, privileges). Edit form with name/phone/bio inputs works. Admin users page shows all members with cargo/role/status columns. Search filters users. Edit modal has role/status/cargo dropdowns and 7 privilege checkboxes. Save shows toast. Sidebar shows 'Meu Perfil' for all users.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "=== BACKEND API Tests (19/19 passed) ===",
+    "GET /api/users/meta/cargos - returns 7 cargos - PASS",
+    "GET /api/users/meta/privileges - returns 7 privileges - PASS",
+    "GET /api/users?search=Carlos - returns filtered users with cargo/privileges - PASS",
+    "GET /api/users?role=admin - returns only admin users - PASS",
+    "GET /api/users?status=ativo - returns only active users - PASS",
+    "GET /api/users requires admin/financeiro role - PASS",
+    "PATCH /api/users/me/profile - self-edit name/phone/bio works - PASS",
+    "PATCH /api/users/me/profile with empty body returns 400 - PASS",
+    "PATCH /api/users/me/profile requires auth - PASS",
+    "PATCH /api/users/{userId} (admin) - update role/cargo/privileges works - PASS",
+    "PATCH /api/users/{userId} - invalid cargo returns 400 - PASS",
+    "PATCH /api/users/{userId} - invalid privileges returns 400 - PASS",
+    "PATCH /api/users/{userId} - invalid role returns 400 - PASS",
+    "PATCH /api/users/{userId} requires admin role - PASS",
+    "DELETE /api/users/self - cannot delete own account returns 400 - PASS",
+    "DELETE /api/users/{userId} requires admin role - PASS",
+    "DELETE /api/users/{nonexistent} returns 404 - PASS",
+    "GET /api/users/{userId} returns user details - PASS",
+    "GET /api/users/{nonexistent} returns 404 - PASS",
+    "=== FRONTEND Tests ===",
+    "/perfil page renders with user info (name, email, cargo, role, status) - PASS",
+    "/perfil 'Editar' button opens form with name, phone, bio inputs - PASS",
+    "/perfil save profile updates user data and shows toast - PASS",
+    "/admin/usuarios shows all members with cargo, role, status columns - PASS",
+    "/admin/usuarios search input filters users by name/email - PASS",
+    "/admin/usuarios 'Gerir' button opens edit modal - PASS",
+    "Edit modal has dropdowns for Função (role), Estado (status), Cargo na Associação - PASS",
+    "Edit modal has checkboxes for 7 privileges - PASS",
+    "Saving modal updates user and shows toast 'Utilizador atualizado!' - PASS",
+    "Sidebar shows 'Meu Perfil' menu item for all users (admin and socio) - PASS",
+    "Privileges section shows assigned privileges (Gerir Eventos, Moderar Conteúdo) - PASS"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_member_profile_crud.py",
+    "/app/test_reports/pytest/pytest_member_profile.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PerfilPage.js: Fixed babel-metadata-plugin stack overflow by extracting PrivilegesSection component - FIXED",
+    "Backend validation: Proper 400 errors for invalid cargo/privileges/role - CORRECT",
+    "Admin update creates audit log and notification - CORRECT",
+    "Self-profile update limited to name/phone/bio/photo_url - CORRECT",
+    "Delete user prevents self-deletion - CORRECT",
+    "data-testid attributes present on all interactive elements - CORRECT"
+  ],
+  "updated_files": [
+    "/app/frontend/src/pages/private/PerfilPage.js",
+    "/app/backend/tests/test_member_profile_crud.py"
+  ],
+  "success_rate": {
+    "backend": "100% - 19/19 tests passed",
+    "frontend": "100% - All features working"
+  },
+  "test_credentials": {
+    "admin_user": "admin@accta.cv / admin123",
+    "socio_user": "socio1@accta.cv / socio123"
+  },
+  "seed_data_creation": "None - used existing seed data. Ana Silva updated to Tesoureiro with manage_finances privilege during testing.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Member Profile CRUD fully tested. Key features: 1) /perfil page with edit form for name/phone/bio, 2) /admin/usuarios with search/filter and edit modal, 3) Edit modal has role/status/cargo dropdowns and 7 privilege checkboxes, 4) Backend validates cargo/privileges/role, 5) Self-deletion prevented. Carlos Mendes (socio1) has cargo='Vogal' and privileges=['manage_events','moderate_content']. Ana Silva updated to Tesoureiro with manage_finances privilege.",
+  "fixes_applied": {
+    "PerfilPage.js": "Extracted PrivilegesSection component to fix babel-metadata-plugin 'Maximum call stack size exceeded' error caused by nested map with object access pattern"
+  }
+}

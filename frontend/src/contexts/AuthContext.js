@@ -58,6 +58,16 @@ export const AuthProvider = ({ children }) => {
   const isModerador = user?.role === 'moderador';
   const isAtivo = user?.status === 'ativo';
 
+  const refreshUser = async () => {
+    try {
+      const res = await api.get('/auth/me');
+      setUser(res.data);
+      localStorage.setItem('accta_user', JSON.stringify(res.data));
+    } catch {
+      // ignore
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -71,6 +81,7 @@ export const AuthProvider = ({ children }) => {
         isFinanceiro,
         isModerador,
         isAtivo,
+        refreshUser,
       }}
     >
       {children}

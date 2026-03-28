@@ -45,8 +45,14 @@ export const authAPI = {
 
 // Users API
 export const usersAPI = {
-  getAll: () => api.get('/users'),
+  getAll: (params) => api.get('/users', { params }),
+  getById: (userId) => api.get(`/users/${userId}`),
+  updateProfile: (data) => api.patch('/users/me/profile', data),
+  adminUpdate: (userId, data) => api.patch(`/users/${userId}`, data),
   updateStatus: (userId, status) => api.patch(`/users/${userId}/status`, null, { params: { status } }),
+  delete: (userId) => api.delete(`/users/${userId}`),
+  getCargos: () => api.get('/users/meta/cargos'),
+  getPrivileges: () => api.get('/users/meta/privileges'),
 };
 
 // Invoices API

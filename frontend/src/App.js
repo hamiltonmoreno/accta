@@ -28,6 +28,7 @@ import { MuralPage } from './pages/private/MuralPage';
 import { BeneficiosPage } from './pages/private/BeneficiosPage';
 import { EventosPage } from './pages/private/EventosPage';
 import { AdminUsuariosPage } from './pages/private/AdminUsuariosPage';
+import { PerfilPage } from './pages/private/PerfilPage';
 import { AdminLogsPage } from './pages/private/AdminLogsPage';
 import './App.css';
 
@@ -146,6 +147,14 @@ function AppRoutes() {
       />
 
       {/* Admin Routes */}
+      <Route
+        path="/perfil"
+        element={
+          <ProtectedRoute>
+            <PrivateLayout><PerfilPage /></PrivateLayout>
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/admin/usuarios"
         element={

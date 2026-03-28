@@ -6,6 +6,18 @@ import uuid
 
 # ===== USER MODELS =====
 
+CARGOS = [
+    "Presidente", "Vice-Presidente", "Secretário-Geral",
+    "Tesoureiro", "Vogal", "Membro da Direção", "Sócio"
+]
+
+PRIVILEGES = [
+    "manage_users", "manage_finances", "manage_events",
+    "manage_documents", "moderate_content", "manage_benefits",
+    "view_audit_logs"
+]
+
+
 class UserBase(BaseModel):
     name: str
     email: EmailStr
@@ -16,6 +28,11 @@ class UserBase(BaseModel):
     admission_date: Optional[datetime] = None
     phone_number: Optional[str] = None
     consent_data: bool = False
+    cargo: str = "Sócio"
+    privileges: List[str] = []
+    bio: Optional[str] = None
+    department: Optional[str] = None
+    photo_url: Optional[str] = None
 
 
 class UserCreate(UserBase):
@@ -28,6 +45,27 @@ class User(UserBase):
     qr_code_hash: Optional[str] = None
     last_login_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class UserProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    phone_number: Optional[str] = None
+    bio: Optional[str] = None
+    photo_url: Optional[str] = None
+
+
+class UserAdminUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    role: Optional[str] = None
+    status: Optional[str] = None
+    cargo: Optional[str] = None
+    privileges: Optional[List[str]] = None
+    member_id: Optional[str] = None
+    license_number: Optional[str] = None
+    phone_number: Optional[str] = None
+    department: Optional[str] = None
+    bio: Optional[str] = None
 
 
 class UserLogin(BaseModel):
