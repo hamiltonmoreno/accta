@@ -33,7 +33,7 @@ async def notify_users(user_ids: List[str], type: str, title: str, message: str,
 
 
 async def notify_all_active_users(type: str, title: str, message: str, link: Optional[str] = None):
-    users = await db.users.find({"status": "ativo"}, {"_id": 0, "id": 1}).to_list(1000)
+    users = await db.users.find({"status": "ativo"}, {"_id": 0, "id": 1}).to_list(500)
     if not users:
         return
     notifications = []

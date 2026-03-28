@@ -59,12 +59,21 @@ async def list_projects(
     total = await db.projects.count_documents(query)
     projects = await db.projects.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(None)
 
-    # Enrich with task counts
+    # Enrich with task counts using aggregation
+    project_ids = [p["id"] for p in projects]
+    pipeline = [
+        {"$match": {"project_id": {"$in": project_ids}}},
+        {"$group": {
+            "_id": "$project_id",
+            "total": {"$sum": 1},
+            "done": {"$sum": {"$cond": [{"$eq": ["$status", "concluido"]}, 1, 0]}}
+        }}
+    ]
+    task_counts = {r["_id"]: r async for r in db.project_tasks.aggregate(pipeline)}
     for p in projects:
-        task_total = await db.project_tasks.count_documents({"project_id": p["id"]})
-        task_done = await db.project_tasks.count_documents({"project_id": p["id"], "status": "concluido"})
-        p["task_count"] = task_total
-        p["task_done"] = task_done
+        tc = task_counts.get(p["id"], {"total": 0, "done": 0})
+        p["task_count"] = tc["total"]
+        p["task_done"] = tc["done"]
 
     return {"items": projects, "total": total}
 
@@ -114,10 +123,10 @@ async def get_project(
         raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
 
     # Enrich
-    tasks = await db.project_tasks.find({"project_id": project_id}, {"_id": 0}).sort("created_at", 1).to_list(None)
-    comments = await db.project_comments.find({"project_id": project_id}, {"_id": 0}).sort("created_at", -1).to_list(None)
-    expenses = await db.project_expenses.find({"project_id": project_id}, {"_id": 0}).sort("date", -1).to_list(None)
-    milestones = await db.project_milestones.find({"project_id": project_id}, {"_id": 0}).sort("date", 1).to_list(None)
+    tasks = await db.project_tasks.find({"project_id": project_id}, {"_id": 0}).sort("created_at", 1).to_list(500)
+    comments = await db.project_comments.find({"project_id": project_id}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    expenses = await db.project_expenses.find({"project_id": project_id}, {"_id": 0}).sort("date", -1).to_list(200)
+    milestones = await db.project_milestones.find({"project_id": project_id}, {"_id": 0}).sort("date", 1).to_list(100)
 
     project["tasks"] = tasks
     project["comments"] = comments
@@ -398,7 +407,7 @@ async def add_expense(
     await db.project_expenses.insert_one(e_dict)
 
     # Update project spent
-    total_spent = await db.project_expenses.find({"project_id": project_id}, {"_id": 0, "amount": 1}).to_list(None)
+    total_spent = await db.project_expenses.find({"project_id": project_id}, {"_id": 0, "amount": 1}).to_list(1000)
     new_spent = sum(e["amount"] for e in total_spent)
     await db.projects.update_one({"id": project_id}, {"$set": {"spent": new_spent}})
 
@@ -430,7 +439,7 @@ async def delete_expense(
 
     await db.project_expenses.delete_one({"id": expense_id, "project_id": project_id})
 
-    total_spent = await db.project_expenses.find({"project_id": project_id}, {"_id": 0, "amount": 1}).to_list(None)
+    total_spent = await db.project_expenses.find({"project_id": project_id}, {"_id": 0, "amount": 1}).to_list(1000)
     new_spent = sum(e["amount"] for e in total_spent)
     await db.projects.update_one({"id": project_id}, {"$set": {"spent": new_spent}})
 

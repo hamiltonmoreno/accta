@@ -45,7 +45,7 @@ async def get_users(
         query["cargo"] = cargo
 
     limit = min(limit, 100)
-    users = await db.users.find(query, {"_id": 0, "password": 0}).skip(skip).limit(limit).to_list(None)
+    users = await db.users.find(query, {"_id": 0, "password": 0}).skip(skip).limit(limit).to_list(limit)
     for u in users:
         parse_user_dates(u)
     return users

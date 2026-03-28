@@ -156,7 +156,7 @@ async def get_pending_photos(current_user: User = Depends(get_current_user)):
 
     # Batch fetch album titles to avoid N+1
     album_ids = list(set(p.get("album_id") for p in photos if p.get("album_id")))
-    albums = await db.gallery_albums.find({"id": {"$in": album_ids}}, {"_id": 0, "id": 1, "title": 1}).to_list(None)
+    albums = await db.gallery_albums.find({"id": {"$in": album_ids}}, {"_id": 0, "id": 1, "title": 1}).to_list(200)
     album_map = {a["id"]: a.get("title", "?") for a in albums}
 
     for p in photos:

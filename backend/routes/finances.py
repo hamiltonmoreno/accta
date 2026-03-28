@@ -189,7 +189,7 @@ async def get_financial_summary(
                 end = f"{year}-{month + 1:02d}-01T00:00:00"
         query["date"] = {"$gte": start, "$lt": end} if month else {"$gte": start, "$lte": end}
 
-    transactions = await db.transactions.find(query, {"_id": 0}).limit(10000).to_list(None)
+    transactions = await db.transactions.find(query, {"_id": 0, "type": 1, "amount": 1, "category": 1, "description": 1, "date": 1}).limit(5000).to_list(5000)
 
     total_receitas = sum(t["amount"] for t in transactions if t["type"] == "receita")
     total_despesas = sum(t["amount"] for t in transactions if t["type"] == "despesa")
@@ -222,8 +222,8 @@ async def get_dre_report(
     start = f"{year}-01-01T00:00:00"
     end = f"{year}-12-31T23:59:59"
     transactions = await db.transactions.find(
-        {"date": {"$gte": start, "$lte": end}}, {"_id": 0}
-    ).limit(10000).to_list(None)
+        {"date": {"$gte": start, "$lte": end}}, {"_id": 0, "date": 1, "type": 1, "amount": 1, "category": 1}
+    ).limit(5000).to_list(5000)
 
     # Monthly breakdown
     monthly = {}
