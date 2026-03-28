@@ -9,7 +9,7 @@ from models import (
 )
 from database import db
 from auth import get_current_user
-from helpers import create_audit_log
+from helpers import create_audit_log, notify_admins, notify_all_active_users
 from fpdf import FPDF
 import io
 
@@ -105,6 +105,11 @@ async def create_transaction(
 
     await db.transactions.insert_one(t_dict)
     await create_audit_log(current_user.id, f"Criou transacao {transaction.id} ({data.type}: {data.amount} CVE)", transaction.id)
+
+    # Notify admins about new transaction (if creator is financeiro, not admin)
+    tipo_label = "Receita" if data.type == "receita" else "Despesa"
+    await notify_admins("financeiro", f"Nova {tipo_label}: {data.amount:,.0f} CVE", f"{current_user.name} registou: {data.description}", "/financeiro", exclude_id=current_user.id)
+
     return transaction
 
 
@@ -304,6 +309,11 @@ async def update_finance_settings(
         await db.finance_settings.update_one({"id": "finance_settings"}, {"$set": updates})
 
     await create_audit_log(current_user.id, f"Atualizou configuracoes financeiras: {updates}")
+
+    # Notify admins about settings change
+    if "quota_amount" in updates:
+        await notify_admins("financeiro", "Valor da Quota Atualizado", f"{current_user.name} alterou o valor da quota mensal para {updates['quota_amount']:,.0f} CVE.", "/financeiro", exclude_id=current_user.id)
+
     return {"message": "Configuracoes atualizadas"}
 
 
@@ -358,6 +368,13 @@ async def generate_monthly_quotas(
         current_user.id,
         f"Gerou {created_count} quotas para {month:02d}/{year} ({quota_amount} CVE cada)"
     )
+
+    # Notify all active users that quotas were generated
+    if created_count > 0:
+        MONTH_NAMES_SHORT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+        mes_label = MONTH_NAMES_SHORT[month - 1]
+        await notify_all_active_users("financeiro", f"Quotas de {mes_label}/{year} Geradas", f"As quotas mensais de {mes_label}/{year} ({quota_amount:,.0f} CVE) foram geradas e serao descontadas em folha de pagamento.", "/financeiro")
+
     return {
         "message": f"{created_count} quotas geradas para {month:02d}/{year}",
         "created": created_count,
