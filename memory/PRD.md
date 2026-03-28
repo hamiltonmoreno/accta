@@ -8,7 +8,7 @@ Ecossistema digital integrado para a Associação dos Controladores de Tráfego 
 - **Backend:** FastAPI (Python), MongoDB, JWT Authentication
 - **UI Components:** Shadcn/UI, Lucide React
 
-## Arquitetura Backend (Refatorado)
+## Arquitetura Backend (Modular)
 ```
 backend/
 ├── server.py         (40 linhas - setup, middleware, monta routers)
@@ -18,57 +18,45 @@ backend/
 ├── helpers.py        (audit_log, notificações)
 ├── routes/
 │   ├── __init__.py   (Regista 13 route modules)
-│   ├── auth_routes.py
-│   ├── users.py
-│   ├── invoices.py
-│   ├── polls.py
-│   ├── posts.py
-│   ├── documents.py
-│   ├── benefits.py
-│   ├── wall.py
-│   ├── events.py
-│   ├── gallery.py
-│   ├── notifications.py
-│   ├── stats.py
-│   └── upload.py
-├── tests/
-│   └── test_refactoring_all_endpoints.py
-├── requirements.txt
-└── .env
+│   ├── auth_routes.py (login, register, forgot-password, reset-password)
+│   ├── users.py, invoices.py, polls.py, posts.py
+│   ├── documents.py, benefits.py, wall.py, events.py
+│   ├── gallery.py, notifications.py, stats.py, upload.py
+└── tests/
 ```
 
 ## Funcionalidades Implementadas
 
 ### Área Pública
-- [x] Homepage com hero responsivo
-- [x] Sobre Nós, A Profissão, Transparência, Benefícios, Contactos
-- [x] Galeria de Fotos (álbuns, lightbox, admin upload)
-- [x] Validador QR Code Público
-- [x] Notícias e Eventos Públicos
+- [x] Homepage, Sobre, Profissão, Transparência, Benefícios, Contactos
+- [x] Galeria de Fotos, Validador QR, Notícias, Eventos Públicos
+- [x] **Recuperação de Senha** (forgot-password → token → reset → login)
 
-### Área Reservada (Portal do Associado)
+### Área Reservada
 - [x] Dashboard, Gestão Financeira, Carteira Digital PWA
 - [x] Votações, Eventos/Agenda, Documentos
-- [x] Mural de Comunicação (categorias, likes, comentários, moderação)
-- [x] Clube de Benefícios, Notificações In-App
+- [x] Mural de Comunicação, Clube de Benefícios, Notificações
 
-### Identidade Visual
-- [x] Cores ACCTA: Carmesim (#C7202F), Grafite (#3A3A3A), Navy (#1B2B4B), Amber (#D4A843)
-- [x] Tipografia: Open Sans + JetBrains Mono
-- [x] Acentuação portuguesa corrigida em TODAS as páginas
+### Qualidade
+- [x] Acentuação portuguesa corrigida em todas as páginas
+- [x] Contraste WCAG melhorado no footer e botões CTA
+- [x] Backend refatorado (1389 → 40 linhas no server.py)
 
 ## Credenciais de Teste
 - Admin: admin@accta.cv / admin123
 - Sócio: socio1@accta.cv / socio123
 
 ## Status de Testes
-- iteration_7: 100% - Refactoring backend (38/38 endpoints + frontend)
-- iteration_6: 100% - UX/Legibilidade (acentos e contrastes)
+- iteration_8: 100% (9/9 backend + 6/6 frontend) - Recuperação de senha
+- iteration_7: 100% (38/38 endpoints) - Refactoring backend
+- iteration_6: 100% - UX/Legibilidade
 
-## Data: 27 Fevereiro 2026
+## Data: 28 Março 2026
 
 ## Próximas Tarefas (Backlog)
 - P1: Clube de Benefícios - Lógica de validação QR Code
 - P2: Evento em Destaque com countdown na homepage
 - P2: Exportar eventos para Google/Apple Calendar
-- P2: Sistema de recuperação de senha
+
+## Nota Técnica
+- A recuperação de senha funciona em modo DEMO (token retornado na resposta API). Para produção, substituir pelo envio de email real (SendGrid, Resend, etc.)
