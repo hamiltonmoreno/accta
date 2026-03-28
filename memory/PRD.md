@@ -21,11 +21,15 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 - [x] CRUD Perfil do Membro com Cargos e Privilegios
 - [x] **Sistema Financeiro Completo**
   - Fluxo de Caixa: CRUD completo de transacoes (receitas/despesas)
-  - Relatorio DRE com grafico mensal e categorias
+  - Pesquisa por texto nas transacoes (backend regex + frontend debounce)
+  - Filtros por periodo (data inicio/fim)
+  - Paginacao real (20 por pagina com navegacao)
+  - Export CSV do fluxo de caixa (separador ;, UTF-8 BOM, com filtros)
+  - Relatorio DRE com grafico mensal, categorias com percentagens e barras de progresso
   - **Export PDF do DRE** com layout profissional (header ACCTA, tabela mensal, categorias)
+  - Widget de resumo financeiro no Dashboard (clicavel, navega para /financeiro)
   - Configuracao de quota mensal (padrao 2.000 CVE)
-  - Geracao em lote de quotas mensais para todos os socios ativos
-  - Categorias: Quotas, Patrocinios, Doacoes, Eventos, Operacional, Juridico, Comunicacao, Viagens
+  - Geracao em lote com resultado detalhado (criados, ignorados, valor total)
   - Vista simplificada para socios (Minhas Quotas)
   - Regra: Socio ativo NUNCA fica inadimplente (desconto em folha)
 
