@@ -16,22 +16,17 @@ Ecossistema digital integrado para a Associação dos Controladores de Tráfego 
 
 ### Área Pública (COMPLETA)
 - [x] HomePage com hero, sobre, CTA
-- [x] Página Sobre Nós
-- [x] Página Profissão
-- [x] Página Transparência
-- [x] Página Benefícios públicos
+- [x] Página Sobre Nós, Profissão, Transparência, Benefícios
 - [x] Validador QR Code
 
 ### Área Privada - Painel
-- [x] Dashboard redesenhado (Recharts - donut, area charts)
-- [x] Meu Perfil (edição de dados, foto)
+- [x] Dashboard redesenhado (Recharts)
+- [x] Meu Perfil (edição de dados)
 - [x] Autenticação JWT
 
 ### Área Privada - Gestão
 - [x] **Módulo Financeiro** (REFATORADO em 28/03/2026)
-  - CashFlowTab: listagem, filtros, pesquisa, paginação, CRUD transações
-  - DRETab: relatório anual com gráficos de barras, categorias
-  - SettingsTab: configuração de quotas, geração automática
+  - CashFlowTab, DRETab, SettingsTab, TransactionModal, MemberFinanceView
   - Export PDF e CSV
 - [x] **Módulo Projetos** - CRUD completo, tarefas, milestones, comentários, orçamento
 - [x] **Votações** - Sistema de votação interna
@@ -39,69 +34,47 @@ Ecossistema digital integrado para a Associação dos Controladores de Tráfego 
 - [x] **Documentos** - Upload/download admin
 
 ### Área Privada - Comunidade
-- [x] **Mural de Comunicação** (MELHORADO em 28/03/2026)
-  - Feed de posts com categorias (geral, sugestão, discussão, aviso)
-  - Pesquisa full-text por conteúdo/autor
-  - Filtros por categoria
-  - Likes e comentários
-  - Moderação (aprovação/rejeição por admin)
-  - Pin de posts
+- [x] **Mural de Comunicação** (MELHORADO em 28/03/2026) - pesquisa, filtros por categoria, likes, comentários, moderação
 - [x] **Clube de Benefícios** (básico)
 
 ### Sistema
-- [x] **Notificações** (MELHORADO em 28/03/2026)
-  - Central de Notificações com stats cards
-  - Painel de broadcast (admin envia para todos os sócios)
-  - Filtros por tipo (geral, financeiro, evento, projeto, mural, sistema)
-  - Toggle "Não lidas"
-  - Eliminar notificação individual
-  - Limpar notificações lidas
-  - Marcar todas como lidas
-  - Ícones e cores por tipo de notificação
-- [x] **Dark Mode** global com persistência localStorage
+- [x] **Notificações Avançadas** (IMPLEMENTADO em 28/03/2026)
+  - Central de Notificações com stats, broadcast admin, filtros por tipo, eliminar/limpar
+  - **Notificações Automáticas** (IMPLEMENTADO em 28/03/2026):
+    - Projeto: criação, mudança de status, aprovação, atribuição de responsável, nova tarefa, tarefa concluída, novo comentário, nova despesa, orçamento excedido
+    - Finanças: nova transação, quotas geradas, configurações alteradas
+- [x] **Dark Mode** global
 
 ## Refatoração Realizada (28/03/2026)
-- FinanceiroPage.js (1067 linhas) → 6 ficheiros:
-  - `financeiro/CashFlowTab.js`
-  - `financeiro/DRETab.js`
-  - `financeiro/SettingsTab.js`
-  - `financeiro/TransactionModal.js`
-  - `financeiro/MemberFinanceView.js`
-  - `financeiro/constants.js`
+- FinanceiroPage.js (1067 linhas) → 6 ficheiros em `financeiro/`
 
-## Backlog (Próximas Tarefas)
+## Backlog
 
 ### P1
 - [ ] Carteira Digital (PWA) - funcionalidade offline e identificação digital
 - [ ] Clube de Benefícios - QR Code validation avançado
-- [ ] Notificações automáticas em mudanças de projeto/finanças
 
 ### P2
 - [ ] Evento em Destaque com countdown na homepage
 - [ ] Exportar eventos para Google/Apple Calendar
-- [ ] Galeria de fotos (equipa, aeroportos de Cabo Verde)
+- [ ] Galeria de fotos
 
 ## Regras de Negócio
 - NÃO existe "Sócio inadimplente" - quotas descontadas em folha
-- CSS variables obrigatórias para Dark Mode (var(--bg-primary), var(--text-primary), etc.)
+- CSS variables obrigatórias para Dark Mode
 - Todos os elementos interativos precisam de data-testid
 
 ## Arquitetura
 ```
-/app/frontend/src/
-├── pages/private/
-│   ├── financeiro/ (CashFlowTab, DRETab, SettingsTab, TransactionModal, MemberFinanceView, constants)
-│   ├── DashboardPage.js
-│   ├── FinanceiroPage.js (orchestrator)
-│   ├── MuralPage.js
-│   ├── NotificacoesPage.js
-│   ├── ProjectsPage.js / ProjectDetailPage.js
-│   └── ...
-├── contexts/ (AuthContext, ThemeContext, NotificationContext)
-└── layouts/ (PublicLayout, PrivateLayout)
+/app/frontend/src/pages/private/
+├── financeiro/ (CashFlowTab, DRETab, SettingsTab, TransactionModal, MemberFinanceView, constants)
+├── DashboardPage.js, FinanceiroPage.js, MuralPage.js, NotificacoesPage.js
+├── ProjectsPage.js, ProjectDetailPage.js, EventosPage.js, VotacoesPage.js
+└── ...
 
 /app/backend/
-├── routes/ (finances.py, projects.py, notifications.py, wall.py, auth_routes.py, ...)
-├── models.py, auth.py, database.py, helpers.py
+├── routes/ (finances.py, projects.py, notifications.py, wall.py, auth_routes.py)
+├── helpers.py (notify_users, notify_admins, notify_all_active_users, get_project_stakeholder_ids)
+├── models.py, auth.py, database.py
 └── server.py
 ```
