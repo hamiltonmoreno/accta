@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { postsAPI } from '../../utils/api';
+import { postsAPI, eventsAPI } from '../../utils/api';
 import { 
   Plane, 
   Shield, 
@@ -27,10 +27,41 @@ const NEWS_IMAGES = [
 export const HomePage = () => {
   const [news, setNews] = useState([]);
   const [loadingNews, setLoadingNews] = useState(true);
+  const [featuredEvent, setFeaturedEvent] = useState(null);
+  const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
     loadNews();
+    loadFeaturedEvent();
   }, []);
+
+  const calcCountdown = useCallback((dateStr) => {
+    const target = new Date(dateStr).getTime();
+    const now = Date.now();
+    const diff = Math.max(0, target - now);
+    return {
+      days: Math.floor(diff / 86400000),
+      hours: Math.floor((diff % 86400000) / 3600000),
+      minutes: Math.floor((diff % 3600000) / 60000),
+      seconds: Math.floor((diff % 60000) / 1000),
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!featuredEvent) return;
+    setCountdown(calcCountdown(featuredEvent.date));
+    const interval = setInterval(() => {
+      setCountdown(calcCountdown(featuredEvent.date));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [featuredEvent, calcCountdown]);
+
+  const loadFeaturedEvent = async () => {
+    try {
+      const res = await eventsAPI.getFeatured();
+      if (res.data) setFeaturedEvent(res.data);
+    } catch (err) { /* no featured event */ }
+  };
 
   const loadNews = async () => {
     try {
@@ -139,6 +170,88 @@ export const HomePage = () => {
           </div>
         </div>
       </section>
+
+      {/* Featured Event Countdown */}
+      {featuredEvent && (
+        <section className="py-12 sm:py-16 bg-white border-b border-gray-100" data-testid="featured-event-section">
+          <div className="max-w-7xl mx-auto px-5 sm:px-6">
+            <div className="relative overflow-hidden rounded-2xl bg-grafite p-6 sm:p-10 lg:p-12">
+              {/* Background pattern */}
+              <div className="absolute inset-0 opacity-[0.04]" style={{
+                backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+                backgroundSize: '24px 24px'
+              }} />
+              <div className="absolute top-0 right-0 w-64 h-64 bg-carmesim/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
+
+              <div className="relative z-10 grid lg:grid-cols-2 gap-8 items-center">
+                {/* Event Info */}
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-carmesim/20 border border-carmesim/30 rounded-full mb-4 sm:mb-5">
+                    <Calendar className="w-3.5 h-3.5 text-carmesim" />
+                    <span className="text-xs text-carmesim font-semibold uppercase tracking-wider">Proximo Evento</span>
+                  </div>
+                  <h3 className="font-bold text-2xl sm:text-3xl lg:text-4xl text-white mb-3" data-testid="featured-event-title">
+                    {featuredEvent.title}
+                  </h3>
+                  <p className="text-sm sm:text-base text-white/70 leading-relaxed mb-5 max-w-md">
+                    {featuredEvent.description?.slice(0, 150)}{featuredEvent.description?.length > 150 ? '...' : ''}
+                  </p>
+                  <div className="flex flex-wrap gap-4 text-sm text-white/80">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4 text-carmesim" />
+                      <span>{format(new Date(featuredEvent.date), "dd 'de' MMMM yyyy", { locale: ptBR })}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-carmesim" />
+                      <span>{format(new Date(featuredEvent.date), 'HH:mm')}</span>
+                    </div>
+                    {featuredEvent.location && (
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="w-4 h-4 text-carmesim" />
+                        <span>{featuredEvent.location}</span>
+                      </div>
+                    )}
+                  </div>
+                  {featuredEvent.attendee_count > 0 && (
+                    <div className="mt-4 flex items-center gap-2 text-xs text-white/50">
+                      <Users className="w-3.5 h-3.5" />
+                      <span>{featuredEvent.attendee_count} inscrito{featuredEvent.attendee_count !== 1 ? 's' : ''}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Countdown */}
+                <div className="flex justify-center lg:justify-end">
+                  <div className="grid grid-cols-4 gap-3 sm:gap-4" data-testid="countdown-timer">
+                    {[
+                      { value: countdown.days, label: 'Dias' },
+                      { value: countdown.hours, label: 'Horas' },
+                      { value: countdown.minutes, label: 'Min' },
+                      { value: countdown.seconds, label: 'Seg' },
+                    ].map((unit, i) => (
+                      <motion.div
+                        key={unit.label}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: i * 0.1 }}
+                        className="flex flex-col items-center"
+                      >
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl flex items-center justify-center mb-2">
+                          <span className="font-bold text-2xl sm:text-3xl text-white font-mono" data-testid={`countdown-${unit.label.toLowerCase()}`}>
+                            {String(unit.value).padStart(2, '0')}
+                          </span>
+                        </div>
+                        <span className="text-[10px] sm:text-xs text-white/50 uppercase tracking-widest font-semibold">{unit.label}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* What We Do Section */}
       <section className="py-16 sm:py-24 bg-gray-50">

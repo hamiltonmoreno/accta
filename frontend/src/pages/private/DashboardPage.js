@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
-import { statsAPI, pollsAPI, eventsAPI, financesAPI, activityAPI } from '../../utils/api';
+import { statsAPI, pollsAPI, eventsAPI, financesAPI, activityAPI, reportAPI } from '../../utils/api';
 import {
   Users, DollarSign, Vote, CheckCircle, Bell,
   Calendar, MapPin, Clock, ArrowRight, TrendingUp, TrendingDown,
   Wallet, ArrowUpRight, ArrowDownRight, BarChart3, MessageSquare,
-  FolderKanban, Trophy, Activity,
+  FolderKanban, Trophy, Activity, Image, FileText, Heart, ThumbsUp,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -169,6 +169,7 @@ export const DashboardPage = () => {
   const [activePolls, setActivePolls] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
+  const [personalReport, setPersonalReport] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const currentYear = new Date().getFullYear();
@@ -206,6 +207,9 @@ export const DashboardPage = () => {
         setFinanceSummary(results[4].data);
         setDreData(results[5].data);
       }
+
+      // Load personal report separately (non-blocking)
+      reportAPI.getPersonal().then(r => setPersonalReport(r.data)).catch(() => {});
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
@@ -571,6 +575,97 @@ export const DashboardPage = () => {
                   </div>
                 </div>
               </button>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* ===== PERSONAL ACTIVITY REPORT ===== */}
+      {personalReport && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden"
+          data-testid="personal-report"
+        >
+          <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-carmesim" />
+              <h2 className="text-lg font-semibold text-grafite">A Minha Participacao</h2>
+            </div>
+            <span className="text-[10px] text-gray-400 uppercase tracking-wider hidden sm:block">Relatorio pessoal</span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-gray-100">
+            {[
+              {
+                icon: Calendar,
+                label: 'Eventos',
+                value: personalReport.events_attended,
+                total: personalReport.total_events,
+                color: 'bg-carmesim/10 text-carmesim',
+              },
+              {
+                icon: Vote,
+                label: 'Votacoes',
+                value: personalReport.polls_voted,
+                total: personalReport.total_polls,
+                color: 'bg-blue-50 text-blue-600',
+              },
+              {
+                icon: MessageSquare,
+                label: 'Publicacoes',
+                value: personalReport.wall_posts,
+                total: null,
+                color: 'bg-green-50 text-green-600',
+              },
+              {
+                icon: ThumbsUp,
+                label: 'Likes Recebidos',
+                value: personalReport.likes_received,
+                total: null,
+                color: 'bg-pink-50 text-pink-600',
+              },
+              {
+                icon: FolderKanban,
+                label: 'Projetos',
+                value: personalReport.projects_member,
+                total: null,
+                color: 'bg-purple-50 text-purple-600',
+              },
+              {
+                icon: Image,
+                label: 'Fotos',
+                value: personalReport.photos_approved,
+                total: personalReport.photos_submitted,
+                color: 'bg-amber-50 text-amber-600',
+              },
+              {
+                icon: Heart,
+                label: 'Beneficios',
+                value: personalReport.benefits_used,
+                total: null,
+                color: 'bg-red-50 text-red-500',
+              },
+              {
+                icon: FileText,
+                label: 'Documentos',
+                value: personalReport.documents_available,
+                total: null,
+                color: 'bg-gray-50 text-gray-600',
+              },
+            ].map((item, idx) => (
+              <div key={item.label} className="bg-white p-4 sm:p-5 flex flex-col items-center text-center" data-testid={`report-stat-${idx}`}>
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-2.5 ${item.color}`}>
+                  <item.icon className="w-4 h-4" />
+                </div>
+                <div className="font-bold text-xl text-grafite">{item.value}</div>
+                {item.total !== null && item.total > 0 && (
+                  <div className="text-[10px] text-gray-400 font-mono mt-0.5">de {item.total}</div>
+                )}
+                <div className="text-[11px] text-gray-500 mt-1">{item.label}</div>
+              </div>
             ))}
           </div>
         </motion.div>

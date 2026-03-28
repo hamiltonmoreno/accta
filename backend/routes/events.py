@@ -47,6 +47,28 @@ async def get_public_events():
     return events
 
 
+@router.get("/events/featured")
+async def get_featured_event():
+    """Get the next upcoming public event for the homepage countdown."""
+    now = datetime.now(timezone.utc).isoformat()
+    event = await db.events.find_one(
+        {"visibility": "publico", "date": {"$gte": now}, "status": {"$ne": "cancelado"}},
+        {"_id": 0, "attendees": 0}
+    )
+    if not event:
+        return None
+    if isinstance(event.get('date'), str):
+        event['date'] = datetime.fromisoformat(event['date'])
+    if isinstance(event.get('end_date'), str):
+        event['end_date'] = datetime.fromisoformat(event['end_date'])
+    if isinstance(event.get('created_at'), str):
+        event['created_at'] = datetime.fromisoformat(event['created_at'])
+    attendee_count = await db.events.find_one({"id": event["id"]}, {"_id": 0, "attendees": 1})
+    event["attendee_count"] = len(attendee_count.get("attendees", [])) if attendee_count else 0
+    return event
+
+
+
 @router.get("/events/upcoming")
 async def get_upcoming_events(current_user: User = Depends(get_current_user)):
     now = datetime.now(timezone.utc).isoformat()

@@ -167,6 +167,7 @@ export const eventsAPI = {
   getAll: (visibility) => api.get('/events', { params: { visibility } }),
   getPublic: () => api.get('/events/public'),
   getUpcoming: () => api.get('/events/upcoming'),
+  getFeatured: () => api.get('/events/featured'),
   getById: (eventId) => api.get(`/events/${eventId}`),
   create: (data) => api.post('/events', data),
   update: (eventId, data) => api.patch(`/events/${eventId}`, data),
@@ -227,3 +228,8 @@ export const projectsAPI = {
   getMembers: () => api.get('/projects/meta/members'),
 };
 
+
+// Personal Report API
+export const reportAPI = {
+  getPersonal: () => api.get('/report/personal'),
+};
