@@ -19,6 +19,14 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 - [x] Clube de Beneficios, Notificacoes In-App
 - [x] Recuperacao de Senha (modo demo)
 - [x] CRUD Perfil do Membro com Cargos e Privilegios
+- [x] **Modulo de Projetos Completo** 
+  - Qualquer socio ativo propoe projetos (admin aprova)
+  - Tarefas com responsaveis, prioridade (baixa/media/alta), prazo, toggle de status
+  - Comentarios colaborativos (qualquer membro com acesso)
+  - Orcamento com tracking de despesas (orcamento vs gasto vs disponivel)
+  - Timeline com milestones (marcar como concluido)
+  - Projetos privados (so para direcao/criador/responsavel)
+  - Slider de progresso (0-100%), cards com metricas, filtros por status
 - [x] **Sistema Financeiro Completo**
   - Fluxo de Caixa: CRUD completo de transacoes (receitas/despesas)
   - Pesquisa por texto nas transacoes (backend regex + frontend debounce)
