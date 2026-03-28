@@ -20,32 +20,30 @@ Ecossistema digital integrado para a Associação dos Controladores de Tráfego 
 - [x] Validador QR Code
 
 ### Área Privada - Painel
-- [x] Dashboard redesenhado (Recharts)
+- [x] Dashboard redesenhado (Recharts) + **Feed Atividade Recente** (28/03/2026)
 - [x] Meu Perfil (edição de dados)
 - [x] Autenticação JWT
 
 ### Área Privada - Gestão
-- [x] **Módulo Financeiro** (REFATORADO em 28/03/2026)
-  - CashFlowTab, DRETab, SettingsTab, TransactionModal, MemberFinanceView
-  - Export PDF e CSV
-- [x] **Módulo Projetos** - CRUD completo, tarefas, milestones, comentários, orçamento
+- [x] **Módulo Financeiro** (REFATORADO em 28/03/2026) — CashFlowTab, DRETab, SettingsTab, Export PDF/CSV
+- [x] **Módulo Projetos** - CRUD, tarefas, milestones, comentários, orçamento
 - [x] **Votações** - Sistema de votação interna
 - [x] **Eventos/Agenda** - CRUD com inscrição
 - [x] **Documentos** - Upload/download admin
 
 ### Área Privada - Comunidade
-- [x] **Mural de Comunicação** (MELHORADO em 28/03/2026) - pesquisa, filtros por categoria, likes, comentários, moderação
+- [x] **Mural de Comunicação** (MELHORADO em 28/03/2026) - pesquisa, filtros, likes, comentários, moderação
 - [x] **Clube de Benefícios** (básico)
 
 ### Sistema
-- [x] **Notificações Avançadas** (IMPLEMENTADO em 28/03/2026)
-  - Central de Notificações com stats, broadcast admin, filtros por tipo, eliminar/limpar
-  - **Notificações Automáticas** (IMPLEMENTADO em 28/03/2026):
-    - Projeto: criação, mudança de status, aprovação, atribuição de responsável, nova tarefa, tarefa concluída, novo comentário, nova despesa, orçamento excedido
-    - Finanças: nova transação, quotas geradas, configurações alteradas
+- [x] **Notificações Avançadas** (28/03/2026) — Central com stats, broadcast admin, filtros por tipo, eliminar/limpar
+- [x] **Notificações Automáticas** (28/03/2026):
+  - Projetos: criação, status, aprovação, responsável, tarefa, comentário, despesa, orçamento excedido
+  - Finanças: nova transação, quotas geradas, configurações
+- [x] **Feed de Atividade Recente** (28/03/2026) — Dashboard widget agregando mural, projetos, finanças, eventos, votações
 - [x] **Dark Mode** global
 
-## Refatoração Realizada (28/03/2026)
+## Refatoração (28/03/2026)
 - FinanceiroPage.js (1067 linhas) → 6 ficheiros em `financeiro/`
 
 ## Backlog
@@ -68,13 +66,14 @@ Ecossistema digital integrado para a Associação dos Controladores de Tráfego 
 ```
 /app/frontend/src/pages/private/
 ├── financeiro/ (CashFlowTab, DRETab, SettingsTab, TransactionModal, MemberFinanceView, constants)
-├── DashboardPage.js, FinanceiroPage.js, MuralPage.js, NotificacoesPage.js
+├── DashboardPage.js (com ActivityFeed widget)
+├── FinanceiroPage.js, MuralPage.js, NotificacoesPage.js
 ├── ProjectsPage.js, ProjectDetailPage.js, EventosPage.js, VotacoesPage.js
-└── ...
 
-/app/backend/
-├── routes/ (finances.py, projects.py, notifications.py, wall.py, auth_routes.py)
+/app/backend/routes/
+├── activity.py (NEW - feed de atividade recente)
+├── finances.py, projects.py (com triggers de notificação automática)
+├── notifications.py (CRUD avançado, broadcast)
+├── wall.py, auth_routes.py, events.py, ...
 ├── helpers.py (notify_users, notify_admins, notify_all_active_users, get_project_stakeholder_ids)
-├── models.py, auth.py, database.py
-└── server.py
 ```
