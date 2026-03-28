@@ -1,73 +1,107 @@
 # Portal ACTACV - Product Requirements Document
 
-## Visao Geral
-Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aereo de Cabo Verde (ACTACV).
+## Problema Original
+Ecossistema digital integrado para a Associação dos Controladores de Tráfego Aéreo de Cabo Verde (ACTACV). Portal institucional público + área reservada para associados.
 
-## Stack Tecnologica
-- **Frontend:** React 18, Tailwind CSS, Framer Motion, React Router, Axios, PWA
-- **Backend:** FastAPI (Python), MongoDB, JWT Authentication
+## Stack Técnica
+- **Frontend:** React, Tailwind CSS, Recharts, Framer Motion, CSS Variables (Dark Mode)
+- **Backend:** Python FastAPI (Router modular), MongoDB (Motor async), JWT Auth
+- **Extras:** fpdf2 (PDF), date-fns (datas)
 
-## Funcionalidades Implementadas
-
-### Area Publica
-- [x] Homepage, Sobre, Profissao, Transparencia, Beneficios, Contactos, Galeria, Eventos
-
-### Area Reservada
-- [x] Dashboard, Carteira Digital PWA
-- [x] Votacoes, Eventos/Agenda, Documentos
-- [x] Mural de Comunicacao (categorias, likes, comentarios, moderacao)
-- [x] Clube de Beneficios, Notificacoes In-App
-- [x] Recuperacao de Senha (modo demo)
-- [x] CRUD Perfil do Membro com Cargos e Privilegios
-- [x] **Modulo de Projetos Completo** 
-  - Qualquer socio ativo propoe projetos (admin aprova)
-  - Tarefas com responsaveis, prioridade (baixa/media/alta), prazo, toggle de status
-  - Comentarios colaborativos (qualquer membro com acesso)
-  - Orcamento com tracking de despesas (orcamento vs gasto vs disponivel)
-  - Timeline com milestones (marcar como concluido)
-  - Projetos privados (so para direcao/criador/responsavel)
-  - Slider de progresso (0-100%), cards com metricas, filtros por status
-- [x] **Sistema Financeiro Completo**
-  - Fluxo de Caixa: CRUD completo de transacoes (receitas/despesas)
-  - Pesquisa por texto nas transacoes (backend regex + frontend debounce)
-  - Filtros por periodo (data inicio/fim)
-  - Paginacao real (20 por pagina com navegacao)
-  - Export CSV do fluxo de caixa (separador ;, UTF-8 BOM, com filtros)
-  - Relatorio DRE com grafico mensal, categorias com percentagens e barras de progresso
-  - **Export PDF do DRE** com layout profissional (header ACCTA, tabela mensal, categorias)
-  - Widget de resumo financeiro no Dashboard (clicavel, navega para /financeiro)
-  - Configuracao de quota mensal (padrao 2.000 CVE)
-  - Geracao em lote com resultado detalhado (criados, ignorados, valor total)
-  - Vista simplificada para socios (Minhas Quotas)
-  - Regra: Socio ativo NUNCA fica inadimplente (desconto em folha)
-
-### Design & UX
-- [x] Identidade Visual ACCTA (Carmesim, Grafite, Open Sans)
-- [x] Sidebar collapsivel com lock/hover (fundo branco, seccoes agrupadas)
-- [x] Responsividade 320-1920px (mobile/tablet/desktop)
-- [x] **Dashboard redesenhada** (estilo referencia: stat cards modernos, graficos Recharts, tabela de eventos, layout espaçoso com `rounded-2xl`)
-- [x] **Dark Mode** (toggle Sun/Moon no sidebar, CSS variables, localStorage, aplica-se a todas as paginas)
-
-### Backend (Modular)
-```
-server.py (40L) -> database.py, auth.py, models.py, helpers.py
-routes/ -> 14 modulos (auth, users, invoices, polls, posts, documents,
-          benefits, wall, events, gallery, notifications, stats, upload, finances)
-```
-
-## Credenciais
+## Credenciais de Teste
 - Admin: admin@accta.cv / admin123
-- Socio: socio1@accta.cv / socio123
+- Sócio: socio1@accta.cv / socio123
 
-## Testes
-- iteration_12: 100% (25/25 backend + frontend) - Sistema Financeiro
-- iteration_11: 100% (19/19) - CRUD Perfil Membro
-- iteration_10: 100% (17/17) - Sidebar
-- iteration_9: 100% (16/16) - Responsividade
-- iteration_8: 100% (15/15) - Recuperacao de senha
-- iteration_7: 100% (38/38) - Refactoring backend
+## Módulos Implementados
 
-## Proximas Tarefas
-- P1: Clube de Beneficios - Logica de validacao QR Code
-- P2: Evento em Destaque com countdown na homepage
-- P2: Exportar eventos para Google/Apple Calendar
+### Área Pública (COMPLETA)
+- [x] HomePage com hero, sobre, CTA
+- [x] Página Sobre Nós
+- [x] Página Profissão
+- [x] Página Transparência
+- [x] Página Benefícios públicos
+- [x] Validador QR Code
+
+### Área Privada - Painel
+- [x] Dashboard redesenhado (Recharts - donut, area charts)
+- [x] Meu Perfil (edição de dados, foto)
+- [x] Autenticação JWT
+
+### Área Privada - Gestão
+- [x] **Módulo Financeiro** (REFATORADO em 28/03/2026)
+  - CashFlowTab: listagem, filtros, pesquisa, paginação, CRUD transações
+  - DRETab: relatório anual com gráficos de barras, categorias
+  - SettingsTab: configuração de quotas, geração automática
+  - Export PDF e CSV
+- [x] **Módulo Projetos** - CRUD completo, tarefas, milestones, comentários, orçamento
+- [x] **Votações** - Sistema de votação interna
+- [x] **Eventos/Agenda** - CRUD com inscrição
+- [x] **Documentos** - Upload/download admin
+
+### Área Privada - Comunidade
+- [x] **Mural de Comunicação** (MELHORADO em 28/03/2026)
+  - Feed de posts com categorias (geral, sugestão, discussão, aviso)
+  - Pesquisa full-text por conteúdo/autor
+  - Filtros por categoria
+  - Likes e comentários
+  - Moderação (aprovação/rejeição por admin)
+  - Pin de posts
+- [x] **Clube de Benefícios** (básico)
+
+### Sistema
+- [x] **Notificações** (MELHORADO em 28/03/2026)
+  - Central de Notificações com stats cards
+  - Painel de broadcast (admin envia para todos os sócios)
+  - Filtros por tipo (geral, financeiro, evento, projeto, mural, sistema)
+  - Toggle "Não lidas"
+  - Eliminar notificação individual
+  - Limpar notificações lidas
+  - Marcar todas como lidas
+  - Ícones e cores por tipo de notificação
+- [x] **Dark Mode** global com persistência localStorage
+
+## Refatoração Realizada (28/03/2026)
+- FinanceiroPage.js (1067 linhas) → 6 ficheiros:
+  - `financeiro/CashFlowTab.js`
+  - `financeiro/DRETab.js`
+  - `financeiro/SettingsTab.js`
+  - `financeiro/TransactionModal.js`
+  - `financeiro/MemberFinanceView.js`
+  - `financeiro/constants.js`
+
+## Backlog (Próximas Tarefas)
+
+### P1
+- [ ] Carteira Digital (PWA) - funcionalidade offline e identificação digital
+- [ ] Clube de Benefícios - QR Code validation avançado
+- [ ] Notificações automáticas em mudanças de projeto/finanças
+
+### P2
+- [ ] Evento em Destaque com countdown na homepage
+- [ ] Exportar eventos para Google/Apple Calendar
+- [ ] Galeria de fotos (equipa, aeroportos de Cabo Verde)
+
+## Regras de Negócio
+- NÃO existe "Sócio inadimplente" - quotas descontadas em folha
+- CSS variables obrigatórias para Dark Mode (var(--bg-primary), var(--text-primary), etc.)
+- Todos os elementos interativos precisam de data-testid
+
+## Arquitetura
+```
+/app/frontend/src/
+├── pages/private/
+│   ├── financeiro/ (CashFlowTab, DRETab, SettingsTab, TransactionModal, MemberFinanceView, constants)
+│   ├── DashboardPage.js
+│   ├── FinanceiroPage.js (orchestrator)
+│   ├── MuralPage.js
+│   ├── NotificacoesPage.js
+│   ├── ProjectsPage.js / ProjectDetailPage.js
+│   └── ...
+├── contexts/ (AuthContext, ThemeContext, NotificationContext)
+└── layouts/ (PublicLayout, PrivateLayout)
+
+/app/backend/
+├── routes/ (finances.py, projects.py, notifications.py, wall.py, auth_routes.py, ...)
+├── models.py, auth.py, database.py, helpers.py
+└── server.py
+```
