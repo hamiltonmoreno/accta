@@ -18,10 +18,12 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 ### Area Publica (COMPLETA)
 - [x] HomePage, Sobre, Profissao, Transparencia, Beneficios
 - [x] Validador QR Code
-- [x] Galeria de Fotos Publica — Albums publicos com fotos aprovadas
+- [x] Galeria de Fotos Publica
+- [x] **Evento em Destaque** com countdown timer animado na homepage
 
 ### Area Privada - Painel
 - [x] Dashboard redesenhado (Recharts) + Feed Atividade Recente
+- [x] **Relatorio de Atividade Pessoal** (8 metricas: eventos, votacoes, publicacoes, likes, projetos, fotos, beneficios, documentos)
 - [x] Meu Perfil, Autenticacao JWT
 - [x] Carteira Digital com QR Code
 
@@ -33,17 +35,16 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 - [x] Documentos — Upload/download admin
 
 ### Area Privada - Comunidade
-- [x] Mural de Comunicacao (MELHORADO) — pesquisa, filtros, likes, comentarios, moderacao
-- [x] Galeria de Fotos — Upload com workflow de aprovacao, Lightbox, grid responsive
+- [x] Mural de Comunicacao (MELHORADO)
+- [x] Galeria de Fotos — Upload com workflow de aprovacao
 - [x] Clube de Beneficios (basico)
 
 ### Sistema
-- [x] Notificacoes Avancadas — Central com stats, broadcast admin, filtros por tipo
-- [x] Notificacoes Automaticas — Projetos + Financas + Galeria
-- [x] Feed de Atividade Recente — Dashboard widget
-- [x] CI/CD — GitHub Actions (ci.yml, deploy.yml)
-- [x] Dark Mode REMOVIDO (codigo CSS e JS limpos)
-- [x] Quotas pendentes REMOVIDAS — Nao existe conceito de inadimplencia
+- [x] Notificacoes Avancadas + Automaticas
+- [x] Feed de Atividade Recente
+- [x] CI/CD — GitHub Actions
+- [x] Dark Mode REMOVIDO
+- [x] Quotas pendentes REMOVIDAS
 
 ## Backlog
 
@@ -52,7 +53,6 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 - [ ] Clube de Beneficios - QR Code validation avancado
 
 ### P2
-- [ ] Evento em Destaque com countdown na homepage
 - [ ] Exportar eventos para Google/Apple Calendar
 
 ## Regras de Negocio
@@ -60,28 +60,20 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 - NAO existem "Quotas Pendentes" — contribuicoes automaticas via folha
 - Dark Mode DESATIVADO e CSS dark mode REMOVIDO do codebase
 - Apenas estatutos: ativo e inativo
-- Todos os elementos interativos precisam de data-testid
+
+## API Endpoints Novos (esta sessao)
+- `GET /api/events/featured` — Proximo evento publico (sem auth)
+- `GET /api/report/personal` — Relatorio de atividade pessoal (com auth)
 
 ## Arquitectura
 ```
 /app/backend/routes/
 ├── gallery.py, activity.py, finances.py, projects.py
 ├── notifications.py, wall.py, auth_routes.py, events.py, stats.py
+├── report.py (NOVO - relatorio pessoal)
 
 /app/frontend/src/
-├── pages/private/DashboardPage.js (sem quotas pendentes)
-├── pages/private/GaleriaAdminPage.js
-├── pages/public/GaleriaPage.js
-├── pages/private/financeiro/ (modulos refatorados)
-├── pages/private/AdminUsuariosPage.js (sem status inadimplente)
-├── layouts/PrivateLayout.js (sem toggle dark mode)
-├── contexts/ThemeContext.js (forcado modo claro)
+├── pages/public/HomePage.js (featured event countdown)
+├── pages/private/DashboardPage.js (personal report widget)
+├── utils/api.js (eventsAPI.getFeatured, reportAPI.getPersonal)
 ```
-
-## Documentacao do Sistema
-- README.md — Quick start e overview
-- PROJETO_ACCTA.md — Detalhes completos do projeto
-- ANALISE_MELHORIAS.md — Estado actual e melhorias pendentes
-- SISTEMA_NOTIFICACOES.md — Documentacao do sistema de notificacoes
-- DEPLOY.md — Guia de deploy com GitHub Actions
-- SSH_SETUP.md — Configuracao SSH para CI/CD
