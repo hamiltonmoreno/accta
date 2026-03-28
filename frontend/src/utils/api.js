@@ -62,6 +62,21 @@ export const invoicesAPI = {
   confirm: (invoiceId) => api.patch(`/invoices/${invoiceId}/confirm`),
 };
 
+// Finances API
+export const financesAPI = {
+  getTransactions: (params) => api.get('/finances/transactions', { params }),
+  getTransactionCount: (params) => api.get('/finances/transactions/count', { params }),
+  createTransaction: (data) => api.post('/finances/transactions', data),
+  updateTransaction: (id, data) => api.patch(`/finances/transactions/${id}`, data),
+  deleteTransaction: (id) => api.delete(`/finances/transactions/${id}`),
+  getSummary: (params) => api.get('/finances/summary', { params }),
+  getDRE: (year) => api.get('/finances/dre', { params: { year } }),
+  getSettings: () => api.get('/finances/settings'),
+  updateSettings: (data) => api.patch('/finances/settings', data),
+  generateQuotas: (month, year) => api.post(`/finances/generate-quotas?month=${month}&year=${year}`),
+  getCategories: () => api.get('/finances/meta/categories'),
+};
+
 // Polls API
 export const pollsAPI = {
   getAll: () => api.get('/polls'),

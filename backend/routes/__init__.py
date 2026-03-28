@@ -12,6 +12,7 @@ from routes.gallery import router as gallery_router
 from routes.notifications import router as notifications_router
 from routes.stats import router as stats_router
 from routes.upload import router as upload_router
+from routes.finances import router as finances_router
 
 api_router = APIRouter(prefix="/api")
 
@@ -28,3 +29,4 @@ api_router.include_router(gallery_router)
 api_router.include_router(notifications_router)
 api_router.include_router(stats_router)
 api_router.include_router(upload_router)
+api_router.include_router(finances_router)

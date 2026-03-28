@@ -351,6 +351,66 @@ class NotificationCreate(BaseModel):
     link: Optional[str] = None
 
 
+# ===== FINANCE MODELS =====
+
+TRANSACTION_TYPES = ["receita", "despesa"]
+
+INCOME_CATEGORIES = [
+    "quotas", "patrocinios", "doacoes", "eventos", "outros_receita"
+]
+
+EXPENSE_CATEGORIES = [
+    "operacional", "eventos", "juridico", "comunicacao", "viagens", "outros_despesa"
+]
+
+
+class Transaction(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    type: str  # "receita" or "despesa"
+    category: str
+    description: str
+    amount: float
+    date: datetime
+    reference: Optional[str] = None
+    user_id: Optional[str] = None
+    created_by: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class TransactionCreate(BaseModel):
+    type: str
+    category: str
+    description: str
+    amount: float
+    date: datetime
+    reference: Optional[str] = None
+    user_id: Optional[str] = None
+
+
+class TransactionUpdate(BaseModel):
+    type: Optional[str] = None
+    category: Optional[str] = None
+    description: Optional[str] = None
+    amount: Optional[float] = None
+    date: Optional[datetime] = None
+    reference: Optional[str] = None
+
+
+class FinanceSettings(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = "finance_settings"
+    quota_amount: float = 2000.0
+    quota_description: str = "Quota Mensal"
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_by: Optional[str] = None
+
+
+class FinanceSettingsUpdate(BaseModel):
+    quota_amount: Optional[float] = None
+    quota_description: Optional[str] = None
+
+
 # ===== PASSWORD RESET MODELS =====
 
 class PasswordResetRequest(BaseModel):
