@@ -277,8 +277,8 @@ export const DashboardPage = () => {
                 </button>
               }
             >
-              <div className="h-[280px] -ml-2" data-testid="monthly-chart">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="h-[280px] -ml-2" data-testid="monthly-chart" style={{ minWidth: 0 }}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={100}>
                   <AreaChart data={monthlyChartData}>
                     <defs>
                       <linearGradient id="gradReceitas" x1="0" y1="0" x2="0" y2="1">
@@ -309,7 +309,7 @@ export const DashboardPage = () => {
               subtitle="Por categoria"
               delay={0.3}
             >
-              <div className="h-[280px]" data-testid="expense-chart">
+              <div className="h-[280px]" data-testid="expense-chart" style={{ minWidth: 0 }}>
                 {expensePieData.length === 0 ? (
                   <div className="h-full flex items-center justify-center">
                     <div className="text-center">
