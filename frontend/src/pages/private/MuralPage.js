@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { wallAPI } from '../../utils/api';
 import {
   MessageSquare, Send, Heart, MessageCircle, Pin, Trash2,
-  CheckCircle, XCircle, Filter, ChevronDown, ChevronUp, Clock
+  CheckCircle, XCircle, Filter, ChevronDown, ChevronUp, Clock, Search
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -13,8 +13,8 @@ import { toast } from 'sonner';
 const CATEGORIES = [
   { value: 'todos', label: 'Todos', color: 'bg-gray-100 text-gray-700' },
   { value: 'geral', label: 'Geral', color: 'bg-blue-100 text-blue-700' },
-  { value: 'sugestao', label: 'Sugestão', color: 'bg-green-100 text-green-700' },
-  { value: 'discussao', label: 'Discussão', color: 'bg-purple-100 text-purple-700' },
+  { value: 'sugestao', label: 'Sugestao', color: 'bg-green-100 text-green-700' },
+  { value: 'discussao', label: 'Discussao', color: 'bg-purple-100 text-purple-700' },
   { value: 'aviso', label: 'Aviso', color: 'bg-orange-100 text-orange-700' },
 ];
 
@@ -79,10 +79,11 @@ const CommentSection = ({ postId, commentCount, user }) => {
   };
 
   return (
-    <div className="mt-4 border-t border-gray-100 pt-3">
+    <div className="mt-4 pt-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
       <button
         onClick={toggleExpand}
-        className="flex items-center gap-2 text-sm text-gray-500 hover:text-grafite transition-colors"
+        className="flex items-center gap-2 text-sm transition-colors"
+        style={{ color: 'var(--text-muted)' }}
         data-testid={`toggle-comments-${postId}`}
       >
         <MessageCircle className="w-4 h-4" />
@@ -104,18 +105,19 @@ const CommentSection = ({ postId, commentCount, user }) => {
                   <div className="w-5 h-5 border-2 border-carmesim border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : comments.length === 0 ? (
-                <p className="text-sm text-gray-400 py-2">Nenhum comentario ainda. Seja o primeiro!</p>
+                <p className="text-sm py-2" style={{ color: 'var(--text-muted)' }}>Nenhum comentario ainda. Seja o primeiro!</p>
               ) : (
                 comments.map((comment) => (
                   <div key={comment.id} className="flex gap-3 group" data-testid={`comment-${comment.id}`}>
-                    <div className="w-8 h-8 bg-grafite/10 rounded-full flex items-center justify-center text-xs font-bold text-grafite flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                      style={{ backgroundColor: 'var(--surface-border)', color: 'var(--text-primary)' }}>
                       {comment.user_name?.charAt(0).toUpperCase()}
                     </div>
-                    <div className="flex-1 bg-gray-50 rounded-lg px-3 py-2">
+                    <div className="flex-1 rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--surface-card-hover)' }}>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-grafite">{comment.user_name}</span>
+                        <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{comment.user_name}</span>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                             {format(new Date(comment.created_at), "dd MMM HH:mm", { locale: ptBR })}
                           </span>
                           {(user?.role === 'admin' || user?.role === 'moderador' || user?.id === comment.user_id) && (
@@ -129,13 +131,12 @@ const CommentSection = ({ postId, commentCount, user }) => {
                           )}
                         </div>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">{comment.content}</p>
+                      <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{comment.content}</p>
                     </div>
                   </div>
                 ))
               )}
 
-              {/* Comment input */}
               <form onSubmit={handleSubmitComment} className="flex gap-2 mt-2">
                 <input
                   value={newComment}
@@ -219,17 +220,10 @@ const PendingPostsPanel = ({ onApproved }) => {
 
       <AnimatePresence>
         {expanded && (
-          <motion.div
-            initial={{ height: 0 }}
-            animate={{ height: 'auto' }}
-            exit={{ height: 0 }}
-            className="overflow-hidden"
-          >
+          <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
             <div className="p-4 space-y-4">
               {loading ? (
-                <div className="flex justify-center py-4">
-                  <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-                </div>
+                <div className="flex justify-center py-4"><div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
               ) : (
                 posts.map((post) => (
                   <div key={post.id} className="border border-orange-200 rounded-lg p-4 bg-orange-50/50" data-testid={`pending-post-${post.id}`}>
@@ -239,8 +233,8 @@ const PendingPostsPanel = ({ onApproved }) => {
                           {post.user_name?.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <span className="font-semibold text-sm text-grafite">{post.user_name}</span>
-                          <span className="text-xs text-gray-400 ml-2">
+                          <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{post.user_name}</span>
+                          <span className="text-xs ml-2" style={{ color: 'var(--text-muted)' }}>
                             {format(new Date(post.created_at), "dd MMM HH:mm", { locale: ptBR })}
                           </span>
                         </div>
@@ -249,20 +243,16 @@ const PendingPostsPanel = ({ onApproved }) => {
                         {getCategoryLabel(post.category || 'geral')}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-700 mb-3 whitespace-pre-wrap">{post.content}</p>
+                    <p className="text-sm mb-3 whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>{post.content}</p>
                     <div className="flex gap-2 justify-end">
-                      <button
-                        onClick={() => handleReject(post.id)}
+                      <button onClick={() => handleReject(post.id)}
                         className="flex items-center gap-1 px-3 py-1.5 text-sm text-carmesim border border-carmesim/30 rounded-lg hover:bg-carmesim/10 transition-colors"
-                        data-testid={`reject-post-${post.id}`}
-                      >
+                        data-testid={`reject-post-${post.id}`}>
                         <XCircle className="w-4 h-4" /> Rejeitar
                       </button>
-                      <button
-                        onClick={() => handleApprove(post.id)}
+                      <button onClick={() => handleApprove(post.id)}
                         className="flex items-center gap-1 px-3 py-1.5 text-sm text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
-                        data-testid={`approve-post-${post.id}`}
-                      >
+                        data-testid={`approve-post-${post.id}`}>
                         <CheckCircle className="w-4 h-4" /> Aprovar
                       </button>
                     </div>
@@ -284,6 +274,7 @@ export const MuralPage = () => {
   const [newPost, setNewPost] = useState('');
   const [category, setCategory] = useState('geral');
   const [filterCategory, setFilterCategory] = useState('todos');
+  const [searchText, setSearchText] = useState('');
   const [posting, setPosting] = useState(false);
   const canModerate = isAdmin || isModerador;
 
@@ -298,19 +289,23 @@ export const MuralPage = () => {
     }
   }, [filterCategory]);
 
-  useEffect(() => {
-    loadPosts();
-  }, [loadPosts]);
+  useEffect(() => { loadPosts(); }, [loadPosts]);
+
+  const filteredPosts = searchText
+    ? posts.filter(p =>
+        p.content?.toLowerCase().includes(searchText.toLowerCase()) ||
+        p.user_name?.toLowerCase().includes(searchText.toLowerCase())
+      )
+    : posts;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!newPost.trim()) return;
-
     setPosting(true);
     try {
       await wallAPI.create({ content: newPost, category });
       const isAutoApproved = canModerate;
-      toast.success(isAutoApproved ? 'Post publicado!' : 'Post enviado para aprovação!');
+      toast.success(isAutoApproved ? 'Post publicado!' : 'Post enviado para aprovacao!');
       setNewPost('');
       setCategory('geral');
       loadPosts();
@@ -362,10 +357,8 @@ export const MuralPage = () => {
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="font-sans font-bold text-4xl text-grafite mb-2" data-testid="wall-title">
-          Mural de Comunicação
-        </h1>
-        <p className="text-gray-600">Espaço de partilha e discussão entre associados ACCTA</p>
+        <h1 className="page-title" data-testid="wall-title">Mural de Comunicacao</h1>
+        <p className="page-subtitle">Espaco de partilha e discussao entre associados ACCTA</p>
       </div>
 
       {/* Status Alert */}
@@ -374,16 +367,16 @@ export const MuralPage = () => {
           <div className="flex items-start gap-4">
             <MessageSquare className="w-6 h-6 text-carmesim flex-shrink-0 mt-1" />
             <div>
-              <h3 className="font-sans font-semibold text-lg text-carmesim mb-2">Acesso Restrito</h3>
-              <p className="text-gray-600">
-                Apenas sócios com status ativo podem participar no mural. Por favor, regularize a sua situação.
+              <h3 className="font-semibold text-lg text-carmesim mb-2">Acesso Restrito</h3>
+              <p style={{ color: 'var(--text-secondary)' }}>
+                Apenas socios com status ativo podem participar no mural. Por favor, regularize a sua situacao.
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Pending Posts Panel (Admin/Moderator only) */}
+      {/* Pending Posts Panel */}
       {canModerate && <PendingPostsPanel onApproved={loadPosts} />}
 
       {/* Create Post */}
@@ -391,17 +384,17 @@ export const MuralPage = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="card-technical rounded-xl p-6"
+          className="card-technical rounded-xl p-5 sm:p-6"
         >
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block font-mono text-xs uppercase tracking-widest text-gray-500 mb-2">
+              <label className="block font-mono text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
                 Nova Mensagem
               </label>
               <textarea
                 value={newPost}
                 onChange={(e) => setNewPost(e.target.value)}
-                placeholder="Compartilhe as suas ideias, sugestões ou mensagens com a comunidade..."
+                placeholder="Compartilhe as suas ideias, sugestoes ou mensagens com a comunidade..."
                 rows={4}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-carmesim/50 focus:border-carmesim/50 transition-all resize-none"
                 data-testid="post-textarea"
@@ -410,7 +403,7 @@ export const MuralPage = () => {
 
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-2">
-                <label className="text-xs text-gray-500 uppercase tracking-wider font-mono">Categoria:</label>
+                <label className="text-xs uppercase tracking-wider font-mono" style={{ color: 'var(--text-muted)' }}>Categoria:</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
@@ -425,12 +418,12 @@ export const MuralPage = () => {
 
               <div className="flex items-center gap-3">
                 {!canModerate && (
-                  <p className="text-xs text-gray-400">Aguarda aprovação</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Aguarda aprovacao</p>
                 )}
                 <button
                   type="submit"
                   disabled={!newPost.trim() || posting}
-                  className="bg-grafite text-white hover:bg-grafite/90 h-10 px-6 rounded-lg uppercase tracking-wider font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="btn-primary flex items-center gap-2"
                   data-testid="post-submit"
                 >
                   {posting ? (
@@ -448,23 +441,36 @@ export const MuralPage = () => {
         </motion.div>
       )}
 
-      {/* Filter Bar */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2">
-        <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
-        {CATEGORIES.map(c => (
-          <button
-            key={c.value}
-            onClick={() => setFilterCategory(c.value)}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap ${
-              filterCategory === c.value
-                ? 'bg-grafite text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-            data-testid={`filter-${c.value}`}
-          >
-            {c.label}
-          </button>
-        ))}
+      {/* Search + Filter Bar */}
+      <div className="space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+          <input
+            type="text"
+            placeholder="Pesquisar no mural..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+            data-testid="mural-search-input"
+          />
+        </div>
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <Filter className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+          {CATEGORIES.map(c => (
+            <button
+              key={c.value}
+              onClick={() => setFilterCategory(c.value)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap ${
+                filterCategory === c.value
+                  ? 'bg-grafite text-white'
+                  : 'btn-outline !h-auto !px-3 !py-1.5 !rounded-full !text-xs'
+              }`}
+              data-testid={`filter-${c.value}`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Posts Feed */}
@@ -473,14 +479,16 @@ export const MuralPage = () => {
           <div className="text-center py-12">
             <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : posts.length === 0 ? (
+        ) : filteredPosts.length === 0 ? (
           <div className="card-technical rounded-xl p-12 text-center" data-testid="no-posts">
-            <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500">Nenhuma mensagem no mural ainda</p>
-            {isAtivo && <p className="text-sm text-gray-400 mt-1">Seja o primeiro a publicar!</p>}
+            <MessageSquare className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
+            <p style={{ color: 'var(--text-secondary)' }}>
+              {searchText ? 'Nenhum resultado encontrado' : 'Nenhuma mensagem no mural ainda'}
+            </p>
+            {isAtivo && !searchText && <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Seja o primeiro a publicar!</p>}
           </div>
         ) : (
-          posts.map((post, index) => {
+          filteredPosts.map((post, index) => {
             const isLiked = (post.likes || []).includes(user?.id);
             const likeCount = (post.likes || []).length;
 
@@ -490,41 +498,39 @@ export const MuralPage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className={`card-technical rounded-xl p-6 ${post.pinned ? 'border-l-4 border-l-carmesim' : ''}`}
+                className={`card-technical rounded-xl p-5 sm:p-6 ${post.pinned ? 'border-l-4 border-l-carmesim' : ''}`}
                 data-testid={`wall-post-${post.id}`}
               >
-                {/* Pinned badge */}
                 {post.pinned && (
                   <div className="flex items-center gap-1 text-xs text-carmesim font-semibold mb-3">
                     <Pin className="w-3 h-3" /> Fixado
                   </div>
                 )}
 
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-grafite rounded-full flex items-center justify-center font-sans font-bold text-white flex-shrink-0">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-carmesim rounded-full flex items-center justify-center font-bold text-white flex-shrink-0 text-sm sm:text-base">
                     {post.user_name?.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-sans font-semibold text-grafite">{post.user_name}</span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{post.user_name}</span>
                           <span className={`text-xs px-2 py-0.5 rounded-full ${getCategoryStyle(post.category || 'geral')}`}>
                             {getCategoryLabel(post.category || 'geral')}
                           </span>
                         </div>
-                        <div className="font-mono text-xs text-gray-500 mt-0.5">
+                        <div className="font-mono text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                           {format(new Date(post.created_at), "dd 'de' MMMM 'de' yyyy 'as' HH:mm", { locale: ptBR })}
                         </div>
                       </div>
 
-                      {/* Admin actions */}
                       {(canModerate || user?.id === post.user_id) && (
                         <div className="flex items-center gap-1">
                           {canModerate && (
                             <button
                               onClick={() => handlePin(post.id)}
-                              className={`p-1.5 rounded-lg transition-colors ${post.pinned ? 'text-carmesim bg-carmesim/10' : 'text-gray-400 hover:text-grafite hover:bg-gray-100'}`}
+                              className={`p-1.5 rounded-lg transition-colors ${post.pinned ? 'text-carmesim bg-carmesim/10' : 'text-gray-400 hover:text-carmesim hover:bg-carmesim/10'}`}
                               title={post.pinned ? 'Desfixar' : 'Fixar'}
                               data-testid={`pin-post-${post.id}`}
                             >
@@ -543,15 +549,15 @@ export const MuralPage = () => {
                       )}
                     </div>
 
-                    <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                    <p className="leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>{post.content}</p>
 
-                    {/* Actions: Like + Comments */}
                     <div className="flex items-center gap-4 mt-4">
                       <button
                         onClick={() => handleLike(post.id)}
                         className={`flex items-center gap-1.5 text-sm transition-colors ${
-                          isLiked ? 'text-carmesim font-semibold' : 'text-gray-500 hover:text-carmesim'
+                          isLiked ? 'text-carmesim font-semibold' : 'hover:text-carmesim'
                         }`}
+                        style={!isLiked ? { color: 'var(--text-muted)' } : undefined}
                         data-testid={`like-post-${post.id}`}
                       >
                         <Heart className={`w-4 h-4 ${isLiked ? 'fill-carmesim' : ''}`} />
@@ -560,12 +566,7 @@ export const MuralPage = () => {
                       </button>
                     </div>
 
-                    {/* Comments Section */}
-                    <CommentSection
-                      postId={post.id}
-                      commentCount={post.comment_count || 0}
-                      user={user}
-                    />
+                    <CommentSection postId={post.id} commentCount={post.comment_count || 0} user={user} />
                   </div>
                 </div>
               </motion.div>

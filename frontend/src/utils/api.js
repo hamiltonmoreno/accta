@@ -148,11 +148,15 @@ export const statsAPI = {
 
 // Notifications API
 export const notificationsAPI = {
-  getAll: () => api.get('/notifications'),
+  getAll: (params) => api.get('/notifications', { params }),
   getUnreadCount: () => api.get('/notifications/unread/count'),
   markRead: (notificationId) => api.patch(`/notifications/${notificationId}/read`),
   markAllRead: () => api.patch('/notifications/mark-all-read'),
+  delete: (notificationId) => api.delete(`/notifications/${notificationId}`),
+  clearRead: () => api.delete('/notifications/clear/all'),
+  broadcast: (data) => api.post('/notifications/broadcast', data),
   create: (data) => api.post('/notifications', data),
+  getTypes: () => api.get('/notifications/types'),
 };
 
 // Events API

@@ -1,0 +1,321 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import { financesAPI } from '../../../utils/api';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import {
+  DollarSign, TrendingUp, TrendingDown, Plus, Pencil, Trash2,
+  ArrowUpCircle, ArrowDownCircle, X, Filter, Wallet,
+  Search, ChevronLeft, ChevronRight, FileSpreadsheet,
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { TransactionModal } from './TransactionModal';
+import { CATEGORY_LABELS, PAGE_SIZE } from './constants';
+
+const StatBlock = ({ label, value, icon: Icon, color, delay = 0 }) => (
+  <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
+    className="card-technical p-4 sm:p-5">
+    <div className={`w-9 h-9 sm:w-10 sm:h-10 ${color} rounded-lg flex items-center justify-center mb-2 sm:mb-3`}>
+      <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+    </div>
+    <div className="font-mono text-lg sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{value}</div>
+    <div className="text-[9px] sm:text-xs uppercase tracking-wider mt-0.5" style={{ color: 'var(--text-muted)' }}>{label}</div>
+  </motion.div>
+);
+
+export const CashFlowTab = ({ isAdmin }) => {
+  const [transactions, setTransactions] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [filterType, setFilterType] = useState('');
+  const [searchText, setSearchText] = useState('');
+  const [searchDebounced, setSearchDebounced] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [page, setPage] = useState(0);
+  const [showModal, setShowModal] = useState(false);
+  const [editingTx, setEditingTx] = useState(null);
+  const [csvExporting, setCsvExporting] = useState(false);
+
+  const currentYear = new Date().getFullYear();
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSearchDebounced(searchText), 400);
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  useEffect(() => { setPage(0); }, [filterType, searchDebounced, startDate, endDate]);
+
+  const buildParams = useCallback(() => {
+    const params = { skip: page * PAGE_SIZE, limit: PAGE_SIZE };
+    if (filterType) params.type = filterType;
+    if (searchDebounced) params.search = searchDebounced;
+    if (startDate) params.start_date = `${startDate}T00:00:00`;
+    if (endDate) params.end_date = `${endDate}T23:59:59`;
+    return params;
+  }, [filterType, searchDebounced, startDate, endDate, page]);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = buildParams();
+      const [txRes, sumRes] = await Promise.all([
+        financesAPI.getTransactions(params),
+        financesAPI.getSummary({ year: currentYear }),
+      ]);
+      setTransactions(txRes.data.items);
+      setTotal(txRes.data.total);
+      setSummary(sumRes.data);
+    } catch {
+      toast.error('Erro ao carregar dados financeiros');
+    } finally {
+      setLoading(false);
+    }
+  }, [buildParams, currentYear]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Tem certeza que deseja remover esta transacao?')) return;
+    try {
+      await financesAPI.deleteTransaction(id);
+      toast.success('Transacao removida');
+      loadData();
+    } catch { toast.error('Erro ao remover'); }
+  };
+
+  const handleExportCSV = async () => {
+    setCsvExporting(true);
+    try {
+      const params = {};
+      if (filterType) params.type = filterType;
+      if (searchDebounced) params.search = searchDebounced;
+      if (startDate) params.start_date = `${startDate}T00:00:00`;
+      if (endDate) params.end_date = `${endDate}T23:59:59`;
+      const res = await financesAPI.exportTransactionsCsv(params);
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'Fluxo_Caixa_ACCTA.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('CSV exportado');
+    } catch { toast.error('Erro ao exportar CSV'); }
+    finally { setCsvExporting(false); }
+  };
+
+  const openEdit = (tx) => { setEditingTx(tx); setShowModal(true); };
+  const openNew = () => { setEditingTx(null); setShowModal(true); };
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  return (
+    <div className="space-y-5">
+      {summary && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <StatBlock label="Receitas" value={`${summary.total_receitas.toLocaleString('pt')} CVE`} icon={TrendingUp} color="bg-green-600" delay={0.05} />
+          <StatBlock label="Despesas" value={`${summary.total_despesas.toLocaleString('pt')} CVE`} icon={TrendingDown} color="bg-carmesim" delay={0.1} />
+          <StatBlock label="Resultado" value={`${summary.resultado_liquido.toLocaleString('pt')} CVE`} icon={Wallet} color={summary.resultado_liquido >= 0 ? 'bg-grafite' : 'bg-orange-500'} delay={0.15} />
+          <StatBlock label="Transacoes" value={summary.total_transacoes} icon={DollarSign} color="bg-grafite" delay={0.2} />
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <button onClick={openNew} className="btn-primary flex items-center gap-2 text-sm" data-testid="add-transaction-btn">
+          <Plus className="w-4 h-4" /> Nova Transacao
+        </button>
+        <button onClick={handleExportCSV} disabled={csvExporting} className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all btn-outline" data-testid="export-csv-btn">
+          <FileSpreadsheet className={`w-4 h-4 ${csvExporting ? 'animate-spin' : ''}`} />
+          {csvExporting ? 'A exportar...' : 'Exportar CSV'}
+        </button>
+      </div>
+
+      {/* Filters Bar */}
+      <div className="card-technical p-3 sm:p-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="relative flex-1 min-w-[180px] max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Pesquisar descricao..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              data-testid="search-input"
+            />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+              className="px-2.5 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" data-testid="start-date-filter" />
+            <span className="text-gray-400 text-xs">a</span>
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+              className="px-2.5 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" data-testid="end-date-filter" />
+          </div>
+          <div className="flex items-center gap-1.5 ml-auto">
+            <Filter className="w-4 h-4 text-gray-400 hidden sm:block" />
+            {['', 'receita', 'despesa'].map((f) => (
+              <button key={f} onClick={() => setFilterType(f)} data-testid={`filter-type-${f || 'all'}`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all ${
+                  filterType === f ? 'bg-grafite text-white' : 'btn-outline !h-auto !px-3 !py-1.5'
+                }`}
+              >
+                {f === '' ? 'Todos' : f === 'receita' ? 'Receitas' : 'Despesas'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {(searchDebounced || startDate || endDate) && (
+          <div className="flex items-center gap-2 mt-2 pt-2" style={{ borderTop: '1px solid var(--surface-border)' }}>
+            <span className="text-[10px] text-gray-400 uppercase tracking-wider">Filtros ativos:</span>
+            {searchDebounced && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-[11px] text-gray-600">
+                "{searchDebounced}" <button onClick={() => setSearchText('')} className="hover:text-carmesim"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            {startDate && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-[11px] text-gray-600">
+                De: {startDate} <button onClick={() => setStartDate('')} className="hover:text-carmesim"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            {endDate && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-[11px] text-gray-600">
+                Ate: {endDate} <button onClick={() => setEndDate('')} className="hover:text-carmesim"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            <button onClick={() => { setSearchText(''); setStartDate(''); setEndDate(''); setFilterType(''); }}
+              className="text-[11px] text-carmesim font-semibold hover:underline ml-auto">Limpar todos</button>
+          </div>
+        )}
+      </div>
+
+      {/* Transactions Table */}
+      <div className="card-technical overflow-hidden">
+        {loading ? (
+          <div className="p-10 text-center"><div className="inline-block w-7 h-7 border-3 border-carmesim border-t-transparent rounded-full animate-spin" /></div>
+        ) : transactions.length === 0 ? (
+          <div className="p-10 text-center" data-testid="no-transactions">
+            <DollarSign className="w-10 h-10 text-gray-200 mx-auto mb-2" />
+            <p className="text-sm text-gray-400">Nenhuma transacao encontrada</p>
+          </div>
+        ) : (
+          <>
+            {/* Desktop */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-gray-50/80 text-gray-400 uppercase text-[10px] tracking-wider">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Tipo</th>
+                    <th className="px-4 py-3 font-semibold">Categoria</th>
+                    <th className="px-4 py-3 font-semibold">Descricao</th>
+                    <th className="px-4 py-3 font-semibold text-right">Valor</th>
+                    <th className="px-4 py-3 font-semibold">Data</th>
+                    <th className="px-4 py-3 font-semibold text-center">Acoes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.map((tx) => (
+                    <tr key={tx.id} className="border-t border-gray-50 hover:bg-gray-50/50 transition-colors" data-testid={`tx-row-${tx.id}`}>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          tx.type === 'receita' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                        }`}>
+                          {tx.type === 'receita' ? <ArrowUpCircle className="w-3 h-3" /> : <ArrowDownCircle className="w-3 h-3" />}
+                          {tx.type}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 capitalize text-xs" style={{ color: 'var(--text-secondary)' }}>{CATEGORY_LABELS[tx.category] || tx.category}</td>
+                      <td className="px-4 py-3 font-medium text-xs max-w-[200px] truncate" style={{ color: 'var(--text-primary)' }}>{tx.description}</td>
+                      <td className={`px-4 py-3 font-mono font-bold text-right ${tx.type === 'receita' ? 'text-green-600' : 'text-red-600'}`}>
+                        {tx.type === 'receita' ? '+' : '-'}{tx.amount.toLocaleString('pt')} CVE
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'var(--text-muted)' }}>
+                        {tx.date ? format(new Date(tx.date), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button onClick={() => openEdit(tx)} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400 hover:text-carmesim" data-testid={`edit-tx-${tx.id}`}>
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => handleDelete(tx.id)} className="p-1.5 rounded-md hover:bg-red-50 text-gray-400 hover:text-red-500" data-testid={`delete-tx-${tx.id}`}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile */}
+            <div className="sm:hidden divide-y divide-gray-50">
+              {transactions.map((tx) => (
+                <div key={tx.id} className="p-4" data-testid={`tx-card-${tx.id}`}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className={`inline-flex items-center gap-1 text-xs font-bold uppercase ${tx.type === 'receita' ? 'text-green-600' : 'text-red-600'}`}>
+                      {tx.type === 'receita' ? <ArrowUpCircle className="w-3 h-3" /> : <ArrowDownCircle className="w-3 h-3" />}
+                      {CATEGORY_LABELS[tx.category] || tx.category}
+                    </span>
+                    <span className={`font-mono font-bold text-sm ${tx.type === 'receita' ? 'text-green-600' : 'text-red-600'}`}>
+                      {tx.type === 'receita' ? '+' : '-'}{tx.amount.toLocaleString('pt')} CVE
+                    </span>
+                  </div>
+                  <p className="text-xs truncate" style={{ color: 'var(--text-primary)' }}>{tx.description}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-[11px] text-gray-400">{tx.date ? format(new Date(tx.date), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => openEdit(tx)} className="p-1 text-gray-400 hover:text-carmesim"><Pencil className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => handleDelete(tx.id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
+                <span className="text-[11px] text-gray-400">{page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, total)} de {total}</span>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}
+                    className="p-1.5 rounded-md hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed" data-testid="prev-page-btn">
+                    <ChevronLeft className="w-4 h-4 text-gray-500" />
+                  </button>
+                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) pageNum = i;
+                    else if (page < 3) pageNum = i;
+                    else if (page > totalPages - 4) pageNum = totalPages - 5 + i;
+                    else pageNum = page - 2 + i;
+                    return (
+                      <button key={pageNum} onClick={() => setPage(pageNum)} data-testid={`page-${pageNum}`}
+                        className={`w-8 h-8 rounded-md text-xs font-semibold transition-all ${
+                          page === pageNum ? 'bg-carmesim text-white' : 'text-gray-500 hover:bg-gray-100'
+                        }`}>{pageNum + 1}</button>
+                    );
+                  })}
+                  <button onClick={() => setPage(Math.min(totalPages - 1, page + 1))} disabled={page >= totalPages - 1}
+                    className="p-1.5 rounded-md hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed" data-testid="next-page-btn">
+                    <ChevronRight className="w-4 h-4 text-gray-500" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {showModal && (
+        <TransactionModal
+          tx={editingTx}
+          onClose={() => { setShowModal(false); setEditingTx(null); }}
+          onSaved={() => { setShowModal(false); setEditingTx(null); loadData(); }}
+        />
+      )}
+    </div>
+  );
+};
