@@ -38,6 +38,7 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 - [x] Sidebar collapsivel com lock/hover (fundo branco, seccoes agrupadas)
 - [x] Responsividade 320-1920px (mobile/tablet/desktop)
 - [x] **Dashboard redesenhada** (estilo referencia: stat cards modernos, graficos Recharts, tabela de eventos, layout espaçoso com `rounded-2xl`)
+- [x] **Dark Mode** (toggle Sun/Moon no sidebar, CSS variables, localStorage, aplica-se a todas as paginas)
 
 ### Backend (Modular)
 ```
