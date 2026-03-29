@@ -39,17 +39,20 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 - [x] Galeria de Fotos — Upload com workflow de aprovacao
 - [x] Clube de Beneficios (basico)
 
-### Sistema
-- [x] Notificacoes Avancadas + Automaticas
+### Sistema e Seguranca
+- [x] Notificacoes Avancadas + SSE real-time (com fallback polling)
 - [x] CI/CD — GitHub Actions
-- [x] Dark Mode REMOVIDO
+- [x] Dark Mode REMOVIDO (ThemeContext eliminado)
 - [x] Quotas pendentes REMOVIDAS
-
-### Seguranca (CORRIGIDO)
-- [x] SECRET_KEY sem fallback inseguro — erro se nao definida
-- [x] CORS seguro — credentials=True apenas com origens explicitas
-- [x] Registo publico restrito a role=socio
-- [x] Rate limiting: login 10/min, register 5/min, forgot 3/min, reset 5/min
+- [x] SECRET_KEY sem fallback inseguro
+- [x] CORS seguro (credentials=true so com origens explicitas)
+- [x] Registo publico forcado a role=socio
+- [x] Rate limiting (login 10/min, register 5/min, forgot 3/min)
+- [x] Limite de tamanho de ficheiro (docs 10MB, proofs 5MB, logos/avatars 2MB)
+- [x] Auth validacao de token no startup (getMe)
+- [x] ProtectedRoute com allowedRoles (financeiro, galeria-admin protegidos)
+- [x] Interceptor 401 com event dispatch (sem reload completo)
+- [x] Sidebar filtrada por role (socio nao ve Financeiro)
 
 ## Backlog
 
@@ -59,11 +62,13 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 
 ### P2
 - [ ] Exportar eventos para Google/Apple Calendar
+- [ ] Migrar uploads para object storage (S3/R2) para persistencia em producao
+- [ ] React Query/SWR para cache de dados entre paginas
 
 ## Regras de Negocio
 - NAO existe "Socio inadimplente" — quotas descontadas em folha
 - NAO existem "Quotas Pendentes"
-- Dark Mode DESATIVADO
+- Dark Mode DESATIVADO e ThemeContext ELIMINADO
 - Registo publico so cria contas socio
 
 ## Configuracao de Producao (.env)
@@ -73,4 +78,22 @@ MONGO_URL=<connection-string>
 DB_NAME=<nome-db>
 CORS_ORIGINS=https://portal.accta.cv,https://www.accta.cv
 ```
-Nota: CORS_ORIGINS=* desativa allow_credentials automaticamente (seguro para dev).
+
+## Arquitectura
+```
+/app/backend/
+├── auth.py (get_current_user + get_user_from_token para SSE)
+├── routes/
+│   ├── notifications.py (SSE /stream endpoint)
+│   ├── auth_routes.py (rate limiting via slowapi)
+│   ├── upload.py (file size limits)
+│   ├── report.py, activity.py, gallery.py, finances.py, projects.py
+│   └── stats.py, events.py, wall.py, users.py, benefits.py
+
+/app/frontend/src/
+├── contexts/AuthContext.js (token validation on startup, force-logout event)
+├── contexts/NotificationContext.js (SSE with polling fallback)
+├── App.js (ProtectedRoute com allowedRoles, sem ThemeProvider)
+├── layouts/PrivateLayout.js (sidebar filtrada por role)
+├── utils/api.js (401 interceptor com event dispatch)
+```
