@@ -50,3 +50,20 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         return User(**user_doc)
     except JWTError:
         raise HTTPException(status_code=401, detail="Token inválido")
+
+
+async def get_user_from_token(token: str):
+    """Validate a JWT token string and return the user. Used by SSE endpoints."""
+    from models import User
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        if not user_id:
+            return None
+        user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
+        if not user_doc:
+            return None
+        return User(**user_doc)
+    except JWTError:
+        return None
+

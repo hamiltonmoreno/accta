@@ -17,17 +17,20 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 errors
+// Handle 401 errors — dispatch event for AuthContext to handle
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       const currentPath = window.location.pathname;
-      // Don't redirect if already on login or public pages
-      if (!currentPath.startsWith('/login') && !currentPath.startsWith('/validador') && !currentPath.startsWith('/profissao') && !currentPath.startsWith('/noticias') && !currentPath.startsWith('/transparencia') && currentPath !== '/') {
+      const publicPaths = ['/login', '/validador', '/profissao', '/noticias', '/transparencia', '/sobre', '/beneficios-publico', '/contactos', '/eventos-publico', '/galeria', '/forgot-password', '/reset-password'];
+      const isPublic = currentPath === '/' || publicPaths.some(p => currentPath.startsWith(p));
+      if (!isPublic) {
         localStorage.removeItem('accta_token');
         localStorage.removeItem('accta_user');
-        window.location.href = '/login';
+        window.dispatchEvent(new Event('accta:force-logout'));
+        // Use React Router-compatible redirect
+        window.location.replace('/login');
       }
     }
     return Promise.reject(error);

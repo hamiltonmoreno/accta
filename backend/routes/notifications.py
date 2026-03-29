@@ -1,10 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import StreamingResponse
+from datetime import datetime, timezone
 from typing import List, Optional
 from models import User, Notification, NotificationCreate, AuditLog
 from database import db
-from auth import get_current_user
+from auth import get_current_user, get_user_from_token
 from helpers import create_audit_log, notify_all_active_users
+import asyncio
+import json
 
 router = APIRouter(tags=["notifications"])
 
@@ -37,6 +40,40 @@ async def get_notifications(
 async def get_unread_count(current_user: User = Depends(get_current_user)):
     count = await db.notifications.count_documents({"user_id": current_user.id, "read": False})
     return {"count": count}
+
+
+@router.get("/notifications/stream")
+async def notification_stream(request: Request, token: str = Query(...)):
+    """Server-Sent Events stream for real-time notification count updates."""
+    user = await get_user_from_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Token invalido")
+
+    async def event_generator():
+        last_count = -1
+        try:
+            while True:
+                if await request.is_disconnected():
+                    break
+                count = await db.notifications.count_documents(
+                    {"user_id": user.id, "read": False}
+                )
+                if count != last_count:
+                    last_count = count
+                    yield f"data: {json.dumps({'count': count})}\n\n"
+                await asyncio.sleep(5)
+        except asyncio.CancelledError:
+            pass
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.patch("/notifications/{notification_id}/read")

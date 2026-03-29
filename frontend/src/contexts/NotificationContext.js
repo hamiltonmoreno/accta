@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { notificationsAPI } from '../utils/api';
 import { useAuth } from './AuthContext';
 
@@ -18,6 +18,7 @@ export const NotificationProvider = ({ children }) => {
   const [total, setTotal] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const eventSourceRef = useRef(null);
 
   const loadNotifications = useCallback(async (params = {}) => {
     setLoading(true);
@@ -26,7 +27,7 @@ export const NotificationProvider = ({ children }) => {
       setNotifications(response.data.items || response.data);
       setTotal(response.data.total || (response.data.items || response.data).length);
     } catch (error) {
-      console.error('Erro ao carregar notificacoes:', error);
+      // silent — user may have logged out
     } finally {
       setLoading(false);
     }
@@ -37,21 +38,59 @@ export const NotificationProvider = ({ children }) => {
       const response = await notificationsAPI.getUnreadCount();
       setUnreadCount(response.data.count);
     } catch (error) {
-      console.error('Erro ao carregar contagem:', error);
+      // silent
     }
   }, []);
 
+  // SSE connection for real-time notification count
   useEffect(() => {
-    if (isAuthenticated) {
-      loadNotifications();
-      loadUnreadCount();
-
-      const interval = setInterval(() => {
-        loadUnreadCount();
-      }, 30000);
-
-      return () => clearInterval(interval);
+    if (!isAuthenticated) {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      return;
     }
+
+    loadNotifications();
+    loadUnreadCount();
+
+    // Try SSE first
+    const token = localStorage.getItem('accta_token');
+    const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+    const sseUrl = `${BACKEND_URL}/api/notifications/stream?token=${token}`;
+
+    let fallbackInterval = null;
+
+    try {
+      const es = new EventSource(sseUrl);
+      eventSourceRef.current = es;
+
+      es.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          setUnreadCount(data.count);
+        } catch { /* ignore parse errors */ }
+      };
+
+      es.onerror = () => {
+        // SSE failed — fall back to polling
+        es.close();
+        eventSourceRef.current = null;
+        fallbackInterval = setInterval(loadUnreadCount, 30000);
+      };
+    } catch {
+      // SSE not supported — use polling
+      fallbackInterval = setInterval(loadUnreadCount, 30000);
+    }
+
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      if (fallbackInterval) clearInterval(fallbackInterval);
+    };
   }, [isAuthenticated, loadNotifications, loadUnreadCount]);
 
   const markAsRead = async (notificationId) => {
@@ -62,7 +101,7 @@ export const NotificationProvider = ({ children }) => {
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
-      console.error('Erro ao marcar como lida:', error);
+      // silent
     }
   };
 
@@ -72,7 +111,7 @@ export const NotificationProvider = ({ children }) => {
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (error) {
-      console.error('Erro ao marcar todas como lidas:', error);
+      // silent
     }
   };
 
@@ -82,7 +121,7 @@ export const NotificationProvider = ({ children }) => {
       setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
       setTotal((prev) => prev - 1);
     } catch (error) {
-      console.error('Erro ao remover notificacao:', error);
+      // silent
     }
   };
 
@@ -92,7 +131,7 @@ export const NotificationProvider = ({ children }) => {
       setNotifications((prev) => prev.filter((n) => !n.read));
       setTotal((prev) => prev - notifications.filter((n) => n.read).length);
     } catch (error) {
-      console.error('Erro ao limpar notificacoes:', error);
+      // silent
     }
   };
 

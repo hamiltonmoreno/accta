@@ -16,6 +16,13 @@ ALLOWED_EXTENSIONS = {
     "avatars": [".jpg", ".jpeg", ".png"],
 }
 
+MAX_FILE_SIZES = {
+    "documents": 10 * 1024 * 1024,   # 10 MB
+    "proofs": 5 * 1024 * 1024,        # 5 MB
+    "logos": 2 * 1024 * 1024,          # 2 MB
+    "avatars": 2 * 1024 * 1024,        # 2 MB
+}
+
 
 def validate_file(file: UploadFile, category: str) -> None:
     ext = Path(file.filename).suffix.lower()
@@ -39,6 +46,14 @@ async def upload_file(
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     validate_file(file, category)
+
+    # Check file size
+    max_size = MAX_FILE_SIZES.get(category, 5 * 1024 * 1024)
+    contents = await file.read()
+    if len(contents) > max_size:
+        max_mb = max_size / (1024 * 1024)
+        raise HTTPException(status_code=413, detail=f"Arquivo excede o limite de {max_mb:.0f} MB")
+    await file.seek(0)
 
     file_ext = Path(file.filename).suffix
     unique_filename = f"{uuid.uuid4()}{file_ext}"

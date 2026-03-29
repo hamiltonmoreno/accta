@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
-import { ThemeProvider } from './contexts/ThemeContext';
 import { Toaster } from './components/ui/sonner';
 import { PublicLayout } from './layouts/PublicLayout';
 import { PrivateLayout } from './layouts/PrivateLayout';
@@ -36,8 +35,8 @@ import { PerfilPage } from './pages/private/PerfilPage';
 import { AdminLogsPage } from './pages/private/AdminLogsPage';
 import './App.css';
 
-const ProtectedRoute = ({ children, requireAdmin = false }) => {
-  const { isAuthenticated, isAdmin, loading } = useAuth();
+const ProtectedRoute = ({ children, requireAdmin = false, allowedRoles = [] }) => {
+  const { isAuthenticated, isAdmin, user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -52,6 +51,10 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
   }
 
   if (requireAdmin && !isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -96,7 +99,7 @@ function AppRoutes() {
       <Route
         path="/financeiro"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['admin', 'financeiro']}>
             <PrivateLayout><FinanceiroPage /></PrivateLayout>
           </ProtectedRoute>
         }
@@ -168,7 +171,7 @@ function AppRoutes() {
       <Route
         path="/galeria-admin"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={['admin', 'moderador']}>
             <PrivateLayout><GaleriaAdminPage /></PrivateLayout>
           </ProtectedRoute>
         }
@@ -208,18 +211,16 @@ function AppRoutes() {
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <NotificationProvider>
-          <BrowserRouter>
-            <div className="App">
-              <AppRoutes />
-              <Toaster position="top-right" richColors />
-            </div>
-          </BrowserRouter>
-        </NotificationProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <AuthProvider>
+      <NotificationProvider>
+        <BrowserRouter>
+          <div className="App">
+            <AppRoutes />
+            <Toaster position="top-right" richColors />
+          </div>
+        </BrowserRouter>
+      </NotificationProvider>
+    </AuthProvider>
   );
 }
 

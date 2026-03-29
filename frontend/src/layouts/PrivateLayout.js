@@ -40,7 +40,7 @@ const menuSections = [
   {
     title: 'Gestão',
     items: [
-      { label: 'Financeiro', path: '/financeiro', icon: DollarSign, roles: ['all'] },
+      { label: 'Financeiro', path: '/financeiro', icon: DollarSign, roles: ['admin', 'financeiro'] },
       { label: 'Projetos', path: '/projetos', icon: FolderKanban, roles: ['all'] },
       { label: 'Votações', path: '/votacoes', icon: Vote, roles: ['all'] },
       { label: 'Eventos', path: '/eventos', icon: Calendar, roles: ['all'] },
