@@ -12,6 +12,7 @@ import { NoticiasPage } from './pages/public/NoticiasPage';
 import { ValidadorPage } from './pages/public/ValidadorPage';
 import { LoginPage } from './pages/public/LoginPage';
 import { ForgotPasswordPage } from './pages/public/ForgotPasswordPage';
+import { SetupAccountPage } from './pages/public/SetupAccountPage';
 import { ResetPasswordPage } from './pages/public/ResetPasswordPage';
 import { TransparenciaPage } from './pages/public/TransparenciaPage';
 import { BeneficiosPublicoPage } from './pages/public/BeneficiosPublicoPage';
@@ -78,6 +79,7 @@ function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/setup-account" element={<SetupAccountPage />} />
 
       {/* Private Routes */}
       <Route

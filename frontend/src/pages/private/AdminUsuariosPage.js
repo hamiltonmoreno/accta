@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { usersAPI } from '../../utils/api';
+import { usersAPI, adminAPI } from '../../utils/api';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Search, Shield, BadgeCheck, Briefcase, X, Save,
-  Trash2, ChevronDown, Filter, UserCog
+  Trash2, ChevronDown, Filter, UserCog, UserPlus, Copy, Clock, Link2
 } from 'lucide-react';
 
 const ROLE_LABELS = { admin: 'Administrador', socio: 'Sócio', financeiro: 'Financeiro', moderador: 'Moderador' };
 const ROLE_COLORS = { admin: 'bg-red-100 text-red-700', socio: 'bg-blue-100 text-blue-700', financeiro: 'bg-amber-100 text-amber-700', moderador: 'bg-purple-100 text-purple-700' };
-const STATUS_COLORS = { ativo: 'bg-green-100 text-green-700', inativo: 'bg-gray-100 text-gray-500' };
+const STATUS_COLORS = { ativo: 'bg-green-100 text-green-700', inativo: 'bg-gray-100 text-gray-500', pendente_convite: 'bg-amber-100 text-amber-700' };
 
 const PRIVILEGE_LABELS = {
   manage_users: 'Gerir Utilizadores',
@@ -26,7 +26,7 @@ const CARGOS = [
   'Tesoureiro', 'Vogal', 'Membro da Direção', 'Sócio'
 ];
 const ROLES = ['admin', 'socio', 'financeiro', 'moderador'];
-const STATUSES = ['ativo', 'inativo'];
+const STATUSES = ['ativo', 'inativo', 'pendente_convite'];
 const PRIVILEGES = Object.keys(PRIVILEGE_LABELS);
 
 export const AdminUsuariosPage = () => {
@@ -37,6 +37,10 @@ export const AdminUsuariosPage = () => {
   const [filterStatus, setFilterStatus] = useState('');
   const [editingUser, setEditingUser] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteData, setInviteData] = useState({ name: '', email: '', role: 'socio', cargo: 'Socio', member_id: '', license_number: '', department: '', phone_number: '' });
+  const [inviteResult, setInviteResult] = useState(null);
+  const [inviting, setInviting] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -99,13 +103,52 @@ export const AdminUsuariosPage = () => {
     setEditingUser({ ...editingUser, privileges: updated });
   };
 
+  const handleInvite = async () => {
+    if (!inviteData.name || !inviteData.email) {
+      toast.error('Nome e email sao obrigatorios');
+      return;
+    }
+    setInviting(true);
+    try {
+      const res = await adminAPI.invite(inviteData);
+      setInviteResult(res.data);
+      toast.success(`Convite criado para ${inviteData.name}`);
+      fetchUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Erro ao criar convite');
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const copyInviteLink = () => {
+    if (!inviteResult) return;
+    const url = `${window.location.origin}${inviteResult.setup_url}`;
+    navigator.clipboard.writeText(url);
+    toast.success('Link copiado!');
+  };
+
+  const resetInviteModal = () => {
+    setShowInviteModal(false);
+    setInviteResult(null);
+    setInviteData({ name: '', email: '', role: 'socio', cargo: 'Socio', member_id: '', license_number: '', department: '', phone_number: '' });
+  };
+
   return (
     <div className="space-y-5" data-testid="admin-users-page">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="page-title" data-testid="admin-users-title">Gestão de Membros</h1>
+          <h1 className="page-title" data-testid="admin-users-title">Gestao de Membros</h1>
           <p className="text-sm text-gray-500">{users.length} membro{users.length !== 1 ? 's' : ''} registado{users.length !== 1 ? 's' : ''}</p>
         </div>
+        <button
+          onClick={() => setShowInviteModal(true)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-carmesim hover:bg-carmesim/90 text-white rounded-lg text-sm font-semibold transition-colors"
+          data-testid="invite-user-btn"
+        >
+          <UserPlus className="w-4 h-4" />
+          Convidar Socio
+        </button>
       </div>
 
       {/* Search + Filters */}
@@ -502,6 +545,180 @@ export const AdminUsuariosPage = () => {
                   Sim, remover
                 </button>
               </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ===== INVITE MODAL ===== */}
+      <AnimatePresence>
+        {showInviteModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-[60]"
+              onClick={resetInviteModal}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-xl z-[60] w-[90vw] max-w-lg max-h-[85vh] overflow-y-auto"
+              data-testid="invite-modal"
+            >
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <UserPlus className="w-5 h-5 text-carmesim" />
+                  <h2 className="font-bold text-lg text-grafite">{inviteResult ? 'Convite Criado' : 'Convidar Socio'}</h2>
+                </div>
+                <button onClick={resetInviteModal} className="p-1 hover:bg-gray-100 rounded-lg">
+                  <X className="w-4 h-4 text-gray-400" />
+                </button>
+              </div>
+
+              {inviteResult ? (
+                <div className="p-6 space-y-4">
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                      <Link2 className="w-6 h-6 text-green-500" />
+                    </div>
+                    <p className="text-sm text-gray-600 mb-1">Convite criado para <strong>{inviteResult.email}</strong></p>
+                    <p className="text-xs text-gray-400">Envie o link abaixo para o novo socio definir a senha</p>
+                  </div>
+
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-center gap-2">
+                    <input
+                      readOnly
+                      value={`${window.location.origin}${inviteResult.setup_url}`}
+                      className="flex-1 bg-transparent text-xs text-grafite font-mono truncate outline-none"
+                      data-testid="invite-link-input"
+                    />
+                    <button
+                      onClick={copyInviteLink}
+                      className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 bg-carmesim text-white rounded-md text-xs font-semibold hover:bg-carmesim/90 transition-colors"
+                      data-testid="copy-invite-link"
+                    >
+                      <Copy className="w-3 h-3" />
+                      Copiar
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={resetInviteModal}
+                    className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-grafite rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Fechar
+                  </button>
+                </div>
+              ) : (
+                <div className="p-6 space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Nome Completo *</label>
+                      <input
+                        value={inviteData.name}
+                        onChange={(e) => setInviteData({ ...inviteData, name: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
+                        placeholder="Nome do novo socio"
+                        data-testid="invite-name"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Email *</label>
+                      <input
+                        type="email"
+                        value={inviteData.email}
+                        onChange={(e) => setInviteData({ ...inviteData, email: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
+                        placeholder="email@accta.cv"
+                        data-testid="invite-email"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Funcao</label>
+                      <select
+                        value={inviteData.role}
+                        onChange={(e) => setInviteData({ ...inviteData, role: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
+                        data-testid="invite-role"
+                      >
+                        <option value="socio">Socio</option>
+                        <option value="financeiro">Financeiro</option>
+                        <option value="moderador">Moderador</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Cargo</label>
+                      <select
+                        value={inviteData.cargo}
+                        onChange={(e) => setInviteData({ ...inviteData, cargo: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
+                        data-testid="invite-cargo"
+                      >
+                        {CARGOS.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">N. Membro</label>
+                      <input
+                        value={inviteData.member_id}
+                        onChange={(e) => setInviteData({ ...inviteData, member_id: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none"
+                        placeholder="ACCTA-XXX"
+                        data-testid="invite-member-id"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Licenca ATC</label>
+                      <input
+                        value={inviteData.license_number}
+                        onChange={(e) => setInviteData({ ...inviteData, license_number: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none"
+                        placeholder="ATC-CV-XXXX-XXX"
+                        data-testid="invite-license"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Departamento</label>
+                      <input
+                        value={inviteData.department}
+                        onChange={(e) => setInviteData({ ...inviteData, department: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none"
+                        placeholder="Ex: Torre, Aproximacao"
+                        data-testid="invite-department"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Telefone</label>
+                      <input
+                        value={inviteData.phone_number}
+                        onChange={(e) => setInviteData({ ...inviteData, phone_number: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none"
+                        placeholder="+238 xxxxxxx"
+                        data-testid="invite-phone"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleInvite}
+                    disabled={inviting || !inviteData.name || !inviteData.email}
+                    className="w-full py-2.5 bg-carmesim hover:bg-carmesim/90 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    data-testid="send-invite-btn"
+                  >
+                    {inviting ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <UserPlus className="w-4 h-4" />
+                        Criar Convite
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </motion.div>
           </>
         )}
