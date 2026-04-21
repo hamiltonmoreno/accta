@@ -79,6 +79,22 @@ class Token(BaseModel):
     user: User
 
 
+class InviteCreate(BaseModel):
+    name: str
+    email: EmailStr
+    role: str = "socio"
+    cargo: Optional[str] = None
+    member_id: Optional[str] = None
+    license_number: Optional[str] = None
+    department: Optional[str] = None
+    phone_number: Optional[str] = None
+
+
+class SetupAccount(BaseModel):
+    token: str
+    password: str
+
+
 # ===== INVOICE MODELS =====
 
 class Invoice(BaseModel):

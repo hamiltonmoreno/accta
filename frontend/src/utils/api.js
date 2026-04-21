@@ -42,8 +42,18 @@ export default api;
 // Auth API
 export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
-  register: (data) => api.post('/auth/register', data),
   getMe: () => api.get('/auth/me'),
+  setupAccount: (data) => api.post('/auth/setup-account', data),
+  validateInvite: (token) => api.get('/auth/invite/validate', { params: { token } }),
+  forgotPassword: (data) => api.post('/auth/forgot-password', data),
+  resetPassword: (data) => api.post('/auth/reset-password', data),
+};
+
+// Admin API
+export const adminAPI = {
+  invite: (data) => api.post('/admin/invite', data),
+  getPendingInvites: () => api.get('/admin/invites/pending'),
+  revokeInvite: (userId) => api.delete(`/admin/invite/${userId}`),
 };
 
 // Users API

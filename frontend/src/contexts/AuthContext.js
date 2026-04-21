@@ -78,11 +78,6 @@ export const AuthProvider = ({ children }) => {
     clearAuth();
   };
 
-  const register = async (data) => {
-    const response = await authAPI.register(data);
-    return response.data;
-  };
-
   const isAuthenticated = !!user;
   const isAdmin = user?.role === 'admin';
   const isFinanceiro = user?.role === 'financeiro';
@@ -106,7 +101,6 @@ export const AuthProvider = ({ children }) => {
         loading,
         login,
         logout,
-        register,
         isAuthenticated,
         isAdmin,
         isFinanceiro,
