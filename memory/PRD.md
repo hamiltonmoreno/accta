@@ -39,20 +39,36 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 - [x] Galeria de Fotos — Upload com workflow de aprovacao
 - [x] Clube de Beneficios (basico)
 
+### Autenticacao (REFEITO - INVITE ONLY)
+- [x] Registo publico ELIMINADO
+- [x] Sistema de convite por admin (POST /api/admin/invite)
+- [x] Pagina setup-account com token cryptografico
+- [x] Status pendente_convite bloqueia login
+- [x] CLI create_admin.py para bootstrap em producao
+- [x] Modal "Convidar Socio" no painel admin
+- [x] Link de convite copiavel para partilhar
+
 ### Sistema e Seguranca
-- [x] Notificacoes Avancadas + SSE real-time (com fallback polling)
+- [x] SSE real-time para notificacoes (com fallback polling)
+- [x] SECRET_KEY obrigatoria (sem fallback)
+- [x] CORS seguro
+- [x] Rate limiting (login 10/min, register removido, setup 5/min)
+- [x] Limite tamanho ficheiro
+- [x] Auth validacao token no startup
+- [x] ProtectedRoute com allowedRoles
+- [x] Interceptor 401 com event dispatch
+- [x] Sidebar filtrada por role
+- [x] ThemeContext ELIMINADO (dark mode removido)
 - [x] CI/CD — GitHub Actions
-- [x] Dark Mode REMOVIDO (ThemeContext eliminado)
-- [x] Quotas pendentes REMOVIDAS
-- [x] SECRET_KEY sem fallback inseguro
-- [x] CORS seguro (credentials=true so com origens explicitas)
-- [x] Registo publico forcado a role=socio
-- [x] Rate limiting (login 10/min, register 5/min, forgot 3/min)
-- [x] Limite de tamanho de ficheiro (docs 10MB, proofs 5MB, logos/avatars 2MB)
-- [x] Auth validacao de token no startup (getMe)
-- [x] ProtectedRoute com allowedRoles (financeiro, galeria-admin protegidos)
-- [x] Interceptor 401 com event dispatch (sem reload completo)
-- [x] Sidebar filtrada por role (socio nao ve Financeiro)
+
+## Fluxo de Autenticacao em Producao
+```
+1. Deploy: python scripts/create_admin.py --email admin@controlador.cv --password <senha> --name "Admin"
+2. Admin faz login → Utilizadores → "Convidar Socio"
+3. Preenche nome, email, role, cargo → Recebe link de convite
+4. Partilha link com novo socio
+5. Socio abre link → Define senha → Conta ativada → Auto-login
+```
 
 ## Backlog
 
@@ -62,38 +78,32 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 
 ### P2
 - [ ] Exportar eventos para Google/Apple Calendar
-- [ ] Migrar uploads para object storage (S3/R2) para persistencia em producao
-- [ ] React Query/SWR para cache de dados entre paginas
+- [ ] Migrar uploads para object storage (S3/R2)
+- [ ] Integracao email para enviar convites automaticamente
+- [ ] React Query/SWR para cache de dados
 
 ## Regras de Negocio
+- NAO existe registo publico — apenas convite por admin
 - NAO existe "Socio inadimplente" — quotas descontadas em folha
 - NAO existem "Quotas Pendentes"
-- Dark Mode DESATIVADO e ThemeContext ELIMINADO
-- Registo publico so cria contas socio
-
-## Configuracao de Producao (.env)
-```
-SECRET_KEY=<chave-forte-64-chars>
-MONGO_URL=<connection-string>
-DB_NAME=<nome-db>
-CORS_ORIGINS=https://portal.accta.cv,https://www.accta.cv
-```
+- Dark Mode DESATIVADO e eliminado do codigo
 
 ## Arquitectura
 ```
-/app/backend/
-├── auth.py (get_current_user + get_user_from_token para SSE)
-├── routes/
-│   ├── notifications.py (SSE /stream endpoint)
-│   ├── auth_routes.py (rate limiting via slowapi)
-│   ├── upload.py (file size limits)
-│   ├── report.py, activity.py, gallery.py, finances.py, projects.py
-│   └── stats.py, events.py, wall.py, users.py, benefits.py
+/app/backend/routes/
+├── admin.py (invite, pending invites, revoke)
+├── auth_routes.py (login, me, setup-account, validate-invite, forgot/reset)
+├── notifications.py (SSE + CRUD)
+├── gallery.py, activity.py, finances.py, projects.py
+├── report.py, stats.py, events.py, wall.py, users.py, benefits.py, upload.py
 
 /app/frontend/src/
-├── contexts/AuthContext.js (token validation on startup, force-logout event)
-├── contexts/NotificationContext.js (SSE with polling fallback)
-├── App.js (ProtectedRoute com allowedRoles, sem ThemeProvider)
-├── layouts/PrivateLayout.js (sidebar filtrada por role)
-├── utils/api.js (401 interceptor com event dispatch)
+├── pages/public/SetupAccountPage.js (definir senha via convite)
+├── pages/private/AdminUsuariosPage.js (modal convidar socio)
+├── contexts/AuthContext.js (sem register, com force-logout)
+├── utils/api.js (adminAPI.invite, authAPI.setupAccount)
+
+/app/scripts/
+├── create_admin.py (CLI bootstrap)
+├── seed_data.py (dados demo)
 ```
