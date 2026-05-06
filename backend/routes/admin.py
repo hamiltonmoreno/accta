@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from datetime import datetime, timezone
 from models import User, InviteCreate
 from database import db
-from auth import get_current_user, hash_password, generate_qr_hash
-from helpers import create_audit_log, create_notification
+from auth import get_current_user, generate_qr_hash
+from helpers import create_audit_log
+from email_service import send_invite_email
 import uuid
 import secrets
 
@@ -11,8 +12,8 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 @router.post("/invite")
-async def invite_user(data: InviteCreate, current_user: User = Depends(get_current_user)):
-    """Admin creates a new user account and generates a setup link."""
+async def invite_user(request: Request, data: InviteCreate, current_user: User = Depends(get_current_user)):
+    """Admin creates a new user account and sends invite email."""
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Apenas administradores podem convidar utilizadores")
 
@@ -53,12 +54,23 @@ async def invite_user(data: InviteCreate, current_user: User = Depends(get_curre
         user_id
     )
 
+    # Build full setup URL - prefer explicit FRONTEND_URL env (prod),
+    # fallback to request origin (works when frontend+backend same domain)
+    import os
+    frontend_url = os.environ.get("FRONTEND_URL", "").rstrip("/")
+    origin = frontend_url or request.headers.get("origin") or request.headers.get("referer", "").rstrip("/")
+    setup_url = f"{origin}/setup-account?token={invite_token}"
+
+    # Send invite email (non-blocking, don't fail if email fails)
+    email_result = await send_invite_email(data.name, data.email, setup_url)
+
     return {
         "message": f"Convite criado para {data.name}",
         "user_id": user_id,
         "email": data.email,
         "invite_token": invite_token,
         "setup_url": f"/setup-account?token={invite_token}",
+        "email_sent": email_result.get("status") == "sent",
     }
 
 

@@ -125,13 +125,13 @@ class TestNotificationsAPI:
         response = requests.post(f"{BASE_URL}/api/notifications/broadcast", 
                                 json=broadcast_data, headers=admin_headers)
         assert response.status_code == 200, f"Admin broadcast failed: {response.text}"
-        print(f"✓ Admin broadcast succeeded")
+        print("✓ Admin broadcast succeeded")
         
         # Socio should fail with 403
         response = requests.post(f"{BASE_URL}/api/notifications/broadcast", 
                                 json=broadcast_data, headers=socio_headers)
-        assert response.status_code == 403, f"Socio should not be able to broadcast"
-        print(f"✓ Socio broadcast correctly denied (403)")
+        assert response.status_code == 403, "Socio should not be able to broadcast"
+        print("✓ Socio broadcast correctly denied (403)")
 
     def test_mark_all_read(self, admin_headers):
         """PATCH /api/notifications/mark-all-read works"""
@@ -227,7 +227,7 @@ class TestMuralAPI:
         """GET /api/wall/pending - socio cannot see pending posts"""
         response = requests.get(f"{BASE_URL}/api/wall/pending", headers=socio_headers)
         assert response.status_code == 403
-        print(f"✓ Socio correctly denied access to pending posts (403)")
+        print("✓ Socio correctly denied access to pending posts (403)")
 
     def test_like_post(self, admin_headers):
         """PATCH /api/wall/{id}/like toggles like"""
@@ -439,7 +439,7 @@ class TestFinanceiroAPI:
                                 json=tx_data, headers=socio_headers)
         # Should be 403 Forbidden
         assert response.status_code == 403, f"Socio should not create transactions, got {response.status_code}"
-        print(f"✓ Socio correctly denied finance write access (403)")
+        print("✓ Socio correctly denied finance write access (403)")
 
 
 # ============== INTEGRATION TESTS ==============
@@ -469,7 +469,7 @@ class TestIntegration:
         notifs_response = requests.get(f"{BASE_URL}/api/notifications", headers=admin_headers)
         assert notifs_response.status_code == 200
         
-        print(f"✓ Full notification flow completed")
+        print("✓ Full notification flow completed")
 
     def test_full_mural_flow(self, admin_headers):
         """Test complete mural flow: create post, like, comment"""
@@ -500,7 +500,7 @@ class TestIntegration:
         delete_response = requests.delete(f"{BASE_URL}/api/wall/{post_id}", headers=admin_headers)
         assert delete_response.status_code == 200
         
-        print(f"✓ Full mural flow completed")
+        print("✓ Full mural flow completed")
 
 
 if __name__ == "__main__":

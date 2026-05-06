@@ -5,7 +5,6 @@ Tests for: Transactions CRUD, DRE Reports, Settings, Quota Generation
 import pytest
 import requests
 import os
-from datetime import datetime
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -371,7 +370,7 @@ class TestFinanceSettings:
         
         # Restore original
         admin_session.patch(f"{BASE_URL}/api/finances/settings", json={"quota_amount": original_amount})
-        print(f"Settings update successful")
+        print("Settings update successful")
     
     def test_socio_cannot_update_settings(self, socio_session):
         """PATCH /api/finances/settings - socio cannot update (403)"""

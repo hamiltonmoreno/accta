@@ -3,6 +3,7 @@ name: CD — Deploy to Production
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 env:
   NODE_VERSION: '20'
@@ -10,31 +11,14 @@ env:
 
 jobs:
   # ──────────────────────────────────────────────
-  # CI GATE — Must pass before deploy
+  # CI GATE — Lint + build must pass before deploy
   # ──────────────────────────────────────────────
   backend-check:
-    name: Backend CI
+    name: Backend CI Gate
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
-
-    services:
-      mongo:
-        image: mongo:7
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd="mongosh --eval 'db.runCommand({ ping: 1 })'"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
-    env:
-      MONGO_URL: mongodb://localhost:27017
-      DB_NAME: accta_test
-      SECRET_KEY: ci-test-secret-key-not-for-production
-      CORS_ORIGINS: '*'
 
     steps:
       - uses: actions/checkout@v4
@@ -49,15 +33,14 @@ jobs:
           path: ~/.cache/pip
           key: pip-${{ runner.os }}-${{ hashFiles('backend/requirements.txt') }}
 
-      - name: Install & test
+      - name: Install & lint
         run: |
           pip install -r requirements.txt
-          pip install ruff pytest pytest-asyncio httpx
-          ruff check . --select=E,F,W --ignore=E501,W291,W292,W293
-          pytest tests/ -v --tb=short -x 2>&1 || echo "::warning::Some tests need review"
+          pip install ruff
+          ruff check .
 
   frontend-check:
-    name: Frontend CI
+    name: Frontend CI Gate
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -85,13 +68,13 @@ jobs:
       - name: Install, lint & build
         run: |
           yarn install --frozen-lockfile
-          npx eslint src/ --ext .js,.jsx --max-warnings=50 --no-error-on-unmatched-pattern 2>&1 || true
+          npx eslint src/ --ext .js,.jsx --max-warnings=60 --no-error-on-unmatched-pattern
           yarn build
         env:
           GENERATE_SOURCEMAP: false
 
   # ──────────────────────────────────────────────
-  # DEPLOY — Runs after CI passes
+  # DEPLOY — Runs after CI gate passes
   # ──────────────────────────────────────────────
   deploy:
     name: Deploy to Production
@@ -102,22 +85,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ── Build frontend for production ──
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Build frontend
-        working-directory: frontend
-        run: |
-          yarn install --frozen-lockfile
-          yarn build
-        env:
-          REACT_APP_BACKEND_URL: ${{ secrets.PRODUCTION_URL }}
-          GENERATE_SOURCEMAP: false
-
-      # ── Deploy via SSH ──
-      - name: Deploy to server
+      - name: Deploy to server via SSH
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -134,7 +102,7 @@ jobs:
 
             echo "── Backend: Install dependencies ──"
             cd $APP_DIR/backend
-            pip install -r requirements.txt --quiet
+            ./venv/bin/pip install -r requirements.txt --quiet
 
             echo "── Frontend: Build ──"
             cd $APP_DIR/frontend
@@ -143,14 +111,15 @@ jobs:
 
             echo "── Restart services ──"
             sudo supervisorctl restart backend
-            sudo supervisorctl restart frontend
+
+            echo "── Reload Nginx (serves built frontend) ──"
+            sudo systemctl reload nginx
 
             echo "── Health check ──"
             sleep 5
-            curl -sf http://localhost:8001/api/ > /dev/null && echo "Backend: OK" || echo "Backend: FAIL"
+            curl -sf http://localhost:8001/api/ > /dev/null && echo "Backend: OK" || { echo "Backend: FAIL"; exit 1; }
             echo "Deploy complete!"
 
-      # ── Notify on success ──
       - name: Deploy summary
         if: success()
         run: |

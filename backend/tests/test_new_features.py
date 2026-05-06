@@ -58,7 +58,7 @@ class TestFeaturedEventEndpoint:
         response = requests.get(f"{BASE_URL}/api/events/featured")
         # Should return 200 even without auth (public endpoint)
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
-        print(f"✓ Featured event endpoint accessible without auth")
+        print("✓ Featured event endpoint accessible without auth")
 
     def test_featured_event_returns_valid_structure(self):
         """Featured event should return valid event structure or null"""
@@ -146,7 +146,7 @@ class TestPersonalReportEndpoint:
             assert field in data, f"Missing field: {field}"
             assert isinstance(data[field], int), f"Field {field} should be integer, got {type(data[field])}"
         
-        print(f"✓ Personal report for socio has all required fields")
+        print("✓ Personal report for socio has all required fields")
         print(f"  - Events attended: {data['events_attended']} / {data['total_events']}")
         print(f"  - Polls voted: {data['polls_voted']} / {data['total_polls']}")
         print(f"  - Wall posts: {data['wall_posts']}")
@@ -165,7 +165,7 @@ class TestPersonalReportEndpoint:
         data = response.json()
         assert "events_attended" in data
         assert "polls_voted" in data
-        print(f"✓ Admin can access personal report")
+        print("✓ Admin can access personal report")
 
     def test_personal_report_data_consistency(self, socio_headers):
         """Personal report data should be consistent with actual user activity"""

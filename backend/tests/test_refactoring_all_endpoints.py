@@ -101,7 +101,7 @@ class TestAuthRoutes:
         assert response.status_code == 200
         data = response.json()
         assert data["email"] == SOCIO_EMAIL
-        print(f"✓ /auth/me returns correct user profile")
+        print("✓ /auth/me returns correct user profile")
     
     def test_get_me_without_token(self):
         """Test /auth/me without token"""

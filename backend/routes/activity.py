@@ -12,7 +12,6 @@ async def get_recent_activity(
     limit: int = Query(15, ge=1, le=50),
     current_user: User = Depends(get_current_user)
 ):
-    is_admin = current_user.role == "admin"
     is_financeiro = current_user.role in ("admin", "financeiro")
     activities = []
 

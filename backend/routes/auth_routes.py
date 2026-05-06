@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from datetime import datetime, timezone, timedelta
-from typing import List
-from models import User, UserCreate, UserLogin, Token, PasswordResetRequest, PasswordResetConfirm, SetupAccount
+from models import User, UserLogin, Token, PasswordResetRequest, PasswordResetConfirm, SetupAccount
 from database import db
-from auth import hash_password, verify_password, generate_qr_hash, create_access_token, get_current_user
+from auth import hash_password, verify_password, create_access_token, get_current_user
+from email_service import send_welcome_email, send_password_reset_email
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 import uuid
@@ -85,6 +85,9 @@ async def setup_account(request: Request, data: SetupAccount):
     user = User(**user_doc)
     token = create_access_token({"sub": user.id})
 
+    # Send welcome email (non-blocking)
+    await send_welcome_email(user.name, user.email)
+
     return {
         "message": "Conta ativada com sucesso!",
         "access_token": token,
@@ -124,9 +127,15 @@ async def forgot_password(request: Request, data: PasswordResetRequest):
         "used": False
     })
 
+    # Build reset URL - prefer explicit FRONTEND_URL env, fallback to request origin
+    import os
+    frontend_url = os.environ.get("FRONTEND_URL", "").rstrip("/")
+    origin = frontend_url or request.headers.get("origin") or request.headers.get("referer", "").rstrip("/")
+    reset_url = f"{origin}/reset-password?token={token}" if origin else ""
+    await send_password_reset_email(user.get("name", ""), data.email, reset_url, token)
+
     return {
-        "message": "Token de recuperacao gerado com sucesso",
-        "demo_token": token,
+        "message": "Instrucoes de recuperacao enviadas para o email",
         "expires_in": "1 hora"
     }
 

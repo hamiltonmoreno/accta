@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timezone
 from typing import Optional
 from models import (
     User, Project, ProjectCreate, ProjectUpdate,
     ProjectTask, ProjectTaskCreate, ProjectTaskUpdate,
     ProjectComment, ProjectExpense, ProjectMilestone,
-    PROJECT_STATUSES, PROJECT_VISIBILITIES, TASK_STATUSES, TASK_PRIORITIES,
+    PROJECT_STATUSES, PROJECT_VISIBILITIES,
 )
 from database import db
 from auth import get_current_user
@@ -200,7 +200,7 @@ async def approve_project(
 
     link = f"/projetos/{project_id}"
     stakeholders = get_project_stakeholder_ids(project)
-    await notify_users(stakeholders, "projeto", f"Projeto Aprovado!", f"O projeto '{project['title']}' foi aprovado por {current_user.name}.", link, exclude_id=current_user.id)
+    await notify_users(stakeholders, "projeto", "Projeto Aprovado!", f"O projeto '{project['title']}' foi aprovado por {current_user.name}.", link, exclude_id=current_user.id)
 
     return {"message": "Projeto aprovado"}
 
@@ -257,7 +257,7 @@ async def create_task(
     # Notify assignee
     if data.assignee_id and data.assignee_id != current_user.id:
         link = f"/projetos/{project_id}"
-        await create_notification(data.assignee_id, "projeto", f"Nova Tarefa Atribuida", f"'{task.title}' no projeto '{project['title']}'. Atribuida por {current_user.name}.", link)
+        await create_notification(data.assignee_id, "projeto", "Nova Tarefa Atribuida", f"'{task.title}' no projeto '{project['title']}'. Atribuida por {current_user.name}.", link)
 
     t_dict.pop("_id", None)
     return t_dict
@@ -299,7 +299,7 @@ async def update_task(
     if updates.get("status") == "concluido":
         link = f"/projetos/{project_id}"
         stakeholders = get_project_stakeholder_ids(project)
-        await notify_users(stakeholders, "projeto", f"Tarefa Concluida", f"A tarefa '{task.get('title', '')}' no projeto '{project['title']}' foi concluida por {current_user.name}.", link, exclude_id=current_user.id)
+        await notify_users(stakeholders, "projeto", "Tarefa Concluida", f"A tarefa '{task.get('title', '')}' no projeto '{project['title']}' foi concluida por {current_user.name}.", link, exclude_id=current_user.id)
 
     updated = await db.project_tasks.find_one({"id": task_id}, {"_id": 0})
     return updated
@@ -352,7 +352,7 @@ async def add_comment(
     # Notify project stakeholders about the new comment
     link = f"/projetos/{project_id}"
     stakeholders = get_project_stakeholder_ids(project)
-    await notify_users(stakeholders, "projeto", f"Novo Comentario no Projeto", f"{current_user.name} comentou em '{project['title']}': \"{content[:80]}{'...' if len(content)>80 else ''}\"", link, exclude_id=current_user.id)
+    await notify_users(stakeholders, "projeto", "Novo Comentario no Projeto", f"{current_user.name} comentou em '{project['title']}': \"{content[:80]}{'...' if len(content)>80 else ''}\"", link, exclude_id=current_user.id)
 
     c_dict.pop("_id", None)
     return c_dict
@@ -414,12 +414,12 @@ async def add_expense(
     # Notify stakeholders about the new expense
     link = f"/projetos/{project_id}"
     stakeholders = get_project_stakeholder_ids(project)
-    await notify_users(stakeholders, "projeto", f"Nova Despesa no Projeto", f"{current_user.name} registou despesa de {amount:,.0f} CVE em '{project['title']}': {description}.", link, exclude_id=current_user.id)
+    await notify_users(stakeholders, "projeto", "Nova Despesa no Projeto", f"{current_user.name} registou despesa de {amount:,.0f} CVE em '{project['title']}': {description}.", link, exclude_id=current_user.id)
 
     # Alert if budget exceeded
     budget = project.get("budget", 0)
     if budget > 0 and new_spent > budget:
-        await notify_users(stakeholders, "projeto", f"Orcamento Excedido!", f"O projeto '{project['title']}' excedeu o orcamento. Gasto: {new_spent:,.0f} CVE / Orcamento: {budget:,.0f} CVE.", link)
+        await notify_users(stakeholders, "projeto", "Orcamento Excedido!", f"O projeto '{project['title']}' excedeu o orcamento. Gasto: {new_spent:,.0f} CVE / Orcamento: {budget:,.0f} CVE.", link)
 
     e_dict.pop("_id", None)
     return e_dict

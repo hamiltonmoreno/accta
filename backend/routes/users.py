@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Optional
 from models import User, UserProfileUpdate, UserAdminUpdate, CARGOS, PRIVILEGES
 from database import db
-from auth import get_current_user, hash_password
+from auth import get_current_user
 from helpers import create_audit_log, create_notification
 
 router = APIRouter(tags=["users"])

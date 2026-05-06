@@ -836,7 +836,7 @@ class TestStatsModule:
         assert response.status_code == 200
         data = response.json()
         assert "total_users" in data or "users" in data or isinstance(data, dict)
-        print(f"✓ Stats retrieved")
+        print("✓ Stats retrieved")
 
 
 # ==================== CLEANUP ====================

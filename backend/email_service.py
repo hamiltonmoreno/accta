@@ -1,0 +1,153 @@
+"""
+ACCTA Email Service — Resend integration for transactional emails.
+Supports: invite, password reset, welcome, broadcast notifications.
+"""
+import os
+import asyncio
+import logging
+import resend
+
+logger = logging.getLogger(__name__)
+
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'noreply@controlador.cv')
+APP_NAME = "Portal ACCTA"
+
+if RESEND_API_KEY:
+    resend.api_key = RESEND_API_KEY
+
+
+def _base_template(content: str) -> str:
+    """Wrap content in ACCTA branded email template."""
+    return f"""
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#f4f6fa;font-family:'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6fa;padding:40px 20px;">
+<tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+
+<!-- Header -->
+<tr><td style="background-color:#3A3A3A;padding:24px 32px;text-align:center;">
+  <table cellpadding="0" cellspacing="0" align="center"><tr>
+    <td style="width:8px;height:28px;background-color:#C7202F;border-radius:4px;"></td>
+    <td style="padding-left:12px;font-size:18px;font-weight:700;color:#ffffff;letter-spacing:1px;">ACCTA</td>
+  </tr></table>
+  <p style="margin:6px 0 0;font-size:11px;color:#94a3b8;letter-spacing:0.5px;">Associacao dos Controladores de Trafego Aereo</p>
+</td></tr>
+
+<!-- Content -->
+<tr><td style="padding:32px;">
+{content}
+</td></tr>
+
+<!-- Footer -->
+<tr><td style="padding:20px 32px;background-color:#f9fafb;border-top:1px solid #e5e7eb;text-align:center;">
+  <p style="margin:0;font-size:11px;color:#9ca3af;">Este email foi enviado automaticamente pelo {APP_NAME}.</p>
+  <p style="margin:4px 0 0;font-size:11px;color:#9ca3af;">Cabo Verde</p>
+</td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>"""
+
+
+def invite_email_html(name: str, setup_url: str) -> str:
+    content = f"""
+    <h2 style="margin:0 0 8px;font-size:20px;color:#3A3A3A;">Bem-vindo a ACCTA, {name}!</h2>
+    <p style="margin:0 0 20px;font-size:14px;color:#6b7280;line-height:1.6;">
+      Foi convidado para se juntar ao Portal da Associacao dos Controladores de Trafego Aereo de Cabo Verde.
+    </p>
+    <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">
+      Para ativar a sua conta, clique no botao abaixo e defina a sua senha:
+    </p>
+    <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
+      <a href="{setup_url}" style="display:inline-block;padding:12px 32px;background-color:#C7202F;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:8px;">
+        Ativar Conta
+      </a>
+    </td></tr></table>
+    <p style="margin:24px 0 0;font-size:12px;color:#9ca3af;line-height:1.5;">
+      Se o botao nao funcionar, copie e cole este link no seu navegador:<br>
+      <a href="{setup_url}" style="color:#C7202F;word-break:break-all;">{setup_url}</a>
+    </p>
+    <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;">
+      Este convite e valido ate ser utilizado. Se nao solicitou este convite, ignore este email.
+    </p>"""
+    return _base_template(content)
+
+
+def password_reset_email_html(name: str, reset_url: str, token: str) -> str:
+    content = f"""
+    <h2 style="margin:0 0 8px;font-size:20px;color:#3A3A3A;">Recuperacao de Senha</h2>
+    <p style="margin:0 0 20px;font-size:14px;color:#6b7280;line-height:1.6;">
+      Ola {name}, recebemos um pedido para redefinir a sua senha no Portal ACCTA.
+    </p>
+    <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">
+      Use o codigo abaixo na pagina de recuperacao:
+    </p>
+    <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
+      <div style="display:inline-block;padding:14px 28px;background-color:#f4f6fa;border:2px dashed #d1d5db;border-radius:8px;font-family:monospace;font-size:18px;font-weight:700;color:#3A3A3A;letter-spacing:2px;">
+        {token}
+      </div>
+    </td></tr></table>
+    <p style="margin:24px 0 0;font-size:12px;color:#9ca3af;">
+      Este codigo expira em 1 hora. Se nao solicitou a recuperacao, ignore este email.
+    </p>"""
+    return _base_template(content)
+
+
+def welcome_email_html(name: str) -> str:
+    content = f"""
+    <h2 style="margin:0 0 8px;font-size:20px;color:#3A3A3A;">Conta Ativada!</h2>
+    <p style="margin:0 0 20px;font-size:14px;color:#6b7280;line-height:1.6;">
+      Ola {name}, a sua conta no Portal ACCTA foi ativada com sucesso.
+    </p>
+    <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">
+      Agora tem acesso a todas as funcionalidades da area reservada: dashboard, votacoes, eventos, documentos, mural e muito mais.
+    </p>
+    <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
+      <a href="#" style="display:inline-block;padding:12px 32px;background-color:#C7202F;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:8px;">
+        Aceder ao Portal
+      </a>
+    </td></tr></table>"""
+    return _base_template(content)
+
+
+async def send_email(to: str, subject: str, html: str) -> dict:
+    """Send email via Resend API (non-blocking)."""
+    if not RESEND_API_KEY:
+        logger.warning(f"RESEND_API_KEY not set. Email to {to} not sent.")
+        return {"status": "skipped", "reason": "no_api_key"}
+
+    params = {
+        "from": f"{APP_NAME} <{SENDER_EMAIL}>",
+        "to": [to],
+        "subject": subject,
+        "html": html,
+    }
+
+    try:
+        result = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Email sent to {to}: {result.get('id', 'ok')}")
+        return {"status": "sent", "email_id": result.get("id")}
+    except Exception as e:
+        logger.error(f"Failed to send email to {to}: {str(e)}")
+        return {"status": "failed", "error": str(e)}
+
+
+async def send_invite_email(name: str, email: str, setup_url: str) -> dict:
+    html = invite_email_html(name, setup_url)
+    return await send_email(email, f"Convite — {APP_NAME}", html)
+
+
+async def send_password_reset_email(name: str, email: str, reset_url: str, token: str) -> dict:
+    html = password_reset_email_html(name, reset_url, token)
+    return await send_email(email, f"Recuperacao de Senha — {APP_NAME}", html)
+
+
+async def send_welcome_email(name: str, email: str) -> dict:
+    html = welcome_email_html(name)
+    return await send_email(email, f"Bem-vindo — {APP_NAME}", html)

@@ -5,7 +5,6 @@ Tests: Project CRUD, Tasks, Comments, Expenses, Milestones
 import pytest
 import requests
 import os
-import time
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -146,7 +145,7 @@ class TestProjectCRUD(TestProjectsAuth):
         assert data["status"] == "em_curso"
         assert data["progress"] == 25
         
-        print(f"Updated project status to 'em_curso', progress to 25%")
+        print("Updated project status to 'em_curso', progress to 25%")
     
     def test_admin_approves_proposal(self, admin_headers):
         """PATCH /api/projects/{id}/approve - admin can approve proposals"""
@@ -442,7 +441,7 @@ class TestProjectMilestones(TestProjectsAuth):
         assert response.status_code == 200
         assert response.json()["completed"] == False
         
-        print(f"Toggled milestone completed status")
+        print("Toggled milestone completed status")
     
     def test_delete_milestone(self, admin_headers, test_project):
         """DELETE /api/projects/{id}/milestones/{mid}"""

@@ -5,7 +5,7 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 
 ## Stack Tecnica
 - **Frontend:** React, Tailwind CSS, Recharts, Framer Motion (Modo Claro exclusivo)
-- **Backend:** Python FastAPI (Router modular), MongoDB (Motor async), JWT Auth, slowapi (rate limiting)
+- **Backend:** Python FastAPI, MongoDB (Motor async), JWT Auth, slowapi, Resend (email)
 - **Extras:** fpdf2 (PDF), date-fns (datas)
 
 ## Credenciais de Teste
@@ -15,44 +15,45 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 
 ## Modulos Implementados
 
-### Area Publica (COMPLETA)
-- [x] HomePage, Sobre, Profissao, Transparencia, Beneficios
-- [x] Validador QR Code
-- [x] Galeria de Fotos Publica
-- [x] Evento em Destaque com countdown timer animado
+### Area Publica
+- [x] HomePage com Evento em Destaque + countdown
+- [x] Sobre, Profissao, Transparencia, Beneficios
+- [x] Validador QR Code, Galeria Publica
 
-### Area Privada - Painel
-- [x] Dashboard redesenhado (Recharts) + Feed Atividade Recente
-- [x] Relatorio de Atividade Pessoal (8 metricas)
-- [x] Meu Perfil, Autenticacao JWT
-- [x] Carteira Digital com QR Code
+### Area Privada
+- [x] Dashboard + Relatorio Atividade Pessoal + Feed
+- [x] Financeiro (REFATORADO), Projetos, Votacoes, Eventos, Documentos
+- [x] Mural, Galeria com aprovacao, Clube Beneficios, Carteira Digital
 
-### Area Privada - Gestao
-- [x] Modulo Financeiro (REFATORADO) — CashFlowTab, DRETab, SettingsTab, Export PDF/CSV
-- [x] Modulo Projetos — CRUD, tarefas, milestones, comentarios, orcamento
-- [x] Votacoes — Sistema de votacao interna
-- [x] Eventos/Agenda — CRUD com inscricao
-- [x] Documentos — Upload/download admin
+### Autenticacao (INVITE ONLY + EMAIL)
+- [x] Registo publico ELIMINADO
+- [x] Convite por admin com envio de email via Resend
+- [x] Pagina setup-account com token
+- [x] Email de boas-vindas ao ativar conta
+- [x] Email de recuperacao de senha
+- [x] CLI create_admin.py para bootstrap
+- [x] Templates HTML branded ACCTA
 
-### Area Privada - Comunidade
-- [x] Mural de Comunicacao (MELHORADO)
-- [x] Galeria de Fotos — Upload com workflow de aprovacao
-- [x] Clube de Beneficios (basico)
+### Seguranca
+- [x] SECRET_KEY obrigatoria, CORS seguro, Rate limiting
+- [x] SSE notificacoes, ProtectedRoute com roles, Limite upload
 
-### Sistema e Seguranca
-- [x] Notificacoes Avancadas + SSE real-time (com fallback polling)
-- [x] CI/CD — GitHub Actions
-- [x] Dark Mode REMOVIDO (ThemeContext eliminado)
-- [x] Quotas pendentes REMOVIDAS
-- [x] SECRET_KEY sem fallback inseguro
-- [x] CORS seguro (credentials=true so com origens explicitas)
-- [x] Registo publico forcado a role=socio
-- [x] Rate limiting (login 10/min, register 5/min, forgot 3/min)
-- [x] Limite de tamanho de ficheiro (docs 10MB, proofs 5MB, logos/avatars 2MB)
-- [x] Auth validacao de token no startup (getMe)
-- [x] ProtectedRoute com allowedRoles (financeiro, galeria-admin protegidos)
-- [x] Interceptor 401 com event dispatch (sem reload completo)
-- [x] Sidebar filtrada por role (socio nao ve Financeiro)
+## Fluxo Email em Producao
+```
+1. Verificar dominio controlador.cv no Resend (https://resend.com/domains)
+2. Configurar .env: RESEND_API_KEY=re_xxx, SENDER_EMAIL=noreply@controlador.cv
+3. Admin convida socio -> email enviado automaticamente
+4. Socio clica no link do email -> define senha -> conta ativa
+5. Forgot password -> email com codigo -> reset
+```
+
+Nota: Sem dominio verificado, o link de convite e gerado e copiavel manualmente.
+
+## Deploy
+- [x] CI/CD GitHub Actions (.github/workflows/deploy.yml)
+- [x] Guia generico DEPLOY.md
+- [x] Guia Vercel VERCEL_DEPLOY.md
+- [x] Checklist Hostinger VPS HOSTINGER_DEPLOY.md (Feb 2026) - passo-a-passo com comandos prontos para Ubuntu 22/24, Nginx + SSL + Supervisor + MongoDB + primeiro admin + GitHub Secrets
 
 ## Backlog
 
@@ -62,38 +63,5 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 
 ### P2
 - [ ] Exportar eventos para Google/Apple Calendar
-- [ ] Migrar uploads para object storage (S3/R2) para persistencia em producao
-- [ ] React Query/SWR para cache de dados entre paginas
-
-## Regras de Negocio
-- NAO existe "Socio inadimplente" — quotas descontadas em folha
-- NAO existem "Quotas Pendentes"
-- Dark Mode DESATIVADO e ThemeContext ELIMINADO
-- Registo publico so cria contas socio
-
-## Configuracao de Producao (.env)
-```
-SECRET_KEY=<chave-forte-64-chars>
-MONGO_URL=<connection-string>
-DB_NAME=<nome-db>
-CORS_ORIGINS=https://portal.accta.cv,https://www.accta.cv
-```
-
-## Arquitectura
-```
-/app/backend/
-├── auth.py (get_current_user + get_user_from_token para SSE)
-├── routes/
-│   ├── notifications.py (SSE /stream endpoint)
-│   ├── auth_routes.py (rate limiting via slowapi)
-│   ├── upload.py (file size limits)
-│   ├── report.py, activity.py, gallery.py, finances.py, projects.py
-│   └── stats.py, events.py, wall.py, users.py, benefits.py
-
-/app/frontend/src/
-├── contexts/AuthContext.js (token validation on startup, force-logout event)
-├── contexts/NotificationContext.js (SSE with polling fallback)
-├── App.js (ProtectedRoute com allowedRoles, sem ThemeProvider)
-├── layouts/PrivateLayout.js (sidebar filtrada por role)
-├── utils/api.js (401 interceptor com event dispatch)
-```
+- [ ] Migrar uploads para object storage (S3/R2)
+- [ ] React Query/SWR para cache de dados

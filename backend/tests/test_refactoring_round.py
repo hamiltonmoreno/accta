@@ -88,7 +88,7 @@ class TestAuthEndpoints:
         assert response.status_code in [200, 201], f"Registration failed: {response.text}"
         data = response.json()
         assert data["role"] == "socio", f"Expected role 'socio', got '{data['role']}'"
-        print(f"✓ Register forced role to 'socio' (attempted 'admin')")
+        print("✓ Register forced role to 'socio' (attempted 'admin')")
 
 
 class TestSSENotificationStream:
@@ -225,7 +225,7 @@ class TestRateLimiting:
             print(f"✓ Rate limiting working: {len(rate_limited)} requests got 429")
         else:
             # Rate limiting may not trigger immediately in test environment
-            print(f"⚠ Rate limiting not triggered (may need more requests or different IP)")
+            print("⚠ Rate limiting not triggered (may need more requests or different IP)")
 
 
 class TestRoleBasedAccess:

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Optional
 from models import (
     User, Transaction, TransactionCreate, TransactionUpdate,
     FinanceSettings, FinanceSettingsUpdate,
@@ -617,7 +617,6 @@ async def export_dre_pdf(
     half_w = 88
 
     # Income categories
-    cat_y = pdf.get_y()
     pdf.set_font("Helvetica", "B", 10)
     pdf.set_text_color(22, 163, 74)
     pdf.cell(half_w, 7, "(+) Receitas", new_x="LMARGIN", new_y="NEXT")
