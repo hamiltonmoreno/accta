@@ -585,7 +585,11 @@ export const AdminUsuariosPage = () => {
                       <Link2 className="w-6 h-6 text-green-500" />
                     </div>
                     <p className="text-sm text-gray-600 mb-1">Convite criado para <strong>{inviteResult.email}</strong></p>
-                    <p className="text-xs text-gray-400">Envie o link abaixo para o novo socio definir a senha</p>
+                    {inviteResult.email_sent ? (
+                      <p className="text-xs text-green-600 font-medium">Email de convite enviado com sucesso!</p>
+                    ) : (
+                      <p className="text-xs text-gray-400">Partilhe o link abaixo com o novo socio</p>
+                    )}
                   </div>
 
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-center gap-2">
