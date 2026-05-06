@@ -54,10 +54,11 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
         user_id
     )
 
-    # Build full setup URL from request origin
-    origin = request.headers.get("origin") or request.headers.get("referer", "").rstrip("/")
-    if not origin:
-        origin = ""
+    # Build full setup URL - prefer explicit FRONTEND_URL env (prod),
+    # fallback to request origin (works when frontend+backend same domain)
+    import os
+    frontend_url = os.environ.get("FRONTEND_URL", "").rstrip("/")
+    origin = frontend_url or request.headers.get("origin") or request.headers.get("referer", "").rstrip("/")
     setup_url = f"{origin}/setup-account?token={invite_token}"
 
     # Send invite email (non-blocking, don't fail if email fails)

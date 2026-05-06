@@ -127,8 +127,10 @@ async def forgot_password(request: Request, data: PasswordResetRequest):
         "used": False
     })
 
-    # Build reset URL and send email
-    origin = request.headers.get("origin") or request.headers.get("referer", "").rstrip("/")
+    # Build reset URL - prefer explicit FRONTEND_URL env, fallback to request origin
+    import os
+    frontend_url = os.environ.get("FRONTEND_URL", "").rstrip("/")
+    origin = frontend_url or request.headers.get("origin") or request.headers.get("referer", "").rstrip("/")
     reset_url = f"{origin}/reset-password?token={token}" if origin else ""
     await send_password_reset_email(user.get("name", ""), data.email, reset_url, token)
 

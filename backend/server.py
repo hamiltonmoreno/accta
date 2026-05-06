@@ -4,7 +4,7 @@ from starlette.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from database import client, UPLOAD_DIR
+from database import client, UPLOAD_DIR, ensure_indexes
 from routes import api_router
 import os
 import logging
@@ -41,6 +41,11 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+@app.on_event("startup")
+async def startup_event():
+    await ensure_indexes()
 
 
 @app.on_event("shutdown")
