@@ -49,6 +49,12 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 
 Nota: Sem dominio verificado, o link de convite e gerado e copiavel manualmente.
 
+## Deploy
+- [x] CI/CD GitHub Actions (.github/workflows/deploy.yml)
+- [x] Guia generico DEPLOY.md
+- [x] Guia Vercel VERCEL_DEPLOY.md
+- [x] Checklist Hostinger VPS HOSTINGER_DEPLOY.md (Feb 2026) - passo-a-passo com comandos prontos para Ubuntu 22/24, Nginx + SSL + Supervisor + MongoDB + primeiro admin + GitHub Secrets
+
 ## Backlog
 
 ### P1
