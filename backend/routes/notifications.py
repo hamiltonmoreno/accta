@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import List, Optional
 from models import User, Notification, NotificationCreate, AuditLog
 from database import db

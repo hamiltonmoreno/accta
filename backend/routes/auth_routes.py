@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from datetime import datetime, timezone, timedelta
-from typing import List
-from models import User, UserCreate, UserLogin, Token, PasswordResetRequest, PasswordResetConfirm, SetupAccount
+from models import User, UserLogin, Token, PasswordResetRequest, PasswordResetConfirm, SetupAccount
 from database import db
-from auth import hash_password, verify_password, generate_qr_hash, create_access_token, get_current_user
+from auth import hash_password, verify_password, create_access_token, get_current_user
 from email_service import send_welcome_email, send_password_reset_email
 from slowapi import Limiter
 from slowapi.util import get_remote_address

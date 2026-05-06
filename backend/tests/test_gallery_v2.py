@@ -64,7 +64,7 @@ class TestPublicGalleryEndpoints:
             assert album.get('visibility') == 'public', f"Album {album['id']} should have visibility='public'"
         
         print(f"PASS: GET /api/gallery/public/albums returned {len(albums)} public albums: {album_ids}")
-        print(f"PASS: Private album 'album-equipa' correctly excluded from public list")
+        print("PASS: Private album 'album-equipa' correctly excluded from public list")
     
     def test_public_albums_have_photo_count(self):
         """Public albums should have photo_count field"""
@@ -76,7 +76,7 @@ class TestPublicGalleryEndpoints:
             assert 'photo_count' in album, f"Album {album['id']} missing photo_count"
             assert album['photo_count'] > 0, f"Album {album['id']} has 0 photos (should be filtered out)"
         
-        print(f"PASS: All public albums have photo_count > 0")
+        print("PASS: All public albums have photo_count > 0")
     
     def test_public_photos_returns_approved_only(self):
         """GET /api/gallery/public/photos should return ONLY approved photos from public albums"""
@@ -106,8 +106,8 @@ class TestPublicGalleryEndpoints:
             
             photos = response.json()
             for photo in photos:
-                assert photo['album_id'] == album_id, f"Photo album_id mismatch"
-                assert photo['status'] == 'approved', f"Photo should be approved"
+                assert photo['album_id'] == album_id, "Photo album_id mismatch"
+                assert photo['status'] == 'approved', "Photo should be approved"
             
             print(f"PASS: GET /api/gallery/public/photos?album_id={album_id} returned {len(photos)} photos")
     
@@ -154,7 +154,7 @@ class TestPrivateGalleryEndpoints:
         
         photos = response.json()
         for photo in photos:
-            assert photo.get('status') == 'approved', f"Socio should only see approved photos"
+            assert photo.get('status') == 'approved', "Socio should only see approved photos"
         
         print(f"PASS: GET /api/gallery/photos (socio) returned {len(photos)} approved photos")
     
@@ -166,9 +166,9 @@ class TestPrivateGalleryEndpoints:
         
         photos = response.json()
         for photo in photos:
-            assert photo.get('status') == 'approved', f"Filter by status should work"
+            assert photo.get('status') == 'approved', "Filter by status should work"
         
-        print(f"PASS: Admin can filter photos by status")
+        print("PASS: Admin can filter photos by status")
 
 
 class TestAlbumCRUD:
@@ -500,12 +500,12 @@ class TestGalleryIntegration:
         assert get_photos.status_code == 200
         photos = get_photos.json()
         assert len(photos) == 1, f"Expected 1 photo, got {len(photos)}"
-        print(f"Step 3: Verified album has 1 photo")
+        print("Step 3: Verified album has 1 photo")
         
         # 4. Delete album (should delete photos too)
         delete_album = requests.delete(f"{BASE_URL}/api/gallery/albums/{album_id}", headers=headers)
         assert delete_album.status_code == 200
-        print(f"Step 4: Deleted album and photos")
+        print("Step 4: Deleted album and photos")
         
         print("PASS: Full admin workflow completed successfully")
     
@@ -535,19 +535,19 @@ class TestGalleryIntegration:
         pending_photos = pending.json()
         pending_ids = [p['id'] for p in pending_photos]
         assert photo_id in pending_ids, "Photo should be in pending list"
-        print(f"Step 2: Admin sees photo in pending list")
+        print("Step 2: Admin sees photo in pending list")
         
         # 3. Admin approves
         approve = requests.patch(f"{BASE_URL}/api/gallery/photos/{photo_id}/approve", headers=admin_headers)
         assert approve.status_code == 200
-        print(f"Step 3: Admin approved photo")
+        print("Step 3: Admin approved photo")
         
         # 4. Photo now visible in public gallery
         public_photos = requests.get(f"{BASE_URL}/api/gallery/public/photos", params={"album_id": "album-aeroportos"})
         assert public_photos.status_code == 200
         public_ids = [p['id'] for p in public_photos.json()]
         assert photo_id in public_ids, "Approved photo should be in public gallery"
-        print(f"Step 4: Photo visible in public gallery")
+        print("Step 4: Photo visible in public gallery")
         
         # Cleanup
         requests.delete(f"{BASE_URL}/api/gallery/photos/{photo_id}", headers=admin_headers)

@@ -32,7 +32,7 @@ class TestAuthLogin:
         assert "user" in data
         assert data["user"]["email"] == ADMIN_EMAIL
         assert data["user"]["role"] == "admin"
-        print(f"PASSED: Admin login returns token and user data")
+        print("PASSED: Admin login returns token and user data")
     
     def test_socio_login_success(self):
         """Socio can login with correct credentials"""
@@ -46,7 +46,7 @@ class TestAuthLogin:
         assert "user" in data
         assert data["user"]["email"] == SOCIO_EMAIL
         assert data["user"]["role"] == "socio"
-        print(f"PASSED: Socio login returns token and user data")
+        print("PASSED: Socio login returns token and user data")
     
     def test_login_invalid_credentials(self):
         """Login fails with wrong password"""
@@ -55,7 +55,7 @@ class TestAuthLogin:
             "password": "wrongpassword"
         })
         assert response.status_code == 401, f"Expected 401, got {response.status_code}"
-        print(f"PASSED: Invalid credentials return 401")
+        print("PASSED: Invalid credentials return 401")
 
 
 class TestRegisterRemoved:
@@ -117,7 +117,7 @@ class TestAdminInvite:
         assert "setup_url" in data
         assert data["email"] == test_email
         assert "/setup-account?token=" in data["setup_url"]
-        print(f"PASSED: Admin created invite with token and setup_url")
+        print("PASSED: Admin created invite with token and setup_url")
         
         # Store for cleanup
         return data
@@ -135,7 +135,7 @@ class TestAdminInvite:
             headers={"Authorization": f"Bearer {socio_token}"}
         )
         assert response.status_code == 403, f"Expected 403, got {response.status_code}: {response.text}"
-        print(f"PASSED: Socio gets 403 when trying to create invite")
+        print("PASSED: Socio gets 403 when trying to create invite")
     
     def test_invite_duplicate_email_fails(self, admin_token):
         """Cannot invite an email that already exists"""
@@ -149,7 +149,7 @@ class TestAdminInvite:
             headers={"Authorization": f"Bearer {admin_token}"}
         )
         assert response.status_code == 400, f"Expected 400, got {response.status_code}: {response.text}"
-        print(f"PASSED: Duplicate email invite returns 400")
+        print("PASSED: Duplicate email invite returns 400")
 
 
 class TestInviteValidation:
@@ -159,7 +159,7 @@ class TestInviteValidation:
         """GET /api/auth/invite/validate with invalid token returns 404"""
         response = requests.get(f"{BASE_URL}/api/auth/invite/validate", params={"token": "invalid-token-12345"})
         assert response.status_code == 404, f"Expected 404, got {response.status_code}: {response.text}"
-        print(f"PASSED: Invalid invite token returns 404")
+        print("PASSED: Invalid invite token returns 404")
     
     def test_valid_token_returns_user_info(self):
         """GET /api/auth/invite/validate with valid token returns name and email"""
@@ -189,7 +189,7 @@ class TestInviteValidation:
         data = validate_resp.json()
         assert data["name"] == "Validate Test User"
         assert data["email"] == test_email
-        print(f"PASSED: Valid invite token returns name and email")
+        print("PASSED: Valid invite token returns name and email")
 
 
 class TestSetupAccount:
@@ -202,7 +202,7 @@ class TestSetupAccount:
             "password": "newpassword123"
         })
         assert response.status_code == 400, f"Expected 400, got {response.status_code}: {response.text}"
-        print(f"PASSED: Setup with invalid token returns 400")
+        print("PASSED: Setup with invalid token returns 400")
     
     def test_setup_with_valid_token_activates_account(self):
         """Full flow: create invite -> setup account -> login works"""
@@ -245,7 +245,7 @@ class TestSetupAccount:
         assert "access_token" in setup_data
         assert setup_data["user"]["email"] == test_email
         assert setup_data["user"]["status"] == "ativo"
-        print(f"PASSED: Setup account returns access_token and activates user")
+        print("PASSED: Setup account returns access_token and activates user")
         
         # 4. Now login should work
         post_login_resp = requests.post(f"{BASE_URL}/api/auth/login", json={
@@ -253,7 +253,7 @@ class TestSetupAccount:
             "password": test_password
         })
         assert post_login_resp.status_code == 200, f"Expected 200 after setup, got {post_login_resp.status_code}"
-        print(f"PASSED: User can login after account setup")
+        print("PASSED: User can login after account setup")
         
         # 5. Cleanup - delete the test user
         user_id = setup_data["user"]["id"]

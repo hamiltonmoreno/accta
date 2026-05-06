@@ -155,7 +155,7 @@ class TestPasswordRecovery:
         )
         assert forgot_response.status_code == 200
         token = forgot_response.json()["demo_token"]
-        print(f"✓ Step 1: Got reset token")
+        print("✓ Step 1: Got reset token")
         
         # Step 2: Reset password
         reset_response = self.session.post(
@@ -163,7 +163,7 @@ class TestPasswordRecovery:
             json={"token": token, "new_password": self.NEW_PASSWORD}
         )
         assert reset_response.status_code == 200
-        print(f"✓ Step 2: Password reset successful")
+        print("✓ Step 2: Password reset successful")
         
         # Step 3: Login with new password
         login_response = self.session.post(
@@ -176,7 +176,7 @@ class TestPasswordRecovery:
         assert "access_token" in data, "Login should return access_token"
         assert "user" in data, "Login should return user"
         assert data["user"]["email"] == self.TEST_EMAIL
-        print(f"✓ Step 3: Login with new password successful")
+        print("✓ Step 3: Login with new password successful")
         
         # Step 4: Verify old password no longer works
         old_login_response = self.session.post(
@@ -184,7 +184,7 @@ class TestPasswordRecovery:
             json={"email": self.TEST_EMAIL, "password": self.ORIGINAL_PASSWORD}
         )
         assert old_login_response.status_code == 401, "Old password should not work"
-        print(f"✓ Step 4: Old password correctly rejected")
+        print("✓ Step 4: Old password correctly rejected")
     
     def test_restore_original_password(self):
         """Restore test user password back to original (socio123)"""
