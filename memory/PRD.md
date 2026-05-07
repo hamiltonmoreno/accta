@@ -9,9 +9,9 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 - **Extras:** fpdf2 (PDF), date-fns (datas)
 
 ## Credenciais de Teste
-- Admin: admin@accta.cv / admin123
-- Financeiro: financeiro@accta.cv / fin123
-- Socio: socio1@accta.cv / socio123
+- Admin: admin@controlador.cv / admin123
+- Financeiro: financeiro@controlador.cv / fin123
+- Socio: socio1@controlador.cv / socio123
 
 ## Modulos Implementados
 

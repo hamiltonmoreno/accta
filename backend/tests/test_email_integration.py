@@ -11,9 +11,9 @@ import uuid
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials
-ADMIN_EMAIL = "admin@accta.cv"
+ADMIN_EMAIL = "admin@controlador.cv"
 ADMIN_PASSWORD = "admin123"
-SOCIO_EMAIL = "socio1@accta.cv"
+SOCIO_EMAIL = "socio1@controlador.cv"
 SOCIO_PASSWORD = "socio123"
 
 
@@ -82,7 +82,7 @@ class TestAdminInvite:
     
     def test_invite_returns_email_sent_field(self, admin_token):
         """POST /api/admin/invite returns email_sent field"""
-        unique_email = f"TEST_invite_{uuid.uuid4().hex[:8]}@accta.cv"
+        unique_email = f"TEST_invite_{uuid.uuid4().hex[:8]}@controlador.cv"
         response = requests.post(
             f"{BASE_URL}/api/admin/invite",
             headers={"Authorization": f"Bearer {admin_token}"},
@@ -116,7 +116,7 @@ class TestAdminInvite:
     
     def test_invite_creates_pending_user(self, admin_token):
         """Invite creates user with pendente_convite status"""
-        unique_email = f"TEST_pending_{uuid.uuid4().hex[:8]}@accta.cv"
+        unique_email = f"TEST_pending_{uuid.uuid4().hex[:8]}@controlador.cv"
         response = requests.post(
             f"{BASE_URL}/api/admin/invite",
             headers={"Authorization": f"Bearer {admin_token}"},
@@ -179,7 +179,7 @@ class TestFullInviteFlow:
     
     def test_full_invite_to_login_flow(self, admin_token):
         """Full flow: invite -> validate token -> setup account -> login"""
-        unique_email = f"TEST_fullflow_{uuid.uuid4().hex[:8]}@accta.cv"
+        unique_email = f"TEST_fullflow_{uuid.uuid4().hex[:8]}@controlador.cv"
         test_password = "testpass123"
         
         # Step 1: Admin creates invite
@@ -284,7 +284,7 @@ class TestSetupAccount:
     def test_setup_account_short_password(self, admin_token):
         """Setup account with short password fails"""
         # Create a test invite first
-        unique_email = f"TEST_shortpw_{uuid.uuid4().hex[:8]}@accta.cv"
+        unique_email = f"TEST_shortpw_{uuid.uuid4().hex[:8]}@controlador.cv"
         invite_response = requests.post(
             f"{BASE_URL}/api/admin/invite",
             headers={"Authorization": f"Bearer {admin_token}"},
@@ -328,7 +328,7 @@ class TestInviteValidation:
     
     def test_validate_valid_token(self, admin_token):
         """Validate with valid token returns name and email"""
-        unique_email = f"TEST_validate_{uuid.uuid4().hex[:8]}@accta.cv"
+        unique_email = f"TEST_validate_{uuid.uuid4().hex[:8]}@controlador.cv"
         
         # Create invite
         invite_response = requests.post(

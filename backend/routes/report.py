@@ -51,8 +51,8 @@ async def get_personal_report(current_user: User = Depends(get_current_user)):
     photos_submitted = await db.gallery_photos.count_documents({"uploaded_by": uid})
     photos_approved = await db.gallery_photos.count_documents({"uploaded_by": uid, "status": "approved"})
 
-    # Documents accessed (not tracked yet, placeholder)
-    documents_count = await db.documents.count_documents({})
+    # Documentos disponíveis para o utilizador (públicos + socios)
+    documents_count = await db.documents.count_documents({"visibility": {"$in": ["publico", "socios"]}})
 
     return {
         "events_attended": events_attended,

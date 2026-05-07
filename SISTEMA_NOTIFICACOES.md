@@ -80,7 +80,7 @@ DELETE /api/notifications/{id}             # Eliminar notificacao
 ```bash
 TOKEN=$(curl -s -X POST "$API_URL/api/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"socio1@accta.cv","password":"socio123"}' \
+  -d '{"email":"socio1@controlador.cv","password":"socio123"}' \
   | python3 -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
 
 # Contador

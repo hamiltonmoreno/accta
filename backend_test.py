@@ -80,7 +80,7 @@ class ACCTAAPITester:
         # Regular user
         user_data = {
             "name": "Sócio Teste",
-            "email": "socio1@accta.cv",
+            "email": "socio1@controlador.cv",
             "password": "socio123",
             "role": "socio",
             "status": "ativo",
@@ -101,7 +101,7 @@ class ACCTAAPITester:
         # Admin user
         admin_data = {
             "name": "Admin ACCTA",
-            "email": "admin@accta.cv",
+            "email": "admin@controlador.cv",
             "password": "admin123",
             "role": "admin",
             "status": "ativo",
@@ -121,7 +121,7 @@ class ACCTAAPITester:
         # Inactive user
         inactive_data = {
             "name": "Sócio Inadimplente",
-            "email": "inadimplente@accta.cv",
+            "email": "inadimplente@controlador.cv",
             "password": "socio123",
             "role": "socio",
             "status": "inadimplente",
@@ -149,7 +149,7 @@ class ACCTAAPITester:
             "POST",
             "auth/login",
             200,
-            data={"email": "socio1@accta.cv", "password": "socio123"}
+            data={"email": "socio1@controlador.cv", "password": "socio123"}
         )
         
         if success1 and 'access_token' in response1:
@@ -163,7 +163,7 @@ class ACCTAAPITester:
             "POST",
             "auth/login",
             200,
-            data={"email": "admin@accta.cv", "password": "admin123"}
+            data={"email": "admin@controlador.cv", "password": "admin123"}
         )
         
         if success2 and 'access_token' in response2:

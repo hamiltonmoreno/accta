@@ -3,6 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { eventsAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from '../../components/ui/alert-dialog';
 import { 
   Calendar, 
   Clock, 
@@ -46,6 +51,7 @@ export const EventosPage = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('upcoming');
   const [showModal, setShowModal] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   useEffect(() => {
     loadEvents();
@@ -84,7 +90,6 @@ export const EventosPage = () => {
   };
 
   const handleDelete = async (eventId) => {
-    if (!window.confirm('Tem certeza que deseja eliminar este evento?')) return;
     try {
       await eventsAPI.delete(eventId);
       toast.success('Evento eliminado');
@@ -185,7 +190,7 @@ export const EventosPage = () => {
 
                     {isAdmin && (
                       <button
-                        onClick={() => handleDelete(event.id)}
+                        onClick={() => setConfirmDelete(event.id)}
                         className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -272,6 +277,26 @@ export const EventosPage = () => {
           />
         )}
       </AnimatePresence>
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar evento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja eliminar este evento? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => { handleDelete(confirmDelete); setConfirmDelete(null); }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

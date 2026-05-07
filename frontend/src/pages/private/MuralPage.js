@@ -9,6 +9,11 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from '../../components/ui/alert-dialog';
 
 const CATEGORIES = [
   { value: 'todos', label: 'Todos', color: 'bg-gray-100 text-gray-700' },
@@ -277,6 +282,7 @@ export const MuralPage = () => {
   const [searchText, setSearchText] = useState('');
   const [posting, setPosting] = useState(false);
   const canModerate = isAdmin || isModerador;
+  const [confirmDeletePost, setConfirmDeletePost] = useState(null);
 
   const loadPosts = useCallback(async () => {
     try {
@@ -343,7 +349,6 @@ export const MuralPage = () => {
   };
 
   const handleDelete = async (postId) => {
-    if (!window.confirm('Tem certeza que deseja remover este post?')) return;
     try {
       await wallAPI.delete(postId);
       toast.success('Post removido');
@@ -538,7 +543,7 @@ export const MuralPage = () => {
                             </button>
                           )}
                           <button
-                            onClick={() => handleDelete(post.id)}
+                            onClick={() => setConfirmDeletePost(post.id)}
                             className="p-1.5 rounded-lg text-gray-400 hover:text-carmesim hover:bg-carmesim/10 transition-colors"
                             title="Remover"
                             data-testid={`delete-post-${post.id}`}
@@ -574,6 +579,26 @@ export const MuralPage = () => {
           })
         )}
       </div>
+
+      <AlertDialog open={!!confirmDeletePost} onOpenChange={(open) => !open && setConfirmDeletePost(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover post</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover este post? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => { handleDelete(confirmDeletePost); setConfirmDeletePost(null); }}
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

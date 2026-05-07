@@ -16,8 +16,8 @@ import os
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials
-ADMIN_CREDS = {"email": "admin@accta.cv", "password": "admin123"}
-SOCIO_CREDS = {"email": "socio1@accta.cv", "password": "socio123"}
+ADMIN_CREDS = {"email": "admin@controlador.cv", "password": "admin123"}
+SOCIO_CREDS = {"email": "socio1@controlador.cv", "password": "socio123"}
 
 
 @pytest.fixture(scope="module")

@@ -21,9 +21,9 @@ import pytest
 import requests
 
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://traffic-portal-2.preview.emergentagent.com").rstrip("/")
-ADMIN = {"email": "admin@accta.cv", "password": "admin123"}
-FIN = {"email": "financeiro@accta.cv", "password": "fin123"}
-SOCIO = {"email": "socio1@accta.cv", "password": "socio123"}
+ADMIN = {"email": "admin@controlador.cv", "password": "admin123"}
+FIN = {"email": "financeiro@controlador.cv", "password": "fin123"}
+SOCIO = {"email": "socio1@controlador.cv", "password": "socio123"}
 
 
 # ----------------- fixtures -----------------
@@ -95,7 +95,7 @@ class TestInvite:
         rand = secrets.token_hex(4)
         payload = {
             "name": f"TEST_invitee_{rand}",
-            "email": f"TEST_invitee_{rand}@accta.cv",
+            "email": f"TEST_invitee_{rand}@controlador.cv",
             "role": "socio",
             "cargo": "Sócio",
         }

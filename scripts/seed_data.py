@@ -44,7 +44,7 @@ async def seed_database():
     admin = {
         "id": admin_id,
         "name": "Maria Santos",
-        "email": "admin@accta.cv",
+        "email": "admin@controlador.cv",
         "password": hash_password("admin123"),
         "role": "admin",
         "status": "ativo",
@@ -64,7 +64,7 @@ async def seed_database():
     financeiro = {
         "id": fin_id,
         "name": "João Rodrigues",
-        "email": "financeiro@accta.cv",
+        "email": "financeiro@controlador.cv",
         "password": hash_password("fin123"),
         "role": "financeiro",
         "status": "ativo",
@@ -91,7 +91,7 @@ async def seed_database():
         socio = {
             "id": socio_id,
             "name": name,
-            "email": f"socio{i+1}@accta.cv",
+            "email": f"socio{i+1}@controlador.cv",
             "password": hash_password("socio123"),
             "role": "socio",
             "status": "ativo",
@@ -522,13 +522,13 @@ async def seed_database():
     print("\n🎉 Seed completo!")
     print("\n📝 Credenciais de acesso:")
     print("\nAdmin:")
-    print("  Email: admin@accta.cv")
+    print("  Email: admin@controlador.cv")
     print("  Senha: admin123")
     print("\nFinanceiro:")
-    print("  Email: financeiro@accta.cv")
+    print("  Email: financeiro@controlador.cv")
     print("  Senha: fin123")
     print("\nSócio Ativo:")
-    print("  Email: socio1@accta.cv")
+    print("  Email: socio1@controlador.cv")
     print("  Senha: socio123")
     print("\n" + "="*60)
 

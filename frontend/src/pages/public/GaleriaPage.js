@@ -253,8 +253,8 @@ export const GaleriaPage = () => {
         ) : albums.length === 0 ? (
           <div className="text-center py-16" data-testid="no-albums">
             <Images className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-            <h3 className="text-xl text-gray-400 font-semibold">Galeria em construcao</h3>
-            <p className="text-gray-400 text-sm mt-2">Em breve, fotos dos nossos aeroportos e equipa</p>
+            <h3 className="text-xl text-gray-400 font-semibold">Nenhum álbum disponível</h3>
+            <p className="text-gray-400 text-sm mt-2">Os álbuns de fotos serão publicados em breve.</p>
           </div>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">
