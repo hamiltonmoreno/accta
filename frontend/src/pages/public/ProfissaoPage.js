@@ -311,8 +311,8 @@ export const ProfissaoPage = () => {
               viewport={{ once: true }}
             >
               <div className="relative">
-                <div className="w-80 h-80 mx-auto border-2 border-accent/30 rounded-full flex items-center justify-center">
-                  <div className="w-60 h-60 border border-accent/20 rounded-full flex items-center justify-center">
+                <div className="w-80 h-80 mx-auto border-2 border-carmesim/30 rounded-full flex items-center justify-center">
+                  <div className="w-60 h-60 border border-carmesim/20 rounded-full flex items-center justify-center">
                     <div className="w-40 h-40 bg-carmesim/10 rounded-full flex items-center justify-center">
                       <Globe className="w-20 h-20 text-carmesim" />
                     </div>
@@ -348,11 +348,11 @@ export const ProfissaoPage = () => {
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
-                  <div className="font-sans font-bold text-3xl text-carmesim mb-1">500+</div>
+                  <div className="font-sans font-bold text-3xl text-amber mb-1">500+</div>
                   <div className="text-xs text-white/60 uppercase tracking-wider">Voos/dia em média</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
-                  <div className="font-sans font-bold text-3xl text-carmesim mb-1">24/7</div>
+                  <div className="font-sans font-bold text-3xl text-amber mb-1">24/7</div>
                   <div className="text-xs text-white/60 uppercase tracking-wider">Operação contínua</div>
                 </div>
               </div>

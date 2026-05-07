@@ -117,7 +117,7 @@ export const SobrePage = () => {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="card-technical rounded-2xl p-8 border-l-4 border-accent"
+              className="card-technical rounded-2xl p-8 border-l-4 border-carmesim"
             >
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-14 h-14 bg-carmesim rounded-xl flex items-center justify-center">
@@ -246,7 +246,7 @@ export const SobrePage = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="card-technical rounded-2xl p-8 border-2 border-accent"
+              className="card-technical rounded-2xl p-8 border-2 border-carmesim"
             >
               <div className="w-16 h-16 bg-carmesim rounded-xl flex items-center justify-center mb-6">
                 <Users className="w-8 h-8 text-grafite" />
@@ -314,7 +314,7 @@ export const SobrePage = () => {
           <div className="flex flex-wrap justify-center gap-4">
             <Link
               to="/transparencia"
-              className="inline-flex items-center gap-2 bg-carmesim text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-carmesim/90 transition-all"
+              className="inline-flex items-center gap-2 bg-confianca text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-confianca-dark transition-all"
             >
               Ver Transparência
               <ArrowRight className="w-5 h-5" />

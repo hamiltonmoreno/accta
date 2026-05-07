@@ -114,7 +114,7 @@ export const ValidadorPage = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="card-technical rounded-2xl p-8 border-2 border-accent"
+            className="card-technical rounded-2xl p-8 border-2 border-carmesim"
             data-testid="validation-success"
           >
             <div className="flex items-center gap-4 mb-6">

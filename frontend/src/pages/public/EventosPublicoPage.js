@@ -71,7 +71,7 @@ export const EventosPublicoPage = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-center"
           >
-            <span className="inline-block px-4 py-2 bg-carmesim/10 border border-accent/30 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
+            <span className="inline-block px-4 py-2 bg-carmesim/10 border border-carmesim/30 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
               Agenda
             </span>
             <h1 className="font-sans font-bold text-5xl lg:text-6xl text-white mb-6" data-testid="events-title">

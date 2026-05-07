@@ -98,7 +98,7 @@ export const VotingResults = ({ poll, results }) => {
 
       {/* Winner Highlight */}
       {chartData.length > 0 && chartData[0].votes > 0 && (
-        <div className="mt-6 p-4 bg-carmesim/5 rounded-lg border border-accent/20">
+        <div className="mt-6 p-4 bg-carmesim/5 rounded-lg border border-carmesim/20">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-carmesim rounded-full flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-grafite" />
