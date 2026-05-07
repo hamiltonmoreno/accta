@@ -1,49 +1,131 @@
 # Portal ACCTA
 
-Portal institucional e sistema de gestao associativa para a Associacao dos Controladores de Trafego Aereo de Cabo Verde.
+Portal institucional e sistema de gestão associativa para a **Associação dos Controladores de Tráfego Aéreo de Cabo Verde**.
 
-## Quick Start
+**Domínio:** [controlador.cv](https://controlador.cv)
 
-### Credenciais de Teste
+---
+
+## Credenciais de Demonstração
 
 | Perfil | Email | Senha |
 |--------|-------|-------|
-| Admin | admin@controlador.cv | admin123 |
+| Administrador | admin@controlador.cv | admin123 |
 | Financeiro | financeiro@controlador.cv | fin123 |
-| Socio | socio1@controlador.cv | socio123 |
+| Sócio | socio1@controlador.cv | socio123 |
 
-### Desenvolvimento Local
+---
 
+## Funcionalidades
+
+### Área Pública
+- Homepage institucional com apresentação da profissão
+- Página de transparência financeira com métricas públicas
+- Galeria de fotos (álbuns aprovados pelo admin)
+- Validador de carteiras via QR Code
+- Formulário de contacto (envia email para secretariado)
+
+### Portal do Associado (Área Privada)
+- Dashboard personalizado com feed de atividade recente
+- Carteira digital com QR Code SHA-256
+- Gestão financeira (contribuições, export PDF/CSV)
+- Sistema de votações democráticas
+- Gestão de projetos (CRUD, tarefas, milestones, orçamento)
+- Eventos e agenda com inscrição
+- Documentos internos (upload/download)
+- Mural de comunicação (posts, likes, moderação)
+- Galeria de fotos privada (workflow de aprovação)
+- Clube de benefícios com validação QR Code
+- Central de notificações (SSE real-time + fallback 30s)
+
+### Área Administrativa
+- Gestão de utilizadores (CRUD, cargos, privilégios)
+- Dashboard financeiro com gráficos (DRE, cash flow)
+- Aprovação de fotos e gestão de álbuns
+- Audit logs completo de ações administrativas
+- Broadcast de notificações para todos os sócios
+
+---
+
+## Stack
+
+| Camada | Tecnologia |
+|--------|-----------|
+| Frontend | React 19 + Tailwind CSS 3 + shadcn/ui + Framer Motion + Recharts + Craco |
+| Backend | FastAPI (Python 3.11) + Motor (async MongoDB) |
+| Base de Dados | MongoDB 7 |
+| Autenticação | JWT HS256 (24h) + RBAC (admin, financeiro, moderador, socio) |
+| Email | Resend API |
+| CI/CD | GitHub Actions → SSH → Nginx + Supervisord |
+
+---
+
+## Desenvolvimento Local
+
+### Backend
 ```bash
-# Backend
 cd backend
+python3.11 -m venv venv
+source venv/bin/activate      # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn server:app --host 0.0.0.0 --port 8001 --reload
+```
 
-# Frontend
+### Frontend
+```bash
 cd frontend
 yarn install
 yarn start
 ```
 
-### Seed de Dados
-
+### Seed de dados
 ```bash
-cd scripts
-python seed_data.py
+python scripts/seed_data.py
 ```
 
-## Stack
+---
 
-- **Frontend:** React, Tailwind CSS, Framer Motion, Recharts, Shadcn/UI
-- **Backend:** FastAPI (Python), Motor (async MongoDB), JWT
-- **Database:** MongoDB
-- **CI/CD:** GitHub Actions
+## Variáveis de Ambiente
 
-## Documentacao
+**Backend** (`backend/.env`):
+```env
+SECRET_KEY=<chave-secreta-forte>
+MONGO_URL=mongodb://localhost:27017
+DB_NAME=accta_portal
+CORS_ORIGINS=http://localhost:3000
+FRONTEND_URL=http://localhost:3000
+RESEND_API_KEY=re_xxxxxxxxxxxxx
+SENDER_EMAIL=noreply@controlador.cv
+```
 
-- [Guia de Deploy](DEPLOY.md)
-- [Configuracao SSH](SSH_SETUP.md)
-- [Analise de Melhorias](ANALISE_MELHORIAS.md)
-- [Sistema de Notificacoes](SISTEMA_NOTIFICACOES.md)
-- [Detalhes do Projeto](PROJETO_ACCTA.md)
+**Frontend** (`frontend/.env`):
+```env
+REACT_APP_BACKEND_URL=http://localhost:8001
+```
+
+---
+
+## Regras de Negócio
+
+- Quotas são descontadas em folha salarial — não existem cotas pendentes
+- Statuses de sócio: `ativo`, `inativo`, `pendente_convite` — sem "inadimplente"
+- Fotos submetidas por sócios requerem aprovação do admin antes de serem visíveis
+- Modo escuro desativado por decisão de design
+
+---
+
+## Documentação
+
+| Documento | Descrição |
+|-----------|-----------|
+| [DEPLOY.md](DEPLOY.md) | Pipeline CI/CD e secrets do GitHub |
+| [HOSTINGER_DEPLOY.md](HOSTINGER_DEPLOY.md) | Checklist completo para VPS Hostinger |
+| [VERCEL_DEPLOY.md](VERCEL_DEPLOY.md) | Deploy alternativo Vercel + Render + MongoDB Atlas |
+| [SSH_SETUP.md](SSH_SETUP.md) | Configuração de chave SSH para GitHub Actions |
+| [PROJETO_ACCTA.md](PROJETO_ACCTA.md) | Detalhes técnicos e arquitetura |
+| [ANALISE_MELHORIAS.md](ANALISE_MELHORIAS.md) | Status de implementação e melhorias futuras |
+| [SISTEMA_NOTIFICACOES.md](SISTEMA_NOTIFICACOES.md) | Documentação do sistema de notificações |
+
+---
+
+Desenvolvido com Emergent AI | 2025–2026

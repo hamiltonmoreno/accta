@@ -1,94 +1,154 @@
-# Portal ACCTA - Associacao de Controladores de Trafego Aereo de Cabo Verde
+# Portal ACCTA — Associação dos Controladores de Tráfego Aéreo de Cabo Verde
 
-## Visao Geral
+## Visão Geral
 
-Portal institucional completo e sistema de gestao associativa (SGA) para a ACCTA, oferecendo transparencia institucional, eficiencia administrativa e valorizacao da profissao de Controlador de Trafego Aereo em Cabo Verde.
+Portal institucional completo e Sistema de Gestão Associativa (SGA) para a ACCTA, oferecendo transparência institucional, eficiência administrativa e valorização da profissão de Controlador de Tráfego Aéreo em Cabo Verde.
+
+**URL Produção:** https://controlador.cv  
+**API:** https://controlador.cv/api
+
+---
 
 ## Funcionalidades
 
-### Area Publica (Institucional)
-- **Homepage Hero**: Apresentacao impactante com tematica aeronautica
-- **Sobre a Profissao**: Informacoes completas sobre controladores de trafego aereo
-- **Transparencia Financeira**: Pagina publica com metricas e prestacao de contas
-- **Galeria de Fotos**: Albums publicos com fotos dos aeroportos e equipa
-- **Validador de Carteira**: Validacao publica de carteiras de socios via QR Code
+### Área Pública (Institucional)
+- **Homepage Hero** — Apresentação impactante com temática aeronáutica
+- **Sobre a Profissão** — Informações completas sobre controladores de tráfego aéreo
+- **Transparência Financeira** — Página pública com métricas e prestação de contas (dados reais da API)
+- **Galeria de Fotos** — Álbuns públicos aprovados pelo admin
+- **Validador de Carteira** — Validação pública de carteiras de sócios via QR Code
+- **Formulário de Contacto** — Envia email para secretariado@controlador.cv via Resend API
 
-### Area Privada (Portal do Associado)
-- **Dashboard Personalizado**: Resumo financeiro, votacoes abertas, eventos proximos, feed de atividade recente
-- **Carteira Digital**: Identificacao digital com QR Code criptografado (SHA-256)
-- **Gestao Financeira**: Acompanhamento de contribuicoes (desconto em folha salarial) com export PDF/CSV
-- **Sistema de Votacoes**: Participacao democratica em decisoes da associacao
-- **Gestao de Projetos**: CRUD completo com tarefas, milestones, comentarios e orcamento
-- **Eventos/Agenda**: Sistema de eventos com inscricao e calendario
-- **Documentos**: Acesso a atas, estatutos e balancetes (upload/download admin)
-- **Mural de Comunicacao**: Canal de interacao entre socios com pesquisa, filtros, likes e moderacao
-- **Galeria de Fotos Privada**: Upload com workflow de aprovacao, albuns privados
-- **Clube de Beneficios**: Descontos exclusivos com validacao QR Code
-- **Notificacoes Avancadas**: Central de notificacoes com broadcast admin, filtros por tipo, auto-trigger
+### Área Privada (Portal do Associado)
+- **Dashboard Personalizado** — Resumo financeiro, votações abertas, eventos próximos, feed de atividade recente
+- **Carteira Digital** — Identificação digital com QR Code criptografado (SHA-256)
+- **Gestão Financeira** — Acompanhamento de contribuições (desconto em folha salarial) com export PDF/CSV
+- **Sistema de Votações** — Participação democrática em decisões da associação
+- **Gestão de Projetos** — CRUD completo com tarefas, milestones, comentários e orçamento
+- **Eventos/Agenda** — Sistema de eventos com inscrição e calendário
+- **Documentos** — Acesso a atas, estatutos e balancetes (upload/download admin)
+- **Mural de Comunicação** — Canal de interação entre sócios com pesquisa, filtros, likes e moderação
+- **Galeria de Fotos Privada** — Upload com workflow de aprovação, álbuns privados
+- **Clube de Benefícios** — Descontos exclusivos com validação QR Code
+- **Notificações Avançadas** — Central de notificações com broadcast admin, filtros por tipo, auto-trigger, SSE real-time
 
-### Area Administrativa
-- **Gestao de Utilizadores**: CRUD com alteracao de cargo, funcao e privilegios
-- **Dashboard Financeiro**: Graficos de receitas/despesas, DRE, cash flow
-- **Gestao de Galeria**: Aprovacao de fotos, CRUD de albuns
-- **Audit Logs**: Rastreio completo de acoes administrativas
+### Área Administrativa
+- **Gestão de Utilizadores** — CRUD com alteração de cargo, função e privilégios
+- **Dashboard Financeiro** — Gráficos de receitas/despesas, DRE, cash flow (Recharts)
+- **Gestão de Galeria** — Aprovação de fotos, CRUD de álbuns
+- **Audit Logs** — Rastreio completo de ações administrativas
 
-## Credenciais de Demonstracao
+---
+
+## Stack Técnico
+
+| Camada | Tecnologia |
+|--------|-----------|
+| Frontend | React 19 + Tailwind CSS 3 + shadcn/ui (New York) + Framer Motion + Recharts + Craco |
+| Backend | FastAPI (Python 3.11) + Motor (async MongoDB driver) |
+| Base de Dados | MongoDB 7 |
+| Autenticação | JWT HS256 (24h expiry) + RBAC (admin, financeiro, moderador, socio) |
+| Email | Resend API |
+| Real-time | SSE (Server-Sent Events) + fallback polling 30s |
+| CI/CD | GitHub Actions → SSH → Nginx + Supervisord |
+| Design | Identidade visual ACCTA (Vermelho Carmesim #C7202F, Cinza Grafite #3A3A3A, Open Sans) |
+
+---
+
+## Credenciais de Demonstração
 
 | Perfil | Email | Senha |
 |--------|-------|-------|
 | Administrador | admin@controlador.cv | admin123 |
 | Financeiro | financeiro@controlador.cv | fin123 |
-| Socio Ativo | socio1@controlador.cv | socio123 |
+| Sócio Ativo | socio1@controlador.cv | socio123 |
 
-> **Nota:** Nao existe o conceito de "socio inadimplente" nesta associacao. Todas as quotas sao descontadas diretamente na folha salarial.
+---
 
-## Stack Tecnico
+## Regras de Negócio Importantes
 
-| Camada | Tecnologia |
-|--------|-----------|
-| Frontend | React 19 + Tailwind CSS + Framer Motion + Shadcn/UI + Recharts |
-| Backend | FastAPI (Python) + Motor (async MongoDB) |
-| Base de Dados | MongoDB (colecoes: users, invoices, polls, events, documents, wall_posts, notifications, projects, gallery_albums, gallery_photos) |
-| Autenticacao | JWT + RBAC (admin, socio, financeiro, moderador) |
-| CI/CD | GitHub Actions (ci.yml + deploy.yml) |
-| Design | Identidade visual ACCTA (Vermelho Carmesim #C7202F, Cinza Grafite #3A3A3A, Open Sans) |
+- Quotas são descontadas em folha salarial — não existem cotas pendentes
+- Statuses de sócio: `ativo`, `inativo`, `pendente_convite` — sem "inadimplente"
+- Modo escuro **desativado** por decisão de design
+- Fotos submetidas por sócios requerem aprovação do admin antes de serem visíveis
+- QR Code da carteira usa hash SHA-256 com salt interno — não alterar sem invalidar todos os QR Codes existentes
 
-## Regras de Negocio Importantes
+---
 
-- Quotas sao descontadas em folha salarial — nao existem cotas pendentes
-- Nao existe o status "inadimplente" — apenas ativo e inativo
-- Modo escuro esta desativado
-- Fotos submetidas por socios requerem aprovacao do admin
+## Collections MongoDB
 
-## URLs
+| Collection | Descrição |
+|------------|-----------|
+| `users` | Sócios, admins, financeiro, moderadores |
+| `transactions` | Contribuições financeiras (desconto em folha) |
+| `invoices` | Faturas e recibos |
+| `projects` | Projetos com tarefas e milestones |
+| `events` | Eventos e inscrições |
+| `wall_posts` | Posts do mural de comunicação |
+| `notifications` | Notificações in-app por utilizador |
+| `polls` | Votações com opções e votos |
+| `documents` | Documentos internos (atas, estatutos, balancetes) |
+| `gallery_albums` | Álbuns da galeria (públicos e privados) |
+| `gallery_photos` | Fotos com workflow de aprovação |
+| `audit_logs` | Registo de ações administrativas |
+| `password_resets` | Tokens de reset de password |
+| `finance_settings` | Configurações do módulo financeiro |
 
-- **Frontend**: https://traffic-portal-2.preview.emergentagent.com
-- **Backend API**: https://traffic-portal-2.preview.emergentagent.com/api
+---
+
+## Roles & Privilégios
+
+| Role | Acesso |
+|------|--------|
+| `admin` | Sistema completo — utilizadores, finanças, moderação, audit logs |
+| `financeiro` | Módulo financeiro, transações, faturas, configurações |
+| `moderador` | Moderação de conteúdo — posts do mural, fotos da galeria |
+| `socio` | Portal do associado — dashboard, carteira, eventos, votações, mural |
+
+---
 
 ## Estrutura do Projeto
 
 ```
 /app
-├── .github/workflows/          # CI/CD (ci.yml, deploy.yml)
+├── .github/workflows/
+│   ├── ci.yml              # CI — lint + testes em cada push
+│   └── deploy.yml          # CD — deploy para produção (branch main)
+├── .claude/
+│   ├── agents/             # Subagentes especializados (debugger, reviewer, etc.)
+│   ├── commands/           # Comandos de utilizador (/deploy, /fix-issue, etc.)
+│   ├── hooks/              # pre-commit (ruff/eslint), lint-on-save (ruff format)
+│   ├── rules/              # Regras contextuais por ficheiro (frontend, api, db)
+│   ├── skills/             # Skills invocáveis (design system, api boilerplate)
+│   └── settings.json       # Configuração de permissões e hooks
 ├── frontend/
 │   ├── src/
-│   │   ├── components/         # Componentes reutilizaveis (ACCTALogo, NotificationBell, etc.)
-│   │   ├── contexts/           # AuthContext, NotificationContext, ThemeContext
-│   │   ├── layouts/            # PublicLayout, PrivateLayout
-│   │   ├── pages/public/       # HomePage, Sobre, Profissao, Transparencia, Galeria
-│   │   ├── pages/private/      # Dashboard, Financeiro, Projetos, Votacoes, Eventos, etc.
-│   │   └── utils/api.js        # Camada de API centralizada
+│   │   ├── components/ui/  # shadcn/ui (40+ componentes)
+│   │   ├── components/     # NotificationBell, PollResults, ACCTALogo, etc.
+│   │   ├── contexts/       # AuthContext, NotificationContext
+│   │   ├── layouts/        # PrivateLayout (sidebar), PublicLayout (marketing)
+│   │   ├── pages/public/   # HomePage, LoginPage, Transparencia, Galeria, etc.
+│   │   ├── pages/private/  # Dashboard, Financeiro, Projetos, Votacoes, etc.
+│   │   └── utils/api.js    # Axios client + todos os grupos de API (40+ endpoints)
 │   └── tailwind.config.js
 ├── backend/
-│   ├── routes/                 # Routers modulares (gallery, activity, notifications, etc.)
-│   ├── models.py               # Modelos Pydantic
-│   ├── server.py               # Entry point FastAPI
-│   └── .env                    # Variaveis de ambiente
-├── scripts/seed_data.py        # Seed de dados de demonstracao
-├── DEPLOY.md                   # Guia de deploy
-└── SSH_SETUP.md                # Configuracao SSH para CI/CD
+│   ├── server.py           # FastAPI entry point + CORS + rate limiting
+│   ├── database.py         # Conexão MongoDB + definição de índices
+│   ├── auth.py             # JWT criação/validação + bcrypt
+│   ├── models.py           # Pydantic models (request/response)
+│   ├── helpers.py          # create_notification, create_audit_log, notify_*
+│   ├── email_service.py    # Integração Resend (convite, reset, boas-vindas, contacto)
+│   └── routes/             # 18 módulos de rotas (um por domínio)
+├── scripts/
+│   ├── seed_data.py        # Seed de dados de demonstração
+│   ├── create_admin.py     # Criar utilizador admin
+│   └── seed_gallery.py     # Seed de galeria
+├── tasks/
+│   ├── todo.md             # Plano de tarefas ativo
+│   └── lessons.md          # Lições acumuladas de sessões anteriores
+└── tests/                  # Testes pytest (backend)
 ```
 
 ---
 
-Desenvolvido com Emergent AI | 2025-2026
+Desenvolvido com Emergent AI | 2025–2026

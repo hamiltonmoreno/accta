@@ -1,6 +1,6 @@
-# Checklist de Deploy — Hostinger VPS (ACTACV)
+# Checklist de Deploy — Hostinger VPS (ACCTA)
 
-> Guia prático, passo-a-passo, para pôr o Portal ACTACV a correr no seu VPS da Hostinger.
+> Guia prático, passo-a-passo, para pôr o Portal ACCTA a correr no seu VPS da Hostinger.
 > Cada bloco de comandos pode ser copiado diretamente para o terminal SSH.
 
 ---
@@ -248,7 +248,7 @@ sudo certbot certificates
 | Sintoma | Causa provável | Solução |
 |---------|----------------|---------|
 | `502 Bad Gateway` | Backend não arrancou | `sudo supervisorctl status` e ler logs |
-| Email de convite não chega | Domínio não verificado no Resend | Validar DNS `controlador.cv`/`controlador.cv` no dashboard Resend. Enquanto não estiver validado, o link aparece na resposta da API |
+| Email de convite não chega | Domínio não verificado no Resend | Validar DNS `controlador.cv` no dashboard Resend (resend.com/domains). Enquanto não estiver validado, o link aparece na resposta da API |
 | SSE desliga em ~60s | Timeout do Nginx | Confirmar `proxy_read_timeout 24h` no bloco `/api/` |
 | `CORS error` no frontend | `CORS_ORIGINS` não coincide | Ajustar em `/app/backend/.env` e reiniciar backend |
 | Build do frontend falha | Falta memória no VPS | Hostinger plano básico: `sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile` |

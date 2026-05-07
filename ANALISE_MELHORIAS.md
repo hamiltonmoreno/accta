@@ -1,76 +1,101 @@
-# Portal ACCTA - Analise de Melhorias
+# Portal ACCTA — Análise de Implementação e Melhorias
 
-**Ultima atualizacao:** Marco 2026
+**Última atualização:** Maio 2026
 
-## Status Atual
+---
 
-### Implementado (98%)
+## Status de Implementação
 
-#### Area Publica — 100%
-- Homepage hero aeronautica
-- Apresentacao da profissao de controlador
-- Sistema de noticias com filtros
-- Pagina de transparencia financeira publica
-- Validador de carteira QR
-- Galeria de fotos publica
+### Área Pública — 100% Concluída
 
-#### Area Reservada (Portal do Associado) — 98%
-- Dashboard personalizado por perfil com RBAC + Feed de Atividade Recente
-- Gestao financeira integrada com folha salarial (export PDF/CSV)
-- Carteira digital com QR Code SHA-256
-- Sistema de Votacoes completo (backend + frontend)
-- Gestao de Projetos completa (CRUD, tarefas, milestones, orcamento)
-- Eventos/Agenda com inscricao
-- Documentos internos com upload/download
-- Mural de comunicacao com pesquisa, filtros, likes, moderacao
-- Galeria de fotos com upload e workflow de aprovacao
-- Clube de beneficios com QR Code
-- Notificacoes avancadas com broadcast, auto-trigger, filtros
+| Funcionalidade | Status |
+|----------------|--------|
+| Homepage hero aeronáutica | Concluído |
+| Apresentação da profissão de controlador | Concluído |
+| Sistema de notícias com filtros | Concluído |
+| Página de transparência financeira (dados reais da API) | Concluído |
+| Validador de carteira QR | Concluído |
+| Galeria de fotos pública (álbuns aprovados) | Concluído |
+| Formulário de contacto (email real via Resend) | Concluído |
 
-#### Gestao Administrativa — 100%
-- Painel de gestao de utilizadores (sem status inadimplente)
-- Dashboard financeiro com graficos (Recharts)
-- Gestao de galeria com aprovacao de fotos
-- Audit logs completo
-- Estatisticas em tempo real
+### Portal do Associado — 100% Concluído
+
+| Funcionalidade | Status |
+|----------------|--------|
+| Dashboard personalizado por perfil (RBAC) + Feed de Atividade | Concluído |
+| Gestão financeira com folha salarial (export PDF/CSV) | Concluído |
+| Carteira digital com QR Code SHA-256 | Concluído |
+| Sistema de Votações (backend + frontend) | Concluído |
+| Gestão de Projetos (CRUD, tarefas, milestones, orçamento) | Concluído |
+| Eventos/Agenda com inscrição | Concluído |
+| Documentos internos (upload/download) | Concluído |
+| Mural de comunicação (posts, likes, moderação) | Concluído |
+| Galeria de fotos com upload e workflow de aprovação | Concluído |
+| Clube de benefícios com QR Code | Concluído |
+| Notificações avançadas (SSE real-time + broadcast + auto-trigger) | Concluído |
+
+### Área Administrativa — 100% Concluída
+
+| Funcionalidade | Status |
+|----------------|--------|
+| Gestão de utilizadores (CRUD, cargos, privilégios) | Concluído |
+| Dashboard financeiro com gráficos (Recharts) | Concluído |
+| Gestão de galeria com aprovação de fotos | Concluído |
+| Audit logs completo | Concluído |
+| Estatísticas em tempo real | Concluído |
+
+### Infraestrutura — 100% Concluída
+
+| Componente | Status |
+|------------|--------|
+| Pipeline CI/CD (GitHub Actions — lint, build, deploy) | Concluído |
+| Integração Resend (convite, reset, boas-vindas, contacto) | Concluído |
+| Rate limiting (login, forgot-password, geral) | Concluído |
+| Documentos públicos via API (Transparência) | Concluído |
+| `.claude/` — agentes, hooks, regras, skills, settings | Concluído |
 
 ---
 
 ## Melhorias Pendentes
 
 ### P1 — Prioridade Alta
-- **Carteira Digital PWA**: Service worker para funcionalidade offline
-- **Clube de Beneficios**: Logica avancada de validacao QR Code com parceiros
 
-### P2 — Prioridade Media
-- **Evento em Destaque**: Countdown timer na homepage para proximo evento
-- **Export Calendario**: Exportar eventos para Google/Apple Calendar
+- **Carteira Digital PWA** — Service worker para funcionalidade offline (visualizar carteira sem internet)
+- **Clube de Benefícios** — Lógica avançada de validação QR Code com parceiros externos
 
-### P3 — Sugestoes Futuras
-- Dashboard de impacto pessoal (beneficios usados, eventos participados)
-- Gamificacao leve (badges de participacao)
-- Dashboard para parceiros do clube de beneficios
-- Geolocalizacao de beneficios em mapa
-- Sistema de mentoria entre socios
-- Relatorio anual interativo
-- Notificacoes Push (Web Push API)
-- Email notifications (integracao Resend)
+### P2 — Prioridade Média
+
+- **Evento em Destaque** — Countdown timer na homepage para próximo evento
+- **Export Calendário** — Exportar eventos para Google Calendar / Apple Calendar (.ics)
+
+### P3 — Sugestões Futuras
+
+- Dashboard de impacto pessoal (benefícios usados, eventos participados)
+- Gamificação leve (badges de participação)
+- Dashboard para parceiros do clube de benefícios
+- Geolocalização de benefícios em mapa
+- Sistema de mentoria entre sócios
+- Relatório anual interativo (PDF automático)
+- Notificações Push (Web Push API / PWA)
 
 ---
 
-## Metricas de Sucesso
+## Regras de Negócio
+
+| Regra | Detalhe |
+|-------|---------|
+| Sem "inadimplente" | Quotas descontadas em folha salarial — statuses: `ativo`, `inativo`, `pendente_convite` |
+| Sem cotas pendentes | Contribuições automáticas via folha |
+| Modo escuro | Desativado por decisão de design |
+| Aprovação de fotos | Fotos submetidas por sócios requerem aprovação admin |
+| QR Code da carteira | Hash SHA-256 com salt interno — imutável em produção |
+
+---
+
+## Métricas de Sucesso
 
 | KPI | Meta | Status |
 |-----|------|--------|
-| Engajamento | +20% logins + votacoes | Estrutura pronta |
-| Eficiencia Admin | -50% tempo de gestao | Automatizado via folha salarial |
-| Escalabilidade | 500 socios simultaneos | Estrutura pronta |
-
----
-
-## Regras de Negocio Actualizadas
-
-- NÃO existe "socio inadimplente" — quotas descontadas em folha
-- NÃO existem "cotas pendentes" — contribuicoes automaticas
-- Modo escuro DESATIVADO a pedido do utilizador
-- CSS dark mode removido do codebase
+| Engajamento | +20% logins + votações | Estrutura implementada |
+| Eficiência Admin | -50% tempo de gestão | Automatizado via folha salarial |
+| Escalabilidade | 500 sócios simultâneos | Índices MongoDB + async Motor |

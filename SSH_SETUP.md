@@ -1,4 +1,4 @@
-# Configuracao de Chave SSH para Deploy via GitHub Actions
+# Configuração de Chave SSH para Deploy via GitHub Actions — Portal ACCTA
 
 ## Guia Passo a Passo
 
