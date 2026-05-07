@@ -23,7 +23,7 @@ class TestActivityFeedAPI:
         """Setup - login as admin and socio"""
         # Admin login
         admin_response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "admin@accta.cv",
+            "email": "admin@controlador.cv",
             "password": "admin123"
         })
         assert admin_response.status_code == 200, f"Admin login failed: {admin_response.text}"
@@ -32,7 +32,7 @@ class TestActivityFeedAPI:
         
         # Socio login
         socio_response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": "socio1@accta.cv",
+            "email": "socio1@controlador.cv",
             "password": "socio123"
         })
         assert socio_response.status_code == 200, f"Socio login failed: {socio_response.text}"

@@ -636,7 +636,7 @@ export const AdminUsuariosPage = () => {
                         value={inviteData.email}
                         onChange={(e) => setInviteData({ ...inviteData, email: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
-                        placeholder="email@accta.cv"
+                        placeholder="email@controlador.cv"
                         data-testid="invite-email"
                       />
                     </div>

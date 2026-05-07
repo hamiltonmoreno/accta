@@ -7,7 +7,7 @@
 
 ## Pré-requisitos
 - VPS Hostinger com **Ubuntu 22.04 ou 24.04** (painel hPanel → VPS → reinstalar SO se necessário)
-- Domínio apontado para o IP do VPS (ex: `accta.cv` → A record → IP do VPS)
+- Domínio apontado para o IP do VPS (ex: `controlador.cv` → A record → IP do VPS)
 - Acesso SSH como `root` (`ssh root@SEU_IP`)
 
 ---
@@ -68,10 +68,10 @@ cat > /app/backend/.env <<'EOF'
 MONGO_URL=mongodb://localhost:27017
 DB_NAME=accta_portal
 SECRET_KEY=COLOCAR_AQUI_UMA_CHAVE_FORTE
-CORS_ORIGINS=https://accta.cv
+CORS_ORIGINS=https://controlador.cv
 RESEND_API_KEY=re_xxxxxxxxxxxxx
-EMAIL_FROM=noreply@accta.cv
-FRONTEND_URL=https://accta.cv
+EMAIL_FROM=noreply@controlador.cv
+FRONTEND_URL=https://controlador.cv
 EOF
 ```
 
@@ -80,7 +80,7 @@ EOF
 ### 2.3 Criar `.env` do frontend
 ```bash
 cat > /app/frontend/.env <<'EOF'
-REACT_APP_BACKEND_URL=https://accta.cv
+REACT_APP_BACKEND_URL=https://controlador.cv
 EOF
 ```
 
@@ -111,7 +111,7 @@ cd /app
 sudo tee /etc/nginx/sites-available/accta <<'EOF'
 server {
     listen 80;
-    server_name accta.cv www.accta.cv;
+    server_name controlador.cv www.controlador.cv;
 
     client_max_body_size 20M;
 
@@ -150,7 +150,7 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ### 3.2 Ativar HTTPS (Let's Encrypt)
 ```bash
-sudo certbot --nginx -d accta.cv -d www.accta.cv
+sudo certbot --nginx -d controlador.cv -d www.controlador.cv
 # Responde: email → aceita termos → redirecionar HTTP→HTTPS (opção 2)
 ```
 
@@ -180,7 +180,7 @@ sudo supervisorctl status backend
 
 Teste:
 ```bash
-curl https://accta.cv/api/
+curl https://controlador.cv/api/
 # Esperado: {"message":"ACCTA Portal API v1.0"}
 ```
 
@@ -204,7 +204,7 @@ cat ~/.ssh/accta_deploy.pub | ssh deploy@SEU_IP "cat >> ~/.ssh/authorized_keys"
 | `DEPLOY_SSH_KEY` | Conteúdo **completo** de `~/.ssh/accta_deploy` (chave privada) |
 | `DEPLOY_PORT` | `22` (ou a porta SSH que configurou) |
 | `DEPLOY_APP_DIR` | `/app` |
-| `PRODUCTION_URL` | `https://accta.cv` |
+| `PRODUCTION_URL` | `https://controlador.cv` |
 
 ### 5.3 Permitir ao `deploy` reiniciar o supervisor sem password
 ```bash
@@ -248,7 +248,7 @@ sudo certbot certificates
 | Sintoma | Causa provável | Solução |
 |---------|----------------|---------|
 | `502 Bad Gateway` | Backend não arrancou | `sudo supervisorctl status` e ler logs |
-| Email de convite não chega | Domínio não verificado no Resend | Validar DNS `controlador.cv`/`accta.cv` no dashboard Resend. Enquanto não estiver validado, o link aparece na resposta da API |
+| Email de convite não chega | Domínio não verificado no Resend | Validar DNS `controlador.cv`/`controlador.cv` no dashboard Resend. Enquanto não estiver validado, o link aparece na resposta da API |
 | SSE desliga em ~60s | Timeout do Nginx | Confirmar `proxy_read_timeout 24h` no bloco `/api/` |
 | `CORS error` no frontend | `CORS_ORIGINS` não coincide | Ajustar em `/app/backend/.env` e reiniciar backend |
 | Build do frontend falha | Falta memória no VPS | Hostinger plano básico: `sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile` |
@@ -257,8 +257,8 @@ sudo certbot certificates
 
 ## ✅ Checklist final antes de abrir ao público
 
-- [ ] `https://accta.cv` carrega a homepage
-- [ ] `https://accta.cv/api/` devolve JSON
+- [ ] `https://controlador.cv` carrega a homepage
+- [ ] `https://controlador.cv/api/` devolve JSON
 - [ ] SSL válido (cadeado verde no browser)
 - [ ] Login do admin funciona
 - [ ] Admin consegue enviar convite e email chega (após validar domínio no Resend)

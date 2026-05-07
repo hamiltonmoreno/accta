@@ -11,9 +11,9 @@ import uuid
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials
-ADMIN_EMAIL = "admin@accta.cv"
+ADMIN_EMAIL = "admin@controlador.cv"
 ADMIN_PASSWORD = "admin123"
-SOCIO_EMAIL = "socio1@accta.cv"
+SOCIO_EMAIL = "socio1@controlador.cv"
 SOCIO_PASSWORD = "socio123"
 
 
@@ -100,7 +100,7 @@ class TestAdminInvite:
     
     def test_admin_can_create_invite(self, admin_token):
         """Admin can create an invite for a new user"""
-        test_email = f"TEST_invite_{uuid.uuid4().hex[:8]}@accta.cv"
+        test_email = f"TEST_invite_{uuid.uuid4().hex[:8]}@controlador.cv"
         response = requests.post(
             f"{BASE_URL}/api/admin/invite",
             json={
@@ -124,7 +124,7 @@ class TestAdminInvite:
     
     def test_socio_cannot_create_invite(self, socio_token):
         """Non-admin (socio) gets 403 when trying to create invite"""
-        test_email = f"TEST_socio_invite_{uuid.uuid4().hex[:8]}@accta.cv"
+        test_email = f"TEST_socio_invite_{uuid.uuid4().hex[:8]}@controlador.cv"
         response = requests.post(
             f"{BASE_URL}/api/admin/invite",
             json={
@@ -172,7 +172,7 @@ class TestInviteValidation:
             pytest.skip("Admin login failed")
         admin_token = login_resp.json()["access_token"]
         
-        test_email = f"TEST_validate_{uuid.uuid4().hex[:8]}@accta.cv"
+        test_email = f"TEST_validate_{uuid.uuid4().hex[:8]}@controlador.cv"
         invite_resp = requests.post(
             f"{BASE_URL}/api/admin/invite",
             json={"name": "Validate Test User", "email": test_email, "role": "socio"},
@@ -215,7 +215,7 @@ class TestSetupAccount:
             pytest.skip("Admin login failed")
         admin_token = login_resp.json()["access_token"]
         
-        test_email = f"TEST_setup_{uuid.uuid4().hex[:8]}@accta.cv"
+        test_email = f"TEST_setup_{uuid.uuid4().hex[:8]}@controlador.cv"
         test_password = "newuser123"
         
         invite_resp = requests.post(
@@ -307,7 +307,7 @@ class TestPendingInviteLogin:
             pytest.skip("Admin login failed")
         admin_token = login_resp.json()["access_token"]
         
-        test_email = f"TEST_pending_{uuid.uuid4().hex[:8]}@accta.cv"
+        test_email = f"TEST_pending_{uuid.uuid4().hex[:8]}@controlador.cv"
         
         invite_resp = requests.post(
             f"{BASE_URL}/api/admin/invite",

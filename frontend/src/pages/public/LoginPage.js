@@ -166,7 +166,7 @@ export const LoginPage = () => {
           {/* Demo Info */}
           <div className="mt-5 p-3 bg-grafite/5 border border-grafite/10 rounded-lg">
             <p className="text-xs text-gray-500 text-center">
-              <span className="font-semibold text-grafite">Demo:</span> socio1@accta.cv / socio123
+              <span className="font-semibold text-grafite">Demo:</span> socio1@controlador.cv / socio123
             </p>
           </div>
         </motion.div>

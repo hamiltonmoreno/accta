@@ -12,7 +12,7 @@ class TestPasswordRecovery:
     """Password recovery flow tests"""
     
     # Test credentials
-    TEST_EMAIL = "socio1@accta.cv"
+    TEST_EMAIL = "socio1@controlador.cv"
     ORIGINAL_PASSWORD = "socio123"
     NEW_PASSWORD = "newpass123"
     

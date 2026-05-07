@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 CLI para criar o primeiro administrador em producao.
-Uso: python create_admin.py --email admin@accta.cv --password <senha> --name "Nome Admin"
+Uso: python create_admin.py --email admin@controlador.cv --password <senha> --name "Nome Admin"
 """
 import asyncio
 import argparse

@@ -8,9 +8,9 @@ Portal institucional e sistema de gestao associativa para a Associacao dos Contr
 
 | Perfil | Email | Senha |
 |--------|-------|-------|
-| Admin | admin@accta.cv | admin123 |
-| Financeiro | financeiro@accta.cv | fin123 |
-| Socio | socio1@accta.cv | socio123 |
+| Admin | admin@controlador.cv | admin123 |
+| Financeiro | financeiro@controlador.cv | fin123 |
+| Socio | socio1@controlador.cv | socio123 |
 
 ### Desenvolvimento Local
 

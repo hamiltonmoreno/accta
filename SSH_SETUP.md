@@ -102,7 +102,7 @@ Repository → Settings → Secrets and variables → Actions → New repository
 | `DEPLOY_USER` | Utilizador SSH (ex: `root` ou `deploy`) |
 | `DEPLOY_PORT` | Porta SSH (ex: `22`) — opcional |
 | `DEPLOY_APP_DIR` | Diretorio da app (ex: `/app`) — opcional |
-| `PRODUCTION_URL` | URL publica (ex: `https://accta.cv`) |
+| `PRODUCTION_URL` | URL publica (ex: `https://controlador.cv`) |
 
 ---
 

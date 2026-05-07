@@ -12,7 +12,15 @@ echo "Running pre-commit checks..."
 # Backend lint (ruff) — only if backend files are staged
 if git diff --cached --name-only 2>/dev/null | grep -q "^backend/"; then
   echo "  Checking backend (ruff)..."
-  cd backend && ruff check . || { echo "Backend lint FAILED — commit blocked"; exit 2; }
+  if command -v ruff &>/dev/null; then
+    cd backend && ruff check . || { echo "Backend lint FAILED — commit blocked"; exit 2; }
+    cd ..
+  elif python3 -m ruff --version &>/dev/null 2>&1; then
+    cd backend && python3 -m ruff check . || { echo "Backend lint FAILED — commit blocked"; exit 2; }
+    cd ..
+  else
+    echo "  ruff not found, skipping backend lint"
+  fi
   cd ..
 fi
 

@@ -36,9 +36,9 @@ Portal institucional completo e sistema de gestao associativa (SGA) para a ACCTA
 
 | Perfil | Email | Senha |
 |--------|-------|-------|
-| Administrador | admin@accta.cv | admin123 |
-| Financeiro | financeiro@accta.cv | fin123 |
-| Socio Ativo | socio1@accta.cv | socio123 |
+| Administrador | admin@controlador.cv | admin123 |
+| Financeiro | financeiro@controlador.cv | fin123 |
+| Socio Ativo | socio1@controlador.cv | socio123 |
 
 > **Nota:** Nao existe o conceito de "socio inadimplente" nesta associacao. Todas as quotas sao descontadas diretamente na folha salarial.
 

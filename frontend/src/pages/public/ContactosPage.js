@@ -127,8 +127,8 @@ export const ContactosPage = () => {
                   </div>
                   <div>
                     <h3 className="font-sans font-semibold text-lg text-grafite mb-1">Email Geral</h3>
-                    <a href="mailto:secretariado@accta.cv" className="text-carmesim hover:underline">
-                      secretariado@accta.cv
+                    <a href="mailto:secretariado@controlador.cv" className="text-carmesim hover:underline">
+                      secretariado@controlador.cv
                     </a>
                   </div>
                 </div>
@@ -140,8 +140,8 @@ export const ContactosPage = () => {
                   </div>
                   <div>
                     <h3 className="font-sans font-semibold text-lg text-grafite mb-1">Imprensa</h3>
-                    <a href="mailto:comunicacao@accta.cv" className="text-carmesim hover:underline">
-                      comunicacao@accta.cv
+                    <a href="mailto:comunicacao@controlador.cv" className="text-carmesim hover:underline">
+                      comunicacao@controlador.cv
                     </a>
                   </div>
                 </div>

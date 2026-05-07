@@ -10,9 +10,9 @@ import uuid
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials
-ADMIN_EMAIL = "admin@accta.cv"
+ADMIN_EMAIL = "admin@controlador.cv"
 ADMIN_PASSWORD = "admin123"
-SOCIO_EMAIL = "socio1@accta.cv"
+SOCIO_EMAIL = "socio1@controlador.cv"
 SOCIO_PASSWORD = "socio123"
 
 # Valid cargos and privileges from backend

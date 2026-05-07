@@ -5,7 +5,7 @@ import os
 
 router = APIRouter(tags=["contact"])
 
-CONTACT_EMAIL = os.environ.get("CONTACT_EMAIL", "secretariado@accta.cv")
+CONTACT_EMAIL = os.environ.get("CONTACT_EMAIL", "secretariado@controlador.cv")
 
 
 class ContactRequest(BaseModel):

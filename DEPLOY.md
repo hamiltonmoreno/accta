@@ -21,7 +21,7 @@ Aceda a: **Repository → Settings → Secrets and variables → Actions → New
 | `DEPLOY_SSH_KEY` | Chave privada SSH (inteira, incluindo BEGIN/END) | Gere com `ssh-keygen -t ed25519 -C "deploy"` e adicione a publica ao servidor |
 | `DEPLOY_PORT` | Porta SSH (opcional, padrao: 22) | Configuracao do servidor |
 | `DEPLOY_APP_DIR` | Diretorio da aplicacao no servidor (opcional, padrao: `/app`) | Onde o codigo esta no servidor |
-| `PRODUCTION_URL` | URL publica da aplicacao (ex: `https://accta.cv`) | O dominio/URL configurado no DNS |
+| `PRODUCTION_URL` | URL publica da aplicacao (ex: `https://controlador.cv`) | O dominio/URL configurado no DNS |
 
 ### Variaveis de ambiente do servidor (configurar no `.env` do servidor)
 
@@ -31,13 +31,13 @@ No servidor de producao, o ficheiro `/app/backend/.env` deve conter:
 SECRET_KEY=<chave-secreta-forte-gerada-aleatoriamente>
 MONGO_URL=mongodb://localhost:27017
 DB_NAME=accta_portal
-CORS_ORIGINS=https://accta.cv
+CORS_ORIGINS=https://controlador.cv
 ```
 
 E `/app/frontend/.env`:
 
 ```env
-REACT_APP_BACKEND_URL=https://accta.cv
+REACT_APP_BACKEND_URL=https://controlador.cv
 ```
 
 > **Nota:** O build de producao do frontend injeta `REACT_APP_BACKEND_URL` durante o `yarn build`, por isso o secret `PRODUCTION_URL` e usado diretamente no workflow.
@@ -80,7 +80,7 @@ Aceda a: **Repository → Actions → CD — Deploy to Production → Run workfl
 ### Via Health Check direto
 
 ```bash
-curl https://accta.cv/api/
+curl https://controlador.cv/api/
 # Esperado: {"message": "ACCTA Portal API v1.0"}
 ```
 
