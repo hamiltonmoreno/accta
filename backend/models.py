@@ -6,15 +6,16 @@ import uuid
 
 # ===== USER MODELS =====
 
-CARGOS = [
-    "Presidente", "Vice-Presidente", "Secretário-Geral",
-    "Tesoureiro", "Vogal", "Membro da Direção", "Sócio"
-]
+CARGOS = ["Presidente", "Vice-Presidente", "Secretário-Geral", "Tesoureiro", "Vogal", "Membro da Direção", "Sócio"]
 
 PRIVILEGES = [
-    "manage_users", "manage_finances", "manage_events",
-    "manage_documents", "moderate_content", "manage_benefits",
-    "view_audit_logs"
+    "manage_users",
+    "manage_finances",
+    "manage_events",
+    "manage_documents",
+    "moderate_content",
+    "manage_benefits",
+    "view_audit_logs",
 ]
 
 
@@ -97,6 +98,7 @@ class SetupAccount(BaseModel):
 
 # ===== INVOICE MODELS =====
 
+
 class Invoice(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -124,6 +126,7 @@ class InvoiceCreate(BaseModel):
 
 
 # ===== POLL MODELS =====
+
 
 class Poll(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -163,6 +166,7 @@ class VoteCreate(BaseModel):
 
 # ===== POST MODELS =====
 
+
 class Post(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -183,6 +187,7 @@ class PostCreate(BaseModel):
 
 
 # ===== DOCUMENT MODELS =====
+
 
 class Document(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -205,6 +210,19 @@ class DocumentCreate(BaseModel):
 
 # ===== BENEFIT MODELS =====
 
+
+class BenefitPartnerLocation(BaseModel):
+    """A physical location (parceiro) where a benefit can be redeemed."""
+
+    model_config = ConfigDict(extra="ignore")
+    name: str
+    address: str = ""
+    city: str = ""
+    phone: Optional[str] = None
+    latitude: Optional[float] = Field(default=None, ge=-90, le=90)
+    longitude: Optional[float] = Field(default=None, ge=-180, le=180)
+
+
 class Benefit(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -212,6 +230,9 @@ class Benefit(BaseModel):
     description: str
     logo_url: Optional[str] = None
     discount_percent: float
+    category: Optional[str] = None  # e.g. "saude", "restauracao", "viagens"
+    website: Optional[str] = None
+    locations: List[BenefitPartnerLocation] = []
     active: bool = True
     validation_count: int = 0
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -222,9 +243,24 @@ class BenefitCreate(BaseModel):
     description: str
     logo_url: Optional[str] = None
     discount_percent: float
+    category: Optional[str] = None
+    website: Optional[str] = None
+    locations: List[BenefitPartnerLocation] = []
+
+
+class BenefitUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    logo_url: Optional[str] = None
+    discount_percent: Optional[float] = None
+    category: Optional[str] = None
+    website: Optional[str] = None
+    locations: Optional[List[BenefitPartnerLocation]] = None
+    active: Optional[bool] = None
 
 
 # ===== WALL MODELS =====
+
 
 class WallPost(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -260,6 +296,7 @@ class WallCommentCreate(BaseModel):
 
 
 # ===== GALLERY MODELS =====
+
 
 class GalleryAlbum(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -302,6 +339,7 @@ class GalleryPhotoCreate(BaseModel):
 
 # ===== EVENT MODELS =====
 
+
 class Event(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -342,6 +380,7 @@ class EventUpdate(BaseModel):
 
 # ===== COMMON MODELS =====
 
+
 class AuditLog(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -375,13 +414,9 @@ class NotificationCreate(BaseModel):
 
 TRANSACTION_TYPES = ["receita", "despesa"]
 
-INCOME_CATEGORIES = [
-    "quotas", "patrocinios", "doacoes", "eventos", "outros_receita"
-]
+INCOME_CATEGORIES = ["quotas", "patrocinios", "doacoes", "eventos", "outros_receita"]
 
-EXPENSE_CATEGORIES = [
-    "operacional", "eventos", "juridico", "comunicacao", "viagens", "outros_despesa"
-]
+EXPENSE_CATEGORIES = ["operacional", "eventos", "juridico", "comunicacao", "viagens", "outros_despesa"]
 
 
 class Transaction(BaseModel):
@@ -549,6 +584,7 @@ class ProjectMilestone(BaseModel):
 
 
 # ===== PASSWORD RESET MODELS =====
+
 
 class PasswordResetRequest(BaseModel):
     email: EmailStr

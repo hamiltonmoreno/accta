@@ -1,13 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { benefitsAPI } from '../../utils/api';
-import { Gift, MapPin, Percent } from 'lucide-react';
+import { Gift, MapPin, Percent, ExternalLink, Phone, Tag } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../components/ui/alert-dialog';
 
 export const BeneficiosPage = () => {
-  const { user, isAtivo } = useAuth();
+  const { isAtivo } = useAuth();
   const [benefits, setBenefits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [confirmId, setConfirmId] = useState(null);
+  const [validating, setValidating] = useState(false);
 
   useEffect(() => {
     loadBenefits();
@@ -23,6 +36,32 @@ export const BeneficiosPage = () => {
       setLoading(false);
     }
   };
+
+  const handleValidate = async () => {
+    if (!confirmId) return;
+    setValidating(true);
+    try {
+      await benefitsAPI.validate(confirmId);
+      toast.success('Utilização registada com sucesso');
+      await loadBenefits();
+    } catch (error) {
+      const detail = error?.response?.data?.detail || 'Erro ao registar utilização';
+      toast.error(detail);
+    } finally {
+      setValidating(false);
+      setConfirmId(null);
+    }
+  };
+
+  const mapsUrl = (loc) => {
+    if (loc.latitude != null && loc.longitude != null) {
+      return `https://www.google.com/maps/search/?api=1&query=${loc.latitude},${loc.longitude}`;
+    }
+    const q = encodeURIComponent(`${loc.name} ${loc.address || ''} ${loc.city || ''}`.trim());
+    return `https://www.google.com/maps/search/?api=1&query=${q}`;
+  };
+
+  const confirmedBenefit = benefits.find((b) => b.id === confirmId);
 
   return (
     <div className="space-y-8">
@@ -98,11 +137,62 @@ export const BeneficiosPage = () => {
                   <img src={benefit.logo_url} alt={benefit.name} className="max-h-full max-w-full object-contain" />
                 </div>
               )}
-              
+
               <div className="p-6">
-                <h3 className="font-sans font-semibold text-2xl text-grafite mb-3">{benefit.name}</h3>
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <h3 className="font-sans font-semibold text-2xl text-grafite">{benefit.name}</h3>
+                  {benefit.category && (
+                    <span className="inline-flex items-center gap-1 text-xs font-mono uppercase tracking-wider text-grafite bg-grafite/5 px-2 py-1 rounded">
+                      <Tag className="w-3 h-3" />
+                      {benefit.category}
+                    </span>
+                  )}
+                </div>
                 <p className="text-gray-600 mb-4 line-clamp-3">{benefit.description}</p>
-                
+
+                {benefit.locations && benefit.locations.length > 0 && (
+                  <div className="mb-4 space-y-2">
+                    <p className="text-xs font-semibold text-grafite uppercase tracking-wider">Parceiros</p>
+                    {benefit.locations.map((loc, idx) => (
+                      <div key={idx} className="text-sm bg-gray-50 rounded-lg p-3 border border-gray-200">
+                        <div className="font-semibold text-grafite mb-1">{loc.name}</div>
+                        {loc.address && (
+                          <a
+                            href={mapsUrl(loc)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-start gap-1.5 text-xs text-gray-600 hover:text-carmesim transition-colors"
+                          >
+                            <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                            <span>{[loc.address, loc.city].filter(Boolean).join(', ')}</span>
+                          </a>
+                        )}
+                        {loc.phone && (
+                          <a
+                            href={`tel:${loc.phone}`}
+                            className="inline-flex items-center gap-1.5 text-xs text-gray-600 hover:text-carmesim transition-colors mt-1"
+                          >
+                            <Phone className="w-3.5 h-3.5" />
+                            <span>{loc.phone}</span>
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {benefit.website && (
+                  <a
+                    href={benefit.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs text-grafite hover:text-carmesim mb-4"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Visitar website
+                  </a>
+                )}
+
                 <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                   <div className="flex items-center gap-2">
                     <Percent className="w-5 h-5 text-carmesim" />
@@ -112,11 +202,42 @@ export const BeneficiosPage = () => {
                     {benefit.validation_count} usos
                   </div>
                 </div>
+
+                {isAtivo && (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmId(benefit.id)}
+                    className="mt-4 w-full bg-carmesim text-white text-sm font-semibold py-2.5 rounded-lg hover:bg-carmesim/90 transition-colors disabled:opacity-50"
+                    data-testid={`validate-benefit-${benefit.id}`}
+                  >
+                    Registar Utilização
+                  </button>
+                )}
               </div>
             </motion.div>
           ))}
         </div>
       )}
+
+      {/* Confirmation dialog — prevents accidental clicks from inflating the counter */}
+      <AlertDialog open={confirmId !== null} onOpenChange={(open) => !open && setConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar utilização do benefício</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmedBenefit
+                ? `Vais registar uma utilização do benefício "${confirmedBenefit.name}". Esta ação fica registada no teu perfil e no audit log da associação.`
+                : 'Confirma que pretendes registar a utilização deste benefício.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={validating}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleValidate} disabled={validating}>
+              {validating ? 'A registar...' : 'Confirmar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -54,6 +54,17 @@ async def get_personal_report(current_user: User = Depends(get_current_user)):
     # Documentos disponíveis para o utilizador (públicos + socios)
     documents_count = await db.documents.count_documents({"visibility": {"$in": ["publico", "socios"]}})
 
+    # Documentos únicos a que o utilizador acedeu (deduplicado: abrir o mesmo
+    # 5 vezes conta como 1). Total de eventos vai em document_access_events.
+    pipeline = [
+        {"$match": {"user_id": uid}},
+        {"$group": {"_id": "$document_id"}},
+        {"$count": "n"},
+    ]
+    unique_cursor = await db.document_accesses.aggregate(pipeline).to_list(1)
+    documents_accessed = unique_cursor[0]["n"] if unique_cursor else 0
+    document_access_events = await db.document_accesses.count_documents({"user_id": uid})
+
     return {
         "events_attended": events_attended,
         "total_events": total_events,
@@ -67,4 +78,6 @@ async def get_personal_report(current_user: User = Depends(get_current_user)):
         "photos_submitted": photos_submitted,
         "photos_approved": photos_approved,
         "documents_available": documents_count,
+        "documents_accessed": documents_accessed,
+        "document_access_events": document_access_events,
     }

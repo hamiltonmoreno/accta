@@ -111,6 +111,7 @@ export const documentsAPI = {
   getPublic: () => api.get('/documents/public'),
   getAll: () => api.get('/documents'),
   create: (data) => api.post('/documents', data),
+  registerAccess: (documentId) => api.post(`/documents/${documentId}/access`),
 };
 
 // Contact API
@@ -133,7 +134,11 @@ export const uploadAPI = {
 // Benefits API
 export const benefitsAPI = {
   getAll: () => api.get('/benefits'),
+  getPublic: () => api.get('/benefits/public'),
   create: (data) => api.post('/benefits', data),
+  update: (id, data) => api.patch(`/benefits/${id}`, data),
+  remove: (id) => api.delete(`/benefits/${id}`),
+  validate: (id) => api.post(`/benefits/${id}/validate`),
 };
 
 // Wall API

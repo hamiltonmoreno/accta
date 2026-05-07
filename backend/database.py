@@ -5,11 +5,11 @@ import os
 import logging
 
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env', override=False)
+load_dotenv(ROOT_DIR / ".env", override=False)
 
-mongo_url = os.environ['MONGO_URL']
+mongo_url = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db = client[os.environ["DB_NAME"]]
 
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -31,8 +31,9 @@ async def ensure_indexes():
         await db.transactions.create_index([("date", -1)])
         await db.events.create_index([("date", 1)])
         await db.audit_logs.create_index([("created_at", -1)])
+        await db.document_accesses.create_index([("user_id", 1), ("accessed_at", -1)])
+        await db.document_accesses.create_index([("user_id", 1), ("document_id", 1)])
+        await db.benefit_validations.create_index([("user_id", 1), ("validated_at", -1)])
         logger.info("MongoDB indexes ensured")
     except Exception as e:
         logger.warning(f"Index creation warning (non-fatal): {e}")
-
-
