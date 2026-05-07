@@ -20,6 +20,16 @@ async def root():
     return {"message": "ACCTA Portal API v1.0"}
 
 
+@api_router.get("/health")
+async def health_check():
+    try:
+        await client.admin.command("ping")
+        return {"status": "ok", "database": "connected"}
+    except Exception:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+
 # Mount static files for uploads
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 

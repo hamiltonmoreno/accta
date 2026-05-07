@@ -62,8 +62,8 @@ jobs:
       - name: Lint (ruff)
         run: ruff check .
 
-      - name: Run tests (skipped in CI — integration tests require live server)
-        run: echo "Integration tests run against deployed server, not in CI"
+      - name: Run smoke tests
+        run: pytest tests/test_smoke.py -v --tb=short
 
   # ──────────────────────────────────────────────
   # FRONTEND — React / Craco
