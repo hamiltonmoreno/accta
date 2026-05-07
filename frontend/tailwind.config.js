@@ -41,7 +41,14 @@ module.exports = {
           foreground: "#3A3A3A",
         },
         accent: {
-          DEFAULT: "#C7202F",
+          DEFAULT: "#F5F5F5",
+          foreground: "#3A3A3A",
+        },
+        confianca: {
+          DEFAULT: "#1B2B4B",
+          light: "#2D4A7A",
+          dark: "#0F1A30",
+          50: "#EFF3FA",
           foreground: "#FFFFFF",
         },
         carmesim: {
