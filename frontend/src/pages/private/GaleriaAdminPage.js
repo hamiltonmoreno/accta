@@ -4,10 +4,15 @@ import { galleryAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import {
-  Camera, Plus, Upload, CheckCircle, XCircle, Trash2,
+  Camera, Upload, CheckCircle, XCircle, Trash2,
   Images, X, ChevronLeft, ChevronRight, Clock, Eye,
   EyeOff, FolderPlus, Pencil
 } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from '../../components/ui/alert-dialog';
 
 // ===== LIGHTBOX =====
 const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
@@ -277,6 +282,8 @@ export const GaleriaAdminPage = () => {
   const [showUpload, setShowUpload] = useState(false);
   const [showAlbumModal, setShowAlbumModal] = useState(false);
   const [editingAlbum, setEditingAlbum] = useState(null);
+  const [confirmDeleteAlbum, setConfirmDeleteAlbum] = useState(null);
+  const [confirmDeletePhoto, setConfirmDeletePhoto] = useState(null);
 
   const loadAlbums = useCallback(async () => {
     try {
@@ -299,12 +306,10 @@ export const GaleriaAdminPage = () => {
   };
 
   const handleDeleteAlbum = async (albumId) => {
-    if (!window.confirm('Remover album e todas as fotos?')) return;
     try { await galleryAPI.deleteAlbum(albumId); toast.success('Album removido'); loadAlbums(); setSelectedAlbum(null); } catch { toast.error('Erro'); }
   };
 
   const handleDeletePhoto = async (photoId) => {
-    if (!window.confirm('Remover esta foto?')) return;
     try { await galleryAPI.deletePhoto(photoId); toast.success('Foto removida'); openAlbum(selectedAlbum); } catch { toast.error('Erro'); }
   };
 
@@ -357,7 +362,7 @@ export const GaleriaAdminPage = () => {
                     className="p-2 rounded-lg hover:bg-gray-100" style={{ color: 'var(--text-muted)' }} data-testid="edit-album-btn">
                     <Pencil className="w-4 h-4" />
                   </button>
-                  <button onClick={() => handleDeleteAlbum(selectedAlbum.id)}
+                  <button onClick={() => setConfirmDeleteAlbum(selectedAlbum.id)}
                     className="p-2 rounded-lg text-gray-400 hover:text-carmesim hover:bg-carmesim/10" data-testid="delete-album-btn">
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -384,7 +389,7 @@ export const GaleriaAdminPage = () => {
                   </button>
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors pointer-events-none" />
                   {(isAdmin || photo.uploaded_by === undefined) && (
-                    <button onClick={() => handleDeletePhoto(photo.id)}
+                    <button onClick={() => setConfirmDeletePhoto(photo.id)}
                       className="absolute top-2 right-2 p-1.5 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 text-white hover:bg-carmesim transition-all"
                       data-testid={`delete-photo-${photo.id}`}>
                       <Trash2 className="w-3 h-3" />
@@ -466,6 +471,46 @@ export const GaleriaAdminPage = () => {
             onNext={() => setLightboxIndex(Math.min(photos.length - 1, lightboxIndex + 1))} />
         )}
       </AnimatePresence>
+
+      <AlertDialog open={!!confirmDeleteAlbum} onOpenChange={(open) => !open && setConfirmDeleteAlbum(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover álbum</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza? O álbum e todas as suas fotos serão removidos permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => { handleDeleteAlbum(confirmDeleteAlbum); setConfirmDeleteAlbum(null); }}
+            >
+              Remover álbum
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!confirmDeletePhoto} onOpenChange={(open) => !open && setConfirmDeletePhoto(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover foto</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover esta foto? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => { handleDeletePhoto(confirmDeletePhoto); setConfirmDeletePhoto(null); }}
+            >
+              Remover foto
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

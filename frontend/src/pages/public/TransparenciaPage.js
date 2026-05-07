@@ -2,24 +2,21 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { documentsAPI } from '../../utils/api';
-import { 
-  FileText, 
-  Download, 
-  Shield, 
+import {
+  FileText,
+  Download,
+  Shield,
   BookOpen,
-  Scale,
   BarChart3,
   Calendar,
   ExternalLink,
   CheckCircle,
   Building
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 export const TransparenciaPage = () => {
   const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [reports, setReports] = useState([]);
 
   useEffect(() => {
     loadPublicDocuments();
@@ -27,59 +24,15 @@ export const TransparenciaPage = () => {
 
   const loadPublicDocuments = async () => {
     try {
-      // Note: This would need a public endpoint for documents
-      // For now, we'll show placeholder data
-      setDocuments([
-        {
-          id: '1',
-          title: 'Estatutos da Associação',
-          type: 'estatuto',
-          description: 'O conjunto de regras que define os nossos direitos e deveres.',
-          file_url: '#',
-          created_at: new Date().toISOString()
-        },
-        {
-          id: '2',
-          title: 'Código de Ética',
-          type: 'estatuto',
-          description: 'Os princípios de conduta esperados de cada associado.',
-          file_url: '#',
-          created_at: new Date().toISOString()
-        },
-        {
-          id: '3',
-          title: 'Regulamento Interno',
-          type: 'estatuto',
-          description: 'Diretrizes operacionais da associação.',
-          file_url: '#',
-          created_at: new Date().toISOString()
-        }
-      ]);
-    } catch (error) {
-      console.error('Erro ao carregar documentos:', error);
-    } finally {
-      setLoading(false);
+      const res = await documentsAPI.getPublic();
+      const all = res.data || [];
+      setDocuments(all.filter(d => d.type !== 'balancete' && d.type !== 'plano'));
+      setReports(all.filter(d => d.type === 'balancete' || d.type === 'plano'));
+    } catch {
+      setDocuments([]);
+      setReports([]);
     }
   };
-
-  const reports = [
-    {
-      id: 'r1',
-      title: 'Relatório de Contas 2024',
-      description: 'Balancete anual aprovado em Assembleia Geral.',
-      type: 'balancete',
-      year: '2024',
-      file_url: '#'
-    },
-    {
-      id: 'r2',
-      title: 'Plano de Atividades 2025',
-      description: 'As metas e projetos para o próximo ciclo.',
-      type: 'plano',
-      year: '2025',
-      file_url: '#'
-    }
-  ];
 
   const getDocIcon = (type) => {
     switch (type) {
@@ -197,45 +150,49 @@ export const TransparenciaPage = () => {
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {reports.map((report, index) => {
-              const IconComponent = getDocIcon(report.type);
-              return (
-                <motion.div
-                  key={report.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="card-technical rounded-xl overflow-hidden"
-                >
-                  <div className="h-24 bg-gradient-to-r from-primary to-[#0A3A5A] flex items-center px-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-carmesim rounded-lg flex items-center justify-center">
-                        <IconComponent className="w-6 h-6 text-grafite" />
-                      </div>
-                      <div>
-                        <span className="text-xs text-carmesim uppercase tracking-wider">{report.year}</span>
-                        <h3 className="font-sans font-semibold text-lg text-white">{report.title}</h3>
+          {reports.length === 0 ? (
+            <p className="text-center text-gray-400">Nenhum relatório publicado ainda.</p>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+              {reports.map((report, index) => {
+                const IconComponent = getDocIcon(report.type);
+                return (
+                  <motion.div
+                    key={report.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 }}
+                    className="card-technical rounded-xl overflow-hidden"
+                  >
+                    <div className="h-24 bg-gradient-to-r from-primary to-[#0A3A5A] flex items-center px-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-carmesim rounded-lg flex items-center justify-center">
+                          <IconComponent className="w-6 h-6 text-grafite" />
+                        </div>
+                        <div>
+                          <span className="text-xs text-carmesim uppercase tracking-wider">{report.year}</span>
+                          <h3 className="font-sans font-semibold text-lg text-white">{report.title}</h3>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="p-6">
-                    <p className="text-gray-600 mb-6">{report.description}</p>
-                    <a
-                      href={report.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 bg-grafite text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-grafite/90 transition-all"
-                    >
-                      <Download className="w-4 h-4" />
-                      Ver Documento
-                    </a>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
+                    <div className="p-6">
+                      <p className="text-gray-600 mb-6">{report.description}</p>
+                      <a
+                        href={report.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 bg-grafite text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-grafite/90 transition-all"
+                      >
+                        <Download className="w-4 h-4" />
+                        Ver Documento
+                      </a>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 

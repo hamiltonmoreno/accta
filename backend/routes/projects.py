@@ -2,10 +2,18 @@ from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timezone
 from typing import Optional
 from models import (
-    User, Project, ProjectCreate, ProjectUpdate,
-    ProjectTask, ProjectTaskCreate, ProjectTaskUpdate,
-    ProjectComment, ProjectExpense, ProjectMilestone,
-    PROJECT_STATUSES, PROJECT_VISIBILITIES,
+    User,
+    Project,
+    ProjectCreate,
+    ProjectUpdate,
+    ProjectTask,
+    ProjectTaskCreate,
+    ProjectTaskUpdate,
+    ProjectComment,
+    ProjectExpense,
+    ProjectMilestone,
+    PROJECT_STATUSES,
+    PROJECT_VISIBILITIES,
 )
 from database import db
 from auth import get_current_user
@@ -26,12 +34,14 @@ def can_view_project(user: User, project: dict) -> bool:
 
 def serialize_doc(d: dict) -> dict:
     for k in ["created_at", "updated_at", "completed_at"]:
-        if isinstance(d.get(k), str):
-            pass
+        v = d.get(k)
+        if isinstance(v, datetime):
+            d[k] = v.isoformat()
     return d
 
 
 # ===== PROJECT CRUD =====
+
 
 @router.get("")
 async def list_projects(
@@ -63,11 +73,13 @@ async def list_projects(
     project_ids = [p["id"] for p in projects]
     pipeline = [
         {"$match": {"project_id": {"$in": project_ids}}},
-        {"$group": {
-            "_id": "$project_id",
-            "total": {"$sum": 1},
-            "done": {"$sum": {"$cond": [{"$eq": ["$status", "concluido"]}, 1, 0]}}
-        }}
+        {
+            "$group": {
+                "_id": "$project_id",
+                "total": {"$sum": 1},
+                "done": {"$sum": {"$cond": [{"$eq": ["$status", "concluido"]}, 1, 0]}},
+            }
+        },
     ]
     task_counts = {r["_id"]: r async for r in db.project_tasks.aggregate(pipeline)}
     for p in projects:
@@ -105,7 +117,13 @@ async def create_project(
     # Auto-notifications
     link = f"/projetos/{project.id}"
     if current_user.role != "admin":
-        await notify_admins("projeto", "Nova Proposta de Projeto", f"{current_user.name} submeteu o projeto '{project.title}' para aprovacao.", link, exclude_id=current_user.id)
+        await notify_admins(
+            "projeto",
+            "Nova Proposta de Projeto",
+            f"{current_user.name} submeteu o projeto '{project.title}' para aprovacao.",
+            link,
+            exclude_id=current_user.id,
+        )
 
     p_dict.pop("_id", None)
     return p_dict
@@ -124,7 +142,9 @@ async def get_project(
 
     # Enrich
     tasks = await db.project_tasks.find({"project_id": project_id}, {"_id": 0}).sort("created_at", 1).to_list(500)
-    comments = await db.project_comments.find({"project_id": project_id}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    comments = (
+        await db.project_comments.find({"project_id": project_id}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    )
     expenses = await db.project_expenses.find({"project_id": project_id}, {"_id": 0}).sort("date", -1).to_list(200)
     milestones = await db.project_milestones.find({"project_id": project_id}, {"_id": 0}).sort("date", 1).to_list(100)
 
@@ -165,16 +185,36 @@ async def update_project(
 
     # Notify stakeholders on status change
     if "status" in updates:
-        STATUS_LABELS = {"proposta": "Proposta", "aprovado": "Aprovado", "em_curso": "Em Curso", "concluido": "Concluido", "cancelado": "Cancelado", "pausado": "Pausado"}
+        STATUS_LABELS = {
+            "proposta": "Proposta",
+            "aprovado": "Aprovado",
+            "em_curso": "Em Curso",
+            "concluido": "Concluido",
+            "cancelado": "Cancelado",
+            "pausado": "Pausado",
+        }
         new_status = STATUS_LABELS.get(updates["status"], updates["status"])
         link = f"/projetos/{project_id}"
         stakeholders = get_project_stakeholder_ids(project)
-        await notify_users(stakeholders, "projeto", f"Projeto Atualizado: {project['title']}", f"O status mudou para '{new_status}'. Atualizado por {current_user.name}.", link, exclude_id=current_user.id)
+        await notify_users(
+            stakeholders,
+            "projeto",
+            f"Projeto Atualizado: {project['title']}",
+            f"O status mudou para '{new_status}'. Atualizado por {current_user.name}.",
+            link,
+            exclude_id=current_user.id,
+        )
 
     # Notify new responsible
     if "responsible_id" in updates and updates["responsible_id"] and updates["responsible_id"] != current_user.id:
         link = f"/projetos/{project_id}"
-        await create_notification(updates["responsible_id"], "projeto", "Projeto Atribuido", f"Foi designado responsavel pelo projeto '{project['title']}'.", link)
+        await create_notification(
+            updates["responsible_id"],
+            "projeto",
+            "Projeto Atribuido",
+            f"Foi designado responsavel pelo projeto '{project['title']}'.",
+            link,
+        )
 
     updated = await db.projects.find_one({"id": project_id}, {"_id": 0})
     return updated
@@ -192,15 +232,27 @@ async def approve_project(
     if not project:
         raise HTTPException(status_code=404, detail="Projeto nao encontrado")
 
-    await db.projects.update_one({"id": project_id}, {"$set": {
-        "status": "aprovado",
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-    }})
+    await db.projects.update_one(
+        {"id": project_id},
+        {
+            "$set": {
+                "status": "aprovado",
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        },
+    )
     await create_audit_log(current_user.id, f"Aprovou projeto '{project['title']}'", project_id)
 
     link = f"/projetos/{project_id}"
     stakeholders = get_project_stakeholder_ids(project)
-    await notify_users(stakeholders, "projeto", "Projeto Aprovado!", f"O projeto '{project['title']}' foi aprovado por {current_user.name}.", link, exclude_id=current_user.id)
+    await notify_users(
+        stakeholders,
+        "projeto",
+        "Projeto Aprovado!",
+        f"O projeto '{project['title']}' foi aprovado por {current_user.name}.",
+        link,
+        exclude_id=current_user.id,
+    )
 
     return {"message": "Projeto aprovado"}
 
@@ -227,6 +279,7 @@ async def delete_project(
 
 
 # ===== TASKS =====
+
 
 @router.post("/{project_id}/tasks")
 async def create_task(
@@ -257,7 +310,13 @@ async def create_task(
     # Notify assignee
     if data.assignee_id and data.assignee_id != current_user.id:
         link = f"/projetos/{project_id}"
-        await create_notification(data.assignee_id, "projeto", "Nova Tarefa Atribuida", f"'{task.title}' no projeto '{project['title']}'. Atribuida por {current_user.name}.", link)
+        await create_notification(
+            data.assignee_id,
+            "projeto",
+            "Nova Tarefa Atribuida",
+            f"'{task.title}' no projeto '{project['title']}'. Atribuida por {current_user.name}.",
+            link,
+        )
 
     t_dict.pop("_id", None)
     return t_dict
@@ -299,7 +358,14 @@ async def update_task(
     if updates.get("status") == "concluido":
         link = f"/projetos/{project_id}"
         stakeholders = get_project_stakeholder_ids(project)
-        await notify_users(stakeholders, "projeto", "Tarefa Concluida", f"A tarefa '{task.get('title', '')}' no projeto '{project['title']}' foi concluida por {current_user.name}.", link, exclude_id=current_user.id)
+        await notify_users(
+            stakeholders,
+            "projeto",
+            "Tarefa Concluida",
+            f"A tarefa '{task.get('title', '')}' no projeto '{project['title']}' foi concluida por {current_user.name}.",
+            link,
+            exclude_id=current_user.id,
+        )
 
     updated = await db.project_tasks.find_one({"id": task_id}, {"_id": 0})
     return updated
@@ -322,6 +388,7 @@ async def delete_task(
 
 
 # ===== COMMENTS =====
+
 
 @router.post("/{project_id}/comments")
 async def add_comment(
@@ -352,7 +419,14 @@ async def add_comment(
     # Notify project stakeholders about the new comment
     link = f"/projetos/{project_id}"
     stakeholders = get_project_stakeholder_ids(project)
-    await notify_users(stakeholders, "projeto", "Novo Comentario no Projeto", f"{current_user.name} comentou em '{project['title']}': \"{content[:80]}{'...' if len(content)>80 else ''}\"", link, exclude_id=current_user.id)
+    await notify_users(
+        stakeholders,
+        "projeto",
+        "Novo Comentario no Projeto",
+        f"{current_user.name} comentou em '{project['title']}': \"{content[:80]}{'...' if len(content) > 80 else ''}\"",
+        link,
+        exclude_id=current_user.id,
+    )
 
     c_dict.pop("_id", None)
     return c_dict
@@ -374,6 +448,7 @@ async def delete_comment(
 
 
 # ===== EXPENSES =====
+
 
 @router.post("/{project_id}/expenses")
 async def add_expense(
@@ -414,12 +489,25 @@ async def add_expense(
     # Notify stakeholders about the new expense
     link = f"/projetos/{project_id}"
     stakeholders = get_project_stakeholder_ids(project)
-    await notify_users(stakeholders, "projeto", "Nova Despesa no Projeto", f"{current_user.name} registou despesa de {amount:,.0f} CVE em '{project['title']}': {description}.", link, exclude_id=current_user.id)
+    await notify_users(
+        stakeholders,
+        "projeto",
+        "Nova Despesa no Projeto",
+        f"{current_user.name} registou despesa de {amount:,.0f} CVE em '{project['title']}': {description}.",
+        link,
+        exclude_id=current_user.id,
+    )
 
     # Alert if budget exceeded
     budget = project.get("budget", 0)
     if budget > 0 and new_spent > budget:
-        await notify_users(stakeholders, "projeto", "Orcamento Excedido!", f"O projeto '{project['title']}' excedeu o orcamento. Gasto: {new_spent:,.0f} CVE / Orcamento: {budget:,.0f} CVE.", link)
+        await notify_users(
+            stakeholders,
+            "projeto",
+            "Orcamento Excedido!",
+            f"O projeto '{project['title']}' excedeu o orcamento. Gasto: {new_spent:,.0f} CVE / Orcamento: {budget:,.0f} CVE.",
+            link,
+        )
 
     e_dict.pop("_id", None)
     return e_dict
@@ -447,6 +535,7 @@ async def delete_expense(
 
 
 # ===== MILESTONES =====
+
 
 @router.post("/{project_id}/milestones")
 async def add_milestone(
@@ -522,6 +611,7 @@ async def delete_milestone(
 
 
 # ===== MEMBERS LIST (for assignees) =====
+
 
 @router.get("/meta/members")
 async def get_members_list(

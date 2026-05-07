@@ -17,6 +17,7 @@ from routes.projects import router as projects_router
 from routes.activity import router as activity_router
 from routes.report import router as report_router
 from routes.admin import router as admin_router
+from routes.contact import router as contact_router
 
 api_router = APIRouter(prefix="/api")
 
@@ -38,3 +39,4 @@ api_router.include_router(projects_router)
 api_router.include_router(activity_router)
 api_router.include_router(report_router)
 api_router.include_router(admin_router)
+api_router.include_router(contact_router)

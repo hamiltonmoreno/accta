@@ -108,8 +108,14 @@ export const postsAPI = {
 
 // Documents API
 export const documentsAPI = {
+  getPublic: () => api.get('/documents/public'),
   getAll: () => api.get('/documents'),
   create: (data) => api.post('/documents', data),
+};
+
+// Contact API
+export const contactAPI = {
+  submit: (data) => api.post('/contact', data),
 };
 
 // Upload API

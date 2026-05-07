@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { contactAPI } from '../../utils/api';
 import { 
   Mail, 
   Phone, 
@@ -38,19 +39,19 @@ export const ContactosPage = () => {
     }
 
     setSending(true);
-    
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setSending(false);
-    setSent(true);
-    toast.success('Mensagem enviada com sucesso!');
-    
-    // Reset form after delay
-    setTimeout(() => {
-      setFormData({ name: '', email: '', subject: 'geral', message: '' });
-      setSent(false);
-    }, 3000);
+    try {
+      await contactAPI.submit(formData);
+      setSent(true);
+      toast.success('Mensagem enviada com sucesso!');
+      setTimeout(() => {
+        setFormData({ name: '', email: '', subject: 'geral', message: '' });
+        setSent(false);
+      }, 3000);
+    } catch {
+      toast.error('Erro ao enviar mensagem. Tente novamente.');
+    } finally {
+      setSending(false);
+    }
   };
 
   const subjects = [
