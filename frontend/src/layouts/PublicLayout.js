@@ -132,7 +132,7 @@ export const PublicLayout = ({ children }) => {
               <p className="text-sm text-white/70 mb-3 max-w-sm">
                 Associação dos Controladores de Tráfego Aéreo de Cabo Verde
               </p>
-              <p className="text-carmesim font-semibold italic text-sm">
+              <p className="text-amber font-semibold italic text-sm">
                 "Segurança no céu, união em terra."
               </p>
             </div>
@@ -140,28 +140,28 @@ export const PublicLayout = ({ children }) => {
             <div>
               <h3 className="font-semibold text-sm uppercase tracking-wider mb-4 text-white/90">Links Rápidos</h3>
               <ul className="space-y-2.5 text-sm text-white/60">
-                <li><Link to="/sobre" className="hover:text-carmesim transition-colors">Sobre</Link></li>
-                <li><Link to="/profissao" className="hover:text-carmesim transition-colors">A Profissão</Link></li>
-                <li><Link to="/transparencia" className="hover:text-carmesim transition-colors">Transparência</Link></li>
-                <li><Link to="/beneficios-publico" className="hover:text-carmesim transition-colors">Benefícios</Link></li>
-                <li><Link to="/contactos" className="hover:text-carmesim transition-colors">Contactos</Link></li>
-                <li><Link to="/galeria" className="hover:text-carmesim transition-colors">Galeria</Link></li>
+                <li><Link to="/sobre" className="hover:text-white transition-colors">Sobre</Link></li>
+                <li><Link to="/profissao" className="hover:text-white transition-colors">A Profissão</Link></li>
+                <li><Link to="/transparencia" className="hover:text-white transition-colors">Transparência</Link></li>
+                <li><Link to="/beneficios-publico" className="hover:text-white transition-colors">Benefícios</Link></li>
+                <li><Link to="/contactos" className="hover:text-white transition-colors">Contactos</Link></li>
+                <li><Link to="/galeria" className="hover:text-white transition-colors">Galeria</Link></li>
               </ul>
             </div>
 
             <div>
               <h3 className="font-semibold text-sm uppercase tracking-wider mb-4 text-white/90">Área Reservada</h3>
               <ul className="space-y-2.5 text-sm text-white/60">
-                <li><Link to="/login" className="hover:text-carmesim transition-colors">Login Associados</Link></li>
-                <li><Link to="/validador" className="hover:text-carmesim transition-colors">Validador QR</Link></li>
-                <li><Link to="/eventos-publico" className="hover:text-carmesim transition-colors">Eventos</Link></li>
+                <li><Link to="/login" className="hover:text-white transition-colors">Login Associados</Link></li>
+                <li><Link to="/validador" className="hover:text-white transition-colors">Validador QR</Link></li>
+                <li><Link to="/eventos-publico" className="hover:text-white transition-colors">Eventos</Link></li>
               </ul>
             </div>
           </div>
 
           <div className="border-t border-white/10 mt-8 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-white/50">
             <p>&copy; {new Date().getFullYear()} ACCTA - Todos os direitos reservados</p>
-            <Link to="/privacidade" className="hover:text-carmesim transition-colors">Política de Privacidade</Link>
+            <Link to="/privacidade" className="hover:text-white transition-colors">Política de Privacidade</Link>
           </div>
         </div>
       </footer>
