@@ -198,16 +198,16 @@ export const HomePage = () => {
                   </p>
                   <div className="flex flex-wrap gap-4 text-sm text-white/80">
                     <div className="flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4 text-carmesim" />
+                      <Calendar className="w-4 h-4 text-white/60" />
                       <span>{format(new Date(featuredEvent.date), "dd 'de' MMMM yyyy", { locale: ptBR })}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <Clock className="w-4 h-4 text-carmesim" />
+                      <Clock className="w-4 h-4 text-white/60" />
                       <span>{format(new Date(featuredEvent.date), 'HH:mm')}</span>
                     </div>
                     {featuredEvent.location && (
                       <div className="flex items-center gap-1.5">
-                        <MapPin className="w-4 h-4 text-carmesim" />
+                        <MapPin className="w-4 h-4 text-white/60" />
                         <span>{featuredEvent.location}</span>
                       </div>
                     )}
@@ -279,7 +279,7 @@ export const HomePage = () => {
               </p>
               <Link
                 to="/profissao"
-                className="inline-flex items-center gap-2 text-carmesim font-semibold hover:text-carmesim-dark transition-colors group text-sm sm:text-base"
+                className="inline-flex items-center gap-2 text-confianca font-semibold hover:text-confianca-dark transition-colors group text-sm sm:text-base"
               >
                 Saiba como funciona o controlo aéreo
                 <ChevronRight className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-1 transition-transform" />
@@ -370,7 +370,7 @@ export const HomePage = () => {
                       <p className="text-gray-600 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 line-clamp-3">{post.content}</p>
                       <Link
                         to="/noticias"
-                        className="inline-flex items-center gap-2 text-xs sm:text-sm text-carmesim font-semibold hover:text-carmesim-dark transition-colors"
+                        className="inline-flex items-center gap-2 text-xs sm:text-sm text-confianca font-semibold hover:text-confianca-dark transition-colors"
                       >
                         Ler mais
                         <ChevronRight className="w-3.5 h-3.5" />
@@ -413,7 +413,7 @@ export const HomePage = () => {
           <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
             <Link
               to="/sobre"
-              className="inline-flex items-center justify-center gap-2 bg-carmesim text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-lg hover:bg-carmesim-dark transition-all"
+              className="inline-flex items-center justify-center gap-2 bg-confianca text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-lg hover:bg-confianca-dark transition-all"
             >
               Conheça a Associação
             </Link>
