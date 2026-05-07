@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(head -50 /app/backend/tests/*.py)",
+      "Bash(wc -l /app/backend/*.py /app/backend/routes/*.py)"
+    ]
+  }
+}

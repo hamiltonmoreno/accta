@@ -1,0 +1,60 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd backend && ruff check *)",
+      "Bash(cd backend && ruff format *)",
+      "Bash(cd backend && pytest *)",
+      "Bash(cd frontend && yarn *)",
+      "Bash(cd frontend && npx eslint *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git status *)",
+      "Bash(gh issue *)",
+      "Bash(gh pr *)",
+      "Bash(python scripts/*)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(backend/.env)",
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)",
+      "Bash(mongosh * --eval 'db.dropDatabase()')"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/pre-commit.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/lint-on-save.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/lint-on-save.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "model": "claude-sonnet-4-6",
+  "autoMemoryEnabled": true
+}
