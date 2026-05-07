@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 from models import User, Document, DocumentCreate
 from database import db
@@ -44,3 +44,35 @@ async def create_document(doc_data: DocumentCreate, current_user: User = Depends
     await db.documents.insert_one(doc_dict)
     await create_audit_log(current_user.id, f"Criou documento {doc.id}", doc.id)
     return doc
+
+
+@router.post("/documents/{document_id}/access")
+async def register_document_access(
+    document_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Record that the current user opened/downloaded a document.
+
+    The frontend calls this when a member clicks the download/view link so the
+    personal report reflects real engagement instead of placeholder counts.
+    Members may only register access to documents they're allowed to see.
+    """
+    doc = await db.documents.find_one({"id": document_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+
+    visibility = doc.get("visibility", "socios")
+    is_staff = current_user.role in ["admin", "financeiro", "moderador"]
+    if visibility == "privado" and not is_staff:
+        raise HTTPException(status_code=403, detail="Sem permissão para aceder a este documento")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.document_accesses.insert_one(
+        {
+            "user_id": current_user.id,
+            "document_id": document_id,
+            "accessed_at": now_iso,
+        }
+    )
+    return {"status": "recorded", "document_id": document_id, "accessed_at": now_iso}

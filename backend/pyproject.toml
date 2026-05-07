@@ -14,3 +14,29 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 # Integration tests intentionally use explicit True/False comparisons and bare except
 "tests/*" = ["E712", "E722", "F841", "F401"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "unit: pure unit tests (no DB, no network)",
+    "integration: integration tests requiring a live backend",
+]
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "tests/*",
+    "*/site-packages/*",
+    "uploads/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+skip_covered = false

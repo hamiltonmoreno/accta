@@ -60,7 +60,17 @@
   "scripts": {
     "start": "craco start",
     "build": "craco build",
-    "test": "craco test"
+    "test": "craco test --watchAll=false",
+    "test:watch": "craco test",
+    "test:coverage": "craco test --watchAll=false --coverage"
+  },
+  "jest": {
+    "collectCoverageFrom": [
+      "src/utils/**/*.{js,jsx}",
+      "src/contexts/**/*.{js,jsx}",
+      "src/hooks/**/*.{js,jsx}",
+      "!src/**/*.d.ts"
+    ]
   },
   "browserslist": {
     "production": [
@@ -78,6 +88,10 @@
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@craco/craco": "^7.1.0",
     "@eslint/js": "9.23.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.4.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.5.0",
     "autoprefixer": "^10.4.20",
     "eslint": "9.23.0",
     "eslint-plugin-import": "2.31.0",

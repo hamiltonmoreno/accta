@@ -57,13 +57,34 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install ruff pytest pytest-asyncio httpx
+          pip install ruff httpx
 
       - name: Lint (ruff)
         run: ruff check .
 
       - name: Run smoke tests
         run: pytest tests/test_smoke.py -v --tb=short
+
+      - name: Run unit tests with coverage
+        # Pure unit tests (mocked DB) — fast, deterministic, do not require Mongo.
+        run: |
+          pytest \
+            tests/test_auth_unit.py \
+            tests/test_finances_edge_cases.py \
+            tests/test_rbac_matrix.py \
+            --cov=auth --cov=models --cov=helpers --cov=routes \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --cov-fail-under=20 \
+            -W ignore::DeprecationWarning
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml
+          if-no-files-found: ignore
 
   # ──────────────────────────────────────────────
   # FRONTEND — React / Craco
@@ -101,6 +122,11 @@ jobs:
 
       - name: Lint (eslint)
         run: npx eslint src/ --ext .js,.jsx --max-warnings=60 --no-error-on-unmatched-pattern
+
+      - name: Unit tests
+        run: yarn test
+        env:
+          CI: 'true'
 
       - name: Build
         run: yarn build
