@@ -37,7 +37,8 @@ async def get_recent_activity(limit: int = Query(15, ge=1, le=50), current_user:
             }
         )
 
-    # 2. Recent project updates (comments, status changes via audit logs)
+    # 2. Recent project updates (comments). Resolve titulos com 1 query batch
+    # em vez de N find_one (N+1 -> 1+1).
     project_comments = (
         await db.project_comments.find(
             {}, {"_id": 0, "id": 1, "project_id": 1, "user_name": 1, "content": 1, "created_at": 1}
@@ -47,9 +48,17 @@ async def get_recent_activity(limit: int = Query(15, ge=1, le=50), current_user:
         .to_list(5)
     )
 
+    project_titles = {}
+    if project_comments:
+        proj_ids = list({c.get("project_id") for c in project_comments if c.get("project_id")})
+        if proj_ids:
+            projects = await db.projects.find({"id": {"$in": proj_ids}}, {"_id": 0, "id": 1, "title": 1}).to_list(
+                len(proj_ids)
+            )
+            project_titles = {p["id"]: p.get("title", "Projeto") for p in projects}
+
     for c in project_comments:
-        proj = await db.projects.find_one({"id": c.get("project_id")}, {"_id": 0, "title": 1})
-        proj_title = proj["title"] if proj else "Projeto"
+        proj_title = project_titles.get(c.get("project_id"), "Projeto")
         activities.append(
             {
                 "type": "projeto",
