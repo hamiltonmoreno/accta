@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { galleryAPI } from '../../utils/api';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { Camera, X, ChevronLeft, ChevronRight, Images, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
+  useBodyScrollLock(true);
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === 'Escape') onClose();

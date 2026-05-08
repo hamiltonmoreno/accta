@@ -17,6 +17,7 @@ import {
 
 // ===== LIGHTBOX =====
 const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
+  useBodyScrollLock(true);
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === 'Escape') onClose();
@@ -56,6 +57,7 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
 
 // ===== UPLOAD MODAL =====
 const UploadModal = ({ albums, onClose, onUploaded }) => {
+  useBodyScrollLock(true);
   const [albumId, setAlbumId] = useState(albums[0]?.id || '');
   const [caption, setCaption] = useState('');
   const [files, setFiles] = useState([]);
@@ -83,7 +85,13 @@ const UploadModal = ({ albums, onClose, onUploaded }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="flex min-h-full items-center justify-center p-4">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
         className="rounded-xl shadow-2xl w-full max-w-md" style={{ backgroundColor: 'var(--surface-card)' }} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5" style={{ borderBottom: '1px solid var(--surface-border)' }}>
@@ -131,12 +139,14 @@ const UploadModal = ({ albums, onClose, onUploaded }) => {
           </button>
         </form>
       </motion.div>
+      </div>
     </div>
   );
 };
 
 // ===== ALBUM MODAL =====
 const AlbumModal = ({ album, onClose, onSaved }) => {
+  useBodyScrollLock(true);
   const isEdit = !!album;
   const [form, setForm] = useState({
     title: album?.title || '', description: album?.description || '',
@@ -164,7 +174,13 @@ const AlbumModal = ({ album, onClose, onSaved }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="flex min-h-full items-center justify-center p-4">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
         className="rounded-xl shadow-2xl w-full max-w-md" style={{ backgroundColor: 'var(--surface-card)' }} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5" style={{ borderBottom: '1px solid var(--surface-border)' }}>
@@ -205,6 +221,7 @@ const AlbumModal = ({ album, onClose, onSaved }) => {
           </button>
         </form>
       </motion.div>
+      </div>
     </div>
   );
 };
