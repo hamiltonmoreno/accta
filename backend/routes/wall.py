@@ -18,16 +18,15 @@ async def get_wall_posts(category: Optional[str] = None, current_user: User = De
     if category and category != "todos":
         query["category"] = category
 
-    posts = await db.wall_posts.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    posts = await db.wall_posts.find(query, {"_id": 0}).sort([("pinned", -1), ("created_at", -1)]).to_list(100)
     for p in posts:
-        if isinstance(p.get('created_at'), str):
-            p['created_at'] = datetime.fromisoformat(p['created_at'])
-        p.setdefault('likes', [])
-        p.setdefault('comment_count', 0)
-        p.setdefault('category', 'geral')
-        p.setdefault('pinned', False)
+        if isinstance(p.get("created_at"), str):
+            p["created_at"] = datetime.fromisoformat(p["created_at"])
+        p.setdefault("likes", [])
+        p.setdefault("comment_count", 0)
+        p.setdefault("category", "geral")
+        p.setdefault("pinned", False)
 
-    posts.sort(key=lambda x: (not x.get('pinned', False), x.get('created_at', '')))
     return posts
 
 
@@ -38,11 +37,11 @@ async def get_pending_wall_posts(current_user: User = Depends(get_current_user))
 
     posts = await db.wall_posts.find({"approved": False}, {"_id": 0}).sort("created_at", -1).to_list(100)
     for p in posts:
-        if isinstance(p.get('created_at'), str):
-            p['created_at'] = datetime.fromisoformat(p['created_at'])
-        p.setdefault('likes', [])
-        p.setdefault('comment_count', 0)
-        p.setdefault('category', 'geral')
+        if isinstance(p.get("created_at"), str):
+            p["created_at"] = datetime.fromisoformat(p["created_at"])
+        p.setdefault("likes", [])
+        p.setdefault("comment_count", 0)
+        p.setdefault("category", "geral")
     return posts
 
 
@@ -54,13 +53,10 @@ async def create_wall_post(post_data: WallPostCreate, current_user: User = Depen
     auto_approve = current_user.role in ["admin", "moderador"]
 
     post = WallPost(
-        user_id=current_user.id,
-        user_name=current_user.name,
-        approved=auto_approve,
-        **post_data.model_dump()
+        user_id=current_user.id, user_name=current_user.name, approved=auto_approve, **post_data.model_dump()
     )
     post_dict = post.model_dump()
-    post_dict['created_at'] = post_dict['created_at'].isoformat()
+    post_dict["created_at"] = post_dict["created_at"].isoformat()
 
     await db.wall_posts.insert_one(post_dict)
 
@@ -68,11 +64,14 @@ async def create_wall_post(post_data: WallPostCreate, current_user: User = Depen
         admins = await db.users.find({"role": {"$in": ["admin", "moderador"]}}, {"_id": 0, "id": 1}).to_list(100)
         for admin in admins:
             await create_notification(
-                admin['id'], "wall_post_pending", "Post Pendente",
-                f"{current_user.name} publicou uma mensagem que aguarda aprovação.", "/mural"
+                admin["id"],
+                "wall_post_pending",
+                "Post Pendente",
+                f"{current_user.name} publicou uma mensagem que aguarda aprovação.",
+                "/mural",
             )
 
-    post_dict.pop('_id', None)
+    post_dict.pop("_id", None)
     return post_dict
 
 
@@ -88,8 +87,11 @@ async def approve_wall_post(post_id: str, current_user: User = Depends(get_curre
     await db.wall_posts.update_one({"id": post_id}, {"$set": {"approved": True}})
     await create_audit_log(current_user.id, f"Aprovou post do mural {post_id}", post_id)
     await create_notification(
-        post['user_id'], "wall_post_approved", "Post Aprovado",
-        "Sua mensagem no mural foi aprovada e já está visível.", "/mural"
+        post["user_id"],
+        "wall_post_approved",
+        "Post Aprovado",
+        "Sua mensagem no mural foi aprovada e já está visível.",
+        "/mural",
     )
     return {"message": "Post aprovado"}
 
@@ -100,7 +102,7 @@ async def delete_wall_post(post_id: str, current_user: User = Depends(get_curren
     if not post:
         raise HTTPException(status_code=404, detail="Post não encontrado")
 
-    if current_user.role not in ["admin", "moderador"] and current_user.id != post['user_id']:
+    if current_user.role not in ["admin", "moderador"] and current_user.id != post["user_id"]:
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     await db.wall_posts.delete_one({"id": post_id})
@@ -118,7 +120,7 @@ async def pin_wall_post(post_id: str, current_user: User = Depends(get_current_u
     if not post:
         raise HTTPException(status_code=404, detail="Post não encontrado")
 
-    new_pinned = not post.get('pinned', False)
+    new_pinned = not post.get("pinned", False)
     await db.wall_posts.update_one({"id": post_id}, {"$set": {"pinned": new_pinned}})
     return {"message": "Post fixado" if new_pinned else "Post desfixado", "pinned": new_pinned}
 
@@ -132,7 +134,7 @@ async def toggle_like_wall_post(post_id: str, current_user: User = Depends(get_c
     if not post:
         raise HTTPException(status_code=404, detail="Post não encontrado")
 
-    likes = post.get('likes', [])
+    likes = post.get("likes", [])
     if current_user.id in likes:
         await db.wall_posts.update_one({"id": post_id}, {"$pull": {"likes": current_user.id}})
         liked = False
@@ -141,22 +143,25 @@ async def toggle_like_wall_post(post_id: str, current_user: User = Depends(get_c
         liked = True
 
     updated = await db.wall_posts.find_one({"id": post_id}, {"_id": 0, "likes": 1})
-    return {"liked": liked, "like_count": len(updated.get('likes', []))}
+    return {"liked": liked, "like_count": len(updated.get("likes", []))}
 
 
 # COMMENTS
+
 
 @router.get("/wall/{post_id}/comments")
 async def get_wall_comments(post_id: str, current_user: User = Depends(get_current_user)):
     comments = await db.wall_comments.find({"post_id": post_id}, {"_id": 0}).sort("created_at", 1).to_list(100)
     for c in comments:
-        if isinstance(c.get('created_at'), str):
-            c['created_at'] = datetime.fromisoformat(c['created_at'])
+        if isinstance(c.get("created_at"), str):
+            c["created_at"] = datetime.fromisoformat(c["created_at"])
     return comments
 
 
 @router.post("/wall/{post_id}/comments")
-async def create_wall_comment(post_id: str, comment_data: WallCommentCreate, current_user: User = Depends(get_current_user)):
+async def create_wall_comment(
+    post_id: str, comment_data: WallCommentCreate, current_user: User = Depends(get_current_user)
+):
     if current_user.status != "ativo":
         raise HTTPException(status_code=403, detail="Apenas sócios ativos podem comentar")
 
@@ -165,24 +170,24 @@ async def create_wall_comment(post_id: str, comment_data: WallCommentCreate, cur
         raise HTTPException(status_code=404, detail="Post não encontrado")
 
     comment = WallComment(
-        post_id=post_id,
-        user_id=current_user.id,
-        user_name=current_user.name,
-        **comment_data.model_dump()
+        post_id=post_id, user_id=current_user.id, user_name=current_user.name, **comment_data.model_dump()
     )
     comment_dict = comment.model_dump()
-    comment_dict['created_at'] = comment_dict['created_at'].isoformat()
+    comment_dict["created_at"] = comment_dict["created_at"].isoformat()
 
     await db.wall_comments.insert_one(comment_dict)
     await db.wall_posts.update_one({"id": post_id}, {"$inc": {"comment_count": 1}})
 
-    if post['user_id'] != current_user.id:
+    if post["user_id"] != current_user.id:
         await create_notification(
-            post['user_id'], "wall_comment", "Novo Comentário",
-            f"{current_user.name} comentou na sua publicação.", "/mural"
+            post["user_id"],
+            "wall_comment",
+            "Novo Comentário",
+            f"{current_user.name} comentou na sua publicação.",
+            "/mural",
         )
 
-    comment_dict.pop('_id', None)
+    comment_dict.pop("_id", None)
     return comment_dict
 
 
@@ -192,7 +197,7 @@ async def delete_wall_comment(post_id: str, comment_id: str, current_user: User 
     if not comment:
         raise HTTPException(status_code=404, detail="Comentário não encontrado")
 
-    if current_user.role not in ["admin", "moderador"] and current_user.id != comment['user_id']:
+    if current_user.role not in ["admin", "moderador"] and current_user.id != comment["user_id"]:
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     await db.wall_comments.delete_one({"id": comment_id})
