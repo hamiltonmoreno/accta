@@ -4,10 +4,13 @@ from starlette.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from database import client, UPLOAD_DIR, ensure_indexes
+from database import client, db, UPLOAD_DIR, ensure_indexes
 from routes import api_router
 import os
 import logging
+import uuid
+import hashlib
+from datetime import datetime, timezone
 
 limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
 app = FastAPI()
@@ -56,31 +59,67 @@ logger = logging.getLogger(__name__)
 
 
 def _validate_runtime_config():
-    """
-    Surface misconfigured environment variables loudly on startup.
-
-    SECRET_KEY is enforced as required by auth.py (raises on import).
-    The variables here cause silent runtime failures (emails not sent,
-    invite/reset links broken) so we log them at WARNING level instead
-    of failing — local dev often runs without email.
-    """
     if not os.environ.get("RESEND_API_KEY"):
-        logger.warning(
-            "RESEND_API_KEY is not set — invite/reset/welcome emails will be skipped silently. Set it in production."
-        )
+        logger.warning("RESEND_API_KEY is not set - invite/reset/welcome emails will be skipped silently. Set it in production.")
     if not os.environ.get("FRONTEND_URL"):
-        logger.warning(
-            "FRONTEND_URL is not set — invite and password-reset links will "
-            "fall back to the request Origin header. Set FRONTEND_URL=https://your.domain"
-        )
+        logger.warning("FRONTEND_URL is not set - invite and password-reset links will fall back to the request Origin header. Set FRONTEND_URL=https://your.domain")
     if not cors_origins and cors_origins_raw != "*":
-        logger.warning("CORS_ORIGINS is empty — defaulting to '*'. Set an explicit list in production for security.")
+        logger.warning("CORS_ORIGINS is empty - defaulting to '*'. Set an explicit list in production for security.")
+
+
+async def _bootstrap_admin_if_requested():
+    """Create initial admin from env vars if BOOTSTRAP_ADMIN_EMAIL/PASSWORD are set
+    and the email does not already exist. Idempotent. Remove env vars after first run.
+    """
+    email = os.environ.get("BOOTSTRAP_ADMIN_EMAIL")
+    password = os.environ.get("BOOTSTRAP_ADMIN_PASSWORD")
+    name = os.environ.get("BOOTSTRAP_ADMIN_NAME", "Administrador ACCTA")
+    if not email or not password:
+        return
+    try:
+        existing = await db.users.find_one({"email": email})
+        if existing:
+            logger.info(f"BOOTSTRAP_ADMIN: user {email} already exists - skipping.")
+            return
+        from auth import hash_password
+        user_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        admin_doc = {
+            "id": user_id,
+            "name": name,
+            "email": email,
+            "password": hash_password(password),
+            "role": "admin",
+            "status": "ativo",
+            "cargo": "Administrador",
+            "member_id": "ACCTA-ADMIN",
+            "license_number": "",
+            "department": "Direcao",
+            "phone_number": "",
+            "admission_date": now,
+            "privileges": [
+                "manage_users", "manage_finances", "manage_events",
+                "manage_documents", "moderate_content", "manage_benefits",
+                "view_audit_logs",
+            ],
+            "consent_data": True,
+            "qr_code_hash": hashlib.sha256(f"accta-wallet-{user_id}".encode()).hexdigest(),
+            "last_login_at": None,
+            "created_at": now,
+            "bio": "",
+            "photo_url": "",
+        }
+        await db.users.insert_one(admin_doc)
+        logger.info(f"BOOTSTRAP_ADMIN: created admin user {email} (id={user_id}). Remove BOOTSTRAP_ADMIN_* env vars now.")
+    except Exception as e:
+        logger.error(f"BOOTSTRAP_ADMIN: failed to create admin - {e}")
 
 
 @app.on_event("startup")
 async def startup_event():
     _validate_runtime_config()
     await ensure_indexes()
+    await _bootstrap_admin_if_requested()
 
 
 @app.on_event("shutdown")
