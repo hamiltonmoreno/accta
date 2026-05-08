@@ -17,10 +17,10 @@ ALLOWED_EXTENSIONS = {
 }
 
 MAX_FILE_SIZES = {
-    "documents": 10 * 1024 * 1024,   # 10 MB
-    "proofs": 5 * 1024 * 1024,        # 5 MB
-    "logos": 2 * 1024 * 1024,          # 2 MB
-    "avatars": 2 * 1024 * 1024,        # 2 MB
+    "documents": 10 * 1024 * 1024,  # 10 MB
+    "proofs": 5 * 1024 * 1024,  # 5 MB
+    "logos": 2 * 1024 * 1024,  # 2 MB
+    "avatars": 2 * 1024 * 1024,  # 2 MB
 }
 
 
@@ -29,16 +29,12 @@ def validate_file(file: UploadFile, category: str) -> None:
     if ext not in ALLOWED_EXTENSIONS.get(category, []):
         raise HTTPException(
             status_code=400,
-            detail=f"Tipo de arquivo não permitido. Permitidos: {', '.join(ALLOWED_EXTENSIONS[category])}"
+            detail=f"Tipo de arquivo não permitido. Permitidos: {', '.join(ALLOWED_EXTENSIONS[category])}",
         )
 
 
 @router.post("/upload/{category}")
-async def upload_file(
-    category: str,
-    file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user)
-):
+async def upload_file(category: str, file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
     if category not in ["documents", "proofs", "logos", "avatars"]:
         raise HTTPException(status_code=400, detail="Categoria inválida")
 
@@ -66,27 +62,26 @@ async def upload_file(
         file_url = f"/uploads/{category}/{unique_filename}"
         await create_audit_log(current_user.id, f"Upload de arquivo: {file.filename}", unique_filename)
 
-        return {
-            "filename": file.filename,
-            "file_url": file_url,
-            "size": file_path.stat().st_size,
-            "category": category
-        }
+        return {"filename": file.filename, "file_url": file_url, "size": file_path.stat().st_size, "category": category}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao salvar arquivo: {str(e)}")
 
 
 @router.delete("/upload/{category}/{filename}")
-async def delete_file(
-    category: str,
-    filename: str,
-    current_user: User = Depends(get_current_user)
-):
+async def delete_file(category: str, filename: str, current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Sem permissão")
 
-    file_path = UPLOAD_DIR / category / filename
-    if not file_path.exists():
+    if category not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Categoria inválida")
+
+    file_path = (UPLOAD_DIR / category / filename).resolve()
+    upload_root = UPLOAD_DIR.resolve()
+    # Path traversal guard: resolved path must stay inside UPLOAD_DIR/<category>
+    if not file_path.is_relative_to(upload_root / category):
+        raise HTTPException(status_code=400, detail="Caminho inválido")
+
+    if not file_path.exists() or not file_path.is_file():
         raise HTTPException(status_code=404, detail="Arquivo não encontrado")
 
     try:

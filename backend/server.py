@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -16,6 +17,32 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
 app = FastAPI()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Defense-in-depth: adiciona headers HTTP recomendados pelo OWASP."""
+
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        # Apenas em respostas HTML ou JSON da nossa API. Static files do Mount
+        # já são servidos pelo nginx em prod, mas não custa duplicar aqui.
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault(
+            "Permissions-Policy",
+            "geolocation=(self), camera=(), microphone=(), interest-cohort=()",
+        )
+        # HSTS só em produção (atrás de TLS) — assumimos que ENVIRONMENT=production.
+        if os.environ.get("ENVIRONMENT") == "production":
+            response.headers.setdefault(
+                "Strict-Transport-Security",
+                "max-age=31536000; includeSubDomains",
+            )
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 @api_router.get("/")
@@ -46,6 +73,13 @@ cors_origins = (
     else []
 )
 
+# Em producao, recusamos arrancar com CORS=* (security misconfig).
+if not cors_origins and os.environ.get("ENVIRONMENT") == "production":
+    raise RuntimeError(
+        "CORS_ORIGINS must be an explicit list in production. "
+        "Set CORS_ORIGINS=https://your.domain (separe por virgulas para varias)."
+    )
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=len(cors_origins) > 0,
@@ -60,9 +94,13 @@ logger = logging.getLogger(__name__)
 
 def _validate_runtime_config():
     if not os.environ.get("RESEND_API_KEY"):
-        logger.warning("RESEND_API_KEY is not set - invite/reset/welcome emails will be skipped silently. Set it in production.")
+        logger.warning(
+            "RESEND_API_KEY is not set - invite/reset/welcome emails will be skipped silently. Set it in production."
+        )
     if not os.environ.get("FRONTEND_URL"):
-        logger.warning("FRONTEND_URL is not set - invite and password-reset links will fall back to the request Origin header. Set FRONTEND_URL=https://your.domain")
+        logger.warning(
+            "FRONTEND_URL is not set - invite and password-reset links will fall back to the request Origin header. Set FRONTEND_URL=https://your.domain"
+        )
     if not cors_origins and cors_origins_raw != "*":
         logger.warning("CORS_ORIGINS is empty - defaulting to '*'. Set an explicit list in production for security.")
 
@@ -82,6 +120,7 @@ async def _bootstrap_admin_if_requested():
             logger.info(f"BOOTSTRAP_ADMIN: user {email} already exists - skipping.")
             return
         from auth import hash_password
+
         user_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc).isoformat()
         admin_doc = {
@@ -98,8 +137,12 @@ async def _bootstrap_admin_if_requested():
             "phone_number": "",
             "admission_date": now,
             "privileges": [
-                "manage_users", "manage_finances", "manage_events",
-                "manage_documents", "moderate_content", "manage_benefits",
+                "manage_users",
+                "manage_finances",
+                "manage_events",
+                "manage_documents",
+                "moderate_content",
+                "manage_benefits",
                 "view_audit_logs",
             ],
             "consent_data": True,
@@ -110,7 +153,9 @@ async def _bootstrap_admin_if_requested():
             "photo_url": "",
         }
         await db.users.insert_one(admin_doc)
-        logger.info(f"BOOTSTRAP_ADMIN: created admin user {email} (id={user_id}). Remove BOOTSTRAP_ADMIN_* env vars now.")
+        logger.info(
+            f"BOOTSTRAP_ADMIN: created admin user {email} (id={user_id}). Remove BOOTSTRAP_ADMIN_* env vars now."
+        )
     except Exception as e:
         logger.error(f"BOOTSTRAP_ADMIN: failed to create admin - {e}")
 
