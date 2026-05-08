@@ -481,9 +481,13 @@ async def add_expense(
     e_dict["created_at"] = e_dict["created_at"].isoformat()
     await db.project_expenses.insert_one(e_dict)
 
-    # Update project spent
-    total_spent = await db.project_expenses.find({"project_id": project_id}, {"_id": 0, "amount": 1}).to_list(1000)
-    new_spent = sum(e["amount"] for e in total_spent)
+    # Update project spent — usa aggregation em vez de carregar todas as despesas para memoria
+    spent_pipeline = [
+        {"$match": {"project_id": project_id}},
+        {"$group": {"_id": None, "total": {"$sum": "$amount"}}},
+    ]
+    spent_res = await db.project_expenses.aggregate(spent_pipeline).to_list(1)
+    new_spent = spent_res[0]["total"] if spent_res else 0
     await db.projects.update_one({"id": project_id}, {"$set": {"spent": new_spent}})
 
     # Notify stakeholders about the new expense
@@ -527,8 +531,12 @@ async def delete_expense(
 
     await db.project_expenses.delete_one({"id": expense_id, "project_id": project_id})
 
-    total_spent = await db.project_expenses.find({"project_id": project_id}, {"_id": 0, "amount": 1}).to_list(1000)
-    new_spent = sum(e["amount"] for e in total_spent)
+    spent_pipeline = [
+        {"$match": {"project_id": project_id}},
+        {"$group": {"_id": None, "total": {"$sum": "$amount"}}},
+    ]
+    spent_res = await db.project_expenses.aggregate(spent_pipeline).to_list(1)
+    new_spent = spent_res[0]["total"] if spent_res else 0
     await db.projects.update_one({"id": project_id}, {"$set": {"spent": new_spent}})
 
     return {"message": "Despesa removida"}

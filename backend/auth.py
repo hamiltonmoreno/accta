@@ -8,9 +8,9 @@ import os
 import uuid
 import hashlib
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=12)
 security = HTTPBearer()
-SECRET_KEY = os.environ.get('SECRET_KEY')
+SECRET_KEY = os.environ.get("SECRET_KEY")
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY environment variable is required. Set it in backend/.env")
 ALGORITHM = "HS256"
@@ -38,6 +38,7 @@ def create_access_token(data: dict) -> str:
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     from models import User
+
     try:
         token = credentials.credentials
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -52,9 +53,25 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=401, detail="Token inválido")
 
 
+_optional_security = HTTPBearer(auto_error=False)
+
+
+async def get_optional_user(credentials: HTTPAuthorizationCredentials = Depends(_optional_security)):
+    """Auth opcional: devolve User se token valido, None se nao houver token ou for invalido.
+    Para endpoints que servem conteudo publico mas que ajustam o output quando autenticados.
+    """
+    if credentials is None:
+        return None
+    try:
+        return await get_user_from_token(credentials.credentials)
+    except Exception:
+        return None
+
+
 async def get_user_from_token(token: str):
     """Validate a JWT token string and return the user. Used by SSE endpoints."""
     from models import User
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
@@ -66,4 +83,3 @@ async def get_user_from_token(token: str):
         return User(**user_doc)
     except JWTError:
         return None
-

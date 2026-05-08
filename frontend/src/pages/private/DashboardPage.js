@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
@@ -12,10 +12,9 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
-} from 'recharts';
+
+// Recharts (~334KB) só carregado para utilizadores com finance, via Suspense.
+const FinanceCharts = lazy(() => import('./dashboard/FinanceCharts'));
 
 // ===== STAT CARD (Reference style: title top, big value, change indicator) =====
 const StatCard = ({ title, value, icon: Icon, iconBg, change, changeLabel, delay = 0 }) => (
@@ -80,7 +79,6 @@ const NotifIcon = ({ type }) => {
 };
 
 // ===== CHART COLORS =====
-const CHART_COLORS = ['#C7202F', '#3A3A3A', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6'];
 const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 const CATEGORY_LABELS = {
@@ -88,29 +86,6 @@ const CATEGORY_LABELS = {
   eventos: 'Eventos', outros_receita: 'Outros',
   operacional: 'Operacional', juridico: 'Juridico',
   comunicacao: 'Comunicacao', viagens: 'Viagens', outros_despesa: 'Outros Desp.',
-};
-
-// ===== CUSTOM TOOLTIP =====
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-lg px-4 py-3 text-xs">
-      <p className="font-semibold text-grafite mb-1.5">{label}</p>
-      {payload.map((entry, i) => (
-        <div key={i} className="flex items-center gap-2 mb-0.5">
-          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-          <span className="text-gray-500">{entry.name}:</span>
-          <span className="font-bold text-grafite">{entry.value.toLocaleString('pt')} CVE</span>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-// ===== CUSTOM PIE LABEL =====
-const renderPieLabel = ({ name, percent }) => {
-  if (percent < 0.05) return null;
-  return `${(percent * 100).toFixed(0)}%`;
 };
 
 // ===== ACTIVITY ICON =====
@@ -285,97 +260,20 @@ export const DashboardPage = () => {
         </div>
       )}
 
-      {/* ===== CHARTS GRID (Reference style: 2 charts side by side) ===== */}
+      {/* ===== CHARTS GRID — recharts em chunk lazy só carrega para finance users ===== */}
       {hasFinance && dreData && (
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-5">
-          {/* Area Chart - Monthly Evolution (takes 3/5) */}
-          <div className="lg:col-span-3">
-            <ChartCard
-              title="Evolucao Financeira"
-              subtitle={`Receitas vs Despesas - ${currentYear}`}
-              delay={0.25}
-              action={
-                <button
-                  onClick={() => navigate('/financeiro')}
-                  className="text-xs text-carmesim font-semibold uppercase tracking-wider hover:text-carmesim-dark flex items-center gap-1"
-                  data-testid="chart-view-all"
-                >
-                  Ver tudo <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              }
-            >
-              <div className="h-[280px] -ml-2" data-testid="monthly-chart" style={{ minWidth: 0 }}>
-                <ResponsiveContainer width="100%" height="100%" minWidth={100}>
-                  <AreaChart data={monthlyChartData}>
-                    <defs>
-                      <linearGradient id="gradReceitas" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="gradDespesas" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#C7202F" stopOpacity={0.1} />
-                        <stop offset="95%" stopColor="#C7202F" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area type="monotone" dataKey="Receitas" stroke="#10b981" strokeWidth={2.5} fill="url(#gradReceitas)" />
-                    <Area type="monotone" dataKey="Despesas" stroke="#C7202F" strokeWidth={2.5} fill="url(#gradDespesas)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </ChartCard>
+        <Suspense fallback={
+          <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 h-[320px] flex items-center justify-center">
+            <div className="w-7 h-7 border-3 border-carmesim border-t-transparent rounded-full animate-spin" />
           </div>
-
-          {/* Donut Chart - Expense Distribution (takes 2/5) */}
-          <div className="lg:col-span-2">
-            <ChartCard
-              title="Distribuicao de Despesas"
-              subtitle="Por categoria"
-              delay={0.3}
-            >
-              <div className="h-[280px]" data-testid="expense-chart" style={{ minWidth: 0 }}>
-                {expensePieData.length === 0 ? (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center">
-                      <BarChart3 className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-                      <p className="text-sm text-gray-400">Sem despesas registradas</p>
-                    </div>
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={expensePieData}
-                        cx="50%"
-                        cy="45%"
-                        innerRadius={55}
-                        outerRadius={90}
-                        paddingAngle={3}
-                        dataKey="value"
-                        label={renderPieLabel}
-                        labelLine={false}
-                      >
-                        {expensePieData.map((_, i) => (
-                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(v) => [`${v.toLocaleString('pt')} CVE`, '']} />
-                      <Legend
-                        verticalAlign="bottom"
-                        iconType="circle"
-                        iconSize={8}
-                        formatter={(value) => <span className="text-xs text-gray-600">{value}</span>}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </ChartCard>
-          </div>
-        </div>
+        }>
+          <FinanceCharts
+            monthlyChartData={monthlyChartData}
+            expensePieData={expensePieData}
+            currentYear={currentYear}
+            onViewAll={() => navigate('/financeiro')}
+          />
+        </Suspense>
       )}
 
       {/* ===== Financial Summary Banner (for admin) ===== */}

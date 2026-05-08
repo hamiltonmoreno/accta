@@ -1,10 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  Gift, 
-  QrCode, 
-  CheckCircle, 
+import {
+  Gift,
+  QrCode,
+  CheckCircle,
   Shield,
   Building2,
   Heart,
@@ -16,6 +16,7 @@ import {
   ArrowRight,
   Mail
 } from 'lucide-react';
+import { unsplashSrcSet } from '../../utils/unsplash';
 
 export const BeneficiosPublicoPage = () => {
   const partnerCategories = [
@@ -32,10 +33,13 @@ export const BeneficiosPublicoPage = () => {
       {/* Hero Section */}
       <section className="relative py-20 sm:py-28 overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?q=80&w=2070&auto=format&fit=crop"
+          src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?q=80&w=1280&auto=format&fit=crop"
+          srcSet={unsplashSrcSet('https://images.unsplash.com/photo-1600880292203-757bb62b4baf?q=80&auto=format&fit=crop')}
+          sizes="100vw"
           alt=""
           aria-hidden="true"
           loading="lazy"
+          decoding="async"
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
