@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { usersAPI, adminAPI } from '../../utils/api';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -41,6 +42,11 @@ export const AdminUsuariosPage = () => {
   const [inviteData, setInviteData] = useState({ name: '', email: '', role: 'socio', cargo: 'Socio', member_id: '', license_number: '', department: '', phone_number: '' });
   const [inviteResult, setInviteResult] = useState(null);
   const [inviting, setInviting] = useState(false);
+
+  // Body scroll lock for each modal (counter-based, supports nesting)
+  useBodyScrollLock(!!editingUser);
+  useBodyScrollLock(!!deleteConfirm);
+  useBodyScrollLock(!!showInviteModal);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -160,7 +166,7 @@ export const AdminUsuariosPage = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Pesquisar por nome, email ou n.º sócio..."
-              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
+              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
               data-testid="users-search-input"
             />
           </div>
@@ -168,7 +174,7 @@ export const AdminUsuariosPage = () => {
             <select
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none bg-white"
+              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none bg-white"
               data-testid="filter-role"
             >
               <option value="">Todas as funções</option>
@@ -179,7 +185,7 @@ export const AdminUsuariosPage = () => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none bg-white"
+              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none bg-white"
               data-testid="filter-status"
             >
               <option value="">Todos os estados</option>
@@ -204,12 +210,12 @@ export const AdminUsuariosPage = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Membro</th>
-                    <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Cargo</th>
-                    <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Função</th>
-                    <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Estado</th>
-                    <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Privilégios</th>
-                    <th className="text-right px-4 py-3 text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Ações</th>
+                    <th className="text-left px-4 py-3 text-xs uppercase tracking-widest text-gray-400 font-semibold">Membro</th>
+                    <th className="text-left px-4 py-3 text-xs uppercase tracking-widest text-gray-400 font-semibold">Cargo</th>
+                    <th className="text-left px-4 py-3 text-xs uppercase tracking-widest text-gray-400 font-semibold">Função</th>
+                    <th className="text-left px-4 py-3 text-xs uppercase tracking-widest text-gray-400 font-semibold">Estado</th>
+                    <th className="text-left px-4 py-3 text-xs uppercase tracking-widest text-gray-400 font-semibold">Privilégios</th>
+                    <th className="text-right px-4 py-3 text-xs uppercase tracking-widest text-gray-400 font-semibold">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -230,12 +236,12 @@ export const AdminUsuariosPage = () => {
                         <span className="text-xs font-medium text-grafite">{u.cargo || 'Sócio'}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${ROLE_COLORS[u.role] || 'bg-gray-100 text-gray-600'}`}>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${ROLE_COLORS[u.role] || 'bg-gray-100 text-gray-600'}`}>
                           {ROLE_LABELS[u.role] || u.role}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_COLORS[u.status] || 'bg-gray-100 text-gray-600'}`}>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLORS[u.status] || 'bg-gray-100 text-gray-600'}`}>
                           <BadgeCheck className="w-3 h-3" />
                           {u.status}
                         </span>
@@ -243,14 +249,14 @@ export const AdminUsuariosPage = () => {
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
                           {(u.privileges || []).slice(0, 2).map((p) => (
-                            <span key={p} className="text-[9px] px-1.5 py-0.5 bg-carmesim/10 text-carmesim rounded font-medium">
+                            <span key={p} className="text-xs px-1.5 py-0.5 bg-carmesim/10 text-carmesim rounded font-medium">
                               {PRIVILEGE_LABELS[p]?.split(' ')[0] || p}
                             </span>
                           ))}
                           {(u.privileges || []).length > 2 && (
-                            <span className="text-[9px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded">+{u.privileges.length - 2}</span>
+                            <span className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded">+{u.privileges.length - 2}</span>
                           )}
-                          {(!u.privileges || u.privileges.length === 0) && <span className="text-[9px] text-gray-300">—</span>}
+                          {(!u.privileges || u.privileges.length === 0) && <span className="text-xs text-gray-300">—</span>}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -287,15 +293,16 @@ export const AdminUsuariosPage = () => {
                   <button
                     onClick={() => setEditingUser({ ...u, privileges: u.privileges || [] })}
                     className="p-2 text-carmesim hover:bg-carmesim/10 rounded-lg transition-colors"
+                    aria-label="Gerir utilizador"
                   >
-                    <UserCog className="w-4 h-4" />
+                    <UserCog className="w-4 h-4" aria-hidden="true" />
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${ROLE_COLORS[u.role]}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${ROLE_COLORS[u.role]}`}>
                     {ROLE_LABELS[u.role]}
                   </span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${STATUS_COLORS[u.status]}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STATUS_COLORS[u.status]}`}>
                     {u.status}
                   </span>
                 </div>
@@ -313,16 +320,23 @@ export const AdminUsuariosPage = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
               onClick={() => setEditingUser(null)}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed inset-4 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-lg z-50 bg-white rounded-xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
-              data-testid="edit-user-modal"
+              className="fixed inset-0 z-50 overflow-y-auto"
+              role="dialog"
+              aria-modal="true"
             >
+              <div className="flex min-h-full items-center justify-center p-4">
+              <div
+                className="bg-white rounded-xl shadow-xl w-full max-w-lg flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+                data-testid="edit-user-modal"
+              >
               {/* Modal Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                 <div className="flex items-center gap-3">
@@ -334,30 +348,30 @@ export const AdminUsuariosPage = () => {
                     <p className="text-xs text-gray-400">{editingUser.email}</p>
                   </div>
                 </div>
-                <button onClick={() => setEditingUser(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
-                  <X className="w-4 h-4 text-gray-400" />
+                <button onClick={() => setEditingUser(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Fechar">
+                  <X className="w-4 h-4 text-gray-400" aria-hidden="true" />
                 </button>
               </div>
 
               {/* Modal Body */}
-              <div className="flex-1 overflow-y-auto p-5 space-y-5">
+              <div className="p-5 space-y-5">
                 {/* Basic Info */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">Nome</label>
+                    <label className="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">Nome</label>
                     <input
                       value={editingUser.name || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
                       data-testid="modal-edit-name"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">N.º Sócio</label>
+                    <label className="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">N.º Sócio</label>
                     <input
                       value={editingUser.member_id || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, member_id: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
                       data-testid="modal-edit-member-id"
                     />
                   </div>
@@ -366,14 +380,14 @@ export const AdminUsuariosPage = () => {
                 {/* Role + Status */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">
+                    <label className="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">
                       <Shield className="w-3 h-3 inline mr-1" />
                       Função no Sistema
                     </label>
                     <select
                       value={editingUser.role}
                       onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none bg-white"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none bg-white"
                       data-testid="modal-edit-role"
                     >
                       {ROLES.map((r) => (
@@ -382,14 +396,14 @@ export const AdminUsuariosPage = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">
+                    <label className="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">
                       <BadgeCheck className="w-3 h-3 inline mr-1" />
                       Estado
                     </label>
                     <select
                       value={editingUser.status}
                       onChange={(e) => setEditingUser({ ...editingUser, status: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none bg-white"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none bg-white"
                       data-testid="modal-edit-status"
                     >
                       {STATUSES.map((s) => (
@@ -401,14 +415,14 @@ export const AdminUsuariosPage = () => {
 
                 {/* Cargo */}
                 <div>
-                  <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">
+                  <label className="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">
                     <Briefcase className="w-3 h-3 inline mr-1" />
                     Cargo na Associação
                   </label>
                   <select
                     value={editingUser.cargo || 'Sócio'}
                     onChange={(e) => setEditingUser({ ...editingUser, cargo: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none bg-white"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none bg-white"
                     data-testid="modal-edit-cargo"
                   >
                     {CARGOS.map((c) => (
@@ -419,7 +433,7 @@ export const AdminUsuariosPage = () => {
 
                 {/* Privileges */}
                 <div>
-                  <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-2">
+                  <label className="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-2">
                     <Shield className="w-3 h-3 inline mr-1" />
                     Privilégios
                   </label>
@@ -459,20 +473,23 @@ export const AdminUsuariosPage = () => {
                 {/* Phone + Department */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">Telefone</label>
+                    <label className="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">Telefone</label>
                     <input
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
                       value={editingUser.phone_number || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, phone_number: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">Departamento</label>
+                    <label className="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">Departamento</label>
                     <input
                       value={editingUser.department || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, department: e.target.value })}
                       placeholder="Ex: Torre de Controlo Sal"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
                     />
                   </div>
                 </div>
@@ -505,6 +522,8 @@ export const AdminUsuariosPage = () => {
                   </button>
                 </div>
               </div>
+              </div>
+              </div>
             </motion.div>
           </>
         )}
@@ -525,25 +544,34 @@ export const AdminUsuariosPage = () => {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-xl p-6 z-[60] w-[90vw] max-w-sm"
-              data-testid="delete-confirm-modal"
+              className="fixed inset-0 z-[60] overflow-y-auto"
+              role="dialog"
+              aria-modal="true"
             >
-              <h3 className="font-bold text-grafite mb-2">Remover utilizador?</h3>
-              <p className="text-sm text-gray-500 mb-5">Esta ação é irreversível. O utilizador perderá acesso ao portal.</p>
-              <div className="flex gap-2 justify-end">
-                <button
-                  onClick={() => setDeleteConfirm(null)}
-                  className="px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={() => handleDelete(deleteConfirm)}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
-                  data-testid="confirm-delete-btn"
-                >
-                  Sim, remover
-                </button>
+              <div className="flex min-h-full items-center justify-center p-4">
+              <div
+                className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm"
+                onClick={(e) => e.stopPropagation()}
+                data-testid="delete-confirm-modal"
+              >
+                <h3 className="font-bold text-grafite mb-2">Remover utilizador?</h3>
+                <p className="text-sm text-gray-500 mb-5">Esta ação é irreversível. O utilizador perderá acesso ao portal.</p>
+                <div className="flex gap-2 justify-end">
+                  <button
+                    onClick={() => setDeleteConfirm(null)}
+                    className="px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => handleDelete(deleteConfirm)}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
+                    data-testid="confirm-delete-btn"
+                  >
+                    Sim, remover
+                  </button>
+                </div>
+              </div>
               </div>
             </motion.div>
           </>
@@ -565,16 +593,23 @@ export const AdminUsuariosPage = () => {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-xl z-[60] w-[90vw] max-w-lg max-h-[85vh] overflow-y-auto"
-              data-testid="invite-modal"
+              className="fixed inset-0 z-[60] overflow-y-auto"
+              role="dialog"
+              aria-modal="true"
             >
+              <div className="flex min-h-full items-center justify-center p-4">
+              <div
+                className="bg-white rounded-2xl shadow-xl w-full max-w-lg"
+                onClick={(e) => e.stopPropagation()}
+                data-testid="invite-modal"
+              >
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                 <div className="flex items-center gap-2">
                   <UserPlus className="w-5 h-5 text-carmesim" />
                   <h2 className="font-bold text-lg text-grafite">{inviteResult ? 'Convite Criado' : 'Convidar Socio'}</h2>
                 </div>
-                <button onClick={resetInviteModal} className="p-1 hover:bg-gray-100 rounded-lg">
-                  <X className="w-4 h-4 text-gray-400" />
+                <button onClick={resetInviteModal} className="p-2.5 hover:bg-gray-100 rounded-lg" aria-label="Fechar">
+                  <X className="w-4 h-4 text-gray-400" aria-hidden="true" />
                 </button>
               </div>
 
@@ -624,7 +659,7 @@ export const AdminUsuariosPage = () => {
                       <input
                         value={inviteData.name}
                         onChange={(e) => setInviteData({ ...inviteData, name: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
                         placeholder="Nome do novo socio"
                         data-testid="invite-name"
                       />
@@ -633,9 +668,11 @@ export const AdminUsuariosPage = () => {
                       <label className="block text-xs font-medium text-gray-600 mb-1">Email *</label>
                       <input
                         type="email"
+                        inputMode="email"
+                        autoComplete="email"
                         value={inviteData.email}
                         onChange={(e) => setInviteData({ ...inviteData, email: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
                         placeholder="email@controlador.cv"
                         data-testid="invite-email"
                       />
@@ -645,7 +682,7 @@ export const AdminUsuariosPage = () => {
                       <select
                         value={inviteData.role}
                         onChange={(e) => setInviteData({ ...inviteData, role: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
                         data-testid="invite-role"
                       >
                         <option value="socio">Socio</option>
@@ -658,7 +695,7 @@ export const AdminUsuariosPage = () => {
                       <select
                         value={inviteData.cargo}
                         onChange={(e) => setInviteData({ ...inviteData, cargo: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
                         data-testid="invite-cargo"
                       >
                         {CARGOS.map(c => <option key={c} value={c}>{c}</option>)}
@@ -669,7 +706,7 @@ export const AdminUsuariosPage = () => {
                       <input
                         value={inviteData.member_id}
                         onChange={(e) => setInviteData({ ...inviteData, member_id: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
                         placeholder="ACCTA-XXX"
                         data-testid="invite-member-id"
                       />
@@ -679,7 +716,7 @@ export const AdminUsuariosPage = () => {
                       <input
                         value={inviteData.license_number}
                         onChange={(e) => setInviteData({ ...inviteData, license_number: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
                         placeholder="ATC-CV-XXXX-XXX"
                         data-testid="invite-license"
                       />
@@ -689,7 +726,7 @@ export const AdminUsuariosPage = () => {
                       <input
                         value={inviteData.department}
                         onChange={(e) => setInviteData({ ...inviteData, department: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
                         placeholder="Ex: Torre, Aproximacao"
                         data-testid="invite-department"
                       />
@@ -697,9 +734,12 @@ export const AdminUsuariosPage = () => {
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Telefone</label>
                       <input
+                        type="tel"
+                        inputMode="tel"
+                        autoComplete="tel"
                         value={inviteData.phone_number}
                         onChange={(e) => setInviteData({ ...inviteData, phone_number: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
                         placeholder="+238 xxxxxxx"
                         data-testid="invite-phone"
                       />
@@ -723,6 +763,8 @@ export const AdminUsuariosPage = () => {
                   </button>
                 </div>
               )}
+              </div>
+              </div>
             </motion.div>
           </>
         )}

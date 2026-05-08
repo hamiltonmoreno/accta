@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { eventsAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { toast } from 'sonner';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -179,10 +180,10 @@ export const EventosPage = () => {
                         <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-carmesim" />
                       </div>
                       <div>
-                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] sm:text-xs font-mono uppercase ${style.color}`}>
+                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-mono uppercase ${style.color}`}>
                           {getEventLabel(event.type)}
                         </span>
-                        <div className="text-[10px] sm:text-xs text-gray-400 mt-0.5">
+                        <div className="text-xs text-gray-400 mt-0.5">
                           {event.visibility === 'socios' ? 'Sócios' : event.visibility === 'direcao' ? 'Direção' : 'Público'}
                         </div>
                       </div>
@@ -192,8 +193,9 @@ export const EventosPage = () => {
                       <button
                         onClick={() => setConfirmDelete(event.id)}
                         className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors"
+                        aria-label="Eliminar evento"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4" aria-hidden="true" />
                       </button>
                     )}
                   </div>
@@ -216,7 +218,7 @@ export const EventosPage = () => {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5 text-carmesim" />
-                      <span className="truncate max-w-[200px]">{event.location}</span>
+                      <span className="truncate max-w-[200px]" title={event.location}>{event.location}</span>
                     </div>
                   </div>
 
@@ -302,6 +304,7 @@ export const EventosPage = () => {
 };
 
 const CreateEventModal = ({ onClose, onSuccess }) => {
+  useBodyScrollLock(true);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -356,19 +359,22 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 z-50 overflow-y-auto"
+        role="dialog"
+        aria-modal="true"
       >
-        <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex min-h-full items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
             <h2 className="font-bold text-xl sm:text-2xl text-grafite">Novo Evento</h2>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <X className="w-5 h-5 text-gray-400" />
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Fechar">
+              <X className="w-5 h-5 text-gray-400" aria-hidden="true" />
             </button>
           </div>
 
           <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5">
             <div>
-              <label className="block font-mono text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 mb-1.5">Titulo *</label>
+              <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Titulo *</label>
               <input
                 type="text"
                 value={formData.title}
@@ -380,7 +386,7 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
             </div>
 
             <div>
-              <label className="block font-mono text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 mb-1.5">Descricao</label>
+              <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Descricao</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -392,7 +398,7 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
 
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="block font-mono text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 mb-1.5">Tipo *</label>
+                <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Tipo *</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -406,7 +412,7 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
                 </select>
               </div>
               <div>
-                <label className="block font-mono text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 mb-1.5">Visibilidade</label>
+                <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Visibilidade</label>
                 <select
                   value={formData.visibility}
                   onChange={(e) => setFormData({ ...formData, visibility: e.target.value })}
@@ -421,7 +427,7 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
 
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="block font-mono text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 mb-1.5">Data *</label>
+                <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Data *</label>
                 <input
                   type="date"
                   value={formData.date}
@@ -431,7 +437,7 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
                 />
               </div>
               <div>
-                <label className="block font-mono text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 mb-1.5">Hora *</label>
+                <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Hora *</label>
                 <input
                   type="time"
                   value={formData.time}
@@ -443,7 +449,7 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
             </div>
 
             <div>
-              <label className="block font-mono text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 mb-1.5">Local *</label>
+              <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Local *</label>
               <input
                 type="text"
                 value={formData.location}
@@ -455,9 +461,10 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
             </div>
 
             <div>
-              <label className="block font-mono text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 mb-1.5">Limite de Participantes</label>
+              <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Limite de Participantes</label>
               <input
                 type="number"
+                inputMode="numeric"
                 value={formData.max_attendees}
                 onChange={(e) => setFormData({ ...formData, max_attendees: e.target.value })}
                 className="w-full px-3 sm:px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-carmesim/40"
@@ -484,6 +491,7 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
               </button>
             </div>
           </form>
+          </div>
         </div>
       </motion.div>
     </>

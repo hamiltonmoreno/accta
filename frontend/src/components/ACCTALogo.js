@@ -128,7 +128,7 @@ export const ACCTALogoHorizontal = ({ className = '', dark = false }) => {
           ACCTA
         </span>
         <span 
-          className="text-[10px] tracking-wide"
+          className="text-xs tracking-wide"
           style={{ color: textColor }}
         >
           CABO VERDE

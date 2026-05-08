@@ -63,7 +63,7 @@ export const SettingsTab = () => {
         <div className="space-y-4">
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Valor da Quota Mensal (CVE)</label>
-            <input type="number" min="0" value={quotaAmount} onChange={(e) => setQuotaAmount(e.target.value)}
+            <input type="number" inputMode="decimal" min="0" value={quotaAmount} onChange={(e) => setQuotaAmount(e.target.value)}
               className="w-full max-w-xs px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
               data-testid="quota-amount-input" />
           </div>
@@ -119,15 +119,15 @@ export const SettingsTab = () => {
             <div className="grid grid-cols-3 gap-3 mt-2">
               <div className="text-center">
                 <div className="font-mono text-lg font-bold text-green-700" data-testid="gen-created">{genResult.created}</div>
-                <div className="text-[10px] text-green-600 uppercase tracking-wider">Criadas</div>
+                <div className="text-xs text-green-600 uppercase tracking-wider">Criadas</div>
               </div>
               <div className="text-center">
                 <div className="font-mono text-lg font-bold text-gray-500" data-testid="gen-skipped">{genResult.skipped}</div>
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider">Ignoradas</div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider">Ignoradas</div>
               </div>
               <div className="text-center">
                 <div className="font-mono text-lg font-bold" style={{ color: 'var(--text-primary)' }} data-testid="gen-total-value">{genResult.total_value?.toLocaleString('pt')}</div>
-                <div className="text-[10px] text-gray-500 uppercase tracking-wider">CVE Total</div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider">CVE Total</div>
               </div>
             </div>
           </motion.div>

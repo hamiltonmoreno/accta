@@ -50,7 +50,7 @@ export const PublicLayout = ({ children }) => {
               })}
               <Link
                 to="/login"
-                className="ml-3 bg-carmesim text-white hover:bg-carmesim-dark h-9 px-5 rounded-lg uppercase tracking-wider font-bold text-xs transition-colors flex items-center gap-2"
+                className="ml-3 bg-confianca text-white hover:bg-confianca-dark h-9 px-5 rounded-lg uppercase tracking-wider font-bold text-xs transition-colors flex items-center gap-2"
                 data-testid="nav-login-button"
               >
                 Entrar
@@ -61,13 +61,15 @@ export const PublicLayout = ({ children }) => {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="lg:hidden p-2.5 -mr-2.5 rounded-lg hover:bg-gray-100 transition-colors touch-target"
               data-testid="mobile-menu-button"
+              aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
+              aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? (
-                <X className="w-5 h-5 text-grafite" />
+                <X className="w-5 h-5 text-grafite" aria-hidden="true" />
               ) : (
-                <Menu className="w-5 h-5 text-grafite" />
+                <Menu className="w-5 h-5 text-grafite" aria-hidden="true" />
               )}
             </button>
           </div>
@@ -106,7 +108,7 @@ export const PublicLayout = ({ children }) => {
                   <Link
                     to="/login"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 py-3 px-4 bg-carmesim text-white rounded-lg font-bold uppercase tracking-wider text-sm"
+                    className="flex items-center justify-center gap-2 py-3 px-4 bg-confianca text-white rounded-lg font-bold uppercase tracking-wider text-sm"
                   >
                     Entrar
                     <ArrowRight className="w-4 h-4" />
@@ -132,7 +134,7 @@ export const PublicLayout = ({ children }) => {
               <p className="text-sm text-white/70 mb-3 max-w-sm">
                 Associação dos Controladores de Tráfego Aéreo de Cabo Verde
               </p>
-              <p className="text-carmesim font-semibold italic text-sm">
+              <p className="text-amber font-semibold italic text-sm">
                 "Segurança no céu, união em terra."
               </p>
             </div>
@@ -140,28 +142,28 @@ export const PublicLayout = ({ children }) => {
             <div>
               <h3 className="font-semibold text-sm uppercase tracking-wider mb-4 text-white/90">Links Rápidos</h3>
               <ul className="space-y-2.5 text-sm text-white/60">
-                <li><Link to="/sobre" className="hover:text-carmesim transition-colors">Sobre</Link></li>
-                <li><Link to="/profissao" className="hover:text-carmesim transition-colors">A Profissão</Link></li>
-                <li><Link to="/transparencia" className="hover:text-carmesim transition-colors">Transparência</Link></li>
-                <li><Link to="/beneficios-publico" className="hover:text-carmesim transition-colors">Benefícios</Link></li>
-                <li><Link to="/contactos" className="hover:text-carmesim transition-colors">Contactos</Link></li>
-                <li><Link to="/galeria" className="hover:text-carmesim transition-colors">Galeria</Link></li>
+                <li><Link to="/sobre" className="hover:text-white transition-colors">Sobre</Link></li>
+                <li><Link to="/profissao" className="hover:text-white transition-colors">A Profissão</Link></li>
+                <li><Link to="/transparencia" className="hover:text-white transition-colors">Transparência</Link></li>
+                <li><Link to="/beneficios-publico" className="hover:text-white transition-colors">Benefícios</Link></li>
+                <li><Link to="/contactos" className="hover:text-white transition-colors">Contactos</Link></li>
+                <li><Link to="/galeria" className="hover:text-white transition-colors">Galeria</Link></li>
               </ul>
             </div>
 
             <div>
               <h3 className="font-semibold text-sm uppercase tracking-wider mb-4 text-white/90">Área Reservada</h3>
               <ul className="space-y-2.5 text-sm text-white/60">
-                <li><Link to="/login" className="hover:text-carmesim transition-colors">Login Associados</Link></li>
-                <li><Link to="/validador" className="hover:text-carmesim transition-colors">Validador QR</Link></li>
-                <li><Link to="/eventos-publico" className="hover:text-carmesim transition-colors">Eventos</Link></li>
+                <li><Link to="/login" className="hover:text-white transition-colors">Login Associados</Link></li>
+                <li><Link to="/validador" className="hover:text-white transition-colors">Validador QR</Link></li>
+                <li><Link to="/eventos-publico" className="hover:text-white transition-colors">Eventos</Link></li>
               </ul>
             </div>
           </div>
 
           <div className="border-t border-white/10 mt-8 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-white/50">
             <p>&copy; {new Date().getFullYear()} ACCTA - Todos os direitos reservados</p>
-            <Link to="/privacidade" className="hover:text-carmesim transition-colors">Política de Privacidade</Link>
+            <Link to="/privacidade" className="hover:text-white transition-colors">Política de Privacidade</Link>
           </div>
         </div>
       </footer>

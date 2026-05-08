@@ -67,7 +67,9 @@ export const ContactosPage = () => {
       <section className="relative py-20 sm:py-28 overflow-hidden">
         <img
           src="https://images.unsplash.com/photo-1672856181212-b5b5a0065a08?q=80&w=2070&auto=format&fit=crop"
-          alt="Cabo Verde"
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
@@ -92,7 +94,7 @@ export const ContactosPage = () => {
       </section>
 
       {/* Contact Info & Form */}
-      <section className="py-24">
+      <section className="py-12 sm:py-20 lg:py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16">
             {/* Contact Information */}
@@ -203,12 +205,14 @@ export const ContactosPage = () => {
                   <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Name */}
                     <div>
-                      <label className="block text-xs uppercase tracking-wider text-gray-500 mb-2">
+                      <label htmlFor="contact-name" className="block text-xs uppercase tracking-wider text-gray-500 mb-2">
                         Nome *
                       </label>
                       <input
+                        id="contact-name"
                         type="text"
                         name="name"
+                        autoComplete="name"
                         value={formData.name}
                         onChange={handleChange}
                         placeholder="O seu nome completo"
@@ -220,11 +224,14 @@ export const ContactosPage = () => {
 
                     {/* Email */}
                     <div>
-                      <label className="block text-xs uppercase tracking-wider text-gray-500 mb-2">
+                      <label htmlFor="contact-email" className="block text-xs uppercase tracking-wider text-gray-500 mb-2">
                         Email *
                       </label>
                       <input
+                        id="contact-email"
                         type="email"
+                        inputMode="email"
+                        autoComplete="email"
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
@@ -267,10 +274,11 @@ export const ContactosPage = () => {
 
                     {/* Message */}
                     <div>
-                      <label className="block text-xs uppercase tracking-wider text-gray-500 mb-2">
+                      <label htmlFor="contact-message" className="block text-xs uppercase tracking-wider text-gray-500 mb-2">
                         Mensagem *
                       </label>
                       <textarea
+                        id="contact-message"
                         name="message"
                         value={formData.message}
                         onChange={handleChange}

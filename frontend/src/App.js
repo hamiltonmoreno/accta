@@ -1,48 +1,63 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { Toaster } from './components/ui/sonner';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { PublicLayout } from './layouts/PublicLayout';
 import { PrivateLayout } from './layouts/PrivateLayout';
+// Public pages — kept eager: small, fast TTI matters for landing pages.
 import { HomePage } from './pages/public/HomePage';
-import { SobrePage } from './pages/public/SobrePage';
-import { ProfissaoPage } from './pages/public/ProfissaoPage';
-import { NoticiasPage } from './pages/public/NoticiasPage';
-import { ValidadorPage } from './pages/public/ValidadorPage';
 import { LoginPage } from './pages/public/LoginPage';
-import { ForgotPasswordPage } from './pages/public/ForgotPasswordPage';
-import { SetupAccountPage } from './pages/public/SetupAccountPage';
-import { ResetPasswordPage } from './pages/public/ResetPasswordPage';
-import { TransparenciaPage } from './pages/public/TransparenciaPage';
-import { BeneficiosPublicoPage } from './pages/public/BeneficiosPublicoPage';
-import { ContactosPage } from './pages/public/ContactosPage';
-import { EventosPublicoPage } from './pages/public/EventosPublicoPage';
-import { GaleriaPage } from './pages/public/GaleriaPage';
-import { NotificacoesPage } from './pages/private/NotificacoesPage';
-import { DashboardPage } from './pages/private/DashboardPage';
-import { CarteiraPage } from './pages/private/CarteiraPage';
-import { FinanceiroPage } from './pages/private/FinanceiroPage';
-import ProjectsPage from './pages/private/ProjectsPage';
-import ProjectDetailPage from './pages/private/ProjectDetailPage';
-import { VotacoesPage } from './pages/private/VotacoesPage';
-import { DocumentosPage } from './pages/private/DocumentosPage';
-import { MuralPage } from './pages/private/MuralPage';
-import { BeneficiosPage } from './pages/private/BeneficiosPage';
-import { EventosPage } from './pages/private/EventosPage';
-import { GaleriaAdminPage } from './pages/private/GaleriaAdminPage';
-import { AdminUsuariosPage } from './pages/private/AdminUsuariosPage';
-import { PerfilPage } from './pages/private/PerfilPage';
-import { AdminLogsPage } from './pages/private/AdminLogsPage';
 import './App.css';
+
+// Public pages that aren't needed on first paint — lazy.
+const SobrePage = lazy(() => import('./pages/public/SobrePage').then((m) => ({ default: m.SobrePage })));
+const ProfissaoPage = lazy(() => import('./pages/public/ProfissaoPage').then((m) => ({ default: m.ProfissaoPage })));
+const NoticiasPage = lazy(() => import('./pages/public/NoticiasPage').then((m) => ({ default: m.NoticiasPage })));
+const ValidadorPage = lazy(() => import('./pages/public/ValidadorPage').then((m) => ({ default: m.ValidadorPage })));
+const ForgotPasswordPage = lazy(() => import('./pages/public/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })));
+const SetupAccountPage = lazy(() => import('./pages/public/SetupAccountPage').then((m) => ({ default: m.SetupAccountPage })));
+const ResetPasswordPage = lazy(() => import('./pages/public/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })));
+const TransparenciaPage = lazy(() => import('./pages/public/TransparenciaPage').then((m) => ({ default: m.TransparenciaPage })));
+const BeneficiosPublicoPage = lazy(() => import('./pages/public/BeneficiosPublicoPage').then((m) => ({ default: m.BeneficiosPublicoPage })));
+const ContactosPage = lazy(() => import('./pages/public/ContactosPage').then((m) => ({ default: m.ContactosPage })));
+const EventosPublicoPage = lazy(() => import('./pages/public/EventosPublicoPage').then((m) => ({ default: m.EventosPublicoPage })));
+const GaleriaPage = lazy(() => import('./pages/public/GaleriaPage').then((m) => ({ default: m.GaleriaPage })));
+
+// Private pages — lazy. They're only loaded after a user logs in, so we
+// don't want their bundle weight on the public landing page.
+const NotificacoesPage = lazy(() => import('./pages/private/NotificacoesPage').then((m) => ({ default: m.NotificacoesPage })));
+const DashboardPage = lazy(() => import('./pages/private/DashboardPage').then((m) => ({ default: m.DashboardPage })));
+const CarteiraPage = lazy(() => import('./pages/private/CarteiraPage').then((m) => ({ default: m.CarteiraPage })));
+const FinanceiroPage = lazy(() => import('./pages/private/FinanceiroPage').then((m) => ({ default: m.FinanceiroPage })));
+const ProjectsPage = lazy(() => import('./pages/private/ProjectsPage'));
+const ProjectDetailPage = lazy(() => import('./pages/private/ProjectDetailPage'));
+const VotacoesPage = lazy(() => import('./pages/private/VotacoesPage').then((m) => ({ default: m.VotacoesPage })));
+const DocumentosPage = lazy(() => import('./pages/private/DocumentosPage').then((m) => ({ default: m.DocumentosPage })));
+const MuralPage = lazy(() => import('./pages/private/MuralPage').then((m) => ({ default: m.MuralPage })));
+const BeneficiosPage = lazy(() => import('./pages/private/BeneficiosPage').then((m) => ({ default: m.BeneficiosPage })));
+const EventosPage = lazy(() => import('./pages/private/EventosPage').then((m) => ({ default: m.EventosPage })));
+const GaleriaAdminPage = lazy(() => import('./pages/private/GaleriaAdminPage').then((m) => ({ default: m.GaleriaAdminPage })));
+const AdminUsuariosPage = lazy(() => import('./pages/private/AdminUsuariosPage').then((m) => ({ default: m.AdminUsuariosPage })));
+const PerfilPage = lazy(() => import('./pages/private/PerfilPage').then((m) => ({ default: m.PerfilPage })));
+const AdminLogsPage = lazy(() => import('./pages/private/AdminLogsPage').then((m) => ({ default: m.AdminLogsPage })));
+
+const RouteSpinner = () => (
+  <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-live="polite">
+    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+    <span className="sr-only">A carregar página...</span>
+  </div>
+);
 
 const ProtectedRoute = ({ children, requireAdmin = false, allowedRoles = [] }) => {
   const { isAuthenticated, isAdmin, user, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" role="status" aria-live="polite">
         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <span className="sr-only">A verificar sessão...</span>
       </div>
     );
   }
@@ -64,165 +79,169 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowedRoles = [] }) =
 
 function AppRoutes() {
   return (
-    <Routes>
-      {/* Public Routes */}
-      <Route path="/" element={<PublicLayout><HomePage /></PublicLayout>} />
-      <Route path="/sobre" element={<PublicLayout><SobrePage /></PublicLayout>} />
-      <Route path="/profissao" element={<PublicLayout><ProfissaoPage /></PublicLayout>} />
-      <Route path="/noticias" element={<PublicLayout><NoticiasPage /></PublicLayout>} />
-      <Route path="/transparencia" element={<PublicLayout><TransparenciaPage /></PublicLayout>} />
-      <Route path="/beneficios-publico" element={<PublicLayout><BeneficiosPublicoPage /></PublicLayout>} />
-      <Route path="/contactos" element={<PublicLayout><ContactosPage /></PublicLayout>} />
-      <Route path="/eventos-publico" element={<PublicLayout><EventosPublicoPage /></PublicLayout>} />
-      <Route path="/galeria" element={<PublicLayout><GaleriaPage /></PublicLayout>} />
-      <Route path="/validador" element={<PublicLayout><ValidadorPage /></PublicLayout>} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/setup-account" element={<SetupAccountPage />} />
+    <Suspense fallback={<RouteSpinner />}>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<PublicLayout><HomePage /></PublicLayout>} />
+        <Route path="/sobre" element={<PublicLayout><SobrePage /></PublicLayout>} />
+        <Route path="/profissao" element={<PublicLayout><ProfissaoPage /></PublicLayout>} />
+        <Route path="/noticias" element={<PublicLayout><NoticiasPage /></PublicLayout>} />
+        <Route path="/transparencia" element={<PublicLayout><TransparenciaPage /></PublicLayout>} />
+        <Route path="/beneficios-publico" element={<PublicLayout><BeneficiosPublicoPage /></PublicLayout>} />
+        <Route path="/contactos" element={<PublicLayout><ContactosPage /></PublicLayout>} />
+        <Route path="/eventos-publico" element={<PublicLayout><EventosPublicoPage /></PublicLayout>} />
+        <Route path="/galeria" element={<PublicLayout><GaleriaPage /></PublicLayout>} />
+        <Route path="/validador" element={<PublicLayout><ValidadorPage /></PublicLayout>} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/setup-account" element={<SetupAccountPage />} />
 
-      {/* Private Routes */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <PrivateLayout><DashboardPage /></PrivateLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/carteira"
-        element={
-          <ProtectedRoute>
-            <PrivateLayout><CarteiraPage /></PrivateLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/financeiro"
-        element={
-          <ProtectedRoute allowedRoles={['admin', 'financeiro']}>
-            <PrivateLayout><FinanceiroPage /></PrivateLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/votacoes"
-        element={
-          <ProtectedRoute>
-            <PrivateLayout><VotacoesPage /></PrivateLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/documentos"
-        element={
-          <ProtectedRoute>
-            <PrivateLayout><DocumentosPage /></PrivateLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/projetos"
-        element={
-          <ProtectedRoute>
-            <PrivateLayout><ProjectsPage /></PrivateLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/projetos/:id"
-        element={
-          <ProtectedRoute>
-            <PrivateLayout><ProjectDetailPage /></PrivateLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/mural"
-        element={
-          <ProtectedRoute>
-            <PrivateLayout><MuralPage /></PrivateLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/beneficios"
-        element={
-          <ProtectedRoute>
-            <PrivateLayout><BeneficiosPage /></PrivateLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/notificacoes"
-        element={
-          <ProtectedRoute>
-            <PrivateLayout><NotificacoesPage /></PrivateLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/eventos"
-        element={
-          <ProtectedRoute>
-            <PrivateLayout><EventosPage /></PrivateLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/galeria-admin"
-        element={
-          <ProtectedRoute allowedRoles={['admin', 'moderador']}>
-            <PrivateLayout><GaleriaAdminPage /></PrivateLayout>
-          </ProtectedRoute>
-        }
-      />
+        {/* Private Routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><DashboardPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/carteira"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><CarteiraPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/financeiro"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'financeiro']}>
+              <PrivateLayout><FinanceiroPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/votacoes"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><VotacoesPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/documentos"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><DocumentosPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/projetos"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><ProjectsPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/projetos/:id"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><ProjectDetailPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mural"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><MuralPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/beneficios"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><BeneficiosPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notificacoes"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><NotificacoesPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/eventos"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><EventosPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/galeria-admin"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'moderador']}>
+              <PrivateLayout><GaleriaAdminPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Admin Routes */}
-      <Route
-        path="/perfil"
-        element={
-          <ProtectedRoute>
-            <PrivateLayout><PerfilPage /></PrivateLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/usuarios"
-        element={
-          <ProtectedRoute requireAdmin>
-            <PrivateLayout><AdminUsuariosPage /></PrivateLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/logs"
-        element={
-          <ProtectedRoute requireAdmin>
-            <PrivateLayout><AdminLogsPage /></PrivateLayout>
-          </ProtectedRoute>
-        }
-      />
+        {/* Admin Routes */}
+        <Route
+          path="/perfil"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><PerfilPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/usuarios"
+          element={
+            <ProtectedRoute requireAdmin>
+              <PrivateLayout><AdminUsuariosPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/logs"
+          element={
+            <ProtectedRoute requireAdmin>
+              <PrivateLayout><AdminLogsPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 
 function App() {
   return (
-    <AuthProvider>
-      <NotificationProvider>
-        <BrowserRouter>
-          <div className="App">
-            <AppRoutes />
-            <Toaster position="top-right" richColors />
-          </div>
-        </BrowserRouter>
-      </NotificationProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <NotificationProvider>
+          <BrowserRouter>
+            <div className="App">
+              <AppRoutes />
+              <Toaster position="top-right" richColors />
+            </div>
+          </BrowserRouter>
+        </NotificationProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

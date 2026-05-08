@@ -93,7 +93,7 @@ export const BeneficiosPage = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="card-technical rounded-xl p-6 bg-carmesim/5 border-accent/20"
+          className="card-technical rounded-xl p-6 bg-carmesim/5 border-carmesim/20"
         >
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 bg-carmesim rounded-lg flex items-center justify-center flex-shrink-0">

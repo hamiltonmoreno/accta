@@ -32,7 +32,7 @@ export const VotingInterface = ({ poll, onVoteSuccess }) => {
   if (voted) {
     return (
       <div className="border-t border-gray-200 pt-6 mt-6">
-        <div className="flex items-center gap-3 p-4 bg-carmesim/5 rounded-lg border border-accent/20">
+        <div className="flex items-center gap-3 p-4 bg-carmesim/5 rounded-lg border border-carmesim/20">
           <CheckCircle className="w-6 h-6 text-carmesim" />
           <div>
             <div className="font-semibold text-grafite">Voto Registrado</div>
@@ -55,7 +55,7 @@ export const VotingInterface = ({ poll, onVoteSuccess }) => {
               key={opt.id}
               className={`flex items-center gap-3 p-4 rounded-lg cursor-pointer transition ${
                 isSelected
-                  ? 'bg-carmesim/10 border-2 border-accent'
+                  ? 'bg-carmesim/10 border-2 border-carmesim'
                   : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
               }`}
             >

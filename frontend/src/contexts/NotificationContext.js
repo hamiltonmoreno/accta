@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { toast } from 'sonner';
 import { notificationsAPI } from '../utils/api';
 import { useAuth } from './AuthContext';
 
@@ -101,7 +102,7 @@ export const NotificationProvider = ({ children }) => {
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
-      // silent
+      toast.error('Não foi possível marcar como lida');
     }
   };
 
@@ -111,7 +112,7 @@ export const NotificationProvider = ({ children }) => {
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (error) {
-      // silent
+      toast.error('Não foi possível marcar todas como lidas');
     }
   };
 
@@ -121,7 +122,7 @@ export const NotificationProvider = ({ children }) => {
       setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
       setTotal((prev) => prev - 1);
     } catch (error) {
-      // silent
+      toast.error('Não foi possível remover a notificação');
     }
   };
 
@@ -131,7 +132,7 @@ export const NotificationProvider = ({ children }) => {
       setNotifications((prev) => prev.filter((n) => !n.read));
       setTotal((prev) => prev - notifications.filter((n) => n.read).length);
     } catch (error) {
-      // silent
+      toast.error('Não foi possível limpar as notificações lidas');
     }
   };
 

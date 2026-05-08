@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { financesAPI } from '../../../utils/api';
+import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import { toast } from 'sonner';
 import { X } from 'lucide-react';
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from './constants';
 
 export const TransactionModal = ({ tx, onClose, onSaved }) => {
+  useBodyScrollLock(true);
   const isEdit = !!tx;
   const [form, setForm] = useState({
     type: tx?.type || 'receita',
@@ -55,17 +57,23 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="flex min-h-full items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+        className="rounded-xl shadow-2xl w-full max-w-md"
         style={{ backgroundColor: 'var(--surface-card)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-5" style={{ borderBottom: '1px solid var(--surface-border)' }}>
           <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>{isEdit ? 'Editar Transacao' : 'Nova Transacao'}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" data-testid="close-modal-btn"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" aria-label="Fechar" data-testid="close-modal-btn"><X className="w-5 h-5" aria-hidden="true" /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
@@ -119,6 +127,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Valor (CVE) *</label>
               <input
                 type="number"
+                inputMode="decimal"
                 min="0"
                 step="0.01"
                 value={form.amount}
@@ -162,6 +171,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
           </button>
         </form>
       </motion.div>
+      </div>
     </div>
   );
 };

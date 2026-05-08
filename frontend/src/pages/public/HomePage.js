@@ -77,11 +77,12 @@ export const HomePage = () => {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative min-h-[85vh] sm:min-h-[90vh] flex items-center overflow-hidden">
+      <section className="relative min-h-[600px] sm:min-h-[85vh] lg:min-h-[90vh] flex items-center overflow-hidden">
         <div className="absolute inset-0">
-          <img 
+          <img
             src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=2074&auto=format&fit=crop"
-            alt="Avião voando no céu"
+            alt=""
+            aria-hidden="true"
             className="absolute inset-0 w-full h-full object-cover"
             loading="eager"
           />
@@ -164,7 +165,7 @@ export const HomePage = () => {
               >
                 <stat.icon className="w-6 sm:w-8 h-6 sm:h-8 text-carmesim mx-auto mb-2 sm:mb-3" />
                 <div className="font-bold text-2xl sm:text-3xl lg:text-4xl text-white mb-0.5">{stat.value}</div>
-                <div className="text-[10px] sm:text-xs text-white/60 tracking-wider">{stat.label}</div>
+                <div className="text-xs text-white/60 tracking-wider">{stat.label}</div>
               </motion.div>
             ))}
           </div>
@@ -190,24 +191,24 @@ export const HomePage = () => {
                     <Calendar className="w-3.5 h-3.5 text-carmesim" />
                     <span className="text-xs text-carmesim font-semibold uppercase tracking-wider">Proximo Evento</span>
                   </div>
-                  <h3 className="font-bold text-2xl sm:text-3xl lg:text-4xl text-white mb-3" data-testid="featured-event-title">
+                  <h2 className="font-bold text-2xl sm:text-3xl lg:text-4xl text-white mb-3" data-testid="featured-event-title">
                     {featuredEvent.title}
-                  </h3>
+                  </h2>
                   <p className="text-sm sm:text-base text-white/70 leading-relaxed mb-5 max-w-md">
                     {featuredEvent.description?.slice(0, 150)}{featuredEvent.description?.length > 150 ? '...' : ''}
                   </p>
                   <div className="flex flex-wrap gap-4 text-sm text-white/80">
                     <div className="flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4 text-carmesim" />
+                      <Calendar className="w-4 h-4 text-white/60" />
                       <span>{format(new Date(featuredEvent.date), "dd 'de' MMMM yyyy", { locale: ptBR })}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <Clock className="w-4 h-4 text-carmesim" />
+                      <Clock className="w-4 h-4 text-white/60" />
                       <span>{format(new Date(featuredEvent.date), 'HH:mm')}</span>
                     </div>
                     {featuredEvent.location && (
                       <div className="flex items-center gap-1.5">
-                        <MapPin className="w-4 h-4 text-carmesim" />
+                        <MapPin className="w-4 h-4 text-white/60" />
                         <span>{featuredEvent.location}</span>
                       </div>
                     )}
@@ -242,7 +243,7 @@ export const HomePage = () => {
                             {String(unit.value).padStart(2, '0')}
                           </span>
                         </div>
-                        <span className="text-[10px] sm:text-xs text-white/50 uppercase tracking-widest font-semibold">{unit.label}</span>
+                        <span className="text-xs text-white/50 uppercase tracking-widest font-semibold">{unit.label}</span>
                       </motion.div>
                     ))}
                   </div>
@@ -279,7 +280,7 @@ export const HomePage = () => {
               </p>
               <Link
                 to="/profissao"
-                className="inline-flex items-center gap-2 text-carmesim font-semibold hover:text-carmesim-dark transition-colors group text-sm sm:text-base"
+                className="inline-flex items-center gap-2 text-confianca font-semibold hover:text-confianca-dark transition-colors group text-sm sm:text-base"
               >
                 Saiba como funciona o controlo aéreo
                 <ChevronRight className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-1 transition-transform" />
@@ -360,7 +361,7 @@ export const HomePage = () => {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                     </div>
                     <div className="p-4 sm:p-6">
-                      <div className="flex items-center gap-2 text-[11px] sm:text-xs text-gray-500 mb-2 sm:mb-3">
+                      <div className="flex items-center gap-2 text-xs text-gray-500 mb-2 sm:mb-3">
                         <Calendar className="w-3.5 h-3.5" />
                         {format(new Date(post.created_at), "dd MMM yyyy", { locale: ptBR })}
                       </div>
@@ -370,7 +371,7 @@ export const HomePage = () => {
                       <p className="text-gray-600 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 line-clamp-3">{post.content}</p>
                       <Link
                         to="/noticias"
-                        className="inline-flex items-center gap-2 text-xs sm:text-sm text-carmesim font-semibold hover:text-carmesim-dark transition-colors"
+                        className="inline-flex items-center gap-2 text-xs sm:text-sm text-confianca font-semibold hover:text-confianca-dark transition-colors"
                       >
                         Ler mais
                         <ChevronRight className="w-3.5 h-3.5" />
@@ -413,7 +414,7 @@ export const HomePage = () => {
           <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
             <Link
               to="/sobre"
-              className="inline-flex items-center justify-center gap-2 bg-carmesim text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-lg hover:bg-carmesim-dark transition-all"
+              className="inline-flex items-center justify-center gap-2 bg-confianca text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-lg hover:bg-confianca-dark transition-all"
             >
               Conheça a Associação
             </Link>

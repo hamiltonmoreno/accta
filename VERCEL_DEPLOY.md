@@ -70,17 +70,19 @@
    ```
 5. Deploy
 
-### 3.2 (Opcional) Atualizar vercel.json
+### 3.2 vercel.json
 
-Se quiser que o Vercel faça proxy das chamadas `/api/`:
+O ficheiro `frontend/vercel.json` já está incluído neste repo e configura:
+- **SPA fallback**: todas as rotas servem `index.html` (necessário para React Router)
+- **Cache imutável** em `/static/*` (assets com hash)
+- **Cabeçalhos de segurança**: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`
 
-```json
-{
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://accta-api.onrender.com/api/$1" }
-  ]
-}
-```
+Não precisas de o editar — ele é detectado automaticamente quando defines
+**Root Directory: `frontend`** no painel Vercel.
+
+> Não use rewrites para fazer proxy do `/api/` para o backend. O frontend
+> chama o backend directamente via `REACT_APP_BACKEND_URL`, o que evita
+> double-billing de bandwidth e garante que CORS funciona como esperado.
 
 ---
 

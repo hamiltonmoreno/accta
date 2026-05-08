@@ -42,7 +42,7 @@ export const PollVoteForm = ({ poll, isAtivo, onVoteSuccess }) => {
               value={option.id}
               checked={selectedOption === option.id}
               onChange={() => setSelectedOption(option.id)}
-              className="w-5 h-5 text-accent focus:ring-accent"
+              className="w-5 h-5 text-carmesim focus:ring-carmesim"
               data-testid={`option-${option.id}`}
             />
             <span className="font-manrope font-medium text-primary">{option.label}</span>

@@ -120,7 +120,7 @@ const BroadcastPanel = ({ onSent }) => {
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-wider mb-1 block" style={{ color: 'var(--text-muted)' }}>Tipo</label>
                   <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
                     data-testid="broadcast-type-select">
                     <option value="geral">Geral</option>
                     <option value="financeiro">Financeiro</option>
@@ -133,7 +133,7 @@ const BroadcastPanel = ({ onSent }) => {
                   <label className="text-xs font-semibold uppercase tracking-wider mb-1 block" style={{ color: 'var(--text-muted)' }}>Link (opcional)</label>
                   <input type="text" value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })}
                     placeholder="/financeiro, /eventos..."
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
                     data-testid="broadcast-link-input" />
                 </div>
               </div>
@@ -141,7 +141,7 @@ const BroadcastPanel = ({ onSent }) => {
                 <label className="text-xs font-semibold uppercase tracking-wider mb-1 block" style={{ color: 'var(--text-muted)' }}>Titulo *</label>
                 <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
                   placeholder="Ex: Assembleia Geral Extraordinaria"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
                   data-testid="broadcast-title-input" />
               </div>
               <div>
@@ -149,7 +149,7 @@ const BroadcastPanel = ({ onSent }) => {
                 <textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })}
                   placeholder="Detalhes da notificacao..."
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none resize-none"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none resize-none"
                   data-testid="broadcast-message-input" />
               </div>
               <div className="flex items-center justify-between">
@@ -241,19 +241,19 @@ export const NotificacoesPage = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="card-technical p-4">
           <div className="font-mono text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{total}</div>
-          <div className="text-[10px] uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Total</div>
+          <div className="text-xs uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Total</div>
         </div>
         <div className="card-technical p-4">
           <div className="font-mono text-2xl font-bold text-carmesim">{unreadCount}</div>
-          <div className="text-[10px] uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Nao lidas</div>
+          <div className="text-xs uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Nao lidas</div>
         </div>
         <div className="card-technical p-4">
           <div className="font-mono text-2xl font-bold text-green-600">{readCount}</div>
-          <div className="text-[10px] uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Lidas</div>
+          <div className="text-xs uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Lidas</div>
         </div>
         <div className="card-technical p-4">
           <div className="font-mono text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{filteredNotifications.length}</div>
-          <div className="text-[10px] uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Filtradas</div>
+          <div className="text-xs uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Filtradas</div>
         </div>
       </div>
 

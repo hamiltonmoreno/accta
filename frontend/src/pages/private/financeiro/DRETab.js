@@ -51,7 +51,7 @@ export const DRETab = () => {
       <div className="flex items-center gap-3">
         <label className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Ano:</label>
         <select value={year} onChange={(e) => setYear(parseInt(e.target.value))}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+          className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
           data-testid="dre-year-select">
           {[2024, 2025, 2026, 2027].map((y) => <option key={y} value={y}>{y}</option>)}
         </select>
@@ -86,7 +86,7 @@ export const DRETab = () => {
         <div className="space-y-2">
           {Object.entries(dre.monthly).map(([month, data]) => (
             <div key={month} className="flex items-center gap-2 sm:gap-3" data-testid={`dre-month-${month}`}>
-              <span className="text-[11px] font-mono w-7 text-right" style={{ color: 'var(--text-muted)' }}>{MONTH_NAMES[parseInt(month) - 1]}</span>
+              <span className="text-xs font-mono w-7 text-right" style={{ color: 'var(--text-muted)' }}>{MONTH_NAMES[parseInt(month) - 1]}</span>
               <div className="flex-1 flex gap-1 h-5">
                 <div className="bg-green-500 rounded-sm h-full transition-all duration-500"
                   style={{ width: `${(data.receitas / maxMonthly) * 100}%`, minWidth: data.receitas > 0 ? '2px' : '0px' }}
@@ -95,17 +95,17 @@ export const DRETab = () => {
                   style={{ width: `${(data.despesas / maxMonthly) * 100}%`, minWidth: data.despesas > 0 ? '2px' : '0px' }}
                   title={`Despesas: ${data.despesas.toLocaleString('pt')} CVE`} />
               </div>
-              <span className="text-[10px] font-mono w-20 text-right hidden sm:block" style={{ color: 'var(--text-muted)' }}>
+              <span className="text-xs font-mono w-20 text-right hidden sm:block" style={{ color: 'var(--text-muted)' }}>
                 {(data.receitas - data.despesas).toLocaleString('pt')}
               </span>
             </div>
           ))}
         </div>
         <div className="flex items-center gap-4 mt-4 pt-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
-          <span className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+          <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
             <span className="w-3 h-3 bg-green-500 rounded-sm" /> Receitas
           </span>
-          <span className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+          <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
             <span className="w-3 h-3 bg-red-400 rounded-sm" /> Despesas
           </span>
         </div>
