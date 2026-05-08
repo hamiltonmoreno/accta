@@ -110,10 +110,21 @@ async def setup_account(request: Request, data: SetupAccount):
 async def validate_invite(token: str):
     """Check if an invite token is valid and return the invited user's name/email."""
     user_doc = await db.users.find_one(
-        {"invite_token": token, "status": "pendente_convite"}, {"_id": 0, "name": 1, "email": 1}
+        {"invite_token": token, "status": "pendente_convite"},
+        {"_id": 0, "name": 1, "email": 1, "invite_token_expires_at": 1},
     )
     if not user_doc:
         raise HTTPException(status_code=404, detail="Token de convite invalido ou expirado")
+
+    # Mesma validacao de TTL que setup-account — resposta consistente entre os dois.
+    expires_at_raw = user_doc.get("invite_token_expires_at")
+    if expires_at_raw:
+        try:
+            expires_at = datetime.fromisoformat(expires_at_raw) if isinstance(expires_at_raw, str) else expires_at_raw
+            if datetime.now(timezone.utc) > expires_at:
+                raise HTTPException(status_code=404, detail="Token de convite invalido ou expirado")
+        except (ValueError, TypeError):
+            pass  # Token sem formato valido — trata como legado
 
     return {"name": user_doc["name"], "email": user_doc["email"]}
 
@@ -147,7 +158,8 @@ async def forgot_password(request: Request, data: PasswordResetRequest):
     reset_url = f"{origin}/reset-password?token={token}" if origin else ""
     await send_password_reset_email(user.get("name", ""), data.email, reset_url, token)
 
-    return {"message": "Instrucoes de recuperacao enviadas para o email", "expires_in": "1 hora"}
+    # Resposta IDENTICA ao caso de email-nao-existe (anti-enumeration por response body).
+    return generic_response
 
 
 @router.post("/reset-password")
