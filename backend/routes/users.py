@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime
 from typing import List, Optional
+import re
 from models import User, UserProfileUpdate, UserAdminUpdate, CARGOS, PRIVILEGES
 from database import db
 from auth import get_current_user
@@ -32,10 +33,13 @@ async def get_users(
 
     query = {}
     if search:
+        # re.escape impede metacaracteres ($, ., *, etc.) — input vira literal,
+        # bloqueando ReDoS e bypass de filtros via regex injection.
+        safe = re.escape(search.strip())[:100]  # limita comprimento (ReDoS guard)
         query["$or"] = [
-            {"name": {"$regex": search, "$options": "i"}},
-            {"email": {"$regex": search, "$options": "i"}},
-            {"member_id": {"$regex": search, "$options": "i"}},
+            {"name": {"$regex": safe, "$options": "i"}},
+            {"email": {"$regex": safe, "$options": "i"}},
+            {"member_id": {"$regex": safe, "$options": "i"}},
         ]
     if role:
         query["role"] = role
