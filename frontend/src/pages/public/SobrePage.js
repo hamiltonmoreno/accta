@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { unsplashSrcSet } from '../../utils/unsplash';
 import { 
   Shield, 
   Eye, 
@@ -22,10 +23,13 @@ export const SobrePage = () => {
       {/* Hero Section */}
       <section className="relative py-20 sm:py-28 overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2070&auto=format&fit=crop"
+          src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1280&auto=format&fit=crop"
+          srcSet={unsplashSrcSet('https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&auto=format&fit=crop')}
+          sizes="100vw"
           alt=""
           aria-hidden="true"
           loading="lazy"
+          decoding="async"
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />

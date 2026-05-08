@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { postsAPI, eventsAPI } from '../../utils/api';
+import { unsplashSrcSet } from '../../utils/unsplash';
 import { 
   Plane, 
   Shield, 
@@ -80,11 +81,14 @@ export const HomePage = () => {
       <section className="relative min-h-[600px] sm:min-h-[85vh] lg:min-h-[90vh] flex items-center overflow-hidden">
         <div className="absolute inset-0">
           <img
-            src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=2074&auto=format&fit=crop"
+            src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1280&auto=format&fit=crop"
+            srcSet={unsplashSrcSet('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&auto=format&fit=crop')}
+            sizes="100vw"
             alt=""
             aria-hidden="true"
             className="absolute inset-0 w-full h-full object-cover"
             loading="eager"
+            decoding="async"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/90 to-grafite/50 sm:from-grafite sm:via-grafite/85 sm:to-grafite/50" />
         </div>

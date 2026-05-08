@@ -5,6 +5,7 @@ import { LogIn, Shield, Plane, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import { ACCTALogoHorizontal } from '../../components/ACCTALogo';
+import { unsplashSrcSet } from '../../utils/unsplash';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
@@ -35,10 +36,13 @@ export const LoginPage = () => {
       {/* Left: Visual Panel (hidden on mobile) */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-grafite overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=2074&auto=format&fit=crop"
+          src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1280&auto=format&fit=crop"
+          srcSet={unsplashSrcSet('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&auto=format&fit=crop')}
+          sizes="100vw"
           alt=""
           aria-hidden="true"
           loading="lazy"
+          decoding="async"
           className="absolute inset-0 w-full h-full object-cover opacity-30"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-grafite via-grafite/80 to-grafite/40" />
