@@ -65,7 +65,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
       >
         <div className="flex items-center justify-between p-5" style={{ borderBottom: '1px solid var(--surface-border)' }}>
           <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>{isEdit ? 'Editar Transacao' : 'Nova Transacao'}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" data-testid="close-modal-btn"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" aria-label="Fechar" data-testid="close-modal-btn"><X className="w-5 h-5" aria-hidden="true" /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">

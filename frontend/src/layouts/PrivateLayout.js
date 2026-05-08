@@ -18,13 +18,14 @@ import {
   Bell,
   Calendar,
   DollarSign,
-  Lock,
-  Unlock,
-  Search,
+  ChevronsLeft,
+  ChevronsRight,
   UserCircle,
   FolderKanban,
   Camera,
 } from 'lucide-react';
+
+const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /* ========== GROUPED MENU SECTIONS ========== */
@@ -71,13 +72,23 @@ export const PrivateLayout = ({ children }) => {
   const location = useLocation();
   const pathname = location.pathname;
 
-  const [collapsed, setCollapsed] = useState(false);
-  const [locked, setLocked] = useState(true);
+  const [expanded, setExpanded] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    const stored = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
+    return stored === null ? true : stored === 'true';
+  });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
   const SIDEBAR_W = 270;
   const SIDEBAR_COLLAPSED_W = 72;
+  const collapsed = !expanded;
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(expanded));
+    }
+  }, [expanded]);
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 768px)');
@@ -110,28 +121,10 @@ export const PrivateLayout = ({ children }) => {
     navigate('/login');
   };
 
-  /* ========== LOCK / HOVER LOGIC ========== */
-  const toggleLock = useCallback(() => {
-    setLocked((prev) => {
-      if (prev) {
-        // Unlocking → enable hover collapse
-        setCollapsed(true);
-        return false;
-      } else {
-        // Locking → keep open
-        setCollapsed(false);
-        return true;
-      }
-    });
+  /* ========== TOGGLE LOGIC ========== */
+  const toggleSidebar = useCallback(() => {
+    setExpanded((prev) => !prev);
   }, []);
-
-  const handleMouseEnter = useCallback(() => {
-    if (!locked) setCollapsed(false);
-  }, [locked]);
-
-  const handleMouseLeave = useCallback(() => {
-    if (!locked) setCollapsed(true);
-  }, [locked]);
 
   /* Filter menu items by role */
   const filterItem = (item) => {
@@ -164,16 +157,17 @@ export const PrivateLayout = ({ children }) => {
           ACCTA
         </span>
 
-        {/* Lock/Close buttons — only on desktop */}
+        {/* Toggle expand/collapse — only on desktop */}
         {!isMobile && (
           <button
-            onClick={toggleLock}
-            className="ml-auto p-1.5 rounded-md text-gray-400 hover:text-carmesim hover:bg-carmesim/10 transition-colors"
-            title={locked ? 'Desbloquear (hover)' : 'Bloquear sidebar'}
-            aria-label={locked ? 'Desafixar menu' : 'Fixar menu'}
-            data-testid="sidebar-lock-btn"
+            onClick={toggleSidebar}
+            className="ml-auto h-11 w-11 flex items-center justify-center rounded-md text-gray-500 hover:text-carmesim hover:bg-carmesim/10 transition-colors"
+            title={expanded ? 'Colapsar menu' : 'Expandir menu'}
+            aria-label={expanded ? 'Colapsar menu' : 'Expandir menu'}
+            aria-expanded={expanded}
+            data-testid="sidebar-toggle-btn"
           >
-            {locked ? <Lock className="w-4 h-4" aria-hidden="true" /> : <Unlock className="w-4 h-4" aria-hidden="true" />}
+            {expanded ? <ChevronsLeft className="w-5 h-5" aria-hidden="true" /> : <ChevronsRight className="w-5 h-5" aria-hidden="true" />}
           </button>
         )}
         {isMobile && (
@@ -197,7 +191,7 @@ export const PrivateLayout = ({ children }) => {
               {/* Section title */}
               <div className="flex items-center h-9 px-1 mb-0.5">
                 <span
-                  className={`text-[10px] uppercase tracking-[0.12em] font-semibold whitespace-nowrap transition-opacity duration-300 ${
+                  className={`text-xs uppercase tracking-[0.12em] font-semibold whitespace-nowrap transition-opacity duration-300 ${
                     collapsed && !isMobile ? 'opacity-0 w-0' : 'opacity-100 ml-2'
                   }`}
                   style={{ color: 'var(--text-muted)' }}
@@ -265,14 +259,14 @@ export const PrivateLayout = ({ children }) => {
               collapsed && !isMobile ? 'opacity-0 pointer-events-none w-0' : 'opacity-100'
             }`}
           >
-            <div className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{user?.name}</div>
-            <div className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>{user?.email}</div>
+            <div className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{user?.name}</div>
+            <div className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{user?.email}</div>
           </div>
         </div>
 
         {/* Status badge */}
         {user?.status !== 'ativo' && !collapsed && (
-          <div className="mx-1 mb-2 px-2 py-1 bg-carmesim/10 border border-carmesim/30 rounded-md text-[10px] text-carmesim uppercase tracking-wider font-semibold text-center">
+          <div className="mx-1 mb-2 px-2 py-1 bg-carmesim/10 border border-carmesim/30 rounded-md text-xs text-carmesim uppercase tracking-wider font-semibold text-center">
             {user?.status}
           </div>
         )}
@@ -305,8 +299,6 @@ export const PrivateLayout = ({ children }) => {
       <aside
         className="hidden md:flex md:flex-col fixed h-screen z-30 transition-all duration-300 ease-in-out"
         style={{ width: sidebarWidth, backgroundColor: 'var(--surface-sidebar)', boxShadow: '0 0 6px rgba(0,0,0,0.06)' }}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
         data-testid="desktop-sidebar"
       >
         <SidebarInner />
@@ -352,7 +344,7 @@ export const PrivateLayout = ({ children }) => {
               >
                 <Menu className="w-5 h-5" aria-hidden="true" />
               </button>
-              <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{currentPageTitle}</span>
+              <span className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>{currentPageTitle}</span>
             </div>
             <div className="flex items-center gap-2">
               <NotificationBell />
