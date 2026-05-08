@@ -4,8 +4,8 @@ from models import User
 from database import UPLOAD_DIR
 from auth import get_current_user
 from helpers import create_audit_log
+from file_validation import validate_file_content
 import uuid
-import shutil
 
 router = APIRouter(tags=["upload"])
 
@@ -24,15 +24,6 @@ MAX_FILE_SIZES = {
 }
 
 
-def validate_file(file: UploadFile, category: str) -> None:
-    ext = Path(file.filename).suffix.lower()
-    if ext not in ALLOWED_EXTENSIONS.get(category, []):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Tipo de arquivo não permitido. Permitidos: {', '.join(ALLOWED_EXTENSIONS[category])}",
-        )
-
-
 @router.post("/upload/{category}")
 async def upload_file(category: str, file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
     if category not in ["documents", "proofs", "logos", "avatars"]:
@@ -41,23 +32,24 @@ async def upload_file(category: str, file: UploadFile = File(...), current_user:
     if category in ["documents", "logos"] and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Sem permissão")
 
-    validate_file(file, category)
-
-    # Check file size
+    # Le tudo em memoria (limite por categoria, max 10MB) — necessario para
+    # validacao de magic bytes / Pillow.verify().
     max_size = MAX_FILE_SIZES.get(category, 5 * 1024 * 1024)
     contents = await file.read()
     if len(contents) > max_size:
         max_mb = max_size / (1024 * 1024)
         raise HTTPException(status_code=413, detail=f"Arquivo excede o limite de {max_mb:.0f} MB")
-    await file.seek(0)
 
-    file_ext = Path(file.filename).suffix
+    # Valida extensao + conteudo real (defense-in-depth contra .exe -> .png).
+    validate_file_content(contents, file.filename, ALLOWED_EXTENSIONS[category])
+
+    file_ext = Path(file.filename).suffix.lower()
     unique_filename = f"{uuid.uuid4()}{file_ext}"
     file_path = UPLOAD_DIR / category / unique_filename
 
     try:
         with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+            buffer.write(contents)
 
         file_url = f"/uploads/{category}/{unique_filename}"
         await create_audit_log(current_user.id, f"Upload de arquivo: {file.filename}", unique_filename)
