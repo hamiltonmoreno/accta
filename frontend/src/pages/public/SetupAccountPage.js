@@ -151,7 +151,7 @@ export const SetupAccountPage = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Minimo 6 caracteres"
-                className="w-full pl-9 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
+                className="w-full pl-9 pr-10 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
                 required
                 minLength={6}
                 data-testid="setup-password"
@@ -177,7 +177,7 @@ export const SetupAccountPage = () => {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Repetir a senha"
-                className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
+                className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
                 required
                 minLength={6}
                 data-testid="setup-confirm-password"
@@ -191,7 +191,7 @@ export const SetupAccountPage = () => {
           <button
             type="submit"
             disabled={submitting || password.length < 6 || password !== confirmPassword}
-            className="w-full py-2.5 bg-carmesim hover:bg-carmesim/90 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-carmesim hover:bg-carmesim/90 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             data-testid="setup-submit"
           >
             {submitting ? 'A ativar...' : 'Ativar Conta'}

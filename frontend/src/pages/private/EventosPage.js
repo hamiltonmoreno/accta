@@ -217,7 +217,7 @@ export const EventosPage = () => {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5 text-carmesim" />
-                      <span className="truncate max-w-[200px]">{event.location}</span>
+                      <span className="truncate max-w-[200px]" title={event.location}>{event.location}</span>
                     </div>
                   </div>
 

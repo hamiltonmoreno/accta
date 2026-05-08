@@ -228,7 +228,7 @@ export const CashFlowTab = ({ isAdmin }) => {
                         </span>
                       </td>
                       <td className="px-4 py-3 capitalize text-xs" style={{ color: 'var(--text-secondary)' }}>{CATEGORY_LABELS[tx.category] || tx.category}</td>
-                      <td className="px-4 py-3 font-medium text-xs max-w-[200px] truncate" style={{ color: 'var(--text-primary)' }}>{tx.description}</td>
+                      <td className="px-4 py-3 font-medium text-xs max-w-[200px] truncate" style={{ color: 'var(--text-primary)' }} title={tx.description}>{tx.description}</td>
                       <td className={`px-4 py-3 font-mono font-bold text-right ${tx.type === 'receita' ? 'text-green-600' : 'text-red-600'}`}>
                         {tx.type === 'receita' ? '+' : '-'}{tx.amount.toLocaleString('pt')} CVE
                       </td>
