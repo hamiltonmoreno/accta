@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { galleryAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { toast } from 'sonner';
 import {
   Camera, Upload, CheckCircle, XCircle, Trash2,

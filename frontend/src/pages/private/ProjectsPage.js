@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { projectsAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -86,6 +87,7 @@ const ProjectCard = ({ project, onClick }) => {
 
 // ===== CREATE PROJECT MODAL =====
 const CreateProjectModal = ({ onClose, onCreated }) => {
+  useBodyScrollLock(true);
   const [form, setForm] = useState({
     title: '', description: '', visibility: 'publico',
     category: '', budget: '', start_date: '', end_date: '',
@@ -106,11 +108,17 @@ const CreateProjectModal = ({ onClose, onCreated }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="flex min-h-full items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-xl shadow-2xl w-full max-w-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
@@ -174,6 +182,7 @@ const CreateProjectModal = ({ onClose, onCreated }) => {
           </button>
         </form>
       </motion.div>
+      </div>
     </div>
   );
 };

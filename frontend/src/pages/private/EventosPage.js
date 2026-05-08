@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { eventsAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { toast } from 'sonner';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -303,6 +304,7 @@ export const EventosPage = () => {
 };
 
 const CreateEventModal = ({ onClose, onSuccess }) => {
+  useBodyScrollLock(true);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -357,9 +359,12 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 z-50 overflow-y-auto"
+        role="dialog"
+        aria-modal="true"
       >
-        <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex min-h-full items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
             <h2 className="font-bold text-xl sm:text-2xl text-grafite">Novo Evento</h2>
             <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Fechar">
@@ -486,6 +491,7 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
               </button>
             </div>
           </form>
+          </div>
         </div>
       </motion.div>
     </>

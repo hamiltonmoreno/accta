@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { documentsAPI, uploadAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { FileText, Download, Search, Upload, X, Plus, Check, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -170,6 +171,7 @@ export const DocumentosPage = () => {
 };
 
 const UploadDocumentModal = ({ onClose, onSuccess }) => {
+  useBodyScrollLock(true);
   const fileInputRef = useRef(null);
   const [title, setTitle] = useState('');
   const [type, setType] = useState('ata');
@@ -252,10 +254,12 @@ const UploadDocumentModal = ({ onClose, onSuccess }) => {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-50 overflow-y-auto"
+        role="dialog"
+        aria-modal="true"
       >
-        <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg" data-testid="upload-modal">
+        <div className="flex min-h-full items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg" data-testid="upload-modal" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div>
@@ -442,6 +446,7 @@ const UploadDocumentModal = ({ onClose, onSuccess }) => {
               </button>
             </div>
           </form>
+        </div>
         </div>
       </motion.div>
     </>

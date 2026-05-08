@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { financesAPI } from '../../../utils/api';
+import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import { toast } from 'sonner';
 import { X } from 'lucide-react';
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from './constants';
 
 export const TransactionModal = ({ tx, onClose, onSaved }) => {
+  useBodyScrollLock(true);
   const isEdit = !!tx;
   const [form, setForm] = useState({
     type: tx?.type || 'receita',
@@ -55,11 +57,17 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="flex min-h-full items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+        className="rounded-xl shadow-2xl w-full max-w-md"
         style={{ backgroundColor: 'var(--surface-card)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -163,6 +171,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
           </button>
         </form>
       </motion.div>
+      </div>
     </div>
   );
 };
