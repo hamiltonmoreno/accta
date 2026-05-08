@@ -500,7 +500,7 @@ export const DashboardPage = () => {
           </div>
 
           {/* Desktop: Table style */}
-          <div className="hidden sm:block">
+          <div className="hidden md:block">
             <table className="w-full">
               <thead className="bg-gray-50/80">
                 <tr>
@@ -549,7 +549,7 @@ export const DashboardPage = () => {
           </div>
 
           {/* Mobile: Card style */}
-          <div className="sm:hidden divide-y divide-gray-50">
+          <div className="md:hidden divide-y divide-gray-50">
             {upcomingEvents.map((event) => (
               <button
                 key={event.id}

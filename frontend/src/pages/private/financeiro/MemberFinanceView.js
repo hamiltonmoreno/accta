@@ -12,7 +12,7 @@ const StatBlock = ({ label, value, icon: Icon, color, delay = 0 }) => (
       <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
     </div>
     <div className="font-mono text-lg sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{value}</div>
-    <div className="text-[9px] sm:text-xs uppercase tracking-wider mt-0.5" style={{ color: 'var(--text-muted)' }}>{label}</div>
+    <div className="text-xs uppercase tracking-wider mt-0.5" style={{ color: 'var(--text-muted)' }}>{label}</div>
   </motion.div>
 );
 
@@ -75,7 +75,7 @@ export const MemberFinanceView = () => {
                 </div>
                 <div className="text-right">
                   <div className="font-mono font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{inv.amount} CVE</div>
-                  <span className={`text-[10px] font-semibold uppercase ${inv.status === 'pago' ? 'text-green-600' : 'text-orange-500'}`}>
+                  <span className={`text-xs font-semibold uppercase ${inv.status === 'pago' ? 'text-green-600' : 'text-orange-500'}`}>
                     {inv.status}
                   </span>
                 </div>

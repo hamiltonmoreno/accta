@@ -19,7 +19,7 @@ const StatBlock = ({ label, value, icon: Icon, color, delay = 0 }) => (
       <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
     </div>
     <div className="font-mono text-lg sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{value}</div>
-    <div className="text-[9px] sm:text-xs uppercase tracking-wider mt-0.5" style={{ color: 'var(--text-muted)' }}>{label}</div>
+    <div className="text-xs uppercase tracking-wider mt-0.5" style={{ color: 'var(--text-muted)' }}>{label}</div>
   </motion.div>
 );
 
@@ -170,24 +170,24 @@ export const CashFlowTab = ({ isAdmin }) => {
 
         {(searchDebounced || startDate || endDate) && (
           <div className="flex items-center gap-2 mt-2 pt-2" style={{ borderTop: '1px solid var(--surface-border)' }}>
-            <span className="text-[10px] text-gray-400 uppercase tracking-wider">Filtros ativos:</span>
+            <span className="text-xs text-gray-400 uppercase tracking-wider">Filtros ativos:</span>
             {searchDebounced && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-[11px] text-gray-600">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-xs text-gray-600">
                 "{searchDebounced}" <button onClick={() => setSearchText('')} className="hover:text-carmesim" aria-label="Limpar pesquisa"><X className="w-3 h-3" aria-hidden="true" /></button>
               </span>
             )}
             {startDate && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-[11px] text-gray-600">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-xs text-gray-600">
                 De: {startDate} <button onClick={() => setStartDate('')} className="hover:text-carmesim" aria-label="Limpar data inicial"><X className="w-3 h-3" aria-hidden="true" /></button>
               </span>
             )}
             {endDate && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-[11px] text-gray-600">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-xs text-gray-600">
                 Ate: {endDate} <button onClick={() => setEndDate('')} className="hover:text-carmesim" aria-label="Limpar data final"><X className="w-3 h-3" aria-hidden="true" /></button>
               </span>
             )}
             <button onClick={() => { setSearchText(''); setStartDate(''); setEndDate(''); setFilterType(''); }}
-              className="text-[11px] text-carmesim font-semibold hover:underline ml-auto">Limpar todos</button>
+              className="text-xs text-carmesim font-semibold hover:underline ml-auto">Limpar todos</button>
           </div>
         )}
       </div>
@@ -204,9 +204,9 @@ export const CashFlowTab = ({ isAdmin }) => {
         ) : (
           <>
             {/* Desktop */}
-            <div className="hidden sm:block overflow-x-auto">
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50/80 text-gray-400 uppercase text-[10px] tracking-wider">
+                <thead className="bg-gray-50/80 text-gray-400 uppercase text-xs tracking-wider">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Tipo</th>
                     <th className="px-4 py-3 font-semibold">Categoria</th>
@@ -220,7 +220,7 @@ export const CashFlowTab = ({ isAdmin }) => {
                   {transactions.map((tx) => (
                     <tr key={tx.id} className="border-t border-gray-50 hover:bg-gray-50/50 transition-colors" data-testid={`tx-row-${tx.id}`}>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
                           tx.type === 'receita' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
                         }`}>
                           {tx.type === 'receita' ? <ArrowUpCircle className="w-3 h-3" /> : <ArrowDownCircle className="w-3 h-3" />}
@@ -252,7 +252,7 @@ export const CashFlowTab = ({ isAdmin }) => {
             </div>
 
             {/* Mobile */}
-            <div className="sm:hidden divide-y divide-gray-50">
+            <div className="md:hidden divide-y divide-gray-50">
               {transactions.map((tx) => (
                 <div key={tx.id} className="p-4" data-testid={`tx-card-${tx.id}`}>
                   <div className="flex items-center justify-between mb-1.5">
@@ -266,7 +266,7 @@ export const CashFlowTab = ({ isAdmin }) => {
                   </div>
                   <p className="text-xs truncate" style={{ color: 'var(--text-primary)' }}>{tx.description}</p>
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-[11px] text-gray-400">{tx.date ? format(new Date(tx.date), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span>
+                    <span className="text-xs text-gray-400">{tx.date ? format(new Date(tx.date), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span>
                     <div className="flex items-center gap-1">
                       <button onClick={() => openEdit(tx)} className="p-1 text-gray-400 hover:text-carmesim" aria-label="Editar transação"><Pencil className="w-3.5 h-3.5" aria-hidden="true" /></button>
                       <button onClick={() => handleDelete(tx.id)} className="p-1 text-gray-400 hover:text-red-500" aria-label="Apagar transação"><Trash2 className="w-3.5 h-3.5" aria-hidden="true" /></button>
@@ -279,7 +279,7 @@ export const CashFlowTab = ({ isAdmin }) => {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-4 py-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
-                <span className="text-[11px] text-gray-400">{page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, total)} de {total}</span>
+                <span className="text-xs text-gray-400">{page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, total)} de {total}</span>
                 <div className="flex items-center gap-1">
                   <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}
                     className="p-1.5 rounded-md hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Página anterior" data-testid="prev-page-btn">

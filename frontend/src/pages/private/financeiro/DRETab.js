@@ -102,10 +102,10 @@ export const DRETab = () => {
           ))}
         </div>
         <div className="flex items-center gap-4 mt-4 pt-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
-          <span className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+          <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
             <span className="w-3 h-3 bg-green-500 rounded-sm" /> Receitas
           </span>
-          <span className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+          <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
             <span className="w-3 h-3 bg-red-400 rounded-sm" /> Despesas
           </span>
         </div>

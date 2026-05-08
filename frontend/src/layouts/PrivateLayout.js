@@ -231,7 +231,7 @@ export const PrivateLayout = ({ children }) => {
                           />
                         </span>
                         <span
-                          className={`text-[13px] whitespace-nowrap transition-opacity duration-300 ${
+                          className={`text-sm whitespace-nowrap transition-opacity duration-300 ${
                             collapsed && !isMobile ? 'opacity-0 pointer-events-none w-0' : 'opacity-100'
                           }`}
                         >
@@ -282,7 +282,7 @@ export const PrivateLayout = ({ children }) => {
             <LogOut className="w-[18px] h-[18px]" />
           </span>
           <span
-            className={`text-[13px] whitespace-nowrap transition-opacity duration-300 ${
+            className={`text-sm whitespace-nowrap transition-opacity duration-300 ${
               collapsed && !isMobile ? 'opacity-0 pointer-events-none w-0' : 'opacity-100'
             }`}
           >
