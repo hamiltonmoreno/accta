@@ -5,6 +5,7 @@ from models import User, GalleryAlbum, GalleryAlbumCreate, GalleryPhoto
 from database import db, UPLOAD_DIR
 from auth import get_current_user
 from helpers import notify_admins, create_notification
+from file_validation import validate_file_content
 import uuid
 
 GALLERY_ALLOWED_EXTS = [".jpg", ".jpeg", ".png", ".webp"]

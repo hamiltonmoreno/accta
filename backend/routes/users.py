@@ -33,9 +33,10 @@ async def get_users(
 
     query = {}
     if search:
-        # re.escape impede metacaracteres ($, ., *, etc.) — input vira literal,
-        # bloqueando ReDoS e bypass de filtros via regex injection.
-        safe = re.escape(search.strip())[:100]  # limita comprimento (ReDoS guard)
+        # Truncar ANTES de escape — re.escape pode duplicar bytes (ex: '*' -> '\\*')
+        # e cortar a meio uma sequencia escapada deixaria backslash final = regex
+        # invalido. Cap input bruto a 100 chars (ReDoS guard) + escape.
+        safe = re.escape(search.strip()[:100])
         query["$or"] = [
             {"name": {"$regex": safe, "$options": "i"}},
             {"email": {"$regex": safe, "$options": "i"}},

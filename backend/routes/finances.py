@@ -22,8 +22,11 @@ import io
 
 
 def _safe_search_regex(s: str) -> str:
-    """Escape regex metachars + cap length to prevent ReDoS."""
-    return re.escape(s.strip())[:100]
+    """Escape regex metachars + cap length to prevent ReDoS.
+    Trunca o input bruto antes do escape — escapar primeiro e cortar depois
+    podia partir uma sequencia '\\X' a meio e produzir regex invalida.
+    """
+    return re.escape(s.strip()[:100])
 
 
 router = APIRouter(prefix="/finances", tags=["finances"])
