@@ -17,9 +17,18 @@ limiter = Limiter(key_func=get_remote_address)
 async def login(request: Request, credentials: UserLogin):
     user_doc = await db.users.find_one({"email": credentials.email}, {"_id": 0})
     if not user_doc or not user_doc.get("password") or not verify_password(credentials.password, user_doc["password"]):
+        # Audit log de login falhado para deteccao de brute force / cred stuffing.
+        # actor_id = "anonymous" porque nao sabemos quem realmente tentou.
+        await create_audit_log(
+            user_doc["id"] if user_doc else "anonymous",
+            "login_failed",
+            request=request,
+            details={"email": credentials.email, "reason": "invalid_credentials"},
+        )
         raise HTTPException(status_code=401, detail="Credenciais invalidas")
 
     if user_doc.get("status") == "pendente_convite":
+        await create_audit_log(user_doc["id"], "login_failed", request=request, details={"reason": "pending_invite"})
         raise HTTPException(
             status_code=403, detail="Conta pendente de ativacao. Use o link de convite para definir a sua senha."
         )
@@ -27,6 +36,7 @@ async def login(request: Request, credentials: UserLogin):
     await db.users.update_one(
         {"email": credentials.email}, {"$set": {"last_login_at": datetime.now(timezone.utc).isoformat()}}
     )
+    await create_audit_log(user_doc["id"], "login_success", request=request)
 
     user_doc.pop("password", None)
     user_doc.pop("invite_token", None)
@@ -94,6 +104,8 @@ async def setup_account(request: Request, data: SetupAccount):
 
     user = User(**user_doc)
     token = create_access_token({"sub": user.id})
+
+    await create_audit_log(user.id, "account_activated", request=request)
 
     # Send welcome email (non-blocking)
     await send_welcome_email(user.name, user.email)
@@ -179,5 +191,10 @@ async def reset_password(request: Request, data: PasswordResetConfirm):
     hashed = hash_password(data.new_password)
     await db.users.update_one({"email": reset_doc["email"]}, {"$set": {"password": hashed}})
     await db.password_resets.update_one({"token": data.token}, {"$set": {"used": True}})
+
+    # Audit log da reset bem-sucedida — util para investigacao de account takeover.
+    user_doc = await db.users.find_one({"email": reset_doc["email"]}, {"_id": 0, "id": 1})
+    if user_doc:
+        await create_audit_log(user_doc["id"], "password_reset_completed", request=request)
 
     return {"message": "Senha alterada com sucesso. Pode fazer login com a nova senha."}
