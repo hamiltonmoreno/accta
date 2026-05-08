@@ -179,10 +179,10 @@ export const EventosPage = () => {
                         <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-carmesim" />
                       </div>
                       <div>
-                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] sm:text-xs font-mono uppercase ${style.color}`}>
+                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-mono uppercase ${style.color}`}>
                           {getEventLabel(event.type)}
                         </span>
-                        <div className="text-[10px] sm:text-xs text-gray-400 mt-0.5">
+                        <div className="text-xs text-gray-400 mt-0.5">
                           {event.visibility === 'socios' ? 'Sócios' : event.visibility === 'direcao' ? 'Direção' : 'Público'}
                         </div>
                       </div>
@@ -369,7 +369,7 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
 
           <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5">
             <div>
-              <label className="block font-mono text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 mb-1.5">Titulo *</label>
+              <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Titulo *</label>
               <input
                 type="text"
                 value={formData.title}
@@ -381,7 +381,7 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
             </div>
 
             <div>
-              <label className="block font-mono text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 mb-1.5">Descricao</label>
+              <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Descricao</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -393,7 +393,7 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
 
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="block font-mono text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 mb-1.5">Tipo *</label>
+                <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Tipo *</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -407,7 +407,7 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
                 </select>
               </div>
               <div>
-                <label className="block font-mono text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 mb-1.5">Visibilidade</label>
+                <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Visibilidade</label>
                 <select
                   value={formData.visibility}
                   onChange={(e) => setFormData({ ...formData, visibility: e.target.value })}
@@ -422,7 +422,7 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
 
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="block font-mono text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 mb-1.5">Data *</label>
+                <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Data *</label>
                 <input
                   type="date"
                   value={formData.date}
@@ -432,7 +432,7 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
                 />
               </div>
               <div>
-                <label className="block font-mono text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 mb-1.5">Hora *</label>
+                <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Hora *</label>
                 <input
                   type="time"
                   value={formData.time}
@@ -444,7 +444,7 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
             </div>
 
             <div>
-              <label className="block font-mono text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 mb-1.5">Local *</label>
+              <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Local *</label>
               <input
                 type="text"
                 value={formData.location}
@@ -456,9 +456,10 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
             </div>
 
             <div>
-              <label className="block font-mono text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 mb-1.5">Limite de Participantes</label>
+              <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Limite de Participantes</label>
               <input
                 type="number"
+                inputMode="numeric"
                 value={formData.max_attendees}
                 onChange={(e) => setFormData({ ...formData, max_attendees: e.target.value })}
                 className="w-full px-3 sm:px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-carmesim/40"

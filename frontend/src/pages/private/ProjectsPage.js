@@ -36,7 +36,7 @@ const ProjectCard = ({ project, onClick }) => {
           <h3 className="font-semibold text-grafite text-base truncate">{project.title}</h3>
           <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{project.description || 'Sem descricao'}</p>
         </div>
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${st.color}`}>
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap ${st.color}`}>
           <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
           {st.label}
         </span>
@@ -45,7 +45,7 @@ const ProjectCard = ({ project, onClick }) => {
       {/* Progress bar */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Progresso</span>
+          <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Progresso</span>
           <span className="text-xs font-mono font-bold text-grafite">{progress}%</span>
         </div>
         <div className="w-full bg-gray-100 rounded-full h-1.5">
@@ -57,7 +57,7 @@ const ProjectCard = ({ project, onClick }) => {
       </div>
 
       {/* Meta row */}
-      <div className="flex items-center gap-4 text-[11px] text-gray-500">
+      <div className="flex items-center gap-4 text-xs text-gray-500">
         {project.end_date && (
           <span className="flex items-center gap-1">
             <Calendar className="w-3 h-3" />
@@ -153,7 +153,7 @@ const CreateProjectModal = ({ onClose, onCreated }) => {
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Orcamento (CVE)</label>
-              <input type="number" min="0" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })}
+              <input type="number" inputMode="decimal" min="0" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })}
                 placeholder="0"
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
                 data-testid="project-budget-input" />

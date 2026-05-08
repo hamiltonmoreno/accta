@@ -119,6 +119,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Valor (CVE) *</label>
               <input
                 type="number"
+                inputMode="decimal"
                 min="0"
                 step="0.01"
                 value={form.amount}

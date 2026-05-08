@@ -252,7 +252,7 @@ const PendingPanel = ({ onAction }) => {
               <img src={photo.url} alt={photo.caption} className="w-full aspect-square object-cover" />
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                 <p className="text-white text-xs text-center px-2 truncate w-full">{photo.uploaded_by_name}</p>
-                <p className="text-white/70 text-[10px] truncate w-full text-center">{photo.album_title}</p>
+                <p className="text-white/70 text-xs truncate w-full text-center">{photo.album_title}</p>
                 <div className="flex gap-2 mt-1">
                   <button onClick={() => handleApprove(photo.id)} className="p-2 bg-green-600 rounded-full text-white hover:bg-green-700" aria-label="Aprovar foto" data-testid={`approve-photo-${photo.id}`}>
                     <CheckCircle className="w-4 h-4" aria-hidden="true" />
@@ -262,7 +262,7 @@ const PendingPanel = ({ onAction }) => {
                   </button>
                 </div>
               </div>
-              {photo.caption && <p className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-2 py-1 truncate">{photo.caption}</p>}
+              {photo.caption && <p className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs px-2 py-1 truncate">{photo.caption}</p>}
             </div>
           ))}
         </div>
@@ -350,7 +350,7 @@ export const GaleriaAdminPage = () => {
                 <div className="flex items-center gap-2 mb-1">
                   <h2 className="font-bold text-xl" style={{ color: 'var(--text-primary)' }}>{selectedAlbum.title}</h2>
                   {selectedAlbum.visibility === 'private' && (
-                    <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] uppercase tracking-wider rounded-full font-semibold">Privado</span>
+                    <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs uppercase tracking-wider rounded-full font-semibold">Privado</span>
                   )}
                 </div>
                 {selectedAlbum.description && <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{selectedAlbum.description}</p>}
@@ -400,7 +400,7 @@ export const GaleriaAdminPage = () => {
                     <p className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white text-xs px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity">{photo.caption}</p>
                   )}
                   {photo.uploaded_by_name && (
-                    <span className="absolute top-2 left-2 px-2 py-0.5 bg-black/50 rounded-full text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="absolute top-2 left-2 px-2 py-0.5 bg-black/50 rounded-full text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">
                       {photo.uploaded_by_name}
                     </span>
                   )}
@@ -436,7 +436,7 @@ export const GaleriaAdminPage = () => {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <div className="absolute top-3 right-3 flex items-center gap-1.5">
                     {album.visibility === 'private' && (
-                      <span className="px-2 py-0.5 bg-black/50 rounded-full text-white text-[10px] uppercase tracking-wider font-semibold flex items-center gap-1">
+                      <span className="px-2 py-0.5 bg-black/50 rounded-full text-white text-xs uppercase tracking-wider font-semibold flex items-center gap-1">
                         <EyeOff className="w-3 h-3" /> Privado
                       </span>
                     )}

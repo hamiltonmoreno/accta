@@ -31,7 +31,7 @@ const TabBtn = ({ active, label, icon: Icon, onClick, badge, testId }) => (
     }`}>
     <Icon className="w-4 h-4" />
     {label}
-    {badge > 0 && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${active ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>{badge}</span>}
+    {badge > 0 && <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${active ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>{badge}</span>}
   </button>
 );
 
@@ -135,7 +135,7 @@ const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
                     {task.title}
                   </div>
                   {task.description && <p className="text-xs text-gray-500 mt-0.5">{task.description}</p>}
-                  <div className="flex items-center gap-3 mt-1.5 text-[11px] text-gray-400">
+                  <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
                     {task.assignee_name && <span className="flex items-center gap-1"><Users className="w-3 h-3" />{task.assignee_name}</span>}
                     {task.due_date && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{task.due_date}</span>}
                     <span className={`flex items-center gap-1 ${pri.color} font-semibold`}>
@@ -211,11 +211,11 @@ const CommentsTab = ({ project, comments, onReload }) => {
           {comments.map((c) => (
             <div key={c.id} className="bg-white border border-gray-200/80 rounded-xl p-4" data-testid={`comment-${c.id}`}>
               <div className="flex items-center gap-2 mb-1.5">
-                <div className="w-7 h-7 bg-grafite rounded-full flex items-center justify-center text-white text-[10px] font-bold">
+                <div className="w-7 h-7 bg-grafite rounded-full flex items-center justify-center text-white text-xs font-bold">
                   {c.user_name?.charAt(0)?.toUpperCase() || '?'}
                 </div>
                 <span className="font-semibold text-sm text-grafite">{c.user_name}</span>
-                <span className="text-[11px] text-gray-400 ml-auto">
+                <span className="text-xs text-gray-400 ml-auto">
                   {c.created_at ? new Date(c.created_at).toLocaleDateString('pt') : ''}
                 </span>
                 {(c.user_id === user?.id || user?.role === 'admin') && (
@@ -273,7 +273,7 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
         <div className="bg-white border border-gray-200/80 rounded-xl p-4">
           <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Gasto</div>
           <div className="font-mono text-xl font-bold text-red-600" data-testid="budget-spent">{spent.toLocaleString('pt')} CVE</div>
-          {budget > 0 && <div className="text-[11px] text-gray-400 mt-0.5">{pct}% do orcamento</div>}
+          {budget > 0 && <div className="text-xs text-gray-400 mt-0.5">{pct}% do orcamento</div>}
         </div>
         <div className="bg-white border border-gray-200/80 rounded-xl p-4">
           <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Disponivel</div>
@@ -310,19 +310,19 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
           className="bg-white border border-gray-200/80 rounded-xl p-4 flex flex-wrap items-end gap-2">
           <div className="flex-1 min-w-[180px]">
-            <label className="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Descricao</label>
+            <label className="text-xs text-gray-400 uppercase tracking-wider block mb-1">Descricao</label>
             <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
               data-testid="expense-desc-input" />
           </div>
           <div className="w-28">
-            <label className="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Valor (CVE)</label>
-            <input type="number" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })}
+            <label className="text-xs text-gray-400 uppercase tracking-wider block mb-1">Valor (CVE)</label>
+            <input type="number" inputMode="decimal" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
               data-testid="expense-amount-input" />
           </div>
           <div className="w-36">
-            <label className="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Data</label>
+            <label className="text-xs text-gray-400 uppercase tracking-wider block mb-1">Data</label>
             <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" />
           </div>
@@ -340,7 +340,7 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
       ) : (
         <div className="bg-white border border-gray-200/80 rounded-xl overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50/80 text-gray-400 uppercase text-[10px] tracking-wider">
+            <thead className="bg-gray-50/80 text-gray-400 uppercase text-xs tracking-wider">
               <tr>
                 <th className="px-4 py-3 text-left font-semibold">Descricao</th>
                 <th className="px-4 py-3 text-right font-semibold">Valor</th>
@@ -413,14 +413,14 @@ const TimelineTab = ({ project, milestones, canManage, onReload }) => {
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
           className="bg-white border border-gray-200/80 rounded-xl p-4 flex flex-wrap items-end gap-2">
           <div className="flex-1 min-w-[180px]">
-            <label className="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Titulo</label>
+            <label className="text-xs text-gray-400 uppercase tracking-wider block mb-1">Titulo</label>
             <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="Ex: Reservar local do evento"
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
               data-testid="milestone-title-input" />
           </div>
           <div className="w-40">
-            <label className="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">Data</label>
+            <label className="text-xs text-gray-400 uppercase tracking-wider block mb-1">Data</label>
             <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
               data-testid="milestone-date-input" />
@@ -571,7 +571,7 @@ const ProjectDetailPage = () => {
       {/* Info cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-white border border-gray-200/80 rounded-xl p-3.5">
-          <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Progresso</div>
+          <div className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Progresso</div>
           <div className="flex items-center gap-2">
             {canManage ? (
               <input type="range" min="0" max="100" step="5" value={project.progress}
@@ -586,15 +586,15 @@ const ProjectDetailPage = () => {
           </div>
         </div>
         <div className="bg-white border border-gray-200/80 rounded-xl p-3.5">
-          <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Responsavel</div>
+          <div className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Responsavel</div>
           <div className="text-sm font-medium text-grafite truncate">{project.responsible_name || project.created_by_name || '-'}</div>
         </div>
         <div className="bg-white border border-gray-200/80 rounded-xl p-3.5">
-          <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Periodo</div>
+          <div className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Periodo</div>
           <div className="text-xs text-gray-600">{project.start_date || '?'} - {project.end_date || '?'}</div>
         </div>
         <div className="bg-white border border-gray-200/80 rounded-xl p-3.5">
-          <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Orcamento</div>
+          <div className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Orcamento</div>
           <div className="font-mono text-sm font-bold text-grafite">{(project.budget || 0).toLocaleString('pt')} CVE</div>
         </div>
       </div>

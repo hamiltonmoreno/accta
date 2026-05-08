@@ -204,12 +204,12 @@ export const AdminUsuariosPage = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Membro</th>
-                    <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Cargo</th>
-                    <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Função</th>
-                    <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Estado</th>
-                    <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Privilégios</th>
-                    <th className="text-right px-4 py-3 text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Ações</th>
+                    <th className="text-left px-4 py-3 text-xs uppercase tracking-widest text-gray-400 font-semibold">Membro</th>
+                    <th className="text-left px-4 py-3 text-xs uppercase tracking-widest text-gray-400 font-semibold">Cargo</th>
+                    <th className="text-left px-4 py-3 text-xs uppercase tracking-widest text-gray-400 font-semibold">Função</th>
+                    <th className="text-left px-4 py-3 text-xs uppercase tracking-widest text-gray-400 font-semibold">Estado</th>
+                    <th className="text-left px-4 py-3 text-xs uppercase tracking-widest text-gray-400 font-semibold">Privilégios</th>
+                    <th className="text-right px-4 py-3 text-xs uppercase tracking-widest text-gray-400 font-semibold">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -230,12 +230,12 @@ export const AdminUsuariosPage = () => {
                         <span className="text-xs font-medium text-grafite">{u.cargo || 'Sócio'}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${ROLE_COLORS[u.role] || 'bg-gray-100 text-gray-600'}`}>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${ROLE_COLORS[u.role] || 'bg-gray-100 text-gray-600'}`}>
                           {ROLE_LABELS[u.role] || u.role}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_COLORS[u.status] || 'bg-gray-100 text-gray-600'}`}>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLORS[u.status] || 'bg-gray-100 text-gray-600'}`}>
                           <BadgeCheck className="w-3 h-3" />
                           {u.status}
                         </span>
@@ -243,14 +243,14 @@ export const AdminUsuariosPage = () => {
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
                           {(u.privileges || []).slice(0, 2).map((p) => (
-                            <span key={p} className="text-[9px] px-1.5 py-0.5 bg-carmesim/10 text-carmesim rounded font-medium">
+                            <span key={p} className="text-xs px-1.5 py-0.5 bg-carmesim/10 text-carmesim rounded font-medium">
                               {PRIVILEGE_LABELS[p]?.split(' ')[0] || p}
                             </span>
                           ))}
                           {(u.privileges || []).length > 2 && (
-                            <span className="text-[9px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded">+{u.privileges.length - 2}</span>
+                            <span className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded">+{u.privileges.length - 2}</span>
                           )}
-                          {(!u.privileges || u.privileges.length === 0) && <span className="text-[9px] text-gray-300">—</span>}
+                          {(!u.privileges || u.privileges.length === 0) && <span className="text-xs text-gray-300">—</span>}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -293,10 +293,10 @@ export const AdminUsuariosPage = () => {
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${ROLE_COLORS[u.role]}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${ROLE_COLORS[u.role]}`}>
                     {ROLE_LABELS[u.role]}
                   </span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${STATUS_COLORS[u.status]}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STATUS_COLORS[u.status]}`}>
                     {u.status}
                   </span>
                 </div>
@@ -345,7 +345,7 @@ export const AdminUsuariosPage = () => {
                 {/* Basic Info */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">Nome</label>
+                    <label className="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">Nome</label>
                     <input
                       value={editingUser.name || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
@@ -354,7 +354,7 @@ export const AdminUsuariosPage = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">N.º Sócio</label>
+                    <label className="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">N.º Sócio</label>
                     <input
                       value={editingUser.member_id || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, member_id: e.target.value })}
@@ -367,7 +367,7 @@ export const AdminUsuariosPage = () => {
                 {/* Role + Status */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">
+                    <label className="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">
                       <Shield className="w-3 h-3 inline mr-1" />
                       Função no Sistema
                     </label>
@@ -383,7 +383,7 @@ export const AdminUsuariosPage = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">
+                    <label className="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">
                       <BadgeCheck className="w-3 h-3 inline mr-1" />
                       Estado
                     </label>
@@ -402,7 +402,7 @@ export const AdminUsuariosPage = () => {
 
                 {/* Cargo */}
                 <div>
-                  <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">
+                  <label className="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">
                     <Briefcase className="w-3 h-3 inline mr-1" />
                     Cargo na Associação
                   </label>
@@ -420,7 +420,7 @@ export const AdminUsuariosPage = () => {
 
                 {/* Privileges */}
                 <div>
-                  <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-2">
+                  <label className="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-2">
                     <Shield className="w-3 h-3 inline mr-1" />
                     Privilégios
                   </label>
@@ -460,15 +460,18 @@ export const AdminUsuariosPage = () => {
                 {/* Phone + Department */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">Telefone</label>
+                    <label className="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">Telefone</label>
                     <input
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
                       value={editingUser.phone_number || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, phone_number: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">Departamento</label>
+                    <label className="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">Departamento</label>
                     <input
                       value={editingUser.department || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, department: e.target.value })}
@@ -634,6 +637,8 @@ export const AdminUsuariosPage = () => {
                       <label className="block text-xs font-medium text-gray-600 mb-1">Email *</label>
                       <input
                         type="email"
+                        inputMode="email"
+                        autoComplete="email"
                         value={inviteData.email}
                         onChange={(e) => setInviteData({ ...inviteData, email: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
@@ -698,6 +703,9 @@ export const AdminUsuariosPage = () => {
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Telefone</label>
                       <input
+                        type="tel"
+                        inputMode="tel"
+                        autoComplete="tel"
                         value={inviteData.phone_number}
                         onChange={(e) => setInviteData({ ...inviteData, phone_number: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"

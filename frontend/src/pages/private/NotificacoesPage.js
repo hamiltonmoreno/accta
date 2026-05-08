@@ -241,19 +241,19 @@ export const NotificacoesPage = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="card-technical p-4">
           <div className="font-mono text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{total}</div>
-          <div className="text-[10px] uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Total</div>
+          <div className="text-xs uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Total</div>
         </div>
         <div className="card-technical p-4">
           <div className="font-mono text-2xl font-bold text-carmesim">{unreadCount}</div>
-          <div className="text-[10px] uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Nao lidas</div>
+          <div className="text-xs uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Nao lidas</div>
         </div>
         <div className="card-technical p-4">
           <div className="font-mono text-2xl font-bold text-green-600">{readCount}</div>
-          <div className="text-[10px] uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Lidas</div>
+          <div className="text-xs uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Lidas</div>
         </div>
         <div className="card-technical p-4">
           <div className="font-mono text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{filteredNotifications.length}</div>
-          <div className="text-[10px] uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Filtradas</div>
+          <div className="text-xs uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Filtradas</div>
         </div>
       </div>
 

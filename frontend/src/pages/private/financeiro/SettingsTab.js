@@ -63,7 +63,7 @@ export const SettingsTab = () => {
         <div className="space-y-4">
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Valor da Quota Mensal (CVE)</label>
-            <input type="number" min="0" value={quotaAmount} onChange={(e) => setQuotaAmount(e.target.value)}
+            <input type="number" inputMode="decimal" min="0" value={quotaAmount} onChange={(e) => setQuotaAmount(e.target.value)}
               className="w-full max-w-xs px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
               data-testid="quota-amount-input" />
           </div>

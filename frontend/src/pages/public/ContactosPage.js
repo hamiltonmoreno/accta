@@ -205,12 +205,14 @@ export const ContactosPage = () => {
                   <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Name */}
                     <div>
-                      <label className="block text-xs uppercase tracking-wider text-gray-500 mb-2">
+                      <label htmlFor="contact-name" className="block text-xs uppercase tracking-wider text-gray-500 mb-2">
                         Nome *
                       </label>
                       <input
+                        id="contact-name"
                         type="text"
                         name="name"
+                        autoComplete="name"
                         value={formData.name}
                         onChange={handleChange}
                         placeholder="O seu nome completo"
@@ -222,11 +224,14 @@ export const ContactosPage = () => {
 
                     {/* Email */}
                     <div>
-                      <label className="block text-xs uppercase tracking-wider text-gray-500 mb-2">
+                      <label htmlFor="contact-email" className="block text-xs uppercase tracking-wider text-gray-500 mb-2">
                         Email *
                       </label>
                       <input
+                        id="contact-email"
                         type="email"
+                        inputMode="email"
+                        autoComplete="email"
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
@@ -269,10 +274,11 @@ export const ContactosPage = () => {
 
                     {/* Message */}
                     <div>
-                      <label className="block text-xs uppercase tracking-wider text-gray-500 mb-2">
+                      <label htmlFor="contact-message" className="block text-xs uppercase tracking-wider text-gray-500 mb-2">
                         Mensagem *
                       </label>
                       <textarea
+                        id="contact-message"
                         name="message"
                         value={formData.message}
                         onChange={handleChange}
