@@ -60,7 +60,7 @@ export const BeneficiosPublicoPage = () => {
       </section>
 
       {/* Introduction for Partners */}
-      <section className="py-24">
+      <section className="py-12 sm:py-20 lg:py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <motion.div
@@ -124,7 +124,7 @@ export const BeneficiosPublicoPage = () => {
       </section>
 
       {/* How it Works */}
-      <section className="py-24 bg-white">
+      <section className="py-12 sm:py-20 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
@@ -184,7 +184,7 @@ export const BeneficiosPublicoPage = () => {
       </section>
 
       {/* Partners Placeholder */}
-      <section className="py-24 bg-gray-50">
+      <section className="py-12 sm:py-20 lg:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-6">
@@ -219,7 +219,7 @@ export const BeneficiosPublicoPage = () => {
       </section>
 
       {/* Become a Partner CTA */}
-      <section className="py-24 bg-grafite">
+      <section className="py-12 sm:py-20 lg:py-24 bg-grafite">
         <div className="max-w-4xl mx-auto px-6">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <motion.div

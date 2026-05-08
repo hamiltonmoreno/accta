@@ -94,7 +94,7 @@ export const ContactosPage = () => {
       </section>
 
       {/* Contact Info & Form */}
-      <section className="py-24">
+      <section className="py-12 sm:py-20 lg:py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16">
             {/* Contact Information */}

@@ -150,7 +150,7 @@ const CreateProjectModal = ({ onClose, onCreated }) => {
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" />
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Orcamento (CVE)</label>
               <input type="number" inputMode="decimal" min="0" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })}

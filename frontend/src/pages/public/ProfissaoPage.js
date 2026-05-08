@@ -51,7 +51,7 @@ export const ProfissaoPage = () => {
       </section>
 
       {/* Introduction */}
-      <section className="py-24">
+      <section className="py-12 sm:py-20 lg:py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <motion.div
@@ -109,7 +109,7 @@ export const ProfissaoPage = () => {
       </section>
 
       {/* Types of Control */}
-      <section className="py-24 bg-white">
+      <section className="py-12 sm:py-20 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
@@ -211,7 +211,7 @@ export const ProfissaoPage = () => {
       </section>
 
       {/* How to Become */}
-      <section className="py-24 bg-gray-50">
+      <section className="py-12 sm:py-20 lg:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-start">
             <motion.div
@@ -299,7 +299,7 @@ export const ProfissaoPage = () => {
       </section>
 
       {/* FIR Sal Section */}
-      <section className="py-24 bg-grafite relative overflow-hidden">
+      <section className="py-12 sm:py-20 lg:py-24 bg-grafite relative overflow-hidden">
         <div className="absolute inset-0 opacity-20">
           <div className="absolute inset-0" style={{ 
             backgroundImage: 'radial-gradient(circle at 30% 50%, rgba(0,255,156,0.3) 0%, transparent 50%)',
@@ -364,7 +364,7 @@ export const ProfissaoPage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-white">
+      <section className="py-12 sm:py-20 lg:py-24 bg-white">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="font-sans font-bold text-4xl text-grafite mb-6">
             Quer conhecer a nossa associação?

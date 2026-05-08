@@ -61,13 +61,15 @@ export const PublicLayout = ({ children }) => {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="lg:hidden p-2.5 -mr-2.5 rounded-lg hover:bg-gray-100 transition-colors touch-target"
               data-testid="mobile-menu-button"
+              aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
+              aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? (
-                <X className="w-5 h-5 text-grafite" />
+                <X className="w-5 h-5 text-grafite" aria-hidden="true" />
               ) : (
-                <Menu className="w-5 h-5 text-grafite" />
+                <Menu className="w-5 h-5 text-grafite" aria-hidden="true" />
               )}
             </button>
           </div>

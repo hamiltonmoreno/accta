@@ -143,16 +143,16 @@ export const CashFlowTab = ({ isAdmin }) => {
               placeholder="Pesquisar descricao..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
               data-testid="search-input"
             />
           </div>
           <div className="flex items-center gap-1.5">
             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-              className="px-2.5 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" data-testid="start-date-filter" />
+              className="px-2.5 py-2.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" data-testid="start-date-filter" />
             <span className="text-gray-400 text-xs">a</span>
             <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-              className="px-2.5 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" data-testid="end-date-filter" />
+              className="px-2.5 py-2.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" data-testid="end-date-filter" />
           </div>
           <div className="flex items-center gap-1.5 ml-auto">
             <Filter className="w-4 h-4 text-gray-400 hidden sm:block" />
@@ -268,8 +268,8 @@ export const CashFlowTab = ({ isAdmin }) => {
                   <div className="flex items-center justify-between mt-2">
                     <span className="text-xs text-gray-400">{tx.date ? format(new Date(tx.date), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => openEdit(tx)} className="p-1 text-gray-400 hover:text-carmesim" aria-label="Editar transação"><Pencil className="w-3.5 h-3.5" aria-hidden="true" /></button>
-                      <button onClick={() => handleDelete(tx.id)} className="p-1 text-gray-400 hover:text-red-500" aria-label="Apagar transação"><Trash2 className="w-3.5 h-3.5" aria-hidden="true" /></button>
+                      <button onClick={() => openEdit(tx)} className="p-2 -m-2 text-gray-400 hover:text-carmesim" aria-label="Editar transação"><Pencil className="w-4 h-4" aria-hidden="true" /></button>
+                      <button onClick={() => handleDelete(tx.id)} className="p-2 -m-2 text-gray-400 hover:text-red-500" aria-label="Apagar transação"><Trash2 className="w-4 h-4" aria-hidden="true" /></button>
                     </div>
                   </div>
                 </div>

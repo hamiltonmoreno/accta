@@ -49,7 +49,7 @@ export const SobrePage = () => {
       </section>
 
       {/* Introduction */}
-      <section className="py-24">
+      <section className="py-12 sm:py-20 lg:py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <motion.div
@@ -102,7 +102,7 @@ export const SobrePage = () => {
       </section>
 
       {/* Mission, Vision, Values */}
-      <section className="py-24 bg-white">
+      <section className="py-12 sm:py-20 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
@@ -202,7 +202,7 @@ export const SobrePage = () => {
       </section>
 
       {/* Leadership / Corpos Sociais */}
-      <section className="py-24 bg-gray-50">
+      <section className="py-12 sm:py-20 lg:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-6">
@@ -305,7 +305,7 @@ export const SobrePage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-grafite">
+      <section className="py-12 sm:py-20 lg:py-24 bg-grafite">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="font-sans font-bold text-4xl text-white mb-6">
             Quer saber mais sobre a nossa atuação?

@@ -51,7 +51,7 @@ export const DRETab = () => {
       <div className="flex items-center gap-3">
         <label className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Ano:</label>
         <select value={year} onChange={(e) => setYear(parseInt(e.target.value))}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+          className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
           data-testid="dre-year-select">
           {[2024, 2025, 2026, 2027].map((y) => <option key={y} value={y}>{y}</option>)}
         </select>
