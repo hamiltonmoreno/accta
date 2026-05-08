@@ -79,9 +79,10 @@ export const HomePage = () => {
       {/* Hero Section */}
       <section className="relative min-h-[85vh] sm:min-h-[90vh] flex items-center overflow-hidden">
         <div className="absolute inset-0">
-          <img 
+          <img
             src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=2074&auto=format&fit=crop"
-            alt="Avião voando no céu"
+            alt=""
+            aria-hidden="true"
             className="absolute inset-0 w-full h-full object-cover"
             loading="eager"
           />
@@ -164,7 +165,7 @@ export const HomePage = () => {
               >
                 <stat.icon className="w-6 sm:w-8 h-6 sm:h-8 text-carmesim mx-auto mb-2 sm:mb-3" />
                 <div className="font-bold text-2xl sm:text-3xl lg:text-4xl text-white mb-0.5">{stat.value}</div>
-                <div className="text-[10px] sm:text-xs text-white/60 tracking-wider">{stat.label}</div>
+                <div className="text-xs text-white/60 tracking-wider">{stat.label}</div>
               </motion.div>
             ))}
           </div>
@@ -190,9 +191,9 @@ export const HomePage = () => {
                     <Calendar className="w-3.5 h-3.5 text-carmesim" />
                     <span className="text-xs text-carmesim font-semibold uppercase tracking-wider">Proximo Evento</span>
                   </div>
-                  <h3 className="font-bold text-2xl sm:text-3xl lg:text-4xl text-white mb-3" data-testid="featured-event-title">
+                  <h2 className="font-bold text-2xl sm:text-3xl lg:text-4xl text-white mb-3" data-testid="featured-event-title">
                     {featuredEvent.title}
-                  </h3>
+                  </h2>
                   <p className="text-sm sm:text-base text-white/70 leading-relaxed mb-5 max-w-md">
                     {featuredEvent.description?.slice(0, 150)}{featuredEvent.description?.length > 150 ? '...' : ''}
                   </p>
@@ -242,7 +243,7 @@ export const HomePage = () => {
                             {String(unit.value).padStart(2, '0')}
                           </span>
                         </div>
-                        <span className="text-[10px] sm:text-xs text-white/50 uppercase tracking-widest font-semibold">{unit.label}</span>
+                        <span className="text-xs text-white/50 uppercase tracking-widest font-semibold">{unit.label}</span>
                       </motion.div>
                     ))}
                   </div>
@@ -360,7 +361,7 @@ export const HomePage = () => {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                     </div>
                     <div className="p-4 sm:p-6">
-                      <div className="flex items-center gap-2 text-[11px] sm:text-xs text-gray-500 mb-2 sm:mb-3">
+                      <div className="flex items-center gap-2 text-xs text-gray-500 mb-2 sm:mb-3">
                         <Calendar className="w-3.5 h-3.5" />
                         {format(new Date(post.created_at), "dd MMM yyyy", { locale: ptBR })}
                       </div>

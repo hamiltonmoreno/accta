@@ -144,8 +144,9 @@ export const PerfilPage = () => {
           <h3 className="font-semibold text-sm text-grafite">Editar Informações</h3>
 
           <div>
-            <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">Nome</label>
+            <label htmlFor="profile-name" className="block text-xs uppercase tracking-widest text-gray-500 font-semibold mb-1">Nome</label>
             <input
+              id="profile-name"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
@@ -154,8 +155,11 @@ export const PerfilPage = () => {
           </div>
 
           <div>
-            <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">Telefone</label>
+            <label htmlFor="profile-phone" className="block text-xs uppercase tracking-widest text-gray-500 font-semibold mb-1">Telefone</label>
             <input
+              id="profile-phone"
+              type="tel"
+              inputMode="tel"
               value={form.phone_number}
               onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
               placeholder="+238 9XX XXXX"
@@ -165,8 +169,9 @@ export const PerfilPage = () => {
           </div>
 
           <div>
-            <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">Biografia</label>
+            <label htmlFor="profile-bio" className="block text-xs uppercase tracking-widest text-gray-500 font-semibold mb-1">Biografia</label>
             <textarea
+              id="profile-bio"
               value={form.bio}
               onChange={(e) => setForm({ ...form, bio: e.target.value })}
               rows={3}

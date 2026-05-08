@@ -127,7 +127,7 @@ const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
               <div key={task.id}
                 className={`bg-white border border-gray-200/80 rounded-xl p-3.5 flex items-start gap-3 transition-all ${task.status === 'concluido' ? 'opacity-60' : ''}`}
                 data-testid={`task-${task.id}`}>
-                <button onClick={() => toggleStatus(task)} className="mt-0.5 flex-shrink-0" data-testid={`toggle-task-${task.id}`}>
+                <button onClick={() => toggleStatus(task)} className="mt-0.5 flex-shrink-0" aria-label="Alternar estado da tarefa" data-testid={`toggle-task-${task.id}`}>
                   {taskStatusIcon(task.status)}
                 </button>
                 <div className="flex-1 min-w-0">
@@ -144,8 +144,8 @@ const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
                   </div>
                 </div>
                 {canManage && (
-                  <button onClick={() => handleDelete(task.id)} className="p-1 text-gray-400 hover:text-red-500 flex-shrink-0">
-                    <Trash2 className="w-3.5 h-3.5" />
+                  <button onClick={() => handleDelete(task.id)} className="p-1 text-gray-400 hover:text-red-500 flex-shrink-0" aria-label="Apagar tarefa">
+                    <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -219,8 +219,8 @@ const CommentsTab = ({ project, comments, onReload }) => {
                   {c.created_at ? new Date(c.created_at).toLocaleDateString('pt') : ''}
                 </span>
                 {(c.user_id === user?.id || user?.role === 'admin') && (
-                  <button onClick={() => handleDelete(c.id)} className="p-1 text-gray-400 hover:text-red-500">
-                    <Trash2 className="w-3 h-3" />
+                  <button onClick={() => handleDelete(c.id)} className="p-1 text-gray-400 hover:text-red-500" aria-label="Apagar comentário">
+                    <Trash2 className="w-3 h-3" aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -357,7 +357,7 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
                   <td className="px-4 py-3 text-gray-500 text-xs">{e.date}</td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{e.created_by_name}</td>
                   {canManage && (
-                    <td className="px-4 py-3"><button onClick={() => handleDelete(e.id)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button></td>
+                    <td className="px-4 py-3"><button onClick={() => handleDelete(e.id)} className="p-1 text-gray-400 hover:text-red-500" aria-label="Apagar despesa"><Trash2 className="w-3.5 h-3.5" aria-hidden="true" /></button></td>
                   )}
                 </tr>
               ))}
@@ -446,8 +446,8 @@ const TimelineTab = ({ project, milestones, canManage, onReload }) => {
                 <button onClick={() => toggleComplete(m)}
                   className={`absolute -left-3.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 z-10 transition-colors ${
                     m.completed ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-gray-300'
-                  }`} data-testid={`toggle-milestone-${m.id}`}>
-                  {m.completed && <CheckCircle className="w-3 h-3" />}
+                  }`} aria-label={m.completed ? 'Marcar milestone como pendente' : 'Marcar milestone como concluído'} data-testid={`toggle-milestone-${m.id}`}>
+                  {m.completed && <CheckCircle className="w-3 h-3" aria-hidden="true" />}
                 </button>
                 <div className="bg-white border border-gray-200/80 rounded-xl p-4 flex-1 ml-2">
                   <div className="flex items-center justify-between">
@@ -455,8 +455,8 @@ const TimelineTab = ({ project, milestones, canManage, onReload }) => {
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-gray-400 font-mono">{m.date}</span>
                       {canManage && (
-                        <button onClick={() => handleDelete(m.id)} className="p-1 text-gray-400 hover:text-red-500">
-                          <Trash2 className="w-3 h-3" />
+                        <button onClick={() => handleDelete(m.id)} className="p-1 text-gray-400 hover:text-red-500" aria-label="Apagar milestone">
+                          <Trash2 className="w-3 h-3" aria-hidden="true" />
                         </button>
                       )}
                     </div>

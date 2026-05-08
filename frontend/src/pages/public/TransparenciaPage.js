@@ -49,7 +49,9 @@ export const TransparenciaPage = () => {
       <section className="relative py-20 sm:py-28 overflow-hidden">
         <img
           src="https://images.unsplash.com/photo-1618506060789-b63788b0cecd?q=80&w=2070&auto=format&fit=crop"
-          alt="Transparência institucional"
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />

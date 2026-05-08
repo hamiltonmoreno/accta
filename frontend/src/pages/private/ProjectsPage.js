@@ -115,7 +115,7 @@ const CreateProjectModal = ({ onClose, onCreated }) => {
       >
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
           <h2 className="font-bold text-grafite text-lg">Novo Projeto</h2>
-          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" data-testid="close-modal-btn"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" aria-label="Fechar" data-testid="close-modal-btn"><X className="w-5 h-5" aria-hidden="true" /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">

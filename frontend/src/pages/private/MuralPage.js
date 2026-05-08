@@ -129,9 +129,10 @@ const CommentSection = ({ postId, commentCount, user }) => {
                             <button
                               onClick={() => handleDeleteComment(comment.id)}
                               className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-carmesim transition-all"
+                              aria-label="Apagar comentário"
                               data-testid={`delete-comment-${comment.id}`}
                             >
-                              <Trash2 className="w-3 h-3" />
+                              <Trash2 className="w-3 h-3" aria-hidden="true" />
                             </button>
                           )}
                         </div>
@@ -154,9 +155,10 @@ const CommentSection = ({ postId, commentCount, user }) => {
                   type="submit"
                   disabled={!newComment.trim() || submitting}
                   className="px-3 py-2 bg-grafite text-white rounded-lg text-sm hover:bg-grafite/90 disabled:opacity-50 transition-all"
+                  aria-label="Enviar comentário"
                   data-testid={`comment-submit-${postId}`}
                 >
-                  <Send className="w-4 h-4" />
+                  <Send className="w-4 h-4" aria-hidden="true" />
                 </button>
               </form>
             </div>
@@ -537,18 +539,20 @@ export const MuralPage = () => {
                               onClick={() => handlePin(post.id)}
                               className={`p-1.5 rounded-lg transition-colors ${post.pinned ? 'text-carmesim bg-carmesim/10' : 'text-gray-400 hover:text-carmesim hover:bg-carmesim/10'}`}
                               title={post.pinned ? 'Desfixar' : 'Fixar'}
+                              aria-label={post.pinned ? 'Desfixar post' : 'Fixar post'}
                               data-testid={`pin-post-${post.id}`}
                             >
-                              <Pin className="w-4 h-4" />
+                              <Pin className="w-4 h-4" aria-hidden="true" />
                             </button>
                           )}
                           <button
                             onClick={() => setConfirmDeletePost(post.id)}
                             className="p-1.5 rounded-lg text-gray-400 hover:text-carmesim hover:bg-carmesim/10 transition-colors"
                             title="Remover"
+                            aria-label="Apagar post"
                             data-testid={`delete-post-${post.id}`}
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4" aria-hidden="true" />
                           </button>
                         </div>
                       )}

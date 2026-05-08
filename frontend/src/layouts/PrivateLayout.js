@@ -170,17 +170,19 @@ export const PrivateLayout = ({ children }) => {
             onClick={toggleLock}
             className="ml-auto p-1.5 rounded-md text-gray-400 hover:text-carmesim hover:bg-carmesim/10 transition-colors"
             title={locked ? 'Desbloquear (hover)' : 'Bloquear sidebar'}
+            aria-label={locked ? 'Desafixar menu' : 'Fixar menu'}
             data-testid="sidebar-lock-btn"
           >
-            {locked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+            {locked ? <Lock className="w-4 h-4" aria-hidden="true" /> : <Unlock className="w-4 h-4" aria-hidden="true" />}
           </button>
         )}
         {isMobile && (
           <button
             onClick={() => setMobileOpen(false)}
             className="ml-auto p-1.5 rounded-md text-gray-400 hover:text-carmesim transition-colors"
+            aria-label="Fechar menu"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         )}
       </div>
@@ -345,9 +347,10 @@ export const PrivateLayout = ({ children }) => {
                 onClick={() => setMobileOpen(true)}
                 className="p-2 -ml-2 rounded-lg transition-colors touch-target"
                 style={{ color: 'var(--text-primary)' }}
+                aria-label="Abrir menu"
                 data-testid="mobile-sidebar-button"
               >
-                <Menu className="w-5 h-5" />
+                <Menu className="w-5 h-5" aria-hidden="true" />
               </button>
               <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{currentPageTitle}</span>
             </div>

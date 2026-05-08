@@ -287,8 +287,9 @@ export const AdminUsuariosPage = () => {
                   <button
                     onClick={() => setEditingUser({ ...u, privileges: u.privileges || [] })}
                     className="p-2 text-carmesim hover:bg-carmesim/10 rounded-lg transition-colors"
+                    aria-label="Gerir utilizador"
                   >
-                    <UserCog className="w-4 h-4" />
+                    <UserCog className="w-4 h-4" aria-hidden="true" />
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -334,8 +335,8 @@ export const AdminUsuariosPage = () => {
                     <p className="text-xs text-gray-400">{editingUser.email}</p>
                   </div>
                 </div>
-                <button onClick={() => setEditingUser(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
-                  <X className="w-4 h-4 text-gray-400" />
+                <button onClick={() => setEditingUser(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Fechar">
+                  <X className="w-4 h-4 text-gray-400" aria-hidden="true" />
                 </button>
               </div>
 
@@ -573,8 +574,8 @@ export const AdminUsuariosPage = () => {
                   <UserPlus className="w-5 h-5 text-carmesim" />
                   <h2 className="font-bold text-lg text-grafite">{inviteResult ? 'Convite Criado' : 'Convidar Socio'}</h2>
                 </div>
-                <button onClick={resetInviteModal} className="p-1 hover:bg-gray-100 rounded-lg">
-                  <X className="w-4 h-4 text-gray-400" />
+                <button onClick={resetInviteModal} className="p-1 hover:bg-gray-100 rounded-lg" aria-label="Fechar">
+                  <X className="w-4 h-4 text-gray-400" aria-hidden="true" />
                 </button>
               </div>
 
@@ -669,7 +670,7 @@ export const AdminUsuariosPage = () => {
                       <input
                         value={inviteData.member_id}
                         onChange={(e) => setInviteData({ ...inviteData, member_id: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
                         placeholder="ACCTA-XXX"
                         data-testid="invite-member-id"
                       />
@@ -679,7 +680,7 @@ export const AdminUsuariosPage = () => {
                       <input
                         value={inviteData.license_number}
                         onChange={(e) => setInviteData({ ...inviteData, license_number: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
                         placeholder="ATC-CV-XXXX-XXX"
                         data-testid="invite-license"
                       />
@@ -689,7 +690,7 @@ export const AdminUsuariosPage = () => {
                       <input
                         value={inviteData.department}
                         onChange={(e) => setInviteData({ ...inviteData, department: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
                         placeholder="Ex: Torre, Aproximacao"
                         data-testid="invite-department"
                       />
@@ -699,7 +700,7 @@ export const AdminUsuariosPage = () => {
                       <input
                         value={inviteData.phone_number}
                         onChange={(e) => setInviteData({ ...inviteData, phone_number: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
                         placeholder="+238 xxxxxxx"
                         data-testid="invite-phone"
                       />
