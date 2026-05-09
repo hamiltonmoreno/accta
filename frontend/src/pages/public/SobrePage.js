@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { unsplashSrcSet } from '../../utils/unsplash';
 import { 
   Shield, 
@@ -34,11 +33,7 @@ export const SobrePage = () => {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
         <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="max-w-2xl"
-          >
+          <div className="max-w-2xl animate-fade-up">
             <span className="inline-block px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
               A Associação
             </span>
@@ -48,7 +43,7 @@ export const SobrePage = () => {
             <p className="text-base sm:text-xl text-white/80 max-w-xl leading-relaxed">
               A entidade representativa máxima dos controladores de tráfego aéreo em Cabo Verde
             </p>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -56,11 +51,7 @@ export const SobrePage = () => {
       <section className="py-12 sm:py-20 lg:py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
+            <div className="animate-fade-up">
               <h2 className="font-sans font-bold text-4xl text-grafite mb-8">
                 Unidos pela{' '}
                 <span className="text-carmesim">Segurança Aérea</span>
@@ -77,14 +68,9 @@ export const SobrePage = () => {
                   no desenvolvimento da aviação civil nacional.
                 </p>
               </div>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="relative"
-            >
+            <div className="relative animate-fade-up">
               <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-8 text-white">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-16 h-16 bg-carmesim rounded-xl flex items-center justify-center">
@@ -100,7 +86,7 @@ export const SobrePage = () => {
                   coordenando voos entre a Europa, África e as Américas.
                 </p>
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>
@@ -119,12 +105,7 @@ export const SobrePage = () => {
 
           <div className="grid md:grid-cols-2 gap-8 mb-16">
             {/* Mission */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="card-technical rounded-2xl p-8 border-l-4 border-carmesim"
-            >
+            <div className="card-technical rounded-2xl p-8 border-l-4 border-carmesim animate-fade-up">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-14 h-14 bg-carmesim rounded-xl flex items-center justify-center">
                   <Target className="w-7 h-7 text-grafite" />
@@ -135,16 +116,10 @@ export const SobrePage = () => {
                 Representar e valorizar os controladores de tráfego aéreo, promovendo a <strong>segurança operacional</strong>, 
                 o <strong>desenvolvimento contínuo</strong> e o <strong>bem-estar</strong> dos nossos associados.
               </p>
-            </motion.div>
+            </div>
 
             {/* Vision */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="card-technical rounded-2xl p-8 border-l-4 border-primary"
-            >
+            <div className="card-technical rounded-2xl p-8 border-l-4 border-primary animate-fade-up">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-14 h-14 bg-grafite rounded-xl flex items-center justify-center">
                   <Eye className="w-7 h-7 text-carmesim" />
@@ -155,7 +130,7 @@ export const SobrePage = () => {
                 Ser reconhecida nacional e internacionalmente como uma organização de referência na gestão associativa e na 
                 contribuição técnica para a <strong>segurança da navegação aérea no Atlântico</strong>.
               </p>
-            </motion.div>
+            </div>
           </div>
 
           {/* Values */}
@@ -186,20 +161,14 @@ export const SobrePage = () => {
                 color: 'bg-green-50 text-green-600'
               },
             ].map((value, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="card-technical rounded-xl p-6 text-center hover:shadow-lg transition-shadow"
-              >
+              <div key={index}
+                className="card-technical rounded-xl p-6 text-center hover:shadow-lg transition-shadow animate-fade-up">
                 <div className={`w-16 h-16 ${value.color} rounded-full flex items-center justify-center mx-auto mb-4`}>
                   <value.icon className="w-8 h-8" />
                 </div>
                 <h4 className="font-sans font-bold text-xl text-grafite mb-2">{value.title}</h4>
                 <p className="text-gray-600">{value.desc}</p>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -222,12 +191,7 @@ export const SobrePage = () => {
 
           <div className="grid md:grid-cols-3 gap-8">
             {/* Assembleia Geral */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="card-technical rounded-2xl p-8"
-            >
+            <div className="card-technical rounded-2xl p-8 animate-fade-up">
               <div className="w-16 h-16 bg-grafite rounded-xl flex items-center justify-center mb-6">
                 <Building className="w-8 h-8 text-carmesim" />
               </div>
@@ -244,16 +208,10 @@ export const SobrePage = () => {
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
 
             {/* Direção */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="card-technical rounded-2xl p-8 border-2 border-carmesim"
-            >
+            <div className="card-technical rounded-2xl p-8 border-2 border-carmesim animate-fade-up">
               <div className="w-16 h-16 bg-carmesim rounded-xl flex items-center justify-center mb-6">
                 <Users className="w-8 h-8 text-grafite" />
               </div>
@@ -277,16 +235,10 @@ export const SobrePage = () => {
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
 
             {/* Conselho Fiscal */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="card-technical rounded-2xl p-8"
-            >
+            <div className="card-technical rounded-2xl p-8 animate-fade-up">
               <div className="w-16 h-16 bg-grafite rounded-xl flex items-center justify-center mb-6">
                 <Scale className="w-8 h-8 text-carmesim" />
               </div>
@@ -303,7 +255,7 @@ export const SobrePage = () => {
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>

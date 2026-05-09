@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { galleryAPI } from '../../utils/api';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { Camera, X, ChevronLeft, ChevronRight, Images, ArrowLeft } from 'lucide-react';
@@ -22,14 +21,9 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
   if (!photo) return null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+    <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center animate-fade-up"
       onClick={onClose}
-      data-testid="lightbox"
-    >
+      data-testid="lightbox">
       {/* Close */}
       <button
         onClick={onClose}
@@ -68,31 +62,22 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
 
       {/* Image */}
       <div className="max-w-5xl max-h-[85vh] mx-4" onClick={(e) => e.stopPropagation()}>
-        <motion.img
-          key={photo.id}
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
+        <img key={photo.id}
           src={photo.url}
           alt={photo.caption}
-          className="max-w-full max-h-[80vh] object-contain rounded-lg"
-        />
+          className="max-w-full max-h-[80vh] object-contain rounded-lg animate-fade-up" />
         {photo.caption && (
           <p className="text-white/80 text-center mt-4 text-sm sm:text-base">{photo.caption}</p>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 };
 
 const AlbumCard = ({ album, onClick }) => (
-  <motion.button
-    initial={{ opacity: 0, y: 20 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true }}
-    onClick={onClick}
-    className="group text-left w-full"
-    data-testid={`album-${album.id}`}
-  >
+  <button onClick={onClick}
+    className="group text-left w-full animate-fade-up"
+    data-testid={`album-${album.id}`}>
     <div className="relative overflow-hidden rounded-xl aspect-[4/3]">
       <img
         src={album.cover_url}
@@ -111,7 +96,7 @@ const AlbumCard = ({ album, onClick }) => (
         </div>
       </div>
     </div>
-  </motion.button>
+  </button>
 );
 
 const AlbumView = ({ album, photos, onBack, onOpenLightbox }) => (
@@ -145,15 +130,10 @@ const AlbumView = ({ album, photos, onBack, onOpenLightbox }) => (
     {/* Photo Grid */}
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
       {photos.map((photo, index) => (
-        <motion.button
-          key={photo.id}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: index * 0.03 }}
+        <button key={photo.id}
           onClick={() => onOpenLightbox(index)}
-          className="group relative aspect-square overflow-hidden rounded-lg"
-          data-testid={`photo-${photo.id}`}
-        >
+          className="group relative aspect-square overflow-hidden rounded-lg animate-fade-up"
+          data-testid={`photo-${photo.id}`}>
           <img
             src={photo.url}
             alt={photo.caption}
@@ -167,7 +147,7 @@ const AlbumView = ({ album, photos, onBack, onOpenLightbox }) => (
               </p>
             )}
           </div>
-        </motion.button>
+        </button>
       ))}
     </div>
   </div>
@@ -225,10 +205,7 @@ export const GaleriaPage = () => {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/80 to-grafite/40" />
         <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6 w-full">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+          <div className="animate-fade-up">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 rounded-full mb-4">
               <Camera className="w-3.5 h-3.5 text-carmesim" />
               <span className="text-white text-xs uppercase tracking-wider font-semibold">Galeria</span>
@@ -239,7 +216,7 @@ export const GaleriaPage = () => {
             <p className="text-white/70 text-sm sm:text-lg max-w-xl">
               Imagens dos aeroportos, torre de controlo, equipa e paisagens de Cabo Verde
             </p>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -302,8 +279,7 @@ export const GaleriaPage = () => {
       </section>
 
       {/* Lightbox */}
-      <AnimatePresence>
-        {lightboxIndex >= 0 && (
+      {lightboxIndex >= 0 && (
           <Lightbox
             photos={photos}
             currentIndex={lightboxIndex}
@@ -312,7 +288,6 @@ export const GaleriaPage = () => {
             onNext={() => setLightboxIndex(Math.min(photos.length - 1, lightboxIndex + 1))}
           />
         )}
-      </AnimatePresence>
-    </div>
+      </div>
   );
 };

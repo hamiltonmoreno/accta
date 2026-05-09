@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
   Gift,
   QrCode,
@@ -44,11 +43,7 @@ export const BeneficiosPublicoPage = () => {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
         <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="max-w-2xl"
-          >
+          <div className="max-w-2xl animate-fade-up">
             <span className="inline-block px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
               Parcerias
             </span>
@@ -59,7 +54,7 @@ export const BeneficiosPublicoPage = () => {
             <p className="text-base sm:text-xl text-white/80 max-w-xl leading-relaxed">
               Vantagens exclusivas para os membros da ACCTA
             </p>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -67,11 +62,7 @@ export const BeneficiosPublicoPage = () => {
       <section className="py-12 sm:py-20 lg:py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
+            <div className="animate-fade-up">
               <h2 className="font-sans font-bold text-4xl text-grafite mb-6">
                 Vantagens de ser{' '}
                 <span className="text-carmesim">ACCTA</span>
@@ -97,13 +88,9 @@ export const BeneficiosPublicoPage = () => {
                   </div>
                 ))}
               </div>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
+            <div className="animate-fade-up">
               <div className="bg-gradient-to-br from-primary to-[#0A3A5A] rounded-2xl p-8 text-white">
                 <Gift className="w-12 h-12 text-carmesim mb-6" />
                 <h3 className="font-sans font-bold text-2xl mb-4">Benefícios Exclusivos</h3>
@@ -122,7 +109,7 @@ export const BeneficiosPublicoPage = () => {
                   ))}
                 </ul>
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>
@@ -163,14 +150,8 @@ export const BeneficiosPublicoPage = () => {
                 icon: CheckCircle
               }
             ].map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="text-center"
-              >
+              <div key={index}
+                className="text-center animate-fade-up">
                 <div className="relative mb-6">
                   <div className="w-20 h-20 bg-grafite rounded-2xl flex items-center justify-center mx-auto">
                     <item.icon className="w-10 h-10 text-carmesim" />
@@ -181,7 +162,7 @@ export const BeneficiosPublicoPage = () => {
                 </div>
                 <h3 className="font-sans font-semibold text-xl text-grafite mb-3">{item.title}</h3>
                 <p className="text-gray-600">{item.desc}</p>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -204,19 +185,13 @@ export const BeneficiosPublicoPage = () => {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {Array.from({ length: 8 }).map((_, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.05 }}
-                className="card-technical rounded-xl p-8 flex items-center justify-center h-32"
-              >
+              <div key={index}
+                className="card-technical rounded-xl p-8 flex items-center justify-center h-32 animate-fade-up">
                 <div className="text-center">
                   <Building2 className="w-10 h-10 text-gray-300 mx-auto mb-2" />
                   <span className="text-xs text-gray-400 font-mono">Parceiro</span>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -226,11 +201,7 @@ export const BeneficiosPublicoPage = () => {
       <section className="py-12 sm:py-20 lg:py-24 bg-grafite">
         <div className="max-w-4xl mx-auto px-6">
           <div className="grid md:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
+            <div className="animate-fade-up">
               <HandshakeIcon className="w-16 h-16 text-carmesim mb-6" />
               <h2 className="font-sans font-bold text-4xl text-white mb-6">
                 Quer ser nosso parceiro?
@@ -239,14 +210,9 @@ export const BeneficiosPublicoPage = () => {
                 Se a sua empresa deseja oferecer serviços aos Controladores de Tráfego Aéreo de Cabo Verde, 
                 entre em contacto connosco. Juntos podemos criar uma parceria de sucesso.
               </p>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20"
-            >
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 animate-fade-up">
               <h3 className="font-sans font-semibold text-xl text-white mb-6">Vantagens para Parceiros</h3>
               <ul className="space-y-4 mb-8">
                 {[
@@ -268,7 +234,7 @@ export const BeneficiosPublicoPage = () => {
                 <Mail className="w-5 h-5" />
                 Contactar-nos
               </Link>
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>

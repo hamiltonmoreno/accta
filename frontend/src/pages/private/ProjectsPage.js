@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -27,13 +26,9 @@ const ProjectCard = ({ project, onClick }) => {
   const budgetPct = project.budget > 0 ? Math.round((project.spent / project.budget) * 100) : 0;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white border border-gray-200/80 rounded-2xl p-5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+    <div className="bg-white border border-gray-200/80 rounded-2xl p-5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer animate-fade-up"
       onClick={onClick}
-      data-testid={`project-card-${project.id}`}
-    >
+      data-testid={`project-card-${project.id}`}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0 mr-3">
           <h3 className="font-semibold text-grafite text-base truncate">{project.title}</h3>
@@ -83,7 +78,7 @@ const ProjectCard = ({ project, onClick }) => {
           </span>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 };
 
@@ -123,12 +118,8 @@ const CreateProjectModal = ({ onClose }) => {
       aria-modal="true"
     >
       <div className="flex min-h-full items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-xl shadow-2xl w-full max-w-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg animate-fade-up"
+        onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
           <h2 className="font-bold text-grafite text-lg">Novo Projeto</h2>
           <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" aria-label="Fechar" data-testid="close-modal-btn"><X className="w-5 h-5" aria-hidden="true" /></button>
@@ -189,7 +180,7 @@ const CreateProjectModal = ({ onClose }) => {
             {saving ? 'A criar...' : 'Propor Projeto'}
           </button>
         </form>
-      </motion.div>
+      </div>
       </div>
     </div>
   );

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { pollsAPI } from '../../utils/api';
 import { Vote, CheckCircle, Clock, BarChart3, AlertCircle } from 'lucide-react';
@@ -76,12 +75,8 @@ export const VotacoesPage = () => {
 
       {/* Status Alert for Inactive Members */}
       {!isAtivo && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="card-technical p-4 sm:p-6 border-l-4 border-l-orange-500"
-          data-testid="voting-restricted"
-        >
+        <div className="card-technical p-4 sm:p-6 border-l-4 border-l-orange-500 animate-fade-up"
+          data-testid="voting-restricted">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
             <div>
@@ -91,7 +86,7 @@ export const VotacoesPage = () => {
               </p>
             </div>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* Open Polls Section */}
@@ -117,12 +112,8 @@ export const VotacoesPage = () => {
         ) : (
           <div className="grid grid-cols-1 gap-6">
             {openPolls.map((poll, index) => (
-              <motion.div
-                key={poll.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
+              <div className="animate-fade-up"
+                key={poll.id}>
                 <PollCard poll={poll} isActive={true}>
                   {isAtivo ? (
                     <VotingInterface poll={poll} onVoteSuccess={onVoteSuccess} />
@@ -134,7 +125,7 @@ export const VotacoesPage = () => {
                     </div>
                   )}
                 </PollCard>
-              </motion.div>
+              </div>
             ))}
           </div>
         )}
@@ -155,12 +146,8 @@ export const VotacoesPage = () => {
 
           <div className="grid grid-cols-1 gap-6">
             {closedPolls.map((poll, index) => (
-              <motion.div
-                key={poll.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
+              <div className="animate-fade-up"
+                key={poll.id}>
                 <PollCard poll={poll} isActive={false}>
                   <div className="border-t border-gray-200 pt-6 mt-6">
                     <button
@@ -187,19 +174,14 @@ export const VotacoesPage = () => {
                     )}
                   </div>
                 </PollCard>
-              </motion.div>
+              </div>
             ))}
           </div>
         </section>
       )}
 
       {/* Info Box */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        className="card-technical rounded-xl p-6 bg-carmesim/5 border-carmesim/20"
-      >
+      <div className="card-technical rounded-xl p-6 bg-carmesim/5 border-carmesim/20 animate-fade-up">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 bg-carmesim rounded-lg flex items-center justify-center flex-shrink-0">
             <Vote className="w-6 h-6 text-grafite" />
@@ -226,7 +208,7 @@ export const VotacoesPage = () => {
             </ul>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };

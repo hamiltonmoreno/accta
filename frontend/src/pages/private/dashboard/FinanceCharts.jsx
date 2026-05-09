@@ -29,7 +29,7 @@ const renderPieLabel = ({ percent }) => {
 };
 
 // delay agora dropped — o stagger entre os 2 charts era cosmetico (0.25s/0.3s)
-// e nao justifica manter a dep do framer-motion num bundle lazy-loaded.
+// CSS keyframe (animate-fade-up) suficiente — framer removido em Sprint 9.
 const ChartCard = ({ title, subtitle, children, action }) => (
   <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 animate-fade-up">
     <div className="flex items-start justify-between mb-5">

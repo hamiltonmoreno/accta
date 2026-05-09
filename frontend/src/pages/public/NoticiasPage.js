@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { Calendar, Tag } from 'lucide-react';
 import { postsAPI } from '../../utils/api';
 import { format } from 'date-fns';
@@ -31,18 +30,14 @@ export const NoticiasPage = () => {
     <div className="py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
-        >
+        <div className="text-center mb-12 animate-fade-up">
           <h1 className="font-sans font-bold text-5xl md:text-6xl text-grafite mb-6" data-testid="news-title">
             Notícias e Atualizações
           </h1>
           <p className="text-xl text-gray-600">
             Acompanhe as últimas novidades da ACCTA e da aviação em Cabo Verde
           </p>
-        </motion.div>
+        </div>
 
         {/* Filters */}
         <div className="flex flex-wrap gap-3 mb-12 justify-center">
@@ -104,14 +99,9 @@ export const NoticiasPage = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredPosts.map((post, index) => (
-              <motion.article
-                key={post.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="card-technical rounded-xl overflow-hidden hover:shadow-xl transition-shadow"
-                data-testid={`post-${post.id}`}
-              >
+              <article key={post.id}
+                className="card-technical rounded-xl overflow-hidden hover:shadow-xl transition-shadow animate-fade-up"
+                data-testid={`post-${post.id}`}>
                 <div className="p-6">
                   <div className="flex items-center gap-2 mb-4">
                     <span className="px-3 py-1 bg-carmesim/10 text-carmesim rounded-full text-xs uppercase tracking-wider">
@@ -142,7 +132,7 @@ export const NoticiasPage = () => {
                     </div>
                   )}
                 </div>
-              </motion.article>
+              </article>
             ))}
           </div>
         )}

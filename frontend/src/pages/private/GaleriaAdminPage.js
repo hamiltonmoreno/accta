@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { galleryAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -32,8 +31,7 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
   const photo = photos[currentIndex];
   if (!photo) return null;
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center" onClick={onClose} data-testid="lightbox">
+    <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center animate-fade-up" onClick={onClose} data-testid="lightbox">
       <button onClick={onClose} className="absolute top-4 right-4 z-50 p-2 bg-white/10 hover:bg-white/20 rounded-full" aria-label="Fechar" data-testid="lightbox-close">
         <X className="w-6 h-6 text-white" aria-hidden="true" />
       </button>
@@ -49,11 +47,11 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
         </button>
       )}
       <div className="max-w-5xl max-h-[85vh] mx-4" onClick={(e) => e.stopPropagation()}>
-        <motion.img key={photo.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-          src={photo.url} alt={photo.caption} className="max-w-full max-h-[80vh] object-contain rounded-lg" />
+        <img key={photo.id}
+          src={photo.url} alt={photo.caption} className="max-w-full max-h-[80vh] object-contain rounded-lg animate-fade-up" />
         {photo.caption && <p className="text-white/80 text-center mt-4 text-sm">{photo.caption}</p>}
       </div>
-    </motion.div>
+    </div>
   );
 };
 
@@ -107,8 +105,7 @@ const UploadModal = ({ albums, onClose }) => {
       aria-modal="true"
     >
       <div className="flex min-h-full items-center justify-center p-4">
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-        className="rounded-xl shadow-2xl w-full max-w-md" style={{ backgroundColor: 'var(--surface-card)' }} onClick={(e) => e.stopPropagation()}>
+      <div className="rounded-xl shadow-2xl w-full max-w-md animate-fade-up" style={{ backgroundColor: 'var(--surface-card)' }} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5" style={{ borderBottom: '1px solid var(--surface-border)' }}>
           <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Submeter Fotos</h2>
           <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100" aria-label="Fechar" data-testid="close-upload-modal"><X className="w-5 h-5 text-gray-400" aria-hidden="true" /></button>
@@ -153,7 +150,7 @@ const UploadModal = ({ albums, onClose }) => {
             {uploading ? 'A enviar...' : `Submeter ${files.length > 0 ? files.length : ''} Foto${files.length > 1 ? 's' : ''}`}
           </button>
         </form>
-      </motion.div>
+      </div>
       </div>
     </div>
   );
@@ -196,8 +193,7 @@ const AlbumModal = ({ album, onClose }) => {
       aria-modal="true"
     >
       <div className="flex min-h-full items-center justify-center p-4">
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-        className="rounded-xl shadow-2xl w-full max-w-md" style={{ backgroundColor: 'var(--surface-card)' }} onClick={(e) => e.stopPropagation()}>
+      <div className="rounded-xl shadow-2xl w-full max-w-md animate-fade-up" style={{ backgroundColor: 'var(--surface-card)' }} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5" style={{ borderBottom: '1px solid var(--surface-border)' }}>
           <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>{isEdit ? 'Editar Album' : 'Novo Album'}</h2>
           <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100" aria-label="Fechar" data-testid="close-album-modal"><X className="w-5 h-5 text-gray-400" aria-hidden="true" /></button>
@@ -235,7 +231,7 @@ const AlbumModal = ({ album, onClose }) => {
             {saving ? 'A guardar...' : isEdit ? 'Atualizar Album' : 'Criar Album'}
           </button>
         </form>
-      </motion.div>
+      </div>
       </div>
     </div>
   );
@@ -437,8 +433,8 @@ export const GaleriaAdminPage = () => {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
               {photos.map((photo, index) => (
-                <motion.div key={photo.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.03 }}
-                  className="group relative aspect-square overflow-hidden rounded-lg" data-testid={`gallery-photo-${photo.id}`}>
+                <div key={photo.id}
+                  className="group relative aspect-square overflow-hidden rounded-lg animate-fade-up" data-testid={`gallery-photo-${photo.id}`}>
                   <button onClick={() => setLightboxIndex(index)} className="w-full h-full">
                     <img src={photo.url} alt={photo.caption} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
                   </button>
@@ -459,7 +455,7 @@ export const GaleriaAdminPage = () => {
                       {photo.uploaded_by_name}
                     </span>
                   )}
-                </motion.div>
+                </div>
               ))}
             </div>
           )}
@@ -477,8 +473,8 @@ export const GaleriaAdminPage = () => {
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {albums.map((album, i) => (
-              <motion.div key={album.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                className="card-technical overflow-hidden group cursor-pointer" onClick={() => openAlbum(album)}
+              <div key={album.id}
+                className="card-technical overflow-hidden group cursor-pointer animate-fade-up" onClick={() => openAlbum(album)}
                 data-testid={`album-card-${album.id}`}>
                 <div className="relative aspect-[16/10] overflow-hidden">
                   {album.cover_url ? (
@@ -509,7 +505,7 @@ export const GaleriaAdminPage = () => {
                     <p className="text-xs line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{album.description}</p>
                   </div>
                 )}
-              </motion.div>
+              </div>
             ))}
           </div>
         )
@@ -520,14 +516,11 @@ export const GaleriaAdminPage = () => {
       {showAlbumModal && <AlbumModal album={editingAlbum} onClose={() => { setShowAlbumModal(false); setEditingAlbum(null); }} />}
 
       {/* Lightbox */}
-      <AnimatePresence>
-        {lightboxIndex >= 0 && (
+      {lightboxIndex >= 0 && (
           <Lightbox photos={photos} currentIndex={lightboxIndex} onClose={() => setLightboxIndex(-1)}
             onPrev={() => setLightboxIndex(Math.max(0, lightboxIndex - 1))}
             onNext={() => setLightboxIndex(Math.min(photos.length - 1, lightboxIndex + 1))} />
         )}
-      </AnimatePresence>
-
       <AlertDialog open={!!confirmDeleteAlbum} onOpenChange={(open) => !open && setConfirmDeleteAlbum(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

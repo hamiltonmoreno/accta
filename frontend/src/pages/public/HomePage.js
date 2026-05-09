@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { postsAPI, eventsAPI } from '../../utils/api';
 import { unsplashSrcSet } from '../../utils/unsplash';
 import { 
@@ -95,11 +94,7 @@ export const HomePage = () => {
 
         <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6 py-16 sm:py-20">
           <div className="max-w-2xl">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-            >
+            <div className="animate-fade-up">
               <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-carmesim/20 backdrop-blur-sm border border-carmesim/40 rounded-full mb-6 sm:mb-8">
                 <Radio className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-carmesim" />
                 <span className="text-white font-sans text-xs sm:text-sm uppercase tracking-wider font-semibold">ACCTA Cabo Verde</span>
@@ -133,20 +128,15 @@ export const HomePage = () => {
                   Área do Associado
                 </Link>
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 hidden sm:block"
-        >
+        <div className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 hidden sm:block animate-fade-up">
           <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center">
             <div className="w-1.5 h-3 bg-carmesim rounded-full mt-2 animate-bounce" />
           </div>
-        </motion.div>
+        </div>
       </section>
 
       {/* Stats Bar */}
@@ -159,18 +149,12 @@ export const HomePage = () => {
               { icon: MapPin, value: '4', label: 'Aeroportos Internacionais' },
               { icon: Target, value: '1', label: 'Missão: Segurança Total' },
             ].map((stat, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="text-center"
-              >
+              <div key={index}
+                className="text-center animate-fade-up">
                 <stat.icon className="w-6 sm:w-8 h-6 sm:h-8 text-carmesim mx-auto mb-2 sm:mb-3" />
                 <div className="font-bold text-2xl sm:text-3xl lg:text-4xl text-white mb-0.5">{stat.value}</div>
                 <div className="text-xs text-white/60 tracking-wider">{stat.label}</div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -234,21 +218,15 @@ export const HomePage = () => {
                       { value: countdown.minutes, label: 'Min' },
                       { value: countdown.seconds, label: 'Seg' },
                     ].map((unit, i) => (
-                      <motion.div
-                        key={unit.label}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: i * 0.1 }}
-                        className="flex flex-col items-center"
-                      >
+                      <div key={unit.label}
+                        className="flex flex-col items-center animate-fade-up">
                         <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl flex items-center justify-center mb-2">
                           <span className="font-bold text-2xl sm:text-3xl text-white font-mono" data-testid={`countdown-${unit.label.toLowerCase()}`}>
                             {String(unit.value).padStart(2, '0')}
                           </span>
                         </div>
                         <span className="text-xs text-white/50 uppercase tracking-widest font-semibold">{unit.label}</span>
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -262,11 +240,7 @@ export const HomePage = () => {
       <section className="py-16 sm:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-5 sm:px-6">
           <div className="grid lg:grid-cols-2 gap-10 sm:gap-16 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
+            <div className="animate-fade-up">
               <span className="inline-block px-3 py-1.5 bg-carmesim/10 text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold mb-4 sm:mb-6">
                 O que fazemos
               </span>
@@ -289,14 +263,9 @@ export const HomePage = () => {
                 Saiba como funciona o controlo aéreo
                 <ChevronRight className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="grid grid-cols-2 gap-3 sm:gap-6"
-            >
+            <div className="grid grid-cols-2 gap-3 sm:gap-6 animate-fade-up">
               {[
                 { icon: Eye, title: 'Vigilância 24h', desc: 'Monitorização constante do espaço aéreo' },
                 { icon: Radio, title: 'Comunicação', desc: 'Instruções precisas para cada voo' },
@@ -314,7 +283,7 @@ export const HomePage = () => {
                   <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{item.desc}</p>
                 </div>
               ))}
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>
@@ -346,14 +315,8 @@ export const HomePage = () => {
           ) : (
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
               {news.map((post, index) => (
-                <motion.article
-                  key={post.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="group"
-                >
+                <article key={post.id}
+                  className="group animate-fade-up">
                   <div className="card-technical overflow-hidden hover:shadow-lg transition-all">
                     <div className="h-36 sm:h-48 relative overflow-hidden">
                       <img
@@ -382,7 +345,7 @@ export const HomePage = () => {
                       </Link>
                     </div>
                   </div>
-                </motion.article>
+                </article>
               ))}
             </div>
           )}
