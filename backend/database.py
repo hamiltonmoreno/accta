@@ -37,6 +37,14 @@ async def ensure_indexes():
         # ---- auth ----
         await db.password_resets.create_index("token")
         await db.password_resets.create_index("email")
+        # JWT blocklist: TTL index auto-purga entries depois do token expirar.
+        # expireAfterSeconds=0 + campo expires_at (BSON Date) = remocao automatica.
+        await db.tokens_revoked.create_index("jti", unique=True)
+        await db.tokens_revoked.create_index("expires_at", expireAfterSeconds=0)
+        # login_attempts: tambem TTL para auto-purge depois da janela de 15min.
+        # Valor maior (24h) para preservar historial de auditoria.
+        await db.login_attempts.create_index([("email", 1), ("attempted_at", -1)])
+        await db.login_attempts.create_index("attempted_at", expireAfterSeconds=86400)
 
         # ---- notifications ----
         await db.notifications.create_index([("user_id", 1), ("created_at", -1)])

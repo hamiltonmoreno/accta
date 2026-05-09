@@ -1,12 +1,28 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.security import HTTPBearer
 from datetime import datetime, timezone, timedelta
 from models import User, UserLogin, Token, PasswordResetRequest, PasswordResetConfirm, SetupAccount
 from database import db
-from auth import hash_password, verify_password, create_access_token, get_current_user
+from auth import (
+    create_access_token,
+    get_current_user,
+    hash_password,
+    revoke_token_from_credentials,
+    verify_password,
+)
 from email_service import send_welcome_email, send_password_reset_email
+from helpers import (
+    LOCKOUT_WINDOW_MINUTES,
+    create_audit_log,
+    is_account_locked,
+    record_failed_login,
+    reset_failed_logins,
+)
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 import uuid
+
+_security = HTTPBearer()
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 limiter = Limiter(key_func=get_remote_address)
@@ -15,10 +31,28 @@ limiter = Limiter(key_func=get_remote_address)
 @router.post("/login", response_model=Token)
 @limiter.limit("10/minute")
 async def login(request: Request, credentials: UserLogin):
+    # Account-level lockout — verifica antes de tudo (precede ate user lookup,
+    # para que tentativas em emails inexistentes nao consigam confirmar
+    # existencia indirectamente atraves do timing do bcrypt).
+    locked_until = await is_account_locked(credentials.email)
+    if locked_until is not None:
+        await create_audit_log(
+            "anonymous",
+            "login_failed",
+            request=request,
+            details={"email": credentials.email, "reason": "account_locked"},
+        )
+        raise HTTPException(
+            status_code=423,  # 423 Locked
+            detail="Conta temporariamente bloqueada por excesso de tentativas. Tente novamente em alguns minutos.",
+            headers={"Retry-After": str(LOCKOUT_WINDOW_MINUTES * 60)},
+        )
+
     user_doc = await db.users.find_one({"email": credentials.email}, {"_id": 0})
     if not user_doc or not user_doc.get("password") or not verify_password(credentials.password, user_doc["password"]):
-        # Audit log de login falhado para deteccao de brute force / cred stuffing.
-        # actor_id = "anonymous" porque nao sabemos quem realmente tentou.
+        # Conta tentativa falhada para futuro lockout. record_failed_login
+        # devolve count na janela — nao usamos aqui mas e util para logging.
+        await record_failed_login(credentials.email, ip=request.client.host if request.client else None)
         await create_audit_log(
             user_doc["id"] if user_doc else "anonymous",
             "login_failed",
@@ -33,6 +67,9 @@ async def login(request: Request, credentials: UserLogin):
             status_code=403, detail="Conta pendente de ativacao. Use o link de convite para definir a sua senha."
         )
 
+    # Login sucesso — limpa contador de falhas para que utilizador legitimo
+    # nao seja afectado por tentativas anteriores erradas/atacante.
+    await reset_failed_logins(credentials.email)
     await db.users.update_one(
         {"email": credentials.email}, {"$set": {"last_login_at": datetime.now(timezone.utc).isoformat()}}
     )
@@ -55,6 +92,21 @@ async def login(request: Request, credentials: UserLogin):
 @router.get("/me", response_model=User)
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/logout")
+async def logout(
+    request: Request,
+    credentials=Depends(_security),
+    current_user: User = Depends(get_current_user),
+):
+    """Revoga o token actual adicionando o jti ao blocklist (tokens_revoked).
+    O token continua criptograficamente valido ate ao exp original, mas
+    get_current_user passa a rejeita-lo. TTL index purga a entry depois do exp.
+    """
+    await revoke_token_from_credentials(credentials, current_user.id)
+    await create_audit_log(current_user.id, "logout", request=request)
+    return {"message": "Sessão encerrada"}
 
 
 @router.post("/setup-account")

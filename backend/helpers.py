@@ -1,7 +1,49 @@
 from typing import Optional, List
+from datetime import datetime, timezone, timedelta
 from fastapi import Request
 from database import db
 from models import AuditLog, Notification
+
+
+# === ACCOUNT LOCKOUT (Sprint 4) =====================================
+# 5 falhas dentro de uma janela de 15min trancam a conta por 15min.
+# Falhas sao guardadas em login_attempts (TTL 24h via index em database.py).
+LOCKOUT_THRESHOLD = 5
+LOCKOUT_WINDOW_MINUTES = 15
+
+
+async def record_failed_login(email: str, ip: Optional[str] = None) -> int:
+    """Insere uma entry de tentativa falhada e devolve o nº total na janela."""
+    now = datetime.now(timezone.utc)
+    await db.login_attempts.insert_one({"email": email, "ip": ip, "attempted_at": now})
+    window_start = now - timedelta(minutes=LOCKOUT_WINDOW_MINUTES)
+    return await db.login_attempts.count_documents({"email": email, "attempted_at": {"$gte": window_start}})
+
+
+async def reset_failed_logins(email: str) -> None:
+    """Limpa o historial de falhas — chamado em login bem-sucedido."""
+    await db.login_attempts.delete_many({"email": email})
+
+
+async def is_account_locked(email: str) -> Optional[datetime]:
+    """Devolve o instante em que o lock expira, ou None se nao trancada.
+    O lock e implicito: olha para login_attempts dentro da janela e verifica
+    se atingiu o threshold. Apos a janela, attempts antigos saem por TTL e
+    a contagem cai abaixo do threshold automaticamente.
+    """
+    now = datetime.now(timezone.utc)
+    window_start = now - timedelta(minutes=LOCKOUT_WINDOW_MINUTES)
+    count = await db.login_attempts.count_documents({"email": email, "attempted_at": {"$gte": window_start}})
+    if count < LOCKOUT_THRESHOLD:
+        return None
+    # Tempo ate o attempt mais antigo na janela sair = "unlock at".
+    oldest_in_window = await db.login_attempts.find_one(
+        {"email": email, "attempted_at": {"$gte": window_start}},
+        sort=[("attempted_at", 1)],
+    )
+    if oldest_in_window:
+        return oldest_in_window["attempted_at"] + timedelta(minutes=LOCKOUT_WINDOW_MINUTES)
+    return now + timedelta(minutes=LOCKOUT_WINDOW_MINUTES)
 
 
 def extract_request_meta(request: Optional[Request]) -> dict:
