@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { financesAPI } from '../../../utils/api';
 import { toast } from 'sonner';
 import { DollarSign, Settings, RefreshCw, CheckCircle, Users } from 'lucide-react';
@@ -110,8 +109,7 @@ export const SettingsTab = () => {
         </div>
 
         {genResult && (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-            className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg" data-testid="gen-result">
+          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg animate-fade-up" data-testid="gen-result">
             <div className="flex items-center gap-2 mb-2">
               <CheckCircle className="w-4 h-4 text-green-600" />
               <span className="font-semibold text-sm text-green-700">Quotas Geradas com Sucesso</span>
@@ -130,7 +128,7 @@ export const SettingsTab = () => {
                 <div className="text-xs text-gray-500 uppercase tracking-wider">CVE Total</div>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
       </div>
 

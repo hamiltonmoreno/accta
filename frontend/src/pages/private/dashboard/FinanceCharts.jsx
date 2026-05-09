@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { BarChart3, ArrowRight } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -29,13 +28,10 @@ const renderPieLabel = ({ percent }) => {
   return `${(percent * 100).toFixed(0)}%`;
 };
 
-const ChartCard = ({ title, subtitle, children, delay = 0, action }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 16 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay }}
-    className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6"
-  >
+// delay agora dropped — o stagger entre os 2 charts era cosmetico (0.25s/0.3s)
+// e nao justifica manter a dep do framer-motion num bundle lazy-loaded.
+const ChartCard = ({ title, subtitle, children, action }) => (
+  <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 animate-fade-up">
     <div className="flex items-start justify-between mb-5">
       <div>
         <h3 className="text-lg font-semibold text-grafite">{title}</h3>
@@ -44,7 +40,7 @@ const ChartCard = ({ title, subtitle, children, delay = 0, action }) => (
       {action}
     </div>
     {children}
-  </motion.div>
+  </div>
 );
 
 const FinanceCharts = ({ monthlyChartData, expensePieData, currentYear, onViewAll }) => {
@@ -54,7 +50,6 @@ const FinanceCharts = ({ monthlyChartData, expensePieData, currentYear, onViewAl
         <ChartCard
           title="Evolucao Financeira"
           subtitle={`Receitas vs Despesas - ${currentYear}`}
-          delay={0.25}
           action={
             <button
               onClick={onViewAll}
@@ -94,7 +89,6 @@ const FinanceCharts = ({ monthlyChartData, expensePieData, currentYear, onViewAl
         <ChartCard
           title="Distribuicao de Despesas"
           subtitle="Por categoria"
-          delay={0.3}
         >
           <div className="h-[280px]" data-testid="expense-chart" style={{ minWidth: 0 }}>
             {expensePieData.length === 0 ? (
