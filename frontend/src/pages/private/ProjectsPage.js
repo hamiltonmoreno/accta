@@ -1,8 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -86,25 +88,31 @@ const ProjectCard = ({ project, onClick }) => {
 };
 
 // ===== CREATE PROJECT MODAL =====
-const CreateProjectModal = ({ onClose, onCreated }) => {
+const CreateProjectModal = ({ onClose }) => {
   useBodyScrollLock(true);
+  const qc = useQueryClient();
   const [form, setForm] = useState({
     title: '', description: '', visibility: 'publico',
     category: '', budget: '', start_date: '', end_date: '',
   });
-  const [saving, setSaving] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const createMutation = useMutation({
+    mutationFn: (payload) => projectsAPI.create(payload),
+    onSuccess: () => {
+      toast.success('Projeto criado');
+      qc.invalidateQueries({ queryKey: queryKeys.projects.list() });
+      onClose();
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao criar'),
+  });
+
+  const saving = createMutation.isPending;
+
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!form.title.trim()) { toast.error('Titulo e obrigatorio'); return; }
-    setSaving(true);
-    try {
-      const payload = { ...form, budget: form.budget ? parseFloat(form.budget) : 0 };
-      await projectsAPI.create(payload);
-      toast.success('Projeto criado');
-      onCreated();
-    } catch (err) { toast.error(err.response?.data?.detail || 'Erro ao criar'); }
-    finally { setSaving(false); }
+    const payload = { ...form, budget: form.budget ? parseFloat(form.budget) : 0 };
+    createMutation.mutate(payload);
   };
 
   return (
@@ -191,31 +199,26 @@ const CreateProjectModal = ({ onClose, onCreated }) => {
 const ProjectsPage = () => {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
-  const [projects, setProjects] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('');
   const [searchText, setSearchText] = useState('');
   const [showCreate, setShowCreate] = useState(false);
 
-  const loadProjects = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = {};
-      if (filterStatus) params.status = filterStatus;
+  // Cache server-side por filterStatus apenas (search e client-side).
+  const { data: items = [], isLoading: loading } = useQuery({
+    queryKey: ['projects', { status: filterStatus || undefined }],
+    queryFn: async () => {
+      const params = filterStatus ? { status: filterStatus } : {};
       const res = await projectsAPI.getAll(params);
-      let items = res.data.items || [];
-      if (searchText) {
-        const q = searchText.toLowerCase();
-        items = items.filter(p => p.title.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q));
-      }
-      setProjects(items);
-      setTotal(res.data.total);
-    } catch { toast.error('Erro ao carregar projetos'); }
-    finally { setLoading(false); }
-  }, [filterStatus, searchText]);
+      return res.data.items || [];
+    },
+  });
 
-  useEffect(() => { loadProjects(); }, [loadProjects]);
+  const projects = searchText
+    ? items.filter((p) => {
+        const q = searchText.toLowerCase();
+        return p.title.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q);
+      })
+    : items;
 
   const statusFilters = [
     { val: '', label: 'Todos' },
@@ -293,7 +296,7 @@ const ProjectsPage = () => {
         </>
       )}
 
-      {showCreate && <CreateProjectModal onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); loadProjects(); }} />}
+      {showCreate && <CreateProjectModal onClose={() => setShowCreate(false)} />}
     </div>
   );
 };
