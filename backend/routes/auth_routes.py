@@ -1,12 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.security import HTTPBearer
 from datetime import datetime, timezone, timedelta
 from models import User, UserLogin, Token, PasswordResetRequest, PasswordResetConfirm, SetupAccount
 from database import db
-from auth import hash_password, verify_password, create_access_token, get_current_user
+from auth import (
+    create_access_token,
+    get_current_user,
+    hash_password,
+    revoke_token_from_credentials,
+    verify_password,
+)
 from email_service import send_welcome_email, send_password_reset_email
+from helpers import create_audit_log
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 import uuid
+
+_security = HTTPBearer()
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 limiter = Limiter(key_func=get_remote_address)
@@ -55,6 +65,21 @@ async def login(request: Request, credentials: UserLogin):
 @router.get("/me", response_model=User)
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/logout")
+async def logout(
+    request: Request,
+    credentials=Depends(_security),
+    current_user: User = Depends(get_current_user),
+):
+    """Revoga o token actual adicionando o jti ao blocklist (tokens_revoked).
+    O token continua criptograficamente valido ate ao exp original, mas
+    get_current_user passa a rejeita-lo. TTL index purga a entry depois do exp.
+    """
+    await revoke_token_from_credentials(credentials, current_user.id)
+    await create_audit_log(current_user.id, "logout", request=request)
+    return {"message": "Sessão encerrada"}
 
 
 @router.post("/setup-account")
