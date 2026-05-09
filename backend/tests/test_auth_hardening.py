@@ -79,9 +79,13 @@ async def test_get_current_user_rejects_revoked_token(mock_db):
     payload["jti"] = "revoked-jti"
     revoked = jwt.encode(payload, auth.SECRET_KEY, algorithm=auth.ALGORITHM)
 
-    creds = HTTPAuthorizationCredentials(scheme="Bearer", credentials=revoked)
+    # Sprint 10: get_current_user agora recebe Request em vez de credentials.
+    class _MockRequest:
+        headers = {"Authorization": f"Bearer {revoked}"}
+        cookies = {}
+
     with pytest.raises(HTTPException) as exc:
-        await auth.get_current_user(creds)
+        await auth.get_current_user(_MockRequest())
     assert exc.value.status_code == 401
     assert "Sessão" in exc.value.detail or "expirada" in exc.value.detail.lower()
 

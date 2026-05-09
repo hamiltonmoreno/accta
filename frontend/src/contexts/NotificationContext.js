@@ -137,11 +137,13 @@ export const NotificationProvider = ({ children }) => {
 
     const startStream = () => {
       if (eventSourceRef.current || fallbackInterval) return;
-      const token = localStorage.getItem('accta_token');
       const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-      const sseUrl = `${BACKEND_URL}/api/notifications/stream?token=${token}`;
+      // Sprint 10 — auth via httpOnly cookie. EventSource com withCredentials:true
+      // inclui o cookie cross-origin. Sem ?token= query param (legacy path
+      // ainda funciona no backend mas frontend nao precisa).
+      const sseUrl = `${BACKEND_URL}/api/notifications/stream`;
       try {
-        const es = new EventSource(sseUrl);
+        const es = new EventSource(sseUrl, { withCredentials: true });
         eventSourceRef.current = es;
         es.onmessage = (event) => {
           try {

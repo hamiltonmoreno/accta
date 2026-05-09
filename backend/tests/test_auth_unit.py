@@ -92,8 +92,28 @@ class TestCreateAccessToken:
 # get_current_user dependency
 # --------------------------------------------------------------------------- #
 
-def _bearer(token: str) -> HTTPAuthorizationCredentials:
-    return HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+def _bearer(token: str):
+    """Mock Request com Authorization header — Sprint 10 changed
+    get_current_user(credentials) -> get_current_user(request). Helper
+    construi um request fake compativel com _extract_token."""
+
+    class _MockRequest:
+        def __init__(self, header_token=None, cookie_token=None):
+            self.headers = {"Authorization": f"Bearer {header_token}"} if header_token else {}
+            self.cookies = {"accta_session": cookie_token} if cookie_token else {}
+
+    return _MockRequest(header_token=token)
+
+
+def _cookie(token: str):
+    """Mock Request com cookie httpOnly — testa o path Sprint 10."""
+
+    class _MockRequest:
+        def __init__(self, cookie_token):
+            self.headers = {}
+            self.cookies = {"accta_session": cookie_token}
+
+    return _MockRequest(token)
 
 
 class TestGetCurrentUser:

@@ -1,13 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.security import HTTPBearer
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from datetime import datetime, timezone, timedelta
+from jose import JWTError, jwt
 from models import User, UserLogin, Token, PasswordResetRequest, PasswordResetConfirm, SetupAccount
 from database import db
 from auth import (
+    ALGORITHM,
+    SECRET_KEY,
+    _extract_token,
+    clear_session_cookie,
     create_access_token,
     get_current_user,
     hash_password,
-    revoke_token_from_credentials,
+    revoke_token,
+    set_session_cookie,
     verify_password,
 )
 from email_service import send_welcome_email, send_password_reset_email
@@ -22,7 +27,6 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 import uuid
 
-_security = HTTPBearer()
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 limiter = Limiter(key_func=get_remote_address)
@@ -30,7 +34,7 @@ limiter = Limiter(key_func=get_remote_address)
 
 @router.post("/login", response_model=Token)
 @limiter.limit("10/minute")
-async def login(request: Request, credentials: UserLogin):
+async def login(request: Request, response: Response, credentials: UserLogin):
     # Account-level lockout — verifica antes de tudo (precede ate user lookup,
     # para que tentativas em emails inexistentes nao consigam confirmar
     # existencia indirectamente atraves do timing do bcrypt).
@@ -86,6 +90,9 @@ async def login(request: Request, credentials: UserLogin):
 
     user = User(**user_doc)
     token = create_access_token({"sub": user.id})
+    # Sprint 10 — set httpOnly cookie. Token ainda e devolvido no body para
+    # compat com testes legados / clientes nao-browser. Frontend novo nao usa.
+    set_session_cookie(response, token)
     return Token(access_token=token, token_type="bearer", user=user)
 
 
@@ -97,21 +104,35 @@ async def get_me(current_user: User = Depends(get_current_user)):
 @router.post("/logout")
 async def logout(
     request: Request,
-    credentials=Depends(_security),
+    response: Response,
     current_user: User = Depends(get_current_user),
 ):
     """Revoga o token actual adicionando o jti ao blocklist (tokens_revoked).
+    Le token de cookie OR header (transition-friendly). Limpa cookie no fim.
     O token continua criptograficamente valido ate ao exp original, mas
     get_current_user passa a rejeita-lo. TTL index purga a entry depois do exp.
     """
-    await revoke_token_from_credentials(credentials, current_user.id)
+    token = _extract_token(request)
+    if token:
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            jti = payload.get("jti")
+            exp = payload.get("exp")
+            if jti and exp:
+                try:
+                    await revoke_token(jti, int(exp), current_user.id)
+                except Exception:
+                    pass  # duplicate jti (logout 2x): ignora
+        except JWTError:
+            pass  # token decode falhou — clear cookie de qualquer forma
+    clear_session_cookie(response)
     await create_audit_log(current_user.id, "logout", request=request)
     return {"message": "Sessão encerrada"}
 
 
 @router.post("/setup-account")
 @limiter.limit("5/minute")
-async def setup_account(request: Request, data: SetupAccount):
+async def setup_account(request: Request, response: Response, data: SetupAccount):
     """Invited user sets their password and activates their account."""
     user_doc = await db.users.find_one({"invite_token": data.token, "status": "pendente_convite"}, {"_id": 0})
     if not user_doc:
@@ -162,6 +183,8 @@ async def setup_account(request: Request, data: SetupAccount):
     # Send welcome email (non-blocking)
     await send_welcome_email(user.name, user.email)
 
+    # Sprint 10 — auto-login via cookie apos setup.
+    set_session_cookie(response, token)
     return {
         "message": "Conta ativada com sucesso!",
         "access_token": token,

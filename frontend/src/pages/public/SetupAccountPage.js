@@ -38,13 +38,13 @@ export const SetupAccountPage = () => {
 
   const onSubmit = async ({ password }) => {
     try {
-      const res = await authAPI.setupAccount({ token, password });
+      await authAPI.setupAccount({ token, password });
       setSuccess(true);
       toast.success('Conta ativada com sucesso!');
-      // Auto-login: backend ja activou a sessao, frontend so guarda.
-      localStorage.setItem('accta_token', res.data.access_token);
-      localStorage.setItem('accta_user', JSON.stringify(res.data.user));
-      setTimeout(() => navigate('/dashboard'), 1500);
+      // Sprint 10 — backend setou cookie httpOnly via Set-Cookie. JS nao
+      // precisa de guardar nada. Hard reload para AuthContext re-bootstrap
+      // via /auth/me e descobrir a sessao.
+      setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Erro ao ativar conta');
     }
