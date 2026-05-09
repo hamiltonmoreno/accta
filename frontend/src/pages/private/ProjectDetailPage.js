@@ -41,33 +41,43 @@ const TabBtn = ({ active, label, icon: Icon, onClick, badge, testId }) => (
 const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', assignee_id: '', priority: 'media', due_date: '' });
-  const [saving, setSaving] = useState(false);
 
-  const handleAdd = async () => {
-    if (!form.title.trim()) { toast.error('Titulo da tarefa obrigatorio'); return; }
-    setSaving(true);
-    try {
-      await projectsAPI.createTask(project.id, form);
+  const createMutation = useMutation({
+    mutationFn: (data) => projectsAPI.createTask(project.id, data),
+    onSuccess: () => {
       toast.success('Tarefa criada');
       setForm({ title: '', description: '', assignee_id: '', priority: 'media', due_date: '' });
       setShowAdd(false);
       onReload();
-    } catch (err) { toast.error(err.response?.data?.detail || 'Erro'); }
-    finally { setSaving(false); }
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro'),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ taskId, data }) => projectsAPI.updateTask(project.id, taskId, data),
+    onSuccess: onReload,
+    onError: () => toast.error('Erro ao atualizar'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (taskId) => projectsAPI.deleteTask(project.id, taskId),
+    onSuccess: onReload,
+    onError: () => toast.error('Erro'),
+  });
+
+  const saving = createMutation.isPending;
+
+  const handleAdd = () => {
+    if (!form.title.trim()) { toast.error('Titulo da tarefa obrigatorio'); return; }
+    createMutation.mutate(form);
   };
 
-  const toggleStatus = async (task) => {
+  const toggleStatus = (task) => {
     const next = task.status === 'concluido' ? 'pendente' : task.status === 'pendente' ? 'em_curso' : 'concluido';
-    try {
-      await projectsAPI.updateTask(project.id, task.id, { status: next });
-      onReload();
-    } catch { toast.error('Erro ao atualizar'); }
+    updateMutation.mutate({ taskId: task.id, data: { status: next } });
   };
 
-  const handleDelete = async (taskId) => {
-    try { await projectsAPI.deleteTask(project.id, taskId); onReload(); }
-    catch { toast.error('Erro'); }
-  };
+  const handleDelete = (taskId) => deleteMutation.mutate(taskId);
 
   const taskStatusIcon = (status) => {
     if (status === 'concluido') return <CheckCircle className="w-4 h-4 text-green-500" />;
@@ -163,23 +173,30 @@ const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
 const CommentsTab = ({ project, comments, onReload }) => {
   const { user } = useAuth();
   const [text, setText] = useState('');
-  const [sending, setSending] = useState(false);
 
-  const handleSend = async () => {
-    if (!text.trim()) return;
-    setSending(true);
-    try {
-      await projectsAPI.addComment(project.id, text);
+  const sendMutation = useMutation({
+    mutationFn: (content) => projectsAPI.addComment(project.id, content),
+    onSuccess: () => {
       setText('');
       onReload();
-    } catch (err) { toast.error(err.response?.data?.detail || 'Erro'); }
-    finally { setSending(false); }
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (commentId) => projectsAPI.deleteComment(project.id, commentId),
+    onSuccess: onReload,
+    onError: () => toast.error('Erro'),
+  });
+
+  const sending = sendMutation.isPending;
+
+  const handleSend = () => {
+    if (!text.trim()) return;
+    sendMutation.mutate(text);
   };
 
-  const handleDelete = async (commentId) => {
-    try { await projectsAPI.deleteComment(project.id, commentId); onReload(); }
-    catch { toast.error('Erro'); }
-  };
+  const handleDelete = (commentId) => deleteMutation.mutate(commentId);
 
   return (
     <div className="space-y-4">
@@ -239,30 +256,37 @@ const CommentsTab = ({ project, comments, onReload }) => {
 const BudgetTab = ({ project, expenses, canManage, onReload }) => {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ description: '', amount: '', date: new Date().toISOString().split('T')[0] });
-  const [saving, setSaving] = useState(false);
 
   const spent = expenses.reduce((s, e) => s + e.amount, 0);
   const budget = project.budget || 0;
   const pct = budget > 0 ? Math.round((spent / budget) * 100) : 0;
   const remaining = budget - spent;
 
-  const handleAdd = async () => {
-    if (!form.description.trim() || !form.amount) { toast.error('Preencha os campos'); return; }
-    setSaving(true);
-    try {
-      await projectsAPI.addExpense(project.id, { ...form, amount: parseFloat(form.amount) });
+  const addMutation = useMutation({
+    mutationFn: (data) => projectsAPI.addExpense(project.id, data),
+    onSuccess: () => {
       setForm({ description: '', amount: '', date: new Date().toISOString().split('T')[0] });
       setShowAdd(false);
       onReload();
       toast.success('Despesa registrada');
-    } catch (err) { toast.error(err.response?.data?.detail || 'Erro'); }
-    finally { setSaving(false); }
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (expenseId) => projectsAPI.deleteExpense(project.id, expenseId),
+    onSuccess: onReload,
+    onError: () => toast.error('Erro'),
+  });
+
+  const saving = addMutation.isPending;
+
+  const handleAdd = () => {
+    if (!form.description.trim() || !form.amount) { toast.error('Preencha os campos'); return; }
+    addMutation.mutate({ ...form, amount: parseFloat(form.amount) });
   };
 
-  const handleDelete = async (expenseId) => {
-    try { await projectsAPI.deleteExpense(project.id, expenseId); onReload(); }
-    catch { toast.error('Erro'); }
-  };
+  const handleDelete = (expenseId) => deleteMutation.mutate(expenseId);
 
   return (
     <div className="space-y-5">
@@ -375,31 +399,40 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
 const TimelineTab = ({ project, milestones, canManage, onReload }) => {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ title: '', date: '' });
-  const [saving, setSaving] = useState(false);
 
-  const handleAdd = async () => {
-    if (!form.title.trim() || !form.date) { toast.error('Preencha titulo e data'); return; }
-    setSaving(true);
-    try {
-      await projectsAPI.addMilestone(project.id, form);
+  const addMutation = useMutation({
+    mutationFn: (data) => projectsAPI.addMilestone(project.id, data),
+    onSuccess: () => {
       setForm({ title: '', date: '' });
       setShowAdd(false);
       onReload();
-    } catch (err) { toast.error(err.response?.data?.detail || 'Erro'); }
-    finally { setSaving(false); }
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro'),
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, completed }) => projectsAPI.updateMilestone(project.id, id, { completed }),
+    onSuccess: onReload,
+    onError: () => toast.error('Erro'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (milestoneId) => projectsAPI.deleteMilestone(project.id, milestoneId),
+    onSuccess: onReload,
+    onError: () => toast.error('Erro'),
+  });
+
+  const saving = addMutation.isPending;
+
+  const handleAdd = () => {
+    if (!form.title.trim() || !form.date) { toast.error('Preencha titulo e data'); return; }
+    addMutation.mutate(form);
   };
 
-  const toggleComplete = async (milestone) => {
-    try {
-      await projectsAPI.updateMilestone(project.id, milestone.id, { completed: !milestone.completed });
-      onReload();
-    } catch { toast.error('Erro'); }
-  };
+  const toggleComplete = (milestone) =>
+    toggleMutation.mutate({ id: milestone.id, completed: !milestone.completed });
 
-  const handleDelete = async (milestoneId) => {
-    try { await projectsAPI.deleteMilestone(project.id, milestoneId); onReload(); }
-    catch { toast.error('Erro'); }
-  };
+  const handleDelete = (milestoneId) => deleteMutation.mutate(milestoneId);
 
   return (
     <div className="space-y-4">
