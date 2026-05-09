@@ -3,7 +3,6 @@ import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationsAPI } from '../utils/api';
 import { useAuth } from './AuthContext';
-import { queryKeys } from '../lib/queryClient';
 
 const NotificationContext = createContext(null);
 
@@ -15,16 +14,21 @@ export const useNotifications = () => {
   return context;
 };
 
-// Helpers para mexer no cache da count sem refetch.
-const COUNT_KEY = queryKeys.notifications.unread();
-const LIST_KEY = queryKeys.notifications.list();
-
 export const NotificationProvider = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const qc = useQueryClient();
   const eventSourceRef = useRef(null);
 
-  // List query — gated por auth. staleTime longo porque SSE empurra updates.
+  // Keys scoped to user.id para evitar cache leak entre contas no mesmo
+  // browser (Codex P1 #21): se A faz logout e B faz login dentro de 60s
+  // (staleTime), a key contendo userId garante que cada user tem cache
+  // proprio — TanStack nao serve dados cached de A para B.
+  const userId = user?.id;
+  const LIST_KEY = useMemo(() => ['notifications', 'list', userId], [userId]);
+  const COUNT_KEY = useMemo(() => ['notifications', 'unread', userId], [userId]);
+
+  // List query — gated por auth + presenca de user. staleTime longo
+  // porque SSE empurra updates.
   const listQuery = useQuery({
     queryKey: LIST_KEY,
     queryFn: async () => {
@@ -34,7 +38,7 @@ export const NotificationProvider = ({ children }) => {
         total: res.data.total ?? (res.data.items || res.data).length,
       };
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !!userId,
     staleTime: 60 * 1000,
   });
 
@@ -44,7 +48,7 @@ export const NotificationProvider = ({ children }) => {
   const unreadQuery = useQuery({
     queryKey: COUNT_KEY,
     queryFn: async () => (await notificationsAPI.getUnreadCount()).data.count,
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !!userId,
     staleTime: 60 * 1000,
   });
 
@@ -190,7 +194,7 @@ export const NotificationProvider = ({ children }) => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       stopStream();
     };
-  }, [isAuthenticated, qc]);
+  }, [isAuthenticated, qc, COUNT_KEY]);
 
   const markAsRead = (id) => markAsReadMutation.mutate(id);
   const markAllAsRead = () => markAllAsReadMutation.mutate();
