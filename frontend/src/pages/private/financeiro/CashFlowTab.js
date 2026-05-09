@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financesAPI } from '../../../utils/api';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -23,10 +24,7 @@ const StatBlock = ({ label, value, icon: Icon, color }) => (
 );
 
 export const CashFlowTab = ({ isAdmin }) => {
-  const [transactions, setTransactions] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [summary, setSummary] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
   const [filterType, setFilterType] = useState('');
   const [searchText, setSearchText] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
@@ -35,7 +33,6 @@ export const CashFlowTab = ({ isAdmin }) => {
   const [page, setPage] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [editingTx, setEditingTx] = useState(null);
-  const [csvExporting, setCsvExporting] = useState(false);
 
   const currentYear = new Date().getFullYear();
 
@@ -55,44 +52,49 @@ export const CashFlowTab = ({ isAdmin }) => {
     return params;
   }, [filterType, searchDebounced, startDate, endDate, page]);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = buildParams();
-      const [txRes, sumRes] = await Promise.all([
-        financesAPI.getTransactions(params),
-        financesAPI.getSummary({ year: currentYear }),
-      ]);
-      setTransactions(txRes.data.items);
-      setTotal(txRes.data.total);
-      setSummary(sumRes.data);
-    } catch {
-      toast.error('Erro ao carregar dados financeiros');
-    } finally {
-      setLoading(false);
-    }
-  }, [buildParams, currentYear]);
+  // Listagem paginada — queryKey contem todos os filtros para cache
+  // separado por combinacao. keepPreviousData evita flicker no paginate.
+  const transactionsQuery = useQuery({
+    queryKey: ['transactions', { filterType, searchDebounced, startDate, endDate, page }],
+    queryFn: async () => {
+      const res = await financesAPI.getTransactions(buildParams());
+      return res.data;
+    },
+    placeholderData: (prev) => prev, // keepPreviousData equivalent (v5)
+  });
 
-  useEffect(() => { loadData(); }, [loadData]);
+  // Summary anual e independente dos filtros — query separada com cache proprio.
+  const summaryQuery = useQuery({
+    queryKey: ['transactions', 'summary', currentYear],
+    queryFn: async () => (await financesAPI.getSummary({ year: currentYear })).data,
+  });
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Tem certeza que deseja remover esta transacao?')) return;
-    try {
-      await financesAPI.deleteTransaction(id);
+  const transactions = transactionsQuery.data?.items || [];
+  const total = transactionsQuery.data?.total || 0;
+  const summary = summaryQuery.data;
+  const loading = transactionsQuery.isLoading || summaryQuery.isLoading;
+
+  const invalidateAll = () => qc.invalidateQueries({ queryKey: ['transactions'] });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => financesAPI.deleteTransaction(id),
+    onSuccess: () => {
       toast.success('Transacao removida');
-      loadData();
-    } catch { toast.error('Erro ao remover'); }
-  };
+      invalidateAll();
+    },
+    onError: () => toast.error('Erro ao remover'),
+  });
 
-  const handleExportCSV = async () => {
-    setCsvExporting(true);
-    try {
+  const exportMutation = useMutation({
+    mutationFn: () => {
       const params = {};
       if (filterType) params.type = filterType;
       if (searchDebounced) params.search = searchDebounced;
       if (startDate) params.start_date = `${startDate}T00:00:00`;
       if (endDate) params.end_date = `${endDate}T23:59:59`;
-      const res = await financesAPI.exportTransactionsCsv(params);
+      return financesAPI.exportTransactionsCsv(params);
+    },
+    onSuccess: (res) => {
       const url = window.URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }));
       const link = document.createElement('a');
       link.href = url;
@@ -102,9 +104,18 @@ export const CashFlowTab = ({ isAdmin }) => {
       link.remove();
       window.URL.revokeObjectURL(url);
       toast.success('CSV exportado');
-    } catch { toast.error('Erro ao exportar CSV'); }
-    finally { setCsvExporting(false); }
+    },
+    onError: () => toast.error('Erro ao exportar CSV'),
+  });
+
+  const csvExporting = exportMutation.isPending;
+
+  const handleDelete = (id) => {
+    if (!window.confirm('Tem certeza que deseja remover esta transacao?')) return;
+    deleteMutation.mutate(id);
   };
+
+  const handleExportCSV = () => exportMutation.mutate();
 
   const openEdit = (tx) => { setEditingTx(tx); setShowModal(true); };
   const openNew = () => { setEditingTx(null); setShowModal(true); };
@@ -312,7 +323,7 @@ export const CashFlowTab = ({ isAdmin }) => {
         <TransactionModal
           tx={editingTx}
           onClose={() => { setShowModal(false); setEditingTx(null); }}
-          onSaved={() => { setShowModal(false); setEditingTx(null); loadData(); }}
+          onSaved={() => { setShowModal(false); setEditingTx(null); invalidateAll(); }}
         />
       )}
     </div>

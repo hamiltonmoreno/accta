@@ -1,52 +1,63 @@
 import React, { useEffect, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financesAPI } from '../../../utils/api';
 import { toast } from 'sonner';
 import { DollarSign, Settings, RefreshCw, CheckCircle, Users } from 'lucide-react';
 import { MONTH_NAMES } from './constants';
 
 export const SettingsTab = () => {
-  const [settings, setSettings] = useState(null);
+  const qc = useQueryClient();
   const [quotaAmount, setQuotaAmount] = useState('');
   const [quotaDesc, setQuotaDesc] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [generating, setGenerating] = useState(false);
   const [genMonth, setGenMonth] = useState(new Date().getMonth() + 1);
   const [genYear, setGenYear] = useState(new Date().getFullYear());
   const [genResult, setGenResult] = useState(null);
 
-  useEffect(() => { loadSettings(); }, []);
+  const { data: settings, isLoading: loading } = useQuery({
+    queryKey: ['finance', 'settings'],
+    queryFn: async () => (await financesAPI.getSettings()).data,
+  });
 
-  const loadSettings = async () => {
-    try {
-      const res = await financesAPI.getSettings();
-      setSettings(res.data);
-      setQuotaAmount(res.data.quota_amount);
-      setQuotaDesc(res.data.quota_description);
-    } catch { toast.error('Erro ao carregar configuracoes'); }
-    finally { setLoading(false); }
-  };
+  // Sync form fields quando settings chegam (so na 1a vez ou apos invalidate).
+  useEffect(() => {
+    if (settings) {
+      setQuotaAmount(settings.quota_amount);
+      setQuotaDesc(settings.quota_description);
+    }
+  }, [settings]);
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await financesAPI.updateSettings({ quota_amount: parseFloat(quotaAmount), quota_description: quotaDesc });
+  const updateMutation = useMutation({
+    mutationFn: (data) => financesAPI.updateSettings(data),
+    onSuccess: () => {
       toast.success('Configuracoes atualizadas');
-      loadSettings();
-    } catch (err) { toast.error(err.response?.data?.detail || 'Erro ao salvar'); }
-    finally { setSaving(false); }
-  };
+      qc.invalidateQueries({ queryKey: ['finance', 'settings'] });
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao salvar'),
+  });
 
-  const handleGenerate = async () => {
-    if (!window.confirm(`Gerar quotas de ${MONTH_NAMES[genMonth - 1]}/${genYear} para todos os socios ativos?`)) return;
-    setGenerating(true);
-    setGenResult(null);
-    try {
-      const res = await financesAPI.generateQuotas(genMonth, genYear);
+  const generateMutation = useMutation({
+    mutationFn: ({ month, year }) => financesAPI.generateQuotas(month, year),
+    onSuccess: (res) => {
       setGenResult(res.data);
       toast.success(res.data.message);
-    } catch (err) { toast.error(err.response?.data?.detail || 'Erro ao gerar quotas'); }
-    finally { setGenerating(false); }
+      // As quotas geradas afectam invoices/transactions — invalidar.
+      qc.invalidateQueries({ queryKey: ['invoices'] });
+      qc.invalidateQueries({ queryKey: ['transactions'] });
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao gerar quotas'),
+  });
+
+  const saving = updateMutation.isPending;
+  const generating = generateMutation.isPending;
+
+  const handleSave = () => {
+    updateMutation.mutate({ quota_amount: parseFloat(quotaAmount), quota_description: quotaDesc });
+  };
+
+  const handleGenerate = () => {
+    if (!window.confirm(`Gerar quotas de ${MONTH_NAMES[genMonth - 1]}/${genYear} para todos os socios ativos?`)) return;
+    setGenResult(null);
+    generateMutation.mutate({ month: genMonth, year: genYear });
   };
 
   if (loading) {
