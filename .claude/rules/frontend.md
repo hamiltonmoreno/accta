@@ -25,14 +25,25 @@ paths:
 ## State Management
 - AuthContext for auth state (login, logout, roles)
 - NotificationContext for real-time notifications
-- Local state (useState) for component-level state
-- No Redux/Zustand — Context API is sufficient
+- TanStack Query (`@tanstack/react-query`) for server state
+  (fetching, caching, mutations) — see API Integration below
+- Local state (useState) for UI-only state (modals, form drafts, filters)
+- No Redux/Zustand — Context API + TanStack Query are sufficient
 
 ## API Integration
-- All API calls go through `utils/api.js`
-- Use the existing API groups (authAPI, usersAPI, financesAPI, etc.)
-- Handle loading/error states in components
-- 401 responses trigger automatic logout via interceptor
+- All API calls go through `utils/api.js` (keep using axios groups)
+- Read patterns: `useQuery({ queryKey: queryKeys.X.Y(), queryFn })`
+  - Use `queryKeys` from `lib/queryClient.js` — never hand-roll keys
+  - Default `staleTime: 30s` is fine for most lists; override for
+    rapidly-changing data (lower) or read-only/static (higher)
+- Write patterns: `useMutation({ mutationFn, onSuccess, onError })`
+  - On success, `qc.invalidateQueries({ queryKey })` to auto-refetch
+  - Surface errors via `toast.error(error.response?.data?.detail)`
+- DO NOT mix patterns: pages already migrated to useQuery/useMutation
+  must not re-introduce `useState + useEffect + axios`
+- 401 responses trigger automatic logout via interceptor (utils/api.js)
+- Avoid `console.error` for API failures — TanStack DevTools logs and
+  the user already gets toast/UI feedback
 
 ## Routing
 - Protected routes use `<ProtectedRoute>` wrapper

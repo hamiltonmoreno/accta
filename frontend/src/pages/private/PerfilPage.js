@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { usersAPI } from '../../utils/api';
 import { toast } from 'sonner';
@@ -48,7 +49,6 @@ const InfoRow = ({ icon: Icon, label, value }) => (
 export const PerfilPage = () => {
   const { user, refreshUser } = useAuth();
   const [editing, setEditing] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: '',
     phone_number: '',
@@ -65,19 +65,20 @@ export const PerfilPage = () => {
     }
   }, [user]);
 
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      await usersAPI.updateProfile(form);
+  const updateMutation = useMutation({
+    mutationFn: (data) => usersAPI.updateProfile(data),
+    onSuccess: async () => {
       if (refreshUser) await refreshUser();
       toast.success('Perfil atualizado com sucesso!');
       setEditing(false);
-    } catch (error) {
+    },
+    onError: (error) => {
       toast.error(error.response?.data?.detail || 'Erro ao atualizar perfil');
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+  });
+
+  const loading = updateMutation.isPending;
+  const handleSave = () => updateMutation.mutate(form);
 
   if (!user) return null;
 
