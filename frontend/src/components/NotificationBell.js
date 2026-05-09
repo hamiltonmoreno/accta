@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Check, CheckCheck, X } from 'lucide-react';
@@ -8,6 +8,11 @@ import { ptBR } from 'date-fns/locale';
 export const NotificationBell = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
+  // `render` mantem o painel montado durante a fade-out animation.
+  // Ao isOpen=true: render=true imediato (montagem). Ao isOpen=false:
+  // render fica true ate onAnimationEnd da fade-out disparar.
+  const [render, setRender] = useState(false);
+  useEffect(() => { if (isOpen) setRender(true); }, [isOpen]);
   const navigate = useNavigate();
 
   const unreadNotifications = notifications.filter((n) => !n.read);
@@ -60,9 +65,9 @@ export const NotificationBell = () => {
         )}
       </button>
 
-      {/* Dropdown — conditional render + animate-fade-up CSS keyframe.
-          Sem exit animation (acceptable para dropdowns), unmount imediato. */}
-      {isOpen && (
+      {/* Dropdown — delayed-unmount pattern para exit animation.
+          render fica true ate animacao de fade-out terminar (onAnimationEnd). */}
+      {render && (
         <>
           {/* Backdrop */}
           <div
@@ -72,7 +77,10 @@ export const NotificationBell = () => {
 
           {/* Panel */}
           <div
-            className="absolute right-0 top-full mt-2 w-[400px] max-w-[90vw] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 animate-fade-up"
+            className={`absolute right-0 top-full mt-2 w-[400px] max-w-[90vw] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 ${
+              isOpen ? 'animate-fade-up' : 'animate-fade-out'
+            }`}
+            onAnimationEnd={() => { if (!isOpen) setRender(false); }}
             data-testid="notification-panel"
           >
               {/* Header */}

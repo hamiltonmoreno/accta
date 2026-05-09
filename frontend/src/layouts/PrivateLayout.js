@@ -304,16 +304,17 @@ export const PrivateLayout = ({ children }) => {
       </aside>
 
       {/* ======= Mobile Sidebar Overlay — CSS transitions, sem framer.
-          Backdrop fade + sidebar slide-in via translate-x. */}
+          ease-spring (cubic-bezier 0.32,0.72,0,1) replica feel "premium"
+          dos animations Apple/iOS, mais polished que ease-out linear. */}
       <div
-        className={`fixed inset-0 bg-black/40 z-40 md:hidden backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/40 z-40 md:hidden backdrop-blur-sm transition-opacity duration-300 ease-spring ${
           mobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setMobileOpen(false)}
         aria-hidden={!mobileOpen}
       />
       <aside
-        className={`fixed left-0 top-0 bottom-0 z-50 md:hidden flex flex-col shadow-xl transition-transform duration-300 ${
+        className={`fixed left-0 top-0 bottom-0 z-50 md:hidden flex flex-col shadow-xl transition-transform duration-[280ms] ease-spring will-change-transform ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{ width: SIDEBAR_W, backgroundColor: 'var(--surface-sidebar)' }}
