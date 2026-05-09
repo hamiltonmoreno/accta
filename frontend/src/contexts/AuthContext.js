@@ -74,7 +74,17 @@ export const AuthProvider = ({ children }) => {
     return userData;
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    // Revoga o JWT server-side antes de limpar localStorage. Se o backend
+    // ainda nao tiver o endpoint /auth/logout (deploy antigo) ou ja estamos
+    // sem token valido, falhar silenciosamente — o clear local e suficiente
+    // para terminar a sessao do utilizador.
+    try {
+      await authAPI.logout();
+    } catch {
+      // 404 (endpoint inexistente) / 401 (token expirado) / network error —
+      // todos aceitaveis: a UI faz logout local de qualquer forma.
+    }
     clearAuth();
   }, [clearAuth]);
 

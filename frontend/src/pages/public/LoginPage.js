@@ -1,22 +1,57 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { LogIn, Shield, Plane, ArrowLeft } from 'lucide-react';
+import { LogIn, Shield, Plane, ArrowLeft, Lock } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import { ACCTALogoHorizontal } from '../../components/ACCTALogo';
 import { unsplashSrcSet } from '../../utils/unsplash';
 import { loginSchema } from '../../utils/authSchemas';
 
+// Helper: parse Retry-After header (segundos) e devolve estado de lock.
+// Backend devolve 423 + Retry-After quando 5+ falhas dentro de 15min (Sprint 4).
+const parseLockedUntil = (error) => {
+  if (error.response?.status !== 423) return null;
+  const retry = parseInt(error.response.headers['retry-after'], 10);
+  const seconds = Number.isFinite(retry) && retry > 0 ? retry : 900; // 15min fallback
+  return Date.now() + seconds * 1000;
+};
+
+const formatRemaining = (ms) => {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+};
+
 export const LoginPage = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const [lockedUntil, setLockedUntil] = useState(null); // ms epoch
+  const [now, setNow] = useState(Date.now());
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: zodResolver(loginSchema), mode: 'onBlur' });
+
+  // Tick 1s para countdown do lock. Para de correr quando lockedUntil=null.
+  useEffect(() => {
+    if (!lockedUntil) return;
+    const id = setInterval(() => {
+      const t = Date.now();
+      setNow(t);
+      if (t >= lockedUntil) {
+        setLockedUntil(null);
+        clearInterval(id);
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [lockedUntil]);
+
+  const isLocked = lockedUntil !== null && now < lockedUntil;
+  const remainingMs = lockedUntil ? lockedUntil - now : 0;
 
   const onSubmit = async (data) => {
     try {
@@ -24,6 +59,12 @@ export const LoginPage = () => {
       toast.success(`Bem-vindo, ${user.name}!`);
       navigate('/dashboard');
     } catch (error) {
+      const lockedUntilTs = parseLockedUntil(error);
+      if (lockedUntilTs) {
+        setLockedUntil(lockedUntilTs);
+        toast.error('Conta temporariamente bloqueada por excesso de tentativas');
+        return;
+      }
       toast.error(error.response?.data?.detail || 'Erro ao fazer login');
     }
   };
@@ -98,6 +139,27 @@ export const LoginPage = () => {
             <p className="text-sm text-gray-500">Acesse o portal com as suas credenciais</p>
           </div>
 
+          {/* Lockout banner — visivel quando backend devolve 423 (5 falhas em 15min).
+              Form fica desactivado ate o countdown chegar a zero. */}
+          {isLocked && (
+            <div
+              role="alert"
+              className="mb-4 flex items-start gap-3 p-4 rounded-lg bg-carmesim/5 border border-carmesim/20"
+              data-testid="login-locked-banner"
+            >
+              <Lock className="w-5 h-5 text-carmesim shrink-0 mt-0.5" aria-hidden="true" />
+              <div className="text-sm">
+                <p className="font-semibold text-grafite mb-0.5">Conta temporariamente bloqueada</p>
+                <p className="text-gray-500">
+                  Demasiadas tentativas falhadas. Tente novamente em{' '}
+                  <strong className="text-carmesim font-mono" data-testid="login-locked-countdown">
+                    {formatRemaining(remainingMs)}
+                  </strong>.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Form */}
           <div className="card-technical p-6 sm:p-7">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
@@ -151,12 +213,17 @@ export const LoginPage = () => {
 
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isLocked}
                 className="w-full bg-carmesim text-white hover:bg-carmesim-dark h-11 rounded-lg uppercase tracking-wider font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 data-testid="login-submit"
               >
                 {isSubmitting ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : isLocked ? (
+                  <>
+                    <Lock className="w-4 h-4" />
+                    Bloqueado · {formatRemaining(remainingMs)}
+                  </>
                 ) : (
                   <>
                     <LogIn className="w-4 h-4" />
