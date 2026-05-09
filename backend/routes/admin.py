@@ -53,7 +53,11 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
     await db.users.insert_one(user_doc)
 
     await create_audit_log(
-        current_user.id, f"Convidou novo utilizador: {data.name} ({data.email}) como {data.role}", user_id
+        current_user.id,
+        "user_invited",
+        user_id,
+        request=request,
+        details={"name": data.name, "email": data.email, "role": data.role, "cargo": data.cargo},
     )
 
     # Build full setup URL - prefer explicit FRONTEND_URL env (prod),
@@ -98,7 +102,7 @@ async def get_pending_invites(current_user: User = Depends(get_current_user)):
 
 
 @router.delete("/invite/{user_id}")
-async def revoke_invite(user_id: str, current_user: User = Depends(get_current_user)):
+async def revoke_invite(user_id: str, request: Request, current_user: User = Depends(get_current_user)):
     """Revoke a pending invite."""
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Sem permissao")
@@ -108,6 +112,12 @@ async def revoke_invite(user_id: str, current_user: User = Depends(get_current_u
         raise HTTPException(status_code=404, detail="Convite nao encontrado ou ja aceite")
 
     await db.users.delete_one({"id": user_id})
-    await create_audit_log(current_user.id, f"Revogou convite de {user.get('name', user_id)}", user_id)
+    await create_audit_log(
+        current_user.id,
+        "invite_revoked",
+        user_id,
+        request=request,
+        details={"name": user.get("name"), "email": user.get("email")},
+    )
 
     return {"message": "Convite revogado"}

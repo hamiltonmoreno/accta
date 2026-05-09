@@ -3,6 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timezone, timedelta
+from typing import Optional
 from database import db
 import os
 import uuid
@@ -32,8 +33,49 @@ def generate_qr_hash(user_id: str) -> str:
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
+    # jti = identificador unico do token, usado pelo blocklist em /auth/logout.
+    to_encode.update({"exp": expire, "jti": str(uuid.uuid4())})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+async def is_token_revoked(jti: Optional[str]) -> bool:
+    """True se o jti foi adicionado ao blocklist (logout). False se jti=None
+    (tokens legados sem jti — backward-compat: consideram-se validos)."""
+    if not jti:
+        return False
+    found = await db.tokens_revoked.find_one({"jti": jti}, {"_id": 1})
+    return found is not None
+
+
+async def revoke_token(jti: str, exp_unix: int, user_id: str):
+    """Adiciona jti ao blocklist. `exp_unix` e usado pelo TTL index da
+    coleccao para auto-purge depois do token expirar naturalmente."""
+    await db.tokens_revoked.insert_one(
+        {
+            "jti": jti,
+            "user_id": user_id,
+            "expires_at": datetime.fromtimestamp(exp_unix, tz=timezone.utc),
+            "revoked_at": datetime.now(timezone.utc).isoformat(),
+        }
+    )
+
+
+async def revoke_token_from_credentials(
+    credentials: HTTPAuthorizationCredentials, user_id: str
+) -> None:
+    """Decodifica o token e adiciona o jti ao blocklist. Usado por /auth/logout."""
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    jti = payload.get("jti")
+    exp = payload.get("exp")
+    if jti and exp:
+        try:
+            await revoke_token(jti, int(exp), user_id)
+        except Exception:
+            # Duplicate jti (logout duas vezes): ignora silenciosamente.
+            pass
 
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
@@ -45,6 +87,9 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         user_id: str = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Token inválido")
+        # Blocklist check: token revogado por logout / forced-revoke pelo admin.
+        if await is_token_revoked(payload.get("jti")):
+            raise HTTPException(status_code=401, detail="Sessão expirada. Faça login novamente.")
         user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
         if user_doc is None:
             raise HTTPException(status_code=401, detail="Usuário não encontrado")
@@ -76,6 +121,9 @@ async def get_user_from_token(token: str):
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
         if not user_id:
+            return None
+        # Honra blocklist para consistencia com get_current_user.
+        if await is_token_revoked(payload.get("jti")):
             return None
         user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
         if not user_doc:

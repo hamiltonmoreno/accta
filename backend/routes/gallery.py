@@ -5,8 +5,11 @@ from models import User, GalleryAlbum, GalleryAlbumCreate, GalleryPhoto
 from database import db, UPLOAD_DIR
 from auth import get_current_user
 from helpers import notify_admins, create_notification
+from file_validation import validate_file_content
 import uuid
-import shutil
+
+GALLERY_ALLOWED_EXTS = [".jpg", ".jpeg", ".png", ".webp"]
+GALLERY_MAX_SIZE = 10 * 1024 * 1024  # 10 MB
 
 router = APIRouter(prefix="/gallery", tags=["gallery"])
 
@@ -185,15 +188,20 @@ async def upload_gallery_photo(
     if not album:
         raise HTTPException(status_code=404, detail="Album nao encontrado")
 
-    ext = Path(file.filename).suffix.lower()
-    if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
-        raise HTTPException(status_code=400, detail="Formato nao suportado. Use JPG, PNG ou WEBP")
+    contents = await file.read()
+    if len(contents) > GALLERY_MAX_SIZE:
+        raise HTTPException(status_code=413, detail="Arquivo excede o limite de 10 MB")
 
+    # Defense-in-depth: Pillow.verify() bloqueia .exe -> .png e tambem
+    # cross-checks que o formato real bate com a extensao.
+    validate_file_content(contents, file.filename, GALLERY_ALLOWED_EXTS)
+
+    ext = Path(file.filename).suffix.lower()
     unique_filename = f"{uuid.uuid4()}{ext}"
     file_path = GALLERY_DIR / unique_filename
 
     with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        buffer.write(contents)
 
     photo_url = f"/uploads/gallery/{unique_filename}"
     is_admin = current_user.role == "admin"

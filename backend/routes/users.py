@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime
 from typing import List, Optional
+import re
 from models import User, UserProfileUpdate, UserAdminUpdate, CARGOS, PRIVILEGES
 from database import db
 from auth import get_current_user
@@ -32,10 +33,14 @@ async def get_users(
 
     query = {}
     if search:
+        # Truncar ANTES de escape — re.escape pode duplicar bytes (ex: '*' -> '\\*')
+        # e cortar a meio uma sequencia escapada deixaria backslash final = regex
+        # invalido. Cap input bruto a 100 chars (ReDoS guard) + escape.
+        safe = re.escape(search.strip()[:100])
         query["$or"] = [
-            {"name": {"$regex": search, "$options": "i"}},
-            {"email": {"$regex": search, "$options": "i"}},
-            {"member_id": {"$regex": search, "$options": "i"}},
+            {"name": {"$regex": safe, "$options": "i"}},
+            {"email": {"$regex": safe, "$options": "i"}},
+            {"member_id": {"$regex": safe, "$options": "i"}},
         ]
     if role:
         query["role"] = role
@@ -85,7 +90,12 @@ async def update_own_profile(data: UserProfileUpdate, current_user: User = Depen
 
 # ===== ADMIN UPDATE USER =====
 @router.patch("/users/{user_id}")
-async def admin_update_user(user_id: str, data: UserAdminUpdate, current_user: User = Depends(get_current_user)):
+async def admin_update_user(
+    user_id: str,
+    data: UserAdminUpdate,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Apenas administradores podem editar utilizadores")
 
@@ -114,8 +124,22 @@ async def admin_update_user(user_id: str, data: UserAdminUpdate, current_user: U
 
     await db.users.update_one({"id": user_id}, {"$set": update_data})
 
-    changes = ", ".join([f"{k}={v}" for k, v in update_data.items()])
-    await create_audit_log(current_user.id, f"Editou utilizador {existing.get('name', user_id)}: {changes}", user_id)
+    # Audit log estruturado: details captura before/after dos campos sensiveis (role/status/privileges).
+    sensitive = {"role", "status", "privileges", "cargo"}
+    before = {k: existing.get(k) for k in update_data if k in sensitive}
+    after = {k: v for k, v in update_data.items() if k in sensitive}
+    await create_audit_log(
+        current_user.id,
+        "user_updated",
+        user_id,
+        request=request,
+        details={
+            "target_name": existing.get("name"),
+            "changes": list(update_data.keys()),
+            "before": before or None,
+            "after": after or None,
+        },
+    )
 
     # Notify user of role/cargo changes
     notify_fields = {"role", "cargo", "privileges", "status"}
