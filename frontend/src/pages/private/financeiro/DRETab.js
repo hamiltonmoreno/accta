@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { financesAPI } from '../../../utils/api';
 import { toast } from 'sonner';
 import { Download, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
@@ -6,25 +7,15 @@ import { CATEGORY_LABELS, MONTH_NAMES } from './constants';
 
 export const DRETab = () => {
   const [year, setYear] = useState(new Date().getFullYear());
-  const [dre, setDRE] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState(false);
 
-  const loadDRE = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await financesAPI.getDRE(year);
-      setDRE(res.data);
-    } catch { toast.error('Erro ao carregar DRE'); }
-    finally { setLoading(false); }
-  }, [year]);
+  const { data: dre, isLoading: loading } = useQuery({
+    queryKey: ['finance', 'dre', year],
+    queryFn: async () => (await financesAPI.getDRE(year)).data,
+  });
 
-  useEffect(() => { loadDRE(); }, [loadDRE]);
-
-  const handleExportPDF = async () => {
-    setExporting(true);
-    try {
-      const res = await financesAPI.exportDREPdf(year);
+  const exportMutation = useMutation({
+    mutationFn: () => financesAPI.exportDREPdf(year),
+    onSuccess: (res) => {
       const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
       const link = document.createElement('a');
       link.href = url;
@@ -34,9 +25,12 @@ export const DRETab = () => {
       link.remove();
       window.URL.revokeObjectURL(url);
       toast.success('PDF exportado com sucesso');
-    } catch { toast.error('Erro ao exportar PDF'); }
-    finally { setExporting(false); }
-  };
+    },
+    onError: () => toast.error('Erro ao exportar PDF'),
+  });
+
+  const exporting = exportMutation.isPending;
+  const handleExportPDF = () => exportMutation.mutate();
 
   if (loading) {
     return <div className="p-10 text-center"><div className="inline-block w-7 h-7 border-3 border-carmesim border-t-transparent rounded-full animate-spin" /></div>;

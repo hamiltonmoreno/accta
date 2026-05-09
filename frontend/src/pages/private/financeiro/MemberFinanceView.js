@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { invoicesAPI } from '../../../utils/api';
+import { queryKeys } from '../../../lib/queryClient';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DollarSign, TrendingUp } from 'lucide-react';
@@ -15,19 +17,10 @@ const StatBlock = ({ label, value, icon: Icon, color }) => (
 );
 
 export const MemberFinanceView = () => {
-  const [invoices, setInvoices] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await invoicesAPI.getAll();
-        setInvoices(res.data);
-      } catch { /* ignore */ }
-      finally { setLoading(false); }
-    };
-    load();
-  }, []);
+  const { data: invoices = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.invoices.list(),
+    queryFn: async () => (await invoicesAPI.getAll()).data,
+  });
 
   const totalPago = invoices.filter((i) => i.status === 'pago').reduce((s, i) => s + i.amount, 0);
 
