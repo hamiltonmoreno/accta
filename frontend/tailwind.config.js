@@ -137,13 +137,25 @@ module.exports = {
           from: { opacity: "0" },
           to: { opacity: "1" },
         },
+        // Exit-side keyframes para componentes always-mounted que usam
+        // data-state ou condicional className para fade-out antes de hide.
+        "fade-out": {
+          from: { opacity: "1", transform: "translateY(0) scale(1)" },
+          to: { opacity: "0", transform: "translateY(-8px) scale(0.97)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "pulse-radar": "pulse-radar 2s ease-in-out infinite",
-        "fade-up": "fade-up 0.4s ease-out both",
+        "fade-up": "fade-up 0.3s cubic-bezier(0.32, 0.72, 0, 1) both",
         "fade-in": "fade-in 0.3s ease-out both",
+        "fade-out": "fade-out 0.18s cubic-bezier(0.32, 0.72, 0, 1) both",
+      },
+      // Curva de easing tipo "spring" (Apple-like) — usar via ease-spring em
+      // transitions Tailwind. Mais polish que ease-out linear.
+      transitionTimingFunction: {
+        spring: "cubic-bezier(0.32, 0.72, 0, 1)",
       },
     },
   },

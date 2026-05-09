@@ -78,7 +78,7 @@ export const PublicLayout = ({ children }) => {
             grid-rows-[0fr/1fr] truque permite height auto sem max-height
             magico. Quando fechado: pointer-events-none para nao capturar clicks. */}
         <div
-          className={`lg:hidden bg-white border-t border-gray-100 overflow-hidden grid transition-all duration-200 ${
+          className={`lg:hidden bg-white border-t border-gray-100 overflow-hidden grid transition-all duration-[240ms] ease-spring ${
             mobileMenuOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'
           }`}
         >
