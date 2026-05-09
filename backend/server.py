@@ -1,10 +1,12 @@
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from auth import COOKIE_NAME
 from database import client, db, UPLOAD_DIR, ensure_indexes
 from routes import api_router
 import os
@@ -40,6 +42,50 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
                 "max-age=31536000; includeSubDomains",
             )
         return response
+
+
+class CSRFOriginCheckMiddleware(BaseHTTPMiddleware):
+    """CSRF protection para cookie-based auth (Sprint 10).
+
+    Codex P2 #25 flagged: com SameSite=None+Secure, browsers enviam o cookie
+    de sessao em requests cross-site (incluindo POST/DELETE de attacker.com).
+    Validamos Origin/Referer contra CORS_ORIGINS — browsers nao deixam JS
+    forjar Origin, logo CSRF e bloqueado.
+
+    So aplica a:
+    - Metodos unsafe (POST/PUT/PATCH/DELETE)
+    - Requests com cookie de sessao (clientes header-only sao seguros porque
+      o atacante nao consegue ler o token de outra origem)
+    """
+
+    UNSAFE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+    def __init__(self, app, allowed_origins):
+        super().__init__(app)
+        self.allowed_origins = set(allowed_origins)
+
+    async def dispatch(self, request, call_next):
+        if request.method in self.UNSAFE_METHODS and request.cookies.get(COOKIE_NAME) and self.allowed_origins:
+            origin = request.headers.get("origin")
+            if not origin:
+                # Fallback para Referer — extrai scheme://host[:port]
+                referer = request.headers.get("referer", "")
+                if referer:
+                    parts = referer.split("/", 3)
+                    origin = "/".join(parts[:3]) if len(parts) >= 3 else None
+            if origin and origin not in self.allowed_origins:
+                return JSONResponse(
+                    status_code=403,
+                    content={"detail": "CSRF: Origin nao permitido"},
+                )
+            # Sem Origin nem Referer + cookie presente: provavelmente non-browser
+            # mal configurado. Bloquear para defesa em profundidade.
+            if not origin:
+                return JSONResponse(
+                    status_code=403,
+                    content={"detail": "CSRF: Origin/Referer ausente em request com cookie"},
+                )
+        return await call_next(request)
 
 
 app.add_middleware(SecurityHeadersMiddleware)
@@ -87,6 +133,10 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept"],
 )
+
+# CSRF middleware corre ANTES da resolucao do route — protege todos os
+# endpoints state-changing que usem cookie auth.
+app.add_middleware(CSRFOriginCheckMiddleware, allowed_origins=cors_origins)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)

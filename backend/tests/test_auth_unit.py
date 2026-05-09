@@ -124,6 +124,28 @@ class TestGetCurrentUser:
         assert user.id == admin_user_dict["id"]
         assert user.role == "admin"
 
+    async def test_valid_token_via_cookie_returns_user(self, mock_db, admin_user_dict, make_token):
+        """Sprint 10 — cookie httpOnly e o caminho primario."""
+        mock_db.users.find_one.return_value = admin_user_dict
+        token = make_token(admin_user_dict["id"])
+        user = await auth.get_current_user(_cookie(token))
+        assert user.id == admin_user_dict["id"]
+
+    async def test_bearer_scheme_case_insensitive(self, mock_db, admin_user_dict, make_token):
+        """Codex P2 #25 — RFC 7235: HTTP auth schemes sao case-insensitive.
+        'bearer ', 'BEARER ', 'Bearer ' sao todos validos."""
+        mock_db.users.find_one.return_value = admin_user_dict
+        token = make_token(admin_user_dict["id"])
+
+        class _Req:
+            def __init__(self, header):
+                self.headers = {"Authorization": header}
+                self.cookies = {}
+
+        for variant in (f"Bearer {token}", f"bearer {token}", f"BEARER {token}", f"BeArEr {token}"):
+            user = await auth.get_current_user(_Req(variant))
+            assert user.id == admin_user_dict["id"], f"variant {variant[:8]!r} falhou"
+
     async def test_expired_token_returns_401(self, mock_db, admin_user_dict, make_token):
         token = make_token(admin_user_dict["id"], expires_delta=timedelta(seconds=-10))
         with pytest.raises(HTTPException) as exc_info:

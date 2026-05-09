@@ -110,13 +110,19 @@ async def revoke_token_from_credentials(credentials: HTTPAuthorizationCredential
 
 def _extract_token(request: Request) -> Optional[str]:
     """Le token de cookie httpOnly primeiro (Sprint 10), depois Authorization
-    header como fallback (transicao + clientes legados / testes)."""
+    header como fallback (transicao + clientes legados / testes).
+
+    HTTP auth schemes sao case-insensitive (RFC 7235 §2.1) — match
+    "Bearer " / "bearer " / "BEARER " etc. para nao quebrar clientes
+    legados durante a transicao.
+    """
     token = request.cookies.get(COOKIE_NAME)
     if token:
         return token
     auth = request.headers.get("Authorization", "")
-    if auth.startswith("Bearer "):
-        return auth[len("Bearer ") :]
+    parts = auth.split(" ", 1)
+    if len(parts) == 2 and parts[0].lower() == "bearer":
+        return parts[1]
     return None
 
 
