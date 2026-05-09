@@ -42,6 +42,7 @@ export default api;
 // Auth API
 export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
+  logout: () => api.post('/auth/logout'),
   getMe: () => api.get('/auth/me'),
   setupAccount: (data) => api.post('/auth/setup-account', data),
   validateInvite: (token) => api.get('/auth/invite/validate', { params: { token } }),

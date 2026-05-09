@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { QrCode, CheckCircle, XCircle, Search } from 'lucide-react';
 import { validatorAPI } from '../../utils/api';
 import { format } from 'date-fns';
@@ -33,11 +32,7 @@ export const ValidadorPage = () => {
     <div className="py-16 min-h-[70vh]">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
-        >
+        <div className="text-center mb-12 animate-fade-up">
           <div className="w-20 h-20 bg-grafite rounded-2xl flex items-center justify-center mx-auto mb-6">
             <QrCode className="w-10 h-10 text-carmesim" />
           </div>
@@ -47,15 +42,10 @@ export const ValidadorPage = () => {
           <p className="text-lg text-gray-600">
             Insira o código QR para validar a carteira de sócio ACCTA
           </p>
-        </motion.div>
+        </div>
 
         {/* Form */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="card-technical rounded-2xl p-8 mb-8"
-        >
+        <div className="card-technical rounded-2xl p-8 mb-8 animate-fade-up">
           <form onSubmit={handleValidate} className="space-y-6">
             <div>
               <label htmlFor="qr-hash" className="block text-xs uppercase tracking-widest text-gray-500 mb-2">
@@ -88,16 +78,12 @@ export const ValidadorPage = () => {
               )}
             </button>
           </form>
-        </motion.div>
+        </div>
 
         {/* Result */}
         {error && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="card-technical rounded-2xl p-8 border-2 border-alert"
-            data-testid="validation-error"
-          >
+          <div className="card-technical rounded-2xl p-8 border-2 border-alert animate-fade-up"
+            data-testid="validation-error">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-12 h-12 bg-alert/10 rounded-full flex items-center justify-center">
                 <XCircle className="w-6 h-6 text-alert" />
@@ -107,16 +93,12 @@ export const ValidadorPage = () => {
                 <p className="text-gray-600">{error}</p>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
 
         {result && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="card-technical rounded-2xl p-8 border-2 border-accent"
-            data-testid="validation-success"
-          >
+          <div className="card-technical rounded-2xl p-8 border-2 border-carmesim animate-fade-up"
+            data-testid="validation-success">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-12 h-12 bg-carmesim/10 rounded-full flex items-center justify-center">
                 <CheckCircle className="w-6 h-6 text-carmesim" />
@@ -170,7 +152,7 @@ export const ValidadorPage = () => {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
       </div>
     </div>

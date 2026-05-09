@@ -1,19 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { invoicesAPI } from '../../../utils/api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DollarSign, TrendingUp } from 'lucide-react';
 
-const StatBlock = ({ label, value, icon: Icon, color, delay = 0 }) => (
-  <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
-    className="card-technical p-4 sm:p-5">
+const StatBlock = ({ label, value, icon: Icon, color }) => (
+  <div className="card-technical p-4 sm:p-5 animate-fade-up">
     <div className={`w-9 h-9 sm:w-10 sm:h-10 ${color} rounded-lg flex items-center justify-center mb-2 sm:mb-3`}>
       <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
     </div>
     <div className="font-mono text-lg sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{value}</div>
-    <div className="text-[9px] sm:text-xs uppercase tracking-wider mt-0.5" style={{ color: 'var(--text-muted)' }}>{label}</div>
-  </motion.div>
+    <div className="text-xs uppercase tracking-wider mt-0.5" style={{ color: 'var(--text-muted)' }}>{label}</div>
+  </div>
 );
 
 export const MemberFinanceView = () => {
@@ -40,7 +38,7 @@ export const MemberFinanceView = () => {
         <p className="page-subtitle">Acompanhe os seus pagamentos</p>
       </div>
 
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="card-technical p-4 sm:p-5 border-l-4 border-l-carmesim bg-carmesim/5">
+      <div className="card-technical p-4 sm:p-5 border-l-4 border-l-carmesim bg-carmesim/5 animate-fade-in">
         <div className="flex items-start gap-3">
           <DollarSign className="w-5 h-5 text-carmesim flex-shrink-0 mt-0.5" />
           <div>
@@ -48,11 +46,11 @@ export const MemberFinanceView = () => {
             <p className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>As quotas mensais sao descontadas automaticamente em folha de pagamento.</p>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <StatBlock label="Registros" value={invoices.length} icon={DollarSign} color="bg-grafite" />
-        <StatBlock label="Total Pago" value={`${totalPago.toLocaleString('pt')} CVE`} icon={TrendingUp} color="bg-green-600" delay={0.1} />
+        <StatBlock label="Total Pago" value={`${totalPago.toLocaleString('pt')} CVE`} icon={TrendingUp} color="bg-green-600" />
       </div>
 
       <div className="card-technical overflow-hidden">
@@ -75,7 +73,7 @@ export const MemberFinanceView = () => {
                 </div>
                 <div className="text-right">
                   <div className="font-mono font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{inv.amount} CVE</div>
-                  <span className={`text-[10px] font-semibold uppercase ${inv.status === 'pago' ? 'text-green-600' : 'text-orange-500'}`}>
+                  <span className={`text-xs font-semibold uppercase ${inv.status === 'pago' ? 'text-green-600' : 'text-orange-500'}`}>
                     {inv.status}
                   </span>
                 </div>

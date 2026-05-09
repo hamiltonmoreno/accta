@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { statsAPI, pollsAPI, eventsAPI, financesAPI, activityAPI, reportAPI } from '../../utils/api';
@@ -12,19 +11,13 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
-} from 'recharts';
+
+// Recharts (~334KB) só carregado para utilizadores com finance, via Suspense.
+const FinanceCharts = lazy(() => import('./dashboard/FinanceCharts'));
 
 // ===== STAT CARD (Reference style: title top, big value, change indicator) =====
-const StatCard = ({ title, value, icon: Icon, iconBg, change, changeLabel, delay = 0 }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 16 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay }}
-    className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-200"
-  >
+const StatCard = ({ title, value, icon: Icon, iconBg, change, changeLabel }) => (
+  <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-200 animate-fade-up">
     <div className="flex items-center justify-between mb-3">
       <span className="text-sm text-gray-500 font-medium">{title}</span>
       <div className={`w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center`}>
@@ -39,26 +32,7 @@ const StatCard = ({ title, value, icon: Icon, iconBg, change, changeLabel, delay
         {changeLabel && <span className="text-gray-400 font-normal ml-0.5">{changeLabel}</span>}
       </div>
     )}
-  </motion.div>
-);
-
-// ===== CHART CARD WRAPPER =====
-const ChartCard = ({ title, subtitle, children, delay = 0, action }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 16 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay }}
-    className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6"
-  >
-    <div className="flex items-start justify-between mb-5">
-      <div>
-        <h3 className="text-lg font-semibold text-grafite">{title}</h3>
-        {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
-      </div>
-      {action}
-    </div>
-    {children}
-  </motion.div>
+  </div>
 );
 
 // ===== NOTIFICATION ICON =====
@@ -80,7 +54,6 @@ const NotifIcon = ({ type }) => {
 };
 
 // ===== CHART COLORS =====
-const CHART_COLORS = ['#C7202F', '#3A3A3A', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6'];
 const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 const CATEGORY_LABELS = {
@@ -88,29 +61,6 @@ const CATEGORY_LABELS = {
   eventos: 'Eventos', outros_receita: 'Outros',
   operacional: 'Operacional', juridico: 'Juridico',
   comunicacao: 'Comunicacao', viagens: 'Viagens', outros_despesa: 'Outros Desp.',
-};
-
-// ===== CUSTOM TOOLTIP =====
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-lg px-4 py-3 text-xs">
-      <p className="font-semibold text-grafite mb-1.5">{label}</p>
-      {payload.map((entry, i) => (
-        <div key={i} className="flex items-center gap-2 mb-0.5">
-          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-          <span className="text-gray-500">{entry.name}:</span>
-          <span className="font-bold text-grafite">{entry.value.toLocaleString('pt')} CVE</span>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-// ===== CUSTOM PIE LABEL =====
-const renderPieLabel = ({ name, percent }) => {
-  if (percent < 0.05) return null;
-  return `${(percent * 100).toFixed(0)}%`;
 };
 
 // ===== ACTIVITY ICON =====
@@ -285,109 +235,27 @@ export const DashboardPage = () => {
         </div>
       )}
 
-      {/* ===== CHARTS GRID (Reference style: 2 charts side by side) ===== */}
+      {/* ===== CHARTS GRID — recharts em chunk lazy só carrega para finance users ===== */}
       {hasFinance && dreData && (
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-5">
-          {/* Area Chart - Monthly Evolution (takes 3/5) */}
-          <div className="lg:col-span-3">
-            <ChartCard
-              title="Evolucao Financeira"
-              subtitle={`Receitas vs Despesas - ${currentYear}`}
-              delay={0.25}
-              action={
-                <button
-                  onClick={() => navigate('/financeiro')}
-                  className="text-xs text-carmesim font-semibold uppercase tracking-wider hover:text-carmesim-dark flex items-center gap-1"
-                  data-testid="chart-view-all"
-                >
-                  Ver tudo <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              }
-            >
-              <div className="h-[280px] -ml-2" data-testid="monthly-chart" style={{ minWidth: 0 }}>
-                <ResponsiveContainer width="100%" height="100%" minWidth={100}>
-                  <AreaChart data={monthlyChartData}>
-                    <defs>
-                      <linearGradient id="gradReceitas" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="gradDespesas" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#C7202F" stopOpacity={0.1} />
-                        <stop offset="95%" stopColor="#C7202F" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area type="monotone" dataKey="Receitas" stroke="#10b981" strokeWidth={2.5} fill="url(#gradReceitas)" />
-                    <Area type="monotone" dataKey="Despesas" stroke="#C7202F" strokeWidth={2.5} fill="url(#gradDespesas)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </ChartCard>
+        <Suspense fallback={
+          <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 h-[320px] flex items-center justify-center">
+            <div className="w-7 h-7 border-3 border-carmesim border-t-transparent rounded-full animate-spin" />
           </div>
-
-          {/* Donut Chart - Expense Distribution (takes 2/5) */}
-          <div className="lg:col-span-2">
-            <ChartCard
-              title="Distribuicao de Despesas"
-              subtitle="Por categoria"
-              delay={0.3}
-            >
-              <div className="h-[280px]" data-testid="expense-chart" style={{ minWidth: 0 }}>
-                {expensePieData.length === 0 ? (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center">
-                      <BarChart3 className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-                      <p className="text-sm text-gray-400">Sem despesas registradas</p>
-                    </div>
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={expensePieData}
-                        cx="50%"
-                        cy="45%"
-                        innerRadius={55}
-                        outerRadius={90}
-                        paddingAngle={3}
-                        dataKey="value"
-                        label={renderPieLabel}
-                        labelLine={false}
-                      >
-                        {expensePieData.map((_, i) => (
-                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(v) => [`${v.toLocaleString('pt')} CVE`, '']} />
-                      <Legend
-                        verticalAlign="bottom"
-                        iconType="circle"
-                        iconSize={8}
-                        formatter={(value) => <span className="text-xs text-gray-600">{value}</span>}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </ChartCard>
-          </div>
-        </div>
+        }>
+          <FinanceCharts
+            monthlyChartData={monthlyChartData}
+            expensePieData={expensePieData}
+            currentYear={currentYear}
+            onViewAll={() => navigate('/financeiro')}
+          />
+        </Suspense>
       )}
 
       {/* ===== Financial Summary Banner (for admin) ===== */}
       {hasFinance && financeSummary && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 cursor-pointer hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all"
+        <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 cursor-pointer hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all animate-fade-up"
           onClick={() => navigate('/financeiro')}
-          data-testid="finance-summary-widget"
-        >
+          data-testid="finance-summary-widget">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-grafite flex items-center gap-2">
               <Wallet className="w-5 h-5 text-carmesim" /> Saldo Financeiro {currentYear}
@@ -398,36 +266,31 @@ export const DashboardPage = () => {
             <div>
               <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Receitas</div>
               <div className="font-mono text-xl sm:text-2xl font-bold text-green-600">{financeSummary.total_receitas.toLocaleString('pt')}</div>
-              <div className="text-[11px] text-gray-400 mt-0.5">CVE</div>
+              <div className="text-xs text-gray-400 mt-0.5">CVE</div>
             </div>
             <div>
               <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Despesas</div>
               <div className="font-mono text-xl sm:text-2xl font-bold text-red-500">{financeSummary.total_despesas.toLocaleString('pt')}</div>
-              <div className="text-[11px] text-gray-400 mt-0.5">CVE</div>
+              <div className="text-xs text-gray-400 mt-0.5">CVE</div>
             </div>
             <div>
               <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Resultado</div>
               <div className={`font-mono text-xl sm:text-2xl font-bold ${financeSummary.resultado_liquido >= 0 ? 'text-grafite' : 'text-orange-600'}`}>
                 {financeSummary.resultado_liquido.toLocaleString('pt')}
               </div>
-              <div className="text-[11px] text-gray-400 mt-0.5">CVE</div>
+              <div className="text-xs text-gray-400 mt-0.5">CVE</div>
             </div>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* ===== MAIN GRID: Invoices + Polls ===== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
         {/* Contribuicoes - Desconto em Folha */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6"
-        >
+        <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 animate-fade-up">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-grafite" data-testid="contributions-title">Contribuicoes</h2>
-            <span className="text-[10px] text-gray-400 uppercase tracking-wider hidden sm:block">Desconto em Folha</span>
+            <span className="text-xs text-gray-400 uppercase tracking-wider hidden sm:block">Desconto em Folha</span>
           </div>
           <div className="text-center py-8">
             <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
@@ -436,15 +299,10 @@ export const DashboardPage = () => {
             <p className="text-sm text-grafite font-semibold" data-testid="contributions-status">Tudo em dia!</p>
             <p className="text-xs text-gray-400 mt-1">Quotas descontadas automaticamente na folha salarial</p>
           </div>
-        </motion.div>
+        </div>
 
         {/* Active Polls */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6"
-        >
+        <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 animate-fade-up">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-grafite">Votacoes Abertas</h2>
             {activePolls.length > 0 && (
@@ -478,17 +336,12 @@ export const DashboardPage = () => {
               ))}
             </div>
           )}
-        </motion.div>
+        </div>
       </div>
 
       {/* ===== UPCOMING EVENTS (Reference table style) ===== */}
       {upcomingEvents.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden"
-        >
+        <div className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden animate-fade-up">
           <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100">
             <h2 className="text-lg font-semibold text-grafite">Proximos Eventos</h2>
             <button
@@ -500,14 +353,14 @@ export const DashboardPage = () => {
           </div>
 
           {/* Desktop: Table style */}
-          <div className="hidden sm:block">
+          <div className="hidden md:block">
             <table className="w-full">
               <thead className="bg-gray-50/80">
                 <tr>
-                  <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Evento</th>
-                  <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Data</th>
-                  <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Local</th>
-                  <th className="px-6 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Hora</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Evento</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Data</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Local</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Hora</th>
                 </tr>
               </thead>
               <tbody>
@@ -523,7 +376,7 @@ export const DashboardPage = () => {
                           <span className="font-bold text-xs text-white leading-none">
                             {format(new Date(event.date), 'dd')}
                           </span>
-                          <span className="text-[8px] text-carmesim uppercase font-bold leading-none mt-0.5">
+                          <span className="text-xs text-carmesim uppercase font-bold leading-none mt-0.5">
                             {format(new Date(event.date), 'MMM', { locale: ptBR })}
                           </span>
                         </div>
@@ -549,7 +402,7 @@ export const DashboardPage = () => {
           </div>
 
           {/* Mobile: Card style */}
-          <div className="sm:hidden divide-y divide-gray-50">
+          <div className="md:hidden divide-y divide-gray-50">
             {upcomingEvents.map((event) => (
               <button
                 key={event.id}
@@ -560,13 +413,13 @@ export const DashboardPage = () => {
                   <span className="font-bold text-sm text-white leading-none">
                     {format(new Date(event.date), 'dd')}
                   </span>
-                  <span className="text-[9px] text-carmesim uppercase font-bold leading-none mt-0.5">
+                  <span className="text-xs text-carmesim uppercase font-bold leading-none mt-0.5">
                     {format(new Date(event.date), 'MMM', { locale: ptBR })}
                   </span>
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3 className="font-semibold text-sm text-grafite truncate">{event.title}</h3>
-                  <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-1">
+                  <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-1">
                     <Clock className="w-3 h-3 flex-shrink-0" />
                     <span>{format(new Date(event.date), 'HH:mm')}</span>
                     <span className="text-gray-300 mx-0.5">|</span>
@@ -577,24 +430,19 @@ export const DashboardPage = () => {
               </button>
             ))}
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* ===== PERSONAL ACTIVITY REPORT ===== */}
       {personalReport && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden"
-          data-testid="personal-report"
-        >
+        <div className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden animate-fade-up"
+          data-testid="personal-report">
           <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100">
             <div className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-carmesim" />
               <h2 className="text-lg font-semibold text-grafite">A Minha Participacao</h2>
             </div>
-            <span className="text-[10px] text-gray-400 uppercase tracking-wider hidden sm:block">Relatorio pessoal</span>
+            <span className="text-xs text-gray-400 uppercase tracking-wider hidden sm:block">Relatorio pessoal</span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-gray-100">
@@ -662,30 +510,25 @@ export const DashboardPage = () => {
                 </div>
                 <div className="font-bold text-xl text-grafite">{item.value}</div>
                 {item.total !== null && item.total > 0 && (
-                  <div className="text-[10px] text-gray-400 font-mono mt-0.5">de {item.total}</div>
+                  <div className="text-xs text-gray-400 font-mono mt-0.5">de {item.total}</div>
                 )}
-                <div className="text-[11px] text-gray-500 mt-1">{item.label}</div>
+                <div className="text-xs text-gray-500 mt-1">{item.label}</div>
               </div>
             ))}
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* ===== ACTIVITY FEED ===== */}
       {recentActivity.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden"
-          data-testid="activity-feed"
-        >
+        <div className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden animate-fade-up"
+          data-testid="activity-feed">
           <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100">
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-carmesim" />
               <h2 className="text-lg font-semibold text-grafite">Atividade Recente</h2>
             </div>
-            <span className="text-[10px] text-gray-400 uppercase tracking-wider hidden sm:block">Ultimas atualizacoes</span>
+            <span className="text-xs text-gray-400 uppercase tracking-wider hidden sm:block">Ultimas atualizacoes</span>
           </div>
 
           <div className="divide-y divide-gray-50 max-h-[420px] overflow-y-auto">
@@ -700,7 +543,7 @@ export const DashboardPage = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm text-grafite truncate">{item.title}</span>
-                    <span className="text-[10px] text-gray-400 font-mono whitespace-nowrap">{timeAgo(item.created_at)}</span>
+                    <span className="text-xs text-gray-400 font-mono whitespace-nowrap">{timeAgo(item.created_at)}</span>
                   </div>
                   <p className="text-xs text-gray-500 truncate mt-0.5">{item.description}</p>
                 </div>
@@ -708,16 +551,12 @@ export const DashboardPage = () => {
               </button>
             ))}
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* ===== NOTIFICATIONS ===== */}
       {unreadCount > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 border-l-4 border-l-carmesim"
-        >
+        <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 border-l-4 border-l-carmesim animate-fade-up">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4 text-carmesim" />
@@ -742,13 +581,13 @@ export const DashboardPage = () => {
                 <NotifIcon type={notif.type} />
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-grafite text-xs truncate">{notif.title}</div>
-                  <div className="text-[11px] text-gray-400 truncate">{notif.message}</div>
+                  <div className="text-xs text-gray-400 truncate">{notif.message}</div>
                 </div>
                 <ArrowRight className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
               </button>
             ))}
           </div>
-        </motion.div>
+        </div>
       )}
     </div>
   );

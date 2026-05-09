@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { authAPI } from '../utils/api';
 
 const AuthContext = createContext(null);
@@ -63,7 +63,7 @@ export const AuthProvider = ({ children }) => {
     return () => window.removeEventListener('accta:force-logout', handleForceLogout);
   }, [clearAuth]);
 
-  const login = async (credentials) => {
+  const login = useCallback(async (credentials) => {
     const response = await authAPI.login(credentials);
     const { access_token, user: userData } = response.data;
 
@@ -72,19 +72,23 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
 
     return userData;
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(async () => {
+    // Revoga o JWT server-side antes de limpar localStorage. Se o backend
+    // ainda nao tiver o endpoint /auth/logout (deploy antigo) ou ja estamos
+    // sem token valido, falhar silenciosamente — o clear local e suficiente
+    // para terminar a sessao do utilizador.
+    try {
+      await authAPI.logout();
+    } catch {
+      // 404 (endpoint inexistente) / 401 (token expirado) / network error —
+      // todos aceitaveis: a UI faz logout local de qualquer forma.
+    }
     clearAuth();
-  };
+  }, [clearAuth]);
 
-  const isAuthenticated = !!user;
-  const isAdmin = user?.role === 'admin';
-  const isFinanceiro = user?.role === 'financeiro';
-  const isModerador = user?.role === 'moderador';
-  const isAtivo = user?.status === 'ativo';
-
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       const res = await authAPI.getMe();
       setUser(res.data);
@@ -92,23 +96,23 @@ export const AuthProvider = ({ children }) => {
     } catch {
       // ignore
     }
-  };
+  }, []);
+
+  const value = useMemo(() => ({
+    user,
+    loading,
+    login,
+    logout,
+    isAuthenticated: !!user,
+    isAdmin: user?.role === 'admin',
+    isFinanceiro: user?.role === 'financeiro',
+    isModerador: user?.role === 'moderador',
+    isAtivo: user?.status === 'ativo',
+    refreshUser,
+  }), [user, loading, login, logout, refreshUser]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        login,
-        logout,
-        isAuthenticated,
-        isAdmin,
-        isFinanceiro,
-        isModerador,
-        isAtivo,
-        refreshUser,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

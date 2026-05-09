@@ -58,7 +58,7 @@ export const EventosPublicoPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative py-24 bg-grafite overflow-hidden">
+      <section className="relative py-12 sm:py-20 lg:py-24 bg-grafite overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{ 
             backgroundImage: 'linear-gradient(rgba(0,255,156,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,156,0.3) 1px, transparent 1px)',
@@ -71,7 +71,7 @@ export const EventosPublicoPage = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-center"
           >
-            <span className="inline-block px-4 py-2 bg-carmesim/10 border border-accent/30 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
+            <span className="inline-block px-4 py-2 bg-carmesim/10 border border-carmesim/30 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
               Agenda
             </span>
             <h1 className="font-sans font-bold text-5xl lg:text-6xl text-white mb-6" data-testid="events-title">

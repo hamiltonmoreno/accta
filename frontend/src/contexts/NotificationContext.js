@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { toast } from 'sonner';
 import { notificationsAPI } from '../utils/api';
 import { useAuth } from './AuthContext';
 
@@ -42,7 +43,8 @@ export const NotificationProvider = ({ children }) => {
     }
   }, []);
 
-  // SSE connection for real-time notification count
+  // SSE connection for real-time notification count.
+  // Pausa SSE/polling enquanto a aba está escondida (poupa bateria + tráfego).
   useEffect(() => {
     if (!isAuthenticated) {
       if (eventSourceRef.current) {
@@ -55,45 +57,62 @@ export const NotificationProvider = ({ children }) => {
     loadNotifications();
     loadUnreadCount();
 
-    // Try SSE first
-    const token = localStorage.getItem('accta_token');
-    const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-    const sseUrl = `${BACKEND_URL}/api/notifications/stream?token=${token}`;
-
     let fallbackInterval = null;
 
-    try {
-      const es = new EventSource(sseUrl);
-      eventSourceRef.current = es;
-
-      es.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          setUnreadCount(data.count);
-        } catch { /* ignore parse errors */ }
-      };
-
-      es.onerror = () => {
-        // SSE failed — fall back to polling
-        es.close();
-        eventSourceRef.current = null;
+    const startStream = () => {
+      if (eventSourceRef.current || fallbackInterval) return;
+      const token = localStorage.getItem('accta_token');
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+      const sseUrl = `${BACKEND_URL}/api/notifications/stream?token=${token}`;
+      try {
+        const es = new EventSource(sseUrl);
+        eventSourceRef.current = es;
+        es.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            setUnreadCount(data.count);
+          } catch { /* ignore parse errors */ }
+        };
+        es.onerror = () => {
+          es.close();
+          eventSourceRef.current = null;
+          fallbackInterval = setInterval(loadUnreadCount, 30000);
+        };
+      } catch {
         fallbackInterval = setInterval(loadUnreadCount, 30000);
-      };
-    } catch {
-      // SSE not supported — use polling
-      fallbackInterval = setInterval(loadUnreadCount, 30000);
-    }
+      }
+    };
 
-    return () => {
+    const stopStream = () => {
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
-      if (fallbackInterval) clearInterval(fallbackInterval);
+      if (fallbackInterval) {
+        clearInterval(fallbackInterval);
+        fallbackInterval = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopStream();
+      } else {
+        loadUnreadCount();
+        startStream();
+      }
+    };
+
+    if (!document.hidden) startStream();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      stopStream();
     };
   }, [isAuthenticated, loadNotifications, loadUnreadCount]);
 
-  const markAsRead = async (notificationId) => {
+  const markAsRead = useCallback(async (notificationId) => {
     try {
       await notificationsAPI.markRead(notificationId);
       setNotifications((prev) =>
@@ -101,60 +120,60 @@ export const NotificationProvider = ({ children }) => {
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
-      // silent
+      toast.error('Não foi possível marcar como lida');
     }
-  };
+  }, []);
 
-  const markAllAsRead = async () => {
+  const markAllAsRead = useCallback(async () => {
     try {
       await notificationsAPI.markAllRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (error) {
-      // silent
+      toast.error('Não foi possível marcar todas como lidas');
     }
-  };
+  }, []);
 
-  const deleteNotification = async (notificationId) => {
+  const deleteNotification = useCallback(async (notificationId) => {
     try {
       await notificationsAPI.delete(notificationId);
       setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
       setTotal((prev) => prev - 1);
     } catch (error) {
-      // silent
+      toast.error('Não foi possível remover a notificação');
     }
-  };
+  }, []);
 
-  const clearReadNotifications = async () => {
+  const clearReadNotifications = useCallback(async () => {
     try {
       await notificationsAPI.clearRead();
       setNotifications((prev) => prev.filter((n) => !n.read));
       setTotal((prev) => prev - notifications.filter((n) => n.read).length);
     } catch (error) {
-      // silent
+      toast.error('Não foi possível limpar as notificações lidas');
     }
-  };
+  }, [notifications]);
 
-  const refresh = () => {
+  const refresh = useCallback(() => {
     loadNotifications();
     loadUnreadCount();
-  };
+  }, [loadNotifications, loadUnreadCount]);
+
+  const value = useMemo(() => ({
+    notifications,
+    total,
+    unreadCount,
+    loading,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    clearReadNotifications,
+    refresh,
+    loadNotifications,
+  }), [notifications, total, unreadCount, loading, markAsRead, markAllAsRead, deleteNotification, clearReadNotifications, refresh, loadNotifications]);
 
   return (
-    <NotificationContext.Provider
-      value={{
-        notifications,
-        total,
-        unreadCount,
-        loading,
-        markAsRead,
-        markAllAsRead,
-        deleteNotification,
-        clearReadNotifications,
-        refresh,
-        loadNotifications,
-      }}
-    >
+    <NotificationContext.Provider value={value}>
       {children}
     </NotificationContext.Provider>
   );

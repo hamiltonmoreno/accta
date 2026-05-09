@@ -26,7 +26,7 @@ export const PollResults = ({ poll, results }) => {
               </div>
               <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-accent rounded-full transition-all duration-500"
+                  className="h-full bg-carmesim rounded-full transition-all duration-500"
                   style={{ width: `${percent}%` }}
                 />
               </div>

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime
 from typing import List, Optional
+import re
 from models import User, UserProfileUpdate, UserAdminUpdate, CARGOS, PRIVILEGES
 from database import db
 from auth import get_current_user
@@ -11,7 +12,7 @@ router = APIRouter(tags=["users"])
 
 def parse_user_dates(u: dict):
     """Parse ISO date strings to datetime objects."""
-    for field in ['created_at', 'admission_date', 'last_login_at']:
+    for field in ["created_at", "admission_date", "last_login_at"]:
         if u.get(field) and isinstance(u[field], str):
             u[field] = datetime.fromisoformat(u[field])
 
@@ -32,10 +33,14 @@ async def get_users(
 
     query = {}
     if search:
+        # Truncar ANTES de escape — re.escape pode duplicar bytes (ex: '*' -> '\\*')
+        # e cortar a meio uma sequencia escapada deixaria backslash final = regex
+        # invalido. Cap input bruto a 100 chars (ReDoS guard) + escape.
+        safe = re.escape(search.strip()[:100])
         query["$or"] = [
-            {"name": {"$regex": search, "$options": "i"}},
-            {"email": {"$regex": search, "$options": "i"}},
-            {"member_id": {"$regex": search, "$options": "i"}},
+            {"name": {"$regex": safe, "$options": "i"}},
+            {"email": {"$regex": safe, "$options": "i"}},
+            {"member_id": {"$regex": safe, "$options": "i"}},
         ]
     if role:
         query["role"] = role
@@ -54,6 +59,12 @@ async def get_users(
 # ===== GET SINGLE USER =====
 @router.get("/users/{user_id}")
 async def get_user(user_id: str, current_user: User = Depends(get_current_user)):
+    # Self ou staff (admin/financeiro) — restantes não veem PII de terceiros
+    is_self = current_user.id == user_id
+    is_staff = current_user.role in ("admin", "financeiro")
+    if not (is_self or is_staff):
+        raise HTTPException(status_code=403, detail="Sem permissão")
+
     user_doc = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
     if not user_doc:
         raise HTTPException(status_code=404, detail="Utilizador não encontrado")
@@ -79,7 +90,12 @@ async def update_own_profile(data: UserProfileUpdate, current_user: User = Depen
 
 # ===== ADMIN UPDATE USER =====
 @router.patch("/users/{user_id}")
-async def admin_update_user(user_id: str, data: UserAdminUpdate, current_user: User = Depends(get_current_user)):
+async def admin_update_user(
+    user_id: str,
+    data: UserAdminUpdate,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Apenas administradores podem editar utilizadores")
 
@@ -92,32 +108,48 @@ async def admin_update_user(user_id: str, data: UserAdminUpdate, current_user: U
         raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
 
     # Validate cargo
-    if 'cargo' in update_data and update_data['cargo'] not in CARGOS:
+    if "cargo" in update_data and update_data["cargo"] not in CARGOS:
         raise HTTPException(status_code=400, detail=f"Cargo inválido. Opções: {', '.join(CARGOS)}")
 
     # Validate privileges
-    if 'privileges' in update_data:
-        invalid = [p for p in update_data['privileges'] if p not in PRIVILEGES]
+    if "privileges" in update_data:
+        invalid = [p for p in update_data["privileges"] if p not in PRIVILEGES]
         if invalid:
             raise HTTPException(status_code=400, detail=f"Privilégios inválidos: {', '.join(invalid)}")
 
     # Validate role
     valid_roles = ["admin", "socio", "financeiro", "moderador"]
-    if 'role' in update_data and update_data['role'] not in valid_roles:
+    if "role" in update_data and update_data["role"] not in valid_roles:
         raise HTTPException(status_code=400, detail=f"Role inválido. Opções: {', '.join(valid_roles)}")
 
     await db.users.update_one({"id": user_id}, {"$set": update_data})
 
-    changes = ", ".join([f"{k}={v}" for k, v in update_data.items()])
-    await create_audit_log(current_user.id, f"Editou utilizador {existing.get('name', user_id)}: {changes}", user_id)
+    # Audit log estruturado: details captura before/after dos campos sensiveis (role/status/privileges).
+    sensitive = {"role", "status", "privileges", "cargo"}
+    before = {k: existing.get(k) for k in update_data if k in sensitive}
+    after = {k: v for k, v in update_data.items() if k in sensitive}
+    await create_audit_log(
+        current_user.id,
+        "user_updated",
+        user_id,
+        request=request,
+        details={
+            "target_name": existing.get("name"),
+            "changes": list(update_data.keys()),
+            "before": before or None,
+            "after": after or None,
+        },
+    )
 
     # Notify user of role/cargo changes
-    notify_fields = {'role', 'cargo', 'privileges', 'status'}
+    notify_fields = {"role", "cargo", "privileges", "status"}
     if notify_fields & set(update_data.keys()):
         await create_notification(
-            user_id, "profile_updated", "Perfil Atualizado",
+            user_id,
+            "profile_updated",
+            "Perfil Atualizado",
             "O seu perfil foi atualizado por um administrador. Verifique as alterações.",
-            "/perfil"
+            "/perfil",
         )
 
     updated = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})

@@ -17,24 +17,18 @@ async def get_personal_report(current_user: User = Depends(get_current_user)):
     # Total events available
     total_events = await db.events.count_documents({"visibility": {"$in": ["publico", "socios"]}})
 
-    # Polls voted in
-    polls_voted = 0
-    polls_cursor = db.polls.find({"status": {"$in": ["aberta", "encerrada"]}}, {"_id": 0, "options": 1})
-    async for poll in polls_cursor:
-        for opt in poll.get("options", []):
-            if uid in opt.get("voters", []):
-                polls_voted += 1
-                break
+    # Polls voted in (votes guardados na coleção user_votes)
+    polls_voted = await db.user_votes.count_documents({"user_id": uid})
 
     # Total polls
     total_polls = await db.polls.count_documents({"status": {"$in": ["aberta", "encerrada"]}})
 
     # Wall posts by user
-    wall_posts = await db.wall_posts.count_documents({"user_id": uid, "status": "approved"})
+    wall_posts = await db.wall_posts.count_documents({"user_id": uid, "approved": True})
 
     # Wall likes received
     likes_received = 0
-    user_posts = db.wall_posts.find({"user_id": uid, "status": "approved"}, {"_id": 0, "likes": 1})
+    user_posts = db.wall_posts.find({"user_id": uid, "approved": True}, {"_id": 0, "likes": 1})
     async for p in user_posts:
         likes_received += len(p.get("likes", []))
 

@@ -1,12 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  Radio, 
-  Eye, 
-  Globe, 
-  Plane, 
-  Building2, 
+import {
+  Radio,
+  Eye,
+  Globe,
+  Plane,
+  Building2,
   Radar,
   GraduationCap,
   Brain,
@@ -16,6 +16,7 @@ import {
   CheckCircle,
   AlertTriangle
 } from 'lucide-react';
+import { unsplashSrcSet } from '../../utils/unsplash';
 
 export const ProfissaoPage = () => {
   return (
@@ -23,8 +24,13 @@ export const ProfissaoPage = () => {
       {/* Hero Section */}
       <section className="relative py-20 sm:py-28 overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1540962351504-03099e0a754b?q=80&w=2070&auto=format&fit=crop"
-          alt="Torre de Controlo"
+          src="https://images.unsplash.com/photo-1540962351504-03099e0a754b?q=80&w=1280&auto=format&fit=crop"
+          srcSet={unsplashSrcSet('https://images.unsplash.com/photo-1540962351504-03099e0a754b?q=80&auto=format&fit=crop')}
+          sizes="100vw"
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          decoding="async"
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
@@ -49,7 +55,7 @@ export const ProfissaoPage = () => {
       </section>
 
       {/* Introduction */}
-      <section className="py-24">
+      <section className="py-12 sm:py-20 lg:py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <motion.div
@@ -107,7 +113,7 @@ export const ProfissaoPage = () => {
       </section>
 
       {/* Types of Control */}
-      <section className="py-24 bg-white">
+      <section className="py-12 sm:py-20 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
@@ -209,7 +215,7 @@ export const ProfissaoPage = () => {
       </section>
 
       {/* How to Become */}
-      <section className="py-24 bg-gray-50">
+      <section className="py-12 sm:py-20 lg:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-start">
             <motion.div
@@ -297,7 +303,7 @@ export const ProfissaoPage = () => {
       </section>
 
       {/* FIR Sal Section */}
-      <section className="py-24 bg-grafite relative overflow-hidden">
+      <section className="py-12 sm:py-20 lg:py-24 bg-grafite relative overflow-hidden">
         <div className="absolute inset-0 opacity-20">
           <div className="absolute inset-0" style={{ 
             backgroundImage: 'radial-gradient(circle at 30% 50%, rgba(0,255,156,0.3) 0%, transparent 50%)',
@@ -311,8 +317,8 @@ export const ProfissaoPage = () => {
               viewport={{ once: true }}
             >
               <div className="relative">
-                <div className="w-80 h-80 mx-auto border-2 border-accent/30 rounded-full flex items-center justify-center">
-                  <div className="w-60 h-60 border border-accent/20 rounded-full flex items-center justify-center">
+                <div className="w-80 h-80 mx-auto border-2 border-carmesim/30 rounded-full flex items-center justify-center">
+                  <div className="w-60 h-60 border border-carmesim/20 rounded-full flex items-center justify-center">
                     <div className="w-40 h-40 bg-carmesim/10 rounded-full flex items-center justify-center">
                       <Globe className="w-20 h-20 text-carmesim" />
                     </div>
@@ -348,11 +354,11 @@ export const ProfissaoPage = () => {
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
-                  <div className="font-sans font-bold text-3xl text-carmesim mb-1">500+</div>
+                  <div className="font-sans font-bold text-3xl text-amber mb-1">500+</div>
                   <div className="text-xs text-white/60 uppercase tracking-wider">Voos/dia em média</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
-                  <div className="font-sans font-bold text-3xl text-carmesim mb-1">24/7</div>
+                  <div className="font-sans font-bold text-3xl text-amber mb-1">24/7</div>
                   <div className="text-xs text-white/60 uppercase tracking-wider">Operação contínua</div>
                 </div>
               </div>
@@ -362,7 +368,7 @@ export const ProfissaoPage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-white">
+      <section className="py-12 sm:py-20 lg:py-24 bg-white">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="font-sans font-bold text-4xl text-grafite mb-6">
             Quer conhecer a nossa associação?

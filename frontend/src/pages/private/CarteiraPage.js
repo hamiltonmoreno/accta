@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import QRCode from 'react-qr-code';
 import { CreditCard, Download, Shield, Wifi, WifiOff, Smartphone, Share2 } from 'lucide-react';
@@ -10,30 +9,22 @@ import { toast } from 'sonner';
 const OfflineBanner = ({ isOnline }) => {
   if (isOnline) return null;
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center gap-3"
-      data-testid="offline-banner"
-    >
+    <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center gap-3 animate-fade-up"
+      data-testid="offline-banner">
       <WifiOff className="w-5 h-5 text-orange-600 flex-shrink-0" />
       <div>
         <p className="text-sm font-semibold text-orange-800">Modo Offline</p>
         <p className="text-xs text-orange-600">A exibir dados guardados localmente. QR Code disponivel.</p>
       </div>
-    </motion.div>
+    </div>
   );
 };
 
 const InstallPrompt = ({ deferredPrompt, onInstall }) => {
   if (!deferredPrompt) return null;
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="card-technical rounded-xl p-5 border-2 border-dashed border-carmesim/30 bg-carmesim/5"
-      data-testid="install-prompt"
-    >
+    <div className="card-technical rounded-xl p-5 border-2 border-dashed border-carmesim/30 bg-carmesim/5 animate-fade-up"
+      data-testid="install-prompt">
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 bg-carmesim/10 rounded-xl flex items-center justify-center">
           <Smartphone className="w-6 h-6 text-carmesim" />
@@ -52,7 +43,7 @@ const InstallPrompt = ({ deferredPrompt, onInstall }) => {
           Instalar
         </button>
       </div>
-    </motion.div>
+    </div>
   );
 };
 
@@ -217,12 +208,8 @@ export const CarteiraPage = () => {
       <InstallPrompt deferredPrompt={deferredPrompt} onInstall={handleInstall} />
 
       {/* Digital Wallet Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative"
-        style={{ perspective: '1000px' }}
-      >
+      <div className="relative animate-fade-up"
+        style={{ perspective: '1000px' }}>
         <div
           className={`relative w-full cursor-pointer`}
           style={{ transformStyle: 'preserve-3d', transition: 'transform 0.7s', transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}
@@ -311,19 +298,14 @@ export const CarteiraPage = () => {
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Instructions */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="text-center"
-      >
+      <div className="text-center animate-fade-up">
         <p className="text-sm text-gray-500">
           Clique no cartao para ver o QR Code
         </p>
-      </motion.div>
+      </div>
 
       {/* Action Buttons */}
       <div className="flex gap-3 justify-center">
@@ -347,12 +329,7 @@ export const CarteiraPage = () => {
 
       {/* Features */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="card-technical rounded-xl p-5"
-        >
+        <div className="card-technical rounded-xl p-5 animate-fade-up">
           <div className="w-10 h-10 bg-grafite rounded-lg flex items-center justify-center mb-3">
             <Shield className="w-5 h-5 text-carmesim" />
           </div>
@@ -360,14 +337,9 @@ export const CarteiraPage = () => {
           <p className="text-sm text-gray-600">
             QR Code criptografado e unico
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="card-technical rounded-xl p-5"
-        >
+        <div className="card-technical rounded-xl p-5 animate-fade-up">
           <div className="w-10 h-10 bg-grafite rounded-lg flex items-center justify-center mb-3">
             <WifiOff className="w-5 h-5 text-carmesim" />
           </div>
@@ -375,14 +347,9 @@ export const CarteiraPage = () => {
           <p className="text-sm text-gray-600">
             Funciona sem ligacao a internet
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="card-technical rounded-xl p-5"
-        >
+        <div className="card-technical rounded-xl p-5 animate-fade-up">
           <div className="w-10 h-10 bg-grafite rounded-lg flex items-center justify-center mb-3">
             <Smartphone className="w-5 h-5 text-carmesim" />
           </div>
@@ -390,7 +357,7 @@ export const CarteiraPage = () => {
           <p className="text-sm text-gray-600">
             Adicione ao ecra inicial
           </p>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

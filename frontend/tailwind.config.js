@@ -41,7 +41,14 @@ module.exports = {
           foreground: "#3A3A3A",
         },
         accent: {
-          DEFAULT: "#C7202F",
+          DEFAULT: "#F5F5F5",
+          foreground: "#3A3A3A",
+        },
+        confianca: {
+          DEFAULT: "#1B2B4B",
+          light: "#2D4A7A",
+          dark: "#0F1A30",
+          50: "#EFF3FA",
           foreground: "#FFFFFF",
         },
         carmesim: {
@@ -120,11 +127,23 @@ module.exports = {
           "0%, 100%": { transform: "scale(1)", opacity: "0.5" },
           "50%": { transform: "scale(1.2)", opacity: "0" },
         },
+        // Substitutos CSS para os <motion.div initial/animate> mais comuns —
+        // permite remover framer-motion de paginas estaticas sem perder o efeito.
+        "fade-up": {
+          from: { opacity: "0", transform: "translateY(20px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "pulse-radar": "pulse-radar 2s ease-in-out infinite",
+        "fade-up": "fade-up 0.4s ease-out both",
+        "fade-in": "fade-in 0.3s ease-out both",
       },
     },
   },

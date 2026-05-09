@@ -387,6 +387,9 @@ class AuditLog(BaseModel):
     user_id: str
     action: str
     target_id: Optional[str] = None
+    ip: Optional[str] = None
+    user_agent: Optional[str] = None
+    details: Optional[dict] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { usersAPI } from '../../utils/api';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
 import {
   User as UserIcon, Mail, Phone, Shield, Award, FileText,
   Calendar, Save, BadgeCheck, Briefcase, Hash, Pencil, X
@@ -22,7 +21,7 @@ const PrivilegesSection = ({ privileges }) => {
   if (!privileges || privileges.length === 0) return null;
   
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="card-technical p-5">
+    <div className="card-technical p-5 animate-fade-up">
       <h3 className="font-semibold text-xs uppercase tracking-widest text-gray-400 mb-3">Privilégios Atribuídos</h3>
       <div className="flex flex-wrap gap-2">
         {privileges.map((p) => (
@@ -32,7 +31,7 @@ const PrivilegesSection = ({ privileges }) => {
           </span>
         ))}
       </div>
-    </motion.div>
+    </div>
   );
 };
 
@@ -40,7 +39,7 @@ const InfoRow = ({ icon: Icon, label, value }) => (
   <div className="flex items-start gap-3 py-3 border-b border-gray-50 last:border-0">
     <Icon className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
     <div className="min-w-0">
-      <span className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold block">{label}</span>
+      <span className="text-xs uppercase tracking-widest text-gray-500 font-semibold block">{label}</span>
       <span className="text-sm text-grafite font-medium" data-testid={`profile-${label.toLowerCase().replace(/\s/g, '-')}`}>{value || '—'}</span>
     </div>
   </div>
@@ -112,7 +111,7 @@ export const PerfilPage = () => {
       </div>
 
       {/* Profile Card */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card-technical overflow-hidden">
+      <div className="card-technical overflow-hidden animate-fade-up">
         {/* Banner */}
         <div className="h-20 bg-gradient-to-r from-grafite to-grafite/80 relative">
           <div className="absolute -bottom-8 left-6">
@@ -126,7 +125,7 @@ export const PerfilPage = () => {
           {/* Name + badges */}
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <h2 className="text-xl font-bold text-grafite" data-testid="profile-name">{user.name}</h2>
-            <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider ${statusColors[user.status] || 'bg-gray-100 text-gray-600'}`}>
+            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider ${statusColors[user.status] || 'bg-gray-100 text-gray-600'}`}>
               <BadgeCheck className="w-3 h-3" />
               {user.status}
             </span>
@@ -136,16 +135,17 @@ export const PerfilPage = () => {
             <p className="text-xs text-carmesim font-semibold">{user.cargo}</p>
           )}
         </div>
-      </motion.div>
+      </div>
 
       {/* Edit Form */}
       {editing && (
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card-technical p-6 space-y-4">
+        <div className="card-technical p-6 space-y-4 animate-fade-up">
           <h3 className="font-semibold text-sm text-grafite">Editar Informações</h3>
 
           <div>
-            <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">Nome</label>
+            <label htmlFor="profile-name" className="block text-xs uppercase tracking-widest text-gray-500 font-semibold mb-1">Nome</label>
             <input
+              id="profile-name"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
@@ -154,8 +154,11 @@ export const PerfilPage = () => {
           </div>
 
           <div>
-            <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">Telefone</label>
+            <label htmlFor="profile-phone" className="block text-xs uppercase tracking-widest text-gray-500 font-semibold mb-1">Telefone</label>
             <input
+              id="profile-phone"
+              type="tel"
+              inputMode="tel"
               value={form.phone_number}
               onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
               placeholder="+238 9XX XXXX"
@@ -165,8 +168,9 @@ export const PerfilPage = () => {
           </div>
 
           <div>
-            <label className="block text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">Biografia</label>
+            <label htmlFor="profile-bio" className="block text-xs uppercase tracking-widest text-gray-500 font-semibold mb-1">Biografia</label>
             <textarea
+              id="profile-bio"
               value={form.bio}
               onChange={(e) => setForm({ ...form, bio: e.target.value })}
               rows={3}
@@ -185,26 +189,26 @@ export const PerfilPage = () => {
             <Save className="w-4 h-4" />
             {loading ? 'A guardar...' : 'Guardar alterações'}
           </button>
-        </motion.div>
+        </div>
       )}
 
       {/* Details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="card-technical p-5">
+        <div className="card-technical p-5 animate-fade-up">
           <h3 className="font-semibold text-xs uppercase tracking-widest text-gray-400 mb-3">Dados Pessoais</h3>
           <InfoRow icon={Mail} label="Email" value={user.email} />
           <InfoRow icon={Phone} label="Telefone" value={user.phone_number} />
           <InfoRow icon={FileText} label="Biografia" value={user.bio} />
           <InfoRow icon={Hash} label="N.º Sócio" value={user.member_id} />
-        </motion.div>
+        </div>
 
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card-technical p-5">
+        <div className="card-technical p-5 animate-fade-up">
           <h3 className="font-semibold text-xs uppercase tracking-widest text-gray-400 mb-3">Associação</h3>
           <InfoRow icon={Shield} label="Função" value={roleLabel[user.role]} />
           <InfoRow icon={Briefcase} label="Cargo" value={user.cargo || 'Sócio'} />
           <InfoRow icon={Award} label="Licença" value={user.license_number} />
           <InfoRow icon={Calendar} label="Admissão" value={user.admission_date ? new Date(user.admission_date).toLocaleDateString('pt-PT') : '—'} />
-        </motion.div>
+        </div>
       </div>
 
       {/* Privileges */}

@@ -1,10 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  Gift, 
-  QrCode, 
-  CheckCircle, 
+import {
+  Gift,
+  QrCode,
+  CheckCircle,
   Shield,
   Building2,
   Heart,
@@ -16,6 +16,7 @@ import {
   ArrowRight,
   Mail
 } from 'lucide-react';
+import { unsplashSrcSet } from '../../utils/unsplash';
 
 export const BeneficiosPublicoPage = () => {
   const partnerCategories = [
@@ -32,8 +33,13 @@ export const BeneficiosPublicoPage = () => {
       {/* Hero Section */}
       <section className="relative py-20 sm:py-28 overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?q=80&w=2070&auto=format&fit=crop"
-          alt="Parcerias e benefícios"
+          src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?q=80&w=1280&auto=format&fit=crop"
+          srcSet={unsplashSrcSet('https://images.unsplash.com/photo-1600880292203-757bb62b4baf?q=80&auto=format&fit=crop')}
+          sizes="100vw"
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          decoding="async"
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
@@ -58,7 +64,7 @@ export const BeneficiosPublicoPage = () => {
       </section>
 
       {/* Introduction for Partners */}
-      <section className="py-24">
+      <section className="py-12 sm:py-20 lg:py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <motion.div
@@ -122,7 +128,7 @@ export const BeneficiosPublicoPage = () => {
       </section>
 
       {/* How it Works */}
-      <section className="py-24 bg-white">
+      <section className="py-12 sm:py-20 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
@@ -182,7 +188,7 @@ export const BeneficiosPublicoPage = () => {
       </section>
 
       {/* Partners Placeholder */}
-      <section className="py-24 bg-gray-50">
+      <section className="py-12 sm:py-20 lg:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-6">
@@ -217,7 +223,7 @@ export const BeneficiosPublicoPage = () => {
       </section>
 
       {/* Become a Partner CTA */}
-      <section className="py-24 bg-grafite">
+      <section className="py-12 sm:py-20 lg:py-24 bg-grafite">
         <div className="max-w-4xl mx-auto px-6">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <motion.div
@@ -257,7 +263,7 @@ export const BeneficiosPublicoPage = () => {
               </ul>
               <Link
                 to="/contactos"
-                className="inline-flex items-center gap-2 bg-carmesim text-white px-6 py-3 rounded-lg font-bold hover:bg-carmesim/90 transition-all w-full justify-center"
+                className="inline-flex items-center gap-2 bg-confianca text-white px-6 py-3 rounded-lg font-bold hover:bg-confianca-dark transition-all w-full justify-center"
               >
                 <Mail className="w-5 h-5" />
                 Contactar-nos

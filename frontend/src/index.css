@@ -27,13 +27,13 @@ html, body {
         --secondary-foreground: 0 0% 23%;
         --muted: 0 0% 96%;
         --muted-foreground: 0 0% 45%;
-        --accent: 355 73% 46%;
-        --accent-foreground: 0 0% 100%;
+        --accent: 0 0% 96%;
+        --accent-foreground: 0 0% 23%;
         --destructive: 355 73% 46%;
         --destructive-foreground: 0 0% 100%;
         --border: 0 0% 90%;
         --input: 0 0% 90%;
-        --ring: 355 73% 46%;
+        --ring: 0 0% 23%;
         --radius: 0.5rem;
         
         /* ACCTA Brand Colors */
@@ -78,7 +78,7 @@ html, body {
 
     /* Better focus states */
     *:focus-visible {
-        @apply outline-none ring-2 ring-carmesim/50 ring-offset-2;
+        @apply outline-none ring-2 ring-grafite/40 ring-offset-2;
     }
     /* Scrollbar */
     ::-webkit-scrollbar {
@@ -95,6 +95,17 @@ html, body {
         @apply bg-gray-400;
     }
 }
+
+/* ===== Z-INDEX SCALE (documented) =====
+ * 10  in-page elevation (cards on hover, sticky badges, hero overlays)
+ * 20  sticky page chrome (PrivateLayout desktop header)
+ * 30  fixed page chrome (PrivateLayout desktop sidebar, mobile header)
+ * 40  backdrop overlays (NotificationBell backdrop, mobile sidebar backdrop)
+ * 50  modals, drawers, sheets, public header (PublicLayout)
+ * 60  nested dialogs (delete confirm sobre edit modal — z-[60])
+ * 100 toasts (sonner)
+ * Não introduzir z-index arbitrários fora desta escala.
+ */
 
 @layer utilities {
     .glass-effect {

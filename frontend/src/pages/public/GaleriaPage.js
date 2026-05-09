@@ -1,10 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { galleryAPI } from '../../utils/api';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { Camera, X, ChevronLeft, ChevronRight, Images, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { unsplashSrcSet } from '../../utils/unsplash';
 
 const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
+  useBodyScrollLock(true);
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === 'Escape') onClose();
@@ -213,8 +216,11 @@ export const GaleriaPage = () => {
       {/* Hero Banner */}
       <section className="relative h-64 sm:h-80 md:h-96 flex items-center overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=2074&auto=format&fit=crop"
+          src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1280&auto=format&fit=crop"
+          srcSet={unsplashSrcSet('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&auto=format&fit=crop')}
+          sizes="100vw"
           alt="Galeria ACCTA"
+          decoding="async"
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/80 to-grafite/40" />

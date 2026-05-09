@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { galleryAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { toast } from 'sonner';
 import {
   Camera, Upload, CheckCircle, XCircle, Trash2,
@@ -16,6 +17,7 @@ import {
 
 // ===== LIGHTBOX =====
 const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
+  useBodyScrollLock(true);
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === 'Escape') onClose();
@@ -30,18 +32,18 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center" onClick={onClose} data-testid="lightbox">
-      <button onClick={onClose} className="absolute top-4 right-4 z-50 p-2 bg-white/10 hover:bg-white/20 rounded-full" data-testid="lightbox-close">
-        <X className="w-6 h-6 text-white" />
+      <button onClick={onClose} className="absolute top-4 right-4 z-50 p-2 bg-white/10 hover:bg-white/20 rounded-full" aria-label="Fechar" data-testid="lightbox-close">
+        <X className="w-6 h-6 text-white" aria-hidden="true" />
       </button>
       <div className="absolute top-4 left-4 z-50 px-3 py-1.5 bg-white/10 rounded-full text-white text-sm font-mono">{currentIndex + 1}/{photos.length}</div>
       {currentIndex > 0 && (
-        <button onClick={(e) => { e.stopPropagation(); onPrev(); }} className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 bg-white/10 hover:bg-white/20 rounded-full" data-testid="lightbox-prev">
-          <ChevronLeft className="w-6 h-6 text-white" />
+        <button onClick={(e) => { e.stopPropagation(); onPrev(); }} className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 bg-white/10 hover:bg-white/20 rounded-full" aria-label="Foto anterior" data-testid="lightbox-prev">
+          <ChevronLeft className="w-6 h-6 text-white" aria-hidden="true" />
         </button>
       )}
       {currentIndex < photos.length - 1 && (
-        <button onClick={(e) => { e.stopPropagation(); onNext(); }} className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-3 bg-white/10 hover:bg-white/20 rounded-full" data-testid="lightbox-next">
-          <ChevronRight className="w-6 h-6 text-white" />
+        <button onClick={(e) => { e.stopPropagation(); onNext(); }} className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-3 bg-white/10 hover:bg-white/20 rounded-full" aria-label="Próxima foto" data-testid="lightbox-next">
+          <ChevronRight className="w-6 h-6 text-white" aria-hidden="true" />
         </button>
       )}
       <div className="max-w-5xl max-h-[85vh] mx-4" onClick={(e) => e.stopPropagation()}>
@@ -55,6 +57,7 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
 
 // ===== UPLOAD MODAL =====
 const UploadModal = ({ albums, onClose, onUploaded }) => {
+  useBodyScrollLock(true);
   const [albumId, setAlbumId] = useState(albums[0]?.id || '');
   const [caption, setCaption] = useState('');
   const [files, setFiles] = useState([]);
@@ -82,12 +85,18 @@ const UploadModal = ({ albums, onClose, onUploaded }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="flex min-h-full items-center justify-center p-4">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
         className="rounded-xl shadow-2xl w-full max-w-md" style={{ backgroundColor: 'var(--surface-card)' }} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5" style={{ borderBottom: '1px solid var(--surface-border)' }}>
           <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Submeter Fotos</h2>
-          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100" data-testid="close-upload-modal"><X className="w-5 h-5 text-gray-400" /></button>
+          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100" aria-label="Fechar" data-testid="close-upload-modal"><X className="w-5 h-5 text-gray-400" aria-hidden="true" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
@@ -130,12 +139,14 @@ const UploadModal = ({ albums, onClose, onUploaded }) => {
           </button>
         </form>
       </motion.div>
+      </div>
     </div>
   );
 };
 
 // ===== ALBUM MODAL =====
 const AlbumModal = ({ album, onClose, onSaved }) => {
+  useBodyScrollLock(true);
   const isEdit = !!album;
   const [form, setForm] = useState({
     title: album?.title || '', description: album?.description || '',
@@ -163,12 +174,18 @@ const AlbumModal = ({ album, onClose, onSaved }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="flex min-h-full items-center justify-center p-4">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
         className="rounded-xl shadow-2xl w-full max-w-md" style={{ backgroundColor: 'var(--surface-card)' }} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5" style={{ borderBottom: '1px solid var(--surface-border)' }}>
           <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>{isEdit ? 'Editar Album' : 'Novo Album'}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100" data-testid="close-album-modal"><X className="w-5 h-5 text-gray-400" /></button>
+          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100" aria-label="Fechar" data-testid="close-album-modal"><X className="w-5 h-5 text-gray-400" aria-hidden="true" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
@@ -204,6 +221,7 @@ const AlbumModal = ({ album, onClose, onSaved }) => {
           </button>
         </form>
       </motion.div>
+      </div>
     </div>
   );
 };
@@ -252,17 +270,17 @@ const PendingPanel = ({ onAction }) => {
               <img src={photo.url} alt={photo.caption} className="w-full aspect-square object-cover" />
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                 <p className="text-white text-xs text-center px-2 truncate w-full">{photo.uploaded_by_name}</p>
-                <p className="text-white/70 text-[10px] truncate w-full text-center">{photo.album_title}</p>
+                <p className="text-white/70 text-xs truncate w-full text-center">{photo.album_title}</p>
                 <div className="flex gap-2 mt-1">
-                  <button onClick={() => handleApprove(photo.id)} className="p-2 bg-green-600 rounded-full text-white hover:bg-green-700" data-testid={`approve-photo-${photo.id}`}>
-                    <CheckCircle className="w-4 h-4" />
+                  <button onClick={() => handleApprove(photo.id)} className="p-2 bg-green-600 rounded-full text-white hover:bg-green-700" aria-label="Aprovar foto" data-testid={`approve-photo-${photo.id}`}>
+                    <CheckCircle className="w-4 h-4" aria-hidden="true" />
                   </button>
-                  <button onClick={() => handleReject(photo.id)} className="p-2 bg-carmesim rounded-full text-white hover:bg-carmesim-dark" data-testid={`reject-photo-${photo.id}`}>
-                    <XCircle className="w-4 h-4" />
+                  <button onClick={() => handleReject(photo.id)} className="p-2 bg-carmesim rounded-full text-white hover:bg-carmesim-dark" aria-label="Rejeitar foto" data-testid={`reject-photo-${photo.id}`}>
+                    <XCircle className="w-4 h-4" aria-hidden="true" />
                   </button>
                 </div>
               </div>
-              {photo.caption && <p className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] px-2 py-1 truncate">{photo.caption}</p>}
+              {photo.caption && <p className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs px-2 py-1 truncate">{photo.caption}</p>}
             </div>
           ))}
         </div>
@@ -350,7 +368,7 @@ export const GaleriaAdminPage = () => {
                 <div className="flex items-center gap-2 mb-1">
                   <h2 className="font-bold text-xl" style={{ color: 'var(--text-primary)' }}>{selectedAlbum.title}</h2>
                   {selectedAlbum.visibility === 'private' && (
-                    <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] uppercase tracking-wider rounded-full font-semibold">Privado</span>
+                    <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs uppercase tracking-wider rounded-full font-semibold">Privado</span>
                   )}
                 </div>
                 {selectedAlbum.description && <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{selectedAlbum.description}</p>}
@@ -359,12 +377,12 @@ export const GaleriaAdminPage = () => {
               {isAdmin && (
                 <div className="flex gap-2">
                   <button onClick={() => { setEditingAlbum(selectedAlbum); setShowAlbumModal(true); }}
-                    className="p-2 rounded-lg hover:bg-gray-100" style={{ color: 'var(--text-muted)' }} data-testid="edit-album-btn">
-                    <Pencil className="w-4 h-4" />
+                    className="p-2 rounded-lg hover:bg-gray-100" style={{ color: 'var(--text-muted)' }} aria-label="Editar álbum" data-testid="edit-album-btn">
+                    <Pencil className="w-4 h-4" aria-hidden="true" />
                   </button>
                   <button onClick={() => setConfirmDeleteAlbum(selectedAlbum.id)}
-                    className="p-2 rounded-lg text-gray-400 hover:text-carmesim hover:bg-carmesim/10" data-testid="delete-album-btn">
-                    <Trash2 className="w-4 h-4" />
+                    className="p-2 rounded-lg text-gray-400 hover:text-carmesim hover:bg-carmesim/10" aria-label="Apagar álbum" data-testid="delete-album-btn">
+                    <Trash2 className="w-4 h-4" aria-hidden="true" />
                   </button>
                 </div>
               )}
@@ -391,15 +409,16 @@ export const GaleriaAdminPage = () => {
                   {(isAdmin || photo.uploaded_by === undefined) && (
                     <button onClick={() => setConfirmDeletePhoto(photo.id)}
                       className="absolute top-2 right-2 p-1.5 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 text-white hover:bg-carmesim transition-all"
+                      aria-label="Apagar foto"
                       data-testid={`delete-photo-${photo.id}`}>
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-3 h-3" aria-hidden="true" />
                     </button>
                   )}
                   {photo.caption && (
                     <p className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white text-xs px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity">{photo.caption}</p>
                   )}
                   {photo.uploaded_by_name && (
-                    <span className="absolute top-2 left-2 px-2 py-0.5 bg-black/50 rounded-full text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="absolute top-2 left-2 px-2 py-0.5 bg-black/50 rounded-full text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">
                       {photo.uploaded_by_name}
                     </span>
                   )}
@@ -435,7 +454,7 @@ export const GaleriaAdminPage = () => {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <div className="absolute top-3 right-3 flex items-center gap-1.5">
                     {album.visibility === 'private' && (
-                      <span className="px-2 py-0.5 bg-black/50 rounded-full text-white text-[10px] uppercase tracking-wider font-semibold flex items-center gap-1">
+                      <span className="px-2 py-0.5 bg-black/50 rounded-full text-white text-xs uppercase tracking-wider font-semibold flex items-center gap-1">
                         <EyeOff className="w-3 h-3" /> Privado
                       </span>
                     )}

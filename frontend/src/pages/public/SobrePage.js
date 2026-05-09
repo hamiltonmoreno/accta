@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { unsplashSrcSet } from '../../utils/unsplash';
 import { 
   Shield, 
   Eye, 
@@ -22,8 +23,13 @@ export const SobrePage = () => {
       {/* Hero Section */}
       <section className="relative py-20 sm:py-28 overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2070&auto=format&fit=crop"
-          alt="Equipa ACCTA"
+          src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1280&auto=format&fit=crop"
+          srcSet={unsplashSrcSet('https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&auto=format&fit=crop')}
+          sizes="100vw"
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          decoding="async"
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
@@ -47,7 +53,7 @@ export const SobrePage = () => {
       </section>
 
       {/* Introduction */}
-      <section className="py-24">
+      <section className="py-12 sm:py-20 lg:py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <motion.div
@@ -100,7 +106,7 @@ export const SobrePage = () => {
       </section>
 
       {/* Mission, Vision, Values */}
-      <section className="py-24 bg-white">
+      <section className="py-12 sm:py-20 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
@@ -117,7 +123,7 @@ export const SobrePage = () => {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="card-technical rounded-2xl p-8 border-l-4 border-accent"
+              className="card-technical rounded-2xl p-8 border-l-4 border-carmesim"
             >
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-14 h-14 bg-carmesim rounded-xl flex items-center justify-center">
@@ -200,7 +206,7 @@ export const SobrePage = () => {
       </section>
 
       {/* Leadership / Corpos Sociais */}
-      <section className="py-24 bg-gray-50">
+      <section className="py-12 sm:py-20 lg:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-6">
@@ -246,7 +252,7 @@ export const SobrePage = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="card-technical rounded-2xl p-8 border-2 border-accent"
+              className="card-technical rounded-2xl p-8 border-2 border-carmesim"
             >
               <div className="w-16 h-16 bg-carmesim rounded-xl flex items-center justify-center mb-6">
                 <Users className="w-8 h-8 text-grafite" />
@@ -303,7 +309,7 @@ export const SobrePage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-grafite">
+      <section className="py-12 sm:py-20 lg:py-24 bg-grafite">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="font-sans font-bold text-4xl text-white mb-6">
             Quer saber mais sobre a nossa atuação?
@@ -314,7 +320,7 @@ export const SobrePage = () => {
           <div className="flex flex-wrap justify-center gap-4">
             <Link
               to="/transparencia"
-              className="inline-flex items-center gap-2 bg-carmesim text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-carmesim/90 transition-all"
+              className="inline-flex items-center gap-2 bg-confianca text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-confianca-dark transition-all"
             >
               Ver Transparência
               <ArrowRight className="w-5 h-5" />

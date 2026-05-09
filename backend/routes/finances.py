@@ -2,16 +2,32 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from datetime import datetime, timezone
 from typing import Optional
+import re
 from models import (
-    User, Transaction, TransactionCreate, TransactionUpdate,
-    FinanceSettings, FinanceSettingsUpdate,
-    TRANSACTION_TYPES, INCOME_CATEGORIES, EXPENSE_CATEGORIES
+    User,
+    Transaction,
+    TransactionCreate,
+    TransactionUpdate,
+    FinanceSettings,
+    FinanceSettingsUpdate,
+    TRANSACTION_TYPES,
+    INCOME_CATEGORIES,
+    EXPENSE_CATEGORIES,
 )
 from database import db
 from auth import get_current_user
 from helpers import create_audit_log, notify_admins, notify_all_active_users
 from fpdf import FPDF
 import io
+
+
+def _safe_search_regex(s: str) -> str:
+    """Escape regex metachars + cap length to prevent ReDoS.
+    Trunca o input bruto antes do escape — escapar primeiro e cortar depois
+    podia partir uma sequencia '\\X' a meio e produzir regex invalida.
+    """
+    return re.escape(s.strip()[:100])
+
 
 router = APIRouter(prefix="/finances", tags=["finances"])
 
@@ -29,6 +45,7 @@ def serialize_transaction(t: dict) -> dict:
 
 
 # ===== TRANSACTION ENDPOINTS =====
+
 
 @router.get("/transactions")
 async def list_transactions(
@@ -56,7 +73,7 @@ async def list_transactions(
             date_filter["$lte"] = end_date
         query["date"] = date_filter
     if search:
-        query["description"] = {"$regex": search, "$options": "i"}
+        query["description"] = {"$regex": _safe_search_regex(search), "$options": "i"}
 
     total = await db.transactions.count_documents(query)
     transactions = await db.transactions.find(query, {"_id": 0}).sort("date", -1).skip(skip).limit(limit).to_list(None)
@@ -104,11 +121,19 @@ async def create_transaction(
     t_dict["created_at"] = t_dict["created_at"].isoformat()
 
     await db.transactions.insert_one(t_dict)
-    await create_audit_log(current_user.id, f"Criou transacao {transaction.id} ({data.type}: {data.amount} CVE)", transaction.id)
+    await create_audit_log(
+        current_user.id, f"Criou transacao {transaction.id} ({data.type}: {data.amount} CVE)", transaction.id
+    )
 
     # Notify admins about new transaction (if creator is financeiro, not admin)
     tipo_label = "Receita" if data.type == "receita" else "Despesa"
-    await notify_admins("financeiro", f"Nova {tipo_label}: {data.amount:,.0f} CVE", f"{current_user.name} registou: {data.description}", "/financeiro", exclude_id=current_user.id)
+    await notify_admins(
+        "financeiro",
+        f"Nova {tipo_label}: {data.amount:,.0f} CVE",
+        f"{current_user.name} registou: {data.description}",
+        "/financeiro",
+        exclude_id=current_user.id,
+    )
 
     return transaction
 
@@ -169,6 +194,7 @@ async def delete_transaction(
 
 # ===== SUMMARY & DRE ENDPOINTS =====
 
+
 @router.get("/summary")
 async def get_financial_summary(
     year: Optional[int] = None,
@@ -189,7 +215,13 @@ async def get_financial_summary(
                 end = f"{year}-{month + 1:02d}-01T00:00:00"
         query["date"] = {"$gte": start, "$lt": end} if month else {"$gte": start, "$lte": end}
 
-    transactions = await db.transactions.find(query, {"_id": 0, "type": 1, "amount": 1, "category": 1, "description": 1, "date": 1}).limit(5000).to_list(5000)
+    transactions = (
+        await db.transactions.find(
+            query, {"_id": 0, "type": 1, "amount": 1, "category": 1, "description": 1, "date": 1}
+        )
+        .limit(5000)
+        .to_list(5000)
+    )
 
     total_receitas = sum(t["amount"] for t in transactions if t["type"] == "receita")
     total_despesas = sum(t["amount"] for t in transactions if t["type"] == "despesa")
@@ -221,9 +253,13 @@ async def get_dre_report(
 
     start = f"{year}-01-01T00:00:00"
     end = f"{year}-12-31T23:59:59"
-    transactions = await db.transactions.find(
-        {"date": {"$gte": start, "$lte": end}}, {"_id": 0, "date": 1, "type": 1, "amount": 1, "category": 1}
-    ).limit(5000).to_list(5000)
+    transactions = (
+        await db.transactions.find(
+            {"date": {"$gte": start, "$lte": end}}, {"_id": 0, "date": 1, "type": 1, "amount": 1, "category": 1}
+        )
+        .limit(5000)
+        .to_list(5000)
+    )
 
     # Monthly breakdown
     monthly = {}
@@ -262,6 +298,7 @@ async def get_dre_report(
 
 
 # ===== SETTINGS ENDPOINTS =====
+
 
 @router.get("/settings")
 async def get_finance_settings(
@@ -312,12 +349,19 @@ async def update_finance_settings(
 
     # Notify admins about settings change
     if "quota_amount" in updates:
-        await notify_admins("financeiro", "Valor da Quota Atualizado", f"{current_user.name} alterou o valor da quota mensal para {updates['quota_amount']:,.0f} CVE.", "/financeiro", exclude_id=current_user.id)
+        await notify_admins(
+            "financeiro",
+            "Valor da Quota Atualizado",
+            f"{current_user.name} alterou o valor da quota mensal para {updates['quota_amount']:,.0f} CVE.",
+            "/financeiro",
+            exclude_id=current_user.id,
+        )
 
     return {"message": "Configuracoes atualizadas"}
 
 
 # ===== GENERATE QUOTAS =====
+
 
 @router.post("/generate-quotas")
 async def generate_monthly_quotas(
@@ -335,11 +379,13 @@ async def generate_monthly_quotas(
     # Get all active members
     active_users = await db.users.find({"status": "ativo"}, {"_id": 0, "id": 1, "name": 1}).to_list(1000)
 
-    # Check which users already have quota for this month
-    date_prefix = f"{year}-{month:02d}"
+    # Check which users already have quota for this month — usar range query
+    # ($gte/$lt) em vez de $regex, melhor para o indice composto (category, date).
+    month_start = f"{year}-{month:02d}-01"
+    next_month_start = f"{year + 1}-01-01" if month == 12 else f"{year}-{month + 1:02d}-01"
     existing = await db.transactions.find(
-        {"category": "quotas", "date": {"$regex": f"^{date_prefix}"}},
-        {"_id": 0, "user_id": 1}
+        {"category": "quotas", "date": {"$gte": month_start, "$lt": next_month_start}},
+        {"_id": 0, "user_id": 1},
     ).to_list(None)
     existing_user_ids = {t["user_id"] for t in existing if t.get("user_id")}
 
@@ -365,15 +411,19 @@ async def generate_monthly_quotas(
         created_count += 1
 
     await create_audit_log(
-        current_user.id,
-        f"Gerou {created_count} quotas para {month:02d}/{year} ({quota_amount} CVE cada)"
+        current_user.id, f"Gerou {created_count} quotas para {month:02d}/{year} ({quota_amount} CVE cada)"
     )
 
     # Notify all active users that quotas were generated
     if created_count > 0:
         MONTH_NAMES_SHORT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
         mes_label = MONTH_NAMES_SHORT[month - 1]
-        await notify_all_active_users("financeiro", f"Quotas de {mes_label}/{year} Geradas", f"As quotas mensais de {mes_label}/{year} ({quota_amount:,.0f} CVE) foram geradas e serao descontadas em folha de pagamento.", "/financeiro")
+        await notify_all_active_users(
+            "financeiro",
+            f"Quotas de {mes_label}/{year} Geradas",
+            f"As quotas mensais de {mes_label}/{year} ({quota_amount:,.0f} CVE) foram geradas e serao descontadas em folha de pagamento.",
+            "/financeiro",
+        )
 
     return {
         "message": f"{created_count} quotas geradas para {month:02d}/{year}",
@@ -399,12 +449,23 @@ CATEGORY_LABELS = {
 CATEGORY_LABELS_CSV = CATEGORY_LABELS
 
 MONTH_NAMES = [
-    "Janeiro", "Fevereiro", "Marco", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+    "Janeiro",
+    "Fevereiro",
+    "Marco",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
 ]
 
 
 # ===== CSV EXPORT =====
+
 
 @router.get("/transactions/csv")
 async def export_transactions_csv(
@@ -430,24 +491,27 @@ async def export_transactions_csv(
             date_filter["$lte"] = end_date
         query["date"] = date_filter
     if search:
-        query["description"] = {"$regex": search, "$options": "i"}
+        query["description"] = {"$regex": _safe_search_regex(search), "$options": "i"}
 
     transactions = await db.transactions.find(query, {"_id": 0}).sort("date", -1).limit(5000).to_list(None)
 
     import csv
+
     buf = io.StringIO()
     writer = csv.writer(buf, delimiter=";")
     writer.writerow(["Data", "Tipo", "Categoria", "Descricao", "Valor (CVE)", "Referencia"])
     for t in transactions:
         date_str = t.get("date", "")[:10] if t.get("date") else ""
-        writer.writerow([
-            date_str,
-            "Receita" if t["type"] == "receita" else "Despesa",
-            CATEGORY_LABELS_CSV.get(t.get("category", ""), t.get("category", "")),
-            t.get("description", ""),
-            f"{t['amount']:.2f}",
-            t.get("reference", "") or "",
-        ])
+        writer.writerow(
+            [
+                date_str,
+                "Receita" if t["type"] == "receita" else "Despesa",
+                CATEGORY_LABELS_CSV.get(t.get("category", ""), t.get("category", "")),
+                t.get("description", ""),
+                f"{t['amount']:.2f}",
+                t.get("reference", "") or "",
+            ]
+        )
 
     csv_bytes = buf.getvalue().encode("utf-8-sig")
     return StreamingResponse(
@@ -459,6 +523,7 @@ async def export_transactions_csv(
 
 # ===== PDF EXPORT =====
 
+
 @router.get("/dre/pdf")
 async def export_dre_pdf(
     year: int = Query(..., description="Ano do relatorio"),
@@ -468,9 +533,9 @@ async def export_dre_pdf(
 
     start = f"{year}-01-01T00:00:00"
     end = f"{year}-12-31T23:59:59"
-    transactions = await db.transactions.find(
-        {"date": {"$gte": start, "$lte": end}}, {"_id": 0}
-    ).limit(10000).to_list(None)
+    transactions = (
+        await db.transactions.find({"date": {"$gte": start, "$lte": end}}, {"_id": 0}).limit(10000).to_list(None)
+    )
 
     monthly = {}
     for m in range(1, 13):
@@ -513,7 +578,14 @@ async def export_dre_pdf(
     pdf.set_text_color(58, 58, 58)  # Grafite
     pdf.set_y(48)
     pdf.set_font("Helvetica", "", 8)
-    pdf.cell(0, 5, f"Gerado em {datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M')} UTC", align="R", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(
+        0,
+        5,
+        f"Gerado em {datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M')} UTC",
+        align="R",
+        new_x="LMARGIN",
+        new_y="NEXT",
+    )
     pdf.ln(4)
 
     # --- Summary Box ---
@@ -586,7 +658,7 @@ async def export_dre_pdf(
     for m in range(1, 13):
         d = monthly[m]
         saldo = d["receitas"] - d["despesas"]
-        bg = (m % 2 == 0)
+        bg = m % 2 == 0
         if bg:
             pdf.set_fill_color(249, 250, 251)
         pdf.cell(col_w[0], 7, MONTH_NAMES[m - 1], border=0, fill=bg, align="C")
@@ -680,7 +752,14 @@ async def export_dre_pdf(
     # Footer
     pdf.set_font("Helvetica", "I", 7)
     pdf.set_text_color(160, 160, 160)
-    pdf.cell(0, 5, "Associacao dos Controladores de Trafego Aereo de Cabo Verde (ACCTA)", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(
+        0,
+        5,
+        "Associacao dos Controladores de Trafego Aereo de Cabo Verde (ACCTA)",
+        align="C",
+        new_x="LMARGIN",
+        new_y="NEXT",
+    )
     pdf.cell(0, 5, "Documento gerado automaticamente pelo Portal ACCTA. Nao requer assinatura.", align="C")
 
     # Output
@@ -697,6 +776,7 @@ async def export_dre_pdf(
 
 
 # ===== META ENDPOINTS =====
+
 
 @router.get("/meta/categories")
 async def get_finance_categories(current_user: User = Depends(get_current_user)):
