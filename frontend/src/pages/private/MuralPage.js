@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { wallAPI } from '../../utils/api';
 import {
@@ -88,14 +87,8 @@ const CommentSection = ({ postId, commentCount, user }) => {
         {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
       </button>
 
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
+      {expanded && (
+          <div className="overflow-hidden animate-fade-up">
             <div className="mt-3 space-y-3">
               {loading ? (
                 <div className="flex justify-center py-3">
@@ -154,10 +147,9 @@ const CommentSection = ({ postId, commentCount, user }) => {
                 </button>
               </form>
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
-    </div>
+      </div>
   );
 };
 
@@ -207,9 +199,8 @@ const PendingPostsPanel = () => {
         {expanded ? <ChevronUp className="w-5 h-5 text-orange-600" /> : <ChevronDown className="w-5 h-5 text-orange-600" />}
       </button>
 
-      <AnimatePresence>
-        {expanded && (
-          <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
+      {expanded && (
+          <div className="overflow-hidden animate-fade-up">
             <div className="p-4 space-y-4">
               {loading ? (
                 <div className="flex justify-center py-4"><div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
@@ -249,10 +240,9 @@ const PendingPostsPanel = () => {
                 ))
               )}
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
-    </div>
+      </div>
   );
 };
 
@@ -379,11 +369,7 @@ export const MuralPage = () => {
 
       {/* Create Post */}
       {isAtivo && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="card-technical rounded-xl p-5 sm:p-6"
-        >
+        <div className="card-technical rounded-xl p-5 sm:p-6 animate-fade-up">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block font-mono text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
@@ -436,7 +422,7 @@ export const MuralPage = () => {
               </div>
             </div>
           </form>
-        </motion.div>
+        </div>
       )}
 
       {/* Search + Filter Bar */}
@@ -491,14 +477,9 @@ export const MuralPage = () => {
             const likeCount = (post.likes || []).length;
 
             return (
-              <motion.div
-                key={post.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className={`card-technical rounded-xl p-5 sm:p-6 ${post.pinned ? 'border-l-4 border-l-carmesim' : ''}`}
-                data-testid={`wall-post-${post.id}`}
-              >
+              <div key={post.id}
+                className="card-technical rounded-xl p-5 sm:p-6 ${post.pinned ? 'border-l-4 border-l-carmesim' : ''} animate-fade-up"
+                data-testid={`wall-post-${post.id}`}>
                 {post.pinned && (
                   <div className="flex items-center gap-1 text-xs text-carmesim font-semibold mb-3">
                     <Pin className="w-3 h-3" /> Fixado
@@ -569,7 +550,7 @@ export const MuralPage = () => {
                     <CommentSection postId={post.id} commentCount={post.comment_count || 0} user={user} />
                   </div>
                 </div>
-              </motion.div>
+              </div>
             );
           })
         )}

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { contactAPI } from '../../utils/api';
 import {
@@ -78,11 +77,7 @@ export const ContactosPage = () => {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
         <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="max-w-2xl"
-          >
+          <div className="max-w-2xl animate-fade-up">
             <span className="inline-block px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
               Contactos
             </span>
@@ -93,7 +88,7 @@ export const ContactosPage = () => {
             <p className="text-base sm:text-xl text-white/80 max-w-xl leading-relaxed">
               Tem dúvidas sobre a associação, a profissão ou deseja propor uma parceria? Utilize os canais oficiais.
             </p>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -102,11 +97,7 @@ export const ContactosPage = () => {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16">
             {/* Contact Information */}
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
+            <div className="animate-fade-up">
               <h2 className="font-sans font-bold text-3xl text-grafite mb-8">
                 Informações de Contacto
               </h2>
@@ -173,14 +164,10 @@ export const ContactosPage = () => {
                   <p className="text-gray-500">Mapa da localização</p>
                 </div>
               </div>
-            </motion.div>
+            </div>
 
             {/* Contact Form */}
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
+            <div className="animate-fade-up">
               <div className="card-technical rounded-2xl p-8">
                 <h2 className="font-sans font-bold text-2xl text-grafite mb-2">
                   Formulário de Contacto
@@ -190,11 +177,7 @@ export const ContactosPage = () => {
                 </p>
 
                 {sent ? (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="text-center py-12"
-                  >
+                  <div className="text-center py-12 animate-fade-up">
                     <div className="w-20 h-20 bg-carmesim/10 rounded-full flex items-center justify-center mx-auto mb-6">
                       <CheckCircle className="w-10 h-10 text-carmesim" />
                     </div>
@@ -204,7 +187,7 @@ export const ContactosPage = () => {
                     <p className="text-gray-600">
                       Obrigado pelo seu contacto. Responderemos em breve.
                     </p>
-                  </motion.div>
+                  </div>
                 ) : (
                   <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Name */}
@@ -316,7 +299,7 @@ export const ContactosPage = () => {
                   </form>
                 )}
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>

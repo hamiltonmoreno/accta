@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { benefitsAPI } from '../../utils/api';
 import { Gift, MapPin, Percent, ExternalLink, Phone, Tag } from 'lucide-react';
@@ -86,11 +85,7 @@ export const BeneficiosPage = () => {
 
       {/* Info Card */}
       {isAtivo && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="card-technical rounded-xl p-6 bg-carmesim/5 border-carmesim/20"
-        >
+        <div className="card-technical rounded-xl p-6 bg-carmesim/5 border-carmesim/20 animate-fade-up">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 bg-carmesim rounded-lg flex items-center justify-center flex-shrink-0">
               <Gift className="w-6 h-6 text-grafite" />
@@ -105,7 +100,7 @@ export const BeneficiosPage = () => {
               </p>
             </div>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* Benefits Grid */}
@@ -120,14 +115,9 @@ export const BeneficiosPage = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {benefits.map((benefit, index) => (
-            <motion.div
-              key={benefit.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="card-technical rounded-xl overflow-hidden hover:shadow-xl transition-shadow"
-              data-testid={`benefit-${benefit.id}`}
-            >
+            <div key={benefit.id}
+              className="card-technical rounded-xl overflow-hidden hover:shadow-xl transition-shadow animate-fade-up"
+              data-testid={`benefit-${benefit.id}`}>
               {benefit.logo_url && (
                 <div className="h-48 bg-gray-100 flex items-center justify-center p-6">
                   <img src={benefit.logo_url} alt={benefit.name} className="max-h-full max-w-full object-contain" />
@@ -210,7 +200,7 @@ export const BeneficiosPage = () => {
                   </button>
                 )}
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       )}

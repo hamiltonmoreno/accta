@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ArrowRight } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { ACCTALogoHorizontal } from '../components/ACCTALogo';
 
 export const PublicLayout = ({ children }) => {
@@ -75,49 +74,47 @@ export const PublicLayout = ({ children }) => {
           </div>
         </nav>
 
-        {/* Mobile Menu */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-              className="lg:hidden bg-white border-t border-gray-100 overflow-hidden"
-            >
-              <div className="px-4 py-3 space-y-1">
-                {navItems.map((item) => {
-                  const isActive = item.path === '/' ? currentPath === '/' : currentPath.startsWith(item.path);
-                  return (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center justify-between py-3 px-4 rounded-lg font-medium transition-colors ${
-                        isActive
-                          ? 'text-carmesim bg-carmesim/5'
-                          : 'text-grafite hover:bg-gray-50'
-                      }`}
-                    >
-                      <span className="text-sm">{item.label}</span>
-                      {isActive && <div className="w-1.5 h-1.5 bg-carmesim rounded-full" />}
-                    </Link>
-                  );
-                })}
-                <div className="pt-2">
+        {/* Mobile Menu — CSS transitions (max-height + opacity), sem framer.
+            grid-rows-[0fr/1fr] truque permite height auto sem max-height
+            magico. Quando fechado: pointer-events-none para nao capturar clicks. */}
+        <div
+          className={`lg:hidden bg-white border-t border-gray-100 overflow-hidden grid transition-all duration-200 ${
+            mobileMenuOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+          }`}
+        >
+          <div className="overflow-hidden">
+            <div className="px-4 py-3 space-y-1">
+              {navItems.map((item) => {
+                const isActive = item.path === '/' ? currentPath === '/' : currentPath.startsWith(item.path);
+                return (
                   <Link
-                    to="/login"
+                    key={item.path}
+                    to={item.path}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 py-3 px-4 bg-confianca text-white rounded-lg font-bold uppercase tracking-wider text-sm"
+                    className={`flex items-center justify-between py-3 px-4 rounded-lg font-medium transition-colors ${
+                      isActive
+                        ? 'text-carmesim bg-carmesim/5'
+                        : 'text-grafite hover:bg-gray-50'
+                    }`}
                   >
-                    Entrar
-                    <ArrowRight className="w-4 h-4" />
+                    <span className="text-sm">{item.label}</span>
+                    {isActive && <div className="w-1.5 h-1.5 bg-carmesim rounded-full" />}
                   </Link>
-                </div>
+                );
+              })}
+              <div className="pt-2">
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 py-3 px-4 bg-confianca text-white rounded-lg font-bold uppercase tracking-wider text-sm"
+                >
+                  Entrar
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+          </div>
+        </div>
       </header>
 
       {/* Page Content */}

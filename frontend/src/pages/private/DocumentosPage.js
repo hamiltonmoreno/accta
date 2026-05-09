@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentsAPI, uploadAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -94,14 +93,9 @@ export const DocumentosPage = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredDocuments.map((doc, index) => (
-            <motion.div
-              key={doc.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className="card-technical rounded-xl p-6 hover:shadow-lg transition-shadow"
-              data-testid={`document-${doc.id}`}
-            >
+            <div key={doc.id}
+              className="card-technical rounded-xl p-6 hover:shadow-lg transition-shadow animate-fade-up"
+              data-testid={`document-${doc.id}`}>
               <div className="flex items-start gap-4 mb-4">
                 <div className="w-12 h-12 bg-grafite rounded-lg flex items-center justify-center flex-shrink-0">
                   <FileText className="w-6 h-6 text-carmesim" />
@@ -139,18 +133,16 @@ export const DocumentosPage = () => {
                 <Download className="w-4 h-4" />
                 Download
               </a>
-            </motion.div>
+            </div>
           ))}
         </div>
       )}
 
       {/* Upload Modal */}
-      <AnimatePresence>
-        {showUploadModal && (
+      {showUploadModal && (
           <UploadDocumentModal onClose={() => setShowUploadModal(false)} />
         )}
-      </AnimatePresence>
-    </div>
+      </div>
   );
 };
 
@@ -221,23 +213,13 @@ const UploadDocumentModal = ({ onClose }) => {
   return (
     <>
       {/* Backdrop */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 z-40"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 bg-black/50 z-40 animate-fade-up"
+        onClick={onClose} />
 
       {/* Modal */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="fixed inset-0 z-50 overflow-y-auto"
+      <div className="fixed inset-0 z-50 overflow-y-auto animate-fade-up"
         role="dialog"
-        aria-modal="true"
-      >
+        aria-modal="true">
         <div className="flex min-h-full items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg" data-testid="upload-modal" onClick={(e) => e.stopPropagation()}>
           {/* Header */}
@@ -387,11 +369,8 @@ const UploadDocumentModal = ({ onClose }) => {
                   <span className="font-mono text-carmesim">{uploadProgress}%</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${uploadProgress}%` }}
-                    className="h-full bg-carmesim rounded-full"
-                  />
+                  <div animate={{ width: `${uploadProgress}%` }}
+                    className="h-full bg-carmesim rounded-full animate-fade-up" />
                 </div>
               </div>
             )}
@@ -428,7 +407,7 @@ const UploadDocumentModal = ({ onClose }) => {
           </form>
         </div>
         </div>
-      </motion.div>
+      </div>
     </>
   );
 };

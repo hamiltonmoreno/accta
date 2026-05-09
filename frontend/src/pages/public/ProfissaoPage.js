@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
   Radio,
   Eye,
@@ -35,11 +34,7 @@ export const ProfissaoPage = () => {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
         <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="max-w-2xl"
-          >
+          <div className="max-w-2xl animate-fade-up">
             <span className="inline-block px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
               Educativo
             </span>
@@ -50,7 +45,7 @@ export const ProfissaoPage = () => {
             <p className="text-base sm:text-xl text-white/80 max-w-xl leading-relaxed">
               Uma profissão de raciocínio rápido, alta responsabilidade e precisão absoluta
             </p>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -58,11 +53,7 @@ export const ProfissaoPage = () => {
       <section className="py-12 sm:py-20 lg:py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
+            <div className="animate-fade-up">
               <h2 className="font-sans font-bold text-4xl text-grafite mb-8">
                 A Autoridade nos{' '}
                 <span className="text-carmesim">Céus</span>
@@ -82,13 +73,9 @@ export const ProfissaoPage = () => {
                   seja um voo doméstico ou uma aeronave cruzando o Atlântico.
                 </p>
               </div>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
+            <div className="animate-fade-up">
               <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-8 text-white">
                 <h3 className="font-sans font-bold text-2xl mb-6">Principais Responsabilidades</h3>
                 <ul className="space-y-4">
@@ -107,7 +94,7 @@ export const ProfissaoPage = () => {
                   ))}
                 </ul>
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>
@@ -129,12 +116,7 @@ export const ProfissaoPage = () => {
 
           <div className="grid md:grid-cols-3 gap-8">
             {/* TWR */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="card-technical rounded-2xl overflow-hidden"
-            >
+            <div className="card-technical rounded-2xl overflow-hidden animate-fade-up">
               <div className="h-48 bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center relative">
                 <Building2 className="w-20 h-20 text-white/30 absolute" />
                 <Eye className="w-16 h-16 text-white relative z-10" />
@@ -153,16 +135,10 @@ export const ProfissaoPage = () => {
                   <p className="text-sm text-grafite font-medium">Sal, Praia, São Vicente, Boa Vista</p>
                 </div>
               </div>
-            </motion.div>
+            </div>
 
             {/* APP */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="card-technical rounded-2xl overflow-hidden"
-            >
+            <div className="card-technical rounded-2xl overflow-hidden animate-fade-up">
               <div className="h-48 bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center relative">
                 <Radar className="w-20 h-20 text-white/30 absolute animate-spin" style={{ animationDuration: '10s' }} />
                 <Radio className="w-16 h-16 text-white relative z-10" />
@@ -181,16 +157,10 @@ export const ProfissaoPage = () => {
                   <p className="text-sm text-grafite font-medium">Radares de aproximação</p>
                 </div>
               </div>
-            </motion.div>
+            </div>
 
             {/* ACC */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="card-technical rounded-2xl overflow-hidden"
-            >
+            <div className="card-technical rounded-2xl overflow-hidden animate-fade-up">
               <div className="h-48 bg-gradient-to-br from-primary to-[#0A3A5A] flex items-center justify-center relative">
                 <Globe className="w-20 h-20 text-white/30 absolute" />
                 <Plane className="w-16 h-16 text-carmesim relative z-10 -rotate-45" />
@@ -209,7 +179,7 @@ export const ProfissaoPage = () => {
                   <p className="text-sm text-grafite font-medium">Europa ↔ América do Sul, África ↔ América do Norte</p>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>
@@ -218,11 +188,7 @@ export const ProfissaoPage = () => {
       <section className="py-12 sm:py-20 lg:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-start">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
+            <div className="animate-fade-up">
               <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-6">
                 Carreira
               </span>
@@ -248,14 +214,9 @@ export const ProfissaoPage = () => {
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="space-y-6"
-            >
+            <div className="space-y-6 animate-fade-up">
               <h3 className="font-sans font-semibold text-2xl text-grafite mb-6">Requisitos Essenciais</h3>
               
               {[
@@ -297,7 +258,7 @@ export const ProfissaoPage = () => {
                   </div>
                 </div>
               ))}
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>
@@ -311,11 +272,7 @@ export const ProfissaoPage = () => {
         </div>
         <div className="relative z-10 max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-            >
+            <div className="animate-fade-up">
               <div className="relative">
                 <div className="w-80 h-80 mx-auto border-2 border-carmesim/30 rounded-full flex items-center justify-center">
                   <div className="w-60 h-60 border border-carmesim/20 rounded-full flex items-center justify-center">
@@ -331,13 +288,9 @@ export const ProfissaoPage = () => {
                   <Plane className="w-6 h-6 text-carmesim -rotate-45" />
                 </div>
               </div>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
+            <div className="animate-fade-up">
               <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
                 Espaço Aéreo
               </span>
@@ -362,7 +315,7 @@ export const ProfissaoPage = () => {
                   <div className="text-xs text-white/60 uppercase tracking-wider">Operação contínua</div>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>

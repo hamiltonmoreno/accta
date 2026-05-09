@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Check, CheckCheck, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -61,25 +60,21 @@ export const NotificationBell = () => {
         )}
       </button>
 
-      {/* Dropdown */}
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0 z-40"
-              onClick={() => setIsOpen(false)}
-            />
+      {/* Dropdown — conditional render + animate-fade-up CSS keyframe.
+          Sem exit animation (acceptable para dropdowns), unmount imediato. */}
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setIsOpen(false)}
+          />
 
-            {/* Panel */}
-            <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className="absolute right-0 top-full mt-2 w-[400px] max-w-[90vw] bg-white rounded-xl shadow-2xl border border-gray-200 z-50"
-              data-testid="notification-panel"
-            >
+          {/* Panel */}
+          <div
+            className="absolute right-0 top-full mt-2 w-[400px] max-w-[90vw] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 animate-fade-up"
+            data-testid="notification-panel"
+          >
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                 <div>
@@ -170,10 +165,9 @@ export const NotificationBell = () => {
                   </button>
                 </div>
               )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+          </div>
+        </>
+      )}
     </div>
   );
 };

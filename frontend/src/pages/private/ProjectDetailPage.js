@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -96,8 +95,7 @@ const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
       )}
 
       {showAdd && (
-        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-          className="bg-white border border-gray-200/80 rounded-xl p-4 space-y-3">
+        <div className="bg-white border border-gray-200/80 rounded-xl p-4 space-y-3 animate-fade-up">
           <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
             placeholder="Titulo da tarefa" data-testid="task-title-input"
             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" />
@@ -123,7 +121,7 @@ const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
               {saving ? '...' : 'Adicionar'}
             </button>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {tasks.length === 0 ? (
@@ -333,8 +331,7 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
       )}
 
       {showAdd && (
-        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-          className="bg-white border border-gray-200/80 rounded-xl p-4 flex flex-wrap items-end gap-2">
+        <div className="bg-white border border-gray-200/80 rounded-xl p-4 flex flex-wrap items-end gap-2 animate-fade-up">
           <div className="flex-1 min-w-[180px]">
             <label className="text-xs text-gray-400 uppercase tracking-wider block mb-1">Descricao</label>
             <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -355,7 +352,7 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
           <button onClick={handleAdd} disabled={saving} className="btn-primary text-sm px-5" data-testid="save-expense-btn">
             {saving ? '...' : 'Adicionar'}
           </button>
-        </motion.div>
+        </div>
       )}
 
       {expenses.length === 0 ? (
@@ -445,8 +442,7 @@ const TimelineTab = ({ project, milestones, canManage, onReload }) => {
       )}
 
       {showAdd && (
-        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-          className="bg-white border border-gray-200/80 rounded-xl p-4 flex flex-wrap items-end gap-2">
+        <div className="bg-white border border-gray-200/80 rounded-xl p-4 flex flex-wrap items-end gap-2 animate-fade-up">
           <div className="flex-1 min-w-[180px]">
             <label className="text-xs text-gray-400 uppercase tracking-wider block mb-1">Titulo</label>
             <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -463,7 +459,7 @@ const TimelineTab = ({ project, milestones, canManage, onReload }) => {
           <button onClick={handleAdd} disabled={saving} className="btn-primary text-sm px-5" data-testid="save-milestone-btn">
             {saving ? '...' : 'Adicionar'}
           </button>
-        </motion.div>
+        </div>
       )}
 
       {milestones.length === 0 ? (

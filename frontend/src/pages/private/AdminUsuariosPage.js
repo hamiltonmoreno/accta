@@ -4,7 +4,6 @@ import { usersAPI, adminAPI } from '../../utils/api';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Search, Shield, BadgeCheck, Briefcase, X, Save,
   Trash2, ChevronDown, Filter, UserCog, UserPlus, Copy, Clock, Link2
@@ -324,24 +323,13 @@ export const AdminUsuariosPage = () => {
       )}
 
       {/* ===== Edit Modal ===== */}
-      <AnimatePresence>
-        {editingUser && (
+      {editingUser && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
-              onClick={() => setEditingUser(null)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed inset-0 z-50 overflow-y-auto"
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 animate-fade-up"
+              onClick={() => setEditingUser(null)} />
+            <div className="fixed inset-0 z-50 overflow-y-auto animate-fade-up"
               role="dialog"
-              aria-modal="true"
-            >
+              aria-modal="true">
               <div className="flex min-h-full items-center justify-center p-4">
               <div
                 className="bg-white rounded-xl shadow-xl w-full max-w-lg flex flex-col"
@@ -535,30 +523,17 @@ export const AdminUsuariosPage = () => {
               </div>
               </div>
               </div>
-            </motion.div>
+            </div>
           </>
         )}
-      </AnimatePresence>
-
       {/* Delete Confirm */}
-      <AnimatePresence>
-        {deleteConfirm && (
+      {deleteConfirm && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-[60]"
-              onClick={() => setDeleteConfirm(null)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed inset-0 z-[60] overflow-y-auto"
+            <div className="fixed inset-0 bg-black/50 z-[60] animate-fade-up"
+              onClick={() => setDeleteConfirm(null)} />
+            <div className="fixed inset-0 z-[60] overflow-y-auto animate-fade-up"
               role="dialog"
-              aria-modal="true"
-            >
+              aria-modal="true">
               <div className="flex min-h-full items-center justify-center p-4">
               <div
                 className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm"
@@ -584,30 +559,17 @@ export const AdminUsuariosPage = () => {
                 </div>
               </div>
               </div>
-            </motion.div>
+            </div>
           </>
         )}
-      </AnimatePresence>
-
       {/* ===== INVITE MODAL ===== */}
-      <AnimatePresence>
-        {showInviteModal && (
+      {showInviteModal && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-[60]"
-              onClick={resetInviteModal}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed inset-0 z-[60] overflow-y-auto"
+            <div className="fixed inset-0 bg-black/50 z-[60] animate-fade-up"
+              onClick={resetInviteModal} />
+            <div className="fixed inset-0 z-[60] overflow-y-auto animate-fade-up"
               role="dialog"
-              aria-modal="true"
-            >
+              aria-modal="true">
               <div className="flex min-h-full items-center justify-center p-4">
               <div
                 className="bg-white rounded-2xl shadow-xl w-full max-w-lg"
@@ -776,10 +738,9 @@ export const AdminUsuariosPage = () => {
               )}
               </div>
               </div>
-            </motion.div>
+            </div>
           </>
         )}
-      </AnimatePresence>
-    </div>
+      </div>
   );
 };

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { eventsAPI } from '../../utils/api';
 import { 
   Calendar, 
@@ -66,11 +65,7 @@ export const EventosPublicoPage = () => {
           }} />
         </div>
         <div className="relative z-10 max-w-7xl mx-auto px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center"
-          >
+          <div className="text-center animate-fade-up">
             <span className="inline-block px-4 py-2 bg-carmesim/10 border border-carmesim/30 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
               Agenda
             </span>
@@ -81,7 +76,7 @@ export const EventosPublicoPage = () => {
             <p className="text-xl text-white/80 max-w-3xl mx-auto leading-relaxed">
               Assembleias, formações, encontros e mais. Fique por dentro da agenda da associação.
             </p>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -149,14 +144,9 @@ export const EventosPublicoPage = () => {
                 const isPastEvent = isPast(eventDate);
 
                 return (
-                  <motion.div
-                    key={event.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className={`card-technical rounded-xl overflow-hidden ${isPastEvent ? 'opacity-70' : ''}`}
-                    data-testid={`event-${event.id}`}
-                  >
+                  <div key={event.id}
+                    className="card-technical rounded-xl overflow-hidden ${isPastEvent ? 'opacity-70' : ''} animate-fade-up"
+                    data-testid={`event-${event.id}`}>
                     {/* Date Header */}
                     <div className="bg-grafite px-6 py-4">
                       <div className="flex items-center justify-between">
@@ -208,7 +198,7 @@ export const EventosPublicoPage = () => {
                         </Link>
                       )}
                     </div>
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>

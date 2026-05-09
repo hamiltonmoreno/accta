@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { useMutation } from '@tanstack/react-query';
 import { financesAPI } from '../../../utils/api';
 import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
@@ -64,13 +63,9 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
       aria-modal="true"
     >
       <div className="flex min-h-full items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="rounded-xl shadow-2xl w-full max-w-md"
+      <div className="rounded-xl shadow-2xl w-full max-w-md animate-fade-up"
         style={{ backgroundColor: 'var(--surface-card)' }}
-        onClick={(e) => e.stopPropagation()}
-      >
+        onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5" style={{ borderBottom: '1px solid var(--surface-border)' }}>
           <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>{isEdit ? 'Editar Transacao' : 'Nova Transacao'}</h2>
           <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" aria-label="Fechar" data-testid="close-modal-btn"><X className="w-5 h-5" aria-hidden="true" /></button>
@@ -170,7 +165,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
             {saving ? 'A guardar...' : isEdit ? 'Atualizar' : 'Criar Transacao'}
           </button>
         </form>
-      </motion.div>
+      </div>
       </div>
     </div>
   );

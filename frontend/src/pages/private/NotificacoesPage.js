@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useMutation } from '@tanstack/react-query';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -114,14 +113,8 @@ const BroadcastPanel = ({ onSent }) => {
         <ChevronDown className={`w-5 h-5 transition-transform ${expanded ? 'rotate-180' : ''}`} style={{ color: 'var(--text-muted)' }} />
       </button>
 
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
+      {expanded && (
+          <div className="overflow-hidden animate-fade-up">
             <form onSubmit={handleSend} className="p-4 space-y-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -169,10 +162,9 @@ const BroadcastPanel = ({ onSent }) => {
                 </button>
               </div>
             </form>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
-    </div>
+      </div>
   );
 };
 
@@ -307,17 +299,12 @@ export const NotificacoesPage = () => {
             const Icon = getIcon(notification.type);
             const iconColor = getColor(notification.type);
             return (
-              <motion.div
-                key={notification.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.03 }}
+              <div key={notification.id}
                 onClick={() => handleNotificationClick(notification)}
-                className={`card-technical rounded-xl p-4 sm:p-5 cursor-pointer hover:shadow-md transition-all group ${
+                className="card-technical rounded-xl p-4 sm:p-5 cursor-pointer hover:shadow-md transition-all group ${
                   !notification.read ? 'border-l-4 border-l-carmesim' : ''
-                }`}
-                data-testid={`notification-item-${notification.id}`}
-              >
+                } animate-fade-up"
+                data-testid={`notification-item-${notification.id}`}>
                 <div className="flex items-start gap-3 sm:gap-4">
                   <div className={`w-9 h-9 sm:w-10 sm:h-10 ${iconColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
                     <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
@@ -351,7 +338,7 @@ export const NotificacoesPage = () => {
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             );
           })
         )}

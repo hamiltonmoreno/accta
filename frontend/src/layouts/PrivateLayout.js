@@ -26,7 +26,6 @@ import {
 } from 'lucide-react';
 
 const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
-import { motion, AnimatePresence } from 'framer-motion';
 
 /* ========== GROUPED MENU SECTIONS ========== */
 const menuSections = [
@@ -304,30 +303,24 @@ export const PrivateLayout = ({ children }) => {
         <SidebarInner />
       </aside>
 
-      {/* ======= Mobile Sidebar Overlay ======= */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 z-40 md:hidden backdrop-blur-sm"
-              onClick={() => setMobileOpen(false)}
-            />
-            <motion.aside
-              initial={{ x: -SIDEBAR_W }}
-              animate={{ x: 0 }}
-              exit={{ x: -SIDEBAR_W }}
-              transition={{ type: 'tween', duration: 0.28 }}
-              className="fixed left-0 top-0 bottom-0 z-50 md:hidden flex flex-col shadow-xl"
-              style={{ width: SIDEBAR_W, backgroundColor: 'var(--surface-sidebar)' }}
-            >
-              <SidebarInner isMobile />
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
+      {/* ======= Mobile Sidebar Overlay — CSS transitions, sem framer.
+          Backdrop fade + sidebar slide-in via translate-x. */}
+      <div
+        className={`fixed inset-0 bg-black/40 z-40 md:hidden backdrop-blur-sm transition-opacity duration-300 ${
+          mobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setMobileOpen(false)}
+        aria-hidden={!mobileOpen}
+      />
+      <aside
+        className={`fixed left-0 top-0 bottom-0 z-50 md:hidden flex flex-col shadow-xl transition-transform duration-300 ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+        style={{ width: SIDEBAR_W, backgroundColor: 'var(--surface-sidebar)' }}
+        aria-hidden={!mobileOpen}
+      >
+        <SidebarInner isMobile />
+      </aside>
 
       {/* ======= Main Content ======= */}
       <div className="flex-1 min-w-0">

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { eventsAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -158,14 +157,9 @@ export const EventosPage = () => {
             const isFull = event.max_attendees && event.attendees?.length >= event.max_attendees;
 
             return (
-              <motion.div
-                key={event.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className={`card-technical card-hover overflow-hidden border-l-4 ${style.border} ${isPastEvent ? 'opacity-70' : ''}`}
-                data-testid={`event-${event.id}`}
-              >
+              <div key={event.id}
+                className="card-technical card-hover overflow-hidden border-l-4 ${style.border} ${isPastEvent ? 'opacity-70' : ''} animate-fade-up"
+                data-testid={`event-${event.id}`}>
                 <div className="p-4 sm:p-6">
                   <div className="flex items-start justify-between mb-3 sm:mb-4">
                     <div className="flex items-center gap-2 sm:gap-3">
@@ -255,20 +249,17 @@ export const EventosPage = () => {
                     )}
                   </div>
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </div>
       )}
 
-      <AnimatePresence>
-        {showModal && (
+      {showModal && (
           <CreateEventModal
             onClose={() => setShowModal(false)}
           />
         )}
-      </AnimatePresence>
-
       <AlertDialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -338,21 +329,11 @@ const CreateEventModal = ({ onClose }) => {
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 z-40"
-        onClick={onClose}
-      />
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="fixed inset-0 z-50 overflow-y-auto"
+      <div className="fixed inset-0 bg-black/50 z-40 animate-fade-up"
+        onClick={onClose} />
+      <div className="fixed inset-0 z-50 overflow-y-auto animate-fade-up"
         role="dialog"
-        aria-modal="true"
-      >
+        aria-modal="true">
         <div className="flex min-h-full items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
@@ -483,7 +464,7 @@ const CreateEventModal = ({ onClose }) => {
           </form>
           </div>
         </div>
-      </motion.div>
+      </div>
     </>
   );
 };
