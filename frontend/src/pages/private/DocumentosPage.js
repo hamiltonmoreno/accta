@@ -1,8 +1,10 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentsAPI, uploadAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { queryKeys } from '../../lib/queryClient';
 import { FileText, Download, Search, Upload, X, Plus, Check, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -10,26 +12,14 @@ import { toast } from 'sonner';
 
 export const DocumentosPage = () => {
   const { isAdmin } = useAuth();
-  const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
   const [showUploadModal, setShowUploadModal] = useState(false);
 
-  useEffect(() => {
-    loadDocuments();
-  }, []);
-
-  const loadDocuments = async () => {
-    try {
-      const response = await documentsAPI.getAll();
-      setDocuments(response.data);
-    } catch (error) {
-      console.error('Erro ao carregar documentos:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: documents = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.documents.list(),
+    queryFn: async () => (await documentsAPI.getAll()).data,
+  });
 
   const filteredDocuments = documents
     .filter((doc) => filter === 'all' || doc.type === filter)
@@ -157,41 +147,60 @@ export const DocumentosPage = () => {
       {/* Upload Modal */}
       <AnimatePresence>
         {showUploadModal && (
-          <UploadDocumentModal
-            onClose={() => setShowUploadModal(false)}
-            onSuccess={() => {
-              setShowUploadModal(false);
-              loadDocuments();
-            }}
-          />
+          <UploadDocumentModal onClose={() => setShowUploadModal(false)} />
         )}
       </AnimatePresence>
     </div>
   );
 };
 
-const UploadDocumentModal = ({ onClose, onSuccess }) => {
+const UploadDocumentModal = ({ onClose }) => {
   useBodyScrollLock(true);
+  const qc = useQueryClient();
   const fileInputRef = useRef(null);
   const [title, setTitle] = useState('');
   const [type, setType] = useState('ata');
   const [visibility, setVisibility] = useState('socios');
   const [tags, setTags] = useState('');
   const [file, setFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  const uploadMutation = useMutation({
+    mutationFn: async () => {
+      setUploadProgress(20);
+      const uploadRes = await uploadAPI.uploadFile('documents', file);
+      setUploadProgress(60);
+      const documentData = {
+        title,
+        file_url: uploadRes.data.file_url,
+        type,
+        visibility,
+        tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
+      };
+      await documentsAPI.create(documentData);
+      setUploadProgress(100);
+    },
+    onSuccess: () => {
+      toast.success('Documento enviado com sucesso!');
+      qc.invalidateQueries({ queryKey: queryKeys.documents.list() });
+      onClose();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Erro ao enviar documento');
+    },
+  });
+
+  const uploading = uploadMutation.isPending;
 
   const handleFileSelect = (e) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      // Validate file type
       const allowedTypes = ['.pdf', '.doc', '.docx'];
       const ext = '.' + selectedFile.name.split('.').pop().toLowerCase();
       if (!allowedTypes.includes(ext)) {
         toast.error('Tipo de arquivo não permitido. Use PDF, DOC ou DOCX.');
         return;
       }
-      // Validate size (10MB)
       if (selectedFile.size > 10 * 1024 * 1024) {
         toast.error('Arquivo muito grande. Máximo 10MB.');
         return;
@@ -200,42 +209,13 @@ const UploadDocumentModal = ({ onClose, onSuccess }) => {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    
     if (!title || !file) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
     }
-
-    setUploading(true);
-    setUploadProgress(20);
-
-    try {
-      // 1. Upload the file
-      const uploadResponse = await uploadAPI.uploadFile('documents', file);
-      setUploadProgress(60);
-      
-      // 2. Create the document entry
-      const documentData = {
-        title,
-        file_url: uploadResponse.data.file_url,
-        type,
-        visibility,
-        tags: tags.split(',').map(t => t.trim()).filter(Boolean),
-      };
-      
-      await documentsAPI.create(documentData);
-      setUploadProgress(100);
-      
-      toast.success('Documento enviado com sucesso!');
-      onSuccess();
-    } catch (error) {
-      console.error('Erro ao enviar documento:', error);
-      toast.error(error.response?.data?.detail || 'Erro ao enviar documento');
-    } finally {
-      setUploading(false);
-    }
+    uploadMutation.mutate();
   };
 
   return (
