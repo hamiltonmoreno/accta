@@ -1,11 +1,13 @@
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { Toaster } from './components/ui/sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PublicLayout } from './layouts/PublicLayout';
 import { PrivateLayout } from './layouts/PrivateLayout';
+import { queryClient } from './lib/queryClient';
 // Public pages — kept eager: small, fast TTI matters for landing pages.
 import { HomePage } from './pages/public/HomePage';
 import { LoginPage } from './pages/public/LoginPage';
@@ -229,18 +231,22 @@ function AppRoutes() {
 }
 
 function App() {
+  // QueryClientProvider envolve tudo: AuthContext.useEffect (validateSession)
+  // pode usar useQuery no futuro; NotificationContext idem.
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <NotificationProvider>
-          <BrowserRouter>
-            <div className="App">
-              <AppRoutes />
-              <Toaster position="top-right" richColors />
-            </div>
-          </BrowserRouter>
-        </NotificationProvider>
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <NotificationProvider>
+            <BrowserRouter>
+              <div className="App">
+                <AppRoutes />
+                <Toaster position="top-right" richColors />
+              </div>
+            </BrowserRouter>
+          </NotificationProvider>
+        </AuthProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 }
