@@ -93,6 +93,7 @@ export const queryKeys = {
   gallery: {
     albums: () => ['gallery', 'albums'],
     photos: (albumId) => ['gallery', 'photos', albumId],
+    pending: () => ['gallery', 'pending'],
   },
   projects: {
     list: () => ['projects'],

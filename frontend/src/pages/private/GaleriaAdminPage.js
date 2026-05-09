@@ -1,8 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { galleryAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
 import {
   Camera, Upload, CheckCircle, XCircle, Trash2,
@@ -56,32 +58,45 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
 };
 
 // ===== UPLOAD MODAL =====
-const UploadModal = ({ albums, onClose, onUploaded }) => {
+const UploadModal = ({ albums, onClose }) => {
   useBodyScrollLock(true);
+  const qc = useQueryClient();
   const [albumId, setAlbumId] = useState(albums[0]?.id || '');
   const [caption, setCaption] = useState('');
   const [files, setFiles] = useState([]);
-  const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  const handleSubmit = async (e) => {
+  // Multi-file upload em sequencia — TanStack mutationFn pode ser async loop.
+  const uploadMutation = useMutation({
+    mutationFn: async () => {
+      let uploaded = 0;
+      for (const file of files) {
+        try {
+          await galleryAPI.uploadPhoto(albumId, file, caption);
+          uploaded++;
+          setProgress(Math.round((uploaded / files.length) * 100));
+        } catch (err) {
+          toast.error(`Erro ao enviar ${file.name}: ${err.response?.data?.detail || 'Erro'}`);
+        }
+      }
+      return uploaded;
+    },
+    onSuccess: (uploaded) => {
+      toast.success(`${uploaded} foto${uploaded > 1 ? 's' : ''} enviada${uploaded > 1 ? 's' : ''}!`);
+      // Fotos sao moderadas — invalida pending; tambem as photos do album
+      // alvo (quando admin auto-aprovado).
+      qc.invalidateQueries({ queryKey: queryKeys.gallery.pending() });
+      qc.invalidateQueries({ queryKey: queryKeys.gallery.photos(albumId) });
+      onClose();
+    },
+  });
+
+  const uploading = uploadMutation.isPending;
+
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!albumId || files.length === 0) { toast.error('Selecione um album e pelo menos uma foto'); return; }
-    setUploading(true);
-    let uploaded = 0;
-    for (const file of files) {
-      try {
-        await galleryAPI.uploadPhoto(albumId, file, caption);
-        uploaded++;
-        setProgress(Math.round((uploaded / files.length) * 100));
-      } catch (err) {
-        toast.error(`Erro ao enviar ${file.name}: ${err.response?.data?.detail || 'Erro'}`);
-      }
-    }
-    toast.success(`${uploaded} foto${uploaded > 1 ? 's' : ''} enviada${uploaded > 1 ? 's' : ''}!`);
-    setUploading(false);
-    onUploaded();
-    onClose();
+    uploadMutation.mutate();
   };
 
   return (
@@ -145,32 +160,32 @@ const UploadModal = ({ albums, onClose, onUploaded }) => {
 };
 
 // ===== ALBUM MODAL =====
-const AlbumModal = ({ album, onClose, onSaved }) => {
+const AlbumModal = ({ album, onClose }) => {
   useBodyScrollLock(true);
   const isEdit = !!album;
+  const qc = useQueryClient();
   const [form, setForm] = useState({
     title: album?.title || '', description: album?.description || '',
     visibility: album?.visibility || 'public', order: album?.order || 0,
   });
-  const [saving, setSaving] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const saveMutation = useMutation({
+    mutationFn: (data) =>
+      isEdit ? galleryAPI.updateAlbum(album.id, data) : galleryAPI.createAlbum(data),
+    onSuccess: () => {
+      toast.success(isEdit ? 'Album atualizado' : 'Album criado');
+      qc.invalidateQueries({ queryKey: queryKeys.gallery.albums() });
+      onClose();
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro'),
+  });
+
+  const saving = saveMutation.isPending;
+
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!form.title.trim()) { toast.error('Titulo e obrigatorio'); return; }
-    setSaving(true);
-    try {
-      if (isEdit) {
-        await galleryAPI.updateAlbum(album.id, form);
-        toast.success('Album atualizado');
-      } else {
-        await galleryAPI.createAlbum(form);
-        toast.success('Album criado');
-      }
-      onSaved();
-      onClose();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro');
-    } finally { setSaving(false); }
+    saveMutation.mutate(form);
   };
 
   return (
@@ -227,26 +242,36 @@ const AlbumModal = ({ album, onClose, onSaved }) => {
 };
 
 // ===== PENDING PHOTOS PANEL =====
-const PendingPanel = ({ onAction }) => {
-  const [pending, setPending] = useState([]);
-  const [loading, setLoading] = useState(true);
+const PendingPanel = () => {
+  const qc = useQueryClient();
 
-  const load = useCallback(async () => {
-    try {
-      const res = await galleryAPI.getPending();
-      setPending(res.data);
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
-  }, []);
+  const { data: pending = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.gallery.pending(),
+    queryFn: async () => (await galleryAPI.getPending()).data,
+  });
 
-  useEffect(() => { load(); }, [load]);
+  const approveMutation = useMutation({
+    mutationFn: (photoId) => galleryAPI.approvePhoto(photoId),
+    onSuccess: () => {
+      toast.success('Foto aprovada!');
+      qc.invalidateQueries({ queryKey: queryKeys.gallery.pending() });
+      // Foto aprovada vai entrar em ['gallery', 'photos', albumId] — invalida tudo.
+      qc.invalidateQueries({ queryKey: ['gallery'] });
+    },
+    onError: () => toast.error('Erro'),
+  });
 
-  const handleApprove = async (photoId) => {
-    try { await galleryAPI.approvePhoto(photoId); toast.success('Foto aprovada!'); load(); onAction(); } catch { toast.error('Erro'); }
-  };
-  const handleReject = async (photoId) => {
-    try { await galleryAPI.rejectPhoto(photoId); toast.success('Foto rejeitada'); load(); onAction(); } catch { toast.error('Erro'); }
-  };
+  const rejectMutation = useMutation({
+    mutationFn: (photoId) => galleryAPI.rejectPhoto(photoId),
+    onSuccess: () => {
+      toast.success('Foto rejeitada');
+      qc.invalidateQueries({ queryKey: queryKeys.gallery.pending() });
+    },
+    onError: () => toast.error('Erro'),
+  });
+
+  const handleApprove = (photoId) => approveMutation.mutate(photoId);
+  const handleReject = (photoId) => rejectMutation.mutate(photoId);
 
   if (!loading && pending.length === 0) return null;
 
@@ -292,10 +317,8 @@ const PendingPanel = ({ onAction }) => {
 // ===== MAIN PAGE =====
 export const GaleriaAdminPage = () => {
   const { isAdmin } = useAuth();
-  const [albums, setAlbums] = useState([]);
+  const qc = useQueryClient();
   const [selectedAlbum, setSelectedAlbum] = useState(null);
-  const [photos, setPhotos] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [lightboxIndex, setLightboxIndex] = useState(-1);
   const [showUpload, setShowUpload] = useState(false);
   const [showAlbumModal, setShowAlbumModal] = useState(false);
@@ -303,33 +326,47 @@ export const GaleriaAdminPage = () => {
   const [confirmDeleteAlbum, setConfirmDeleteAlbum] = useState(null);
   const [confirmDeletePhoto, setConfirmDeletePhoto] = useState(null);
 
-  const loadAlbums = useCallback(async () => {
-    try {
-      const res = await galleryAPI.getAlbums();
-      setAlbums(res.data);
-    } catch { toast.error('Erro ao carregar albuns'); }
-    finally { setLoading(false); }
-  }, []);
+  const albumsQuery = useQuery({
+    queryKey: queryKeys.gallery.albums(),
+    queryFn: async () => (await galleryAPI.getAlbums()).data,
+  });
 
-  useEffect(() => { loadAlbums(); }, [loadAlbums]);
+  // Photos do album selecionado — enabled apenas quando ha album escolhido.
+  const photosQuery = useQuery({
+    queryKey: selectedAlbum ? queryKeys.gallery.photos(selectedAlbum.id) : ['gallery', 'photos', null],
+    queryFn: async () => (await galleryAPI.getPhotos(selectedAlbum.id)).data,
+    enabled: !!selectedAlbum,
+  });
 
-  const openAlbum = async (album) => {
-    setSelectedAlbum(album);
-    setLoading(true);
-    try {
-      const res = await galleryAPI.getPhotos(album.id);
-      setPhotos(res.data);
-    } catch { toast.error('Erro ao carregar fotos'); }
-    finally { setLoading(false); }
-  };
+  const albums = albumsQuery.data || [];
+  const photos = photosQuery.data || [];
+  const loading = albumsQuery.isLoading || (!!selectedAlbum && photosQuery.isLoading);
 
-  const handleDeleteAlbum = async (albumId) => {
-    try { await galleryAPI.deleteAlbum(albumId); toast.success('Album removido'); loadAlbums(); setSelectedAlbum(null); } catch { toast.error('Erro'); }
-  };
+  const openAlbum = (album) => setSelectedAlbum(album);
 
-  const handleDeletePhoto = async (photoId) => {
-    try { await galleryAPI.deletePhoto(photoId); toast.success('Foto removida'); openAlbum(selectedAlbum); } catch { toast.error('Erro'); }
-  };
+  const deleteAlbumMutation = useMutation({
+    mutationFn: (albumId) => galleryAPI.deleteAlbum(albumId),
+    onSuccess: () => {
+      toast.success('Album removido');
+      qc.invalidateQueries({ queryKey: queryKeys.gallery.albums() });
+      setSelectedAlbum(null);
+    },
+    onError: () => toast.error('Erro'),
+  });
+
+  const deletePhotoMutation = useMutation({
+    mutationFn: (photoId) => galleryAPI.deletePhoto(photoId),
+    onSuccess: () => {
+      toast.success('Foto removida');
+      if (selectedAlbum) {
+        qc.invalidateQueries({ queryKey: queryKeys.gallery.photos(selectedAlbum.id) });
+      }
+    },
+    onError: () => toast.error('Erro'),
+  });
+
+  const handleDeleteAlbum = (albumId) => deleteAlbumMutation.mutate(albumId);
+  const handleDeletePhoto = (photoId) => deletePhotoMutation.mutate(photoId);
 
   return (
     <div className="space-y-6">
@@ -352,12 +389,12 @@ export const GaleriaAdminPage = () => {
       </div>
 
       {/* Pending Photos (Admin) */}
-      {isAdmin && <PendingPanel onAction={() => { loadAlbums(); if (selectedAlbum) openAlbum(selectedAlbum); }} />}
+      {isAdmin && <PendingPanel />}
 
       {/* Selected Album View */}
       {selectedAlbum ? (
         <div>
-          <button onClick={() => { setSelectedAlbum(null); setPhotos([]); }}
+          <button onClick={() => setSelectedAlbum(null)}
             className="flex items-center gap-2 text-sm mb-4" style={{ color: 'var(--text-muted)' }} data-testid="back-to-albums">
             <ChevronLeft className="w-4 h-4" /> Voltar aos albuns
           </button>
@@ -479,8 +516,8 @@ export const GaleriaAdminPage = () => {
       )}
 
       {/* Modals */}
-      {showUpload && albums.length > 0 && <UploadModal albums={albums} onClose={() => setShowUpload(false)} onUploaded={() => { loadAlbums(); if (selectedAlbum) openAlbum(selectedAlbum); }} />}
-      {showAlbumModal && <AlbumModal album={editingAlbum} onClose={() => { setShowAlbumModal(false); setEditingAlbum(null); }} onSaved={loadAlbums} />}
+      {showUpload && albums.length > 0 && <UploadModal albums={albums} onClose={() => setShowUpload(false)} />}
+      {showAlbumModal && <AlbumModal album={editingAlbum} onClose={() => { setShowAlbumModal(false); setEditingAlbum(null); }} />}
 
       {/* Lightbox */}
       <AnimatePresence>
