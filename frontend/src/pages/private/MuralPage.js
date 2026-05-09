@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { wallAPI } from '../../utils/api';
 import {
   MessageSquare, Send, Heart, MessageCircle, Pin, Trash2,
@@ -8,6 +9,7 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '../../contexts/AuthContext';
+import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -34,59 +36,49 @@ const getCategoryLabel = (cat) => {
 };
 
 const CommentSection = ({ postId, commentCount, user }) => {
-  const [comments, setComments] = useState([]);
+  const qc = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [newComment, setNewComment] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
 
-  const loadComments = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await wallAPI.getComments(postId);
-      setComments(res.data);
-    } catch (err) {
-      console.error('Erro ao carregar comentarios:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [postId]);
+  const { data: comments = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.wall.comments(postId),
+    queryFn: async () => (await wallAPI.getComments(postId)).data,
+    enabled: expanded, // lazy: so carrega quando expandido
+  });
 
-  const toggleExpand = () => {
-    if (!expanded) loadComments();
-    setExpanded(prev => !prev);
-  };
+  const createMutation = useMutation({
+    mutationFn: (content) => wallAPI.createComment(postId, { content }),
+    onSuccess: () => {
+      setNewComment('');
+      qc.invalidateQueries({ queryKey: queryKeys.wall.comments(postId) });
+      toast.success('Comentario publicado!');
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.detail || 'Erro ao comentar');
+    },
+  });
 
-  const handleSubmitComment = async (e) => {
+  const deleteMutation = useMutation({
+    mutationFn: (commentId) => wallAPI.deleteComment(postId, commentId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.wall.comments(postId) });
+      toast.success('Comentario removido');
+    },
+    onError: () => toast.error('Erro ao remover comentario'),
+  });
+
+  const submitting = createMutation.isPending;
+
+  const handleSubmitComment = (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
-    setSubmitting(true);
-    try {
-      await wallAPI.createComment(postId, { content: newComment });
-      setNewComment('');
-      loadComments();
-      toast.success('Comentario publicado!');
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro ao comentar');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDeleteComment = async (commentId) => {
-    try {
-      await wallAPI.deleteComment(postId, commentId);
-      loadComments();
-      toast.success('Comentario removido');
-    } catch (err) {
-      toast.error('Erro ao remover comentario');
-    }
+    createMutation.mutate(newComment);
   };
 
   return (
     <div className="mt-4 pt-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
       <button
-        onClick={toggleExpand}
+        onClick={() => setExpanded((p) => !p)}
         className="flex items-center gap-2 text-sm transition-colors"
         style={{ color: 'var(--text-muted)' }}
         data-testid={`toggle-comments-${postId}`}
@@ -127,7 +119,7 @@ const CommentSection = ({ postId, commentCount, user }) => {
                           </span>
                           {(user?.role === 'admin' || user?.role === 'moderador' || user?.id === comment.user_id) && (
                             <button
-                              onClick={() => handleDeleteComment(comment.id)}
+                              onClick={() => deleteMutation.mutate(comment.id)}
                               className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-carmesim transition-all"
                               aria-label="Apagar comentário"
                               data-testid={`delete-comment-${comment.id}`}
@@ -169,44 +161,34 @@ const CommentSection = ({ postId, commentCount, user }) => {
   );
 };
 
-const PendingPostsPanel = ({ onApproved }) => {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
+const PendingPostsPanel = () => {
+  const qc = useQueryClient();
   const [expanded, setExpanded] = useState(false);
 
-  const loadPending = useCallback(async () => {
-    try {
-      const res = await wallAPI.getPending();
-      setPosts(res.data);
-    } catch (err) {
-      console.error('Erro ao carregar posts pendentes:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data: posts = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.wall.pending(),
+    queryFn: async () => (await wallAPI.getPending()).data,
+  });
 
-  useEffect(() => { loadPending(); }, [loadPending]);
-
-  const handleApprove = async (postId) => {
-    try {
-      await wallAPI.approve(postId);
+  const approveMutation = useMutation({
+    mutationFn: (postId) => wallAPI.approve(postId),
+    onSuccess: () => {
       toast.success('Post aprovado!');
-      loadPending();
-      onApproved();
-    } catch (err) {
-      toast.error('Erro ao aprovar post');
-    }
-  };
+      qc.invalidateQueries({ queryKey: queryKeys.wall.pending() });
+      // Invalidate todas as listas (qualquer categoria) para o post aprovado aparecer.
+      qc.invalidateQueries({ queryKey: ['wall'], predicate: (q) => q.queryKey[1] !== 'pending' });
+    },
+    onError: () => toast.error('Erro ao aprovar post'),
+  });
 
-  const handleReject = async (postId) => {
-    try {
-      await wallAPI.delete(postId);
+  const rejectMutation = useMutation({
+    mutationFn: (postId) => wallAPI.delete(postId),
+    onSuccess: () => {
       toast.success('Post rejeitado e removido');
-      loadPending();
-    } catch (err) {
-      toast.error('Erro ao rejeitar post');
-    }
-  };
+      qc.invalidateQueries({ queryKey: queryKeys.wall.pending() });
+    },
+    onError: () => toast.error('Erro ao rejeitar post'),
+  });
 
   if (posts.length === 0 && !loading) return null;
 
@@ -252,12 +234,12 @@ const PendingPostsPanel = ({ onApproved }) => {
                     </div>
                     <p className="text-sm mb-3 whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>{post.content}</p>
                     <div className="flex gap-2 justify-end">
-                      <button onClick={() => handleReject(post.id)}
+                      <button onClick={() => rejectMutation.mutate(post.id)}
                         className="flex items-center gap-1 px-3 py-1.5 text-sm text-carmesim border border-carmesim/30 rounded-lg hover:bg-carmesim/10 transition-colors"
                         data-testid={`reject-post-${post.id}`}>
                         <XCircle className="w-4 h-4" /> Rejeitar
                       </button>
-                      <button onClick={() => handleApprove(post.id)}
+                      <button onClick={() => approveMutation.mutate(post.id)}
                         className="flex items-center gap-1 px-3 py-1.5 text-sm text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
                         data-testid={`approve-post-${post.id}`}>
                         <CheckCircle className="w-4 h-4" /> Aprovar
@@ -276,88 +258,97 @@ const PendingPostsPanel = ({ onApproved }) => {
 
 export const MuralPage = () => {
   const { user, isAtivo, isAdmin, isModerador } = useAuth();
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
   const [newPost, setNewPost] = useState('');
   const [category, setCategory] = useState('geral');
   const [filterCategory, setFilterCategory] = useState('todos');
   const [searchText, setSearchText] = useState('');
-  const [posting, setPosting] = useState(false);
   const canModerate = isAdmin || isModerador;
   const [confirmDeletePost, setConfirmDeletePost] = useState(null);
 
-  const loadPosts = useCallback(async () => {
-    try {
-      const response = await wallAPI.getPosts(filterCategory !== 'todos' ? filterCategory : undefined);
-      setPosts(response.data);
-    } catch (error) {
-      console.error('Erro ao carregar posts:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [filterCategory]);
+  const wallListKey = queryKeys.wall.list(filterCategory !== 'todos' ? filterCategory : undefined);
 
-  useEffect(() => { loadPosts(); }, [loadPosts]);
+  const { data: posts = [], isLoading: loading } = useQuery({
+    queryKey: wallListKey,
+    queryFn: async () => {
+      const res = await wallAPI.getPosts(filterCategory !== 'todos' ? filterCategory : undefined);
+      return res.data;
+    },
+  });
 
   const filteredPosts = searchText
-    ? posts.filter(p =>
+    ? posts.filter((p) =>
         p.content?.toLowerCase().includes(searchText.toLowerCase()) ||
         p.user_name?.toLowerCase().includes(searchText.toLowerCase())
       )
     : posts;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!newPost.trim()) return;
-    setPosting(true);
-    try {
-      await wallAPI.create({ content: newPost, category });
+  const createMutation = useMutation({
+    mutationFn: (data) => wallAPI.create(data),
+    onSuccess: () => {
       const isAutoApproved = canModerate;
       toast.success(isAutoApproved ? 'Post publicado!' : 'Post enviado para aprovacao!');
       setNewPost('');
       setCategory('geral');
-      loadPosts();
-    } catch (error) {
+      // Auto-approved → invalida lista. Caso contrario, vai para pending.
+      if (isAutoApproved) qc.invalidateQueries({ queryKey: ['wall'], predicate: (q) => q.queryKey[1] !== 'pending' });
+      else qc.invalidateQueries({ queryKey: queryKeys.wall.pending() });
+    },
+    onError: (error) => {
       toast.error(error.response?.data?.detail || 'Erro ao criar post');
-    } finally {
-      setPosting(false);
-    }
-  };
+    },
+  });
 
-  const handleLike = async (postId) => {
-    try {
-      const res = await wallAPI.like(postId);
-      setPosts(prev => prev.map(p =>
-        p.id === postId ? {
-          ...p,
-          likes: res.data.liked
-            ? [...(p.likes || []), user.id]
-            : (p.likes || []).filter(id => id !== user.id)
-        } : p
-      ));
-    } catch (err) {
+  // Optimistic update para like — feedback instantaneo, rollback em caso de erro.
+  const likeMutation = useMutation({
+    mutationFn: (postId) => wallAPI.like(postId),
+    onMutate: async (postId) => {
+      await qc.cancelQueries({ queryKey: wallListKey });
+      const previous = qc.getQueryData(wallListKey);
+      qc.setQueryData(wallListKey, (old = []) =>
+        old.map((p) => {
+          if (p.id !== postId) return p;
+          const isLiked = (p.likes || []).includes(user.id);
+          return {
+            ...p,
+            likes: isLiked
+              ? (p.likes || []).filter((id) => id !== user.id)
+              : [...(p.likes || []), user.id],
+          };
+        }),
+      );
+      return { previous };
+    },
+    onError: (_err, _postId, context) => {
+      if (context?.previous) qc.setQueryData(wallListKey, context.previous);
       toast.error('Erro ao reagir ao post');
-    }
-  };
+    },
+  });
 
-  const handlePin = async (postId) => {
-    try {
-      const res = await wallAPI.pin(postId);
+  const pinMutation = useMutation({
+    mutationFn: (postId) => wallAPI.pin(postId),
+    onSuccess: (res) => {
       toast.success(res.data.message);
-      loadPosts();
-    } catch (err) {
-      toast.error('Erro ao fixar post');
-    }
-  };
+      qc.invalidateQueries({ queryKey: ['wall'], predicate: (q) => q.queryKey[1] !== 'pending' });
+    },
+    onError: () => toast.error('Erro ao fixar post'),
+  });
 
-  const handleDelete = async (postId) => {
-    try {
-      await wallAPI.delete(postId);
+  const deleteMutation = useMutation({
+    mutationFn: (postId) => wallAPI.delete(postId),
+    onSuccess: () => {
       toast.success('Post removido');
-      loadPosts();
-    } catch (err) {
-      toast.error('Erro ao remover post');
-    }
+      qc.invalidateQueries({ queryKey: ['wall'], predicate: (q) => q.queryKey[1] !== 'pending' });
+    },
+    onError: () => toast.error('Erro ao remover post'),
+  });
+
+  const posting = createMutation.isPending;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!newPost.trim()) return;
+    createMutation.mutate({ content: newPost, category });
   };
 
   return (
@@ -384,7 +375,7 @@ export const MuralPage = () => {
       )}
 
       {/* Pending Posts Panel */}
-      {canModerate && <PendingPostsPanel onApproved={loadPosts} />}
+      {canModerate && <PendingPostsPanel />}
 
       {/* Create Post */}
       {isAtivo && (
@@ -536,7 +527,7 @@ export const MuralPage = () => {
                         <div className="flex items-center gap-1">
                           {canModerate && (
                             <button
-                              onClick={() => handlePin(post.id)}
+                              onClick={() => pinMutation.mutate(post.id)}
                               className={`p-1.5 rounded-lg transition-colors ${post.pinned ? 'text-carmesim bg-carmesim/10' : 'text-gray-400 hover:text-carmesim hover:bg-carmesim/10'}`}
                               title={post.pinned ? 'Desfixar' : 'Fixar'}
                               aria-label={post.pinned ? 'Desfixar post' : 'Fixar post'}
@@ -562,7 +553,7 @@ export const MuralPage = () => {
 
                     <div className="flex items-center gap-4 mt-4">
                       <button
-                        onClick={() => handleLike(post.id)}
+                        onClick={() => likeMutation.mutate(post.id)}
                         className={`flex items-center gap-1.5 text-sm transition-colors ${
                           isLiked ? 'text-carmesim font-semibold' : 'hover:text-carmesim'
                         }`}
@@ -596,7 +587,7 @@ export const MuralPage = () => {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-red-600 hover:bg-red-700"
-              onClick={() => { handleDelete(confirmDeletePost); setConfirmDeletePost(null); }}
+              onClick={() => { deleteMutation.mutate(confirmDeletePost); setConfirmDeletePost(null); }}
             >
               Remover
             </AlertDialogAction>

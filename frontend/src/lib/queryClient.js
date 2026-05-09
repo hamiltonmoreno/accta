@@ -77,6 +77,7 @@ export const queryKeys = {
   wall: {
     list: (category) => ['wall', category || 'all'],
     pending: () => ['wall', 'pending'],
+    comments: (postId) => ['wall', postId, 'comments'],
   },
   notifications: {
     list: () => ['notifications'],
