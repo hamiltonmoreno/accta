@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { benefitsAPI } from '../../utils/api';
 import { Gift, MapPin, Percent, ExternalLink, Phone, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
+import { queryKeys } from '../../lib/queryClient';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,40 +19,34 @@ import {
 
 export const BeneficiosPage = () => {
   const { isAtivo } = useAuth();
-  const [benefits, setBenefits] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [confirmId, setConfirmId] = useState(null);
-  const [validating, setValidating] = useState(false);
+  const qc = useQueryClient();
 
-  useEffect(() => {
-    loadBenefits();
-  }, []);
+  const { data: benefits = [], isLoading } = useQuery({
+    queryKey: queryKeys.benefits.list(),
+    queryFn: async () => {
+      const res = await benefitsAPI.getAll();
+      return res.data;
+    },
+  });
 
-  const loadBenefits = async () => {
-    try {
-      const response = await benefitsAPI.getAll();
-      setBenefits(response.data);
-    } catch (error) {
-      console.error('Erro ao carregar benefícios:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleValidate = async () => {
-    if (!confirmId) return;
-    setValidating(true);
-    try {
-      await benefitsAPI.validate(confirmId);
+  const validateMutation = useMutation({
+    mutationFn: (id) => benefitsAPI.validate(id),
+    onSuccess: () => {
       toast.success('Utilização registada com sucesso');
-      await loadBenefits();
-    } catch (error) {
-      const detail = error?.response?.data?.detail || 'Erro ao registar utilização';
-      toast.error(detail);
-    } finally {
-      setValidating(false);
+      // Invalidate para o validation_count voltar atualizado.
+      qc.invalidateQueries({ queryKey: queryKeys.benefits.list() });
       setConfirmId(null);
-    }
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.detail || 'Erro ao registar utilização');
+      setConfirmId(null);
+    },
+  });
+
+  const handleValidate = () => {
+    if (!confirmId) return;
+    validateMutation.mutate(confirmId);
   };
 
   const mapsUrl = (loc) => {
@@ -113,7 +109,7 @@ export const BeneficiosPage = () => {
       )}
 
       {/* Benefits Grid */}
-      {loading ? (
+      {isLoading ? (
         <div className="text-center py-12">
           <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
@@ -231,9 +227,9 @@ export const BeneficiosPage = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={validating}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleValidate} disabled={validating}>
-              {validating ? 'A registar...' : 'Confirmar'}
+            <AlertDialogCancel disabled={validateMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleValidate} disabled={validateMutation.isPending}>
+              {validateMutation.isPending ? 'A registar...' : 'Confirmar'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
