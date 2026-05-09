@@ -1,34 +1,31 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { LogIn, Shield, Plane, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import { ACCTALogoHorizontal } from '../../components/ACCTALogo';
 import { unsplashSrcSet } from '../../utils/unsplash';
+import { loginSchema } from '../../utils/authSchemas';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [formData, setFormData] = useState({ email: '', password: '' });
-  const [loading, setLoading] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({ resolver: zodResolver(loginSchema), mode: 'onBlur' });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const onSubmit = async (data) => {
     try {
-      const user = await login(formData);
+      const user = await login(data);
       toast.success(`Bem-vindo, ${user.name}!`);
       navigate('/dashboard');
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Erro ao fazer login');
-    } finally {
-      setLoading(false);
     }
-  };
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   return (
@@ -78,11 +75,7 @@ export const LoginPage = () => {
 
       {/* Right: Login Form */}
       <div className="flex-1 flex items-center justify-center px-5 py-8 bg-gray-50">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-sm"
-        >
+        <div className="w-full max-w-sm animate-fade-up">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
             <Link to="/" className="inline-flex justify-center mb-5">
@@ -107,24 +100,25 @@ export const LoginPage = () => {
 
           {/* Form */}
           <div className="card-technical p-6 sm:p-7">
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
               <div>
                 <label htmlFor="email" className="block text-xs uppercase tracking-widest text-gray-400 mb-2 font-semibold">
                   Email
                 </label>
                 <input
                   id="email"
-                  name="email"
                   type="email"
                   inputMode="email"
                   autoComplete="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 transition-all"
+                  aria-invalid={errors.email ? 'true' : 'false'}
+                  {...register('email')}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
                   placeholder="seu@email.cv"
                   data-testid="login-email"
                 />
+                {errors.email && (
+                  <p className="mt-1 text-xs text-carmesim" role="alert">{errors.email.message}</p>
+                )}
               </div>
 
               <div>
@@ -142,25 +136,26 @@ export const LoginPage = () => {
                 </div>
                 <input
                   id="password"
-                  name="password"
                   type="password"
                   autoComplete="current-password"
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 transition-all"
+                  aria-invalid={errors.password ? 'true' : 'false'}
+                  {...register('password')}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
                   placeholder="********"
                   data-testid="login-password"
                 />
+                {errors.password && (
+                  <p className="mt-1 text-xs text-carmesim" role="alert">{errors.password.message}</p>
+                )}
               </div>
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={isSubmitting}
                 className="w-full bg-carmesim text-white hover:bg-carmesim-dark h-11 rounded-lg uppercase tracking-wider font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 data-testid="login-submit"
               >
-                {loading ? (
+                {isSubmitting ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <>
@@ -178,7 +173,7 @@ export const LoginPage = () => {
               <span className="font-semibold text-grafite">Demo:</span> socio1@controlador.cv / socio123
             </p>
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
