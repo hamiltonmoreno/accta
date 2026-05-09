@@ -201,4 +201,12 @@ def mock_db(monkeypatch):
     monkeypatch.setattr(database, "db", fake_db)
     monkeypatch.setattr(auth, "db", fake_db)
     monkeypatch.setattr(helpers, "db", fake_db)
+
+    # routes/*.py fazem `from database import db` no top-level — referencia
+    # ja foi capturada antes do monkeypatch. Patch cada module ja importado
+    # individualmente. Iterar em sys.modules apanha apenas os modulos ja
+    # carregados (testes que importam mais routes pegam fixture novamente).
+    for mod_name, module in list(sys.modules.items()):
+        if mod_name.startswith("routes.") and hasattr(module, "db"):
+            monkeypatch.setattr(module, "db", fake_db)
     return fake_db
