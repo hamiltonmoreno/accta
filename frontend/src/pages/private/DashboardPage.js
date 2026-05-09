@@ -1,7 +1,9 @@
-import React, { useEffect, useState, Suspense, lazy } from 'react';
+import React, { Suspense, lazy } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { statsAPI, pollsAPI, eventsAPI, financesAPI, activityAPI, reportAPI } from '../../utils/api';
+import { queryKeys } from '../../lib/queryClient';
 import {
   Users, DollarSign, Vote, CheckCircle, Bell,
   Calendar, MapPin, Clock, ArrowRight, TrendingUp, TrendingDown,
@@ -113,59 +115,67 @@ export const DashboardPage = () => {
   const { notifications, unreadCount } = useNotifications();
   const navigate = useNavigate();
 
-  const [stats, setStats] = useState(null);
-  const [financeSummary, setFinanceSummary] = useState(null);
-  const [dreData, setDreData] = useState(null);
-  const [activePolls, setActivePolls] = useState([]);
-  const [upcomingEvents, setUpcomingEvents] = useState([]);
-  const [recentActivity, setRecentActivity] = useState([]);
-  const [personalReport, setPersonalReport] = useState(null);
-  const [loading, setLoading] = useState(true);
-
   const currentYear = new Date().getFullYear();
   const hasFinance = isAdmin || isFinanceiro;
 
-  useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Queries always-on para todos os utilizadores.
+  // Cada uma corre em paralelo (sem await sequencial); cache cross-page;
+  // refetch independente em window focus.
+  const pollsQuery = useQuery({
+    queryKey: queryKeys.polls.list(),
+    queryFn: async () => (await pollsAPI.getAll()).data,
+  });
 
-  const loadData = async () => {
-    try {
-      const promises = [
-        pollsAPI.getAll(),
-        eventsAPI.getUpcoming().catch(() => ({ data: [] })),
-        activityAPI.getRecent(15).catch(() => ({ data: [] })),
-      ];
+  const upcomingEventsQuery = useQuery({
+    queryKey: queryKeys.events.upcoming(),
+    queryFn: async () => (await eventsAPI.getUpcoming()).data,
+  });
 
-      if (hasFinance) {
-        promises.push(
-          statsAPI.get(),
-          financesAPI.getSummary({ year: currentYear }).catch(() => ({ data: null })),
-          financesAPI.getDRE(currentYear).catch(() => ({ data: null })),
-        );
-      }
+  const recentActivityQuery = useQuery({
+    queryKey: queryKeys.activity.recent(),
+    queryFn: async () => (await activityAPI.getRecent(15)).data,
+  });
 
-      const results = await Promise.all(promises);
+  const personalReportQuery = useQuery({
+    queryKey: queryKeys.report.personal(),
+    queryFn: async () => (await reportAPI.getPersonal()).data,
+  });
 
-      setActivePolls(results[0].data.filter((p) => p.status === 'aberta'));
-      setUpcomingEvents(results[1].data.slice(0, 3));
-      setRecentActivity(results[2].data || []);
+  // Queries gated por hasFinance — `enabled` evita request desnecessario
+  // para socios. Quando false, isLoading=false e data=undefined.
+  const statsQuery = useQuery({
+    queryKey: ['stats'],
+    queryFn: async () => (await statsAPI.get()).data,
+    enabled: hasFinance,
+  });
 
-      if (hasFinance) {
-        setStats(results[3].data);
-        setFinanceSummary(results[4].data);
-        setDreData(results[5].data);
-      }
+  const financeSummaryQuery = useQuery({
+    queryKey: queryKeys.transactions.summary(currentYear, undefined),
+    queryFn: async () => (await financesAPI.getSummary({ year: currentYear })).data,
+    enabled: hasFinance,
+  });
 
-      // Load personal report separately (non-blocking)
-      reportAPI.getPersonal().then(r => setPersonalReport(r.data)).catch(() => {});
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const dreQuery = useQuery({
+    queryKey: ['finance', 'dre', currentYear],
+    queryFn: async () => (await financesAPI.getDRE(currentYear)).data,
+    enabled: hasFinance,
+  });
+
+  const activePolls = (pollsQuery.data || []).filter((p) => p.status === 'aberta');
+  const upcomingEvents = (upcomingEventsQuery.data || []).slice(0, 3);
+  const recentActivity = recentActivityQuery.data || [];
+  const personalReport = personalReportQuery.data;
+  const stats = statsQuery.data;
+  const financeSummary = financeSummaryQuery.data;
+  const dreData = dreQuery.data;
+
+  // Loading apenas das queries criticas para o paint inicial.
+  // personalReport carrega em background; ate chegar, render parcial e ok.
+  const loading =
+    pollsQuery.isLoading ||
+    upcomingEventsQuery.isLoading ||
+    recentActivityQuery.isLoading ||
+    (hasFinance && (statsQuery.isLoading || financeSummaryQuery.isLoading || dreQuery.isLoading));
 
   // Prepare chart data
   const monthlyChartData = dreData ? Object.entries(dreData.monthly).map(([month, d]) => ({
