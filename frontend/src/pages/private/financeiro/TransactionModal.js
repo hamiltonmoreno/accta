@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useMutation } from '@tanstack/react-query';
 import { financesAPI } from '../../../utils/api';
 import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import { toast } from 'sonner';
@@ -17,7 +18,6 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
     date: tx?.date ? tx.date.split('T')[0] : new Date().toISOString().split('T')[0],
     reference: tx?.reference || '',
   });
-  const [saving, setSaving] = useState(false);
 
   const categories = form.type === 'receita' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
@@ -28,32 +28,32 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.type]);
 
-  const handleSubmit = async (e) => {
+  const saveMutation = useMutation({
+    mutationFn: (payload) =>
+      isEdit
+        ? financesAPI.updateTransaction(tx.id, payload)
+        : financesAPI.createTransaction(payload),
+    onSuccess: () => {
+      toast.success(isEdit ? 'Transacao atualizada' : 'Transacao criada');
+      // Parent invalida ['transactions'] via onSaved (CashFlowTab.invalidateAll).
+      onSaved();
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao salvar'),
+  });
+
+  const saving = saveMutation.isPending;
+
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!form.description || !form.amount || !form.date) {
       toast.error('Preencha todos os campos obrigatorios');
       return;
     }
-    setSaving(true);
-    try {
-      const payload = {
-        ...form,
-        amount: parseFloat(form.amount),
-        date: new Date(form.date).toISOString(),
-      };
-      if (isEdit) {
-        await financesAPI.updateTransaction(tx.id, payload);
-        toast.success('Transacao atualizada');
-      } else {
-        await financesAPI.createTransaction(payload);
-        toast.success('Transacao criada');
-      }
-      onSaved();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro ao salvar');
-    } finally {
-      setSaving(false);
-    }
+    saveMutation.mutate({
+      ...form,
+      amount: parseFloat(form.amount),
+      date: new Date(form.date).toISOString(),
+    });
   };
 
   return (
