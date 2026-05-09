@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useMutation } from '@tanstack/react-query';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -60,32 +61,38 @@ const FILTER_OPTIONS = [
 const BroadcastPanel = ({ onSent }) => {
   const [expanded, setExpanded] = useState(false);
   const [form, setForm] = useState({ type: 'geral', title: '', message: '', link: '' });
-  const [sending, setSending] = useState(false);
 
-  const handleSend = async (e) => {
+  const broadcastMutation = useMutation({
+    mutationFn: (payload) =>
+      notificationsAPI.broadcast({
+        user_id: 'broadcast',
+        type: payload.type,
+        title: payload.title,
+        message: payload.message,
+        link: payload.link || null,
+      }),
+    onSuccess: () => {
+      toast.success('Notificacao enviada a todos os socios!');
+      setForm({ type: 'geral', title: '', message: '', link: '' });
+      setExpanded(false);
+      // NotificationContext nao usa TanStack ainda — chamamos refresh()
+      // do context para o admin tambem ver a sua propria broadcast.
+      if (onSent) onSent();
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.detail || 'Erro ao enviar');
+    },
+  });
+
+  const sending = broadcastMutation.isPending;
+
+  const handleSend = (e) => {
     e.preventDefault();
     if (!form.title.trim() || !form.message.trim()) {
       toast.error('Preencha o titulo e a mensagem');
       return;
     }
-    setSending(true);
-    try {
-      await notificationsAPI.broadcast({
-        user_id: 'broadcast',
-        type: form.type,
-        title: form.title,
-        message: form.message,
-        link: form.link || null,
-      });
-      toast.success('Notificacao enviada a todos os socios!');
-      setForm({ type: 'geral', title: '', message: '', link: '' });
-      setExpanded(false);
-      onSent();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro ao enviar');
-    } finally {
-      setSending(false);
-    }
+    broadcastMutation.mutate(form);
   };
 
   return (
