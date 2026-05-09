@@ -1,7 +1,9 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -476,27 +478,51 @@ const ProjectDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
-  const [project, setProject] = useState(null);
-  const [members, setMembers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
   const [tab, setTab] = useState('tasks');
   const [editingStatus, setEditingStatus] = useState(false);
 
-  const loadProject = useCallback(async () => {
-    try {
-      const [projRes, membersRes] = await Promise.all([
-        projectsAPI.getOne(id),
-        projectsAPI.getMembers(),
-      ]);
-      setProject(projRes.data);
-      setMembers(membersRes.data);
-    } catch (err) {
-      if (err.response?.status === 404) navigate('/projetos');
-      else toast.error('Erro ao carregar projeto');
-    } finally { setLoading(false); }
-  }, [id, navigate]);
+  const projectQuery = useQuery({
+    queryKey: queryKeys.projects.byId(id),
+    queryFn: async () => {
+      try {
+        return (await projectsAPI.getOne(id)).data;
+      } catch (err) {
+        if (err.response?.status === 404) navigate('/projetos');
+        throw err;
+      }
+    },
+  });
 
-  useEffect(() => { loadProject(); }, [loadProject]);
+  const membersQuery = useQuery({
+    queryKey: ['users', 'members'],
+    queryFn: async () => (await projectsAPI.getMembers()).data,
+  });
+
+  const project = projectQuery.data;
+  const members = membersQuery.data || [];
+  const loading = projectQuery.isLoading || membersQuery.isLoading;
+
+  // onReload callback para os tab children. Substitui loadProject imperativo.
+  const onReload = () => qc.invalidateQueries({ queryKey: queryKeys.projects.byId(id) });
+
+  // Status / approve / progress mutations (quase identicas — share helper).
+  const updateMutation = useMutation({
+    mutationFn: (data) => projectsAPI.update(id, data),
+    onSuccess: () => onReload(),
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro'),
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: () => projectsAPI.approve(id),
+    onSuccess: () => {
+      onReload();
+      // Invalida lista para o card no /projetos refletir status novo.
+      qc.invalidateQueries({ queryKey: ['projects'] });
+      toast.success('Projeto aprovado');
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro'),
+  });
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-3 border-carmesim border-t-transparent rounded-full animate-spin" /></div>;
   if (!project) return null;
@@ -504,24 +530,22 @@ const ProjectDetailPage = () => {
   const canManage = isAdmin || project.created_by === user?.id || project.responsible_id === user?.id;
   const st = STATUS_CONFIG[project.status] || STATUS_CONFIG.proposta;
 
-  const handleStatusChange = async (newStatus) => {
-    try {
-      await projectsAPI.update(project.id, { status: newStatus });
-      loadProject();
-      toast.success(`Status atualizado para ${STATUS_CONFIG[newStatus]?.label || newStatus}`);
-    } catch (err) { toast.error(err.response?.data?.detail || 'Erro'); }
+  const handleStatusChange = (newStatus) => {
+    updateMutation.mutate(
+      { status: newStatus },
+      {
+        onSuccess: () => {
+          onReload();
+          toast.success(`Status atualizado para ${STATUS_CONFIG[newStatus]?.label || newStatus}`);
+        },
+      },
+    );
     setEditingStatus(false);
   };
 
-  const handleApprove = async () => {
-    try { await projectsAPI.approve(project.id); loadProject(); toast.success('Projeto aprovado'); }
-    catch (err) { toast.error(err.response?.data?.detail || 'Erro'); }
-  };
+  const handleApprove = () => approveMutation.mutate();
 
-  const handleProgressChange = async (val) => {
-    try { await projectsAPI.update(project.id, { progress: parseInt(val) }); loadProject(); }
-    catch { /* silent */ }
-  };
+  const handleProgressChange = (val) => updateMutation.mutate({ progress: parseInt(val) });
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -620,10 +644,10 @@ const ProjectDetailPage = () => {
       </div>
 
       {/* Tab Content */}
-      {tab === 'tasks' && <TasksTab project={project} tasks={project.tasks || []} members={members} canManage={canManage} onReload={loadProject} />}
-      {tab === 'comments' && <CommentsTab project={project} comments={project.comments || []} onReload={loadProject} />}
-      {tab === 'budget' && <BudgetTab project={project} expenses={project.expenses || []} canManage={canManage} onReload={loadProject} />}
-      {tab === 'timeline' && <TimelineTab project={project} milestones={project.milestones || []} canManage={canManage} onReload={loadProject} />}
+      {tab === 'tasks' && <TasksTab project={project} tasks={project.tasks || []} members={members} canManage={canManage} onReload={onReload} />}
+      {tab === 'comments' && <CommentsTab project={project} comments={project.comments || []} onReload={onReload} />}
+      {tab === 'budget' && <BudgetTab project={project} expenses={project.expenses || []} canManage={canManage} onReload={onReload} />}
+      {tab === 'timeline' && <TimelineTab project={project} milestones={project.milestones || []} canManage={canManage} onReload={onReload} />}
     </div>
   );
 };
