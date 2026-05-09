@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { eventsAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -48,57 +50,48 @@ const getEventLabel = (type) => {
 
 export const EventosPage = () => {
   const { user, isAdmin } = useAuth();
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
   const [filter, setFilter] = useState('upcoming');
   const [showModal, setShowModal] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
-  useEffect(() => {
-    loadEvents();
-  }, []);
+  const { data: events = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.events.list(),
+    queryFn: async () => (await eventsAPI.getAll()).data,
+  });
 
-  const loadEvents = async () => {
-    try {
-      const response = await eventsAPI.getAll();
-      setEvents(response.data);
-    } catch (error) {
-      console.error('Erro ao carregar eventos:', error);
-      toast.error('Erro ao carregar eventos');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const invalidateEvents = () => qc.invalidateQueries({ queryKey: queryKeys.events.list() });
 
-  const handleRegister = async (eventId) => {
-    try {
-      await eventsAPI.register(eventId);
+  const registerMutation = useMutation({
+    mutationFn: (eventId) => eventsAPI.register(eventId),
+    onSuccess: () => {
       toast.success('Inscrição realizada com sucesso!');
-      loadEvents();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Erro ao inscrever-se');
-    }
-  };
+      invalidateEvents();
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao inscrever-se'),
+  });
 
-  const handleUnregister = async (eventId) => {
-    try {
-      await eventsAPI.unregister(eventId);
+  const unregisterMutation = useMutation({
+    mutationFn: (eventId) => eventsAPI.unregister(eventId),
+    onSuccess: () => {
       toast.success('Inscrição cancelada');
-      loadEvents();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Erro ao cancelar inscrição');
-    }
-  };
+      invalidateEvents();
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao cancelar inscrição'),
+  });
 
-  const handleDelete = async (eventId) => {
-    try {
-      await eventsAPI.delete(eventId);
+  const deleteMutation = useMutation({
+    mutationFn: (eventId) => eventsAPI.delete(eventId),
+    onSuccess: () => {
       toast.success('Evento eliminado');
-      loadEvents();
-    } catch (error) {
-      toast.error('Erro ao eliminar evento');
-    }
-  };
+      invalidateEvents();
+    },
+    onError: () => toast.error('Erro ao eliminar evento'),
+  });
+
+  const handleRegister = (eventId) => registerMutation.mutate(eventId);
+  const handleUnregister = (eventId) => unregisterMutation.mutate(eventId);
+  const handleDelete = (eventId) => deleteMutation.mutate(eventId);
 
   const filteredEvents = events.filter(event => {
     const eventDate = new Date(event.date);
@@ -272,10 +265,6 @@ export const EventosPage = () => {
         {showModal && (
           <CreateEventModal
             onClose={() => setShowModal(false)}
-            onSuccess={() => {
-              setShowModal(false);
-              loadEvents();
-            }}
           />
         )}
       </AnimatePresence>
@@ -303,8 +292,9 @@ export const EventosPage = () => {
   );
 };
 
-const CreateEventModal = ({ onClose, onSuccess }) => {
+const CreateEventModal = ({ onClose }) => {
   useBodyScrollLock(true);
+  const qc = useQueryClient();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -315,35 +305,35 @@ const CreateEventModal = ({ onClose, onSuccess }) => {
     visibility: 'socios',
     max_attendees: '',
   });
-  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const createMutation = useMutation({
+    mutationFn: (payload) => eventsAPI.create(payload),
+    onSuccess: () => {
+      toast.success('Evento criado com sucesso!');
+      qc.invalidateQueries({ queryKey: queryKeys.events.list() });
+      onClose();
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao criar evento'),
+  });
+
+  const submitting = createMutation.isPending;
+
+  const handleSubmit = (e) => {
     e.preventDefault();
-    
     if (!formData.title || !formData.date || !formData.time || !formData.location) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
     }
-
-    setSubmitting(true);
-    try {
-      const dateTime = new Date(`${formData.date}T${formData.time}`);
-      await eventsAPI.create({
-        title: formData.title,
-        description: formData.description,
-        type: formData.type,
-        date: dateTime.toISOString(),
-        location: formData.location,
-        visibility: formData.visibility,
-        max_attendees: formData.max_attendees ? parseInt(formData.max_attendees) : null,
-      });
-      toast.success('Evento criado com sucesso!');
-      onSuccess();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Erro ao criar evento');
-    } finally {
-      setSubmitting(false);
-    }
+    const dateTime = new Date(`${formData.date}T${formData.time}`);
+    createMutation.mutate({
+      title: formData.title,
+      description: formData.description,
+      type: formData.type,
+      date: dateTime.toISOString(),
+      location: formData.location,
+      visibility: formData.visibility,
+      max_attendees: formData.max_attendees ? parseInt(formData.max_attendees) : null,
+    });
   };
 
   return (

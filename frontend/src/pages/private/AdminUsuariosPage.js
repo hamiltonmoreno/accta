@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersAPI, adminAPI } from '../../utils/api';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -31,9 +33,9 @@ const STATUSES = ['ativo', 'inativo', 'pendente_convite'];
 const PRIVILEGES = Object.keys(PRIVILEGE_LABELS);
 
 export const AdminUsuariosPage = () => {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterRole, setFilterRole] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [editingUser, setEditingUser] = useState(null);
@@ -41,37 +43,70 @@ export const AdminUsuariosPage = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteData, setInviteData] = useState({ name: '', email: '', role: 'socio', cargo: 'Socio', member_id: '', license_number: '', department: '', phone_number: '' });
   const [inviteResult, setInviteResult] = useState(null);
-  const [inviting, setInviting] = useState(false);
 
   // Body scroll lock for each modal (counter-based, supports nesting)
   useBodyScrollLock(!!editingUser);
   useBodyScrollLock(!!deleteConfirm);
   useBodyScrollLock(!!showInviteModal);
 
-  const fetchUsers = useCallback(async () => {
-    try {
-      const params = {};
-      if (search) params.search = search;
-      if (filterRole) params.role = filterRole;
-      if (filterStatus) params.status = filterStatus;
-      const res = await usersAPI.getAll(params);
-      setUsers(res.data);
-    } catch (err) {
-      toast.error('Erro ao carregar utilizadores');
-    } finally {
-      setLoading(false);
-    }
-  }, [search, filterRole, filterStatus]);
-
+  // Debounce search 300ms — evita re-fetch a cada tecla.
   useEffect(() => {
-    const timer = setTimeout(fetchUsers, 300);
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(timer);
-  }, [fetchUsers]);
+  }, [search]);
 
-  const handleSaveUser = async () => {
+  const filters = { search: debouncedSearch, role: filterRole, status: filterStatus };
+
+  const { data: users = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.users.list(filters),
+    queryFn: async () => {
+      const params = {};
+      if (filters.search) params.search = filters.search;
+      if (filters.role) params.role = filters.role;
+      if (filters.status) params.status = filters.status;
+      return (await usersAPI.getAll(params)).data;
+    },
+  });
+
+  const invalidateUsers = () => qc.invalidateQueries({ queryKey: ['users'] });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => usersAPI.adminUpdate(id, data),
+    onSuccess: () => {
+      toast.success('Utilizador atualizado!');
+      setEditingUser(null);
+      invalidateUsers();
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao atualizar'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (userId) => usersAPI.delete(userId),
+    onSuccess: () => {
+      toast.success('Utilizador removido');
+      setDeleteConfirm(null);
+      invalidateUsers();
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao remover'),
+  });
+
+  const inviteMutation = useMutation({
+    mutationFn: (data) => adminAPI.invite(data),
+    onSuccess: (res) => {
+      setInviteResult(res.data);
+      toast.success(`Convite criado para ${inviteData.name}`);
+      invalidateUsers();
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao criar convite'),
+  });
+
+  const inviting = inviteMutation.isPending;
+
+  const handleSaveUser = () => {
     if (!editingUser) return;
-    try {
-      await usersAPI.adminUpdate(editingUser.id, {
+    updateMutation.mutate({
+      id: editingUser.id,
+      data: {
         name: editingUser.name,
         role: editingUser.role,
         status: editingUser.status,
@@ -80,25 +115,11 @@ export const AdminUsuariosPage = () => {
         member_id: editingUser.member_id,
         department: editingUser.department,
         phone_number: editingUser.phone_number,
-      });
-      toast.success('Utilizador atualizado!');
-      setEditingUser(null);
-      fetchUsers();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro ao atualizar');
-    }
+      },
+    });
   };
 
-  const handleDelete = async (userId) => {
-    try {
-      await usersAPI.delete(userId);
-      toast.success('Utilizador removido');
-      setDeleteConfirm(null);
-      fetchUsers();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro ao remover');
-    }
-  };
+  const handleDelete = (userId) => deleteMutation.mutate(userId);
 
   const togglePrivilege = (priv) => {
     if (!editingUser) return;
@@ -109,22 +130,12 @@ export const AdminUsuariosPage = () => {
     setEditingUser({ ...editingUser, privileges: updated });
   };
 
-  const handleInvite = async () => {
+  const handleInvite = () => {
     if (!inviteData.name || !inviteData.email) {
       toast.error('Nome e email sao obrigatorios');
       return;
     }
-    setInviting(true);
-    try {
-      const res = await adminAPI.invite(inviteData);
-      setInviteResult(res.data);
-      toast.success(`Convite criado para ${inviteData.name}`);
-      fetchUsers();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Erro ao criar convite');
-    } finally {
-      setInviting(false);
-    }
+    inviteMutation.mutate(inviteData);
   };
 
   const copyInviteLink = () => {
