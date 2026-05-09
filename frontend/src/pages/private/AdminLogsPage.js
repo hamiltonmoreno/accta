@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { auditAPI } from '../../utils/api';
 import { ClipboardList, Activity } from 'lucide-react';
 import { format } from 'date-fns';
@@ -36,11 +35,7 @@ export const AdminLogsPage = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="card-technical rounded-xl p-6"
-        >
+        <div className="card-technical rounded-xl p-6 animate-fade-up">
           <div className="flex items-center justify-between mb-4">
             <div className="w-12 h-12 bg-grafite rounded-lg flex items-center justify-center">
               <ClipboardList className="w-6 h-6 text-carmesim" />
@@ -48,14 +43,9 @@ export const AdminLogsPage = () => {
           </div>
           <div className="font-mono text-3xl font-bold text-grafite mb-1">{logs.length}</div>
           <div className="text-sm text-gray-500 uppercase tracking-wider">Total de Registros</div>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="card-technical rounded-xl p-6"
-        >
+        <div className="card-technical rounded-xl p-6 animate-fade-up">
           <div className="flex items-center justify-between mb-4">
             <div className="w-12 h-12 bg-carmesim rounded-lg flex items-center justify-center">
               <Activity className="w-6 h-6 text-grafite" />
@@ -69,7 +59,7 @@ export const AdminLogsPage = () => {
             }).length}
           </div>
           <div className="text-sm text-gray-500 uppercase tracking-wider">Hoje</div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Logs Timeline */}
@@ -84,13 +74,10 @@ export const AdminLogsPage = () => {
           </div>
         ) : (
           <div className="space-y-4 max-h-[600px] overflow-y-auto">
-            {logs.map((log, index) => (
-              <motion.div
+            {logs.map((log) => (
+              <div
                 key={log.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg"
+                className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg animate-fade-in"
                 data-testid={`log-${log.id}`}
               >
                 <div className="w-2 h-2 bg-carmesim rounded-full mt-2 flex-shrink-0" />
@@ -104,7 +91,7 @@ export const AdminLogsPage = () => {
                     </span>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         )}

@@ -1,43 +1,33 @@
 import React, { useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Lock, ArrowLeft, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { ACCTALogoHorizontal } from '../../components/ACCTALogo';
 import api from '../../utils/api';
+import { resetPasswordSchema } from '../../utils/authSchemas';
 
 export const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token') || '';
 
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({ resolver: zodResolver(resetPasswordSchema), mode: 'onBlur' });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (password.length < 6) {
-      toast.error('A senha deve ter pelo menos 6 caracteres');
-      return;
-    }
-    if (password !== confirmPassword) {
-      toast.error('As senhas não coincidem');
-      return;
-    }
-
-    setLoading(true);
+  const onSubmit = async ({ password }) => {
     try {
       await api.post('/auth/reset-password', { token, new_password: password });
       setSuccess(true);
       toast.success('Senha alterada com sucesso!');
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Erro ao redefinir senha');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -60,11 +50,7 @@ export const ResetPasswordPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-5 py-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
+      <div className="w-full max-w-md animate-fade-up">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex justify-center mb-5">
             <ACCTALogoHorizontal />
@@ -92,7 +78,7 @@ export const ResetPasswordPage = () => {
             </div>
 
             <div className="card-technical p-6 sm:p-7">
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
                 <div>
                   <label htmlFor="password" className="block text-xs uppercase tracking-widest text-gray-400 mb-2 font-semibold">
                     Nova senha
@@ -101,11 +87,10 @@ export const ResetPasswordPage = () => {
                     <input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
-                      required
-                      minLength={6}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-4 py-3 pr-11 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 transition-all"
+                      autoComplete="new-password"
+                      aria-invalid={errors.password ? 'true' : 'false'}
+                      {...register('password')}
+                      className="w-full px-4 py-3 pr-11 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
                       placeholder="Mínimo 6 caracteres"
                       data-testid="reset-password-input"
                     />
@@ -114,10 +99,14 @@ export const ResetPasswordPage = () => {
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-grafite"
                       data-testid="toggle-password-visibility"
+                      aria-label={showPassword ? 'Esconder senha' : 'Mostrar senha'}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
+                  {errors.password && (
+                    <p className="mt-1 text-xs text-carmesim" role="alert">{errors.password.message}</p>
+                  )}
                 </div>
 
                 <div>
@@ -127,27 +116,25 @@ export const ResetPasswordPage = () => {
                   <input
                     id="confirmPassword"
                     type={showPassword ? 'text' : 'password'}
-                    required
-                    minLength={6}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 transition-all"
+                    autoComplete="new-password"
+                    aria-invalid={errors.confirmPassword ? 'true' : 'false'}
+                    {...register('confirmPassword')}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
                     placeholder="Repita a senha"
                     data-testid="reset-confirm-password-input"
                   />
+                  {errors.confirmPassword && (
+                    <p className="mt-1 text-xs text-carmesim" role="alert" data-testid="password-mismatch-error">{errors.confirmPassword.message}</p>
+                  )}
                 </div>
-
-                {password && confirmPassword && password !== confirmPassword && (
-                  <p className="text-xs text-red-500" data-testid="password-mismatch-error">As senhas não coincidem</p>
-                )}
 
                 <button
                   type="submit"
-                  disabled={loading || !password || !confirmPassword}
+                  disabled={isSubmitting}
                   className="w-full bg-carmesim text-white hover:bg-carmesim-dark h-11 rounded-lg uppercase tracking-wider font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   data-testid="reset-submit"
                 >
-                  {loading ? (
+                  {isSubmitting ? (
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <>
@@ -179,7 +166,7 @@ export const ResetPasswordPage = () => {
             </button>
           </div>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 };

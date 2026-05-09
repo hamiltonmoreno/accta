@@ -1,5 +1,4 @@
 import React, { useEffect, useState, Suspense, lazy } from 'react';
-import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { statsAPI, pollsAPI, eventsAPI, financesAPI, activityAPI, reportAPI } from '../../utils/api';
@@ -17,13 +16,8 @@ import { ptBR } from 'date-fns/locale';
 const FinanceCharts = lazy(() => import('./dashboard/FinanceCharts'));
 
 // ===== STAT CARD (Reference style: title top, big value, change indicator) =====
-const StatCard = ({ title, value, icon: Icon, iconBg, change, changeLabel, delay = 0 }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 16 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay }}
-    className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-200"
-  >
+const StatCard = ({ title, value, icon: Icon, iconBg, change, changeLabel }) => (
+  <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-200 animate-fade-up">
     <div className="flex items-center justify-between mb-3">
       <span className="text-sm text-gray-500 font-medium">{title}</span>
       <div className={`w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center`}>
@@ -38,26 +32,7 @@ const StatCard = ({ title, value, icon: Icon, iconBg, change, changeLabel, delay
         {changeLabel && <span className="text-gray-400 font-normal ml-0.5">{changeLabel}</span>}
       </div>
     )}
-  </motion.div>
-);
-
-// ===== CHART CARD WRAPPER =====
-const ChartCard = ({ title, subtitle, children, delay = 0, action }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 16 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay }}
-    className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6"
-  >
-    <div className="flex items-start justify-between mb-5">
-      <div>
-        <h3 className="text-lg font-semibold text-grafite">{title}</h3>
-        {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
-      </div>
-      {action}
-    </div>
-    {children}
-  </motion.div>
+  </div>
 );
 
 // ===== NOTIFICATION ICON =====
@@ -278,14 +253,9 @@ export const DashboardPage = () => {
 
       {/* ===== Financial Summary Banner (for admin) ===== */}
       {hasFinance && financeSummary && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 cursor-pointer hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all"
+        <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 cursor-pointer hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all animate-fade-up"
           onClick={() => navigate('/financeiro')}
-          data-testid="finance-summary-widget"
-        >
+          data-testid="finance-summary-widget">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-grafite flex items-center gap-2">
               <Wallet className="w-5 h-5 text-carmesim" /> Saldo Financeiro {currentYear}
@@ -311,18 +281,13 @@ export const DashboardPage = () => {
               <div className="text-xs text-gray-400 mt-0.5">CVE</div>
             </div>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* ===== MAIN GRID: Invoices + Polls ===== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
         {/* Contribuicoes - Desconto em Folha */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6"
-        >
+        <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 animate-fade-up">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-grafite" data-testid="contributions-title">Contribuicoes</h2>
             <span className="text-xs text-gray-400 uppercase tracking-wider hidden sm:block">Desconto em Folha</span>
@@ -334,15 +299,10 @@ export const DashboardPage = () => {
             <p className="text-sm text-grafite font-semibold" data-testid="contributions-status">Tudo em dia!</p>
             <p className="text-xs text-gray-400 mt-1">Quotas descontadas automaticamente na folha salarial</p>
           </div>
-        </motion.div>
+        </div>
 
         {/* Active Polls */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6"
-        >
+        <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 animate-fade-up">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-grafite">Votacoes Abertas</h2>
             {activePolls.length > 0 && (
@@ -376,17 +336,12 @@ export const DashboardPage = () => {
               ))}
             </div>
           )}
-        </motion.div>
+        </div>
       </div>
 
       {/* ===== UPCOMING EVENTS (Reference table style) ===== */}
       {upcomingEvents.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden"
-        >
+        <div className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden animate-fade-up">
           <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100">
             <h2 className="text-lg font-semibold text-grafite">Proximos Eventos</h2>
             <button
@@ -475,18 +430,13 @@ export const DashboardPage = () => {
               </button>
             ))}
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* ===== PERSONAL ACTIVITY REPORT ===== */}
       {personalReport && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden"
-          data-testid="personal-report"
-        >
+        <div className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden animate-fade-up"
+          data-testid="personal-report">
           <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100">
             <div className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-carmesim" />
@@ -566,18 +516,13 @@ export const DashboardPage = () => {
               </div>
             ))}
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* ===== ACTIVITY FEED ===== */}
       {recentActivity.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden"
-          data-testid="activity-feed"
-        >
+        <div className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden animate-fade-up"
+          data-testid="activity-feed">
           <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100">
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-carmesim" />
@@ -606,16 +551,12 @@ export const DashboardPage = () => {
               </button>
             ))}
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* ===== NOTIFICATIONS ===== */}
       {unreadCount > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 border-l-4 border-l-carmesim"
-        >
+        <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 border-l-4 border-l-carmesim animate-fade-up">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4 text-carmesim" />
@@ -646,7 +587,7 @@ export const DashboardPage = () => {
               </button>
             ))}
           </div>
-        </motion.div>
+        </div>
       )}
     </div>
   );
