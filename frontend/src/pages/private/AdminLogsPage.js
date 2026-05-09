@@ -1,27 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { auditAPI } from '../../utils/api';
 import { ClipboardList, Activity } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { queryKeys } from '../../lib/queryClient';
 
 export const AdminLogsPage = () => {
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadLogs();
-  }, []);
-
-  const loadLogs = async () => {
-    try {
-      const response = await auditAPI.getLogs();
-      setLogs(response.data);
-    } catch (error) {
-      console.error('Erro ao carregar logs:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: logs = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.audit.logs(),
+    queryFn: async () => {
+      const res = await auditAPI.getLogs();
+      return res.data;
+    },
+    // Audit logs sao apenas leitura. 60s staleTime razoavel — o staff nao
+    // espera ver entries inseridos por outros admins ao segundo.
+    staleTime: 60 * 1000,
+  });
 
   return (
     <div className="space-y-8">
