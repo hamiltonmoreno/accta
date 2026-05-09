@@ -3,18 +3,12 @@ import axios from 'axios';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API_BASE = `${BACKEND_URL}/api`;
 
-// Create axios instance
+// Sprint 10 — JWT em httpOnly cookie em vez de localStorage. withCredentials
+// faz o axios incluir o cookie cross-origin (requer backend CORS allow_credentials
+// + cookie SameSite=None;Secure em prod).
 const api = axios.create({
   baseURL: API_BASE,
-});
-
-// Add token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accta_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  withCredentials: true,
 });
 
 // Handle 401 errors — dispatch event for AuthContext to handle
@@ -26,10 +20,9 @@ api.interceptors.response.use(
       const publicPaths = ['/login', '/validador', '/profissao', '/noticias', '/transparencia', '/sobre', '/beneficios-publico', '/contactos', '/eventos-publico', '/galeria', '/forgot-password', '/reset-password'];
       const isPublic = currentPath === '/' || publicPaths.some(p => currentPath.startsWith(p));
       if (!isPublic) {
-        localStorage.removeItem('accta_token');
-        localStorage.removeItem('accta_user');
+        // Cookie e httpOnly — JS nao consegue limpa-lo. Backend ja invalida
+        // server-side em /logout; aqui so disparamos o evento + redirect.
         window.dispatchEvent(new Event('accta:force-logout'));
-        // Use React Router-compatible redirect
         window.location.replace('/login');
       }
     }

@@ -11,50 +11,30 @@ export const useAuth = () => {
   return context;
 };
 
+// Sprint 10 — JWT em httpOnly cookie. JS no browser nao consegue ler/escrever
+// o cookie (XSS-safe). Bootstrap: chamar /auth/me ao montar; se 200, ha
+// sessao valida e devolve o user. Se 401, sem sessao.
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const clearAuth = useCallback(() => {
-    localStorage.removeItem('accta_token');
-    localStorage.removeItem('accta_user');
     setUser(null);
   }, []);
 
   useEffect(() => {
     const validateSession = async () => {
-      const token = localStorage.getItem('accta_token');
-      const storedUser = localStorage.getItem('accta_user');
-
-      if (!token || !storedUser) {
-        setLoading(false);
-        return;
-      }
-
-      // Quick parse to show UI immediately
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch {
-        clearAuth();
-        setLoading(false);
-        return;
-      }
-
-      // Validate token with server in background
       try {
         const res = await authAPI.getMe();
         setUser(res.data);
-        localStorage.setItem('accta_user', JSON.stringify(res.data));
       } catch {
-        // Token expired or invalid — clear session
-        clearAuth();
+        // 401 / network — sem sessao valida, fica anonymous.
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
-
     validateSession();
-  }, [clearAuth]);
+  }, []);
 
   // Listen for forced logout events (from 401 interceptor)
   useEffect(() => {
@@ -64,26 +44,22 @@ export const AuthProvider = ({ children }) => {
   }, [clearAuth]);
 
   const login = useCallback(async (credentials) => {
+    // Backend define o cookie httpOnly via Set-Cookie no response. JS nao
+    // ve o cookie — apenas o user object devolvido no body.
     const response = await authAPI.login(credentials);
-    const { access_token, user: userData } = response.data;
-
-    localStorage.setItem('accta_token', access_token);
-    localStorage.setItem('accta_user', JSON.stringify(userData));
+    const { user: userData } = response.data;
     setUser(userData);
-
     return userData;
   }, []);
 
   const logout = useCallback(async () => {
-    // Revoga o JWT server-side antes de limpar localStorage. Se o backend
-    // ainda nao tiver o endpoint /auth/logout (deploy antigo) ou ja estamos
-    // sem token valido, falhar silenciosamente — o clear local e suficiente
-    // para terminar a sessao do utilizador.
+    // /auth/logout adiciona JTI ao blocklist + limpa cookie via Set-Cookie.
+    // Se falhar (network/401), fazemos clear local na mesma — UI nao deve
+    // ficar presa.
     try {
       await authAPI.logout();
     } catch {
-      // 404 (endpoint inexistente) / 401 (token expirado) / network error —
-      // todos aceitaveis: a UI faz logout local de qualquer forma.
+      // ignore
     }
     clearAuth();
   }, [clearAuth]);
@@ -92,7 +68,6 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await authAPI.getMe();
       setUser(res.data);
-      localStorage.setItem('accta_user', JSON.stringify(res.data));
     } catch {
       // ignore
     }

@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException
+from fastapi import HTTPException, Request, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
 from jose import JWTError, jwt
@@ -16,6 +16,38 @@ if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY environment variable is required. Set it in backend/.env")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
+
+# ===== Cookie config =====
+# Sprint 10 — JWT em httpOnly cookie em vez de localStorage. Mitigates XSS
+# token theft. Em prod (cross-site Vercel <-> Render): SameSite=None + Secure.
+# Em dev (localhost): SameSite=Lax + Secure=False (sem HTTPS).
+COOKIE_NAME = "accta_session"
+_IS_PROD = os.environ.get("ENVIRONMENT") == "production"
+COOKIE_SECURE = _IS_PROD
+COOKIE_SAMESITE = "none" if _IS_PROD else "lax"
+
+
+def set_session_cookie(response: Response, token: str) -> None:
+    """Define cookie httpOnly. JS no browser nao consegue ler — XSS safe."""
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value=token,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+    )
+
+
+def clear_session_cookie(response: Response) -> None:
+    """Remove cookie. Usado em /logout (combinado com blocklist do JTI)."""
+    response.delete_cookie(
+        key=COOKIE_NAME,
+        path="/",
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+    )
 
 
 def hash_password(password: str) -> str:
@@ -60,9 +92,7 @@ async def revoke_token(jti: str, exp_unix: int, user_id: str):
     )
 
 
-async def revoke_token_from_credentials(
-    credentials: HTTPAuthorizationCredentials, user_id: str
-) -> None:
+async def revoke_token_from_credentials(credentials: HTTPAuthorizationCredentials, user_id: str) -> None:
     """Decodifica o token e adiciona o jti ao blocklist. Usado por /auth/logout."""
     try:
         payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
@@ -78,11 +108,31 @@ async def revoke_token_from_credentials(
             pass
 
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+def _extract_token(request: Request) -> Optional[str]:
+    """Le token de cookie httpOnly primeiro (Sprint 10), depois Authorization
+    header como fallback (transicao + clientes legados / testes).
+
+    HTTP auth schemes sao case-insensitive (RFC 7235 §2.1) — match
+    "Bearer " / "bearer " / "BEARER " etc. para nao quebrar clientes
+    legados durante a transicao.
+    """
+    token = request.cookies.get(COOKIE_NAME)
+    if token:
+        return token
+    auth = request.headers.get("Authorization", "")
+    parts = auth.split(" ", 1)
+    if len(parts) == 2 and parts[0].lower() == "bearer":
+        return parts[1]
+    return None
+
+
+async def get_current_user(request: Request):
     from models import User
 
+    token = _extract_token(request)
+    if not token:
+        raise HTTPException(status_code=401, detail="Não autenticado")
     try:
-        token = credentials.credentials
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
@@ -98,17 +148,15 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=401, detail="Token inválido")
 
 
-_optional_security = HTTPBearer(auto_error=False)
-
-
-async def get_optional_user(credentials: HTTPAuthorizationCredentials = Depends(_optional_security)):
-    """Auth opcional: devolve User se token valido, None se nao houver token ou for invalido.
-    Para endpoints que servem conteudo publico mas que ajustam o output quando autenticados.
-    """
-    if credentials is None:
+async def get_optional_user(request: Request):
+    """Auth opcional: devolve User se token valido, None caso contrario.
+    Para endpoints que servem conteudo publico mas que ajustam o output
+    quando autenticados. Le cookie OU header (Sprint 10)."""
+    token = _extract_token(request)
+    if not token:
         return None
     try:
-        return await get_user_from_token(credentials.credentials)
+        return await get_user_from_token(token)
     except Exception:
         return None
 
