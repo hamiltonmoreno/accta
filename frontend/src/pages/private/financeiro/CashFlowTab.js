@@ -8,19 +8,18 @@ import {
   ArrowUpCircle, ArrowDownCircle, X, Filter, Wallet,
   Search, ChevronLeft, ChevronRight, FileSpreadsheet,
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { TransactionModal } from './TransactionModal';
 import { CATEGORY_LABELS, PAGE_SIZE } from './constants';
 
-const StatBlock = ({ label, value, icon: Icon, color, delay = 0 }) => (
-  <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
-    className="card-technical p-4 sm:p-5">
+// `delay` removido — stagger entre 4 cards era cosmetico (0-0.2s).
+const StatBlock = ({ label, value, icon: Icon, color }) => (
+  <div className="card-technical p-4 sm:p-5 animate-fade-up">
     <div className={`w-9 h-9 sm:w-10 sm:h-10 ${color} rounded-lg flex items-center justify-center mb-2 sm:mb-3`}>
       <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
     </div>
     <div className="font-mono text-lg sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{value}</div>
     <div className="text-xs uppercase tracking-wider mt-0.5" style={{ color: 'var(--text-muted)' }}>{label}</div>
-  </motion.div>
+  </div>
 );
 
 export const CashFlowTab = ({ isAdmin }) => {
@@ -116,10 +115,10 @@ export const CashFlowTab = ({ isAdmin }) => {
     <div className="space-y-5">
       {summary && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <StatBlock label="Receitas" value={`${summary.total_receitas.toLocaleString('pt')} CVE`} icon={TrendingUp} color="bg-green-600" delay={0.05} />
-          <StatBlock label="Despesas" value={`${summary.total_despesas.toLocaleString('pt')} CVE`} icon={TrendingDown} color="bg-carmesim" delay={0.1} />
-          <StatBlock label="Resultado" value={`${summary.resultado_liquido.toLocaleString('pt')} CVE`} icon={Wallet} color={summary.resultado_liquido >= 0 ? 'bg-grafite' : 'bg-orange-500'} delay={0.15} />
-          <StatBlock label="Transacoes" value={summary.total_transacoes} icon={DollarSign} color="bg-grafite" delay={0.2} />
+          <StatBlock label="Receitas" value={`${summary.total_receitas.toLocaleString('pt')} CVE`} icon={TrendingUp} color="bg-green-600" />
+          <StatBlock label="Despesas" value={`${summary.total_despesas.toLocaleString('pt')} CVE`} icon={TrendingDown} color="bg-carmesim" />
+          <StatBlock label="Resultado" value={`${summary.resultado_liquido.toLocaleString('pt')} CVE`} icon={Wallet} color={summary.resultado_liquido >= 0 ? 'bg-grafite' : 'bg-orange-500'} />
+          <StatBlock label="Transacoes" value={summary.total_transacoes} icon={DollarSign} color="bg-grafite" />
         </div>
       )}
 

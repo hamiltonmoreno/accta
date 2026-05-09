@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { usersAPI } from '../../utils/api';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
 import {
   User as UserIcon, Mail, Phone, Shield, Award, FileText,
   Calendar, Save, BadgeCheck, Briefcase, Hash, Pencil, X
@@ -22,7 +21,7 @@ const PrivilegesSection = ({ privileges }) => {
   if (!privileges || privileges.length === 0) return null;
   
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="card-technical p-5">
+    <div className="card-technical p-5 animate-fade-up">
       <h3 className="font-semibold text-xs uppercase tracking-widest text-gray-400 mb-3">Privilégios Atribuídos</h3>
       <div className="flex flex-wrap gap-2">
         {privileges.map((p) => (
@@ -32,7 +31,7 @@ const PrivilegesSection = ({ privileges }) => {
           </span>
         ))}
       </div>
-    </motion.div>
+    </div>
   );
 };
 
@@ -112,7 +111,7 @@ export const PerfilPage = () => {
       </div>
 
       {/* Profile Card */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card-technical overflow-hidden">
+      <div className="card-technical overflow-hidden animate-fade-up">
         {/* Banner */}
         <div className="h-20 bg-gradient-to-r from-grafite to-grafite/80 relative">
           <div className="absolute -bottom-8 left-6">
@@ -136,11 +135,11 @@ export const PerfilPage = () => {
             <p className="text-xs text-carmesim font-semibold">{user.cargo}</p>
           )}
         </div>
-      </motion.div>
+      </div>
 
       {/* Edit Form */}
       {editing && (
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="card-technical p-6 space-y-4">
+        <div className="card-technical p-6 space-y-4 animate-fade-up">
           <h3 className="font-semibold text-sm text-grafite">Editar Informações</h3>
 
           <div>
@@ -190,26 +189,26 @@ export const PerfilPage = () => {
             <Save className="w-4 h-4" />
             {loading ? 'A guardar...' : 'Guardar alterações'}
           </button>
-        </motion.div>
+        </div>
       )}
 
       {/* Details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="card-technical p-5">
+        <div className="card-technical p-5 animate-fade-up">
           <h3 className="font-semibold text-xs uppercase tracking-widest text-gray-400 mb-3">Dados Pessoais</h3>
           <InfoRow icon={Mail} label="Email" value={user.email} />
           <InfoRow icon={Phone} label="Telefone" value={user.phone_number} />
           <InfoRow icon={FileText} label="Biografia" value={user.bio} />
           <InfoRow icon={Hash} label="N.º Sócio" value={user.member_id} />
-        </motion.div>
+        </div>
 
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card-technical p-5">
+        <div className="card-technical p-5 animate-fade-up">
           <h3 className="font-semibold text-xs uppercase tracking-widest text-gray-400 mb-3">Associação</h3>
           <InfoRow icon={Shield} label="Função" value={roleLabel[user.role]} />
           <InfoRow icon={Briefcase} label="Cargo" value={user.cargo || 'Sócio'} />
           <InfoRow icon={Award} label="Licença" value={user.license_number} />
           <InfoRow icon={Calendar} label="Admissão" value={user.admission_date ? new Date(user.admission_date).toLocaleDateString('pt-PT') : '—'} />
-        </motion.div>
+        </div>
       </div>
 
       {/* Privileges */}
