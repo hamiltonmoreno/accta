@@ -1,65 +1,60 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { pollsAPI } from '../../utils/api';
 import { Vote, CheckCircle, Clock, BarChart3, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { queryKeys } from '../../lib/queryClient';
 import { PollCard } from '../../components/voting/PollCard';
 import { VotingInterface } from '../../components/voting/VotingInterface';
 import { VotingResults } from '../../components/voting/VotingResults';
 
 export const VotacoesPage = () => {
-  const { user, isAtivo } = useAuth();
-  const [polls, setPolls] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { isAtivo } = useAuth();
+  const qc = useQueryClient();
   const [results, setResults] = useState({});
   const [loadingResults, setLoadingResults] = useState({});
   const [showResults, setShowResults] = useState({});
 
-  useEffect(() => {
-    loadPolls();
-  }, []);
+  const { data: polls = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.polls.list(),
+    queryFn: async () => {
+      const res = await pollsAPI.getAll();
+      return res.data;
+    },
+  });
 
-  const loadPolls = async () => {
-    setLoading(true);
-    try {
-      const response = await pollsAPI.getAll();
-      setPolls(response.data);
-    } catch (error) {
-      console.error('Erro ao carregar votações:', error);
-      // Se não conseguir carregar, pelo menos para o loading
-      setPolls([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Resultados sao lazy (so quando o user clica "Ver Resultados") e dinamicos
+  // por pollId. Usamos qc.fetchQuery imperativo + cachear localmente em
+  // showResults para evitar varios useQuery dinamicos com `enabled`.
   const loadResults = async (pollId) => {
-    setLoadingResults(prev => ({ ...prev, [pollId]: true }));
+    setLoadingResults((prev) => ({ ...prev, [pollId]: true }));
     try {
-      const response = await pollsAPI.getResults(pollId);
-      setResults(prev => ({ ...prev, [pollId]: response.data }));
-      setShowResults(prev => ({ ...prev, [pollId]: true }));
-    } catch (error) {
-      console.error('Erro ao carregar resultados:', error);
+      const data = await qc.fetchQuery({
+        queryKey: ['polls', pollId, 'results'],
+        queryFn: async () => (await pollsAPI.getResults(pollId)).data,
+      });
+      setResults((prev) => ({ ...prev, [pollId]: data }));
+      setShowResults((prev) => ({ ...prev, [pollId]: true }));
     } finally {
-      setLoadingResults(prev => ({ ...prev, [pollId]: false }));
+      setLoadingResults((prev) => ({ ...prev, [pollId]: false }));
     }
   };
 
   const toggleResults = (pollId) => {
     if (showResults[pollId]) {
-      setShowResults(prev => ({ ...prev, [pollId]: false }));
+      setShowResults((prev) => ({ ...prev, [pollId]: false }));
+    } else if (!results[pollId]) {
+      loadResults(pollId);
     } else {
-      if (!results[pollId]) {
-        loadResults(pollId);
-      } else {
-        setShowResults(prev => ({ ...prev, [pollId]: true }));
-      }
+      setShowResults((prev) => ({ ...prev, [pollId]: true }));
     }
   };
 
-  const openPolls = polls.filter(p => p.status === 'aberta');
-  const closedPolls = polls.filter(p => p.status === 'fechada');
+  const onVoteSuccess = () => qc.invalidateQueries({ queryKey: queryKeys.polls.list() });
+
+  const openPolls = polls.filter((p) => p.status === 'aberta');
+  const closedPolls = polls.filter((p) => p.status === 'fechada');
 
   if (loading) {
     return (
@@ -130,7 +125,7 @@ export const VotacoesPage = () => {
               >
                 <PollCard poll={poll} isActive={true}>
                   {isAtivo ? (
-                    <VotingInterface poll={poll} onVoteSuccess={loadPolls} />
+                    <VotingInterface poll={poll} onVoteSuccess={onVoteSuccess} />
                   ) : (
                     <div className="border-t border-gray-200 pt-6 mt-6">
                       <div className="text-center py-4 text-gray-500 text-sm">
