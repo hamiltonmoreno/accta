@@ -12,6 +12,7 @@ jest.mock('../../utils/api', () => ({
   __esModule: true,
   authAPI: {
     login: jest.fn(),
+    logout: jest.fn(),
     getMe: jest.fn(),
   },
   default: {},
@@ -126,10 +127,11 @@ describe('AuthContext', () => {
     expect(screen.getByTestId('auth')).toHaveTextContent('yes');
   });
 
-  test('logout() clears storage and state', async () => {
+  test('logout() chama authAPI.logout() (revoga server-side) e limpa storage', async () => {
     localStorage.setItem('accta_token', 'tok');
     localStorage.setItem('accta_user', JSON.stringify({ id: 'u1', role: 'admin', status: 'ativo' }));
     authAPI.getMe.mockResolvedValueOnce({ data: { id: 'u1', role: 'admin', status: 'ativo' } });
+    authAPI.logout.mockResolvedValueOnce({ data: { message: 'Sessão encerrada' } });
 
     let captured;
     render(
@@ -139,8 +141,33 @@ describe('AuthContext', () => {
     );
 
     await waitFor(() => expect(screen.getByTestId('auth')).toHaveTextContent('yes'));
-    act(() => captured.logout());
+    await act(async () => { await captured.logout(); });
 
+    expect(authAPI.logout).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem('accta_token')).toBeNull();
+    expect(screen.getByTestId('auth')).toHaveTextContent('no');
+  });
+
+  test('logout() faz fallback gracioso se /auth/logout falhar (404, network, 401)', async () => {
+    // Backend antigo sem endpoint /auth/logout, ou token ja invalido.
+    // O frontend deve continuar a fazer logout local.
+    localStorage.setItem('accta_token', 'tok');
+    localStorage.setItem('accta_user', JSON.stringify({ id: 'u1', role: 'admin', status: 'ativo' }));
+    authAPI.getMe.mockResolvedValueOnce({ data: { id: 'u1', role: 'admin', status: 'ativo' } });
+    authAPI.logout.mockRejectedValueOnce(new Error('Network error'));
+
+    let captured;
+    render(
+      <AuthProvider>
+        <Probe onState={(s) => { captured = s; }} />
+      </AuthProvider>
+    );
+
+    await waitFor(() => expect(screen.getByTestId('auth')).toHaveTextContent('yes'));
+    await act(async () => { await captured.logout(); });
+
+    expect(authAPI.logout).toHaveBeenCalledTimes(1);
+    // Apesar do reject, localStorage tem que ser limpo.
     expect(localStorage.getItem('accta_token')).toBeNull();
     expect(screen.getByTestId('auth')).toHaveTextContent('no');
   });
