@@ -162,8 +162,10 @@ def mock_db(monkeypatch):
         "notifications",
         "password_resets",
         "wall_posts",
+        "wall_comments",
         "invoices",
         "polls",
+        "user_votes",
         "events",
         "projects",
         "documents",
@@ -174,6 +176,8 @@ def mock_db(monkeypatch):
         "benefits",
         "benefit_validations",
         "benefit_partners",
+        "tokens_revoked",
+        "failed_logins",
     ):
         coll = MagicMock(name=collection)
         coll.find_one = AsyncMock(return_value=None)

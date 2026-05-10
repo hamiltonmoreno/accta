@@ -1,0 +1,186 @@
+"""Unit tests for routes/polls.py — RBAC, vote dedup, results aggregation."""
+from __future__ import annotations
+
+from datetime import datetime, timezone, timedelta
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+from fastapi import HTTPException
+
+from routes import polls as polls_route
+
+
+pytestmark = [pytest.mark.unit, pytest.mark.asyncio]
+
+
+def _cursor(items):
+    cursor = MagicMock()
+    cursor.sort = MagicMock(return_value=cursor)
+    cursor.skip = MagicMock(return_value=cursor)
+    cursor.limit = MagicMock(return_value=cursor)
+    cursor.to_list = AsyncMock(return_value=items)
+    return cursor
+
+
+def _make_inactive(user_dict):
+    from models import User
+    return User(**{**user_dict, "status": "inativo"})
+
+
+# --------------------------------------------------------------------------- #
+# GET /polls
+# --------------------------------------------------------------------------- #
+
+
+class TestGetPolls:
+    async def test_socio_can_list(self, mock_db, socio_user):
+        mock_db.polls.find = MagicMock(return_value=_cursor([]))
+        result = await polls_route.get_polls(current_user=socio_user)
+        assert result == []
+
+    async def test_limit_capped_at_100(self, mock_db, socio_user):
+        captured = {}
+
+        def find(_q, _proj):
+            cursor = MagicMock()
+            cursor.skip = MagicMock(return_value=cursor)
+
+            def lim(n):
+                captured["limit"] = n
+                return cursor
+
+            cursor.limit = lim
+            cursor.to_list = AsyncMock(return_value=[])
+            return cursor
+
+        mock_db.polls.find = find
+        await polls_route.get_polls(limit=10000, current_user=socio_user)
+        assert captured["limit"] == 100
+
+
+# --------------------------------------------------------------------------- #
+# POST /polls — admin only
+# --------------------------------------------------------------------------- #
+
+
+class TestCreatePoll:
+    async def test_socio_403(self, mock_db, socio_user):
+        from models import PollCreate
+
+        data = PollCreate(
+            title="Q1",
+            description="d",
+            options=[{"id": 1, "text": "Yes"}, {"id": 2, "text": "No"}],
+            start_date=datetime.now(timezone.utc),
+            end_date=datetime.now(timezone.utc) + timedelta(days=7),
+        )
+        with pytest.raises(HTTPException) as exc:
+            await polls_route.create_poll(poll_data=data, current_user=socio_user)
+        assert exc.value.status_code == 403
+
+    async def test_financeiro_403(self, mock_db, financeiro_user):
+        from models import PollCreate
+
+        data = PollCreate(
+            title="Q1",
+            description="d",
+            options=[{"id": 1, "text": "A"}, {"id": 2, "text": "B"}],
+            start_date=datetime.now(timezone.utc),
+            end_date=datetime.now(timezone.utc) + timedelta(days=7),
+        )
+        with pytest.raises(HTTPException) as exc:
+            await polls_route.create_poll(poll_data=data, current_user=financeiro_user)
+        assert exc.value.status_code == 403
+
+    async def test_admin_creates(self, mock_db, admin_user):
+        from models import PollCreate
+
+        # users.find for notify_all_active_users
+        mock_db.users.find = MagicMock(return_value=_cursor([]))
+        data = PollCreate(
+            title="Estatutos 2026",
+            description="Aprovacao das alteracoes",
+            options=[{"id": 1, "text": "Aprovar"}, {"id": 2, "text": "Rejeitar"}],
+            start_date=datetime.now(timezone.utc),
+            end_date=datetime.now(timezone.utc) + timedelta(days=7),
+        )
+        result = await polls_route.create_poll(poll_data=data, current_user=admin_user)
+        assert result.title == "Estatutos 2026"
+        mock_db.polls.insert_one.assert_awaited_once()
+
+
+# --------------------------------------------------------------------------- #
+# POST /polls/vote
+# --------------------------------------------------------------------------- #
+
+
+class TestVote:
+    async def test_inactive_403(self, mock_db, socio_user_dict):
+        from models import VoteCreate
+
+        with pytest.raises(HTTPException) as exc:
+            await polls_route.vote(
+                vote_data=VoteCreate(poll_id="p1", vote_option=1),
+                current_user=_make_inactive(socio_user_dict),
+            )
+        assert exc.value.status_code == 403
+
+    async def test_double_vote_400(self, mock_db, socio_user):
+        """Dedup: socio nao pode votar 2x na mesma poll."""
+        from models import VoteCreate
+
+        mock_db.user_votes.find_one = AsyncMock(
+            return_value={"user_id": socio_user.id, "poll_id": "p1", "vote_option": 1}
+        )
+        with pytest.raises(HTTPException) as exc:
+            await polls_route.vote(
+                vote_data=VoteCreate(poll_id="p1", vote_option=2),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 400
+
+    async def test_first_vote_inserts(self, mock_db, socio_user):
+        from models import VoteCreate
+
+        mock_db.user_votes.find_one = AsyncMock(return_value=None)
+        result = await polls_route.vote(
+            vote_data=VoteCreate(poll_id="p1", vote_option=1),
+            current_user=socio_user,
+        )
+        assert result.user_id == socio_user.id
+        assert result.poll_id == "p1"
+        mock_db.user_votes.insert_one.assert_awaited_once()
+
+
+# --------------------------------------------------------------------------- #
+# GET /polls/{id}/results — aggregation
+# --------------------------------------------------------------------------- #
+
+
+class TestGetResults:
+    async def test_404_when_poll_missing(self, mock_db, socio_user):
+        mock_db.polls.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await polls_route.get_poll_results(poll_id="missing", current_user=socio_user)
+        assert exc.value.status_code == 404
+
+    async def test_aggregates_votes_per_option(self, mock_db, socio_user):
+        mock_db.polls.find_one = AsyncMock(return_value={"id": "p1"})
+        votes = [
+            {"vote_option": 1},
+            {"vote_option": 1},
+            {"vote_option": 2},
+            {"vote_option": 1},
+        ]
+        mock_db.user_votes.find = MagicMock(return_value=_cursor(votes))
+        result = await polls_route.get_poll_results(poll_id="p1", current_user=socio_user)
+        assert result["total_votes"] == 4
+        assert result["results"][1] == 3
+        assert result["results"][2] == 1
+
+    async def test_empty_returns_empty_results(self, mock_db, socio_user):
+        mock_db.polls.find_one = AsyncMock(return_value={"id": "p1"})
+        mock_db.user_votes.find = MagicMock(return_value=_cursor([]))
+        result = await polls_route.get_poll_results(poll_id="p1", current_user=socio_user)
+        assert result["total_votes"] == 0
+        assert result["results"] == {}
