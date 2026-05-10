@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Gift,
   QrCode,
@@ -15,9 +16,41 @@ import {
   ArrowRight,
   Mail
 } from 'lucide-react';
+import { benefitsAPI } from '../../utils/api';
 import { unsplashSrcSet } from '../../utils/unsplash';
 
 export const BeneficiosPublicoPage = () => {
+  // Sprint 12 — fetch real partners. Antes: 8 cards genericos placeholder.
+  // Endpoint /benefits/public retorna apenas active=true, sem auth.
+  // staleTime 5min: este conteudo e quase estatico.
+  const { data: benefits = [] } = useQuery({
+    queryKey: ['benefits', 'public'],
+    queryFn: async () => (await benefitsAPI.getPublic()).data,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Dedup partners por nome (varios benefits podem ser do mesmo parceiro);
+  // mostra apenas os com logo. Cap a 12 para nao sobrecarregar visualmente.
+  const partners = Array.from(
+    new Map(
+      benefits
+        .filter((b) => b.logo_url)
+        .map((b) => [b.name, b]),
+    ).values(),
+  ).slice(0, 12);
+
+  // Codex P2 #27: backend model nao valida scheme, "www.x.cv" sem http://
+  // seria interpretado como path relativo (navegar para /beneficios-publico/...).
+  // Prepend https:// quando falta scheme; filtra schemes invalidos (javascript:).
+  const safeWebsite = (url) => {
+    if (!url || typeof url !== 'string') return null;
+    const trimmed = url.trim();
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    // Bloqueia schemes perigosos (javascript:, data:, file:, etc).
+    if (/^[a-z][a-z0-9+\-.]*:/i.test(trimmed)) return null;
+    return `https://${trimmed}`;
+  };
+
   const partnerCategories = [
     { icon: Hotel, label: 'Hotelaria', color: 'bg-blue-50 text-blue-600' },
     { icon: Dumbbell, label: 'Ginásios', color: 'bg-green-50 text-green-600' },
@@ -168,34 +201,56 @@ export const BeneficiosPublicoPage = () => {
         </div>
       </section>
 
-      {/* Partners Placeholder */}
-      <section className="py-12 sm:py-20 lg:py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-6">
-              Rede de Parceiros
-            </span>
-            <h2 className="font-sans font-bold text-4xl text-grafite mb-4">
-              Nossos Parceiros
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Empresas que confiam na ACCTA e oferecem condições especiais aos nossos membros
-            </p>
-          </div>
+      {/* Partners — Sprint 12: agora puxa dados reais via benefitsAPI.getPublic.
+          Quando nao ha parceiros (DB vazio ou nenhum com logo_url), seccao
+          gracefully cai para empty state em vez de mostrar 8 cards genericos. */}
+      {partners.length > 0 && (
+        <section className="py-12 sm:py-20 lg:py-24 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="text-center mb-16">
+              <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-6">
+                Rede de Parceiros
+              </span>
+              <h2 className="font-sans font-bold text-4xl text-grafite mb-4">
+                Nossos Parceiros
+              </h2>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                Empresas que confiam na ACCTA e oferecem condições especiais aos nossos membros
+              </p>
+            </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <div key={index}
-                className="card-technical rounded-xl p-8 flex items-center justify-center h-32 animate-fade-up">
-                <div className="text-center">
-                  <Building2 className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                  <span className="text-xs text-gray-400 font-mono">Parceiro</span>
-                </div>
-              </div>
-            ))}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {partners.map((partner) => {
+                const card = (
+                  <div className="card-technical rounded-xl p-8 flex items-center justify-center h-32 animate-fade-up hover:shadow-md transition-shadow">
+                    <img
+                      src={partner.logo_url}
+                      alt={partner.name}
+                      title={partner.name}
+                      loading="lazy"
+                      className="max-h-16 max-w-full object-contain grayscale hover:grayscale-0 transition-all"
+                    />
+                  </div>
+                );
+                const website = safeWebsite(partner.website);
+                return website ? (
+                  <a
+                    key={partner.id}
+                    href={website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Visitar website de ${partner.name}`}
+                  >
+                    {card}
+                  </a>
+                ) : (
+                  <div key={partner.id}>{card}</div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Become a Partner CTA */}
       <section className="py-12 sm:py-20 lg:py-24 bg-grafite">
