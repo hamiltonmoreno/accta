@@ -39,6 +39,18 @@ export const BeneficiosPublicoPage = () => {
     ).values(),
   ).slice(0, 12);
 
+  // Codex P2 #27: backend model nao valida scheme, "www.x.cv" sem http://
+  // seria interpretado como path relativo (navegar para /beneficios-publico/...).
+  // Prepend https:// quando falta scheme; filtra schemes invalidos (javascript:).
+  const safeWebsite = (url) => {
+    if (!url || typeof url !== 'string') return null;
+    const trimmed = url.trim();
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    // Bloqueia schemes perigosos (javascript:, data:, file:, etc).
+    if (/^[a-z][a-z0-9+\-.]*:/i.test(trimmed)) return null;
+    return `https://${trimmed}`;
+  };
+
   const partnerCategories = [
     { icon: Hotel, label: 'Hotelaria', color: 'bg-blue-50 text-blue-600' },
     { icon: Dumbbell, label: 'Ginásios', color: 'bg-green-50 text-green-600' },
@@ -220,10 +232,11 @@ export const BeneficiosPublicoPage = () => {
                     />
                   </div>
                 );
-                return partner.website ? (
+                const website = safeWebsite(partner.website);
+                return website ? (
                   <a
                     key={partner.id}
-                    href={partner.website}
+                    href={website}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`Visitar website de ${partner.name}`}
