@@ -12,7 +12,6 @@ import {
   HelpCircle,
   Loader2,
   CheckCircle,
-  Plane
 } from 'lucide-react';
 import { unsplashSrcSet } from '../../utils/unsplash';
 
@@ -157,12 +156,20 @@ export const ContactosPage = () => {
                 </div>
               </div>
 
-              {/* Map placeholder */}
-              <div className="bg-gray-200 rounded-2xl h-64 flex items-center justify-center">
-                <div className="text-center">
-                  <Plane className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-500">Mapa da localização</p>
-                </div>
+              {/* Mapa: iframe embed do Google Maps. Zero JS bundle cost
+                  (vs leaflet ~140KB). Pin no Aeroporto Internacional Nelson
+                  Mandela, Praia. Lazy-loaded para nao bloquear LCP. */}
+              <div className="rounded-2xl h-64 overflow-hidden border border-gray-200">
+                <iframe
+                  title="Localizacao da sede ACCTA — Aeroporto Internacional Nelson Mandela, Praia"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3853.4!2d-23.493!3d14.946!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xb96c01b03f3d52d1%3A0x7a4f5e8d8b2c5b54!2sNelson%20Mandela%20International%20Airport!5e0!3m2!1spt-PT!2spt!4v1700000000000"
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen=""
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
               </div>
             </div>
 
