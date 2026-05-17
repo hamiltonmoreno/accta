@@ -7,7 +7,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from auth import COOKIE_NAME
-from database import client, db, UPLOAD_DIR, ensure_indexes
+from database import db, UPLOAD_DIR, ensure_schema, close_pool, ping
 from routes import api_router
 import os
 import logging
@@ -99,7 +99,7 @@ async def root():
 @api_router.get("/health")
 async def health_check():
     try:
-        await client.admin.command("ping")
+        await ping()
         return {"status": "ok", "database": "connected"}
     except Exception:
         from fastapi import HTTPException
@@ -213,10 +213,10 @@ async def _bootstrap_admin_if_requested():
 @app.on_event("startup")
 async def startup_event():
     _validate_runtime_config()
-    await ensure_indexes()
+    await ensure_schema()
     await _bootstrap_admin_if_requested()
 
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    client.close()
+    await close_pool()

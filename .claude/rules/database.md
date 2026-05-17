@@ -5,40 +5,65 @@ paths:
   - "scripts/**/*.py"
 ---
 
-# Database Rules — ACCTA Portal (MongoDB)
+# Database Rules — ACCTA Portal (PostgreSQL / Supabase)
 
 ## Connection
-- Async Motor driver via `database.py`
-- Database name from `DB_NAME` env variable (default: accta_portal)
-- Connection string from `MONGO_URL` env variable
+- Async `asyncpg` pool via `database.py` (Supabase/PostgreSQL).
+- Connection string from the `DATABASE_URL` env variable. In production use
+  the Supabase connection pooler URI (port 6543, transaction mode); the pool
+  is created with `statement_cache_size=0` for pgbouncer compatibility.
+- `ensure_schema()` runs on app startup — creates all tables + indexes
+  idempotently (no separate migration tool). Same operational contract the
+  old `ensure_indexes()` had.
 
-## Collections & Schema
+## Storage model — Mongo-compatible DAO
+- Each logical collection is a table `(pk bigserial PRIMARY KEY, doc jsonb NOT NULL)`.
+- `database.db` exposes a DAO that **faithfully emulates the Mongo API subset
+  the codebase uses** (`find/find_one/insert_one/insert_many/update_one/
+  update_many/delete_one/delete_many/count_documents/aggregate`, cursors with
+  `.sort/.skip/.limit/.to_list`). Route/`auth`/`helpers` code calls it exactly
+  as before — do NOT write raw SQL in routes.
+- Supported query ops: `$in/$nin/$ne/$eq/$gt/$gte/$lt/$lte/$or/$and/$regex/$exists`.
+  Update ops: `$set/$inc/$push/$pull/$addToSet/$unset`. Aggregation stages:
+  `$match/$group($sum/$cond)/$count/$sort/$limit/$project`. If a new op is
+  needed, extend the DAO in `database.py` — keep the Mongo-style call sites.
+
+## Collections & Schema (27 tables)
 - **users**: email (unique), role, status, invite_token, qr_code_hash
 - **transactions**: type (receita/despesa), amount, date, category, user_id
-- **projects**: title, status, tasks[], milestones[], expenses[], comments[]
+- **projects** (+ project_tasks, project_comments, project_expenses,
+  project_milestones): title, status, team_members[]
 - **events**: title, date, location, attendees[], visibility
-- **wall_posts**: content, author_id, status (pending/approved), likes[], comments[]
+- **wall_posts** (+ wall_comments): content, user_id, approved, pinned, likes[]
 - **notifications**: user_id, type, message, read, created_at
-- **polls**: title, options[], user_votes{}, status
+- **polls** (+ user_votes): title, options[], status
 - **invoices**: user_id, amount, status, period
-- **gallery_albums**: title, visibility (public/private)
-- **gallery_photos**: album_id, url, status (pending/approved/rejected)
+- **posts**, **documents** (+ document_accesses), **benefits**
+  (+ benefit_validations, benefit_partners)
+- **gallery_albums**, **gallery_photos**: album_id, url, status
 - **audit_logs**: action, user_id, details, created_at
-- **password_resets**: email, token, used, expires_at
-- **finance_settings**: quota_amount, categories
+- **finance_settings**: quota_amount
+- Auth (no Pydantic model): **password_resets**, **tokens_revoked**,
+  **login_attempts**
 
-## Indexes (defined in database.py)
-- Always add indexes for fields used in queries
-- Compound indexes for (user_id, created_at) patterns
-- Sparse indexes for optional unique fields (invite_token)
-- Descending indexes for date-sorted queries
+## Indexes (defined in database.py via ensure_schema)
+- Expression indexes on `(doc->>'field')` mirroring the original Mongo indexes.
+- Compound indexes for `(user_id, created_at)` patterns.
+- Partial index for optional unique fields (e.g. invite_token).
+- GIN indexes on array fields (`events.attendees`, `projects.team_members`).
+- The formerly-TTL collections (`tokens_revoked`, `login_attempts`) are purged
+  opportunistically on insert + a best-effort `pg_cron` job.
 
 ## Conventions
-- Use `str(ObjectId())` for document IDs (stored as string, not ObjectId)
-- Dates as ISO 8601 strings (datetime.utcnow().isoformat())
-- Embedded documents for sub-items (tasks in projects, comments in posts)
-- Never store passwords in plain text — always bcrypt hash
-- Soft delete where appropriate (status change, not actual deletion)
+- Document IDs are the application-generated `id` UUID string
+  (`str(uuid.uuid4())`). The Postgres surrogate `pk` is internal — never
+  expose it; there is no Mongo `_id` (the old `{"_id": 0}` projection is a
+  harmless no-op).
+- Dates as ISO 8601 strings (`datetime.now(timezone.utc).isoformat()`).
+- Embedded documents/arrays live inside the `doc` jsonb (sub-items, likes,
+  attendees, options, locations).
+- Never store passwords in plain text — always bcrypt hash.
+- Soft delete where appropriate (status change, not actual deletion).
 
 ## Business Rules
 - No "inadimplente" status — quotas are payroll-deducted

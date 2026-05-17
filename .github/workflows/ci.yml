@@ -22,19 +22,22 @@ jobs:
         working-directory: backend
 
     services:
-      mongo:
-        image: mongo:7
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: accta_test
         ports:
-          - 27017:27017
+          - 5432:5432
         options: >-
-          --health-cmd="mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-cmd pg_isready
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
 
     env:
-      MONGO_URL: mongodb://localhost:27017
-      DB_NAME: accta_test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/accta_test
       SECRET_KEY: ci-test-secret-key-not-for-production
       CORS_ORIGINS: '*'
 
