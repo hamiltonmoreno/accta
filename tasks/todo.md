@@ -24,8 +24,8 @@ _Avaliação + plano de execução. App ainda **não está em produção** → s
 
 **Acoplamento**: 21 arquivos fazem `from database import db` (1 só costura). 19 routers sob `prefix="/api"`.
 
-**21 coleções → 21 tabelas.** Com modelo Pydantic: users, invoices, polls, user_votes, posts, documents, benefits, wall_posts, wall_comments, events, transactions, finance_settings, projects, project_tasks, project_comments, project_expenses, project_milestones, gallery_albums, gallery_photos, notifications, audit_logs.
-**Sem modelo Pydantic** (criar schema a partir do uso): password_resets, tokens_revoked, login_attempts, document_accesses, benefit_validations, benefit_partners.
+**27 coleções → 27 tabelas** (21 com modelo Pydantic + 6 sem). **Com modelo Pydantic (21):** users, invoices, polls, user_votes, posts, documents, benefits, wall_posts, wall_comments, events, transactions, finance_settings, projects, project_tasks, project_comments, project_expenses, project_milestones, gallery_albums, gallery_photos, notifications, audit_logs.
+**Sem modelo Pydantic — também viram tabela (6):** password_resets, tokens_revoked, login_attempts, document_accesses, benefit_validations, benefit_partners. _(auth/lockout dependem destas — não podem ficar de fora.)_
 
 **Arrays embutidos** → `text[]`: `users.privileges`, `wall_posts.likes`, `events.attendees`, `projects.team_members`, `*.tags`. → `jsonb`: `polls.options`, `benefits.locations`.
 
@@ -61,7 +61,7 @@ _Avaliação + plano de execução. App ainda **não está em produção** → s
 
 ### Fase 1 — Schema + migrações (~0.5–1 dia)
 - [ ] Adicionar `sqlalchemy[asyncio]`, `asyncpg`, `alembic` ao `requirements.txt`; remover `motor`/`pymongo` só na Fase 7
-- [ ] Definir 21 tabelas (a partir de `models.py` + 6 coleções sem modelo) — PK `id uuid`, `text[]`/`jsonb` conforme D3, timestamps `timestamptz`
+- [ ] Definir **27 tabelas** — 21 a partir de `models.py` + 6 sem modelo (password_resets, tokens_revoked, login_attempts, document_accesses, benefit_validations, benefit_partners) — PK `id uuid`, `text[]`/`jsonb` conforme D3, timestamps `timestamptz`
 - [ ] Traduzir índices de `database.py` para SQL (compostos, parciais, GIN p/ arrays, unique em `users.email`, sparse→partial em `invite_token`)
 - [ ] Alembic baseline migration; aplicar no Supabase
 - [ ] Jobs `pg_cron` p/ `tokens_revoked` e `login_attempts`
