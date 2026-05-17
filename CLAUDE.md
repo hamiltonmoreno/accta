@@ -65,7 +65,7 @@
 
 STOP and check in with the user when:
 
-- A task requires **dropping or migrating data** in MongoDB (destructive schema change)
+- A task requires **dropping or migrating data** in PostgreSQL/Supabase (destructive schema change)
 - A task requires **changing the JWT secret** or auth algorithm (all sessions invalidated)
 - A task requires **modifying CORS origins** in production
 - A task would **remove a route** that the frontend actively calls
@@ -81,8 +81,8 @@ STOP and check in with the user when:
 ## Stack
 
 - **Frontend**: React 19 + Tailwind CSS 3 + shadcn/ui + Framer Motion + Recharts + Craco
-- **Backend**: FastAPI (Python 3.11) + Motor (async MongoDB driver)
-- **Database**: MongoDB — collections: `users`, `transactions`, `projects`, `events`, `wall_posts`, `notifications`, `polls`, `invoices`, `documents`, `gallery_albums`, `gallery_photos`, `audit_logs`, `password_resets`, `finance_settings`
+- **Backend**: FastAPI (Python 3.11) + asyncpg (PostgreSQL/Supabase via a Mongo-compatible async DAO in `database.py`)
+- **Database**: PostgreSQL (Supabase) — 27 tables `(pk bigserial, doc jsonb)`, one per logical collection: `users`, `transactions`, `projects`, `events`, `wall_posts`, `notifications`, `polls`, `invoices`, `documents`, `gallery_albums`, `gallery_photos`, `audit_logs`, `password_resets`, `finance_settings`, …
 - **Auth**: JWT (HS256, 24h expiry) + RBAC (admin, socio, financeiro, moderador)
 - **Email**: Resend API
 - **Deploy**: GitHub Actions CI/CD → SSH → Nginx + Supervisord
@@ -133,7 +133,7 @@ python scripts/seed_gallery.py  # Seed gallery data
 | Scope | Variable |
 |-------|----------|
 | Frontend | `REACT_APP_BACKEND_URL` |
-| Backend | `SECRET_KEY`, `MONGO_URL`, `DB_NAME`, `CORS_ORIGINS`, `FRONTEND_URL`, `RESEND_API_KEY`, `SENDER_EMAIL` |
+| Backend | `SECRET_KEY`, `DATABASE_URL`, `CORS_ORIGINS`, `FRONTEND_URL`, `RESEND_API_KEY`, `SENDER_EMAIL` |
 
 ---
 
@@ -151,7 +151,7 @@ python scripts/seed_gallery.py  # Seed gallery data
 │   └── utils/api.js      # Axios client + all API groups (40+ endpoints)
 ├── backend/
 │   ├── server.py         # FastAPI app entry + CORS + rate limiting
-│   ├── database.py       # MongoDB connection + all index definitions
+│   ├── database.py       # PostgreSQL/asyncpg DAO (Mongo-compatible) + schema/indexes
 │   ├── auth.py           # JWT creation/validation + bcrypt
 │   ├── models.py         # Pydantic models (request/response)
 │   ├── helpers.py        # create_notification, create_audit_log, notify_*

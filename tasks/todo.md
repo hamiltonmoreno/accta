@@ -158,6 +158,16 @@ tabela `(pk bigserial, doc jsonb)`. Resultado: **zero alterações** em rotas,
 - [ ] `DATABASE_URL` do projeto Supabase **accta** (noutra conta, fora do MCP) —
   necessário para validação real/produção. A definir como secret de
   ambiente/deploy.
+- [x] Docs que guiam agentes: `.claude/rules/database.md` reescrito p/
+  Postgres/DAO; `CLAUDE.md` (stack, env vars, stop-condition, estrutura)
+  atualizado.
 - [ ] `backend/.env.example`: bloqueado por permissão (`.env*`) — atualizar
   `MONGO_URL`/`DB_NAME` → `DATABASE_URL` manualmente.
-- [ ] Docs (README/DEPLOY/CLAUDE.md/.claude/rules) ainda referenciam MongoDB.
+- [ ] Docs operacionais/históricos ainda referenciam Mongo (follow-up, fora
+  desta passagem): README, DEPLOY, HOSTINGER_DEPLOY, VERCEL_DEPLOY,
+  `.claude/skills`, `.claude/agents/*`, `.claude/commands/new-feature`.
+  (ANALISE_MELHORIAS/PROJETO_ACCTA/memory/PRD são históricos — não reescrever.)
+- [ ] **MCP**: projeto Supabase accta (`eafyduxxzlkwvkudcnzu`) está noutra
+  conta — MCP ligado nesta sessão não tem permissão; `claude mcp add`/`/mcp`
+  são comandos interativos do lado do utilizador e não afetam esta sessão.
+  Migração não depende de MCP — só de `DATABASE_URL`.
