@@ -29,6 +29,7 @@ import re
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 import asyncpg
 from dotenv import load_dotenv
@@ -124,6 +125,23 @@ async def _init_conn(conn: asyncpg.Connection) -> None:
     )
 
 
+def _ssl_arg() -> Any:
+    """Supabase (and any remote Postgres) requires TLS; a local Postgres
+    (CI `postgres:16` service, dev) does not offer it. Respect an explicit
+    `sslmode` in the URL, else: no SSL for localhost, `require` otherwise.
+    """
+    parsed = urlparse(DATABASE_URL)
+    query = parsed.query or ""
+    if "sslmode=disable" in query:
+        return False
+    if "sslmode=require" in query or "sslmode=verify" in query:
+        return "require"
+    host = (parsed.hostname or "").lower()
+    if host in ("localhost", "127.0.0.1", "::1") or host.endswith(".local"):
+        return False
+    return "require"
+
+
 async def get_pool() -> asyncpg.Pool:
     global _pool
     if _pool is None:
@@ -132,6 +150,7 @@ async def get_pool() -> asyncpg.Pool:
             min_size=1,
             max_size=10,
             statement_cache_size=0,  # pgbouncer transaction-mode safe
+            ssl=_ssl_arg(),
             init=_init_conn,
         )
     return _pool
