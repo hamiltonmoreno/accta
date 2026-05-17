@@ -3,6 +3,7 @@
 CLI para criar o primeiro administrador em producao.
 Uso: python create_admin.py --email admin@controlador.cv --password <senha> --name "Nome Admin"
 """
+
 import asyncio
 import argparse
 import uuid
@@ -10,21 +11,26 @@ import hashlib
 import os
 import sys
 
-from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
 from datetime import datetime, timezone
 
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', 'backend', '.env'))
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", "backend", ".env"))
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
+from database import db, ensure_schema, close_pool  # noqa: E402
 
 try:
     from passlib.context import CryptContext
+
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
     def hash_password(password: str) -> str:
         return pwd_context.hash(password)
 except ImportError:
     import bcrypt
+
     def hash_password(password: str) -> str:
-        return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def generate_qr_hash(user_id: str) -> str:
@@ -32,15 +38,7 @@ def generate_qr_hash(user_id: str) -> str:
 
 
 async def create_admin(email: str, password: str, name: str):
-    mongo_url = os.environ.get('MONGO_URL')
-    db_name = os.environ.get('DB_NAME')
-
-    if not mongo_url or not db_name:
-        print("ERRO: MONGO_URL e DB_NAME devem estar definidos no .env")
-        sys.exit(1)
-
-    client = AsyncIOMotorClient(mongo_url)
-    db = client[db_name]
+    await ensure_schema()
 
     existing = await db.users.find_one({"email": email})
     if existing:
@@ -48,7 +46,7 @@ async def create_admin(email: str, password: str, name: str):
         print(f"  Nome: {existing.get('name')}")
         print(f"  Role: {existing.get('role')}")
         print(f"  Status: {existing.get('status')}")
-        client.close()
+        await close_pool()
         sys.exit(1)
 
     user_id = str(uuid.uuid4())
@@ -68,9 +66,13 @@ async def create_admin(email: str, password: str, name: str):
         "phone_number": "",
         "admission_date": now,
         "privileges": [
-            "manage_users", "manage_finances", "manage_events",
-            "manage_documents", "moderate_content", "manage_benefits",
-            "view_audit_logs"
+            "manage_users",
+            "manage_finances",
+            "manage_events",
+            "manage_documents",
+            "moderate_content",
+            "manage_benefits",
+            "view_audit_logs",
         ],
         "consent_data": True,
         "qr_code_hash": generate_qr_hash(user_id),
@@ -81,14 +83,14 @@ async def create_admin(email: str, password: str, name: str):
     }
 
     await db.users.insert_one(admin_doc)
-    client.close()
+    await close_pool()
 
     print("=" * 50)
     print("  Administrador criado com sucesso!")
     print("=" * 50)
     print(f"  Email:  {email}")
     print(f"  Nome:   {name}")
-    print(f"  Role:   admin")
+    print("  Role:   admin")
     print(f"  ID:     {user_id}")
     print("=" * 50)
     print("  Pode agora fazer login no portal.")
@@ -96,10 +98,16 @@ async def create_admin(email: str, password: str, name: str):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Criar administrador inicial do Portal ACCTA")
+    parser = argparse.ArgumentParser(
+        description="Criar administrador inicial do Portal ACCTA"
+    )
     parser.add_argument("--email", required=True, help="Email do administrador")
-    parser.add_argument("--password", required=True, help="Senha do administrador (min. 6 caracteres)")
-    parser.add_argument("--name", default="Administrador ACCTA", help="Nome do administrador")
+    parser.add_argument(
+        "--password", required=True, help="Senha do administrador (min. 6 caracteres)"
+    )
+    parser.add_argument(
+        "--name", default="Administrador ACCTA", help="Nome do administrador"
+    )
 
     args = parser.parse_args()
 

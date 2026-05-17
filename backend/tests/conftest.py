@@ -27,10 +27,9 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 # Defaults so unit tests can import auth/database without a real .env.
-# Motor's AsyncIOMotorClient is lazy — no socket is opened until a query
-# runs, so a localhost URL is safe for tests that mock all DB calls.
-os.environ.setdefault("MONGO_URL", "mongodb://localhost:27017")
-os.environ.setdefault("DB_NAME", "accta_test_unit")
+# The asyncpg pool is created lazily — no socket is opened until a query
+# runs, so a placeholder URL is safe for tests that mock all DB calls.
+os.environ.setdefault("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/accta_test")
 os.environ.setdefault("SECRET_KEY", "unit-test-secret-key-do-not-use-in-prod")
 os.environ.setdefault("CORS_ORIGINS", "*")
 

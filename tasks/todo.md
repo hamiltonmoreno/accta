@@ -125,5 +125,39 @@ _Avaliação + plano de execução. App ainda **não está em produção** → s
 
 ---
 
-## Review
-_(preenchido ao concluir cada fase)_
+## Review — execução (em curso)
+
+**Abordagem executada (refinamento de D1/D2/D3):** em vez de SQLAlchemy/Alembic +
+remodelagem relacional, implementei um **DAO assíncrono sobre asyncpg que emula
+fielmente o subconjunto exato da API Mongo em uso**, com cada coleção como
+tabela `(pk bigserial, doc jsonb)`. Resultado: **zero alterações** em rotas,
+`auth.py`, `helpers.py`, `models.py` e nos 36 ficheiros de teste — só
+`database.py` foi reescrito. É a expressão mais fiel de "Minimal Impact".
+
+**Feito:**
+- [x] `backend/database.py` reescrito: pool asyncpg, DAO Mongo-compatível
+  (`find/find_one/insert_*/update_*/delete_*/count_documents/aggregate`,
+  operadores `$in/$ne/$eq/$gt(e)/$lt(e)/$or/$regex`, updates
+  `$set/$inc/$push/$pull/$addToSet`, agregação `$match/$group/$sum/$cond/$count`),
+  cursores `.sort/.skip/.limit/.to_list`, projeção, fidelidade de datetime,
+  `ensure_schema()` idempotente (27 tabelas + índices de expressão/GIN), purga
+  TTL (oportunista + pg_cron best-effort).
+- [x] `server.py`: `/health`→`ping()` Postgres, startup `ensure_schema()`,
+  shutdown `close_pool()`.
+- [x] `requirements.txt`: removido `motor`/`pymongo`, adicionado `asyncpg`.
+- [x] Scripts (`create_admin`, `seed_data`, `seed_gallery`) repontados ao DAO.
+- [x] `conftest.py`: env default `MONGO_URL`→`DATABASE_URL` (fixture `mock_db`
+  intacta).
+- [x] CI: serviço `mongo:7`→`postgres:16`, `DATABASE_URL`.
+- [x] **Verificação**: `ruff` limpo; **275 testes unitários mockados a passar**
+  + 113 do gate de CI — swap Mongo→Postgres transparente à aplicação.
+
+**Pendente / bloqueios:**
+- [ ] Validação contra Postgres real: docker indisponível no sandbox → corre via
+  serviço `postgres:16` do CI (smoke) ao dar push. Monitorizar PR.
+- [ ] `DATABASE_URL` do projeto Supabase **accta** (noutra conta, fora do MCP) —
+  necessário para validação real/produção. A definir como secret de
+  ambiente/deploy.
+- [ ] `backend/.env.example`: bloqueado por permissão (`.env*`) — atualizar
+  `MONGO_URL`/`DB_NAME` → `DATABASE_URL` manualmente.
+- [ ] Docs (README/DEPLOY/CLAUDE.md/.claude/rules) ainda referenciam MongoDB.
