@@ -117,4 +117,4 @@ REACT_APP_BACKEND_URL=http://localhost:8001
 
 ---
 
-Desenvolvido com Emergent AI | 2025–2026
+Desenvolvido por Hamilton Vicente | 2025–2026
