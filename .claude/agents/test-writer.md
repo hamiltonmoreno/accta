@@ -23,5 +23,5 @@ Test conventions:
 - File naming: test_{module}.py
 - Use fixtures for auth tokens and test data
 - Clean up test data after each test
-- Test against real MongoDB (integration tests)
+- Test against real PostgreSQL (Supabase) (integration tests)
 - Cover all RBAC combinations for protected endpoints

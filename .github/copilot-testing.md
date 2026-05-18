@@ -82,6 +82,7 @@ frontend/src/
 
 ```python
 import pytest
+import uuid
 from fastapi.testclient import TestClient
 from server import app
 from database import db
@@ -100,34 +101,34 @@ async def clear_users():
 @pytest.fixture
 async def sample_user():
     user_data = {
+        "id": str(uuid.uuid4()),
         "name": "John Doe",
         "email": "john@accta.cv",
         "password_hash": "hashed_pwd",
         "role": "socio",
         "status": "ativo",
-        "created_at": datetime.now(timezone.utc)
+        "created_at": datetime.now(timezone.utc).isoformat()
     }
-    result = await db.users.insert_one(user_data)
-    user_data["_id"] = result.inserted_id
+    await db.users.insert_one(user_data)
     yield user_data
     # Cleanup
-    await db.users.delete_one({"_id": result.inserted_id})
+    await db.users.delete_one({"id": user_data["id"]})
 
 @pytest.fixture
 async def admin_user():
     user_data = {
+        "id": str(uuid.uuid4()),
         "name": "Admin",
         "email": "admin@accta.cv",
         "password_hash": "hashed_pwd",
         "role": "admin",
         "status": "ativo",
         "privileges": ["manage_users", "manage_finances"],
-        "created_at": datetime.now(timezone.utc)
+        "created_at": datetime.now(timezone.utc).isoformat()
     }
-    result = await db.users.insert_one(user_data)
-    user_data["_id"] = result.inserted_id
+    await db.users.insert_one(user_data)
     yield user_data
-    await db.users.delete_one({"_id": result.inserted_id})
+    await db.users.delete_one({"id": user_data["id"]})
 ```
 
 ### 2. Testing GET Endpoints
@@ -143,7 +144,7 @@ async def test_list_users(sample_user):
 
 @pytest.mark.asyncio
 async def test_get_user_by_id(sample_user):
-    user_id = str(sample_user["_id"])
+    user_id = sample_user["id"]
     response = client.get(f"/api/users/{user_id}")
     assert response.status_code == 200
     assert response.json()["email"] == "john@accta.cv"
@@ -202,7 +203,7 @@ async def test_create_user_invalid_email():
 ```python
 @pytest.mark.asyncio
 async def test_update_user(sample_user, admin_token):
-    user_id = str(sample_user["_id"])
+    user_id = sample_user["id"]
     response = client.put(
         f"/api/users/{user_id}",
         json={"name": "Updated Name"},
@@ -226,7 +227,7 @@ async def test_update_nonexistent_user(admin_token):
 ```python
 @pytest.mark.asyncio
 async def test_delete_user(sample_user, admin_token):
-    user_id = str(sample_user["_id"])
+    user_id = sample_user["id"]
     response = client.delete(
         f"/api/users/{user_id}",
         headers={"Authorization": f"Bearer {admin_token}"}
@@ -287,15 +288,16 @@ async def test_admin_endpoint_allows_admin(admin_token):
 async def test_invoice_status_calculation():
     """Test invoice is marked 'paid' if amount equals sum of payments"""
     invoice_data = {
+        "id": str(uuid.uuid4()),
         "member_id": "123",
         "amount": 100.0,
         "payments": [50.0, 50.0],
         "status": "pending"
     }
-    result = await db.invoices.insert_one(invoice_data)
+    await db.invoices.insert_one(invoice_data)
     
     # Trigger status update
-    response = client.post(f"/api/invoices/{result.inserted_id}/update-status")
+    response = client.post(f"/api/invoices/{invoice_data['id']}/update-status")
     assert response.status_code == 200
     assert response.json()["status"] == "paid"
 
@@ -303,15 +305,16 @@ async def test_invoice_status_calculation():
 async def test_photo_approval_workflow():
     """Test photo transitions from pending to approved"""
     photo_data = {
+        "id": str(uuid.uuid4()),
         "member_id": "123",
         "url": "photo.jpg",
         "status": "pending_approval"
     }
-    result = await db.gallery_photos.insert_one(photo_data)
+    await db.gallery_photos.insert_one(photo_data)
     
     # Approve photo
     response = client.post(
-        f"/api/gallery/photos/{result.inserted_id}/approve",
+        f"/api/gallery/photos/{photo_data['id']}/approve",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
     assert response.status_code == 200
@@ -447,13 +450,15 @@ def mock_send_email():
 
 ```python
 @pytest.fixture
-async def mock_db():
-    # Create isolated test database for each test
-    client = motor.motor_asyncio.AsyncIOMotorClient("mongodb://localhost:27017")
-    db = client["accta_test"]
+async def clean_db():
+    # Isolate each test by clearing collections via the Mongo-compatible DAO
+    # (PostgreSQL/Supabase, configured through DATABASE_URL)
+    from database import db
     yield db
     # Cleanup
-    client.drop_database("accta_test")
+    await db.users.delete_many({})
+    await db.gallery_photos.delete_many({})
+    await db.invoices.delete_many({})
 ```
 
 ### Mock Authentication

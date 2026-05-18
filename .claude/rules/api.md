@@ -20,11 +20,11 @@ paths:
 - Return 401 for missing/invalid token
 
 ## Database
-- Use Motor async driver — all DB operations must be `await`
-- Access collections via `database.db["collection_name"]`
-- Use `str(ObjectId())` for generating IDs
-- Serialize dates as ISO 8601 strings
-- Always create indexes in `database.py` for queried fields
+- Use asyncpg (PostgreSQL/Supabase) via the Mongo-compatible DAO in `database.py` — all DB operations must be `await`
+- Access collections via attribute on the DAO: `database.db.collection_name` (e.g. `db.users`, `db.invoices`)
+- Use `str(uuid.uuid4())` for generating IDs (stored as `id`; there is no Mongo `_id`)
+- Serialize dates as ISO 8601 strings (`datetime.now(timezone.utc).isoformat()`)
+- Never build raw SQL in routes — the DAO parameterizes asyncpg queries; indexes are defined in `database.py` via `ensure_schema()` (do not call `create_index` from routes)
 
 ## Error Handling
 - Use `HTTPException` with appropriate status codes

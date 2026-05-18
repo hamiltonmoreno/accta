@@ -15,13 +15,13 @@ Write the plan to `tasks/todo.md`:
 ## Step 2 — Backend
 1. Add Pydantic model to `backend/models.py`
 2. Create `backend/routes/$ARGUMENTS.py` with:
-   - FastAPI router with `/api/$ARGUMENTS` prefix
+   - FastAPI router with `/$ARGUMENTS` prefix (the shared `api_router` adds the `/api` prefix)
    - Auth dependency on all protected endpoints: `Depends(get_current_user)`
    - Role checks where applicable
    - `create_audit_log()` on admin write actions
    - `create_notification()` or `notify_users()` where relevant
-3. Register router in `backend/server.py`
-4. Add MongoDB indexes to `backend/database.py` if needed
+3. Register router in `backend/routes/__init__.py` (add `from routes.$ARGUMENTS import router as $ARGUMENTS_router` and `api_router.include_router($ARGUMENTS_router)`; `api_router` already has `prefix="/api"`)
+4. Add indexes to `backend/database.py` via `ensure_schema()` if needed
 
 ## Step 3 — Frontend
 1. Add API group to `frontend/src/utils/api.js`

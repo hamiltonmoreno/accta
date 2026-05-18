@@ -98,4 +98,4 @@
 |-----|------|--------|
 | Engajamento | +20% logins + votações | Estrutura implementada |
 | Eficiência Admin | -50% tempo de gestão | Automatizado via folha salarial |
-| Escalabilidade | 500 sócios simultâneos | Índices MongoDB + async Motor |
+| Escalabilidade | 500 sócios simultâneos | Índices SQL (expressão/parciais/GIN) via ensure_schema() + pool asyncpg (PostgreSQL/Supabase) |

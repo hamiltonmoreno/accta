@@ -5,7 +5,7 @@ Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aer
 
 ## Stack Tecnica
 - **Frontend:** React, Tailwind CSS, Recharts, Framer Motion (Modo Claro exclusivo)
-- **Backend:** Python FastAPI, MongoDB (Motor async), JWT Auth, slowapi, Resend (email)
+- **Backend:** Python FastAPI, PostgreSQL (Supabase) — DAO assíncrono Mongo-compatível sobre asyncpg em database.py, JWT Auth, slowapi, Resend (email)
 - **Extras:** fpdf2 (PDF), date-fns (datas)
 
 ## Credenciais de Teste
@@ -53,7 +53,7 @@ Nota: Sem dominio verificado, o link de convite e gerado e copiavel manualmente.
 - [x] CI/CD GitHub Actions (.github/workflows/deploy.yml)
 - [x] Guia generico DEPLOY.md
 - [x] Guia Vercel VERCEL_DEPLOY.md
-- [x] Checklist Hostinger VPS HOSTINGER_DEPLOY.md (Feb 2026) - passo-a-passo com comandos prontos para Ubuntu 22/24, Nginx + SSL + Supervisor + MongoDB + primeiro admin + GitHub Secrets
+- [x] Checklist Hostinger VPS HOSTINGER_DEPLOY.md (Feb 2026) - passo-a-passo com comandos prontos para Ubuntu 22/24, Nginx + SSL + Supervisor + PostgreSQL (Supabase) + primeiro admin + GitHub Secrets
 
 ## Backlog
 

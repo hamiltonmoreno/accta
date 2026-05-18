@@ -18,7 +18,7 @@ uvicorn server:app --host 0.0.0.0 --port 8001 --reload
 ```
 backend/
 ├── server.py                 # FastAPI app setup, middleware, CORS
-├── database.py               # MongoDB connection, UPLOAD_DIR, utilities
+├── database.py               # asyncpg (PostgreSQL/Supabase) connection pool + Mongo-compatible DAO, UPLOAD_DIR, utilities
 ├── models.py                 # Pydantic models (User, Invoice, Poll, etc.)
 ├── auth.py                   # JWT creation/validation, password hashing
 ├── helpers.py                # Shared utilities (email, QR, PDF generation)
@@ -122,8 +122,7 @@ async def list_users(skip: int = 0, limit: int = 100):
 # GET by ID
 @router.get("/{user_id}")
 async def get_user(user_id: str):
-    from bson import ObjectId
-    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
@@ -141,13 +140,15 @@ async def create_user(
     
     # Hash password
     from auth import hash_password
+    import uuid
     user_dict = user.model_dump()
+    user_dict["id"] = str(uuid.uuid4())
     user_dict["password_hash"] = hash_password(user.password)
     del user_dict["password"]
     
     # Insert
-    result = await db.users.insert_one(user_dict)
-    created_user = await db.users.find_one({"_id": result.inserted_id})
+    await db.users.insert_one(user_dict)
+    created_user = await db.users.find_one({"id": user_dict["id"]}, {"_id": 0})
     return created_user
 
 # PUT update (admin only)
@@ -157,14 +158,13 @@ async def update_user(
     update: UserUpdate,
     current_user: dict = Depends(require_admin),
 ):
-    from bson import ObjectId
     result = await db.users.update_one(
-        {"_id": ObjectId(user_id)},
+        {"id": user_id},
         {"$set": update.model_dump(exclude_unset=True)}
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
-    updated_user = await db.users.find_one({"_id": ObjectId(user_id)})
+    updated_user = await db.users.find_one({"id": user_id}, {"_id": 0})
     return updated_user
 
 # DELETE
@@ -173,8 +173,7 @@ async def delete_user(
     user_id: str,
     current_user: dict = Depends(require_admin),
 ):
-    from bson import ObjectId
-    result = await db.users.delete_one({"_id": ObjectId(user_id)})
+    result = await db.users.delete_one({"id": user_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
     return None
@@ -186,15 +185,20 @@ async def delete_user(
 - Use `Depends(require_admin)` for admin-only routes
 - Always validate before insert/update
 - Use `raise HTTPException(status_code=..., detail="...")` for errors
-- Convert string IDs to `ObjectId` for MongoDB queries
+- Documents use an app-generated UUID string `id` (`str(uuid.uuid4())`) — there is no Mongo `_id`; filter/lookup by the domain `id` field. The legacy `{"_id": 0}` projection is a harmless no-op
 
-### 3. Database (MongoDB)
+### 3. Database (PostgreSQL/Supabase via the Mongo-compatible DAO)
+
+`database.py` is an async `asyncpg` connection pool that exposes a Mongo-compatible DAO,
+so call sites keep using `find_one`, `insert_one`, `update_one({"$set": ...})`,
+`aggregate([...])` and cursor chaining. Documents carry an app-generated UUID string
+`id` (there is no Mongo `_id`); filter by the domain `id` field.
 
 **Pattern:**
 ```python
 from database import db
-from bson import ObjectId
 from datetime import datetime, timezone
+import uuid
 
 # Find all
 async def get_all_items():
@@ -202,26 +206,27 @@ async def get_all_items():
 
 # Find by ID
 async def get_item(item_id: str):
-    return await db.items.find_one({"_id": ObjectId(item_id)})
+    return await db.items.find_one({"id": item_id}, {"_id": 0})
 
 # Insert
 async def create_item(item_data: dict):
-    item_data['created_at'] = datetime.now(timezone.utc)
-    result = await db.items.insert_one(item_data)
-    return await db.items.find_one({"_id": result.inserted_id})
+    item_data['id'] = str(uuid.uuid4())
+    item_data['created_at'] = datetime.now(timezone.utc).isoformat()
+    await db.items.insert_one(item_data)
+    return await db.items.find_one({"id": item_data["id"]}, {"_id": 0})
 
 # Update
 async def update_item(item_id: str, update_data: dict):
-    update_data['updated_at'] = datetime.now(timezone.utc)
+    update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
     result = await db.items.update_one(
-        {"_id": ObjectId(item_id)},
+        {"id": item_id},
         {"$set": update_data}
     )
     return result.modified_count > 0
 
 # Delete
 async def delete_item(item_id: str):
-    result = await db.items.delete_one({"_id": ObjectId(item_id)})
+    result = await db.items.delete_one({"id": item_id})
     return result.deleted_count > 0
 
 # Find with filter
@@ -310,8 +315,7 @@ from datetime import datetime
 
 @router.get("/export/pdf/{invoice_id}")
 async def export_invoice(invoice_id: str):
-    from bson import ObjectId
-    invoice = await db.invoices.find_one({"_id": ObjectId(invoice_id)})
+    invoice = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
     
     pdf = FPDF()
     pdf.add_page()
@@ -331,8 +335,7 @@ from helpers import send_email
 
 @router.post("/notify/{user_id}")
 async def notify_user(user_id: str, message: str):
-    from bson import ObjectId
-    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
     
     await send_email(
         to=user['email'],
@@ -387,15 +390,17 @@ client = TestClient(app)
 
 @pytest.fixture
 async def sample_user():
+    import uuid
     user = {
+        "id": str(uuid.uuid4()),
         "name": "John Doe",
         "email": "john@example.com",
         "password": "secret123",
         "role": "socio"
     }
-    result = await db.users.insert_one(user)
+    await db.users.insert_one(user)
     yield user
-    await db.users.delete_one({"_id": result.inserted_id})
+    await db.users.delete_one({"id": user["id"]})
 
 def test_list_users():
     response = client.get("/api/users/")
@@ -431,7 +436,7 @@ pytest tests/ --cov  # Coverage report
 
 **`backend/.env`**:
 ```
-MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/accta
+DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
 JWT_SECRET=your-super-secret-key-change-this
 CORS_ORIGINS=http://localhost:3000,https://yourdomain.com
 UPLOAD_DIR=./uploads
@@ -468,7 +473,7 @@ async def expensive_op(request: Request):
 
 ## Debugging Tips
 
-1. **MongoDB not connecting?** Check `MONGODB_URI` in `.env`, verify IP whitelist in Atlas
+1. **Database not connecting?** Is `DATABASE_URL` valid? Is the Supabase pooler reachable on port 6543 (transaction mode)? Is `statement_cache_size=0` set for pgbouncer? The backend raises `RuntimeError` at startup if `DATABASE_URL` is missing
 2. **CORS errors?** Update `CORS_ORIGINS` env var and restart server
 3. **JWT expired?** Token TTL is 24h by default; implement refresh token rotations
 4. **File upload fails?** Ensure `UPLOAD_DIR` path exists and is writable
