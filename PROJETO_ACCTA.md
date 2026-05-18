@@ -45,8 +45,8 @@ Portal institucional completo e Sistema de Gestão Associativa (SGA) para a ACCT
 | Camada | Tecnologia |
 |--------|-----------|
 | Frontend | React 19 + Tailwind CSS 3 + shadcn/ui (New York) + Framer Motion + Recharts + Craco |
-| Backend | FastAPI (Python 3.11) + Motor (async MongoDB driver) |
-| Base de Dados | MongoDB 7 |
+| Backend | FastAPI (Python 3.11) + asyncpg (PostgreSQL/Supabase) |
+| Base de Dados | PostgreSQL (Supabase) — DAO assíncrono Mongo-compatível sobre asyncpg em database.py |
 | Autenticação | JWT HS256 (24h expiry) + RBAC (admin, financeiro, moderador, socio) |
 | Email | Resend API |
 | Real-time | SSE (Server-Sent Events) + fallback polling 30s |
@@ -75,9 +75,11 @@ Portal institucional completo e Sistema de Gestão Associativa (SGA) para a ACCT
 
 ---
 
-## Collections MongoDB
+## Tabelas / coleções lógicas (PostgreSQL)
 
-| Collection | Descrição |
+> Cada coleção lógica é uma tabela PostgreSQL `(pk bigserial, doc jsonb)` — 27 tabelas no total. O acesso faz-se via um DAO assíncrono Mongo-compatível sobre asyncpg em `database.py`.
+
+| Coleção | Descrição |
 |------------|-----------|
 | `users` | Sócios, admins, financeiro, moderadores |
 | `transactions` | Contribuições financeiras (desconto em folha) |
@@ -133,7 +135,7 @@ Portal institucional completo e Sistema de Gestão Associativa (SGA) para a ACCT
 │   └── tailwind.config.js
 ├── backend/
 │   ├── server.py           # FastAPI entry point + CORS + rate limiting
-│   ├── database.py         # Conexão MongoDB + definição de índices
+│   ├── database.py         # Pool asyncpg (PostgreSQL/Supabase) + schema/índices via ensure_schema()
 │   ├── auth.py             # JWT criação/validação + bcrypt
 │   ├── models.py           # Pydantic models (request/response)
 │   ├── helpers.py          # create_notification, create_audit_log, notify_*

@@ -198,3 +198,21 @@ tabela `(pk bigserial, doc jsonb)`. Resultado: **zero alterações** em rotas,
   HOSTINGER_DEPLOY, VERCEL_DEPLOY, `.claude/skills`, `.claude/agents/*`,
   `.claude/commands/new-feature`. (ANALISE_MELHORIAS/PROJETO_ACCTA/memory/PRD
   são históricos — não reescrever.)
+
+---
+
+## Limpeza de documentação Mongo→Postgres (branch `claude/docs-postgres-cleanup`)
+
+> Decisão do utilizador (substitui a nota "não reescrever" acima): atualizar
+> **toda** a documentação, incluindo ANALISE_MELHORIAS/PROJETO_ACCTA/memory/PRD.
+> README/DEPLOY/HOSTINGER já corrigidos no PR #34 (fundido).
+
+- [ ] `.github/copilot-instructions.md`, `copilot-backend.md`, `copilot-testing.md`
+- [ ] `.claude/skills/backend-api/SKILL.md` (reescrever boilerplate p/ DAO real)
+- [ ] `.claude/agents/{code-reviewer,debugger,schema-migration,security-auditor,test-writer}.md`
+- [ ] `.claude/commands/new-feature.md`, `.claude/rules/api.md`
+- [ ] `PROJETO_ACCTA.md`, `ANALISE_MELHORIAS.md`, `memory/PRD.md`
+- [ ] `VERCEL_DEPLOY.md` → reescrito p/ Vercel + Supabase (sem Atlas/Render)
+- [ ] Preservar: `CLAUDE.md`, `.claude/rules/database.md` (refs DAO intencionais),
+  `tasks/*` (registo histórico)
+- [ ] Verificar grep limpo + commit + push + PR

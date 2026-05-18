@@ -14,14 +14,14 @@ from database import db
 from auth import get_current_user
 from helpers import create_audit_log, create_notification, notify_admins
 from models import FeatureModel, FeatureCreateRequest
-from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timezone
+import uuid
 
 router = APIRouter()
 
 @router.get("/")
 async def list_items(current_user: dict = Depends(get_current_user)):
-    items = await db["collection"].find().sort("created_at", -1).to_list(100)
+    items = await db.collection.find().sort("created_at", -1).to_list(100)
     return items
 
 @router.post("/")
@@ -34,24 +34,25 @@ async def create_item(
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     doc = {
-        "_id": str(ObjectId()),
+        "id": str(uuid.uuid4()),
         **data.model_dump(),
         "created_by": current_user["id"],
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    await db["collection"].insert_one(doc)
+    await db.collection.insert_one(doc)
 
     # Audit log for admin actions
     await create_audit_log(
-        action="create_item",
         user_id=current_user["id"],
-        details={"item_id": doc["_id"]}
+        action="create_item",
+        details={"item_id": doc["id"]}
     )
 
     # Notify relevant users
     await create_notification(
         user_id=current_user["id"],
         type="admin",
+        title="Item criado",
         message="Item criado com sucesso."
     )
 
@@ -77,27 +78,27 @@ if doc["user_id"] != current_user["id"] and current_user["role"] != "admin":
     raise HTTPException(status_code=403, detail="Acesso negado")
 ```
 
-## MongoDB Patterns
+## Data layer (Mongo-compatible DAO over PostgreSQL/Supabase)
 
 ```python
-# Find one by ID
-doc = await db["collection"].find_one({"_id": item_id})
+# Find one by ID ({"_id": 0} is a harmless legacy projection no-op)
+doc = await db.collection.find_one({"id": item_id}, {"_id": 0})
 if not doc:
     raise HTTPException(status_code=404, detail="Não encontrado")
 
 # Paginated list
 skip = (page - 1) * limit
-items = await db["collection"].find(filter).skip(skip).limit(limit).to_list(limit)
-total = await db["collection"].count_documents(filter)
+items = await db.collection.find(filter).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+total = await db.collection.count_documents(filter)
 
 # Update
-await db["collection"].update_one(
-    {"_id": item_id},
-    {"$set": {**updates, "updated_at": datetime.utcnow().isoformat()}}
+await db.collection.update_one(
+    {"id": item_id},
+    {"$set": {**updates, "updated_at": datetime.now(timezone.utc).isoformat()}}
 )
 
 # Delete with check
-result = await db["collection"].delete_one({"_id": item_id})
+result = await db.collection.delete_one({"id": item_id})
 if result.deleted_count == 0:
     raise HTTPException(status_code=404, detail="Não encontrado")
 ```
@@ -112,16 +113,20 @@ if result.deleted_count == 0:
 - `admin` — admin actions
 - `system` — system messages
 
-## Register Router in server.py
+## Register Router in routes/__init__.py
+
+New routers are wired in `backend/routes/__init__.py` (the shared `api_router`
+already has `prefix="/api"`; `server.py` only does `app.include_router(api_router)`):
 
 ```python
+# backend/routes/__init__.py
 from routes.feature import router as feature_router
-app.include_router(feature_router, prefix="/api/feature", tags=["feature"])
+api_router.include_router(feature_router)
 ```
 
-## Add Index in database.py
+## Indexes in database.py
 
-```python
-await db["collection"].create_index([("user_id", 1), ("created_at", -1)])
-await db["collection"].create_index("field", unique=True)
-```
+Indexes are NOT added via `create_index` in routes. They are declared in
+`backend/database.py` inside `ensure_schema()`, which runs on startup and issues
+the SQL `CREATE INDEX` statements (expression / partial / GIN on the `doc` jsonb
+column) that mirror the original Mongo indexes. Add new index definitions there.
