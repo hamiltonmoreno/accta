@@ -208,16 +208,21 @@ def _rehydrate(table: str, doc: Optional[dict]) -> Optional[dict]:
 
 
 def _apply_projection(doc: dict, projection: Optional[dict]) -> dict:
-    """Emulate Mongo projection. `_id` does not exist here (always excluded
-    in callers). Inclusion projections (`{"field": 1}`) return only those
-    fields; pure exclusion / `{"_id": 0}` returns the full document.
+    """Emulate Mongo projection. `_id` does not exist here (the surrogate
+    `pk` is never in `doc`), so `{"_id": 0}` is a harmless no-op. Inclusion
+    projections (`{"field": 1}`) return only those fields; exclusion
+    projections (`{"field": 0}`) return the document **minus** those fields
+    (Mongo forbids mixing the two, except for `_id`).
     """
     if not projection:
         return doc
     includes = [k for k, v in projection.items() if k != "_id" and v]
-    if not includes:
-        return doc
-    return {k: doc[k] for k in includes if k in doc}
+    if includes:
+        return {k: doc[k] for k in includes if k in doc}
+    excludes = {k for k, v in projection.items() if k != "_id" and not v}
+    if excludes:
+        return {k: v for k, v in doc.items() if k not in excludes}
+    return doc
 
 
 class _WhereBuilder:
