@@ -31,13 +31,17 @@ No servidor de produção, `/app/backend/.env` deve conter:
 
 ```env
 SECRET_KEY=<chave-secreta-forte — gere com: python3 -c "import secrets; print(secrets.token_urlsafe(64))">
-MONGO_URL=mongodb://localhost:27017
-DB_NAME=accta_portal
+DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
 CORS_ORIGINS=https://controlador.cv
 FRONTEND_URL=https://controlador.cv
 RESEND_API_KEY=re_xxxxxxxxxxxxx
 SENDER_EMAIL=noreply@controlador.cv
 ```
+
+> **Base de dados**: a app usa PostgreSQL/Supabase via `asyncpg` (não MongoDB).
+> Em produção use o URI do **connection pooler** do Supabase (porta `6543`,
+> transaction mode). `DATABASE_URL` é **obrigatória** — se faltar, o backend
+> aborta no arranque com `RuntimeError: DATABASE_URL environment variable is required`.
 
 E `/app/frontend/.env` (usado durante o build):
 
@@ -104,7 +108,7 @@ sudo tail -f /var/log/supervisor/backend.err.log
 | Passo | Comando | Descrição |
 |-------|---------|-----------|
 | Lint | `ruff check .` | Verifica erros de sintaxe e estilo |
-| Tests | `pytest tests/ -v` | Executa testes com MongoDB em serviço |
+| Tests | `pytest tests/ -v` | Executa testes (DAO mockado / Postgres em serviço) |
 
 ### Frontend (React/Craco)
 
@@ -132,7 +136,8 @@ sudo systemctl reload nginx
 
 ## 6. Pressupostos
 
-- O servidor tem Python 3.11+, Node 20+, Yarn, MongoDB 7+ e Supervisor instalados
+- O servidor tem Python 3.11+, Node 20+, Yarn e Supervisor instalados
+- A base de dados é PostgreSQL/Supabase (gerida) — acessível via `DATABASE_URL`; **não** é necessário instalar um servidor de base de dados local
 - O repositório está clonado no servidor no diretório especificado em `DEPLOY_APP_DIR` (padrão `/app`)
 - A chave SSH pública está adicionada a `~/.ssh/authorized_keys` no utilizador `DEPLOY_USER`
 - O Supervisor está configurado para gerir `backend` (uvicorn porta 8001)

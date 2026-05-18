@@ -24,7 +24,8 @@ rsync --archive --chown=deploy:deploy ~/.ssh /home/deploy  # copia chaves SSH
 
 ### 1.2 Instalar dependências
 ```bash
-# Python 3.11 + Node 20 + MongoDB 7 + Nginx + Supervisor + Certbot
+# Python 3.11 + Node 20 + Nginx + Supervisor + Certbot
+# Base de dados: Supabase/PostgreSQL (gerida) — não se instala servidor de BD no VPS
 apt install -y software-properties-common curl gnupg git supervisor nginx certbot python3-certbot-nginx
 
 # Python 3.11
@@ -35,13 +36,11 @@ apt install -y python3.11 python3.11-venv python3-pip
 curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
 apt install -y nodejs
 npm install -g yarn
-
-# MongoDB 7
-curl -fsSL https://pgp.mongodb.com/server-7.0.asc | gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
-echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-7.0.list
-apt update && apt install -y mongodb-org
-systemctl enable --now mongod
 ```
+
+> A base de dados é o **Supabase** (PostgreSQL gerido). Não há MongoDB nem
+> qualquer servidor de BD a instalar no VPS — a app liga-se via `DATABASE_URL`
+> (URI do connection pooler do Supabase, porta `6543`, transaction mode).
 
 ### 1.3 Firewall
 ```bash
@@ -65,8 +64,7 @@ git clone https://github.com/SEU_USER/SEU_REPO.git .
 ### 2.2 Criar `.env` do backend
 ```bash
 cat > /app/backend/.env <<'EOF'
-MONGO_URL=mongodb://localhost:27017
-DB_NAME=accta_portal
+DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
 SECRET_KEY=COLOCAR_AQUI_UMA_CHAVE_FORTE
 CORS_ORIGINS=https://controlador.cv
 RESEND_API_KEY=re_xxxxxxxxxxxxx
@@ -234,8 +232,9 @@ sudo tail -f /var/log/nginx/error.log
 sudo supervisorctl restart backend
 sudo systemctl reload nginx
 
-# Backup da base de dados
-mongodump --db accta_portal --out /home/deploy/backups/$(date +%F)
+# Backup da base de dados — Supabase faz backups automáticos (painel do projeto).
+# Para um dump manual via DATABASE_URL (necessita postgresql-client):
+pg_dump "$DATABASE_URL" -Fc -f /home/deploy/backups/$(date +%F).dump
 
 # Verificar SSL
 sudo certbot certificates
@@ -263,7 +262,7 @@ sudo certbot certificates
 - [ ] Login do admin funciona
 - [ ] Admin consegue enviar convite e email chega (após validar domínio no Resend)
 - [ ] Notificações em tempo real funcionam (testar numa conta logada)
-- [ ] Backup automático do MongoDB configurado (cron)
+- [ ] Backups da base de dados confirmados (automáticos no painel Supabase)
 - [ ] GitHub Actions faz deploy verde após push para `main`
 
 ---

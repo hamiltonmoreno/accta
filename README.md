@@ -52,8 +52,8 @@ Portal institucional e sistema de gestão associativa para a **Associação dos 
 | Camada | Tecnologia |
 |--------|-----------|
 | Frontend | React 19 + Tailwind CSS 3 + shadcn/ui + Framer Motion + Recharts + Craco |
-| Backend | FastAPI (Python 3.11) + Motor (async MongoDB) |
-| Base de Dados | MongoDB 7 |
+| Backend | FastAPI (Python 3.11) + asyncpg (PostgreSQL/Supabase) |
+| Base de Dados | PostgreSQL (Supabase) |
 | Autenticação | JWT HS256 (24h) + RBAC (admin, financeiro, moderador, socio) |
 | Email | Resend API |
 | CI/CD | GitHub Actions → SSH → Nginx + Supervisord |
@@ -90,8 +90,7 @@ python scripts/seed_data.py
 **Backend** (`backend/.env`):
 ```env
 SECRET_KEY=<chave-secreta-forte>
-MONGO_URL=mongodb://localhost:27017
-DB_NAME=accta_portal
+DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
 CORS_ORIGINS=http://localhost:3000
 FRONTEND_URL=http://localhost:3000
 RESEND_API_KEY=re_xxxxxxxxxxxxx
