@@ -138,7 +138,7 @@ export const PrivateLayout = ({ children }) => {
   const sidebarWidth = collapsed ? SIDEBAR_COLLAPSED_W : SIDEBAR_W;
 
   /* ========== SIDEBAR CONTENT (shared desktop/mobile) ========== */
-  const sidebarInner = ({ isMobile = false } = {}) => (
+  const sidebarInner = ({ isMobile = false }) => (
     <div className="flex flex-col h-full">
       {/* ---- Logo row ---- */}
       <div className="flex items-center gap-2 px-3 py-4 min-h-[64px]" style={{ borderBottom: '1px solid var(--surface-border)' }}>
