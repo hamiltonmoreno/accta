@@ -29,7 +29,7 @@
 
 ### Backend
 - **Framework**: FastAPI (Python 3.10+)
-- **Database**: MongoDB (async via Motor)
+- **Database**: PostgreSQL (Supabase) — asyncpg connection pool via the Mongo-compatible DAO in `database.py`
 - **Auth**: JWT + RBAC middleware
 - **Async**: Uvicorn + asyncio
 - **Rate Limiting**: SlowAPI (200 req/min default)
@@ -37,6 +37,8 @@
 - **Validation**: Pydantic v2
 
 ### Database
+PostgreSQL (Supabase), accessed through the Mongo-compatible DAO in `database.py` (one table per logical collection, `(pk bigserial, doc jsonb)`).
+
 **Collections**: `users`, `invoices`, `polls`, `events`, `documents`, `wall_posts`, `notifications`, `projects`, `gallery_albums`, `gallery_photos`
 
 ### CI/CD
@@ -89,7 +91,7 @@ upload.py          # /api/upload/* (file handling)
 ### Core Backend Files
 
 - **models.py**: Pydantic models for all entities (User, Invoice, Poll, Event, etc.)
-- **database.py**: MongoDB connection, UPLOAD_DIR, database utilities
+- **database.py**: asyncpg (PostgreSQL/Supabase) connection pool exposing a Mongo-compatible DAO, `ensure_schema()` (idempotent tables + indexes), UPLOAD_DIR, database utilities
 - **auth.py**: JWT creation/validation, password hashing (bcrypt)
 - **helpers.py**: Shared utilities (email, QR code generation, etc.)
 - **server.py**: FastAPI app setup, middleware (CORS, rate limiting), health check
@@ -100,7 +102,7 @@ upload.py          # /api/upload/* (file handling)
 
 ### Local Setup
 
-**Prerequisites**: Python 3.10+, Node.js 18+, MongoDB (local or Atlas)
+**Prerequisites**: Python 3.10+, Node.js 18+, a Supabase project (or any PostgreSQL 16+) reachable via `DATABASE_URL`
 
 ```bash
 # Backend
@@ -140,7 +142,9 @@ cd scripts && python seed_data.py
 
 **Backend** (`backend/.env`):
 ```
-MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/accta
+# Production uses the Supabase connection pooler (port 6543, transaction mode);
+# asyncpg sets statement_cache_size=0 for pgbouncer. Missing DATABASE_URL → RuntimeError at startup.
+DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
 JWT_SECRET=your-secret-key
 CORS_ORIGINS=http://localhost:3000,https://your-domain.com
 UPLOAD_DIR=./uploads
@@ -231,13 +235,12 @@ async def create_item(item: ItemCreate, current_user: dict = Depends(get_current
     pass
 ```
 
-**Database Pattern**:
+**Database Pattern** (Mongo-compatible DAO over PostgreSQL/Supabase; documents use an app-generated UUID string `id`):
 ```python
 from database import db
-from bson import ObjectId
 
 async def get_item(item_id: str):
-    return await db.items.find_one({"_id": ObjectId(item_id)})
+    return await db.items.find_one({"id": item_id}, {"_id": 0})
 ```
 
 ### Frontend (React + Hooks)
@@ -286,7 +289,7 @@ useEffect(() => {
 
 ### Backend Issues
 
-1. **MongoDB Connection**: Verify `MONGODB_URI` in `.env` — check credentials & IP whitelist (Atlas)
+1. **Database Connection**: Verify `DATABASE_URL` in `.env` — is the Supabase pooler reachable on port 6543 (transaction mode)? Is `statement_cache_size=0` set for pgbouncer? (Missing `DATABASE_URL` → `RuntimeError` at startup)
 2. **CORS Errors**: Update `CORS_ORIGINS` in `.env` and restart server
 3. **JWT Expiry**: Token TTL defaults to 24h; check `auth.py` for custom logic
 4. **Rate Limiting**: SlowAPI limit is 200 req/min; adjust in `server.py` if needed
@@ -303,7 +306,7 @@ useEffect(() => {
 
 - [ ] Is `.env` file created with all required vars?
 - [ ] Are frontend & backend ports correct (3000 vs 8001)?
-- [ ] Is MongoDB running / accessible?
+- [ ] Is the PostgreSQL/asyncpg connection pool (Supabase) reachable via `DATABASE_URL`?
 - [ ] Are dependencies installed (`pip install`, `yarn install`)?
 
 ---
