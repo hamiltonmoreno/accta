@@ -56,5 +56,9 @@
     ]
   },
   "model": "claude-sonnet-4-6",
-  "autoMemoryEnabled": true
+  "autoMemoryEnabled": true,
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  }
 }
