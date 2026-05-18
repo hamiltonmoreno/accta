@@ -6,16 +6,6 @@ Portal institucional e sistema de gestão associativa para a **Associação dos 
 
 ---
 
-## Credenciais de Demonstração
-
-| Perfil | Email | Senha |
-|--------|-------|-------|
-| Administrador | admin@controlador.cv | admin123 |
-| Financeiro | financeiro@controlador.cv | fin123 |
-| Sócio | socio1@controlador.cv | socio123 |
-
----
-
 ## Funcionalidades
 
 ### Área Pública
