@@ -24,9 +24,9 @@ rsync --archive --chown=deploy:deploy ~/.ssh /home/deploy  # copia chaves SSH
 
 ### 1.2 Instalar dependências
 ```bash
-# Python 3.11 + Node 20 + Nginx + Supervisor + Certbot
-# Base de dados: Supabase/PostgreSQL (gerida) — não se instala servidor de BD no VPS
-apt install -y software-properties-common curl gnupg git supervisor nginx certbot python3-certbot-nginx
+# Python 3.11 + Node 20 + Nginx + Supervisor + Certbot + cliente PostgreSQL
+# Base de dados: Supabase/PostgreSQL (gerida) — só o cliente (pg_dump), sem servidor de BD no VPS
+apt install -y software-properties-common curl gnupg git supervisor nginx certbot python3-certbot-nginx postgresql-client
 
 # Python 3.11
 add-apt-repository ppa:deadsnakes/ppa -y
@@ -232,8 +232,9 @@ sudo tail -f /var/log/nginx/error.log
 sudo supervisorctl restart backend
 sudo systemctl reload nginx
 
-# Backup da base de dados — Supabase faz backups automáticos (painel do projeto).
-# Para um dump manual via DATABASE_URL (necessita postgresql-client):
+# Backup da base de dados — o Supabase faz backups automáticos (painel do projeto).
+# Dump manual (postgresql-client é instalado na Etapa 1.2); carrega DATABASE_URL do .env:
+set -a; . /app/backend/.env; set +a
 pg_dump "$DATABASE_URL" -Fc -f /home/deploy/backups/$(date +%F).dump
 
 # Verificar SSL
