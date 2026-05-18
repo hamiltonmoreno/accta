@@ -138,7 +138,7 @@ export const PrivateLayout = ({ children }) => {
   const sidebarWidth = collapsed ? SIDEBAR_COLLAPSED_W : SIDEBAR_W;
 
   /* ========== SIDEBAR CONTENT (shared desktop/mobile) ========== */
-  const SidebarInner = ({ isMobile = false }) => (
+  const sidebarInner = ({ isMobile = false } = {}) => (
     <div className="flex flex-col h-full">
       {/* ---- Logo row ---- */}
       <div className="flex items-center gap-2 px-3 py-4 min-h-[64px]" style={{ borderBottom: '1px solid var(--surface-border)' }}>
@@ -181,7 +181,7 @@ export const PrivateLayout = ({ children }) => {
       </div>
 
       {/* ---- Menu sections ---- */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 sidebar-scroll">
+      <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-2 py-3 sidebar-scroll">
         {menuSections.map((section) => {
           const visibleItems = section.items.filter(filterItem);
           if (visibleItems.length === 0) return null;
@@ -300,7 +300,7 @@ export const PrivateLayout = ({ children }) => {
         style={{ width: sidebarWidth, backgroundColor: 'var(--surface-sidebar)', boxShadow: '0 0 6px rgba(0,0,0,0.06)' }}
         data-testid="desktop-sidebar"
       >
-        <SidebarInner />
+        {sidebarInner({ isMobile: false })}
       </aside>
 
       {/* ======= Mobile Sidebar Overlay — CSS transitions, sem framer.
@@ -320,7 +320,7 @@ export const PrivateLayout = ({ children }) => {
         style={{ width: SIDEBAR_W, backgroundColor: 'var(--surface-sidebar)' }}
         aria-hidden={!mobileOpen}
       >
-        <SidebarInner isMobile />
+        {sidebarInner({ isMobile: true })}
       </aside>
 
       {/* ======= Main Content ======= */}
