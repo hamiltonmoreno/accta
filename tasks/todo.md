@@ -125,7 +125,7 @@ _Avaliação + plano de execução. App ainda **não está em produção** → s
 
 ---
 
-## Review — execução (em curso)
+## Review — execução (concluída — código em `main`)
 
 **Abordagem executada (refinamento de D1/D2/D3):** em vez de SQLAlchemy/Alembic +
 remodelagem relacional, implementei um **DAO assíncrono sobre asyncpg que emula
@@ -152,22 +152,49 @@ tabela `(pk bigserial, doc jsonb)`. Resultado: **zero alterações** em rotas,
 - [x] **Verificação**: `ruff` limpo; **275 testes unitários mockados a passar**
   + 113 do gate de CI — swap Mongo→Postgres transparente à aplicação.
 
-**Pendente / bloqueios:**
-- [ ] Validação contra Postgres real: docker indisponível no sandbox → corre via
-  serviço `postgres:16` do CI (smoke) ao dar push. Monitorizar PR.
-- [ ] `DATABASE_URL` do projeto Supabase **accta** (noutra conta, fora do MCP) —
-  necessário para validação real/produção. A definir como secret de
-  ambiente/deploy.
-- [x] Docs que guiam agentes: `.claude/rules/database.md` reescrito p/
-  Postgres/DAO; `CLAUDE.md` (stack, env vars, stop-condition, estrutura)
-  atualizado.
-- [ ] `backend/.env.example`: bloqueado por permissão (`.env*`) — atualizar
-  `MONGO_URL`/`DB_NAME` → `DATABASE_URL` manualmente.
-- [ ] Docs operacionais/históricos ainda referenciam Mongo (follow-up, fora
-  desta passagem): README, DEPLOY, HOSTINGER_DEPLOY, VERCEL_DEPLOY,
-  `.claude/skills`, `.claude/agents/*`, `.claude/commands/new-feature`.
-  (ANALISE_MELHORIAS/PROJETO_ACCTA/memory/PRD são históricos — não reescrever.)
-- [ ] **MCP**: projeto Supabase accta (`eafyduxxzlkwvkudcnzu`) está noutra
-  conta — MCP ligado nesta sessão não tem permissão; `claude mcp add`/`/mcp`
-  são comandos interativos do lado do utilizador e não afetam esta sessão.
-  Migração não depende de MCP — só de `DATABASE_URL`.
+**Entregue (merged em `main`):**
+- [x] PR **#30** — camada de dados MongoDB→PostgreSQL/Supabase (DAO + 27
+  tabelas + índices + scripts + CI `postgres:16` + docs de agente).
+- [x] PR **#31** — `_ssl_arg()`: TLS para Supabase (`require`), sem TLS para
+  Postgres local (CI/dev). Sem isto a app **não liga** ao Supabase em
+  ambiente nenhum (descoberto na validação pós-merge do #30).
+
+**Na branch `claude/evaluate-database-migration-XxVyZ` (NÃO em `main`):**
+- [x] commit `6678296` — correção P1 (Codex, PR #31): `sslmode` explícito
+  passa **verbatim**; `verify-ca`/`verify-full` já não são rebaixados a
+  `require` (era regressão de segurança — `ssl=` do asyncpg sobrepõe o DSN).
+  `main` ainda tem a regressão até este commit ser entregue (decisão do
+  utilizador: "só commit na branch", sem PR por agora).
+
+**Validação ao vivo — bloqueios de ambiente (não são defeitos de código):**
+- Sandbox: egress TCP para portas Postgres **5432/6543 é filtrado**
+  (silenciosamente dropado; DNS→IPv4 OK, HTTPS/443 instantâneo). asyncpg
+  não alcança o Supabase a partir daqui.
+- MCP Supabase desta sessão está ligado a **outro projeto**
+  (`rqplobwsdbceuqhjywgt` / "fiskix"), **não** ao accta
+  (`wudxceylvnnvglmfzzgi`, ref do utilizador da string do pooler). Aplicar
+  o schema via MCP teria atingido a base errada → **não feito** de propósito.
+  _(Nota: registos antigos citavam `eafyduxxzlkwvkudcnzu`; a ref correta do
+  accta é `wudxceylvnnvglmfzzgi`, conforme a connection string fornecida.)_
+
+**Caminho escolhido: confiar no arranque da app.** `server.py:213-216`
+(`@app.on_event("startup")` → `ensure_schema()`) cria as 27 tabelas + 45
+índices idempotentemente a cada boot. Runbook:
+1. Definir `DATABASE_URL` (string do **pooler**,
+   `aws-0-eu-west-1.pooler.supabase.com:6543`, user
+   `postgres.wudxceylvnnvglmfzzgi`) como secret do backend no ambiente de
+   deploy (que tem egress Postgres, ao contrário do sandbox/CI).
+2. Reiniciar o backend (`supervisorctl restart`).
+3. Verificar sucesso no log: `"PostgreSQL schema and indexes ensured"`.
+4. (Opcional) `pg_cron`: ativar extensão no Supabase e correr `pgcron.sql`;
+   senão a purga oportunista trata de `tokens_revoked`/`login_attempts`.
+
+**Follow-ups manuais (fora do alcance do agente):**
+- [ ] **Rodar a password** do Postgres no Supabase — foi colada no chat.
+- [ ] `backend/.env.example`: `MONGO_URL`/`DB_NAME` → `DATABASE_URL`
+  (bloqueado por permissão `.env*` para o agente).
+- [ ] Decidir entrega do commit `6678296` (P1) para `main`.
+- [ ] Docs operacionais/históricos ainda com refs a Mongo: README, DEPLOY,
+  HOSTINGER_DEPLOY, VERCEL_DEPLOY, `.claude/skills`, `.claude/agents/*`,
+  `.claude/commands/new-feature`. (ANALISE_MELHORIAS/PROJETO_ACCTA/memory/PRD
+  são históricos — não reescrever.)

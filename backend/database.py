@@ -29,7 +29,7 @@ import re
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Optional
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import asyncpg
 from dotenv import load_dotenv
@@ -126,16 +126,19 @@ async def _init_conn(conn: asyncpg.Connection) -> None:
 
 
 def _ssl_arg() -> Any:
-    """Supabase (and any remote Postgres) requires TLS; a local Postgres
-    (CI `postgres:16` service, dev) does not offer it. Respect an explicit
-    `sslmode` in the URL, else: no SSL for localhost, `require` otherwise.
+    """Choose asyncpg's ``ssl`` argument.
+
+    An explicit ``sslmode`` in DATABASE_URL is passed through **verbatim**
+    (including ``verify-ca``/``verify-full`` — never downgraded to
+    ``require``, which would silently disable certificate/hostname
+    verification). Without an explicit ``sslmode``: no SSL for a local
+    Postgres (CI ``postgres:16`` service, dev), ``require`` for any remote
+    host (Supabase needs TLS).
     """
     parsed = urlparse(DATABASE_URL)
-    query = parsed.query or ""
-    if "sslmode=disable" in query:
-        return False
-    if "sslmode=require" in query or "sslmode=verify" in query:
-        return "require"
+    sslmode = parse_qs(parsed.query or "").get("sslmode", [None])[0]
+    if sslmode:
+        return False if sslmode == "disable" else sslmode
     host = (parsed.hostname or "").lower()
     if host in ("localhost", "127.0.0.1", "::1") or host.endswith(".local"):
         return False
