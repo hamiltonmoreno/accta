@@ -1,0 +1,30 @@
+# Compose canónico do Portal ACCTA (PostgreSQL/Supabase — SEM MongoDB).
+#
+# Esta é a referência versionada. Deve manter-se alinhada com o ficheiro
+# gerido pelo Hostinger Docker Manager (/docker/accta/docker-compose.yml).
+# NÃO deve existir uma cópia divergente em /opt/projetos/accta/docker-compose.yml
+# (foi essa cópia órfã, da era Mongo, que causou o incidente do `MONGO_URL`).
+#
+# `backend/.env` TEM de conter `DATABASE_URL` (URI do connection pooler do
+# Supabase, porta 6543, transaction mode). Sem ela o backend aborta no
+# arranque com `RuntimeError: DATABASE_URL environment variable is required`.
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: accta-backend:latest
+    container_name: accta-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8001:8001"
+    volumes:
+      # Persistência dos uploads (documentos, avatars, comprovativos).
+      # Sem este volume, recriar o container apaga todos os ficheiros.
+      - accta-uploads:/app/uploads
+
+volumes:
+  accta-uploads:
