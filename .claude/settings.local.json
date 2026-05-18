@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(head -50 /app/backend/tests/*.py)",
-      "Bash(wc -l /app/backend/*.py /app/backend/routes/*.py)"
+      "Bash(wc -l /app/backend/*.py /app/backend/routes/*.py)",
+      "Bash(git config *)",
+      "Bash(echo \"name=$\\(git config user.name\\) email=$\\(git config user.email\\)\")",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   },
   "model": "claude-opus-4-7[1m]"
