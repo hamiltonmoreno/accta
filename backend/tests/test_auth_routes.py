@@ -4,14 +4,15 @@ Branch fix/health-audit mudou o fluxo de activacao de conta:
 - `setup_account` ganhou `background_tasks`: o welcome email passa a ser
   agendado (BackgroundTasks) em vez de `await` inline -> a resposta de
   activacao nao bloqueia/atrasa se a Resend estiver lenta ou indisponivel.
-- A senha minima subiu 6 -> 8, agora aplicada pelo proprio modelo Pydantic
-  (`SetupAccount.password = Field(min_length=8)`), idem PasswordResetConfirm.
+- A senha minima e 6, aplicada pelo proprio modelo Pydantic
+  (`SetupAccount.password = Field(min_length=6)`), idem PasswordResetConfirm.
 
 setup_account tem `@limiter.limit` (slowapi) que exige um Request real e
 faz a sua propria verificacao; desligamos o limiter no teste e passamos um
 starlette.Request minimo, invocando a rota directamente (sem TestClient,
 que abriria ligacao ao DB no startup).
 """
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock
@@ -68,7 +69,7 @@ def setup_env(mock_db, monkeypatch):
 
 
 # --------------------------------------------------------------------------- #
-# Pydantic: senha minima de 8 aplicada no modelo (antes era 6, e na rota)
+# Pydantic: senha minima de 6 aplicada no modelo
 # --------------------------------------------------------------------------- #
 
 
@@ -77,17 +78,17 @@ class TestPasswordMinLengthModels:
         from pydantic import ValidationError
         from models import SetupAccount
 
-        SetupAccount(token="t", password="abcd1234")  # 8 -> ok
+        SetupAccount(token="t", password="abc123")  # 6 -> ok
         with pytest.raises(ValidationError):
-            SetupAccount(token="t", password="abc123")  # 6 -> rejeitado
+            SetupAccount(token="t", password="abc12")  # 5 -> rejeitado
 
     async def test_password_reset_confirm_rejects_short_password(self):
         from pydantic import ValidationError
         from models import PasswordResetConfirm
 
-        PasswordResetConfirm(token="t", new_password="abcd1234")
+        PasswordResetConfirm(token="t", new_password="abc123")
         with pytest.raises(ValidationError):
-            PasswordResetConfirm(token="t", new_password="1234567")  # 7 -> rejeitado
+            PasswordResetConfirm(token="t", new_password="12345")  # 5 -> rejeitado
 
 
 # --------------------------------------------------------------------------- #
