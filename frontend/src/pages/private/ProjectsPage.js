@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import {
   FolderKanban, Plus, Search, Filter, ArrowRight, Calendar,
-  DollarSign, CheckCircle, Clock, Users, Eye, EyeOff, X,
+  DollarSign, CheckCircle, Clock, Users, Eye, EyeOff,
   Target, AlertCircle,
 } from 'lucide-react';
 import {
@@ -82,7 +82,6 @@ const ProjectCard = ({ project, onClick }) => {
 
 // ===== CREATE PROJECT MODAL =====
 const CreateProjectModal = ({ onClose }) => {
-  useBodyScrollLock(true);
   const qc = useQueryClient();
   const [form, setForm] = useState({
     title: '', description: '', visibility: 'publico',
@@ -109,19 +108,11 @@ const CreateProjectModal = ({ onClose }) => {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-sm"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="flex min-h-full items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg animate-fade-up"
-        onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h2 className="font-bold text-grafite text-lg">Novo Projeto</h2>
-          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" aria-label="Fechar" data-testid="close-modal-btn"><X className="w-5 h-5" aria-hidden="true" /></button>
-        </div>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg rounded-xl p-0 gap-0 max-h-[90vh] overflow-y-auto" data-testid="create-project-modal">
+        <DialogHeader className="p-5 border-b border-gray-100 text-left space-y-0">
+          <DialogTitle className="font-bold text-grafite text-lg">Novo Projeto</DialogTitle>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
@@ -178,9 +169,8 @@ const CreateProjectModal = ({ onClose }) => {
             {saving ? 'A criar...' : 'Propor Projeto'}
           </button>
         </form>
-      </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
