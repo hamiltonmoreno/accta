@@ -32,7 +32,7 @@ conflito SKILL ↔ index.css** e **um bug funcional** a resolver primeiro.
 
 | Onde | SKILL.md diz | `index.css` faz | Impacto |
 |------|--------------|-----------------|---------|
-| Raio de card | `rounded-lg` (8px) — §Components | `.card-technical`/`.card-elevated` = `rounded-xl` (12px); override em `@media (max-width:640px)` → `rounded-lg` (8px) | Toda a app usa `.card-technical` (12px desktop / 8px mobile); o SKILL diz 8px. Mudar todos os cards para 8px = churn enorme; **recomendado: alinhar o SKILL.md a 12px** e tornar `.card-technical` o card canônico. **Stop/decisão do dono na Fase 0.** |
+| Raio de card | `rounded-lg` (8px) — §Components | `.card-technical`/`.card-elevated` = `rounded-xl` (12px); override em `@media (max-width:640px)` → `rounded-lg` (8px) | Toda a app usa `.card-technical` (12px desktop / 8px mobile); o SKILL diz 8px. **Decisão tomada (default):** `.card-technical`/12px é o card canônico, reconciliado **só no código** (convergir outliers como `DashboardPage` `rounded-2xl` → `.card-technical`). O **`SKILL.md` NÃO é editado autonomamente** (canonical source-of-truth — preferência do dono, ver `tasks/lessons.md`); a frase "8px cards" do §Components fica como **nit de doc sinalizado** para o dono decidir. |
 
 ### Alvos sistêmicos
 
@@ -86,10 +86,12 @@ primeiro.
 
 ### Fase 0 — Fundação global (alto alcance, baixo risco)
 
-- [ ] **Decisão do dono (STOP):** reconciliar raio de card SKILL↔index.css.
-  Recomendado: editar `SKILL.md §Components` de `rounded-lg` → `rounded-xl`
-  (12px) e declarar `.card-technical` o card canônico (menos churn; já é o
-  de-facto). **Não prosseguir as fases que tocam cards sem esta decisão.**
+- [x] **Decisão do dono (resolvida — default):** `.card-technical`/`rounded-xl`
+  (12px) é o card canônico. Reconciliação **só no código** (fases que tocam
+  cards convergem outliers, ex. `DashboardPage` `rounded-2xl`, para
+  `.card-technical`). O **`SKILL.md` NÃO é editado** (canonical
+  source-of-truth — preferência do dono, `tasks/lessons.md`); a frase
+  "8px cards" do §Components fica como nit de doc para o dono.
 - [ ] **V1 — bug `${...}` em `className`:** trocar a `"` externa por crase
   (template literal) ou usar `cn()` em:
   `EventosPage.js:161`, `MuralPage.js:481`, `NotificacoesPage.js:304`,

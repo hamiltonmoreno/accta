@@ -207,3 +207,23 @@ html, body {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
+/* Acessibilidade — respeitar prefers-reduced-motion (SKILL §Acceptance).
+ * Anula animações/transições decorativas para utilizadores que pedem
+ * movimento reduzido. scroll-behavior também volta a auto. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    .animate-fadeIn,
+    .animate-fade-up,
+    .animate-fade-in,
+    .animate-fade-out {
+        animation: none !important;
+    }
+}

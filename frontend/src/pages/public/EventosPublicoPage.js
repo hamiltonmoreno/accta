@@ -145,7 +145,7 @@ export const EventosPublicoPage = () => {
 
                 return (
                   <div key={event.id}
-                    className="card-technical rounded-xl overflow-hidden ${isPastEvent ? 'opacity-70' : ''} animate-fade-up"
+                    className={`card-technical rounded-xl overflow-hidden ${isPastEvent ? 'opacity-70' : ''} animate-fade-up`}
                     data-testid={`event-${event.id}`}>
                     {/* Date Header */}
                     <div className="bg-grafite px-6 py-4">

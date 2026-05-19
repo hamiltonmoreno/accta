@@ -301,9 +301,9 @@ export const NotificacoesPage = () => {
             return (
               <div key={notification.id}
                 onClick={() => handleNotificationClick(notification)}
-                className="card-technical rounded-xl p-4 sm:p-5 cursor-pointer hover:shadow-md transition-all group ${
+                className={`card-technical rounded-xl p-4 sm:p-5 cursor-pointer hover:shadow-md transition-all group ${
                   !notification.read ? 'border-l-4 border-l-carmesim' : ''
-                } animate-fade-up"
+                } animate-fade-up`}
                 data-testid={`notification-item-${notification.id}`}>
                 <div className="flex items-start gap-3 sm:gap-4">
                   <div className={`w-9 h-9 sm:w-10 sm:h-10 ${iconColor} rounded-lg flex items-center justify-center flex-shrink-0`}>

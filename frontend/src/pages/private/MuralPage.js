@@ -478,7 +478,7 @@ export const MuralPage = () => {
 
             return (
               <div key={post.id}
-                className="card-technical rounded-xl p-5 sm:p-6 ${post.pinned ? 'border-l-4 border-l-carmesim' : ''} animate-fade-up"
+                className={`card-technical rounded-xl p-5 sm:p-6 ${post.pinned ? 'border-l-4 border-l-carmesim' : ''} animate-fade-up`}
                 data-testid={`wall-post-${post.id}`}>
                 {post.pinned && (
                   <div className="flex items-center gap-1 text-xs text-carmesim font-semibold mb-3">

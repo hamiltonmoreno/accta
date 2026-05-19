@@ -158,7 +158,7 @@ export const EventosPage = () => {
 
             return (
               <div key={event.id}
-                className="card-technical card-hover overflow-hidden border-l-4 ${style.border} ${isPastEvent ? 'opacity-70' : ''} animate-fade-up"
+                className={`card-technical card-hover overflow-hidden border-l-4 ${style.border} ${isPastEvent ? 'opacity-70' : ''} animate-fade-up`}
                 data-testid={`event-${event.id}`}>
                 <div className="p-4 sm:p-6">
                   <div className="flex items-start justify-between mb-3 sm:mb-4">
