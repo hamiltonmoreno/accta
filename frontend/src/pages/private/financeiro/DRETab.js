@@ -67,8 +67,7 @@ export const DRETab = () => {
         </div>
         <div className={`card-technical p-4 sm:p-5 border-l-4 ${dre.resultado_liquido >= 0 ? 'border-l-grafite' : 'border-l-[#D97706]'}`}>
           <div className="text-xs uppercase tracking-wider mb-1 text-muted-auto">Resultado Liquido</div>
-          <div className={`font-mono text-xl sm:text-2xl font-bold ${dre.resultado_liquido >= 0 ? '' : 'text-[#B45309]'}`}
-            style={dre.resultado_liquido >= 0 ? { color: 'var(--text-primary)' } : undefined} data-testid="dre-resultado">
+          <div className={`font-mono text-xl sm:text-2xl font-bold ${dre.resultado_liquido >= 0 ? 'text-grafite-auto' : 'text-[#B45309]'}`} data-testid="dre-resultado">
             {dre.resultado_liquido.toLocaleString('pt')} CVE
           </div>
         </div>

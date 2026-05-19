@@ -11,9 +11,8 @@ const TabBtn = ({ active, label, icon: Icon, onClick, testId }) => (
     onClick={onClick}
     data-testid={testId}
     className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all whitespace-nowrap ${
-      active ? 'bg-carmesim text-white shadow-sm' : ''
+      active ? 'bg-carmesim text-white shadow-sm' : 'text-muted-auto'
     }`}
-    style={!active ? { color: 'var(--text-muted)' } : undefined}
   >
     <Icon className="w-4 h-4" />
     {label}

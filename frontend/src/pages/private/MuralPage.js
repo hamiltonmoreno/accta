@@ -99,8 +99,8 @@ const CommentSection = ({ postId, commentCount, user }) => {
               ) : (
                 comments.map((comment) => (
                   <div key={comment.id} className="flex gap-3 group" data-testid={`comment-${comment.id}`}>
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                      style={{ backgroundColor: 'var(--surface-border)', color: 'var(--text-primary)' }}>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 text-grafite-auto"
+                      style={{ backgroundColor: 'var(--surface-border)' }}>
                       {comment.user_name?.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--surface-card-hover)' }}>
@@ -535,9 +535,8 @@ export const MuralPage = () => {
                       <button
                         onClick={() => likeMutation.mutate(post.id)}
                         className={`flex items-center gap-1.5 text-sm transition-colors ${
-                          isLiked ? 'text-carmesim font-semibold' : 'hover:text-carmesim'
+                          isLiked ? 'text-carmesim font-semibold' : 'hover:text-carmesim text-muted-auto'
                         }`}
-                        style={!isLiked ? { color: 'var(--text-muted)' } : undefined}
                         data-testid={`like-post-${post.id}`}
                       >
                         <Heart className={`w-4 h-4 ${isLiked ? 'fill-carmesim' : ''}`} />
