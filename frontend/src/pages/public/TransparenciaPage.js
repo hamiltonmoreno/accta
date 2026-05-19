@@ -113,7 +113,7 @@ export const TransparenciaPage = () => {
                   </h3>
                   <p className="text-gray-600 mb-6">{doc.description}</p>
                   <a
-                    href={doc.file_url}
+                    href={documentsAPI.publicDownloadUrl(doc.id)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 text-grafite font-semibold hover:text-carmesim transition-colors"
@@ -163,7 +163,7 @@ export const TransparenciaPage = () => {
                     <div className="p-6">
                       <p className="text-gray-600 mb-6">{report.description}</p>
                       <a
-                        href={report.file_url}
+                        href={documentsAPI.publicDownloadUrl(report.id)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 bg-grafite text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-grafite/90 transition-all"

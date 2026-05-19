@@ -47,6 +47,14 @@ const InstallPrompt = ({ deferredPrompt, onInstall }) => {
   );
 };
 
+const buildWalletCache = (user) => ({
+  name: user.name,
+  member_id: user.member_id,
+  status: user.status,
+  qr_code_hash: user.qr_code_hash,
+  admission_date: user.admission_date,
+});
+
 export const CarteiraPage = () => {
   const { user } = useAuth();
   const [flipped, setFlipped] = useState(false);
@@ -57,25 +65,13 @@ export const CarteiraPage = () => {
   const isActive = user?.status === 'ativo';
   const displayUser = user || cachedUser;
 
-  // Cache user data for offline use
+  // Cache only the minimum wallet fields needed for offline QR display.
   useEffect(() => {
     if (user) {
-      localStorage.setItem('accta_wallet_cache', JSON.stringify({
-        name: user.name,
-        member_id: user.member_id,
-        status: user.status,
-        qr_code_hash: user.qr_code_hash,
-        admission_date: user.admission_date,
-        role: user.role,
-        license_number: user.license_number,
-      }));
-
-      // Also send to service worker
-      if (navigator.serviceWorker?.controller) {
-        navigator.serviceWorker.controller.postMessage({
-          type: 'CACHE_WALLET_DATA',
-          payload: user,
-        });
+      try {
+        localStorage.setItem('accta_wallet_cache', JSON.stringify(buildWalletCache(user)));
+      } catch (error) {
+        // Ignore storage failures; the online wallet still renders from auth state.
       }
     }
   }, [user]);
@@ -83,7 +79,12 @@ export const CarteiraPage = () => {
   // Load cached data when offline
   useEffect(() => {
     if (!user) {
-      const cached = localStorage.getItem('accta_wallet_cache');
+      let cached;
+      try {
+        cached = localStorage.getItem('accta_wallet_cache');
+      } catch (error) {
+        return;
+      }
       if (cached) {
         try {
           setCachedUser(JSON.parse(cached));

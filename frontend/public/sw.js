@@ -1,5 +1,4 @@
-const CACHE_NAME = 'accta-wallet-v1';
-const WALLET_CACHE = 'accta-wallet-data-v1';
+const CACHE_NAME = 'accta-wallet-v2';
 
 const STATIC_ASSETS = [
   '/carteira',
@@ -18,13 +17,13 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate event - clean old caches
+// Activate event - clean old caches, including older wallet data caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME && name !== WALLET_CACHE)
+          .filter((name) => name !== CACHE_NAME)
           .map((name) => caches.delete(name))
       );
     })
@@ -40,21 +39,9 @@ self.addEventListener('fetch', (event) => {
   // Only handle GET requests
   if (request.method !== 'GET') return;
 
-  // Cache wallet user data from API
-  if (url.pathname === '/api/auth/me') {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const clonedResponse = response.clone();
-          caches.open(WALLET_CACHE).then((cache) => {
-            cache.put(request, clonedResponse);
-          });
-          return response;
-        })
-        .catch(() => {
-          return caches.match(request);
-        })
-    );
+  // Never cache authenticated API responses or personal data.
+  if (url.origin === self.location.origin && url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(request, { cache: 'no-store' }));
     return;
   }
 
@@ -68,12 +55,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For static assets, use cache-first
-  if (url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|ico|woff2?)$/)) {
+  // For same-origin static assets, use cache-first
+  if (url.origin === self.location.origin && url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|ico|woff2?)$/)) {
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
         if (cachedResponse) return cachedResponse;
         return fetch(request).then((response) => {
+          if (!response || !response.ok) return response;
           const clonedResponse = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(request, clonedResponse);
@@ -83,18 +71,5 @@ self.addEventListener('fetch', (event) => {
       })
     );
     return;
-  }
-});
-
-// Listen for messages from the app
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'CACHE_WALLET_DATA') {
-    const userData = event.data.payload;
-    caches.open(WALLET_CACHE).then((cache) => {
-      const response = new Response(JSON.stringify(userData), {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      cache.put('/wallet-data', response);
-    });
   }
 });

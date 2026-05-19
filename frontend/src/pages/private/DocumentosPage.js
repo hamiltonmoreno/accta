@@ -124,7 +124,7 @@ export const DocumentosPage = () => {
               )}
 
               <a
-                href={doc.file_url}
+                href={documentsAPI.downloadUrl(doc.id)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 bg-grafite text-white hover:bg-grafite/90 h-10 px-4 rounded-lg uppercase tracking-wider font-bold text-sm transition-all"

@@ -3,12 +3,17 @@ from pydantic import BaseModel, EmailStr
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from email_service import send_email, _base_template
+from html import escape
 import os
 
 router = APIRouter(tags=["contact"])
 limiter = Limiter(key_func=get_remote_address)
 
 CONTACT_EMAIL = os.environ.get("CONTACT_EMAIL", "secretariado@controlador.cv")
+
+
+def _email_header_text(value: str) -> str:
+    return " ".join(str(value).splitlines()).strip()
 
 
 class ContactRequest(BaseModel):
@@ -25,7 +30,10 @@ def _contact_email_html(name: str, email: str, subject: str, message: str) -> st
         "parcerias": "Parcerias",
         "duvidas": "Dúvidas",
     }
-    subject_label = subject_labels.get(subject, subject.capitalize())
+    safe_name = escape(name, quote=True)
+    safe_email = escape(str(email), quote=True)
+    safe_message = escape(message, quote=True)
+    subject_label = escape(subject_labels.get(subject, subject.capitalize()), quote=True)
 
     content = f"""
     <h2 style="margin:0 0 8px;font-size:20px;color:#3A3A3A;">Nova mensagem via formulário de contacto</h2>
@@ -35,11 +43,11 @@ def _contact_email_html(name: str, email: str, subject: str, message: str) -> st
     <table cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
       <tr><td style="padding:12px 16px;background:#f9fafb;border-bottom:1px solid #e5e7eb;">
         <span style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;">Nome</span>
-        <p style="margin:4px 0 0;font-size:14px;color:#3A3A3A;font-weight:600;">{name}</p>
+        <p style="margin:4px 0 0;font-size:14px;color:#3A3A3A;font-weight:600;">{safe_name}</p>
       </td></tr>
       <tr><td style="padding:12px 16px;background:#ffffff;border-bottom:1px solid #e5e7eb;">
         <span style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;">Email</span>
-        <p style="margin:4px 0 0;font-size:14px;color:#C7202F;">{email}</p>
+        <p style="margin:4px 0 0;font-size:14px;color:#C7202F;">{safe_email}</p>
       </td></tr>
       <tr><td style="padding:12px 16px;background:#f9fafb;border-bottom:1px solid #e5e7eb;">
         <span style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;">Assunto</span>
@@ -47,11 +55,11 @@ def _contact_email_html(name: str, email: str, subject: str, message: str) -> st
       </td></tr>
       <tr><td style="padding:12px 16px;background:#ffffff;">
         <span style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;">Mensagem</span>
-        <p style="margin:8px 0 0;font-size:14px;color:#3A3A3A;line-height:1.7;white-space:pre-wrap;">{message}</p>
+        <p style="margin:8px 0 0;font-size:14px;color:#3A3A3A;line-height:1.7;white-space:pre-wrap;">{safe_message}</p>
       </td></tr>
     </table>
     <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;">
-      Responda directamente para <a href="mailto:{email}" style="color:#C7202F;">{email}</a>
+      Responda directamente para <a href="mailto:{safe_email}" style="color:#C7202F;">{safe_email}</a>
     </p>"""
     return _base_template(content)
 
@@ -65,7 +73,7 @@ async def submit_contact(request: Request, data: ContactRequest):
     html = _contact_email_html(data.name, data.email, data.subject, data.message)
     result = await send_email(
         to=CONTACT_EMAIL,
-        subject=f"[Contacto ACCTA] {data.subject.capitalize()} — {data.name}",
+        subject=f"[Contacto ACCTA] {_email_header_text(data.subject.capitalize())} - {_email_header_text(data.name)}",
         html=html,
     )
 

@@ -46,9 +46,11 @@ async def upload_file(category: str, file: UploadFile = File(...), current_user:
 
     file_ext = Path(file.filename).suffix.lower()
     unique_filename = f"{uuid.uuid4()}{file_ext}"
-    file_path = UPLOAD_DIR / category / unique_filename
+    category_dir = UPLOAD_DIR / category
+    file_path = category_dir / unique_filename
 
     try:
+        await asyncio.to_thread(category_dir.mkdir, parents=True, exist_ok=True)
         # Gravação off-loaded para thread: até 10 MB de I/O síncrono não pode
         # bloquear o event loop e parar requisições concorrentes do worker.
         await asyncio.to_thread(file_path.write_bytes, contents)

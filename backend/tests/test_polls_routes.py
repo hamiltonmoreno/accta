@@ -34,6 +34,7 @@ def _open_poll(poll_id: str = "p1") -> dict:
         "id": poll_id,
         "title": "Estatutos 2026",
         "status": "aberta",
+        "options": [{"id": 1, "text": "Aprovar"}, {"id": 2, "text": "Rejeitar"}],
         "start_date": (now - timedelta(days=1)).isoformat(),
         "end_date": (now + timedelta(days=1)).isoformat(),
     }
@@ -217,6 +218,17 @@ class TestVote:
         with pytest.raises(HTTPException) as exc:
             await polls_route.vote(
                 vote_data=VoteCreate(poll_id="p1", vote_option=1),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 400
+
+    async def test_invalid_option_400(self, mock_db, socio_user):
+        from models import VoteCreate
+
+        mock_db.polls.find_one = AsyncMock(return_value=_open_poll())
+        with pytest.raises(HTTPException) as exc:
+            await polls_route.vote(
+                vote_data=VoteCreate(poll_id="p1", vote_option=999),
                 current_user=socio_user,
             )
         assert exc.value.status_code == 400

@@ -1,7 +1,7 @@
 {
   "short_name": "ACCTA",
   "name": "Portal ACCTA - Controladores Cabo Verde",
-  "description": "Associação de Controladores de Tráfego Aéreo de Cabo Verde",
+  "description": "Associacao de Controladores de Trafego Aereo de Cabo Verde",
   "icons": [
     {
       "src": "/favicon.ico",
@@ -30,7 +30,7 @@
     {
       "name": "Carteira Digital",
       "short_name": "Carteira",
-      "description": "Acesse sua carteira de sócio",
+      "description": "Acesse sua carteira de socio",
       "url": "/carteira",
       "icons": [{ "src": "/logo192.png", "sizes": "192x192" }]
     },

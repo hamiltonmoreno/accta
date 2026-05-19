@@ -108,6 +108,7 @@ export const PrivateLayout = ({ children }) => {
     if (pathname === '/eventos') return 'Eventos';
     if (pathname === '/documentos') return 'Documentos';
     if (pathname === '/mural') return 'Mural';
+    if (pathname === '/galeria-admin') return 'Galeria';
     if (pathname === '/beneficios') return 'Benefícios';
     if (pathname === '/notificacoes') return 'Notificações';
     if (pathname === '/admin/usuarios') return 'Utilizadores';

@@ -34,6 +34,10 @@ def _hydrate_poll_dates(p: dict) -> dict:
     return p
 
 
+def _poll_option_ids(poll: dict) -> set[int]:
+    return {option["id"] for option in poll.get("options", []) if isinstance(option, dict) and option.get("id") is not None}
+
+
 @router.get("/polls", response_model=List[Poll])
 async def get_polls(skip: int = 0, limit: int = 100, current_user: User = Depends(get_current_user)):
     limit = min(limit, 100)
@@ -114,6 +118,10 @@ async def vote(vote_data: VoteCreate, current_user: User = Depends(get_current_u
     end = _parse_dt(poll.get("end_date"))
     if (start and now < start) or (end and now > end):
         raise HTTPException(status_code=400, detail="Fora do período de votação")
+
+    option_ids = _poll_option_ids(poll)
+    if not option_ids or vote_data.vote_option not in option_ids:
+        raise HTTPException(status_code=400, detail="Opcao de voto invalida")
 
     existing_vote = await db.user_votes.find_one(
         {"user_id": current_user.id, "poll_id": vote_data.poll_id}

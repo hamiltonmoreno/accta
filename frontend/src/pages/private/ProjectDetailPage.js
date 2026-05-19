@@ -38,6 +38,7 @@ const TabBtn = ({ active, label, icon: Icon, onClick, badge, testId }) => (
 
 // ===== TASKS TAB =====
 const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
+  const { user } = useAuth();
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', assignee_id: '', priority: 'media', due_date: '' });
 
@@ -133,11 +134,18 @@ const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
         <div className="space-y-1.5">
           {tasks.map((task) => {
             const pri = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.media;
+            const canUpdateTask = canManage || task.assignee_id === user?.id;
             return (
               <div key={task.id}
                 className={`bg-white border border-gray-200/80 rounded-xl p-3.5 flex items-start gap-3 transition-all ${task.status === 'concluido' ? 'opacity-60' : ''}`}
                 data-testid={`task-${task.id}`}>
-                <button onClick={() => toggleStatus(task)} className="mt-0.5 flex-shrink-0" aria-label="Alternar estado da tarefa" data-testid={`toggle-task-${task.id}`}>
+                <button
+                  onClick={() => canUpdateTask && toggleStatus(task)}
+                  disabled={!canUpdateTask}
+                  className={`mt-0.5 flex-shrink-0 ${canUpdateTask ? '' : 'cursor-not-allowed opacity-50'}`}
+                  aria-label="Alternar estado da tarefa"
+                  data-testid={`toggle-task-${task.id}`}
+                >
                   {taskStatusIcon(task.status)}
                 </button>
                 <div className="flex-1 min-w-0">
@@ -557,6 +565,7 @@ const ProjectDetailPage = () => {
   if (!project) return null;
 
   const canManage = isAdmin || project.created_by === user?.id || project.responsible_id === user?.id;
+  const canEditProjectStatus = isAdmin;
   const st = STATUS_CONFIG[project.status] || STATUS_CONFIG.proposta;
 
   const handleStatusChange = (newStatus) => {
@@ -588,12 +597,12 @@ const ProjectDetailPage = () => {
             <h1 className="page-title" data-testid="project-title">{project.title}</h1>
             <div className="flex items-center gap-3 mt-1.5 flex-wrap">
               <div className="relative">
-                <button onClick={() => canManage && setEditingStatus(!editingStatus)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${st.color} ${canManage ? 'cursor-pointer hover:opacity-80' : ''}`}
+                <button onClick={() => canEditProjectStatus && setEditingStatus(!editingStatus)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${st.color} ${canEditProjectStatus ? 'cursor-pointer hover:opacity-80' : ''}`}
                   data-testid="project-status-badge">
                   {st.label}
                 </button>
-                {editingStatus && (
+                {editingStatus && canEditProjectStatus && (
                   <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1 min-w-[140px]">
                     {Object.entries(STATUS_CONFIG).map(([key, val]) => (
                       <button key={key} onClick={() => handleStatusChange(key)}

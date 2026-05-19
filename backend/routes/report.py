@@ -35,8 +35,13 @@ async def get_personal_report(current_user: User = Depends(get_current_user)):
     # Wall comments made
     wall_comments = await db.wall_comments.count_documents({"user_id": uid})
 
-    # Project participations (member of team or task assigned)
-    projects_member = await db.projects.count_documents({"team_members": uid})
+    # Project participations: creator, responsible, or assigned to at least one task.
+    assigned_tasks = await db.project_tasks.find({"assignee_id": uid}, {"_id": 0, "project_id": 1}).to_list(1000)
+    assigned_project_ids = sorted({t.get("project_id") for t in assigned_tasks if t.get("project_id")})
+    project_filters = [{"created_by": uid}, {"responsible_id": uid}]
+    if assigned_project_ids:
+        project_filters.append({"id": {"$in": assigned_project_ids}})
+    projects_member = await db.projects.count_documents({"$or": project_filters})
 
     # Benefits used (count from validation log if exists, otherwise 0)
     benefits_used = await db.benefit_validations.count_documents({"user_id": uid})
@@ -45,8 +50,11 @@ async def get_personal_report(current_user: User = Depends(get_current_user)):
     photos_submitted = await db.gallery_photos.count_documents({"uploaded_by": uid})
     photos_approved = await db.gallery_photos.count_documents({"uploaded_by": uid, "status": "approved"})
 
-    # Documentos disponíveis para o utilizador (públicos + socios)
-    documents_count = await db.documents.count_documents({"visibility": {"$in": ["publico", "socios"]}})
+    # Documentos disponiveis para o utilizador.
+    document_visibilities = ["publico", "socios"]
+    if current_user.role == "admin" or "manage_documents" in (current_user.privileges or []):
+        document_visibilities.extend(["direcao", "privado"])
+    documents_count = await db.documents.count_documents({"visibility": {"$in": document_visibilities}})
 
     # Documentos únicos a que o utilizador acedeu (deduplicado: abrir o mesmo
     # 5 vezes conta como 1). Total de eventos vai em document_access_events.
