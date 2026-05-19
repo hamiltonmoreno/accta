@@ -9,6 +9,11 @@ import {
   Trash2, ChevronDown, Filter, UserCog, UserPlus, Clock, Link2
 } from 'lucide-react';
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from '../../components/ui/alert-dialog';
+import {
   ROLE_CONFIG, ROLE_FALLBACK,
   USER_STATUS_CONFIG, USER_STATUS_FALLBACK,
   getStatusConfig,
@@ -50,7 +55,6 @@ export const AdminUsuariosPage = () => {
 
   // Body scroll lock for each modal (counter-based, supports nesting)
   useBodyScrollLock(!!editingUser);
-  useBodyScrollLock(!!deleteConfirm);
   useBodyScrollLock(!!showInviteModal);
 
   // Debounce search 300ms — evita re-fetch a cada tecla.
@@ -554,41 +558,25 @@ export const AdminUsuariosPage = () => {
           </>
         )}
       {/* Delete Confirm */}
-      {deleteConfirm && (
-          <>
-            <div className="fixed inset-0 bg-black/50 z-[60] animate-fade-up"
-              onClick={() => setDeleteConfirm(null)} />
-            <div className="fixed inset-0 z-[60] overflow-y-auto animate-fade-up"
-              role="dialog"
-              aria-modal="true">
-              <div className="flex min-h-full items-center justify-center p-4">
-              <div
-                className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm"
-                onClick={(e) => e.stopPropagation()}
-                data-testid="delete-confirm-modal"
-              >
-                <h3 className="font-bold text-grafite mb-2">Remover utilizador?</h3>
-                <p className="text-sm text-gray-500 mb-5">Esta ação é irreversível. O utilizador perderá acesso ao portal.</p>
-                <div className="flex gap-2 justify-end">
-                  <button
-                    onClick={() => setDeleteConfirm(null)}
-                    className="px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={() => handleDelete(deleteConfirm)}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
-                    data-testid="confirm-delete-btn"
-                  >
-                    Sim, remover
-                  </button>
-                </div>
-              </div>
-              </div>
-            </div>
-          </>
-        )}
+      <AlertDialog open={!!deleteConfirm} onOpenChange={(o) => { if (!o) setDeleteConfirm(null); }}>
+        <AlertDialogContent className="max-w-sm" data-testid="delete-confirm-modal">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover utilizador?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação é irreversível. O utilizador perderá acesso ao portal.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteConfirm(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleDelete(deleteConfirm)}
+              className="bg-red-600 text-white hover:bg-red-700"
+              data-testid="confirm-delete-btn"
+            >
+              Sim, remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* ===== INVITE MODAL ===== */}
       {showInviteModal && (
           <>
