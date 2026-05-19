@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { format, isFuture, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { EmptyState } from '../../components/EmptyState';
+import { Skeleton } from '../../components/ui/skeleton';
 
 const eventTypeConfig = {
   assembleia: { icon: CalendarDays, label: 'Assembleia', color: 'bg-[#EFF6FF] text-[#1D4ED8]' },
@@ -122,19 +124,17 @@ export const EventosPublicoPage = () => {
           </div>
 
           {loading ? (
-            <div className="text-center py-12">
-              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8" data-testid="events-loading">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-72 rounded-xl" />
+              ))}
             </div>
           ) : filteredEvents.length === 0 ? (
-            <div className="text-center py-16">
-              <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 font-medium mb-2">
-                {filter === 'upcoming' ? 'Nenhum evento programado' : 'Nenhum evento encontrado'}
-              </p>
-              <p className="text-sm text-[#6B7280]">
-                Os eventos públicos serão exibidos aqui quando disponíveis
-              </p>
-            </div>
+            <EmptyState
+              icon={Calendar}
+              title={filter === 'upcoming' ? 'Nenhum evento programado' : 'Nenhum evento encontrado'}
+              description="Os eventos públicos serão exibidos aqui quando disponíveis"
+            />
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredEvents.map((event, index) => {

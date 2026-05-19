@@ -5,6 +5,7 @@ import { ClipboardList, Activity } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { queryKeys } from '../../lib/queryClient';
+import { EmptyState } from '../../components/EmptyState';
 
 export const AdminLogsPage = () => {
   const { data: logs = [], isLoading: loading } = useQuery({
@@ -58,16 +59,14 @@ export const AdminLogsPage = () => {
       </div>
 
       {/* Logs Timeline */}
-      <div className="card-technical rounded-xl p-6">
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : logs.length === 0 ? (
-          <div className="text-center py-12" data-testid="no-logs">
-            <p className="text-gray-500">Nenhum registro de auditoria</p>
-          </div>
-        ) : (
+      {loading ? (
+        <div className="card-technical rounded-xl p-6 text-center py-12">
+          <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : logs.length === 0 ? (
+        <EmptyState icon={ClipboardList} title="Nenhum registro de auditoria" testId="no-logs" />
+      ) : (
+        <div className="card-technical rounded-xl p-6">
           <div className="space-y-4 max-h-[600px] overflow-y-auto">
             {logs.map((log) => (
               <div
@@ -89,8 +88,8 @@ export const AdminLogsPage = () => {
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

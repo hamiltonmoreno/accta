@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Tag } from 'lucide-react';
+import { Calendar, Tag, Newspaper } from 'lucide-react';
 import { postsAPI } from '../../utils/api';
+import { EmptyState } from '../../components/EmptyState';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -90,12 +91,14 @@ export const NoticiasPage = () => {
         {/* Posts Grid */}
         {loading ? (
           <div className="text-center py-12">
-            <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filteredPosts.length === 0 ? (
-          <div className="text-center py-12" data-testid="no-posts">
-            <p className="text-gray-500">Nenhuma notícia disponível no momento</p>
-          </div>
+          <EmptyState
+            icon={Newspaper}
+            title="Nenhuma notícia disponível no momento"
+            testId="no-posts"
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredPosts.map((post, index) => (

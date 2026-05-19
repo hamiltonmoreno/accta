@@ -8,6 +8,8 @@ import { DollarSign, TrendingUp } from 'lucide-react';
 import {
   INVOICE_STATUS_CONFIG, INVOICE_STATUS_FALLBACK, getStatusConfig,
 } from '../../../lib/statusConfig';
+import { EmptyState } from '../../../components/EmptyState';
+import { Skeleton } from '../../../components/ui/skeleton';
 
 const StatBlock = ({ label, value, icon: Icon, color }) => (
   <div className="card-technical p-4 sm:p-5 animate-fade-up">
@@ -49,15 +51,25 @@ export const MemberFinanceView = () => {
         <StatBlock label="Total Pago" value={`${totalPago.toLocaleString('pt')} CVE`} icon={TrendingUp} color="bg-[#16A34A]" />
       </div>
 
-      <div className="card-technical overflow-hidden">
-        {loading ? (
-          <div className="p-10 text-center"><div className="inline-block w-7 h-7 border-3 border-carmesim border-t-transparent rounded-full animate-spin" /></div>
-        ) : invoices.length === 0 ? (
-          <div className="p-10 text-center" data-testid="no-invoices">
-            <DollarSign className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-            <p className="text-sm text-[#6B7280]">Nenhum registro encontrado</p>
-          </div>
-        ) : (
+      {loading ? (
+        <div className="card-technical overflow-hidden divide-y divide-gray-50" data-testid="invoices-loading">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="p-4 flex items-center justify-between">
+              <div className="space-y-2">
+                <Skeleton className="h-3.5 w-24" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+              <div className="flex flex-col items-end gap-2">
+                <Skeleton className="h-3.5 w-20" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : invoices.length === 0 ? (
+        <EmptyState icon={DollarSign} title="Nenhum registro encontrado" testId="no-invoices" />
+      ) : (
+        <div className="card-technical overflow-hidden">
           <div className="divide-y divide-gray-50">
             {invoices.map((inv) => {
               const statusCfg = getStatusConfig(INVOICE_STATUS_CONFIG, inv.status, INVOICE_STATUS_FALLBACK);
@@ -81,8 +93,8 @@ export const MemberFinanceView = () => {
               );
             })}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

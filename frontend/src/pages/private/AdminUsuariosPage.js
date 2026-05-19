@@ -13,6 +13,8 @@ import {
   USER_STATUS_CONFIG, USER_STATUS_FALLBACK,
   getStatusConfig,
 } from '../../lib/statusConfig';
+import { EmptyState } from '../../components/EmptyState';
+import { Skeleton } from '../../components/ui/skeleton';
 
 const ROLE_LABELS = { admin: 'Administrador', socio: 'Sócio', financeiro: 'Financeiro', moderador: 'Moderador' };
 
@@ -205,9 +207,23 @@ export const AdminUsuariosPage = () => {
 
       {/* Users Table/Cards */}
       {loading ? (
-        <div className="text-center py-12 text-[#6B7280]">A carregar...</div>
+        <div className="card-technical overflow-hidden" data-testid="users-loading">
+          <div className="divide-y divide-gray-50">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-3.5">
+                <Skeleton className="w-9 h-9 rounded-lg flex-shrink-0" />
+                <div className="flex-1 min-w-0 space-y-2">
+                  <Skeleton className="h-3.5 w-40" />
+                  <Skeleton className="h-3 w-56" />
+                </div>
+                <Skeleton className="h-5 w-20 rounded-full" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+            ))}
+          </div>
+        </div>
       ) : users.length === 0 ? (
-        <div className="card-technical p-8 text-center text-[#6B7280]">Nenhum utilizador encontrado</div>
+        <EmptyState icon={Users} title="Nenhum utilizador encontrado" testId="no-users" />
       ) : (
         <>
           {/* Desktop Table */}

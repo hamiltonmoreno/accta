@@ -14,6 +14,8 @@ import {
 import {
   PROJECT_STATUS_CONFIG, PROJECT_STATUS_FALLBACK, getStatusConfig,
 } from '../../lib/statusConfig';
+import { EmptyState } from '../../components/EmptyState';
+import { Skeleton } from '../../components/ui/skeleton';
 
 const ProjectCard = ({ project, onClick }) => {
   const st = getStatusConfig(PROJECT_STATUS_CONFIG, project.status, PROJECT_STATUS_FALLBACK);
@@ -254,15 +256,31 @@ const ProjectsPage = () => {
 
       {/* Projects Grid */}
       {loading ? (
-        <div className="text-center py-16">
-          <div className="inline-block w-8 h-8 border-3 border-carmesim border-t-transparent rounded-full animate-spin" />
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" data-testid="projects-loading">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-white border border-gray-200/80 rounded-2xl p-5">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1 min-w-0 mr-3 space-y-2">
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-3 w-full" />
+                </div>
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+              <Skeleton className="h-1.5 w-full rounded-full mb-3" />
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : projects.length === 0 ? (
-        <div className="text-center py-16" data-testid="no-projects">
-          <FolderKanban className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-          <p className="text-gray-500 font-medium">Nenhum projeto encontrado</p>
-          <p className="text-xs text-[#6B7280] mt-1">Crie um novo projeto para comecar</p>
-        </div>
+        <EmptyState
+          icon={FolderKanban}
+          title="Nenhum projeto encontrado"
+          description="Crie um novo projeto para comecar"
+          testId="no-projects"
+        />
       ) : (
         <>
           {/* Pending approval banner for admin */}

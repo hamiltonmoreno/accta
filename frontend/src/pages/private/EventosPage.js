@@ -27,6 +27,7 @@ import { ptBR } from 'date-fns/locale';
 import {
   EVENT_TYPE_CONFIG, EVENT_TYPE_FALLBACK, getStatusConfig,
 } from '../../lib/statusConfig';
+import { EmptyState } from '../../components/EmptyState';
 
 export const EventosPage = () => {
   const { user, isAdmin } = useAuth();
@@ -118,16 +119,15 @@ export const EventosPage = () => {
 
       {loading ? (
         <div className="text-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto text-grafite" />
+          <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filteredEvents.length === 0 ? (
-        <div className="card-technical rounded-xl p-12 text-center">
-          <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 font-medium mb-1">Nenhum evento encontrado</p>
-          <p className="text-sm text-[#6B7280]">
-            {isAdmin ? 'Clique em "Novo Evento" para criar' : 'Os eventos serão exibidos aqui quando disponíveis'}
-          </p>
-        </div>
+        <EmptyState
+          icon={Calendar}
+          title="Nenhum evento encontrado"
+          description={isAdmin ? 'Clique em "Novo Evento" para criar' : 'Os eventos serão exibidos aqui quando disponíveis'}
+          testId="no-events"
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {filteredEvents.map((event, index) => {

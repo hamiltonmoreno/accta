@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
+import { EmptyState } from '../../components/EmptyState';
 import {
   Camera, Upload, CheckCircle, XCircle, Trash2,
   Images, X, ChevronLeft, ChevronRight, Clock, Eye,
@@ -283,7 +284,7 @@ const PendingPanel = () => {
         </div>
       </div>
       {loading ? (
-        <div className="p-6 text-center"><div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin inline-block" /></div>
+        <div className="p-6 text-center"><div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" /></div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-4">
           {pending.map(photo => (
@@ -423,13 +424,21 @@ export const GaleriaAdminPage = () => {
           </div>
 
           {loading ? (
-            <div className="text-center py-12"><div className="w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin inline-block" /></div>
+            <div className="text-center py-12"><div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" /></div>
           ) : photos.length === 0 ? (
-            <div className="card-technical p-12 text-center" data-testid="no-photos">
-              <Camera className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
-              <p style={{ color: 'var(--text-secondary)' }}>Nenhuma foto neste album</p>
-              <button onClick={() => setShowUpload(true)} className="text-carmesim text-sm font-semibold mt-2 hover:underline">Submeter a primeira foto</button>
-            </div>
+            <EmptyState
+              icon={Camera}
+              title="Nenhuma foto neste album"
+              testId="no-photos"
+              action={(
+                <button
+                  onClick={() => setShowUpload(true)}
+                  className="text-carmesim text-sm font-semibold hover:underline"
+                >
+                  Submeter a primeira foto
+                </button>
+              )}
+            />
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
               {photos.map((photo, index) => (
@@ -463,13 +472,14 @@ export const GaleriaAdminPage = () => {
       ) : (
         /* Albums Grid */
         loading ? (
-          <div className="text-center py-12"><div className="w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin inline-block" /></div>
+          <div className="text-center py-12"><div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" /></div>
         ) : albums.length === 0 ? (
-          <div className="card-technical p-12 text-center" data-testid="no-albums-private">
-            <Images className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
-            <p className="font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Nenhum album criado</p>
-            {isAdmin && <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Crie o primeiro album para comecar a receber fotos</p>}
-          </div>
+          <EmptyState
+            icon={Images}
+            title="Nenhum album criado"
+            description={isAdmin ? 'Crie o primeiro album para comecar a receber fotos' : undefined}
+            testId="no-albums-private"
+          />
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {albums.map((album, i) => (

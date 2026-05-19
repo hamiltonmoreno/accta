@@ -61,7 +61,7 @@ export const SettingsTab = () => {
   };
 
   if (loading) {
-    return <div className="p-10 text-center"><div className="inline-block w-7 h-7 border-3 border-carmesim border-t-transparent rounded-full animate-spin" /></div>;
+    return <div className="p-10 text-center"><div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" /></div>;
   }
 
   return (

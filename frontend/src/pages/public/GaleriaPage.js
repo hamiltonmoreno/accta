@@ -4,6 +4,8 @@ import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { Camera, X, ChevronLeft, ChevronRight, Images, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { unsplashSrcSet } from '../../utils/unsplash';
+import { EmptyState } from '../../components/EmptyState';
+import { Skeleton } from '../../components/ui/skeleton';
 
 const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
   useBodyScrollLock(true);
@@ -223,8 +225,10 @@ export const GaleriaPage = () => {
       {/* Content */}
       <section className="max-w-7xl mx-auto px-5 sm:px-6 py-10 sm:py-16">
         {loading && !selectedAlbum ? (
-          <div className="flex justify-center py-16">
-            <div className="w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6" data-testid="albums-loading">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-[4/3] rounded-xl" />
+            ))}
           </div>
         ) : selectedAlbum ? (
           <AlbumView
@@ -234,11 +238,12 @@ export const GaleriaPage = () => {
             onOpenLightbox={(index) => setLightboxIndex(index)}
           />
         ) : albums.length === 0 ? (
-          <div className="text-center py-16" data-testid="no-albums">
-            <Images className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-            <h3 className="text-xl text-[#6B7280] font-semibold">Nenhum álbum disponível</h3>
-            <p className="text-[#6B7280] text-sm mt-2">Os álbuns de fotos serão publicados em breve.</p>
-          </div>
+          <EmptyState
+            icon={Images}
+            title="Nenhum álbum disponível"
+            description="Os álbuns de fotos serão publicados em breve."
+            testId="no-albums"
+          />
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">
             {albums.map((album) => (

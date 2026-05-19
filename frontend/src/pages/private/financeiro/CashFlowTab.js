@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { TransactionModal } from './TransactionModal';
 import { CATEGORY_LABELS, PAGE_SIZE } from './constants';
+import { EmptyState } from '../../../components/EmptyState';
+import { Skeleton } from '../../../components/ui/skeleton';
 
 // `delay` removido — stagger entre 4 cards era cosmetico (0-0.2s).
 const StatBlock = ({ label, value, icon: Icon, color }) => (
@@ -203,15 +205,22 @@ export const CashFlowTab = ({ isAdmin }) => {
       </div>
 
       {/* Transactions Table */}
-      <div className="card-technical overflow-hidden">
-        {loading ? (
-          <div className="p-10 text-center"><div className="inline-block w-7 h-7 border-3 border-carmesim border-t-transparent rounded-full animate-spin" /></div>
-        ) : transactions.length === 0 ? (
-          <div className="p-10 text-center" data-testid="no-transactions">
-            <DollarSign className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-            <p className="text-sm text-[#6B7280]">Nenhuma transacao encontrada</p>
-          </div>
-        ) : (
+      {loading ? (
+        <div className="card-technical overflow-hidden divide-y divide-gray-50" data-testid="transactions-loading">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 px-4 py-3.5">
+              <Skeleton className="h-5 w-20 rounded-full" />
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-3 flex-1 min-w-0" />
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+          ))}
+        </div>
+      ) : transactions.length === 0 ? (
+        <EmptyState icon={DollarSign} title="Nenhuma transacao encontrada" testId="no-transactions" />
+      ) : (
+        <div className="card-technical overflow-hidden">
           <>
             {/* Desktop */}
             <div className="hidden md:block overflow-x-auto">
@@ -316,8 +325,8 @@ export const CashFlowTab = ({ isAdmin }) => {
               </div>
             )}
           </>
-        )}
-      </div>
+        </div>
+      )}
 
       {showModal && (
         <TransactionModal

@@ -13,6 +13,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { EmptyState } from '../../components/EmptyState';
+import { Skeleton } from '../../components/ui/skeleton';
 
 // Recharts (~334KB) só carregado para utilizadores com finance, via Suspense.
 const FinanceCharts = lazy(() => import('./dashboard/FinanceCharts'));
@@ -193,8 +195,20 @@ export const DashboardPage = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-3 border-carmesim border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6 sm:space-y-7">
+        <div>
+          <Skeleton className="h-9 w-64 mb-2" />
+          <Skeleton className="h-4 w-72" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-2xl" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+          <Skeleton className="h-52 rounded-2xl" />
+          <Skeleton className="h-52 rounded-2xl" />
+        </div>
       </div>
     );
   }
@@ -249,7 +263,7 @@ export const DashboardPage = () => {
       {hasFinance && dreData && (
         <Suspense fallback={
           <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 h-[320px] flex items-center justify-center">
-            <div className="w-7 h-7 border-3 border-carmesim border-t-transparent rounded-full animate-spin" />
+            <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
           </div>
         }>
           <FinanceCharts
@@ -322,12 +336,12 @@ export const DashboardPage = () => {
             )}
           </div>
           {activePolls.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                <Vote className="w-7 h-7 text-gray-300" />
-              </div>
-              <p className="text-sm text-[#6B7280]" data-testid="no-active-polls">Nenhuma votacao aberta</p>
-            </div>
+            <EmptyState
+              icon={Vote}
+              title="Nenhuma votacao aberta"
+              testId="no-active-polls"
+              className="border-0 shadow-none p-0 py-8"
+            />
           ) : (
             <div className="space-y-2.5">
               {activePolls.slice(0, 3).map((poll) => (

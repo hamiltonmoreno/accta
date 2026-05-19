@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { EmptyState } from '../../components/EmptyState';
 
 const NOTIFICATION_ICONS = {
   geral: Bell,
@@ -287,13 +288,12 @@ export const NotificacoesPage = () => {
             <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filteredNotifications.length === 0 ? (
-          <div className="card-technical rounded-xl p-12 text-center" data-testid="no-notifications-page">
-            <Bell className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
-            <p className="font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Nenhuma notificacao</p>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              {filterType || showUnreadOnly ? 'Tente alterar os filtros' : 'Sera notificado sobre eventos importantes'}
-            </p>
-          </div>
+          <EmptyState
+            icon={Bell}
+            title="Nenhuma notificacao"
+            description={filterType || showUnreadOnly ? 'Tente alterar os filtros' : 'Sera notificado sobre eventos importantes'}
+            testId="no-notifications-page"
+          />
         ) : (
           filteredNotifications.map((notification, index) => {
             const Icon = getIcon(notification.type);

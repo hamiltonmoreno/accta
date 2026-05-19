@@ -10,6 +10,7 @@ import { ptBR } from 'date-fns/locale';
 import { useAuth } from '../../contexts/AuthContext';
 import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
+import { EmptyState } from '../../components/EmptyState';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -92,7 +93,7 @@ const CommentSection = ({ postId, commentCount, user }) => {
             <div className="mt-3 space-y-3">
               {loading ? (
                 <div className="flex justify-center py-3">
-                  <div className="w-5 h-5 border-2 border-carmesim border-t-transparent rounded-full animate-spin" />
+                  <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : comments.length === 0 ? (
                 <p className="text-sm py-2" style={{ color: 'var(--text-muted)' }}>Nenhum comentario ainda. Seja o primeiro!</p>
@@ -203,7 +204,7 @@ const PendingPostsPanel = () => {
           <div className="overflow-hidden animate-fade-up">
             <div className="p-4 space-y-4">
               {loading ? (
-                <div className="flex justify-center py-4"><div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
+                <div className="flex justify-center py-4"><div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" /></div>
               ) : (
                 posts.map((post) => (
                   <div key={post.id} className="border border-[#FDE68A] rounded-lg p-4 bg-[#FFFBEB]/50" data-testid={`pending-post-${post.id}`}>
@@ -464,13 +465,12 @@ export const MuralPage = () => {
             <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filteredPosts.length === 0 ? (
-          <div className="card-technical rounded-xl p-12 text-center" data-testid="no-posts">
-            <MessageSquare className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
-            <p style={{ color: 'var(--text-secondary)' }}>
-              {searchText ? 'Nenhum resultado encontrado' : 'Nenhuma mensagem no mural ainda'}
-            </p>
-            {isAtivo && !searchText && <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Seja o primeiro a publicar!</p>}
-          </div>
+          <EmptyState
+            icon={MessageSquare}
+            title={searchText ? 'Nenhum resultado encontrado' : 'Nenhuma mensagem no mural ainda'}
+            description={isAtivo && !searchText ? 'Seja o primeiro a publicar!' : undefined}
+            testId="no-posts"
+          />
         ) : (
           filteredPosts.map((post, index) => {
             const isLiked = (post.likes || []).includes(user?.id);

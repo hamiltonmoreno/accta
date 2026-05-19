@@ -8,6 +8,7 @@ import { FileText, Download, Search, Upload, X, Plus, Check, Loader2 } from 'luc
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { EmptyState } from '../../components/EmptyState';
 
 export const DocumentosPage = () => {
   const { isAdmin } = useAuth();
@@ -80,16 +81,15 @@ export const DocumentosPage = () => {
       {/* Documents List */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filteredDocuments.length === 0 ? (
-        <div className="card-technical rounded-xl p-12 text-center" data-testid="no-documents">
-          <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 font-medium mb-1">Nenhum documento encontrado</p>
-          <p className="text-sm text-[#6B7280]">
-            {isAdmin ? 'Clique em "Novo Documento" para adicionar' : 'Os documentos serão exibidos aqui quando disponíveis'}
-          </p>
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="Nenhum documento encontrado"
+          description={isAdmin ? 'Clique em "Novo Documento" para adicionar' : 'Os documentos serão exibidos aqui quando disponíveis'}
+          testId="no-documents"
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredDocuments.map((doc, index) => (

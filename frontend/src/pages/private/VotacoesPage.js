@@ -7,6 +7,8 @@ import { queryKeys } from '../../lib/queryClient';
 import { PollCard } from '../../components/voting/PollCard';
 import { VotingInterface } from '../../components/voting/VotingInterface';
 import { VotingResults } from '../../components/voting/VotingResults';
+import { EmptyState } from '../../components/EmptyState';
+import { Skeleton } from '../../components/ui/skeleton';
 
 export const VotacoesPage = () => {
   const { isAtivo } = useAuth();
@@ -57,8 +59,16 @@ export const VotacoesPage = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-5 sm:space-y-8">
+        <div>
+          <Skeleton className="h-9 w-48 mb-2" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <div className="grid grid-cols-1 gap-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-48 rounded-xl" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -104,11 +114,12 @@ export const VotacoesPage = () => {
         </div>
 
         {openPolls.length === 0 ? (
-          <div className="card-technical rounded-xl p-12 text-center" data-testid="no-open-polls">
-            <Vote className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 font-medium mb-1">Nenhuma votação aberta no momento</p>
-            <p className="text-sm text-[#6B7280]">Você será notificado quando novas votações forem criadas</p>
-          </div>
+          <EmptyState
+            icon={Vote}
+            title="Nenhuma votação aberta no momento"
+            description="Você será notificado quando novas votações forem criadas"
+            testId="no-open-polls"
+          />
         ) : (
           <div className="grid grid-cols-1 gap-6">
             {openPolls.map((poll, index) => (
@@ -158,7 +169,7 @@ export const VotacoesPage = () => {
                     >
                       {loadingResults[poll.id] ? (
                         <>
-                          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                          <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
                           <span>Carregando...</span>
                         </>
                       ) : (

@@ -15,6 +15,7 @@ import {
   TASK_PRIORITY_CONFIG, TASK_PRIORITY_FALLBACK,
   getStatusConfig,
 } from '../../lib/statusConfig';
+import { EmptyState } from '../../components/EmptyState';
 
 const TabBtn = ({ active, label, icon: Icon, onClick, badge, testId }) => (
   <button onClick={onClick} data-testid={testId}
@@ -117,10 +118,7 @@ const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
       )}
 
       {tasks.length === 0 ? (
-        <div className="text-center py-10">
-          <CheckCircle className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-          <p className="text-sm text-[#6B7280]">Nenhuma tarefa criada</p>
-        </div>
+        <EmptyState icon={CheckCircle} title="Nenhuma tarefa criada" className="p-6 sm:p-8" testId="no-tasks" />
       ) : (
         <div className="space-y-1.5">
           {tasks.map((task) => {
@@ -219,10 +217,7 @@ const CommentsTab = ({ project, comments, onReload }) => {
 
       {/* List */}
       {comments.length === 0 ? (
-        <div className="text-center py-10">
-          <MessageSquare className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-          <p className="text-sm text-[#6B7280]">Nenhum comentario ainda</p>
-        </div>
+        <EmptyState icon={MessageSquare} title="Nenhum comentario ainda" className="p-6 sm:p-8" testId="no-comments" />
       ) : (
         <div className="space-y-2">
           {comments.map((c) => (
@@ -356,10 +351,7 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
       )}
 
       {expenses.length === 0 ? (
-        <div className="text-center py-8">
-          <DollarSign className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-          <p className="text-sm text-[#6B7280]">Nenhuma despesa registrada</p>
-        </div>
+        <EmptyState icon={DollarSign} title="Nenhuma despesa registrada" className="p-6 sm:p-8" testId="no-expenses" />
       ) : (
         <div className="bg-white border border-gray-200/80 rounded-xl overflow-hidden">
           <table className="w-full text-sm">
@@ -463,10 +455,7 @@ const TimelineTab = ({ project, milestones, canManage, onReload }) => {
       )}
 
       {milestones.length === 0 ? (
-        <div className="text-center py-10">
-          <Target className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-          <p className="text-sm text-[#6B7280]">Nenhum milestone definido</p>
-        </div>
+        <EmptyState icon={Target} title="Nenhum milestone definido" className="p-6 sm:p-8" testId="no-milestones" />
       ) : (
         <div className="relative pl-6">
           {/* Timeline line */}
@@ -553,7 +542,7 @@ const ProjectDetailPage = () => {
     onError: (err) => toast.error(err.response?.data?.detail || 'Erro'),
   });
 
-  if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-3 border-carmesim border-t-transparent rounded-full animate-spin" /></div>;
+  if (loading) return <div className="flex justify-center py-20"><div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" /></div>;
   if (!project) return null;
 
   const canManage = isAdmin || project.created_by === user?.id || project.responsible_id === user?.id;

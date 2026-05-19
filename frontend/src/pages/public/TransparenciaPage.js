@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { unsplashSrcSet } from '../../utils/unsplash';
 import { legislacao } from '../../content/cta';
+import { EmptyState } from '../../components/EmptyState';
 
 export const TransparenciaPage = () => {
   const [documents, setDocuments] = useState([]);
@@ -142,7 +143,11 @@ export const TransparenciaPage = () => {
           </div>
 
           {reports.length === 0 ? (
-            <p className="text-center text-[#6B7280]">Nenhum relatório publicado ainda.</p>
+            <EmptyState
+              icon={BarChart3}
+              title="Nenhum relatório publicado ainda."
+              className="max-w-4xl mx-auto"
+            />
           ) : (
             <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
               {reports.map((report, index) => {

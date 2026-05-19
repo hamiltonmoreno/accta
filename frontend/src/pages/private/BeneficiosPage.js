@@ -5,6 +5,7 @@ import { Gift, MapPin, Percent, ExternalLink, Phone, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { queryKeys } from '../../lib/queryClient';
+import { EmptyState } from '../../components/EmptyState';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -106,12 +107,14 @@ export const BeneficiosPage = () => {
       {/* Benefits Grid */}
       {isLoading ? (
         <div className="text-center py-12">
-          <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
         </div>
       ) : benefits.length === 0 ? (
-        <div className="card-technical rounded-xl p-12 text-center" data-testid="no-benefits">
-          <p className="text-gray-500">Nenhum benefício disponível no momento</p>
-        </div>
+        <EmptyState
+          icon={Gift}
+          title="Nenhum benefício disponível no momento"
+          testId="no-benefits"
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {benefits.map((benefit, index) => (
