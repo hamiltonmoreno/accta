@@ -151,7 +151,6 @@ const UploadModal = ({ albums, onClose }) => {
 
 // ===== ALBUM MODAL =====
 const AlbumModal = ({ album, onClose }) => {
-  useBodyScrollLock(true);
   const isEdit = !!album;
   const qc = useQueryClient();
   const [form, setForm] = useState({
@@ -179,18 +178,11 @@ const AlbumModal = ({ album, onClose }) => {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-sm"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="flex min-h-full items-center justify-center p-4">
-      <div className="rounded-xl shadow-2xl w-full max-w-md animate-fade-up" style={{ backgroundColor: 'var(--surface-card)' }} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5" style={{ borderBottom: '1px solid var(--surface-border)' }}>
-          <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>{isEdit ? 'Editar Album' : 'Novo Album'}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100" aria-label="Fechar" data-testid="close-album-modal"><X className="w-5 h-5 text-gray-400" aria-hidden="true" /></button>
-        </div>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-md rounded-xl p-0 gap-0 max-h-[90vh] overflow-y-auto" data-testid="album-modal">
+        <DialogHeader className="p-5 border-b border-gray-200 text-left space-y-0">
+          <DialogTitle className="font-bold text-lg text-grafite">{isEdit ? 'Editar Album' : 'Novo Album'}</DialogTitle>
+        </DialogHeader>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
             <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Titulo *</label>
@@ -224,9 +216,8 @@ const AlbumModal = ({ album, onClose }) => {
             {saving ? 'A guardar...' : isEdit ? 'Atualizar Album' : 'Criar Album'}
           </button>
         </form>
-      </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
