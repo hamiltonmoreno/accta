@@ -1,135 +1,31 @@
-/* ACCTA Brand Identity Styles */
+/* ACCTA Brand Identity Styles
+ *
+ * Fonte da verdade do design system (neutral-led, acento Carmesim único):
+ *   src/index.css  +  .claude/skills/frontend-design/SKILL.md
+ *
+ * Este ficheiro foi reduzido ao mínimo: mantém apenas regras que NÃO
+ * existem em index.css e não conflitam com ele. Tudo o resto era legado
+ * redundante OU conflitante com o sistema neutral-led e foi removido:
+ *   - regra global `a { color: Carmesim }` → forçava todo link vermelho,
+ *     inclusive sobre fundo escuro (raiz do red-on-dark). Links agora
+ *     estilizados por contexto (Carmesim sublinhado só sobre branco;
+ *     branco sobre escuro).
+ *   - `::selection` Carmesim · `*:focus-visible { outline: Carmesim }`
+ *     (index.css define o focus-ring canónico `ring-grafite/40`)
+ *   - `input:focus { border Carmesim !important }` → o !important quebrava
+ *     o focus-ring dos inputs shadcn
+ *   - scrollbar Carmesim  (index.css já tem scrollbar neutro)
+ *   - `:root` ACCTA duplicado · `.btn-primary` / `.btn-secondary` /
+ *     `.card-technical` duplicados (versões canónicas em index.css)
+ *   - `@keyframes shimmer` + `.loading-shimmer`  → código morto (sem uso)
+ *   - tipografia (html/body/h1-h6) → já definida em index.css
+ */
 
-/* Base Typography */
 html {
   scroll-behavior: smooth;
-  font-family: 'Open Sans', sans-serif;
 }
 
-body {
-  font-family: 'Open Sans', sans-serif;
-  color: #3A3A3A;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
+/* Wrapper raiz (App.js usa <div className="App">) — não existe em index.css */
 .App {
   min-height: 100vh;
-}
-
-/* ACCTA Brand Colors */
-:root {
-  --accta-grafite: #3A3A3A;
-  --accta-carmesim: #C7202F;
-  --accta-grafite-light: #5A5A5A;
-  --accta-carmesim-light: #E8444F;
-  --accta-bg-light: #F5F5F5;
-}
-
-/* Headings */
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Open Sans', sans-serif;
-  font-weight: 700;
-  color: #3A3A3A;
-}
-
-/* Card Style - ACCTA Brand */
-.card-technical {
-  background: white;
-  box-shadow: 0 1px 3px rgba(58, 58, 58, 0.1);
-  border: 1px solid rgba(58, 58, 58, 0.08);
-  transition: all 0.2s ease;
-}
-
-.card-technical:hover {
-  box-shadow: 0 4px 12px rgba(58, 58, 58, 0.12);
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #F5F5F5;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #C7202F;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #9E1925;
-}
-
-/* Loading animation */
-@keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-  100% {
-    background-position: 1000px 0;
-  }
-}
-
-.loading-shimmer {
-  animation: shimmer 2s infinite linear;
-  background: linear-gradient(
-    to right,
-    #F5F5F5 0%,
-    #E8E8E8 20%,
-    #F5F5F5 40%,
-    #F5F5F5 100%
-  );
-  background-size: 1000px 100%;
-}
-
-/* Button Styles */
-.btn-primary {
-  background-color: #C7202F;
-  color: white;
-  transition: all 0.2s ease;
-}
-
-.btn-primary:hover {
-  background-color: #9E1925;
-}
-
-.btn-secondary {
-  background-color: #3A3A3A;
-  color: white;
-  transition: all 0.2s ease;
-}
-
-.btn-secondary:hover {
-  background-color: #2A2A2A;
-}
-
-/* Link accent color */
-a {
-  color: #C7202F;
-}
-
-a:hover {
-  color: #9E1925;
-}
-
-/* Selection color */
-::selection {
-  background-color: #C7202F;
-  color: white;
-}
-
-/* Focus ring */
-*:focus-visible {
-  outline: 2px solid #C7202F;
-  outline-offset: 2px;
-}
-
-/* Form inputs focus */
-input:focus, select:focus, textarea:focus {
-  border-color: #C7202F !important;
-  box-shadow: 0 0 0 3px rgba(199, 32, 47, 0.1) !important;
 }
