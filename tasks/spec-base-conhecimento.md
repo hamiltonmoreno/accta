@@ -171,7 +171,7 @@ Tudo o resto nas §6–§7 é executável só com o relatório.
     **averbamento de órgão** (≤3 anos; inválido após **>90 dias** sem exercício). (#15)
   - 5 qualificações (ADI, APP proc., APP vig., ACC proc., ACC vig.). (#10)
   - Conversão de licença estrangeira (fluxo AAC). (#16)
-  - Reentrada após afastamento longo (Diretiva 01/PEL/2024). 
+  - Reentrada após afastamento longo (Diretiva 01/PEL/2024).
 - **L135** manter; acrescentar **ACC (Sal)** e **FIS (São Filipe, Maio, São
   Nicolau)** à descrição das unidades. (#10)
 - **L174,301** "FIR Sal" → "**FIR Oceânica do Sal**" + DL 9/80. (#8)
