@@ -437,17 +437,12 @@ pytest tests/ --cov  # Coverage report
 **`backend/.env`**:
 ```
 DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
-JWT_SECRET=your-super-secret-key-change-this
+SECRET_KEY=your-super-secret-key-change-this
 CORS_ORIGINS=http://localhost:3000,https://yourdomain.com
-UPLOAD_DIR=./uploads
-S3_BUCKET=your-bucket
-S3_REGION=us-east-1
-S3_ACCESS_KEY=xxx
-S3_SECRET_KEY=xxx
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
+FRONTEND_URL=https://yourdomain.com
+# Email is sent via the Resend API (no SMTP). Uploads are local filesystem (no S3).
+RESEND_API_KEY=re_xxx
+SENDER_EMAIL=no-reply@controlador.cv
 ```
 
 ---
@@ -491,5 +486,5 @@ async def expensive_op(request: Request):
 
 ---
 
-**Last Updated**: April 2, 2026  
-**Version**: 1.0
+**Last Updated**: May 19, 2026 (env block → SECRET_KEY / Resend / local uploads, no SMTP/S3)  
+**Version**: 1.1

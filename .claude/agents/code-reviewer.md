@@ -28,7 +28,11 @@ Step 4: Quality:
   - Error handling with proper HTTP status codes
 Step 5: ACCTA Conventions:
   - UI text in Portuguese
-  - Brand colors used correctly (Carmesim #C7202F, Grafite #3A3A3A)
-  - No dark mode code
+  - Neutral-led: Carmesim #C7202F only as the single restrained accent
+    (≤1 primary button per view, active nav, links-on-white, destructive,
+    focus ring) — neutral everywhere else; Grafite #3A3A3A text
+  - No Carmesim/red text on dark or colored backgrounds; no every-button-red
+  - Every text/bg pair ≥4.5:1; status uses icon + text (not color alone)
+  - No dark mode code (canonical: `/frontend-design` skill)
   - Audit logging for admin actions
 Step 6: Report as CRITICAL / WARNING / SUGGESTION. Block if CRITICAL found.

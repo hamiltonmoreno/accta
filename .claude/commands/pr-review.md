@@ -8,7 +8,9 @@ Review pull request #$ARGUMENTS:
 2. `gh pr diff $ARGUMENTS` — read all changes
 3. Check for:
    - Security issues (auth, injection, secrets)
-   - ACCTA conventions (Portuguese text, brand colors, no dark mode)
+   - ACCTA conventions (Portuguese text; neutral-led design, Carmesim as
+     single restrained accent, no red-on-dark, ≤1 primary button/view; no
+     dark mode — see `/frontend-design`)
    - Role-based access on new endpoints
    - Audit logging for admin actions
    - Proper error handling

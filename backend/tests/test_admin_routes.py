@@ -81,10 +81,13 @@ class TestInviteUser:
             request=_mock_request(), data=data, current_user=admin_user
         )
 
-        # Sprint 1+2 fix: invite_token NAO devolvido na response.
+        # Spec-2 fix: invite_token NAO devolvido na response NEM no path —
+        # o token segue apenas no email ao convidado (evita leak por
+        # logs/MITM/historial/APM). setup_url e agora um path estatico.
         assert "invite_token" not in result
         assert result["email"] == "joao@x.cv"
-        assert "setup-account?token=" in result["setup_url"]
+        assert result["setup_url"] == "/setup-account"
+        assert "token" not in result["setup_url"]
         assert "expires_at" in result
         mock_db.users.insert_one.assert_awaited_once()
 

@@ -27,7 +27,8 @@ Write the plan to `tasks/todo.md`:
 1. Add API group to `frontend/src/utils/api.js`
 2. Create page at `frontend/src/pages/private/$ARGUMENTS_Page.js`:
    - Use shadcn/ui components
-   - Tailwind CSS with ACCTA brand tokens
+   - Tailwind CSS, neutral-led ACCTA system (Carmesim as single restrained
+     accent, no red-on-dark) — follow the `/frontend-design` skill
    - Loading/error/empty states
    - Sonner toast for feedback
 3. Add route to `frontend/src/App.js` with `<ProtectedRoute>`

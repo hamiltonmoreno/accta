@@ -51,7 +51,7 @@ Portal institucional completo e Sistema de Gestão Associativa (SGA) para a ACCT
 | Email | Resend API |
 | Real-time | SSE (Server-Sent Events) + fallback polling 30s |
 | CI/CD | GitHub Actions → SSH → Nginx + Supervisord |
-| Design | Identidade visual ACCTA (Vermelho Carmesim #C7202F, Cinza Grafite #3A3A3A, Open Sans) |
+| Design | Identidade ACCTA — **neutro + acento único**: Carmesim #C7202F só como acento contido (1 botão primário/tela, nunca texto em fundo escuro), Grafite #3A3A3A, Open Sans, modo claro. Canônico: `/frontend-design` |
 
 ---
 

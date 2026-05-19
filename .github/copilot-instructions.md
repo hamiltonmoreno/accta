@@ -17,7 +17,7 @@
 ## Tech Stack & Architecture
 
 ### Frontend
-- **Framework**: React 19 with Vite
+- **Framework**: React 19 (Create React App / `react-scripts` 5 wrapped by Craco — NOT Vite)
 - **Styling**: Tailwind CSS 3.4 + Shadcn/UI components
 - **Routing**: React Router v7
 - **Animation**: Framer Motion
@@ -28,12 +28,12 @@
 - **Package Manager**: Yarn 1.22.22
 
 ### Backend
-- **Framework**: FastAPI (Python 3.10+)
+- **Framework**: FastAPI (Python 3.11)
 - **Database**: PostgreSQL (Supabase) — asyncpg connection pool via the Mongo-compatible DAO in `database.py`
 - **Auth**: JWT + RBAC middleware
 - **Async**: Uvicorn + asyncio
 - **Rate Limiting**: SlowAPI (200 req/min default)
-- **File Uploads**: S3-compatible (boto3) or local filesystem
+- **File Uploads**: local filesystem only (`/api/upload/{category}` → `backend/uploads/{category}`) — no S3/boto3
 - **Validation**: Pydantic v2
 
 ### Database
@@ -123,9 +123,9 @@ cd scripts && python seed_data.py
 
 | Profile | Email | Password |
 |---------|-------|----------|
-| Admin | admin@accta.cv | admin123 |
-| Financial Officer | financeiro@accta.cv | fin123 |
-| Member | socio1@accta.cv | socio123 |
+| Admin | admin@controlador.cv | admin123 |
+| Financial Officer | financeiro@controlador.cv | fin123 |
+| Member | socio1@controlador.cv | socio123 |
 
 ### Key Commands
 
@@ -136,7 +136,7 @@ cd scripts && python seed_data.py
 | Run backend tests | `cd backend && pytest tests/` |
 | Build frontend | `cd frontend && yarn build` |
 | Seed database | `cd scripts && python seed_data.py` |
-| Linting (backend) | `cd backend && black . && isort .` |
+| Linting (backend) | `cd backend && ruff check . && ruff format .` |
 
 ### Environment Variables
 
@@ -145,53 +145,67 @@ cd scripts && python seed_data.py
 # Production uses the Supabase connection pooler (port 6543, transaction mode);
 # asyncpg sets statement_cache_size=0 for pgbouncer. Missing DATABASE_URL → RuntimeError at startup.
 DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
-JWT_SECRET=your-secret-key
+SECRET_KEY=your-secret-key
 CORS_ORIGINS=http://localhost:3000,https://your-domain.com
-UPLOAD_DIR=./uploads
-S3_BUCKET=accta-uploads
-S3_REGION=us-east-1
+FRONTEND_URL=https://your-domain.com
+RESEND_API_KEY=re_xxx
+SENDER_EMAIL=no-reply@controlador.cv
 ```
 
 **Frontend** (`frontend/.env`):
 ```
-REACT_APP_API_URL=http://localhost:8001/api
-REACT_APP_TIMEOUT=30000
+REACT_APP_BACKEND_URL=http://localhost:8001
 ```
 
 ---
 
 ## Design System Reference
 
-See [design_guidelines.json](design_guidelines.json) for exhaustive styling rules.
+> Canonical source: the **`/frontend-design` skill**
+> (`.claude/skills/frontend-design/SKILL.md`). [design_guidelines.json](design_guidelines.json)
+> mirrors it. If anything differs, the skill wins. **ACCTA = professional,
+> accessible, NEUTRAL-LED with a single restrained Carmesim accent. Light mode only.**
 
-### Typography (Open Sans, Outfit on headings)
+### Typography (Open Sans for body + headings; JetBrains Mono for code/IDs)
 
-- **Display**: `text-6xl md:text-8xl tracking-tight font-bold`
-- **H1**: `text-5xl md:text-6xl tracking-tight font-semibold`
-- **Body**: `text-base md:text-lg leading-relaxed text-slate-600`
+- **Hero**: `text-4xl md:text-5xl tracking-tight font-bold`
+- **H1**: `text-3xl md:text-4xl tracking-tight font-semibold`
+- **Body**: `text-sm md:text-base leading-relaxed text-[#3A3A3A]`
+- Max 2 font weights per section.
 
 ### Color Palette
 
+The interface is built on a **neutral foundation** (~90% of the UI). Carmesim
+is the brand logo color and the **single accent — used sparingly**.
+
 | Name | Hex | Usage |
 |------|-----|-------|
-| Primary (Navy) | #0A1F44 | Sidebar, footer, headings |
-| Secondary (Cloud) | #F4F6F8 | App background, panels |
-| Accent (Radar Green) | #00FF9C | Active states, success, CTAs |
-| Alert (Cockpit Red) | #FF4C4C | Errors, destructive actions |
+| Carmesim (single accent) | #C7202F (hover #A51B27) | ONLY: the one primary button per view, active nav, links on white, destructive, focus ring — **never body text, never on dark** |
+| Grafite (text primary) | #3A3A3A | body/heading text (~9:1 on white) |
+| Text muted | #6B7280 | secondary text — never use text lighter than this |
+| Surface | #FFFFFF / #F5F5F5 | base / sunken — neutral foundation |
+| Border | #E5E7EB / #D1D5DB | default / strong (secondary buttons, dividers) |
+| Navy (restricted) | #1e3a5f | marketing hero depth only, white text — not portal chrome, not a 2nd accent |
+| Semantic (text/solid) | Success #15803D/#16A34A · Warn #B45309/#D97706 · Error #B91C1C/#C7202F · Info #1D4ED8/#2563EB | icon + text, never color alone |
 
 ### Component Patterns
 
-- **Glass effect**: `bg-white/70 backdrop-blur-xl border border-white/40 shadow-sm`
-- **Active item**: `bg-slate-100 border-l-4 border-[#00FF9C]`
-- **Focus ring**: `ring-2 ring-[#0A1F44] ring-offset-2`
+- **Button taxonomy** (≤1 Primary per view; default to Secondary):
+  - Primary: `bg-[#C7202F] text-white hover:bg-[#A51B27] rounded-md px-4 py-2 font-semibold`
+  - Secondary: `bg-white border border-[#D1D5DB] text-[#3A3A3A] hover:bg-[#F5F5F5] rounded-md px-4 py-2`
+  - Tertiary: ghost `text-[#3A3A3A] hover:bg-[#F5F5F5]`; Destructive: brand red + confirm dialog
+- **Glass effect**: `bg-white/80 backdrop-blur-sm border border-white/30`
+- **Active item**: `bg-[#F5F5F5] border-l-4 border-[#C7202F]`
+- **Focus ring** (CRITICAL): `focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2`
 
 ### Anti-Patterns ❌
 
-- No dark mode
-- No generic 'Inter' font everywhere
-- No centered boring text blocks
-- No gradients without texture/noise
-- No purple/teal CTAs (use Navy or Green)
+- No dark mode (disabled by design); no flat black backgrounds
+- **No Carmesim/red text on dark, Navy, colored or photo backgrounds** — the legibility bug
+- **No making every button red** — Primary is rare; everything else is neutral
+- No accent on large surfaces; no state conveyed by color alone (pair with icon/text)
+- No text lighter than `#6B7280`; no font other than Open Sans (JetBrains Mono for code/IDs); max 2 weights/section
+- No colors outside the system above; every text/bg pair must reach ≥4.5:1
 
 ---
 
@@ -297,7 +311,7 @@ useEffect(() => {
 
 ### Frontend Issues
 
-1. **API Timeout**: Update `REACT_APP_TIMEOUT` if backend is slow
+1. **API base wrong / not reached**: Check `REACT_APP_BACKEND_URL` in `frontend/.env` (axios base + any timeout live in `src/utils/api.js`, not env)
 2. **Route Not Found**: Check React Router config in `App.js` + Layout structure
 3. **Styling Conflicts**: Verify Tailwind CSS build in `craco.config.js` and no competing CSS
 4. **Auth Context Missing**: Ensure `AuthContext` wraps entire app tree in `App.js`
@@ -377,5 +391,5 @@ useEffect(() => {
 
 ---
 
-**Last Updated**: April 2, 2026  
-**Version**: 1.0
+**Last Updated**: May 19, 2026 (design system reworked: neutral-led, single restrained Carmesim accent, button taxonomy, no red-on-dark — mirrors the `frontend-design` skill)  
+**Version**: 1.1
