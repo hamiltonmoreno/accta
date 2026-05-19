@@ -2,13 +2,13 @@ import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentsAPI, uploadAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { queryKeys } from '../../lib/queryClient';
 import { FileText, Download, Search, Upload, X, Plus, Check, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { EmptyState } from '../../components/EmptyState';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 
 export const DocumentosPage = () => {
   const { isAdmin } = useAuth();
@@ -147,7 +147,6 @@ export const DocumentosPage = () => {
 };
 
 const UploadDocumentModal = ({ onClose }) => {
-  useBodyScrollLock(true);
   const qc = useQueryClient();
   const fileInputRef = useRef(null);
   const [title, setTitle] = useState('');
@@ -211,35 +210,15 @@ const UploadDocumentModal = ({ onClose }) => {
   };
 
   return (
-    <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/50 z-40 animate-fade-up"
-        onClick={onClose} />
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg rounded-xl p-0 gap-0 max-h-[90vh] overflow-y-auto" data-testid="upload-modal">
+        <DialogHeader className="p-6 border-b border-gray-200 text-left space-y-1">
+          <DialogTitle className="font-sans font-bold text-2xl text-grafite">Novo Documento</DialogTitle>
+          <DialogDescription className="text-sm text-gray-500">Faça upload de um documento para a secretaria</DialogDescription>
+        </DialogHeader>
 
-      {/* Modal */}
-      <div className="fixed inset-0 z-50 overflow-y-auto animate-fade-up"
-        role="dialog"
-        aria-modal="true">
-        <div className="flex min-h-full items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg" data-testid="upload-modal" onClick={(e) => e.stopPropagation()}>
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <div>
-              <h2 className="font-sans font-bold text-2xl text-grafite">Novo Documento</h2>
-              <p className="text-sm text-gray-500">Faça upload de um documento para a secretaria</p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              aria-label="Fechar"
-              data-testid="close-modal"
-            >
-              <X className="w-5 h-5 text-gray-400" aria-hidden="true" />
-            </button>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Title */}
             <div>
               <label className="block font-mono text-xs uppercase tracking-wider text-gray-500 mb-2">
@@ -405,9 +384,7 @@ const UploadDocumentModal = ({ onClose }) => {
               </button>
             </div>
           </form>
-        </div>
-        </div>
-      </div>
-    </>
+      </DialogContent>
+    </Dialog>
   );
 };
