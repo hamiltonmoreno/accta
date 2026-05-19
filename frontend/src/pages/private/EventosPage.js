@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { eventsAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
 import {
@@ -16,7 +16,6 @@ import {
   MapPin, 
   Users,
   Plus,
-  X,
   Check,
   Loader2,
   UserCheck,
@@ -267,7 +266,6 @@ export const EventosPage = () => {
 };
 
 const CreateEventModal = ({ onClose }) => {
-  useBodyScrollLock(true);
   const qc = useQueryClient();
   const [formData, setFormData] = useState({
     title: '',
@@ -311,20 +309,11 @@ const CreateEventModal = ({ onClose }) => {
   };
 
   return (
-    <>
-      <div className="fixed inset-0 bg-black/50 z-40 animate-fade-up"
-        onClick={onClose} />
-      <div className="fixed inset-0 z-50 overflow-y-auto animate-fade-up"
-        role="dialog"
-        aria-modal="true">
-        <div className="flex min-h-full items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
-          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
-            <h2 className="font-bold text-xl sm:text-2xl text-grafite">Novo Evento</h2>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Fechar">
-              <X className="w-5 h-5 text-gray-400" aria-hidden="true" />
-            </button>
-          </div>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg rounded-xl p-0 gap-0 max-h-[90vh] overflow-y-auto" data-testid="create-event-modal">
+        <DialogHeader className="p-4 sm:p-6 border-b border-gray-200 text-left space-y-0">
+          <DialogTitle className="font-bold text-xl sm:text-2xl text-grafite">Novo Evento</DialogTitle>
+        </DialogHeader>
 
           <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5">
             <div>
@@ -445,9 +434,7 @@ const CreateEventModal = ({ onClose }) => {
               </button>
             </div>
           </form>
-          </div>
-        </div>
-      </div>
-    </>
+      </DialogContent>
+    </Dialog>
   );
 };
