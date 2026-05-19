@@ -31,7 +31,7 @@ const StatCard = ({ title, value, icon: Icon, iconBg, change, changeLabel }) => 
       <div className={`flex items-center gap-1 text-sm ${change >= 0 ? 'text-green-600' : 'text-red-500'}`}>
         {change >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
         <span className="font-semibold">{change >= 0 ? '+' : ''}{change}%</span>
-        {changeLabel && <span className="text-gray-400 font-normal ml-0.5">{changeLabel}</span>}
+        {changeLabel && <span className="text-[#6B7280] font-normal ml-0.5">{changeLabel}</span>}
       </div>
     )}
   </div>
@@ -276,19 +276,19 @@ export const DashboardPage = () => {
             <div>
               <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Receitas</div>
               <div className="font-mono text-xl sm:text-2xl font-bold text-green-600">{financeSummary.total_receitas.toLocaleString('pt')}</div>
-              <div className="text-xs text-gray-400 mt-0.5">CVE</div>
+              <div className="text-xs text-[#6B7280] mt-0.5">CVE</div>
             </div>
             <div>
               <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Despesas</div>
               <div className="font-mono text-xl sm:text-2xl font-bold text-red-500">{financeSummary.total_despesas.toLocaleString('pt')}</div>
-              <div className="text-xs text-gray-400 mt-0.5">CVE</div>
+              <div className="text-xs text-[#6B7280] mt-0.5">CVE</div>
             </div>
             <div>
               <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Resultado</div>
               <div className={`font-mono text-xl sm:text-2xl font-bold ${financeSummary.resultado_liquido >= 0 ? 'text-grafite' : 'text-orange-600'}`}>
                 {financeSummary.resultado_liquido.toLocaleString('pt')}
               </div>
-              <div className="text-xs text-gray-400 mt-0.5">CVE</div>
+              <div className="text-xs text-[#6B7280] mt-0.5">CVE</div>
             </div>
           </div>
         </div>
@@ -300,14 +300,14 @@ export const DashboardPage = () => {
         <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 animate-fade-up">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-grafite" data-testid="contributions-title">Contribuicoes</h2>
-            <span className="text-xs text-gray-400 uppercase tracking-wider hidden sm:block">Desconto em Folha</span>
+            <span className="text-xs text-[#6B7280] uppercase tracking-wider hidden sm:block">Desconto em Folha</span>
           </div>
           <div className="text-center py-8">
             <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <CheckCircle className="w-7 h-7 text-green-500" />
             </div>
             <p className="text-sm text-grafite font-semibold" data-testid="contributions-status">Tudo em dia!</p>
-            <p className="text-xs text-gray-400 mt-1">Quotas descontadas automaticamente na folha salarial</p>
+            <p className="text-xs text-[#6B7280] mt-1">Quotas descontadas automaticamente na folha salarial</p>
           </div>
         </div>
 
@@ -326,7 +326,7 @@ export const DashboardPage = () => {
               <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
                 <Vote className="w-7 h-7 text-gray-300" />
               </div>
-              <p className="text-sm text-gray-400" data-testid="no-active-polls">Nenhuma votacao aberta</p>
+              <p className="text-sm text-[#6B7280]" data-testid="no-active-polls">Nenhuma votacao aberta</p>
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -337,7 +337,7 @@ export const DashboardPage = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-sm text-grafite truncate">{poll.title}</div>
-                    <div className="text-xs text-gray-400">
+                    <div className="text-xs text-[#6B7280]">
                       Ate {new Date(poll.end_date).toLocaleDateString('pt')}
                     </div>
                   </div>
@@ -367,10 +367,10 @@ export const DashboardPage = () => {
             <table className="w-full">
               <thead className="bg-gray-50/80">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Evento</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Data</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Local</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Hora</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Evento</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Data</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Local</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Hora</th>
                 </tr>
               </thead>
               <tbody>
@@ -429,7 +429,7 @@ export const DashboardPage = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3 className="font-semibold text-sm text-grafite truncate">{event.title}</h3>
-                  <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-1">
+                  <div className="flex items-center gap-1.5 text-xs text-[#6B7280] mt-1">
                     <Clock className="w-3 h-3 flex-shrink-0" />
                     <span>{format(new Date(event.date), 'HH:mm')}</span>
                     <span className="text-gray-300 mx-0.5">|</span>
@@ -452,7 +452,7 @@ export const DashboardPage = () => {
               <BarChart3 className="w-4 h-4 text-carmesim" />
               <h2 className="text-lg font-semibold text-grafite">A Minha Participacao</h2>
             </div>
-            <span className="text-xs text-gray-400 uppercase tracking-wider hidden sm:block">Relatorio pessoal</span>
+            <span className="text-xs text-[#6B7280] uppercase tracking-wider hidden sm:block">Relatorio pessoal</span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-gray-100">
@@ -520,7 +520,7 @@ export const DashboardPage = () => {
                 </div>
                 <div className="font-bold text-xl text-grafite">{item.value}</div>
                 {item.total !== null && item.total > 0 && (
-                  <div className="text-xs text-gray-400 font-mono mt-0.5">de {item.total}</div>
+                  <div className="text-xs text-[#6B7280] font-mono mt-0.5">de {item.total}</div>
                 )}
                 <div className="text-xs text-gray-500 mt-1">{item.label}</div>
               </div>
@@ -538,7 +538,7 @@ export const DashboardPage = () => {
               <Activity className="w-4 h-4 text-carmesim" />
               <h2 className="text-lg font-semibold text-grafite">Atividade Recente</h2>
             </div>
-            <span className="text-xs text-gray-400 uppercase tracking-wider hidden sm:block">Ultimas atualizacoes</span>
+            <span className="text-xs text-[#6B7280] uppercase tracking-wider hidden sm:block">Ultimas atualizacoes</span>
           </div>
 
           <div className="divide-y divide-gray-50 max-h-[420px] overflow-y-auto">
@@ -553,7 +553,7 @@ export const DashboardPage = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm text-grafite truncate">{item.title}</span>
-                    <span className="text-xs text-gray-400 font-mono whitespace-nowrap">{timeAgo(item.created_at)}</span>
+                    <span className="text-xs text-[#6B7280] font-mono whitespace-nowrap">{timeAgo(item.created_at)}</span>
                   </div>
                   <p className="text-xs text-gray-500 truncate mt-0.5">{item.description}</p>
                 </div>
@@ -591,7 +591,7 @@ export const DashboardPage = () => {
                 <NotifIcon type={notif.type} />
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-grafite text-xs truncate">{notif.title}</div>
-                  <div className="text-xs text-gray-400 truncate">{notif.message}</div>
+                  <div className="text-xs text-[#6B7280] truncate">{notif.message}</div>
                 </div>
                 <ArrowRight className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
               </button>

@@ -52,7 +52,7 @@ export const MemberFinanceView = () => {
         ) : invoices.length === 0 ? (
           <div className="p-10 text-center" data-testid="no-invoices">
             <DollarSign className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-            <p className="text-sm text-gray-400">Nenhum registro encontrado</p>
+            <p className="text-sm text-[#6B7280]">Nenhum registro encontrado</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-50">

@@ -143,7 +143,7 @@ export const EventosPage = () => {
         <div className="card-technical rounded-xl p-12 text-center">
           <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500 font-medium mb-1">Nenhum evento encontrado</p>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-[#6B7280]">
             {isAdmin ? 'Clique em "Novo Evento" para criar' : 'Os eventos serão exibidos aqui quando disponíveis'}
           </p>
         </div>
@@ -170,7 +170,7 @@ export const EventosPage = () => {
                         <span className={`inline-block px-2 py-0.5 rounded text-xs font-mono uppercase ${style.color}`}>
                           {getEventLabel(event.type)}
                         </span>
-                        <div className="text-xs text-gray-400 mt-0.5">
+                        <div className="text-xs text-[#6B7280] mt-0.5">
                           {event.visibility === 'socios' ? 'Sócios' : event.visibility === 'direcao' ? 'Direção' : 'Público'}
                         </div>
                       </div>
@@ -210,7 +210,7 @@ export const EventosPage = () => {
                   </div>
 
                   <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-gray-100">
-                    <div className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-400">
+                    <div className="flex items-center gap-1.5 text-xs sm:text-sm text-[#6B7280]">
                       <Users className="w-3.5 h-3.5" />
                       <span>
                         {event.attendees?.length || 0}
@@ -245,7 +245,7 @@ export const EventosPage = () => {
                     )}
 
                     {isPastEvent && (
-                      <span className="text-xs text-gray-400">Realizado</span>
+                      <span className="text-xs text-[#6B7280]">Realizado</span>
                     )}
                   </div>
                 </div>
@@ -345,7 +345,7 @@ const CreateEventModal = ({ onClose }) => {
 
           <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5">
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Titulo *</label>
+              <label className="block font-mono text-xs uppercase tracking-wider text-[#6B7280] mb-1.5">Titulo *</label>
               <input
                 type="text"
                 value={formData.title}
@@ -357,7 +357,7 @@ const CreateEventModal = ({ onClose }) => {
             </div>
 
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Descricao</label>
+              <label className="block font-mono text-xs uppercase tracking-wider text-[#6B7280] mb-1.5">Descricao</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -369,7 +369,7 @@ const CreateEventModal = ({ onClose }) => {
 
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Tipo *</label>
+                <label className="block font-mono text-xs uppercase tracking-wider text-[#6B7280] mb-1.5">Tipo *</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -383,7 +383,7 @@ const CreateEventModal = ({ onClose }) => {
                 </select>
               </div>
               <div>
-                <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Visibilidade</label>
+                <label className="block font-mono text-xs uppercase tracking-wider text-[#6B7280] mb-1.5">Visibilidade</label>
                 <select
                   value={formData.visibility}
                   onChange={(e) => setFormData({ ...formData, visibility: e.target.value })}
@@ -398,7 +398,7 @@ const CreateEventModal = ({ onClose }) => {
 
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Data *</label>
+                <label className="block font-mono text-xs uppercase tracking-wider text-[#6B7280] mb-1.5">Data *</label>
                 <input
                   type="date"
                   value={formData.date}
@@ -408,7 +408,7 @@ const CreateEventModal = ({ onClose }) => {
                 />
               </div>
               <div>
-                <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Hora *</label>
+                <label className="block font-mono text-xs uppercase tracking-wider text-[#6B7280] mb-1.5">Hora *</label>
                 <input
                   type="time"
                   value={formData.time}
@@ -420,7 +420,7 @@ const CreateEventModal = ({ onClose }) => {
             </div>
 
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Local *</label>
+              <label className="block font-mono text-xs uppercase tracking-wider text-[#6B7280] mb-1.5">Local *</label>
               <input
                 type="text"
                 value={formData.location}
@@ -432,7 +432,7 @@ const CreateEventModal = ({ onClose }) => {
             </div>
 
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Limite de Participantes</label>
+              <label className="block font-mono text-xs uppercase tracking-wider text-[#6B7280] mb-1.5">Limite de Participantes</label>
               <input
                 type="number"
                 inputMode="numeric"

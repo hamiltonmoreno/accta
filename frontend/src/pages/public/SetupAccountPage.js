@@ -115,7 +115,7 @@ export const SetupAccountPage = () => {
           <p className="text-sm text-gray-500">
             {inviteData?.name}, defina a sua senha para ativar a conta.
           </p>
-          <p className="text-xs text-gray-400 mt-1">{inviteData?.email}</p>
+          <p className="text-xs text-[#6B7280] mt-1">{inviteData?.email}</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>

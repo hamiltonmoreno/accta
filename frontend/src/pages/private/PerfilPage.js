@@ -23,7 +23,7 @@ const PrivilegesSection = ({ privileges }) => {
   
   return (
     <div className="card-technical p-5 animate-fade-up">
-      <h3 className="font-semibold text-xs uppercase tracking-widest text-gray-400 mb-3">Privilégios Atribuídos</h3>
+      <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280] mb-3">Privilégios Atribuídos</h3>
       <div className="flex flex-wrap gap-2">
         {privileges.map((p) => (
           <span key={p} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-carmesim/10 text-carmesim text-xs font-semibold rounded-lg">
@@ -102,7 +102,7 @@ export const PerfilPage = () => {
         ) : (
           <button
             onClick={() => setEditing(false)}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-gray-400 hover:text-grafite transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-[#6B7280] hover:text-grafite transition-colors"
             data-testid="cancel-edit-btn"
           >
             <X className="w-4 h-4" />
@@ -196,7 +196,7 @@ export const PerfilPage = () => {
       {/* Details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="card-technical p-5 animate-fade-up">
-          <h3 className="font-semibold text-xs uppercase tracking-widest text-gray-400 mb-3">Dados Pessoais</h3>
+          <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280] mb-3">Dados Pessoais</h3>
           <InfoRow icon={Mail} label="Email" value={user.email} />
           <InfoRow icon={Phone} label="Telefone" value={user.phone_number} />
           <InfoRow icon={FileText} label="Biografia" value={user.bio} />
@@ -204,7 +204,7 @@ export const PerfilPage = () => {
         </div>
 
         <div className="card-technical p-5 animate-fade-up">
-          <h3 className="font-semibold text-xs uppercase tracking-widest text-gray-400 mb-3">Associação</h3>
+          <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280] mb-3">Associação</h3>
           <InfoRow icon={Shield} label="Função" value={roleLabel[user.role]} />
           <InfoRow icon={Briefcase} label="Cargo" value={user.cargo || 'Sócio'} />
           <InfoRow icon={Award} label="Licença" value={user.license_number} />

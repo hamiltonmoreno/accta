@@ -145,7 +145,7 @@ export const NotificationBell = () => {
                               )}
                             </div>
                             <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
-                            <p className="text-xs text-gray-400 font-mono">
+                            <p className="text-xs text-[#6B7280] font-mono">
                               {formatDistanceToNow(new Date(notification.created_at), {
                                 addSuffix: true,
                                 locale: ptBR,

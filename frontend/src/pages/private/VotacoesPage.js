@@ -107,7 +107,7 @@ export const VotacoesPage = () => {
           <div className="card-technical rounded-xl p-12 text-center" data-testid="no-open-polls">
             <Vote className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 font-medium mb-1">Nenhuma votação aberta no momento</p>
-            <p className="text-sm text-gray-400">Você será notificado quando novas votações forem criadas</p>
+            <p className="text-sm text-[#6B7280]">Você será notificado quando novas votações forem criadas</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6">

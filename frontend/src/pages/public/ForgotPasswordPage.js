@@ -52,7 +52,7 @@ export const ForgotPasswordPage = () => {
 
         <Link
           to="/login"
-          className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-grafite transition-colors mb-6"
+          className="inline-flex items-center gap-1.5 text-sm text-[#6B7280] hover:text-grafite transition-colors mb-6"
           data-testid="back-to-login"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -73,7 +73,7 @@ export const ForgotPasswordPage = () => {
             <div className="card-technical p-6 sm:p-7">
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
                 <div>
-                  <label htmlFor="email" className="block text-xs uppercase tracking-widest text-gray-400 mb-2 font-semibold">
+                  <label htmlFor="email" className="block text-xs uppercase tracking-widest text-[#6B7280] mb-2 font-semibold">
                     Email
                   </label>
                   <input
@@ -126,7 +126,7 @@ export const ForgotPasswordPage = () => {
 
             {submitted.token && (
               <div className="card-technical p-5">
-                <label className="block text-xs uppercase tracking-widest text-gray-400 mb-2 font-semibold">
+                <label className="block text-xs uppercase tracking-widest text-[#6B7280] mb-2 font-semibold">
                   Link de recuperação (modo demo)
                 </label>
                 <div className="flex items-center gap-2">
@@ -160,7 +160,7 @@ export const ForgotPasswordPage = () => {
 
             <button
               onClick={() => setSubmitted(null)}
-              className="mt-4 text-sm text-gray-400 hover:text-grafite transition-colors"
+              className="mt-4 text-sm text-[#6B7280] hover:text-grafite transition-colors"
               data-testid="try-another-email"
             >
               Tentar com outro email

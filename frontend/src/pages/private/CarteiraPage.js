@@ -289,9 +289,9 @@ export const CarteiraPage = () => {
               )}
 
               <div className="mt-4 text-center">
-                <div className="font-mono text-xs text-gray-400 uppercase tracking-widest">ACCTA - Cabo Verde</div>
+                <div className="font-mono text-xs text-[#6B7280] uppercase tracking-widest">ACCTA - Cabo Verde</div>
                 {displayUser?.admission_date && (
-                  <div className="font-mono text-xs text-gray-400 mt-1">
+                  <div className="font-mono text-xs text-[#6B7280] mt-1">
                     Socio desde {format(new Date(displayUser.admission_date), 'MMMM yyyy', { locale: ptBR })}
                   </div>
                 )}

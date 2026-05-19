@@ -86,7 +86,7 @@ export const DocumentosPage = () => {
         <div className="card-technical rounded-xl p-12 text-center" data-testid="no-documents">
           <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500 font-medium mb-1">Nenhum documento encontrado</p>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-[#6B7280]">
             {isAdmin ? 'Clique em "Novo Documento" para adicionar' : 'Os documentos serão exibidos aqui quando disponíveis'}
           </p>
         </div>
@@ -355,7 +355,7 @@ const UploadDocumentModal = ({ onClose }) => {
                     <span className="font-sans font-semibold text-gray-600 mb-1">
                       Clique para selecionar
                     </span>
-                    <span className="text-xs text-gray-400">PDF, DOC ou DOCX (máx. 10MB)</span>
+                    <span className="text-xs text-[#6B7280]">PDF, DOC ou DOCX (máx. 10MB)</span>
                   </div>
                 </button>
               )}

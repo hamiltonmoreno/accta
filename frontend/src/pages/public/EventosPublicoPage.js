@@ -89,7 +89,7 @@ export const EventosPublicoPage = () => {
               <div className="text-sm text-gray-500">Próximos Eventos</div>
             </div>
             <div className="text-center">
-              <div className="font-sans font-bold text-3xl text-gray-400">{pastEvents.length}</div>
+              <div className="font-sans font-bold text-3xl text-[#6B7280]">{pastEvents.length}</div>
               <div className="text-sm text-gray-500">Eventos Realizados</div>
             </div>
           </div>
@@ -131,7 +131,7 @@ export const EventosPublicoPage = () => {
               <p className="text-gray-500 font-medium mb-2">
                 {filter === 'upcoming' ? 'Nenhum evento programado' : 'Nenhum evento encontrado'}
               </p>
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-[#6B7280]">
                 Os eventos públicos serão exibidos aqui quando disponíveis
               </p>
             </div>
@@ -185,7 +185,7 @@ export const EventosPublicoPage = () => {
                       </div>
 
                       {isPastEvent ? (
-                        <span className="inline-flex items-center gap-2 text-gray-400 font-medium text-sm">
+                        <span className="inline-flex items-center gap-2 text-[#6B7280] font-medium text-sm">
                           Evento realizado
                         </span>
                       ) : (

@@ -160,7 +160,7 @@ export const CashFlowTab = ({ isAdmin }) => {
           <div className="flex items-center gap-1.5">
             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
               className="px-2.5 py-2.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" data-testid="start-date-filter" />
-            <span className="text-gray-400 text-xs">a</span>
+            <span className="text-[#6B7280] text-xs">a</span>
             <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
               className="px-2.5 py-2.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" data-testid="end-date-filter" />
           </div>
@@ -180,7 +180,7 @@ export const CashFlowTab = ({ isAdmin }) => {
 
         {(searchDebounced || startDate || endDate) && (
           <div className="flex items-center gap-2 mt-2 pt-2" style={{ borderTop: '1px solid var(--surface-border)' }}>
-            <span className="text-xs text-gray-400 uppercase tracking-wider">Filtros ativos:</span>
+            <span className="text-xs text-[#6B7280] uppercase tracking-wider">Filtros ativos:</span>
             {searchDebounced && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-xs text-gray-600">
                 "{searchDebounced}" <button onClick={() => setSearchText('')} className="hover:text-carmesim" aria-label="Limpar pesquisa"><X className="w-3 h-3" aria-hidden="true" /></button>
@@ -209,14 +209,14 @@ export const CashFlowTab = ({ isAdmin }) => {
         ) : transactions.length === 0 ? (
           <div className="p-10 text-center" data-testid="no-transactions">
             <DollarSign className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-            <p className="text-sm text-gray-400">Nenhuma transacao encontrada</p>
+            <p className="text-sm text-[#6B7280]">Nenhuma transacao encontrada</p>
           </div>
         ) : (
           <>
             {/* Desktop */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50/80 text-gray-400 uppercase text-xs tracking-wider">
+                <thead className="bg-gray-50/80 text-[#6B7280] uppercase text-xs tracking-wider">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Tipo</th>
                     <th className="px-4 py-3 font-semibold">Categoria</th>
@@ -276,7 +276,7 @@ export const CashFlowTab = ({ isAdmin }) => {
                   </div>
                   <p className="text-xs truncate" style={{ color: 'var(--text-primary)' }}>{tx.description}</p>
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-gray-400">{tx.date ? format(new Date(tx.date), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span>
+                    <span className="text-xs text-[#6B7280]">{tx.date ? format(new Date(tx.date), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span>
                     <div className="flex items-center gap-1">
                       <button onClick={() => openEdit(tx)} className="p-2 -m-2 text-gray-400 hover:text-carmesim" aria-label="Editar transação"><Pencil className="w-4 h-4" aria-hidden="true" /></button>
                       <button onClick={() => handleDelete(tx.id)} className="p-2 -m-2 text-gray-400 hover:text-red-500" aria-label="Apagar transação"><Trash2 className="w-4 h-4" aria-hidden="true" /></button>
@@ -289,7 +289,7 @@ export const CashFlowTab = ({ isAdmin }) => {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-4 py-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
-                <span className="text-xs text-gray-400">{page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, total)} de {total}</span>
+                <span className="text-xs text-[#6B7280]">{page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, total)} de {total}</span>
                 <div className="flex items-center gap-1">
                   <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}
                     className="p-1.5 rounded-md hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Página anterior" data-testid="prev-page-btn">

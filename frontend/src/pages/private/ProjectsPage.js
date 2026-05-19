@@ -43,7 +43,7 @@ const ProjectCard = ({ project, onClick }) => {
       {/* Progress bar */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Progresso</span>
+          <span className="text-xs text-[#6B7280] uppercase tracking-wider font-semibold">Progresso</span>
           <span className="text-xs font-mono font-bold text-grafite">{progress}%</span>
         </div>
         <div className="w-full bg-gray-100 rounded-full h-1.5">
@@ -265,7 +265,7 @@ const ProjectsPage = () => {
         <div className="text-center py-16" data-testid="no-projects">
           <FolderKanban className="w-12 h-12 text-gray-200 mx-auto mb-3" />
           <p className="text-gray-500 font-medium">Nenhum projeto encontrado</p>
-          <p className="text-xs text-gray-400 mt-1">Crie um novo projeto para comecar</p>
+          <p className="text-xs text-[#6B7280] mt-1">Crie um novo projeto para comecar</p>
         </div>
       ) : (
         <>

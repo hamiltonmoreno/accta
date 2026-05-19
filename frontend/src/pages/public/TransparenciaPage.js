@@ -142,7 +142,7 @@ export const TransparenciaPage = () => {
           </div>
 
           {reports.length === 0 ? (
-            <p className="text-center text-gray-400">Nenhum relatório publicado ainda.</p>
+            <p className="text-center text-[#6B7280]">Nenhum relatório publicado ainda.</p>
           ) : (
             <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
               {reports.map((report, index) => {

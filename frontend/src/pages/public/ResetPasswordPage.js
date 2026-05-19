@@ -59,7 +59,7 @@ export const ResetPasswordPage = () => {
 
         <Link
           to="/login"
-          className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-grafite transition-colors mb-6"
+          className="inline-flex items-center gap-1.5 text-sm text-[#6B7280] hover:text-grafite transition-colors mb-6"
           data-testid="back-to-login-reset"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -80,7 +80,7 @@ export const ResetPasswordPage = () => {
             <div className="card-technical p-6 sm:p-7">
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
                 <div>
-                  <label htmlFor="password" className="block text-xs uppercase tracking-widest text-gray-400 mb-2 font-semibold">
+                  <label htmlFor="password" className="block text-xs uppercase tracking-widest text-[#6B7280] mb-2 font-semibold">
                     Nova senha
                   </label>
                   <div className="relative">
@@ -110,7 +110,7 @@ export const ResetPasswordPage = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-xs uppercase tracking-widest text-gray-400 mb-2 font-semibold">
+                  <label htmlFor="confirmPassword" className="block text-xs uppercase tracking-widest text-[#6B7280] mb-2 font-semibold">
                     Confirmar senha
                   </label>
                   <input
