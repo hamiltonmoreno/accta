@@ -22,9 +22,13 @@ services:
     ports:
       - "8001:8001"
     volumes:
-      # Persistência dos uploads (documentos, avatars, comprovativos).
-      # Sem este volume, recriar o container apaga todos os ficheiros.
-      - accta-uploads:/app/uploads
-
-volumes:
-  accta-uploads:
+      # Bind-mount no host (NÃO volume nomeado): o nginx serve /uploads/
+      # directamente do disco (mais rápido que proxy→uvicorn) e a pasta entra
+      # na rotina de backup. O container corre como root (Dockerfile sem USER),
+      # logo os ficheiros ficam root:root — a pasta no host deve ser 755 para o
+      # nginx (www-data) os conseguir ler.
+      #
+      # ⚠️ MIGRAÇÃO ONE-TIME (ver HOSTINGER_DEPLOY.md §3): copiar os ficheiros
+      # do volume nomeado antigo `accta-uploads` para /srv/accta/uploads ANTES
+      # de recriar o container, senão os uploads existentes desaparecem.
+      - /srv/accta/uploads:/app/uploads
