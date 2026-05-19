@@ -220,7 +220,7 @@ const AlbumModal = ({ album, onClose }) => {
                 <button key={opt.val} type="button" onClick={() => setForm({ ...form, visibility: opt.val })}
                   data-testid={`visibility-${opt.val}`}
                   className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                    form.visibility === opt.val ? 'bg-carmesim text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                    form.visibility === opt.val ? 'bg-grafite text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                   }`}>
                   <opt.icon className="w-4 h-4" /> {opt.label}
                 </button>
@@ -296,7 +296,7 @@ const PendingPanel = () => {
                   <button onClick={() => handleApprove(photo.id)} className="p-2 bg-green-600 rounded-full text-white hover:bg-green-700" aria-label="Aprovar foto" data-testid={`approve-photo-${photo.id}`}>
                     <CheckCircle className="w-4 h-4" aria-hidden="true" />
                   </button>
-                  <button onClick={() => handleReject(photo.id)} className="p-2 bg-carmesim rounded-full text-white hover:bg-carmesim-dark" aria-label="Rejeitar foto" data-testid={`reject-photo-${photo.id}`}>
+                  <button onClick={() => handleReject(photo.id)} className="p-2 bg-white border border-[#D1D5DB] rounded-full text-[#3A3A3A] hover:bg-[#F5F5F5]" aria-label="Rejeitar foto" data-testid={`reject-photo-${photo.id}`}>
                     <XCircle className="w-4 h-4" aria-hidden="true" />
                   </button>
                 </div>

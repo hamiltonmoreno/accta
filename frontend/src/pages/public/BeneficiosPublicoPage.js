@@ -284,7 +284,7 @@ export const BeneficiosPublicoPage = () => {
               </ul>
               <Link
                 to="/contactos"
-                className="inline-flex items-center gap-2 bg-confianca text-white px-6 py-3 rounded-lg font-bold hover:bg-confianca-dark transition-all w-full justify-center"
+                className="inline-flex items-center gap-2 bg-carmesim text-white px-6 py-3 rounded-lg font-bold hover:bg-carmesim-dark transition-all w-full justify-center"
               >
                 <Mail className="w-5 h-5" />
                 Contactar-nos

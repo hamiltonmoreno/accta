@@ -61,7 +61,7 @@ export class ErrorBoundary extends React.Component {
             </button>
             <a
               href="/"
-              className="inline-flex items-center justify-center gap-2 bg-grafite/5 text-grafite px-5 py-2.5 rounded-lg font-semibold hover:bg-grafite/10 transition-colors"
+              className="inline-flex items-center justify-center gap-2 bg-white border border-[#D1D5DB] text-[#3A3A3A] px-5 py-2.5 rounded-lg font-semibold hover:bg-[#F5F5F5] transition-colors"
             >
               <Home className="w-4 h-4" aria-hidden="true" />
               Voltar ao início

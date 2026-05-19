@@ -217,7 +217,7 @@ export const EventosPublicoPage = () => {
           </p>
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 bg-carmesim text-grafite px-8 py-4 rounded-lg font-bold hover:bg-carmesim/90 transition-all"
+            className="inline-flex items-center gap-2 bg-carmesim text-white px-8 py-4 rounded-lg font-bold hover:bg-carmesim/90 transition-all"
           >
             Entrar na Área do Associado
             <ChevronRight className="w-5 h-5" />
