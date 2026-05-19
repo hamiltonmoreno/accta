@@ -101,7 +101,7 @@ export const LoginPage = () => {
             </div>
             <h2 className="font-bold text-4xl text-white mb-4 leading-tight">
               Portal do<br />
-              <span className="text-carmesim">Associado</span>
+              <span className="text-white">Associado</span>
             </h2>
             <p className="text-white/60 text-lg max-w-sm leading-relaxed">
               Aceda à sua carteira digital, votações, documentos e muito mais.
@@ -179,7 +179,7 @@ export const LoginPage = () => {
                   data-testid="login-email"
                 />
                 {errors.email && (
-                  <p className="mt-1 text-xs text-carmesim" role="alert">{errors.email.message}</p>
+                  <p className="mt-1 text-xs text-[#B91C1C]" role="alert">{errors.email.message}</p>
                 )}
               </div>
 
@@ -207,7 +207,7 @@ export const LoginPage = () => {
                   data-testid="login-password"
                 />
                 {errors.password && (
-                  <p className="mt-1 text-xs text-carmesim" role="alert">{errors.password.message}</p>
+                  <p className="mt-1 text-xs text-[#B91C1C]" role="alert">{errors.password.message}</p>
                 )}
               </div>
 

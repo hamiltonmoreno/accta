@@ -79,12 +79,12 @@ export const ContactosPage = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
         <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6">
           <div className="max-w-2xl animate-fade-up">
-            <span className="inline-block px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
+            <span className="inline-block px-3 py-1.5 bg-white/10 text-white rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
               Contactos
             </span>
             <h1 className="font-bold text-3xl sm:text-5xl lg:text-6xl text-white mb-4" data-testid="contact-title">
               Fale{' '}
-              <span className="text-carmesim">Conosco</span>
+              <span className="text-white">Conosco</span>
             </h1>
             <p className="text-base sm:text-xl text-white/80 max-w-xl leading-relaxed">
               Tem dúvidas sobre a associação, a profissão ou deseja propor uma parceria? Utilize os canais oficiais.

@@ -61,12 +61,12 @@ export const ProfissaoPage = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
         <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6">
           <div className="max-w-2xl animate-fade-up">
-            <span className="inline-block px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
+            <span className="inline-block px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-white rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
               Base de conhecimento
             </span>
             <h1 className="font-bold text-3xl sm:text-5xl lg:text-6xl text-white mb-4" data-testid="profession-title">
               O que é ser um{' '}
-              <span className="text-carmesim">Controlador de Tráfego Aéreo?</span>
+              <span className="text-white">Controlador de Tráfego Aéreo?</span>
             </h1>
             <p className="text-base sm:text-xl text-white/80 max-w-xl leading-relaxed">
               Uma profissão de raciocínio rápido, alta responsabilidade e precisão absoluta
@@ -135,7 +135,7 @@ export const ProfissaoPage = () => {
               return (
                 <div key={tipo.sigla} className="card-technical rounded-2xl p-8 animate-fade-up">
                   <div className="w-14 h-14 bg-grafite rounded-xl flex items-center justify-center mb-5">
-                    <Icon className="w-7 h-7 text-carmesim" />
+                    <Icon className="w-7 h-7 text-white" />
                   </div>
                   <div className="flex items-center gap-3 mb-4">
                     <span className="px-3 py-1 bg-gray-100 text-grafite rounded-full text-sm font-bold">{tipo.sigla}</span>
@@ -191,7 +191,7 @@ export const ProfissaoPage = () => {
             {camadas.map((c) => (
               <div key={c.sigla} className="card-technical rounded-xl p-6 animate-fade-up">
                 <div className="w-12 h-12 bg-grafite rounded-lg flex items-center justify-center mb-4">
-                  <Building2 className="w-6 h-6 text-carmesim" />
+                  <Building2 className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="font-sans font-bold text-lg text-grafite mb-1">{c.nome}</h3>
                 <p className="text-xs text-carmesim uppercase tracking-wider font-semibold mb-3">{c.papel}</p>

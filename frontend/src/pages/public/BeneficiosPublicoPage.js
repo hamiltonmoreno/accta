@@ -77,12 +77,12 @@ export const BeneficiosPublicoPage = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
         <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6">
           <div className="max-w-2xl animate-fade-up">
-            <span className="inline-block px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
+            <span className="inline-block px-3 py-1.5 bg-white/10 text-white rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
               Parcerias
             </span>
             <h1 className="font-bold text-3xl sm:text-5xl lg:text-6xl text-white mb-4" data-testid="benefits-title">
               Clube de{' '}
-              <span className="text-carmesim">Benefícios</span>
+              <span className="text-white">Benefícios</span>
             </h1>
             <p className="text-base sm:text-xl text-white/80 max-w-xl leading-relaxed">
               Vantagens exclusivas para os membros da ACCTA
@@ -284,7 +284,7 @@ export const BeneficiosPublicoPage = () => {
               </ul>
               <Link
                 to="/contactos"
-                className="inline-flex items-center gap-2 bg-confianca text-white px-6 py-3 rounded-lg font-bold hover:bg-confianca-dark transition-all w-full justify-center"
+                className="inline-flex items-center gap-2 bg-carmesim text-white px-6 py-3 rounded-lg font-bold hover:bg-carmesim-dark transition-all w-full justify-center"
               >
                 <Mail className="w-5 h-5" />
                 Contactar-nos

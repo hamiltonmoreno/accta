@@ -34,7 +34,7 @@ export const ValidadorPage = () => {
         {/* Header */}
         <div className="text-center mb-12 animate-fade-up">
           <div className="w-20 h-20 bg-grafite rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <QrCode className="w-10 h-10 text-carmesim" />
+            <QrCode className="w-10 h-10 text-white" />
           </div>
           <h1 className="font-sans font-bold text-4xl md:text-5xl text-grafite mb-4" data-testid="validator-title">
             Validador de Carteira
@@ -89,7 +89,7 @@ export const ValidadorPage = () => {
                 <XCircle className="w-6 h-6 text-alert" />
               </div>
               <div>
-                <h3 className="font-sans font-semibold text-xl text-alert">Carteira Inválida</h3>
+                <h3 className="font-sans font-semibold text-xl text-[#B91C1C]">Carteira Inválida</h3>
                 <p className="text-gray-600">{error}</p>
               </div>
             </div>
@@ -132,7 +132,7 @@ export const ValidadorPage = () => {
                       className={`inline-flex items-center px-3 py-1 rounded-full text-xs uppercase tracking-wide ${
                         result.status === 'ativo'
                           ? 'bg-carmesim/10 text-carmesim'
-                          : 'bg-alert/10 text-alert'
+                          : 'bg-alert/10 text-[#B91C1C]'
                       }`}
                       data-testid="validated-status"
                     >

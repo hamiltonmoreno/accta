@@ -164,7 +164,7 @@ export const EventosPage = () => {
                   <div className="flex items-start justify-between mb-3 sm:mb-4">
                     <div className="flex items-center gap-2 sm:gap-3">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 bg-grafite rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-carmesim" />
+                        <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                       </div>
                       <div>
                         <span className={`inline-block px-2 py-0.5 rounded text-xs font-mono uppercase ${style.color}`}>
@@ -179,7 +179,7 @@ export const EventosPage = () => {
                     {isAdmin && (
                       <button
                         onClick={() => setConfirmDelete(event.id)}
-                        className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-1.5 text-[#B91C1C] hover:bg-red-50 rounded-lg transition-colors"
                         aria-label="Eliminar evento"
                       >
                         <Trash2 className="w-4 h-4" aria-hidden="true" />
@@ -229,7 +229,7 @@ export const EventosPage = () => {
                             Inscrito
                           </button>
                         ) : isFull ? (
-                          <span className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-500 rounded-lg text-xs sm:text-sm">
+                          <span className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-[#B91C1C] rounded-lg text-xs sm:text-sm">
                             Lotado
                           </span>
                         ) : (

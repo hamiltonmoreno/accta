@@ -33,7 +33,7 @@ export const AdminLogsPage = () => {
         <div className="card-technical rounded-xl p-6 animate-fade-up">
           <div className="flex items-center justify-between mb-4">
             <div className="w-12 h-12 bg-grafite rounded-lg flex items-center justify-center">
-              <ClipboardList className="w-6 h-6 text-carmesim" />
+              <ClipboardList className="w-6 h-6 text-white" />
             </div>
           </div>
           <div className="font-mono text-3xl font-bold text-grafite mb-1">{logs.length}</div>

@@ -35,7 +35,7 @@ export const SobrePage = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
         <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6">
           <div className="max-w-2xl animate-fade-up">
-            <span className="inline-block px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
+            <span className="inline-block px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-white rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
               A Associação
             </span>
             <h1 className="font-bold text-3xl sm:text-5xl lg:text-6xl text-white mb-4" data-testid="about-title">
@@ -126,7 +126,7 @@ export const SobrePage = () => {
             <div className="card-technical rounded-2xl p-8 border-l-4 border-primary animate-fade-up">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-14 h-14 bg-grafite rounded-xl flex items-center justify-center">
-                  <Eye className="w-7 h-7 text-carmesim" />
+                  <Eye className="w-7 h-7 text-white" />
                 </div>
                 <h3 className="font-sans font-bold text-2xl text-grafite">Nossa Visão</h3>
               </div>
@@ -197,7 +197,7 @@ export const SobrePage = () => {
             {/* Assembleia Geral */}
             <div className="card-technical rounded-2xl p-8 animate-fade-up">
               <div className="w-16 h-16 bg-grafite rounded-xl flex items-center justify-center mb-6">
-                <Building className="w-8 h-8 text-carmesim" />
+                <Building className="w-8 h-8 text-white" />
               </div>
               <h3 className="font-sans font-bold text-2xl text-grafite mb-4">Mesa da Assembleia Geral</h3>
               <p className="text-gray-600 mb-6">
@@ -244,7 +244,7 @@ export const SobrePage = () => {
             {/* Conselho Fiscal */}
             <div className="card-technical rounded-2xl p-8 animate-fade-up">
               <div className="w-16 h-16 bg-grafite rounded-xl flex items-center justify-center mb-6">
-                <Scale className="w-8 h-8 text-carmesim" />
+                <Scale className="w-8 h-8 text-white" />
               </div>
               <h3 className="font-sans font-bold text-2xl text-grafite mb-4">Conselho Fiscal</h3>
               <p className="text-gray-600 mb-6">
@@ -276,7 +276,7 @@ export const SobrePage = () => {
           <div className="flex flex-wrap justify-center gap-4">
             <Link
               to="/transparencia"
-              className="inline-flex items-center gap-2 bg-confianca text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-confianca-dark transition-all"
+              className="inline-flex items-center gap-2 bg-carmesim text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-carmesim-dark transition-all"
             >
               Ver Transparência
               <ArrowRight className="w-5 h-5" />

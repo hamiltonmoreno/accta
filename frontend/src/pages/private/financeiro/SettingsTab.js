@@ -113,7 +113,7 @@ export const SettingsTab = () => {
               {[2024, 2025, 2026, 2027].map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
           </div>
-          <button onClick={handleGenerate} disabled={generating} className="btn-primary text-sm px-5 flex items-center gap-2" data-testid="generate-quotas-btn">
+          <button onClick={handleGenerate} disabled={generating} className="btn-outline text-sm px-5 flex items-center gap-2" data-testid="generate-quotas-btn">
             <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
             {generating ? 'A gerar...' : 'Gerar Quotas'}
           </button>

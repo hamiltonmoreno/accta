@@ -87,7 +87,7 @@ const AlbumCard = ({ album, onClick }) => (
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
       <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5">
-        <h3 className="font-bold text-lg sm:text-xl text-white mb-1 group-hover:text-carmesim transition-colors">
+        <h3 className="font-bold text-lg sm:text-xl text-white mb-1 transition-colors">
           {album.title}
         </h3>
         <div className="flex items-center gap-1.5 text-white/70 text-xs sm:text-sm">
@@ -206,8 +206,8 @@ export const GaleriaPage = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/80 to-grafite/40" />
         <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6 w-full">
           <div className="animate-fade-up">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 rounded-full mb-4">
-              <Camera className="w-3.5 h-3.5 text-carmesim" />
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 border border-white/20 rounded-full mb-4">
+              <Camera className="w-3.5 h-3.5 text-white" />
               <span className="text-white text-xs uppercase tracking-wider font-semibold">Galeria</span>
             </div>
             <h1 className="font-bold text-3xl sm:text-4xl md:text-5xl text-white mb-3" data-testid="gallery-title">
@@ -256,7 +256,7 @@ export const GaleriaPage = () => {
       <section className="bg-grafite py-12 sm:py-16">
         <div className="max-w-4xl mx-auto px-5 sm:px-6 text-center">
           <h2 className="font-bold text-2xl sm:text-3xl text-white mb-3">
-            Conheça a nossa <span className="text-carmesim">história</span>
+            Conheça a nossa <span className="text-white">história</span>
           </h2>
           <p className="text-white/60 text-sm sm:text-base mb-6">
             Descubra mais sobre a associação e a profissão de controlador de tráfego aéreo

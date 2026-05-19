@@ -97,13 +97,13 @@ export const HomePage = () => {
           <div className="max-w-2xl">
             <div className="animate-fade-up">
               <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-carmesim/20 backdrop-blur-sm border border-carmesim/40 rounded-full mb-6 sm:mb-8">
-                <Radio className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-carmesim" />
+                <Radio className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-white" />
                 <span className="text-white font-sans text-xs sm:text-sm uppercase tracking-wider font-semibold">ACCTA Cabo Verde</span>
               </div>
 
               <h1 className="font-bold text-3xl sm:text-5xl lg:text-6xl xl:text-7xl text-white leading-tight mb-4 sm:mb-6" data-testid="hero-title">
                 Os Guardiões{' '}
-                <span className="text-carmesim">Invisíveis</span>{' '}
+                <span className="text-white">Invisíveis</span>{' '}
                 dos Céus de Cabo Verde
               </h1>
 
@@ -152,7 +152,7 @@ export const HomePage = () => {
             ].map((stat, index) => (
               <div key={index}
                 className="text-center animate-fade-up">
-                <stat.icon className="w-6 sm:w-8 h-6 sm:h-8 text-carmesim mx-auto mb-2 sm:mb-3" />
+                <stat.icon className="w-6 sm:w-8 h-6 sm:h-8 text-white mx-auto mb-2 sm:mb-3" />
                 <div className="font-bold text-2xl sm:text-3xl lg:text-4xl text-white mb-0.5">{stat.value}</div>
                 <div className="text-xs text-white/60 tracking-wider">{stat.label}</div>
               </div>
@@ -177,8 +177,8 @@ export const HomePage = () => {
                 {/* Event Info */}
                 <div>
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-carmesim/20 border border-carmesim/30 rounded-full mb-4 sm:mb-5">
-                    <Calendar className="w-3.5 h-3.5 text-carmesim" />
-                    <span className="text-xs text-carmesim font-semibold uppercase tracking-wider">Proximo Evento</span>
+                    <Calendar className="w-3.5 h-3.5 text-white" />
+                    <span className="text-xs text-white font-semibold uppercase tracking-wider">Proximo Evento</span>
                   </div>
                   <h2 className="font-bold text-2xl sm:text-3xl lg:text-4xl text-white mb-3" data-testid="featured-event-title">
                     {featuredEvent.title}
@@ -278,7 +278,7 @@ export const HomePage = () => {
                   className="card-technical card-hover p-4 sm:p-6"
                 >
                   <div className="w-9 h-9 sm:w-12 sm:h-12 bg-grafite rounded-lg flex items-center justify-center mb-3 sm:mb-4">
-                    <item.icon className="w-4 h-4 sm:w-6 sm:h-6 text-carmesim" />
+                    <item.icon className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                   </div>
                   <h3 className="font-semibold text-sm sm:text-lg text-grafite mb-1 sm:mb-2">{item.title}</h3>
                   <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{item.desc}</p>
@@ -374,7 +374,7 @@ export const HomePage = () => {
         <div className="relative z-10 max-w-4xl mx-auto px-5 sm:px-6 text-center">
           <h2 className="font-bold text-2xl sm:text-4xl lg:text-5xl text-white mb-4 sm:mb-6">
             Junte-se aos profissionais que garantem a{' '}
-            <span className="text-carmesim">segurança dos céus</span>
+            <span className="text-white">segurança dos céus</span>
           </h2>
           <p className="text-base sm:text-xl text-white/80 mb-8 sm:mb-10">
             A ACCTA representa e valoriza os controladores de tráfego aéreo de Cabo Verde
@@ -382,7 +382,7 @@ export const HomePage = () => {
           <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
             <Link
               to="/sobre"
-              className="inline-flex items-center justify-center gap-2 bg-confianca text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-lg hover:bg-confianca-dark transition-all"
+              className="inline-flex items-center justify-center gap-2 bg-carmesim text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-lg hover:bg-carmesim-dark transition-all"
             >
               Conheça a Associação
             </Link>

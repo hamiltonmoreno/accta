@@ -89,7 +89,7 @@ const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
     <div className="space-y-4">
       {canManage && (
         <div className="flex justify-end">
-          <button onClick={() => setShowAdd(!showAdd)} className="btn-primary flex items-center gap-2 text-sm" data-testid="add-task-btn">
+          <button onClick={() => setShowAdd(!showAdd)} className="btn-outline flex items-center gap-2 text-sm" data-testid="add-task-btn">
             <Plus className="w-4 h-4" /> Tarefa
           </button>
         </div>
@@ -332,7 +332,7 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
       {/* Expenses list */}
       {canManage && (
         <div className="flex justify-end">
-          <button onClick={() => setShowAdd(!showAdd)} className="btn-primary flex items-center gap-2 text-sm" data-testid="add-expense-btn">
+          <button onClick={() => setShowAdd(!showAdd)} className="btn-outline flex items-center gap-2 text-sm" data-testid="add-expense-btn">
             <Plus className="w-4 h-4" /> Despesa
           </button>
         </div>
@@ -443,7 +443,7 @@ const TimelineTab = ({ project, milestones, canManage, onReload }) => {
     <div className="space-y-4">
       {canManage && (
         <div className="flex justify-end">
-          <button onClick={() => setShowAdd(!showAdd)} className="btn-primary flex items-center gap-2 text-sm" data-testid="add-milestone-btn">
+          <button onClick={() => setShowAdd(!showAdd)} className="btn-outline flex items-center gap-2 text-sm" data-testid="add-milestone-btn">
             <Plus className="w-4 h-4" /> Milestone
           </button>
         </div>
