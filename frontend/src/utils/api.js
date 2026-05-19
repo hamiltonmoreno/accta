@@ -105,6 +105,8 @@ export const documentsAPI = {
   getPublic: () => api.get('/documents/public'),
   getAll: () => api.get('/documents'),
   create: (data) => api.post('/documents', data),
+  publicDownloadUrl: (documentId) => `${API_BASE}/documents/public/${documentId}/download`,
+  downloadUrl: (documentId) => `${API_BASE}/documents/${documentId}/download`,
   registerAccess: (documentId) => api.post(`/documents/${documentId}/access`),
 };
 

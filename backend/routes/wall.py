@@ -122,6 +122,11 @@ async def pin_wall_post(post_id: str, current_user: User = Depends(get_current_u
 
     new_pinned = not post.get("pinned", False)
     await db.wall_posts.update_one({"id": post_id}, {"$set": {"pinned": new_pinned}})
+    await create_audit_log(
+        current_user.id,
+        f"{'Fixou' if new_pinned else 'Desfixou'} post do mural {post_id}",
+        post_id,
+    )
     return {"message": "Post fixado" if new_pinned else "Post desfixado", "pinned": new_pinned}
 
 

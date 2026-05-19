@@ -27,6 +27,19 @@ def _make_inactive(user_dict):
     return User(**{**user_dict, "status": "inativo"})
 
 
+def _open_poll(poll_id: str = "p1") -> dict:
+    """Votação 'aberta' com janela de datas válida (agora dentro do período)."""
+    now = datetime.now(timezone.utc)
+    return {
+        "id": poll_id,
+        "title": "Estatutos 2026",
+        "status": "aberta",
+        "options": [{"id": 1, "text": "Aprovar"}, {"id": 2, "text": "Rejeitar"}],
+        "start_date": (now - timedelta(days=1)).isoformat(),
+        "end_date": (now + timedelta(days=1)).isoformat(),
+    }
+
+
 # --------------------------------------------------------------------------- #
 # GET /polls
 # --------------------------------------------------------------------------- #
@@ -129,6 +142,7 @@ class TestVote:
         """Dedup: socio nao pode votar 2x na mesma poll."""
         from models import VoteCreate
 
+        mock_db.polls.find_one = AsyncMock(return_value=_open_poll())
         mock_db.user_votes.find_one = AsyncMock(
             return_value={"user_id": socio_user.id, "poll_id": "p1", "vote_option": 1}
         )
@@ -142,6 +156,7 @@ class TestVote:
     async def test_first_vote_inserts(self, mock_db, socio_user):
         from models import VoteCreate
 
+        mock_db.polls.find_one = AsyncMock(return_value=_open_poll())
         mock_db.user_votes.find_one = AsyncMock(return_value=None)
         result = await polls_route.vote(
             vote_data=VoteCreate(poll_id="p1", vote_option=1),
@@ -150,6 +165,73 @@ class TestVote:
         assert result.user_id == socio_user.id
         assert result.poll_id == "p1"
         mock_db.user_votes.insert_one.assert_awaited_once()
+
+    async def test_poll_missing_404(self, mock_db, socio_user):
+        from models import VoteCreate
+
+        mock_db.polls.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await polls_route.vote(
+                vote_data=VoteCreate(poll_id="nope", vote_option=1),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 404
+
+    async def test_poll_not_open_400(self, mock_db, socio_user):
+        from models import VoteCreate
+
+        mock_db.polls.find_one = AsyncMock(
+            return_value={**_open_poll(), "status": "rascunho"}
+        )
+        with pytest.raises(HTTPException) as exc:
+            await polls_route.vote(
+                vote_data=VoteCreate(poll_id="p1", vote_option=1),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 400
+
+    async def test_vote_outside_window_400(self, mock_db, socio_user):
+        from models import VoteCreate
+
+        now = datetime.now(timezone.utc)
+        ended = {
+            **_open_poll(),
+            "start_date": (now - timedelta(days=10)).isoformat(),
+            "end_date": (now - timedelta(days=1)).isoformat(),
+        }
+        mock_db.polls.find_one = AsyncMock(return_value=ended)
+        with pytest.raises(HTTPException) as exc:
+            await polls_route.vote(
+                vote_data=VoteCreate(poll_id="p1", vote_option=1),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 400
+
+    async def test_race_unique_violation_400(self, mock_db, socio_user):
+        """C2: insert que viola o índice único vira 400 (não 500)."""
+        from models import VoteCreate
+        from asyncpg.exceptions import UniqueViolationError
+
+        mock_db.polls.find_one = AsyncMock(return_value=_open_poll())
+        mock_db.user_votes.find_one = AsyncMock(return_value=None)
+        mock_db.user_votes.insert_one = AsyncMock(side_effect=UniqueViolationError())
+        with pytest.raises(HTTPException) as exc:
+            await polls_route.vote(
+                vote_data=VoteCreate(poll_id="p1", vote_option=1),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 400
+
+    async def test_invalid_option_400(self, mock_db, socio_user):
+        from models import VoteCreate
+
+        mock_db.polls.find_one = AsyncMock(return_value=_open_poll())
+        with pytest.raises(HTTPException) as exc:
+            await polls_route.vote(
+                vote_data=VoteCreate(poll_id="p1", vote_option=999),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 400
 
 
 # --------------------------------------------------------------------------- #
@@ -184,3 +266,75 @@ class TestGetResults:
         result = await polls_route.get_poll_results(poll_id="p1", current_user=socio_user)
         assert result["total_votes"] == 0
         assert result["results"] == {}
+
+
+# --------------------------------------------------------------------------- #
+# PATCH /polls/{id}/status — C1 ciclo de vida
+# --------------------------------------------------------------------------- #
+
+
+class TestUpdatePollStatus:
+    async def test_socio_403(self, mock_db, socio_user):
+        from models import PollStatusUpdate
+
+        with pytest.raises(HTTPException) as exc:
+            await polls_route.update_poll_status(
+                poll_id="p1",
+                data=PollStatusUpdate(status="aberta"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_poll_missing_404(self, mock_db, admin_user):
+        from models import PollStatusUpdate
+
+        mock_db.polls.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await polls_route.update_poll_status(
+                poll_id="nope",
+                data=PollStatusUpdate(status="aberta"),
+                current_user=admin_user,
+            )
+        assert exc.value.status_code == 404
+
+    async def test_admin_opens_draft_and_broadcasts(self, mock_db, admin_user):
+        from models import PollStatusUpdate
+
+        mock_db.polls.find_one = AsyncMock(
+            return_value={**_open_poll(), "status": "rascunho"}
+        )
+        mock_db.users.find = MagicMock(return_value=_cursor([]))
+        result = await polls_route.update_poll_status(
+            poll_id="p1",
+            data=PollStatusUpdate(status="aberta"),
+            current_user=admin_user,
+        )
+        assert result["status"] == "aberta"
+        mock_db.polls.update_one.assert_awaited_once()
+        mock_db.audit_logs.insert_one.assert_awaited()
+
+    async def test_invalid_transition_400(self, mock_db, admin_user):
+        """encerrada -> aberta não é permitido."""
+        from models import PollStatusUpdate
+
+        mock_db.polls.find_one = AsyncMock(
+            return_value={**_open_poll(), "status": "encerrada"}
+        )
+        with pytest.raises(HTTPException) as exc:
+            await polls_route.update_poll_status(
+                poll_id="p1",
+                data=PollStatusUpdate(status="aberta"),
+                current_user=admin_user,
+            )
+        assert exc.value.status_code == 400
+
+    async def test_close_open_poll(self, mock_db, admin_user):
+        from models import PollStatusUpdate
+
+        mock_db.polls.find_one = AsyncMock(return_value=_open_poll())
+        result = await polls_route.update_poll_status(
+            poll_id="p1",
+            data=PollStatusUpdate(status="encerrada"),
+            current_user=admin_user,
+        )
+        assert result["status"] == "encerrada"

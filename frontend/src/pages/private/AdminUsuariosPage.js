@@ -6,7 +6,7 @@ import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
 import {
   Users, Search, Shield, BadgeCheck, Briefcase, X, Save,
-  Trash2, ChevronDown, Filter, UserCog, UserPlus, Copy, Clock, Link2
+  Trash2, ChevronDown, Filter, UserCog, UserPlus, Clock, Link2
 } from 'lucide-react';
 
 const ROLE_LABELS = { admin: 'Administrador', socio: 'Sócio', financeiro: 'Financeiro', moderador: 'Moderador' };
@@ -135,13 +135,6 @@ export const AdminUsuariosPage = () => {
       return;
     }
     inviteMutation.mutate(inviteData);
-  };
-
-  const copyInviteLink = () => {
-    if (!inviteResult) return;
-    const url = `${window.location.origin}${inviteResult.setup_url}`;
-    navigator.clipboard.writeText(url);
-    toast.success('Link copiado!');
   };
 
   const resetInviteModal = () => {
@@ -596,25 +589,8 @@ export const AdminUsuariosPage = () => {
                     {inviteResult.email_sent ? (
                       <p className="text-xs text-green-600 font-medium">Email de convite enviado com sucesso!</p>
                     ) : (
-                      <p className="text-xs text-gray-400">Partilhe o link abaixo com o novo socio</p>
+                      <p className="text-xs text-amber-600 font-medium">Convite criado, mas o email nao foi enviado. Reenvie o convite quando o servico de email estiver disponivel.</p>
                     )}
-                  </div>
-
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-center gap-2">
-                    <input
-                      readOnly
-                      value={`${window.location.origin}${inviteResult.setup_url}`}
-                      className="flex-1 bg-transparent text-xs text-grafite font-mono truncate outline-none"
-                      data-testid="invite-link-input"
-                    />
-                    <button
-                      onClick={copyInviteLink}
-                      className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 bg-carmesim text-white rounded-md text-xs font-semibold hover:bg-carmesim/90 transition-colors"
-                      data-testid="copy-invite-link"
-                    >
-                      <Copy className="w-3 h-3" />
-                      Copiar
-                    </button>
                   </div>
 
                   <button

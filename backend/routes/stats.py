@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from datetime import datetime, timezone
 from models import User
 from database import db
 from auth import get_current_user
@@ -13,7 +14,9 @@ async def get_statistics(current_user: User = Depends(get_current_user)):
 
     total_users = await db.users.count_documents({})
     active_users = await db.users.count_documents({"status": "ativo"})
-    active_events = await db.events.count_documents({"status": "active"})
+    # Event não tem campo "status" — "ativo" = evento ainda por acontecer.
+    now_iso = datetime.now(timezone.utc).isoformat()
+    active_events = await db.events.count_documents({"date": {"$gte": now_iso}})
     total_revenue = await db.invoices.aggregate([
         {"$match": {"status": "pago"}},
         {"$group": {"_id": None, "total": {"$sum": "$amount"}}}

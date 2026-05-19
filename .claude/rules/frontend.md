@@ -16,10 +16,20 @@ paths:
 - cn() from lib/utils.js for conditional classes
 
 ## Styling
+> Canonical design system: the **`/frontend-design` skill**
+> (`.claude/skills/frontend-design/SKILL.md`). It wins on any conflict.
 - Tailwind CSS exclusively — no inline styles, no CSS modules
-- Brand colors: Carmesim (#C7202F) for accents/CTAs, Grafite (#3A3A3A) for text
-- Font: Open Sans (body), JetBrains Mono (code)
-- No dark mode — disabled by design decision
+- **Neutral-led**: white `#FFFFFF` / `#F5F5F5` surfaces, Grafite `#3A3A3A` text,
+  muted never lighter than `#6B7280`. Neutral carries ~90% of the UI.
+- **Carmesim `#C7202F` is the single accent** (hover `#A51B27`): only the ONE
+  primary button per view, active nav, links on white, destructive, focus ring.
+  Default every other control to neutral (Secondary = `border-[#D1D5DB]`).
+- ❌ **Never Carmesim/red text on dark, Navy or colored backgrounds** — the
+  legibility bug. ❌ Never make every button red.
+- Every text/bg pair must reach ≥4.5:1; status = icon + text (never color alone)
+- Focus: `focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 ring-offset-2`
+- Font: Open Sans (body + headings), JetBrains Mono (code) — max 2 weights/section
+- No dark mode — disabled by design decision; no flat black
 - Glass effects: use `.glass-effect` utility class
 
 ## State Management

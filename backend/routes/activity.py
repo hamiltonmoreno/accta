@@ -117,10 +117,10 @@ async def get_recent_activity(limit: int = Query(15, ge=1, le=50), current_user:
     # 5. Recent project milestones completed
     milestones = (
         await db.project_milestones.find(
-            {"status": "concluido"},
-            {"_id": 0, "id": 1, "title": 1, "project_id": 1, "completed_at": 1, "created_at": 1},
+            {"completed": True},
+            {"_id": 0, "id": 1, "title": 1, "project_id": 1, "date": 1, "created_at": 1},
         )
-        .sort("created_at", -1)
+        .sort("date", -1)
         .limit(3)
         .to_list(3)
     )
@@ -133,7 +133,7 @@ async def get_recent_activity(limit: int = Query(15, ge=1, le=50), current_user:
                 "title": "Marco Concluido",
                 "description": m.get("title", ""),
                 "link": f"/projetos/{m.get('project_id', '')}",
-                "created_at": m.get("completed_at", m.get("created_at", "")),
+                "created_at": m.get("date", m.get("created_at", "")),
             }
         )
 

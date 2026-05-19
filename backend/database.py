@@ -762,7 +762,9 @@ _INDEX_DDL: tuple[str, ...] = (
     "((doc->>'project_id'), (doc->>'status'))",
     # polls / votes
     "CREATE INDEX IF NOT EXISTS ix_polls_status_created ON \"polls\" ((doc->>'status'), (doc->>'created_at') DESC)",
-    "CREATE INDEX IF NOT EXISTS ix_votes_user_poll ON \"user_votes\" ((doc->>'user_id'), (doc->>'poll_id'))",
+    # UNIQUE: no máximo 1 voto por (user_id, poll_id) — fecha a race em vote().
+    # Também serve as queries por (user_id, poll_id).
+    "CREATE UNIQUE INDEX IF NOT EXISTS ux_votes_user_poll ON \"user_votes\" ((doc->>'user_id'), (doc->>'poll_id'))",
     "CREATE INDEX IF NOT EXISTS ix_votes_poll ON \"user_votes\" ((doc->>'poll_id'))",
     # gallery
     "CREATE INDEX IF NOT EXISTS ix_gphoto_album_status ON \"gallery_photos\" ((doc->>'album_id'), (doc->>'status'))",
@@ -790,6 +792,18 @@ _INDEX_DDL: tuple[str, ...] = (
     "((doc->>'user_id'), (doc->>'validated_at') DESC)",
 )
 
+REQUIRED_INDEX_NAMES = {
+    "ux_votes_user_poll",
+}
+
+
+def _required_index_name(ddl: str) -> str | None:
+    for index_name in REQUIRED_INDEX_NAMES:
+        if index_name in ddl:
+            return index_name
+    return None
+
+
 # pg_cron purge for the formerly-TTL collections (best-effort; the DAO also
 # purges opportunistically on insert so growth is bounded without pg_cron).
 _PGCRON_DDL: tuple[str, ...] = (
@@ -815,6 +829,12 @@ async def ensure_schema() -> None:
             try:
                 await conn.execute(ddl)
             except Exception as e:  # noqa: BLE001 - index creation is non-fatal
+                required_index = _required_index_name(ddl)
+                if required_index:
+                    raise RuntimeError(
+                        f"Required index {required_index} could not be created. "
+                        "Check existing duplicate user_votes by user_id/poll_id before startup."
+                    ) from e
                 logger.warning(f"Index creation warning (non-fatal): {e}")
         for ddl in _PGCRON_DDL:
             try:

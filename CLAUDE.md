@@ -1,4 +1,8 @@
-# Portal ACCTA - Project Brain
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+> **Portal ACCTA — Project Brain**
 
 ---
 
@@ -118,7 +122,7 @@ python scripts/seed_gallery.py  # Seed gallery data
 
 - **Language**: Portuguese (PT) for all user-facing text; comments in PT or EN
 - **Components**: Functional components + hooks only; shadcn/ui (New York style) for primitives
-- **Styling**: Tailwind CSS only — no inline styles; brand tokens: Carmesim `#C7202F`, Grafite `#3A3A3A`
+- **Styling**: Tailwind CSS only — no inline styles. **Neutral-led**: white/`#F5F5F5` surfaces, Grafite `#3A3A3A` text; **Carmesim `#C7202F` is the single restrained accent** (≤1 primary button per view, active nav, links-on-white, destructive, focus ring) — neutral everywhere else, **never red text on dark/colored backgrounds**. The **`/frontend-design` skill** (`.claude/skills/frontend-design/SKILL.md`) is the single source of truth for the full design system (color/contrast rules, button taxonomy, typography, spacing, animation) — follow it, don't hardcode tokens from elsewhere
 - **Backend**: Async/await everywhere; Pydantic models for all request/response validation
 - **Auth**: Role-based access check on every protected endpoint; audit log on every admin action
 - **No dark mode** — disabled by design decision, do not add
@@ -183,3 +187,118 @@ python scripts/seed_gallery.py  # Seed gallery data
 - File uploads: `multipart/form-data` to `/api/upload/{category}`
 - Categories: `documents` (10MB), `proofs` (5MB), `logos` (2MB), `avatars` (2MB)
 - Rate limits: login 10/min, forgot-password 3/min, default 200/min
+
+---
+
+## Repository Layout Gotcha
+
+- The **git root is `accta-main/accta/`** (where `.git` lives) — operate here.
+  `accta-main/` itself is NOT a git repo and contains a stale duplicate tree
+  (`backend/`, `frontend/`, a second `CLAUDE.md`, …) that is **outside** the
+  repo. Edits there are invisible to git. Always verify with
+  `git rev-parse --show-toplevel`.
+- The Bash tool's working directory **persists between calls** — a `cd backend`
+  sticks for the next command. Prefer absolute paths or re-`cd` deliberately.
+
+---
+
+## Database Access Idiom (read before touching any route)
+
+`database.py` is a hand-rolled **Mongo-compatible async DAO over PostgreSQL** —
+not an ORM and not real MongoDB. Every logical "collection" is a Postgres table
+`(pk bigserial, doc jsonb)`. Routes do:
+
+```python
+from database import db
+doc = await db.users.find_one({"id": uid}, {"_id": 0, "password": 0})  # Mongo-style filter + projection
+await db.users.update_one({"id": uid}, {"$set": {...}})
+rows = await db.events.aggregate(pipeline).to_list(100)
+```
+
+- There is **no real `_id`** — documents carry an app-generated `str(uuid4())` `id`.
+- Projections (`{"_id": 0, "password": 0}`) and `$set`/`$gte`/`$or`/aggregation
+  pipelines are honored by the DAO. Never write raw SQL in routes; schema +
+  indexes live in `ensure_schema()` in `database.py` (don't `create_index` from
+  routes).
+- The asyncpg pool is **created lazily** — importing `database` opens no socket,
+  but `TestClient(app)` triggers app-startup which DOES connect.
+
+---
+
+## Testing Architecture
+
+`backend/tests/` has **two distinct kinds of tests** — know which you're touching:
+
+1. **Unit / in-process** (file does NOT `import requests`): drive route
+   functions directly or via `TestClient`, using fixtures from
+   `tests/conftest.py`. Run with no server/DB.
+2. **Integration / live** (file `import requests` at top): hit
+   `REACT_APP_BACKEND_URL` over HTTP against a **running server + seeded DB**.
+   Without one they error with `ConnectionRefusedError` — that is expected
+   locally, not a regression.
+
+`conftest.py` provides:
+
+- `mock_db` — MagicMock collections with `AsyncMock` methods. Only ~22
+  collections are pre-wired; **`project_tasks` / `project_comments` /
+  `project_expenses` / `project_milestones` are NOT** — wire them in-test
+  (`mock_db.project_tasks = MagicMock(...)`, give `find_one`/`aggregate`
+  `AsyncMock`s). It also patches `database.db`, `auth.db`, `helpers.db`, and
+  every already-imported `routes.*` module's `db` (import the route module at
+  test top so the patch lands).
+- Role fixtures `admin_user` / `socio_user` / `financeiro_user` /
+  `moderador_user` (+ `_dict` variants), `make_token` (forge JWTs),
+  `client` (in-process `TestClient` — **connects to the DB on startup**, so
+  `test_smoke.py` errors with `ConnectionRefused` when no Postgres is
+  reachable; that is environmental, not a code failure).
+
+Commands:
+
+```bash
+cd backend && pytest                                  # full suite (testpaths=tests, asyncio_mode=auto)
+cd backend && pytest tests/test_users_routes.py       # one file
+cd backend && pytest tests/test_x.py::TestCls::test_y # one test
+cd backend && pytest -m unit                          # by marker (see pyproject.toml)
+```
+
+- **bcrypt must stay pinned at `4.0.1`** (it is, in `requirements.txt`). Newer
+  bcrypt breaks `passlib`'s backend probe
+  (`module 'bcrypt' has no attribute '__about__'`) → every password-hash test
+  fails. If you create a venv, install that pin explicitly.
+- A `@limiter.limit(...)` (slowapi) route can't be called directly with a fake
+  request — it requires a real `starlette.requests.Request` and runs first.
+  In unit tests, `monkeypatch.setattr(<route_module>.limiter, "enabled", False)`
+  and pass a minimal real `Request(scope)`.
+
+---
+
+## Authoritative Rules & Skills
+
+`.claude/rules/{api,database,models,frontend}.md` are auto-loaded and **override
+generic assumptions**. Consult them before backend work — key invariants:
+audit-log every admin write, RBAC check on every protected endpoint, no raw SQL
+in routes, dates stored as ISO-8601 strings (never `datetime` in models), never
+expose `password` in responses, email functions are a STOP condition on real
+users.
+
+`.claude/skills/` holds the **canonical project skills** — prefer them over
+ad-hoc patterns:
+
+- **`frontend-design`** — the single source of truth for the ACCTA design
+  system: **neutral-led** (white/`#F5F5F5`, Grafite `#3A3A3A`), **Carmesim
+  `#C7202F` as the single restrained accent** (no red-on-dark, ≤1 primary
+  button/view), button taxonomy, allowed contrast pairs, Open Sans, glass
+  surfaces, Framer Motion, no dark mode. Apply it for any UI work.
+- **`ui-ux-pro-max`** — design-intelligence engine (pattern/UX/chart/layout),
+  ACCTA-brand-locked; defers to `frontend-design` for all tokens.
+- **`backend-api`** — scaffolds FastAPI endpoints with the required auth /
+  RBAC / audit-log / notification boilerplate. Use it when adding endpoints.
+
+ℹ️ **Source-of-truth hierarchy**: `frontend-design` is canonical. The mirrors
+— `design_guidelines.json`, `.github/copilot-instructions.md`,
+`.github/copilot-frontend.md`, `.claude/rules/frontend.md` — have been
+reconciled to the neutral-led / single-accent system and each defers to the
+skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
+"Radar Green" `#00FF9C` / Outfit — has been fully removed). The duplicate
+`../CLAUDE.md` outside the git root is still **not tracked and out of sync**;
+this in-repo file is authoritative.

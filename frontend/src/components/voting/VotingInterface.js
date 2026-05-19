@@ -44,6 +44,7 @@ export const VotingInterface = ({ poll, onVoteSuccess }) => {
   }
 
   const options = poll.options || [];
+  const optionLabel = (opt) => opt.label || opt.text || `Opcao ${opt.id}`;
 
   return (
     <div className="border-t border-gray-200 pt-6 mt-6">
@@ -67,7 +68,7 @@ export const VotingInterface = ({ poll, onVoteSuccess }) => {
                 className="w-5 h-5"
                 data-testid={`option-${opt.id}`}
               />
-              <span className="flex-1">{opt.label}</span>
+              <span className="flex-1">{optionLabel(opt)}</span>
               {isSelected && <CheckCircle className="w-5 h-5 text-carmesim" />}
             </label>
           );

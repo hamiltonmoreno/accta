@@ -231,47 +231,68 @@ export function ItemList() {
 
 ### Design System (Tailwind CSS)
 
-**Color Variables:**
+**Color system** (canonical: `.claude/skills/frontend-design/SKILL.md` — the skill wins on any conflict). **Neutral-led: Carmesim is the single restrained accent, not the default.**
 ```js
-// Use in classNames
-Primary Navy:   #0A1F44
-Secondary Cloud: #F4F6F8
-Accent Green:    #00FF9C
-Alert Red:       #FF4C4C
+// Neutral foundation (~90% of the UI)
+Grafite (text primary):  #3A3A3A   // body/headings (~9:1 on white)
+Text muted:              #6B7280   // never use text lighter than this
+Surface:                 #FFFFFF / #F5F5F5
+Border:                  #E5E7EB / #D1D5DB
+
+// Single accent — sparingly
+Carmesim:                #C7202F (hover #A51B27)
+// ONLY: 1 primary button/view, active nav, links-on-white, destructive, focus ring
+// NEVER: body text, every button, or text on dark/colored backgrounds
+
+Navy (restricted):       #1e3a5f   // marketing hero only, white text
+Semantic text/solid:     Success #15803D/#16A34A · Warn #B45309/#D97706
+                         Error #B91C1C/#C7202F · Info #1D4ED8/#2563EB
 ```
 
 **Typography Classes:**
 ```jsx
-// Headings: Use Outfit font
+// Headings: Open Sans, semibold
 <h1 className="text-5xl md:text-6xl tracking-tight font-semibold">Main Title</h1>
 
-// Body text: Use Manrope, always legible
+// Body text: Open Sans, always legible
 <p className="text-base md:text-lg leading-relaxed text-slate-600">Description</p>
 
-// Data/codes: Use JetBrains Mono
+// Data/codes: JetBrains Mono
 <span className="font-mono text-sm text-slate-700">ACCTA-2026-001</span>
+```
+
+**Button taxonomy** (≤1 Primary per view — default to Secondary):
+```jsx
+// Primary — the ONE main action per view
+<button className="bg-[#C7202F] text-white hover:bg-[#A51B27] rounded-md px-4 py-2 font-semibold">Salvar</button>
+
+// Secondary — neutral, the default for most actions
+<button className="bg-white border border-[#D1D5DB] text-[#3A3A3A] hover:bg-[#F5F5F5] rounded-md px-4 py-2">Cancelar</button>
+
+// Tertiary / ghost — low emphasis
+<button className="text-[#3A3A3A] hover:bg-[#F5F5F5] rounded-md px-4 py-2">Voltar</button>
 ```
 
 **Surface Patterns:**
 ```jsx
 // Glass effect for overlays/cards
-<div className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-sm rounded-lg">
+<div className="bg-white/80 backdrop-blur-sm border border-white/30 shadow-sm rounded-lg">
   Glass effect content
 </div>
 
-// Active menu item
-<div className="bg-slate-100 border-l-4 border-[#00FF9C]">
+// Active menu item (Carmesim only as the indicator)
+<div className="bg-[#F5F5F5] border-l-4 border-[#C7202F]">
   Active item
 </div>
 
-// Focus state
-<button className="ring-2 ring-[#0A1F44] ring-offset-2 rounded-lg">
+// Focus state (CRITICAL — every interactive element)
+<button className="focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 rounded-md">
   Focused button
 </button>
 
-// Card elevation
-<div className="bg-white rounded-lg shadow-[0_2px_4px_rgba(10,31,68,0.04)]">
-  Elevation 1
+// Card
+<div className="bg-white rounded-lg border border-[#E5E7EB] shadow-sm p-6 hover:shadow-md transition-shadow">
+  Card
 </div>
 ```
 
@@ -281,18 +302,19 @@ Alert Red:       #FF4C4C
 // ❌ Dark mode - FORBIDDEN
 <div className="dark:bg-gray-900">...</div>
 
-// ❌ Generic Inter font everywhere
-<div className="font-sans">...</div>
+// ❌ Red/Carmesim text on dark or colored background — the legibility bug
+<div className="bg-[#1e3a5f]"><p className="text-[#C7202F]">Texto</p></div>
 
-// ❌ Centered boring text blocks
-<div className="text-center">
-  <p>Lorem ipsum dolor sit amet</p>
-</div>
+// ❌ Every button red — Primary is rare; the rest are neutral
+<button className="bg-[#C7202F] text-white">Cancelar</button>
 
-// ❌ Gradients without texture
-<div className="bg-gradient-to-r from-blue-500 to-purple-500">...</div>
+// ❌ Accent on large surfaces / state by color alone
+<section className="bg-[#C7202F]">...</section>
 
-// ❌ Purple/Teal for CTAs (use Navy or Green only)
+// ❌ Muted text lighter than #6B7280, or a font other than Open Sans
+<p className="text-gray-400 font-serif">...</p>
+
+// ❌ Non-brand CTAs — Primary is Carmesim #C7202F only (no purple/teal/green)
 <button className="bg-purple-600">Action</button>
 ```
 
@@ -430,14 +452,13 @@ const handleFileUpload = async (e) => {
 
 **`frontend/.env`**:
 ```
-REACT_APP_API_URL=http://localhost:8001/api
-REACT_APP_TIMEOUT=30000
+REACT_APP_BACKEND_URL=http://localhost:8001
 ```
+(`api.js` appends `/api` to this base.)
 
 **Access in code:**
 ```jsx
-const apiUrl = process.env.REACT_APP_API_URL;
-const timeout = parseInt(process.env.REACT_APP_TIMEOUT, 10);
+const apiBase = `${process.env.REACT_APP_BACKEND_URL}/api`;
 ```
 
 ---
@@ -466,7 +487,7 @@ test('displays users', async () => {
 
 ## Debugging Tips
 
-1. **API not responding?** Check `REACT_APP_API_URL` in `.env` and backend on port 8001
+1. **API not responding?** Check `REACT_APP_BACKEND_URL` in `.env` and backend on port 8001
 2. **Styles not applying?** Ensure Tailwind CSS is built (`yarn start` rebuilds)
 3. **Context not working?** Verify `AuthProvider` wraps entire app in `App.js`
 4. **Auth token expired?** Implement token refresh in `AuthContext`
@@ -484,5 +505,5 @@ test('displays users', async () => {
 
 ---
 
-**Last Updated**: April 2, 2026  
-**Version**: 1.0
+**Last Updated**: May 19, 2026 (design system reworked: neutral-led, single restrained Carmesim accent, button taxonomy, no red-on-dark — mirrors the `frontend-design` skill)  
+**Version**: 1.1

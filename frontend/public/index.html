@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-CV">
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#3A3A3A" />
-        <meta name="description" content="Portal ACCTA - Controladores de Trafego Aereo de Cabo Verde" />
+        <meta name="description" content="Portal ACCTA - Associacao de Controladores de Trafego Aereo de Cabo Verde" />
         <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -25,7 +25,7 @@
         work correctly both with client-side routing and a non-root public URL.
         Learn how to configure a non-root public URL by running `npm run build`.
         -->
-        <title>ACCTA - Associação de Controladores de Tráfego Aéreo de Cabo Verde</title>
+        <title>ACCTA - Associacao de Controladores de Trafego Aereo de Cabo Verde</title>
         <!--
         These two scripts have been added for the Visual Edits, please do not edit or remove them
         -->
@@ -64,6 +64,20 @@
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
         <script>
+            (function () {
+                var posthogKey = "%REACT_APP_POSTHOG_KEY%";
+                if (!posthogKey || posthogKey.indexOf("%REACT_APP_") === 0) {
+                    return;
+                }
+
+                var apiHost = "%REACT_APP_POSTHOG_HOST%";
+                if (!apiHost || apiHost.indexOf("%REACT_APP_") === 0) {
+                    apiHost = "https://us.i.posthog.com";
+                }
+
+                var sessionRecordingEnabled =
+                    "%REACT_APP_POSTHOG_SESSION_RECORDING%" === "true";
+
             !(function (t, e) {
                 var o, n, p, r;
                 e.__SV ||
@@ -125,14 +139,19 @@
                     }),
                     (e.__SV = 1));
             })(document, window.posthog || []);
-            posthog.init("phc_xAvL2Iq4tFmANRE7kzbKwaSqp1HJjN7x48s3vr0CMjs", {
-                api_host: "https://us.i.posthog.com",
-                person_profiles: "identified_only", // or 'always' to create profiles for anonymous users as well,
+            posthog.init(posthogKey, {
+                api_host: apiHost,
+                autocapture: false,
+                capture_pageview: false,
+                disable_session_recording: !sessionRecordingEnabled,
+                person_profiles: "identified_only",
                 session_recording: {
-                    recordCrossOriginIframes: true,
                     capturePerformance: false,
+                    maskAllInputs: true,
+                    recordCrossOriginIframes: false,
                 },
             });
+            })();
         </script>
     </body>
 </html>

@@ -142,14 +142,19 @@ async def test_is_account_locked_returns_unlock_at_above_threshold(mock_db):
 
 
 @pytest.mark.asyncio
-async def test_record_failed_login_inserts_and_returns_count(mock_db):
+async def test_record_failed_login_inserts_attempt_and_returns_none(mock_db):
+    """record_failed_login agora só insere a tentativa. A contagem na janela
+    é responsabilidade de is_account_locked — não recontamos no call-site
+    (a query de count era descartada = desperdício por cada falha)."""
     mock_db.login_attempts = MagicMock()
     mock_db.login_attempts.insert_one = AsyncMock()
     mock_db.login_attempts.count_documents = AsyncMock(return_value=3)
 
-    count = await helpers.record_failed_login("user@example.com", ip="1.2.3.4")
+    result = await helpers.record_failed_login("user@example.com", ip="1.2.3.4")
 
-    assert count == 3
+    assert result is None
+    # Não desperdiça uma query de count que ninguém usava.
+    mock_db.login_attempts.count_documents.assert_not_called()
     mock_db.login_attempts.insert_one.assert_awaited_once()
     doc = mock_db.login_attempts.insert_one.call_args[0][0]
     assert doc["email"] == "user@example.com"

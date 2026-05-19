@@ -223,16 +223,20 @@ async def get_financial_summary(
         .to_list(5000)
     )
 
-    total_receitas = sum(t["amount"] for t in transactions if t["type"] == "receita")
-    total_despesas = sum(t["amount"] for t in transactions if t["type"] == "despesa")
+    # .get() defensivo: documentos legados/migrados podem não ter todos os
+    # campos — antes um KeyError virava 500.
+    total_receitas = sum((t.get("amount") or 0) for t in transactions if t.get("type") == "receita")
+    total_despesas = sum((t.get("amount") or 0) for t in transactions if t.get("type") == "despesa")
 
     receitas_por_cat = {}
     despesas_por_cat = {}
     for t in transactions:
-        if t["type"] == "receita":
-            receitas_por_cat[t["category"]] = receitas_por_cat.get(t["category"], 0) + t["amount"]
+        cat = t.get("category") or "Sem categoria"
+        amount = t.get("amount") or 0
+        if t.get("type") == "receita":
+            receitas_por_cat[cat] = receitas_por_cat.get(cat, 0) + amount
         else:
-            despesas_por_cat[t["category"]] = despesas_por_cat.get(t["category"], 0) + t["amount"]
+            despesas_por_cat[cat] = despesas_por_cat.get(cat, 0) + amount
 
     return {
         "total_receitas": total_receitas,
@@ -276,12 +280,14 @@ async def get_dre_report(
         except (ValueError, IndexError):
             continue
 
-        if t["type"] == "receita":
-            monthly[month]["receitas"] += t["amount"]
-            receitas_cat[t["category"]] = receitas_cat.get(t["category"], 0) + t["amount"]
+        cat = t.get("category") or "Sem categoria"
+        amount = t.get("amount") or 0
+        if t.get("type") == "receita":
+            monthly[month]["receitas"] += amount
+            receitas_cat[cat] = receitas_cat.get(cat, 0) + amount
         else:
-            monthly[month]["despesas"] += t["amount"]
-            despesas_cat[t["category"]] = despesas_cat.get(t["category"], 0) + t["amount"]
+            monthly[month]["despesas"] += amount
+            despesas_cat[cat] = despesas_cat.get(cat, 0) + amount
 
     total_receitas = sum(m["receitas"] for m in monthly.values())
     total_despesas = sum(m["despesas"] for m in monthly.values())
@@ -505,10 +511,10 @@ async def export_transactions_csv(
         writer.writerow(
             [
                 date_str,
-                "Receita" if t["type"] == "receita" else "Despesa",
+                "Receita" if t.get("type") == "receita" else "Despesa",
                 CATEGORY_LABELS_CSV.get(t.get("category", ""), t.get("category", "")),
                 t.get("description", ""),
-                f"{t['amount']:.2f}",
+                f"{(t.get('amount') or 0):.2f}",
                 t.get("reference", "") or "",
             ]
         )
@@ -550,12 +556,14 @@ async def export_dre_pdf(
             m = int(date_str[5:7])
         except (ValueError, IndexError):
             continue
-        if t["type"] == "receita":
-            monthly[m]["receitas"] += t["amount"]
-            receitas_cat[t["category"]] = receitas_cat.get(t["category"], 0) + t["amount"]
+        cat = t.get("category") or "Sem categoria"
+        amount = t.get("amount") or 0
+        if t.get("type") == "receita":
+            monthly[m]["receitas"] += amount
+            receitas_cat[cat] = receitas_cat.get(cat, 0) + amount
         else:
-            monthly[m]["despesas"] += t["amount"]
-            despesas_cat[t["category"]] = despesas_cat.get(t["category"], 0) + t["amount"]
+            monthly[m]["despesas"] += amount
+            despesas_cat[cat] = despesas_cat.get(cat, 0) + amount
 
     total_receitas = sum(v["receitas"] for v in monthly.values())
     total_despesas = sum(v["despesas"] for v in monthly.values())

@@ -192,7 +192,7 @@ function AppRoutes() {
         <Route
           path="/galeria-admin"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'moderador']}>
+            <ProtectedRoute>
               <PrivateLayout><GaleriaAdminPage /></PrivateLayout>
             </ProtectedRoute>
           }

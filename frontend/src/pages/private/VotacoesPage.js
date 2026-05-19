@@ -53,7 +53,7 @@ export const VotacoesPage = () => {
   const onVoteSuccess = () => qc.invalidateQueries({ queryKey: queryKeys.polls.list() });
 
   const openPolls = polls.filter((p) => p.status === 'aberta');
-  const closedPolls = polls.filter((p) => p.status === 'fechada');
+  const closedPolls = polls.filter((p) => ['encerrada', 'fechada'].includes(p.status));
 
   if (loading) {
     return (

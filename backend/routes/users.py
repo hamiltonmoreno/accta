@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from datetime import datetime
 from typing import List, Optional
 import re
-from models import User, UserProfileUpdate, UserAdminUpdate, CARGOS, PRIVILEGES
+from models import User, UserProfileUpdate, UserAdminUpdate, CARGOS, PRIVILEGES, USER_STATUSES
 from database import db
 from auth import get_current_user
 from helpers import create_audit_log, create_notification
@@ -122,6 +122,10 @@ async def admin_update_user(
     if "role" in update_data and update_data["role"] not in valid_roles:
         raise HTTPException(status_code=400, detail=f"Role inválido. Opções: {', '.join(valid_roles)}")
 
+    # Validate status (invariante: sem "inadimplente")
+    if "status" in update_data and update_data["status"] not in USER_STATUSES:
+        raise HTTPException(status_code=400, detail=f"Status inválido. Opções: {', '.join(USER_STATUSES)}")
+
     await db.users.update_one({"id": user_id}, {"$set": update_data})
 
     # Audit log estruturado: details captura before/after dos campos sensiveis (role/status/privileges).
@@ -162,6 +166,9 @@ async def admin_update_user(
 async def update_user_status(user_id: str, status: str, current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Sem permissão")
+
+    if status not in USER_STATUSES:
+        raise HTTPException(status_code=400, detail=f"Status inválido. Opções: {', '.join(USER_STATUSES)}")
 
     await db.users.update_one({"id": user_id}, {"$set": {"status": status}})
     await create_audit_log(current_user.id, f"Alterou status de {user_id} para {status}", user_id)

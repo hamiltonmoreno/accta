@@ -8,19 +8,50 @@ from helpers import create_audit_log, create_notification, notify_all_active_use
 
 router = APIRouter(tags=["events"])
 
+VALID_EVENT_VISIBILITIES = {"publico", "socios", "direcao"}
+MEMBER_EVENT_ROLES = {"socio", "financeiro", "moderador"}
+
+
+def get_allowed_event_visibilities(user: User) -> set[str]:
+    if user.role == "admin":
+        return VALID_EVENT_VISIBILITIES
+    if user.role in MEMBER_EVENT_ROLES:
+        return {"publico", "socios"}
+    return {"publico"}
+
+
+def ensure_valid_event_visibility(visibility: str):
+    if visibility not in VALID_EVENT_VISIBILITIES:
+        raise HTTPException(status_code=400, detail="Visibilidade de evento invalida")
+
+
+def ensure_can_view_event(user: User, event: dict):
+    visibility = event.get("visibility", "publico")
+    ensure_valid_event_visibility(visibility)
+    if visibility not in get_allowed_event_visibilities(user):
+        raise HTTPException(status_code=403, detail="Sem permissao para aceder a este evento")
+
+
+def build_event_visibility_filter(user: User, requested_visibility: Optional[str] = None):
+    allowed = get_allowed_event_visibilities(user)
+    if requested_visibility:
+        ensure_valid_event_visibility(requested_visibility)
+        if requested_visibility not in allowed:
+            raise HTTPException(status_code=403, detail="Sem permissao para esta visibilidade")
+        return requested_visibility
+    if user.role == "admin":
+        return None
+    if len(allowed) == 1:
+        return next(iter(allowed))
+    return {"$in": sorted(allowed)}
+
 
 @router.get("/events", response_model=List[Event])
 async def get_events(visibility: Optional[str] = None, current_user: User = Depends(get_current_user)):
     query = {}
-    if current_user.role == "admin":
-        pass
-    elif current_user.role in ["socio", "financeiro", "moderador"]:
-        query["visibility"] = {"$in": ["publico", "socios"]}
-    else:
-        query["visibility"] = "publico"
-
-    if visibility:
-        query["visibility"] = visibility
+    visibility_filter = build_event_visibility_filter(current_user, visibility)
+    if visibility_filter is not None:
+        query["visibility"] = visibility_filter
 
     events = await db.events.find(query, {"_id": 0}).sort("date", 1).to_list(100)
     for e in events:
@@ -73,8 +104,9 @@ async def get_featured_event():
 async def get_upcoming_events(current_user: User = Depends(get_current_user)):
     now = datetime.now(timezone.utc).isoformat()
     query = {"date": {"$gte": now}}
-    if current_user.role != "admin":
-        query["visibility"] = {"$in": ["publico", "socios"]}
+    visibility_filter = build_event_visibility_filter(current_user)
+    if visibility_filter is not None:
+        query["visibility"] = visibility_filter
 
     events = await db.events.find(query, {"_id": 0}).sort("date", 1).limit(5).to_list(None)
     for e in events:
@@ -93,8 +125,7 @@ async def get_event(event_id: str, current_user: User = Depends(get_current_user
     if not event:
         raise HTTPException(status_code=404, detail="Evento não encontrado")
 
-    if event["visibility"] == "direcao" and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Sem permissão")
+    ensure_can_view_event(current_user, event)
 
     if isinstance(event.get("date"), str):
         event["date"] = datetime.fromisoformat(event["date"])
@@ -109,6 +140,7 @@ async def get_event(event_id: str, current_user: User = Depends(get_current_user
 async def create_event(event_data: EventCreate, current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Apenas administradores podem criar eventos")
+    ensure_valid_event_visibility(event_data.visibility)
 
     event = Event(created_by=current_user.id, **event_data.model_dump())
     event_dict = event.model_dump()
@@ -135,6 +167,8 @@ async def update_event(event_id: str, event_data: EventUpdate, current_user: Use
         raise HTTPException(status_code=404, detail="Evento não encontrado")
 
     update_data = {k: v for k, v in event_data.model_dump().items() if v is not None}
+    if "visibility" in update_data:
+        ensure_valid_event_visibility(update_data["visibility"])
     if "date" in update_data:
         update_data["date"] = update_data["date"].isoformat()
     if "end_date" in update_data:
@@ -174,6 +208,7 @@ async def register_for_event(event_id: str, current_user: User = Depends(get_cur
     event = await db.events.find_one({"id": event_id})
     if not event:
         raise HTTPException(status_code=404, detail="Evento não encontrado")
+    ensure_can_view_event(current_user, event)
 
     if current_user.id in event.get("attendees", []):
         raise HTTPException(status_code=400, detail="Já está inscrito neste evento")
@@ -197,6 +232,7 @@ async def unregister_from_event(event_id: str, current_user: User = Depends(get_
     event = await db.events.find_one({"id": event_id})
     if not event:
         raise HTTPException(status_code=404, detail="Evento não encontrado")
+    ensure_can_view_event(current_user, event)
 
     if current_user.id not in event.get("attendees", []):
         raise HTTPException(status_code=400, detail="Não está inscrito neste evento")
@@ -210,6 +246,7 @@ async def get_event_attendees(event_id: str, current_user: User = Depends(get_cu
     event = await db.events.find_one({"id": event_id})
     if not event:
         raise HTTPException(status_code=404, detail="Evento não encontrado")
+    ensure_can_view_event(current_user, event)
 
     if current_user.role != "admin" and current_user.id != event.get("created_by"):
         return {

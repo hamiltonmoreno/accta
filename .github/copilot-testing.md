@@ -103,7 +103,7 @@ async def sample_user():
     user_data = {
         "id": str(uuid.uuid4()),
         "name": "John Doe",
-        "email": "john@accta.cv",
+        "email": "john@controlador.cv",
         "password_hash": "hashed_pwd",
         "role": "socio",
         "status": "ativo",
@@ -119,7 +119,7 @@ async def admin_user():
     user_data = {
         "id": str(uuid.uuid4()),
         "name": "Admin",
-        "email": "admin@accta.cv",
+        "email": "admin@controlador.cv",
         "password_hash": "hashed_pwd",
         "role": "admin",
         "status": "ativo",
@@ -147,7 +147,7 @@ async def test_get_user_by_id(sample_user):
     user_id = sample_user["id"]
     response = client.get(f"/api/users/{user_id}")
     assert response.status_code == 200
-    assert response.json()["email"] == "john@accta.cv"
+    assert response.json()["email"] == "john@controlador.cv"
 
 @pytest.mark.asyncio
 async def test_get_nonexistent_user():
@@ -162,26 +162,26 @@ async def test_get_nonexistent_user():
 async def test_create_user():
     response = client.post("/api/users/", json={
         "name": "Jane Doe",
-        "email": "jane@accta.cv",
+        "email": "jane@controlador.cv",
         "password": "secret123",
         "role": "socio"
     })
     assert response.status_code == 201
     data = response.json()
-    assert data["email"] == "jane@accta.cv"
+    assert data["email"] == "jane@controlador.cv"
     assert data["role"] == "socio"
 
 @pytest.mark.asyncio
 async def test_create_user_duplicate_email():
     client.post("/api/users/", json={
         "name": "John",
-        "email": "john@accta.cv",
+        "email": "john@controlador.cv",
         "password": "secret123",
         "role": "socio"
     })
     response = client.post("/api/users/", json={
         "name": "another John",
-        "email": "john@accta.cv",
+        "email": "john@controlador.cv",
         "password": "secret123",
         "role": "socio"
     })
@@ -257,7 +257,7 @@ def member_token():
 async def test_admin_only_endpoint_requires_auth():
     response = client.post("/api/users/", json={
         "name": "John",
-        "email": "john@accta.cv",
+        "email": "john@controlador.cv",
         "password": "secret123"
     })
     assert response.status_code == 401  # Unauthorized
@@ -266,7 +266,7 @@ async def test_admin_only_endpoint_requires_auth():
 async def test_admin_only_endpoint_denies_member(member_token):
     response = client.post(
         "/api/users/",
-        json={"name": "John", "email": "john@accta.cv", "password": "secret123"},
+        json={"name": "John", "email": "john@controlador.cv", "password": "secret123"},
         headers={"Authorization": f"Bearer {member_token}"}
     )
     assert response.status_code == 403  # Forbidden
@@ -275,7 +275,7 @@ async def test_admin_only_endpoint_denies_member(member_token):
 async def test_admin_endpoint_allows_admin(admin_token):
     response = client.post(
         "/api/users/",
-        json={"name": "John", "email": "john@accta.cv", "password": "secret123"},
+        json={"name": "John", "email": "john@controlador.cv", "password": "secret123"},
         headers={"Authorization": f"Bearer {admin_token}"}
     )
     assert response.status_code == 201
@@ -351,7 +351,7 @@ test('submits form with correct data', async () => {
   render(<LoginForm onSubmit={mockSubmit} />);
   
   fireEvent.change(screen.getByPlaceholderText('Email'), {
-    target: { value: 'john@accta.cv' }
+    target: { value: 'john@controlador.cv' }
   });
   fireEvent.change(screen.getByPlaceholderText('Password'), {
     target: { value: 'secret123' }
@@ -359,7 +359,7 @@ test('submits form with correct data', async () => {
   fireEvent.click(screen.getByRole('button', { name: /login/i }));
   
   expect(mockSubmit).toHaveBeenCalledWith({
-    email: 'john@accta.cv',
+    email: 'john@controlador.cv',
     password: 'secret123'
   });
 });
@@ -560,7 +560,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: 3.10
+          python-version: "3.11"
       - run: pip install -r backend/requirements.txt
       - run: cd backend && pytest tests/ --cov
       - run: cd frontend && yarn install && yarn test
@@ -578,5 +578,5 @@ jobs:
 
 ---
 
-**Last Updated**: April 2, 2026  
-**Version**: 1.0
+**Last Updated**: May 19, 2026 (example emails → controlador.cv; CI Python 3.11)  
+**Version**: 1.1

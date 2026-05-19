@@ -261,6 +261,35 @@ class TestAdminUpdateUser:
             )
         assert exc.value.status_code == 400
 
+    async def test_invalid_status_400(self, mock_db, admin_user, socio_user_dict):
+        """Spec-2: status fora de USER_STATUSES e rejeitado. Invariante de
+        negocio: NAO existe 'inadimplente' (quotas descontadas em folha)."""
+        from models import UserAdminUpdate
+
+        mock_db.users.find_one = AsyncMock(return_value=socio_user_dict)
+        with pytest.raises(HTTPException) as exc:
+            await users_route.admin_update_user(
+                user_id="any",
+                data=UserAdminUpdate(status="inadimplente"),
+                request=_mock_request(),
+                current_user=admin_user,
+            )
+        assert exc.value.status_code == 400
+        mock_db.users.update_one.assert_not_awaited()
+
+    async def test_valid_status_passes(self, mock_db, admin_user, socio_user_dict):
+        from models import UserAdminUpdate
+
+        mock_db.users.find_one = AsyncMock(return_value=socio_user_dict)
+        await users_route.admin_update_user(
+            user_id="any",
+            data=UserAdminUpdate(status="inativo"),
+            request=_mock_request(),
+            current_user=admin_user,
+        )
+        set_data = mock_db.users.update_one.call_args[0][1]["$set"]
+        assert set_data["status"] == "inativo"
+
 
 # --------------------------------------------------------------------------- #
 # DELETE /users/{id}
@@ -314,6 +343,29 @@ class TestUpdateUserStatus:
         mock_db.users.update_one.assert_awaited_with(
             {"id": "some-id"}, {"$set": {"status": "inativo"}}
         )
+
+    @pytest.mark.parametrize("status", ["ativo", "inativo", "pendente_convite"])
+    async def test_admin_accepts_every_valid_status(self, mock_db, admin_user, status):
+        from models import USER_STATUSES
+
+        assert status in USER_STATUSES
+        await users_route.update_user_status(
+            user_id="some-id", status=status, current_user=admin_user
+        )
+        mock_db.users.update_one.assert_awaited_with(
+            {"id": "some-id"}, {"$set": {"status": status}}
+        )
+
+    @pytest.mark.parametrize("bad_status", ["inadimplente", "banido", "", "ATIVO"])
+    async def test_admin_rejects_invalid_status(self, mock_db, admin_user, bad_status):
+        """Spec-2: update_user_status valida o status. 'inadimplente' nunca
+        e aceite — quotas sao descontadas em folha (invariante do projeto)."""
+        with pytest.raises(HTTPException) as exc:
+            await users_route.update_user_status(
+                user_id="some-id", status=bad_status, current_user=admin_user
+            )
+        assert exc.value.status_code == 400
+        mock_db.users.update_one.assert_not_awaited()
 
 
 # --------------------------------------------------------------------------- #

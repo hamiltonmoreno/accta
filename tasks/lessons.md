@@ -46,3 +46,16 @@ política de rede dropa portas Postgres (5432/6543) — só 443 passa.
 de DB) como provavelmente bloqueado; planear validação via CI/host de deploy,
 ou desenhar+testar a lógica em vez de esperar ligação ao vivo.
 **Context**: Claude Code on the web; validação de `DATABASE_URL` Supabase.
+
+### L5 — Cor da logomarca ≠ cor base da UI (acento único, fundação neutra)
+**Mistake**: A paleta foi montada usando Carmesim `#C7202F` (cor da logo) como
+cor predominante: todos os botões vermelhos (sem hierarquia) e texto vermelho
+sobre fundo escuro (~2:1, reprova WCAG, ilegível).
+**Rule**: Cor de marca saturada = **acento único e contido**, não a cor padrão.
+Fundação neutra (branco/`#F5F5F5`/Grafite) carrega ~90% da UI; o acento entra
+só no 1 botão primário por tela, estado ativo, links em branco e ação
+destrutiva. **Nunca** texto vermelho em fundo escuro/colorido. Validar todo par
+texto/fundo a ≥4.5:1 e fundamentar em regra de design (engine `ui-ux-pro-max`
+→ Swiss Modernism AAA, contraste, foco visível), não em instinto.
+**Context**: Reescrita do design system ACCTA; `frontend-design/SKILL.md`
+(canônico) + sincronização do Brand Lock/CSVs da `ui-ux-pro-max`.

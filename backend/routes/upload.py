@@ -5,6 +5,7 @@ from database import UPLOAD_DIR
 from auth import get_current_user
 from helpers import create_audit_log
 from file_validation import validate_file_content
+import asyncio
 import uuid
 
 router = APIRouter(tags=["upload"])
@@ -12,7 +13,7 @@ router = APIRouter(tags=["upload"])
 ALLOWED_EXTENSIONS = {
     "documents": [".pdf", ".doc", ".docx"],
     "proofs": [".pdf", ".jpg", ".jpeg", ".png"],
-    "logos": [".png", ".jpg", ".jpeg", ".svg"],
+    "logos": [".png", ".jpg", ".jpeg"],  # SVG bloqueado: risco de stored XSS
     "avatars": [".jpg", ".jpeg", ".png"],
 }
 
@@ -45,16 +46,19 @@ async def upload_file(category: str, file: UploadFile = File(...), current_user:
 
     file_ext = Path(file.filename).suffix.lower()
     unique_filename = f"{uuid.uuid4()}{file_ext}"
-    file_path = UPLOAD_DIR / category / unique_filename
+    category_dir = UPLOAD_DIR / category
+    file_path = category_dir / unique_filename
 
     try:
-        with open(file_path, "wb") as buffer:
-            buffer.write(contents)
+        await asyncio.to_thread(category_dir.mkdir, parents=True, exist_ok=True)
+        # Gravação off-loaded para thread: até 10 MB de I/O síncrono não pode
+        # bloquear o event loop e parar requisições concorrentes do worker.
+        await asyncio.to_thread(file_path.write_bytes, contents)
 
         file_url = f"/uploads/{category}/{unique_filename}"
         await create_audit_log(current_user.id, f"Upload de arquivo: {file.filename}", unique_filename)
 
-        return {"filename": file.filename, "file_url": file_url, "size": file_path.stat().st_size, "category": category}
+        return {"filename": file.filename, "file_url": file_url, "size": len(contents), "category": category}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao salvar arquivo: {str(e)}")
 

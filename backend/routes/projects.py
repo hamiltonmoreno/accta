@@ -10,16 +10,44 @@ from models import (
     ProjectTaskCreate,
     ProjectTaskUpdate,
     ProjectComment,
+    ProjectCommentCreate,
     ProjectExpense,
+    ProjectExpenseCreate,
     ProjectMilestone,
+    ProjectMilestoneCreate,
+    ProjectMilestoneUpdate,
     PROJECT_STATUSES,
     PROJECT_VISIBILITIES,
+    TASK_PRIORITIES,
+    TASK_STATUSES,
 )
 from database import db
 from auth import get_current_user
 from helpers import create_audit_log, notify_users, notify_admins, get_project_stakeholder_ids, create_notification
 
 router = APIRouter(prefix="/projects", tags=["projects"])
+
+ADMIN_PROJECT_UPDATE_FIELDS = {
+    "title",
+    "description",
+    "status",
+    "visibility",
+    "category",
+    "responsible_id",
+    "budget",
+    "start_date",
+    "end_date",
+    "progress",
+}
+PROJECT_MANAGER_UPDATE_FIELDS = {"title", "description", "category", "start_date", "end_date", "progress"}
+TASK_MANAGER_UPDATE_FIELDS = {"title", "description", "assignee_id", "status", "priority", "due_date"}
+TASK_ASSIGNEE_UPDATE_FIELDS = {"status"}
+
+
+def reject_disallowed_fields(updates: dict, allowed_fields: set[str]):
+    disallowed = sorted(set(updates) - allowed_fields)
+    if disallowed:
+        raise HTTPException(status_code=403, detail=f"Sem permissao para alterar: {', '.join(disallowed)}")
 
 
 def can_manage_project(user: User, project: dict) -> bool:
@@ -170,9 +198,17 @@ async def update_project(
         raise HTTPException(status_code=403, detail="Sem permissao para editar este projeto")
 
     updates = {k: v for k, v in data.model_dump().items() if v is not None}
+    allowed_fields = ADMIN_PROJECT_UPDATE_FIELDS if current_user.role == "admin" else PROJECT_MANAGER_UPDATE_FIELDS
+    reject_disallowed_fields(updates, allowed_fields)
 
     if "status" in updates and updates["status"] not in PROJECT_STATUSES:
         raise HTTPException(status_code=400, detail=f"Status invalido: {PROJECT_STATUSES}")
+    if "visibility" in updates and updates["visibility"] not in PROJECT_VISIBILITIES:
+        raise HTTPException(status_code=400, detail=f"Visibilidade invalida: {PROJECT_VISIBILITIES}")
+    if "progress" in updates and not 0 <= updates["progress"] <= 100:
+        raise HTTPException(status_code=400, detail="Progresso deve estar entre 0 e 100")
+    if "budget" in updates and updates["budget"] < 0:
+        raise HTTPException(status_code=400, detail="Orcamento nao pode ser negativo")
 
     if "responsible_id" in updates and updates["responsible_id"]:
         resp = await db.users.find_one({"id": updates["responsible_id"]}, {"_id": 0, "name": 1})
@@ -337,12 +373,20 @@ async def update_task(
     if not task:
         raise HTTPException(status_code=404, detail="Tarefa nao encontrada")
 
-    # Any member with access can update tasks assigned to them, or project manager
+    # Managers can edit task metadata; assignees can only update execution status.
     is_assignee = task.get("assignee_id") == current_user.id
-    if not can_manage_project(current_user, project) and not is_assignee:
+    is_manager = can_manage_project(current_user, project)
+    if not is_manager and not is_assignee:
         raise HTTPException(status_code=403, detail="Sem permissao")
 
     updates = {k: v for k, v in data.model_dump().items() if v is not None}
+    allowed_fields = TASK_MANAGER_UPDATE_FIELDS if is_manager else TASK_ASSIGNEE_UPDATE_FIELDS
+    reject_disallowed_fields(updates, allowed_fields)
+
+    if "status" in updates and updates["status"] not in TASK_STATUSES:
+        raise HTTPException(status_code=400, detail=f"Status invalido: {TASK_STATUSES}")
+    if "priority" in updates and updates["priority"] not in TASK_PRIORITIES:
+        raise HTTPException(status_code=400, detail=f"Prioridade invalida: {TASK_PRIORITIES}")
 
     if "assignee_id" in updates and updates["assignee_id"]:
         assignee = await db.users.find_one({"id": updates["assignee_id"]}, {"_id": 0, "name": 1})
@@ -393,7 +437,7 @@ async def delete_task(
 @router.post("/{project_id}/comments")
 async def add_comment(
     project_id: str,
-    data: dict,
+    data: ProjectCommentCreate,
     current_user: User = Depends(get_current_user),
 ):
     project = await db.projects.find_one({"id": project_id}, {"_id": 0})
@@ -402,7 +446,7 @@ async def add_comment(
     if not can_view_project(current_user, project):
         raise HTTPException(status_code=403, detail="Sem acesso")
 
-    content = data.get("content", "").strip()
+    content = data.content.strip()
     if not content:
         raise HTTPException(status_code=400, detail="Comentario vazio")
 
@@ -428,7 +472,6 @@ async def add_comment(
         exclude_id=current_user.id,
     )
 
-    c_dict.pop("_id", None)
     return c_dict
 
 
@@ -453,7 +496,7 @@ async def delete_comment(
 @router.post("/{project_id}/expenses")
 async def add_expense(
     project_id: str,
-    data: dict,
+    data: ProjectExpenseCreate,
     current_user: User = Depends(get_current_user),
 ):
     project = await db.projects.find_one({"id": project_id}, {"_id": 0})
@@ -462,11 +505,11 @@ async def add_expense(
     if not can_manage_project(current_user, project):
         raise HTTPException(status_code=403, detail="Sem permissao")
 
-    description = data.get("description", "").strip()
-    amount = data.get("amount", 0)
-    date = data.get("date", datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+    description = data.description.strip()
+    amount = data.amount  # já validado > 0 pelo modelo
+    date = data.date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    if not description or amount <= 0:
+    if not description:
         raise HTTPException(status_code=400, detail="Descricao e valor sao obrigatorios")
 
     expense = ProjectExpense(
@@ -513,7 +556,6 @@ async def add_expense(
             link,
         )
 
-    e_dict.pop("_id", None)
     return e_dict
 
 
@@ -548,7 +590,7 @@ async def delete_expense(
 @router.post("/{project_id}/milestones")
 async def add_milestone(
     project_id: str,
-    data: dict,
+    data: ProjectMilestoneCreate,
     current_user: User = Depends(get_current_user),
 ):
     project = await db.projects.find_one({"id": project_id}, {"_id": 0})
@@ -557,8 +599,8 @@ async def add_milestone(
     if not can_manage_project(current_user, project):
         raise HTTPException(status_code=403, detail="Sem permissao")
 
-    title = data.get("title", "").strip()
-    date = data.get("date", "")
+    title = data.title.strip()
+    date = data.date.strip()
     if not title or not date:
         raise HTTPException(status_code=400, detail="Titulo e data obrigatorios")
 
@@ -570,7 +612,6 @@ async def add_milestone(
     m_dict = milestone.model_dump()
     m_dict["created_at"] = m_dict["created_at"].isoformat()
     await db.project_milestones.insert_one(m_dict)
-    m_dict.pop("_id", None)
     return m_dict
 
 
@@ -578,7 +619,7 @@ async def add_milestone(
 async def update_milestone(
     project_id: str,
     milestone_id: str,
-    data: dict,
+    data: ProjectMilestoneUpdate,
     current_user: User = Depends(get_current_user),
 ):
     project = await db.projects.find_one({"id": project_id}, {"_id": 0})
@@ -588,12 +629,12 @@ async def update_milestone(
         raise HTTPException(status_code=403, detail="Sem permissao")
 
     updates = {}
-    if "completed" in data:
-        updates["completed"] = bool(data["completed"])
-    if "title" in data:
-        updates["title"] = data["title"]
-    if "date" in data:
-        updates["date"] = data["date"]
+    if data.completed is not None:
+        updates["completed"] = data.completed
+    if data.title is not None:
+        updates["title"] = data.title
+    if data.date is not None:
+        updates["date"] = data.date
 
     if updates:
         await db.project_milestones.update_one({"id": milestone_id, "project_id": project_id}, {"$set": updates})

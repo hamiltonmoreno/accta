@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response
 from datetime import datetime, timezone, timedelta
 from jose import JWTError, jwt
 from models import User, UserLogin, Token, PasswordResetRequest, PasswordResetConfirm, SetupAccount
@@ -22,6 +22,7 @@ from helpers import (
     is_account_locked,
     record_failed_login,
     reset_failed_logins,
+    resolve_link_base,
 )
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -54,8 +55,7 @@ async def login(request: Request, response: Response, credentials: UserLogin):
 
     user_doc = await db.users.find_one({"email": credentials.email}, {"_id": 0})
     if not user_doc or not user_doc.get("password") or not verify_password(credentials.password, user_doc["password"]):
-        # Conta tentativa falhada para futuro lockout. record_failed_login
-        # devolve count na janela — nao usamos aqui mas e util para logging.
+        # Conta tentativa falhada para futuro lockout (avaliado por is_account_locked).
         await record_failed_login(credentials.email, ip=request.client.host if request.client else None)
         await create_audit_log(
             user_doc["id"] if user_doc else "anonymous",
@@ -132,7 +132,9 @@ async def logout(
 
 @router.post("/setup-account")
 @limiter.limit("5/minute")
-async def setup_account(request: Request, response: Response, data: SetupAccount):
+async def setup_account(
+    request: Request, response: Response, background_tasks: BackgroundTasks, data: SetupAccount
+):
     """Invited user sets their password and activates their account."""
     user_doc = await db.users.find_one({"invite_token": data.token, "status": "pendente_convite"}, {"_id": 0})
     if not user_doc:
@@ -148,8 +150,8 @@ async def setup_account(request: Request, response: Response, data: SetupAccount
         except (ValueError, TypeError):
             pass  # Token sem formato válido — trata como legado
 
-    if len(data.password) < 6:
-        raise HTTPException(status_code=400, detail="A senha deve ter pelo menos 6 caracteres")
+    if len(data.password) < 8:
+        raise HTTPException(status_code=400, detail="A senha deve ter pelo menos 8 caracteres")
 
     hashed = hash_password(data.password)
     now = datetime.now(timezone.utc).isoformat()
@@ -180,8 +182,9 @@ async def setup_account(request: Request, response: Response, data: SetupAccount
 
     await create_audit_log(user.id, "account_activated", request=request)
 
-    # Send welcome email (non-blocking)
-    await send_welcome_email(user.name, user.email)
+    # Send welcome email — realmente non-blocking: não atrasa a resposta de
+    # activação se a Resend estiver lenta/indisponível.
+    background_tasks.add_task(send_welcome_email, user.name, user.email)
 
     # Sprint 10 — auto-login via cookie apos setup.
     set_session_cookie(response, token)
@@ -237,11 +240,9 @@ async def forgot_password(request: Request, data: PasswordResetRequest):
         {"email": data.email, "token": token, "expires_at": expires_at.isoformat(), "used": False}
     )
 
-    # Build reset URL - prefer explicit FRONTEND_URL env, fallback to request origin
-    import os
-
-    frontend_url = os.environ.get("FRONTEND_URL", "").rstrip("/")
-    origin = frontend_url or request.headers.get("origin") or request.headers.get("referer", "").rstrip("/")
+    # Base segura: FRONTEND_URL ou Origin/Referer só se na allowlist CORS.
+    # Sem origem confiável → reset_url vazio (não envia link envenenado).
+    origin = resolve_link_base(request)
     reset_url = f"{origin}/reset-password?token={token}" if origin else ""
     await send_password_reset_email(user.get("name", ""), data.email, reset_url, token)
 
@@ -260,8 +261,8 @@ async def reset_password(request: Request, data: PasswordResetConfirm):
     if datetime.now(timezone.utc) > expires_at:
         raise HTTPException(status_code=400, detail="Token expirado. Solicite um novo.")
 
-    if len(data.new_password) < 6:
-        raise HTTPException(status_code=400, detail="A senha deve ter pelo menos 6 caracteres")
+    if len(data.new_password) < 8:
+        raise HTTPException(status_code=400, detail="A senha deve ter pelo menos 8 caracteres")
 
     hashed = hash_password(data.new_password)
     await db.users.update_one({"email": reset_doc["email"]}, {"$set": {"password": hashed}})

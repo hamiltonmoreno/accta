@@ -35,6 +35,14 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "Permissions-Policy",
             "geolocation=(self), camera=(), microphone=(), interest-cohort=()",
         )
+        # CSP: contém qualquer XSS residual (sem inline-script, sem objetos,
+        # sem ser embutido em iframe). API serve JSON; img/data p/ uploads.
+        if request.url.path not in {"/docs", "/redoc", "/openapi.json"}:
+            response.headers.setdefault(
+                "Content-Security-Policy",
+                "default-src 'self'; img-src 'self' data: blob:; "
+                "script-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'",
+            )
         # HSTS só em produção (atrás de TLS) — assumimos que ENVIRONMENT=production.
         if os.environ.get("ENVIRONMENT") == "production":
             response.headers.setdefault(
@@ -42,6 +50,16 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
                 "max-age=31536000; includeSubDomains",
             )
         return response
+
+
+class UploadsStaticFiles(StaticFiles):
+    """Serve public uploads, but keep documents behind the authenticated API."""
+
+    async def get_response(self, path, scope):
+        normalized = path.replace("\\", "/").lstrip("/")
+        if normalized == "documents" or normalized.startswith("documents/"):
+            return JSONResponse(status_code=404, content={"detail": "Not found"})
+        return await super().get_response(path, scope)
 
 
 class CSRFOriginCheckMiddleware(BaseHTTPMiddleware):
@@ -107,8 +125,9 @@ async def health_check():
         raise HTTPException(status_code=503, detail="Database unavailable")
 
 
-# Mount static files for uploads
-app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
+# Mount static files for public uploads. Documents are served by routes/documents.py
+# so RBAC cannot be bypassed with direct /uploads/documents URLs.
+app.mount("/uploads", UploadsStaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
 app.include_router(api_router)
 
