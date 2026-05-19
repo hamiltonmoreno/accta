@@ -79,8 +79,7 @@ const CommentSection = ({ postId, commentCount, user }) => {
     <div className="mt-4 pt-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
       <button
         onClick={() => setExpanded((p) => !p)}
-        className="flex items-center gap-2 text-sm transition-colors"
-        style={{ color: 'var(--text-muted)' }}
+        className="flex items-center gap-2 text-sm transition-colors text-muted-auto"
         data-testid={`toggle-comments-${postId}`}
       >
         <MessageCircle className="w-4 h-4" />
@@ -96,7 +95,7 @@ const CommentSection = ({ postId, commentCount, user }) => {
                   <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : comments.length === 0 ? (
-                <p className="text-sm py-2" style={{ color: 'var(--text-muted)' }}>Nenhum comentario ainda. Seja o primeiro!</p>
+                <p className="text-sm py-2 text-muted-auto">Nenhum comentario ainda. Seja o primeiro!</p>
               ) : (
                 comments.map((comment) => (
                   <div key={comment.id} className="flex gap-3 group" data-testid={`comment-${comment.id}`}>
@@ -106,9 +105,9 @@ const CommentSection = ({ postId, commentCount, user }) => {
                     </div>
                     <div className="flex-1 rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--surface-card-hover)' }}>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{comment.user_name}</span>
+                        <span className="text-sm font-semibold text-grafite-auto">{comment.user_name}</span>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                          <span className="text-xs text-muted-auto">
                             {format(new Date(comment.created_at), "dd MMM HH:mm", { locale: ptBR })}
                           </span>
                           {(user?.role === 'admin' || user?.role === 'moderador' || user?.id === comment.user_id) && (
@@ -123,7 +122,7 @@ const CommentSection = ({ postId, commentCount, user }) => {
                           )}
                         </div>
                       </div>
-                      <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{comment.content}</p>
+                      <p className="text-sm mt-1 text-secondary-auto">{comment.content}</p>
                     </div>
                   </div>
                 ))
@@ -214,8 +213,8 @@ const PendingPostsPanel = () => {
                           {post.user_name?.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{post.user_name}</span>
-                          <span className="text-xs ml-2" style={{ color: 'var(--text-muted)' }}>
+                          <span className="font-semibold text-sm text-grafite-auto">{post.user_name}</span>
+                          <span className="text-xs ml-2 text-muted-auto">
                             {format(new Date(post.created_at), "dd MMM HH:mm", { locale: ptBR })}
                           </span>
                         </div>
@@ -224,7 +223,7 @@ const PendingPostsPanel = () => {
                         {getCategoryLabel(post.category || 'geral')}
                       </span>
                     </div>
-                    <p className="text-sm mb-3 whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>{post.content}</p>
+                    <p className="text-sm mb-3 whitespace-pre-wrap text-secondary-auto">{post.content}</p>
                     <div className="flex gap-2 justify-end">
                       <button onClick={() => rejectMutation.mutate(post.id)}
                         className="flex items-center gap-1 px-3 py-1.5 text-sm text-carmesim border border-carmesim/30 rounded-lg hover:bg-carmesim/10 transition-colors"
@@ -357,7 +356,7 @@ export const MuralPage = () => {
             <MessageSquare className="w-6 h-6 text-carmesim flex-shrink-0 mt-1" />
             <div>
               <h3 className="font-semibold text-lg text-carmesim mb-2">Acesso Restrito</h3>
-              <p style={{ color: 'var(--text-secondary)' }}>
+              <p className="text-secondary-auto">
                 Apenas socios com status ativo podem participar no mural. Por favor, regularize a sua situacao.
               </p>
             </div>
@@ -373,7 +372,7 @@ export const MuralPage = () => {
         <div className="card-technical rounded-xl p-5 sm:p-6 animate-fade-up">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block font-mono text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
+              <label className="block font-mono text-xs uppercase tracking-widest mb-2 text-muted-auto">
                 Nova Mensagem
               </label>
               <textarea
@@ -388,7 +387,7 @@ export const MuralPage = () => {
 
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-2">
-                <label className="text-xs uppercase tracking-wider font-mono" style={{ color: 'var(--text-muted)' }}>Categoria:</label>
+                <label className="text-xs uppercase tracking-wider font-mono text-muted-auto">Categoria:</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
@@ -403,7 +402,7 @@ export const MuralPage = () => {
 
               <div className="flex items-center gap-3">
                 {!canModerate && (
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Aguarda aprovacao</p>
+                  <p className="text-xs text-muted-auto">Aguarda aprovacao</p>
                 )}
                 <button
                   type="submit"
@@ -429,7 +428,7 @@ export const MuralPage = () => {
       {/* Search + Filter Bar */}
       <div className="space-y-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-auto" />
           <input
             type="text"
             placeholder="Pesquisar no mural..."
@@ -440,7 +439,7 @@ export const MuralPage = () => {
           />
         </div>
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          <Filter className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+          <Filter className="w-4 h-4 flex-shrink-0 text-muted-auto" />
           {CATEGORIES.map(c => (
             <button
               key={c.value}
@@ -494,12 +493,12 @@ export const MuralPage = () => {
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{post.user_name}</span>
+                          <span className="font-semibold text-grafite-auto">{post.user_name}</span>
                           <span className={`text-xs px-2 py-0.5 rounded-full ${getCategoryStyle(post.category || 'geral')}`}>
                             {getCategoryLabel(post.category || 'geral')}
                           </span>
                         </div>
-                        <div className="font-mono text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        <div className="font-mono text-xs mt-0.5 text-muted-auto">
                           {format(new Date(post.created_at), "dd 'de' MMMM 'de' yyyy 'as' HH:mm", { locale: ptBR })}
                         </div>
                       </div>
@@ -530,7 +529,7 @@ export const MuralPage = () => {
                       )}
                     </div>
 
-                    <p className="leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>{post.content}</p>
+                    <p className="leading-relaxed whitespace-pre-wrap text-secondary-auto">{post.content}</p>
 
                     <div className="flex items-center gap-4 mt-4">
                       <button

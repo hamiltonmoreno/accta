@@ -106,24 +106,24 @@ const UploadModal = ({ albums, onClose }) => {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Album *</label>
+            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Album *</label>
             <select value={albumId} onChange={(e) => setAlbumId(e.target.value)} data-testid="upload-album-select"
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none">
               {albums.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Legenda</label>
+            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Legenda</label>
             <input type="text" value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Descricao da foto..."
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
               data-testid="upload-caption-input" />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Fotos * (JPG, PNG, WEBP)</label>
+            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Fotos * (JPG, PNG, WEBP)</label>
             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-carmesim/50 transition-colors"
               data-testid="upload-file-input">
               <Upload className="w-8 h-8 text-gray-300 mb-2" />
-              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              <span className="text-sm text-muted-auto">
                 {files.length > 0 ? `${files.length} foto${files.length > 1 ? 's' : ''} selecionada${files.length > 1 ? 's' : ''}` : 'Clique para selecionar'}
               </span>
               <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
@@ -136,7 +136,7 @@ const UploadModal = ({ albums, onClose }) => {
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div className="bg-carmesim h-2 rounded-full transition-all" style={{ width: `${progress}%` }} />
               </div>
-              <p className="text-xs text-center mt-1" style={{ color: 'var(--text-muted)' }}>{progress}%</p>
+              <p className="text-xs text-center mt-1 text-muted-auto">{progress}%</p>
             </div>
           )}
 
@@ -185,21 +185,21 @@ const AlbumModal = ({ album, onClose }) => {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Titulo *</label>
+            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Titulo *</label>
             <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="Ex: Aeroportos de Cabo Verde"
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
               data-testid="album-title-input" />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Descricao</label>
+            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Descricao</label>
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Descricao do album..." rows={2}
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none resize-none"
               data-testid="album-desc-input" />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Visibilidade</label>
+            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Visibilidade</label>
             <div className="flex gap-2">
               {[{ val: 'public', label: 'Publico', icon: Eye }, { val: 'private', label: 'Socios', icon: EyeOff }].map(opt => (
                 <button key={opt.val} type="button" onClick={() => setForm({ ...form, visibility: opt.val })}
@@ -262,8 +262,8 @@ const PendingPanel = () => {
           <Clock className="w-4 h-4 text-white" />
         </div>
         <div>
-          <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Fotos Pendentes</h3>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{pending.length} foto{pending.length !== 1 ? 's' : ''} a aguardar aprovacao</p>
+          <h3 className="font-semibold text-sm text-grafite-auto">Fotos Pendentes</h3>
+          <p className="text-xs text-muted-auto">{pending.length} foto{pending.length !== 1 ? 's' : ''} a aguardar aprovacao</p>
         </div>
       </div>
       {loading ? (
@@ -375,7 +375,7 @@ export const GaleriaAdminPage = () => {
       {selectedAlbum ? (
         <div>
           <button onClick={() => setSelectedAlbum(null)}
-            className="flex items-center gap-2 text-sm mb-4" style={{ color: 'var(--text-muted)' }} data-testid="back-to-albums">
+            className="flex items-center gap-2 text-sm mb-4 text-muted-auto" data-testid="back-to-albums">
             <ChevronLeft className="w-4 h-4" /> Voltar aos albuns
           </button>
 
@@ -383,18 +383,18 @@ export const GaleriaAdminPage = () => {
             <div className="flex items-start justify-between flex-wrap gap-3">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <h2 className="font-bold text-xl" style={{ color: 'var(--text-primary)' }}>{selectedAlbum.title}</h2>
+                  <h2 className="font-bold text-xl text-grafite-auto">{selectedAlbum.title}</h2>
                   {selectedAlbum.visibility === 'private' && (
                     <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs uppercase tracking-wider rounded-full font-semibold">Privado</span>
                   )}
                 </div>
-                {selectedAlbum.description && <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{selectedAlbum.description}</p>}
-                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{photos.length} foto{photos.length !== 1 ? 's' : ''}</p>
+                {selectedAlbum.description && <p className="text-sm text-secondary-auto">{selectedAlbum.description}</p>}
+                <p className="text-xs mt-1 text-muted-auto">{photos.length} foto{photos.length !== 1 ? 's' : ''}</p>
               </div>
               {isAdmin && (
                 <div className="flex gap-2">
                   <button onClick={() => { setEditingAlbum(selectedAlbum); setShowAlbumModal(true); }}
-                    className="p-2 rounded-lg hover:bg-gray-100" style={{ color: 'var(--text-muted)' }} aria-label="Editar álbum" data-testid="edit-album-btn">
+                    className="p-2 rounded-lg hover:bg-gray-100 text-muted-auto" aria-label="Editar álbum" data-testid="edit-album-btn">
                     <Pencil className="w-4 h-4" aria-hidden="true" />
                   </button>
                   <button onClick={() => setConfirmDeleteAlbum(selectedAlbum.id)}
@@ -474,7 +474,7 @@ export const GaleriaAdminPage = () => {
                     <img src={album.cover_url} alt={album.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: 'var(--surface-card-hover)' }}>
-                      <Images className="w-12 h-12" style={{ color: 'var(--text-muted)' }} />
+                      <Images className="w-12 h-12 text-muted-auto" />
                     </div>
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -495,7 +495,7 @@ export const GaleriaAdminPage = () => {
                 </div>
                 {album.description && (
                   <div className="px-4 py-3">
-                    <p className="text-xs line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{album.description}</p>
+                    <p className="text-xs line-clamp-2 text-secondary-auto">{album.description}</p>
                   </div>
                 )}
               </div>

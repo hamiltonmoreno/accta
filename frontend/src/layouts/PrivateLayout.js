@@ -151,8 +151,7 @@ export const PrivateLayout = ({ children }) => {
         <span
           className={`font-bold text-[15px] whitespace-nowrap transition-opacity duration-300 ${
             collapsed && !isMobile ? 'opacity-0 pointer-events-none w-0' : 'opacity-100'
-          }`}
-          style={{ color: 'var(--text-primary)' }}
+          } text-grafite-auto`}
         >
           ACCTA
         </span>
@@ -193,8 +192,7 @@ export const PrivateLayout = ({ children }) => {
                 <span
                   className={`text-xs uppercase tracking-[0.12em] font-semibold whitespace-nowrap transition-opacity duration-300 ${
                     collapsed && !isMobile ? 'opacity-0 w-0' : 'opacity-100 ml-2'
-                  }`}
-                  style={{ color: 'var(--text-muted)' }}
+                  } text-muted-auto`}
                 >
                   {section.title}
                 </span>
@@ -259,8 +257,8 @@ export const PrivateLayout = ({ children }) => {
               collapsed && !isMobile ? 'opacity-0 pointer-events-none w-0' : 'opacity-100'
             }`}
           >
-            <div className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{user?.name}</div>
-            <div className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{user?.email}</div>
+            <div className="text-sm font-semibold truncate text-grafite-auto">{user?.name}</div>
+            <div className="text-xs truncate text-muted-auto">{user?.email}</div>
           </div>
         </div>
 
@@ -274,8 +272,7 @@ export const PrivateLayout = ({ children }) => {
         {/* Logout button */}
         <button
           onClick={handleLogout}
-          className="w-full flex items-center rounded-lg transition-colors"
-          style={{ color: 'var(--text-secondary)' }}
+          className="w-full flex items-center rounded-lg transition-colors text-secondary-auto"
           data-testid="logout-button"
         >
           <span className="flex items-center justify-center min-w-[48px] h-[40px]">
@@ -332,14 +329,13 @@ export const PrivateLayout = ({ children }) => {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileOpen(true)}
-                className="p-2 -ml-2 rounded-lg transition-colors touch-target"
-                style={{ color: 'var(--text-primary)' }}
+                className="p-2 -ml-2 rounded-lg transition-colors touch-target text-grafite-auto"
                 aria-label="Abrir menu"
                 data-testid="mobile-sidebar-button"
               >
                 <Menu className="w-5 h-5" aria-hidden="true" />
               </button>
-              <span className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>{currentPageTitle}</span>
+              <span className="font-bold text-base text-grafite-auto">{currentPageTitle}</span>
             </div>
             <div className="flex items-center gap-2">
               <NotificationBell />
@@ -356,14 +352,14 @@ export const PrivateLayout = ({ children }) => {
           style={{ paddingLeft: isDesktop ? `calc(${sidebarWidth}px + 1.5rem)` : undefined, paddingRight: '1.5rem', backgroundColor: 'var(--surface-header)', borderBottom: '1px solid var(--surface-border)' }}
         >
           <div className="flex items-center justify-between">
-            <h1 className="font-semibold text-base" style={{ color: 'var(--text-primary)' }}>{currentPageTitle}</h1>
+            <h1 className="font-semibold text-base text-grafite-auto">{currentPageTitle}</h1>
             <div className="flex items-center gap-3">
               <NotificationBell />
               <div className="flex items-center gap-2 pl-3" style={{ borderLeft: '1px solid var(--surface-border)' }}>
                 <div className="w-8 h-8 bg-carmesim rounded-full flex items-center justify-center text-white text-xs font-bold">
                   {user?.name?.charAt(0).toUpperCase()}
                 </div>
-                <span className="text-sm font-medium hidden lg:block" style={{ color: 'var(--text-primary)' }}>{user?.name}</span>
+                <span className="text-sm font-medium hidden lg:block text-grafite-auto">{user?.name}</span>
               </div>
             </div>
           </div>

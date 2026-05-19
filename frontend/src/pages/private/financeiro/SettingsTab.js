@@ -67,7 +67,7 @@ export const SettingsTab = () => {
   return (
     <div className="space-y-5">
       <div className="card-technical p-5 sm:p-6">
-        <h3 className="font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+        <h3 className="font-semibold mb-4 flex items-center gap-2 text-grafite-auto">
           <Settings className="w-4 h-4 text-carmesim" /> Configuracao de Quotas
         </h3>
         <div className="space-y-4">
@@ -90,10 +90,10 @@ export const SettingsTab = () => {
       </div>
 
       <div className="card-technical p-5 sm:p-6">
-        <h3 className="font-semibold mb-2 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+        <h3 className="font-semibold mb-2 flex items-center gap-2 text-grafite-auto">
           <RefreshCw className="w-4 h-4 text-carmesim" /> Gerar Quotas Mensais
         </h3>
-        <p className="text-xs mb-4 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-xs mb-4 leading-relaxed text-muted-auto">
           Gera automaticamente as quotas mensais para todos os socios ativos. Socios que ja possuem quota para o mes selecionado serao ignorados.
         </p>
         <div className="flex flex-wrap items-end gap-3">
@@ -135,7 +135,7 @@ export const SettingsTab = () => {
                 <div className="text-xs text-gray-500 uppercase tracking-wider">Ignoradas</div>
               </div>
               <div className="text-center">
-                <div className="font-mono text-lg font-bold" style={{ color: 'var(--text-primary)' }} data-testid="gen-total-value">{genResult.total_value?.toLocaleString('pt')}</div>
+                <div className="font-mono text-lg font-bold text-grafite-auto" data-testid="gen-total-value">{genResult.total_value?.toLocaleString('pt')}</div>
                 <div className="text-xs text-gray-500 uppercase tracking-wider">CVE Total</div>
               </div>
             </div>
@@ -147,8 +147,8 @@ export const SettingsTab = () => {
         <div className="flex items-start gap-3">
           <DollarSign className="w-5 h-5 text-carmesim flex-shrink-0 mt-0.5" />
           <div>
-            <h4 className="font-semibold text-sm mb-1" style={{ color: 'var(--text-primary)' }}>Desconto em Folha</h4>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            <h4 className="font-semibold text-sm mb-1 text-grafite-auto">Desconto em Folha</h4>
+            <p className="text-xs leading-relaxed text-secondary-auto">
               As quotas dos socios ativos sao descontadas diretamente na folha de pagamento. Nao existe o conceito de "socio inadimplente" nesta associacao.
             </p>
           </div>

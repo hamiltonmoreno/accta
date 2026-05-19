@@ -20,8 +20,8 @@ const StatBlock = ({ label, value, icon: Icon, color }) => (
     <div className={`w-9 h-9 sm:w-10 sm:h-10 ${color} rounded-lg flex items-center justify-center mb-2 sm:mb-3`}>
       <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
     </div>
-    <div className="font-mono text-lg sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{value}</div>
-    <div className="text-xs uppercase tracking-wider mt-0.5" style={{ color: 'var(--text-muted)' }}>{label}</div>
+    <div className="font-mono text-lg sm:text-2xl font-bold text-grafite-auto">{value}</div>
+    <div className="text-xs uppercase tracking-wider mt-0.5 text-muted-auto">{label}</div>
   </div>
 );
 
@@ -246,12 +246,12 @@ export const CashFlowTab = ({ isAdmin }) => {
                           {tx.type}
                         </span>
                       </td>
-                      <td className="px-4 py-3 capitalize text-xs" style={{ color: 'var(--text-secondary)' }}>{CATEGORY_LABELS[tx.category] || tx.category}</td>
-                      <td className="px-4 py-3 font-medium text-xs max-w-[200px] truncate" style={{ color: 'var(--text-primary)' }} title={tx.description}>{tx.description}</td>
+                      <td className="px-4 py-3 capitalize text-xs text-secondary-auto">{CATEGORY_LABELS[tx.category] || tx.category}</td>
+                      <td className="px-4 py-3 font-medium text-xs max-w-[200px] truncate text-grafite-auto" title={tx.description}>{tx.description}</td>
                       <td className={`px-4 py-3 font-mono font-bold text-right ${tx.type === 'receita' ? 'text-[#15803D]' : 'text-[#B91C1C]'}`}>
                         {tx.type === 'receita' ? '+' : '-'}{tx.amount.toLocaleString('pt')} CVE
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'var(--text-muted)' }}>
+                      <td className="px-4 py-3 font-mono text-xs text-muted-auto">
                         {tx.date ? format(new Date(tx.date), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -283,7 +283,7 @@ export const CashFlowTab = ({ isAdmin }) => {
                       {tx.type === 'receita' ? '+' : '-'}{tx.amount.toLocaleString('pt')} CVE
                     </span>
                   </div>
-                  <p className="text-xs truncate" style={{ color: 'var(--text-primary)' }}>{tx.description}</p>
+                  <p className="text-xs truncate text-grafite-auto">{tx.description}</p>
                   <div className="flex items-center justify-between mt-2">
                     <span className="text-xs text-[#6B7280]">{tx.date ? format(new Date(tx.date), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span>
                     <div className="flex items-center gap-1">

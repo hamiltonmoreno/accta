@@ -16,8 +16,8 @@ const StatBlock = ({ label, value, icon: Icon, color }) => (
     <div className={`w-9 h-9 sm:w-10 sm:h-10 ${color} rounded-lg flex items-center justify-center mb-2 sm:mb-3`}>
       <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
     </div>
-    <div className="font-mono text-lg sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{value}</div>
-    <div className="text-xs uppercase tracking-wider mt-0.5" style={{ color: 'var(--text-muted)' }}>{label}</div>
+    <div className="font-mono text-lg sm:text-2xl font-bold text-grafite-auto">{value}</div>
+    <div className="text-xs uppercase tracking-wider mt-0.5 text-muted-auto">{label}</div>
   </div>
 );
 
@@ -40,8 +40,8 @@ export const MemberFinanceView = () => {
         <div className="flex items-start gap-3">
           <DollarSign className="w-5 h-5 text-carmesim flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="font-semibold text-sm mb-1" style={{ color: 'var(--text-primary)' }}>Pagamento Automatico</h3>
-            <p className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)' }}>As quotas mensais sao descontadas automaticamente em folha de pagamento.</p>
+            <h3 className="font-semibold text-sm mb-1 text-grafite-auto">Pagamento Automatico</h3>
+            <p className="text-xs sm:text-sm text-secondary-auto">As quotas mensais sao descontadas automaticamente em folha de pagamento.</p>
           </div>
         </div>
       </div>
@@ -77,13 +77,13 @@ export const MemberFinanceView = () => {
               return (
               <div key={inv.id} className="p-4 flex items-center justify-between" data-testid={`invoice-${inv.id}`}>
                 <div>
-                  <span className="font-semibold text-sm capitalize" style={{ color: 'var(--text-primary)' }}>{inv.type}</span>
-                  <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  <span className="font-semibold text-sm capitalize text-grafite-auto">{inv.type}</span>
+                  <div className="text-xs mt-0.5 text-muted-auto">
                     {inv.due_date ? format(new Date(inv.due_date), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-mono font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{inv.amount} CVE</div>
+                  <div className="font-mono font-bold text-sm text-grafite-auto">{inv.amount} CVE</div>
                   <span className={`inline-flex items-center gap-1 text-xs font-semibold uppercase px-2 py-0.5 rounded-full mt-0.5 ${statusCfg.className}`}>
                     <StatusIcon className="w-3 h-3" aria-hidden="true" />
                     {inv.status}

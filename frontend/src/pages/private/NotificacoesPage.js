@@ -107,11 +107,11 @@ const BroadcastPanel = ({ onSent }) => {
             <Megaphone className="w-4 h-4 text-white" />
           </div>
           <div className="text-left">
-            <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Enviar Notificacao</span>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Broadcast para todos os socios ativos</p>
+            <span className="font-semibold text-sm text-grafite-auto">Enviar Notificacao</span>
+            <p className="text-xs text-muted-auto">Broadcast para todos os socios ativos</p>
           </div>
         </div>
-        <ChevronDown className={`w-5 h-5 transition-transform ${expanded ? 'rotate-180' : ''}`} style={{ color: 'var(--text-muted)' }} />
+        <ChevronDown className={`w-5 h-5 transition-transform ${expanded ? 'rotate-180' : ''} text-muted-auto`} />
       </button>
 
       {expanded && (
@@ -119,7 +119,7 @@ const BroadcastPanel = ({ onSent }) => {
             <form onSubmit={handleSend} className="p-4 space-y-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider mb-1 block" style={{ color: 'var(--text-muted)' }}>Tipo</label>
+                  <label className="text-xs font-semibold uppercase tracking-wider mb-1 block text-muted-auto">Tipo</label>
                   <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
                     data-testid="broadcast-type-select">
@@ -131,7 +131,7 @@ const BroadcastPanel = ({ onSent }) => {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider mb-1 block" style={{ color: 'var(--text-muted)' }}>Link (opcional)</label>
+                  <label className="text-xs font-semibold uppercase tracking-wider mb-1 block text-muted-auto">Link (opcional)</label>
                   <input type="text" value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })}
                     placeholder="/financeiro, /eventos..."
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
@@ -139,14 +139,14 @@ const BroadcastPanel = ({ onSent }) => {
                 </div>
               </div>
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wider mb-1 block" style={{ color: 'var(--text-muted)' }}>Titulo *</label>
+                <label className="text-xs font-semibold uppercase tracking-wider mb-1 block text-muted-auto">Titulo *</label>
                 <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
                   placeholder="Ex: Assembleia Geral Extraordinaria"
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
                   data-testid="broadcast-title-input" />
               </div>
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wider mb-1 block" style={{ color: 'var(--text-muted)' }}>Mensagem *</label>
+                <label className="text-xs font-semibold uppercase tracking-wider mb-1 block text-muted-auto">Mensagem *</label>
                 <textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })}
                   placeholder="Detalhes da notificacao..."
                   rows={3}
@@ -154,7 +154,7 @@ const BroadcastPanel = ({ onSent }) => {
                   data-testid="broadcast-message-input" />
               </div>
               <div className="flex items-center justify-between">
-                <p className="text-xs flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs flex items-center gap-1 text-muted-auto">
                   <Info className="w-3 h-3" /> Sera enviada a todos os socios ativos
                 </p>
                 <button type="submit" disabled={sending} className="btn-primary flex items-center gap-2 text-sm" data-testid="broadcast-send-btn">
@@ -240,20 +240,20 @@ export const NotificacoesPage = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="card-technical p-4">
-          <div className="font-mono text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{total}</div>
-          <div className="text-xs uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Total</div>
+          <div className="font-mono text-2xl font-bold text-grafite-auto">{total}</div>
+          <div className="text-xs uppercase tracking-wider mt-1 text-muted-auto">Total</div>
         </div>
         <div className="card-technical p-4">
           <div className="font-mono text-2xl font-bold text-carmesim">{unreadCount}</div>
-          <div className="text-xs uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Nao lidas</div>
+          <div className="text-xs uppercase tracking-wider mt-1 text-muted-auto">Nao lidas</div>
         </div>
         <div className="card-technical p-4">
           <div className="font-mono text-2xl font-bold text-green-600">{readCount}</div>
-          <div className="text-xs uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Lidas</div>
+          <div className="text-xs uppercase tracking-wider mt-1 text-muted-auto">Lidas</div>
         </div>
         <div className="card-technical p-4">
-          <div className="font-mono text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{filteredNotifications.length}</div>
-          <div className="text-xs uppercase tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>Filtradas</div>
+          <div className="font-mono text-2xl font-bold text-grafite-auto">{filteredNotifications.length}</div>
+          <div className="text-xs uppercase tracking-wider mt-1 text-muted-auto">Filtradas</div>
         </div>
       </div>
 
@@ -262,7 +262,7 @@ export const NotificacoesPage = () => {
 
       {/* Filters */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        <Filter className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+        <Filter className="w-4 h-4 flex-shrink-0 text-muted-auto" />
         {FILTER_OPTIONS.map((opt) => (
           <button key={opt.value} onClick={() => setFilterType(opt.value)}
             data-testid={`filter-notif-${opt.value || 'all'}`}
@@ -311,7 +311,7 @@ export const NotificacoesPage = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-1">
-                      <h3 className="font-semibold text-sm sm:text-base" style={{ color: 'var(--text-primary)' }}>{notification.title}</h3>
+                      <h3 className="font-semibold text-sm sm:text-base text-grafite-auto">{notification.title}</h3>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         {!notification.read && (
                           <span className="w-2 h-2 bg-carmesim rounded-full" />
@@ -325,9 +325,9 @@ export const NotificacoesPage = () => {
                         </button>
                       </div>
                     </div>
-                    <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>{notification.message}</p>
+                    <p className="text-sm mb-2 text-secondary-auto">{notification.message}</p>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
+                      <span className="text-xs font-mono text-muted-auto">
                         {notification.created_at ? format(new Date(notification.created_at), "dd MMM yyyy 'as' HH:mm", { locale: ptBR }) : ''}
                       </span>
                       {notification.link && (
