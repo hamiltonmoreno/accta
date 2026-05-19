@@ -29,10 +29,10 @@ export const DocumentosPage = () => {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="font-sans font-bold text-4xl text-grafite mb-2" data-testid="documents-title">
+          <h1 className="page-title" data-testid="documents-title">
             Secretaria & Documentos
           </h1>
-          <p className="text-gray-600">Acesse atas, estatutos, balancetes e outros documentos oficiais</p>
+          <p className="page-subtitle">Acesse atas, estatutos, balancetes e outros documentos oficiais</p>
         </div>
         
         {isAdmin && (

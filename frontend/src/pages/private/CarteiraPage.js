@@ -189,11 +189,11 @@ export const CarteiraPage = () => {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
-      <div className="text-center">
-        <h1 className="font-sans font-bold text-4xl text-grafite mb-2" data-testid="wallet-title">
+      <div>
+        <h1 className="page-title" data-testid="wallet-title">
           Carteira Digital
         </h1>
-        <div className="flex items-center justify-center gap-2 text-gray-500">
+        <div className="flex items-center gap-2 text-gray-500 mt-1">
           {isOnline ? (
             <Wifi className="w-4 h-4 text-green-500" />
           ) : (

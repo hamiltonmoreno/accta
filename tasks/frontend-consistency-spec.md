@@ -108,14 +108,18 @@ primeiro.
 
 ### Fase 1 — Header de página uniforme (S1/V3)
 
-- [ ] Substituir headers hand-rolled por `.page-title`/`.page-subtitle`
+- [x] Substituir headers hand-rolled por `.page-title`/`.page-subtitle`
   (left-aligned), em `AdminLogsPage:25`, `BeneficiosPage:65`,
   `CarteiraPage:193` (remover `text-center`), `DocumentosPage:32`; e o
-  subtítulo cru de `PerfilPage`/`AdminUsuariosPage:151`.
+  subtítulo cru de `AdminUsuariosPage:151`. `PerfilPage` já usa
+  `.page-title` sem subtítulo cru → não tocado (não inventar copy).
 - [ ] Opcional: extrair `<PageHeader title subtitle actions>` reutilizável.
-  - **Aceitação:** nenhuma página com `h1 ... text-4xl` hand-rolled
-    (`grep -rnE 'h1 className="[^"]*text-4xl' frontend/src/pages` → 0);
-    todas as páginas privadas usam `.page-title`.
+  - **Aceitação:** nenhuma **página privada (portal)** com header
+    hand-rolled `h1 text-4xl` — todas usam `.page-title`. Heros de
+    **páginas públicas** (ex. `GaleriaPage:213` branco no hero,
+    `ValidadorPage:39` página pública centrada) têm sizing de hero
+    próprio e **não** usam `.page-title` (padrão distinto, tratado no
+    âmbito público da Fase 7, não aqui).
 
 ### Fase 2 — Contraste de ícones + cores fora do sistema (V4/V5)
 

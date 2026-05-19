@@ -22,10 +22,10 @@ export const AdminLogsPage = () => {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="font-sans font-bold text-4xl text-grafite mb-2" data-testid="admin-logs-title">
+        <h1 className="page-title" data-testid="admin-logs-title">
           Audit Logs
         </h1>
-        <p className="text-gray-600">Registro de todas as ações administrativas no sistema</p>
+        <p className="page-subtitle">Registro de todas as ações administrativas no sistema</p>
       </div>
 
       {/* Stats */}

@@ -62,10 +62,10 @@ export const BeneficiosPage = () => {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="font-sans font-bold text-4xl text-grafite mb-2" data-testid="benefits-title">
+        <h1 className="page-title" data-testid="benefits-title">
           Clube de Benefícios
         </h1>
-        <p className="text-gray-600">Descontos exclusivos para sócios ACCTA em parceiros selecionados</p>
+        <p className="page-subtitle">Descontos exclusivos para sócios ACCTA em parceiros selecionados</p>
       </div>
 
       {/* Status Alert */}
