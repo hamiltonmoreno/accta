@@ -230,9 +230,14 @@ tabela `(pk bigserial, doc jsonb)`. Resultado: **zero alterações** em rotas,
 | 0 — Fundação global | `1207858` | App.css reduzido (removido `a{color}` global, scrollbar/focus/selection Carmesim, `:root`/`.btn-*` duplicados, shimmer morto); `--text-muted` #9ca3af→#6B7280; `darkMode` removido; `dark:` do alert.jsx | grep C7202F App.css=0; dark:=0; eslint/build OK |
 | 1 — Red-on-dark (CRÍTICO) | `c0a5e16` | 6 subagentes / matriz fg-bg: 35 defeitos red-on-dark→text-white/`bg-white/10`; 12 erros→`#B91C1C`; preservado Carmesim-em-branco/finanças/nav | varredura inline=0; eslint/build OK |
 | 2 — Taxonomia de botões | `4f91615` | ≤1 primário/vista: bg-confianca→Carmesim Primary (Home/Sobre/BenefPub/PublicLayout); 4 toggles→outline; GaleriaAdmin/ErrorBoundary/EventosPub | eslint/build OK |
-| 3 — Texto muted | `7bbeb66` | ~108 `text-gray-400/300` de TEXTO→`#6B7280`; ~52 não-texto (ícones/divisórias) preservados | nenhum gray em texto; eslint/build OK |
-| 4 — Paleta + tokens legados | `dfd648c` | charts→sistema; amber→warning(14); slate→neutro(9); confianca→Carmesim; tokens confianca/navy/amber/slate + pulse-radar removidos do config; footer slogan→text-white | grep tokens=0; eslint/build OK |
-| 5 — QA final | (docs) | eslint 0err/44warn(<60); craco build OK; escopo frontend-only (41 fic., +229/-367); todos os greps de aceitação limpos | — |
+| 3 — Texto muted | `b456b79` | ~108 `text-gray-400/300` de TEXTO→`#6B7280`; ~52 não-texto (ícones/divisórias) preservados | nenhum gray em texto; eslint/build OK |
+| 4 — Paleta + tokens legados | `a808977` | charts→sistema; amber→warning(14); slate→neutro(9); confianca→Carmesim; tokens confianca/navy/amber/slate + pulse-radar removidos do config; footer slogan→text-white | grep tokens=0; eslint/build OK |
+| 5 — QA final | `8c5fae1` | eslint 0err/44warn(<60); craco build OK; escopo frontend-only (41 fic., +229/-367); todos os greps de aceitação limpos | — |
+
+> **Nota de rebase (auditoria):** PR #43 fez merge das Fases 0–2 (`1207858` /
+> `c0a5e16` / `4f91615`, ainda presentes em `main`) em 2026-05-19. A branch foi
+> rebaseada sobre `main` e as Fases 3–5 foram reaplicadas com novos hashes
+> (`b456b79` / `a808977` / `8c5fae1`); pré-rebase eram `7bbeb66` / `dfd648c`.
 
 **Decisões de critério (conformes ao SKILL, reversíveis numa linha):**
 - `PublicLayout` "Entrar": era `bg-confianca` (único CTA da chrome) → promovido a Carmesim Primary (vs. demover a neutro).
