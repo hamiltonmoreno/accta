@@ -20,7 +20,7 @@ export const AdminLogsPage = () => {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="page-title" data-testid="admin-logs-title">

@@ -81,7 +81,7 @@ export const EventosPage = () => {
   });
 
   return (
-    <div className="space-y-5 sm:space-y-8">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
           <h1 className="page-title" data-testid="events-title">

@@ -26,7 +26,7 @@ export const DocumentosPage = () => {
     .filter((doc) => doc.title.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

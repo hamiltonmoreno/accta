@@ -59,7 +59,7 @@ export const VotacoesPage = () => {
 
   if (loading) {
     return (
-      <div className="space-y-5 sm:space-y-8">
+      <div className="space-y-6">
         <div>
           <Skeleton className="h-9 w-48 mb-2" />
           <Skeleton className="h-4 w-64" />
@@ -74,7 +74,7 @@ export const VotacoesPage = () => {
   }
 
   return (
-    <div className="space-y-5 sm:space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="page-title" data-testid="polls-title">

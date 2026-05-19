@@ -195,7 +195,7 @@ export const DashboardPage = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6 sm:space-y-7">
+      <div className="space-y-6">
         <div>
           <Skeleton className="h-9 w-64 mb-2" />
           <Skeleton className="h-4 w-72" />
@@ -214,7 +214,7 @@ export const DashboardPage = () => {
   }
 
   return (
-    <div className="space-y-6 sm:space-y-7">
+    <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="page-title" data-testid="dashboard-title">

@@ -152,7 +152,7 @@ export const AdminUsuariosPage = () => {
   };
 
   return (
-    <div className="space-y-5" data-testid="admin-users-page">
+    <div className="space-y-6" data-testid="admin-users-page">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="page-title" data-testid="admin-users-title">Gestao de Membros</h1>

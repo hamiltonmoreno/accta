@@ -568,7 +568,7 @@ const ProjectDetailPage = () => {
   const handleProgressChange = (val) => updateMutation.mutate({ progress: parseInt(val) });
 
   return (
-    <div className="space-y-5 sm:space-y-6">
+    <div className="space-y-6">
       {/* Back + Title */}
       <div>
         <button onClick={() => navigate('/projetos')} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-carmesim mb-3 transition-colors" data-testid="back-to-projects">
