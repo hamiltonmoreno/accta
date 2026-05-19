@@ -4,7 +4,7 @@ from typing import List
 from models import User, Benefit, BenefitCreate, BenefitUpdate
 from database import db
 from auth import get_current_user
-from helpers import create_audit_log
+from helpers import create_audit_log, delete_upload_file
 
 router = APIRouter(tags=["benefits"])
 
@@ -67,6 +67,10 @@ async def update_benefit(
         raise HTTPException(status_code=400, detail="Sem alterações a aplicar")
 
     await db.benefits.update_one({"id": benefit_id}, {"$set": changes})
+    # Logo substituído → o ficheiro antigo fica órfão no disco.
+    old_logo = existing.get("logo_url") or ""
+    if "logo_url" in changes and changes["logo_url"] != old_logo:
+        delete_upload_file(old_logo)
     await create_audit_log(
         current_user.id,
         f"Atualizou benefício {benefit_id}: {sorted(changes.keys())}",
@@ -88,6 +92,7 @@ async def delete_benefit(benefit_id: str, current_user: User = Depends(get_curre
         raise HTTPException(status_code=404, detail="Benefício não encontrado")
 
     await db.benefits.delete_one({"id": benefit_id})
+    delete_upload_file(existing.get("logo_url") or "")
     await create_audit_log(
         current_user.id,
         f"Removeu benefício {existing.get('name', benefit_id)}",

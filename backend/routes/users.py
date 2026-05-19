@@ -5,7 +5,7 @@ import re
 from models import User, UserProfileUpdate, UserAdminUpdate, CARGOS, PRIVILEGES, USER_STATUSES
 from database import db
 from auth import get_current_user
-from helpers import create_audit_log, create_notification
+from helpers import create_audit_log, create_notification, delete_upload_file
 
 router = APIRouter(tags=["users"])
 
@@ -189,6 +189,8 @@ async def delete_user(user_id: str, current_user: User = Depends(get_current_use
         raise HTTPException(status_code=404, detail="Utilizador não encontrado")
 
     await db.users.delete_one({"id": user_id})
+    # Avatar fica órfão no disco se não for removido com o utilizador.
+    delete_upload_file(existing.get("photo_url") or "")
     await create_audit_log(current_user.id, f"Removeu utilizador {existing.get('name', user_id)}", user_id)
     return {"message": "Utilizador removido com sucesso"}
 

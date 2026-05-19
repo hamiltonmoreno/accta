@@ -3,8 +3,26 @@ from datetime import datetime, timezone, timedelta
 import ipaddress
 import os
 from fastapi import Request
-from database import db
+from database import db, UPLOAD_DIR
 from models import AuditLog, Notification
+
+
+def delete_upload_file(url: str) -> bool:
+    """Apaga o ficheiro físico associado a um URL `/uploads/...`, com guard de
+    path traversal. Devolve True se apagou. Falha silenciosa (False) em URLs
+    vazias, fora de `/uploads/`, que escapem a UPLOAD_DIR ou inexistentes — não
+    expõe estado do filesystem nem rebenta o handler quando o ficheiro já não lá está.
+    """
+    if not url or not url.startswith("/uploads/"):
+        return False
+    upload_root = UPLOAD_DIR.resolve()
+    fp = (UPLOAD_DIR.parent / url.lstrip("/")).resolve()
+    if not fp.is_relative_to(upload_root):
+        return False  # tentativa de escapar de uploads/
+    if not fp.exists() or not fp.is_file():
+        return False
+    fp.unlink()
+    return True
 
 
 # Redes de onde um proxy reverso legítimo (Nginx) liga-se ao backend.
