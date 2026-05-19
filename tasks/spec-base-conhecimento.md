@@ -323,10 +323,9 @@ em ContactosPage. Contactos úteis (#29) → ContactosPage.
 
 **Fase 3 (bloqueados §5) — tratados sem inventar.** #26 telefone placeholder
 **removido**; #24 sede fictícia (Nelson Mandela) + iframe do mapa **removidos**;
-corpos sociais (#28) mantidos "A nomear". **Decisão a confirmar pelo dono:** os
-e-mails `secretariado@`/`comunicacao@controlador.cv` foram **mantidos** (domínio
-real do projeto, não têm padrão de placeholder) — remover se a ACCTA assim
-decidir.
+corpos sociais (#28) mantidos "A nomear". **Decisão do dono (confirmada
+2026-05-19): MANTER** os e-mails `secretariado@`/`comunicacao@controlador.cv`
+(domínio real do projeto, sem padrão de placeholder).
 
 **Fase 4 — verificação.** `yarn build` ✅ (140s, build pronto). ESLint local
 (v9.23.0, flat config) ✅ **0 erros / 44 warnings** (limite 60); nenhuma das
