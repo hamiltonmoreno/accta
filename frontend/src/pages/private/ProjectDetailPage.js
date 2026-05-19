@@ -13,15 +13,15 @@ import {
 
 const STATUS_CONFIG = {
   proposta: { label: 'Proposta', color: 'bg-[#FFFBEB] text-[#B45309]' },
-  aprovado: { label: 'Aprovado', color: 'bg-blue-100 text-blue-700' },
-  em_curso: { label: 'Em Curso', color: 'bg-green-100 text-green-700' },
-  concluido: { label: 'Concluido', color: 'bg-gray-100 text-gray-600' },
-  cancelado: { label: 'Cancelado', color: 'bg-red-100 text-red-600' },
+  aprovado: { label: 'Aprovado', color: 'bg-[#EFF6FF] text-[#1D4ED8]' },
+  em_curso: { label: 'Em Curso', color: 'bg-[#EFF6FF] text-[#1D4ED8]' },
+  concluido: { label: 'Concluido', color: 'bg-[#F0FDF4] text-[#15803D]' },
+  cancelado: { label: 'Cancelado', color: 'bg-[#FEF2F2] text-[#B91C1C]' },
 };
 
 const PRIORITY_CONFIG = {
-  baixa: { label: 'Baixa', color: 'text-gray-500' },
-  media: { label: 'Media', color: 'text-blue-500' },
+  baixa: { label: 'Baixa', color: 'text-[#6B7280]' },
+  media: { label: 'Media', color: 'text-[#2563EB]' },
   alta: { label: 'Alta', color: 'text-carmesim' },
 };
 
@@ -80,8 +80,8 @@ const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
   const handleDelete = (taskId) => deleteMutation.mutate(taskId);
 
   const taskStatusIcon = (status) => {
-    if (status === 'concluido') return <CheckCircle className="w-4 h-4 text-green-500" />;
-    if (status === 'em_curso') return <Clock className="w-4 h-4 text-blue-500" />;
+    if (status === 'concluido') return <CheckCircle className="w-4 h-4 text-[#16A34A]" />;
+    if (status === 'em_curso') return <Clock className="w-4 h-4 text-[#2563EB]" />;
     return <div className="w-4 h-4 rounded-full border-2 border-gray-300" />;
   };
 
@@ -304,12 +304,12 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
         </div>
         <div className="bg-white border border-gray-200/80 rounded-xl p-4">
           <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Gasto</div>
-          <div className="font-mono text-xl font-bold text-red-600" data-testid="budget-spent">{spent.toLocaleString('pt')} CVE</div>
+          <div className="font-mono text-xl font-bold text-[#3A3A3A]" data-testid="budget-spent">{spent.toLocaleString('pt')} CVE</div>
           {budget > 0 && <div className="text-xs text-[#6B7280] mt-0.5">{pct}% do orcamento</div>}
         </div>
         <div className="bg-white border border-gray-200/80 rounded-xl p-4">
           <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Disponivel</div>
-          <div className={`font-mono text-xl font-bold ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`} data-testid="budget-remaining">
+          <div className={`font-mono text-xl font-bold ${remaining >= 0 ? 'text-[#15803D]' : 'text-[#B91C1C]'}`} data-testid="budget-remaining">
             {remaining.toLocaleString('pt')} CVE
           </div>
         </div>
@@ -323,7 +323,7 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
             <span className="font-mono font-bold">{pct}%</span>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-2.5">
-            <div className={`h-2.5 rounded-full transition-all ${pct > 90 ? 'bg-red-500' : pct > 70 ? 'bg-[#D97706]' : 'bg-green-500'}`}
+            <div className={`h-2.5 rounded-full transition-all ${pct > 90 ? 'bg-[#C7202F]' : pct > 70 ? 'bg-[#D97706]' : 'bg-[#16A34A]'}`}
               style={{ width: `${Math.min(pct, 100)}%` }} />
           </div>
         </div>
@@ -384,7 +384,7 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
               {expenses.map(e => (
                 <tr key={e.id} className="border-t border-gray-50" data-testid={`expense-${e.id}`}>
                   <td className="px-4 py-3 text-grafite">{e.description}</td>
-                  <td className="px-4 py-3 text-right font-mono font-bold text-red-600">{e.amount.toLocaleString('pt')} CVE</td>
+                  <td className="px-4 py-3 text-right font-mono font-bold text-[#3A3A3A]">{e.amount.toLocaleString('pt')} CVE</td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{e.date}</td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{e.created_by_name}</td>
                   {canManage && (
@@ -484,7 +484,7 @@ const TimelineTab = ({ project, milestones, canManage, onReload }) => {
               <div key={m.id} className="relative flex items-start gap-4" data-testid={`milestone-${m.id}`}>
                 <button onClick={() => toggleComplete(m)}
                   className={`absolute -left-3.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 z-10 transition-colors ${
-                    m.completed ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-gray-300'
+                    m.completed ? 'bg-[#16A34A] border-[#16A34A] text-white' : 'bg-white border-gray-300'
                   }`} aria-label={m.completed ? 'Marcar milestone como pendente' : 'Marcar milestone como concluído'} data-testid={`toggle-milestone-${m.id}`}>
                   {m.completed && <CheckCircle className="w-3 h-3" aria-hidden="true" />}
                 </button>

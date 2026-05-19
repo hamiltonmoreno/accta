@@ -126,9 +126,9 @@ export const CashFlowTab = ({ isAdmin }) => {
     <div className="space-y-5">
       {summary && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <StatBlock label="Receitas" value={`${summary.total_receitas.toLocaleString('pt')} CVE`} icon={TrendingUp} color="bg-green-600" />
+          <StatBlock label="Receitas" value={`${summary.total_receitas.toLocaleString('pt')} CVE`} icon={TrendingUp} color="bg-[#16A34A]" />
           <StatBlock label="Despesas" value={`${summary.total_despesas.toLocaleString('pt')} CVE`} icon={TrendingDown} color="bg-carmesim" />
-          <StatBlock label="Resultado" value={`${summary.resultado_liquido.toLocaleString('pt')} CVE`} icon={Wallet} color={summary.resultado_liquido >= 0 ? 'bg-grafite' : 'bg-orange-500'} />
+          <StatBlock label="Resultado" value={`${summary.resultado_liquido.toLocaleString('pt')} CVE`} icon={Wallet} color={summary.resultado_liquido >= 0 ? 'bg-grafite' : 'bg-[#D97706]'} />
           <StatBlock label="Transacoes" value={summary.total_transacoes} icon={DollarSign} color="bg-grafite" />
         </div>
       )}
@@ -231,7 +231,7 @@ export const CashFlowTab = ({ isAdmin }) => {
                     <tr key={tx.id} className="border-t border-gray-50 hover:bg-gray-50/50 transition-colors" data-testid={`tx-row-${tx.id}`}>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                          tx.type === 'receita' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                          tx.type === 'receita' ? 'bg-[#F0FDF4] text-[#15803D]' : 'bg-[#FEF2F2] text-[#B91C1C]'
                         }`}>
                           {tx.type === 'receita' ? <ArrowUpCircle className="w-3 h-3" /> : <ArrowDownCircle className="w-3 h-3" />}
                           {tx.type}
@@ -239,7 +239,7 @@ export const CashFlowTab = ({ isAdmin }) => {
                       </td>
                       <td className="px-4 py-3 capitalize text-xs" style={{ color: 'var(--text-secondary)' }}>{CATEGORY_LABELS[tx.category] || tx.category}</td>
                       <td className="px-4 py-3 font-medium text-xs max-w-[200px] truncate" style={{ color: 'var(--text-primary)' }} title={tx.description}>{tx.description}</td>
-                      <td className={`px-4 py-3 font-mono font-bold text-right ${tx.type === 'receita' ? 'text-green-600' : 'text-red-600'}`}>
+                      <td className={`px-4 py-3 font-mono font-bold text-right ${tx.type === 'receita' ? 'text-[#15803D]' : 'text-[#B91C1C]'}`}>
                         {tx.type === 'receita' ? '+' : '-'}{tx.amount.toLocaleString('pt')} CVE
                       </td>
                       <td className="px-4 py-3 font-mono text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -250,7 +250,7 @@ export const CashFlowTab = ({ isAdmin }) => {
                           <button onClick={() => openEdit(tx)} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400 hover:text-carmesim" aria-label="Editar transação" data-testid={`edit-tx-${tx.id}`}>
                             <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
                           </button>
-                          <button onClick={() => handleDelete(tx.id)} className="p-1.5 rounded-md hover:bg-red-50 text-gray-400 hover:text-red-500" aria-label="Apagar transação" data-testid={`delete-tx-${tx.id}`}>
+                          <button onClick={() => handleDelete(tx.id)} className="p-1.5 rounded-md hover:bg-[#FEF2F2] text-gray-400 hover:text-[#B91C1C]" aria-label="Apagar transação" data-testid={`delete-tx-${tx.id}`}>
                             <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                           </button>
                         </div>
@@ -266,11 +266,11 @@ export const CashFlowTab = ({ isAdmin }) => {
               {transactions.map((tx) => (
                 <div key={tx.id} className="p-4" data-testid={`tx-card-${tx.id}`}>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className={`inline-flex items-center gap-1 text-xs font-bold uppercase ${tx.type === 'receita' ? 'text-green-600' : 'text-red-600'}`}>
+                    <span className={`inline-flex items-center gap-1 text-xs font-bold uppercase ${tx.type === 'receita' ? 'text-[#15803D]' : 'text-[#B91C1C]'}`}>
                       {tx.type === 'receita' ? <ArrowUpCircle className="w-3 h-3" /> : <ArrowDownCircle className="w-3 h-3" />}
                       {CATEGORY_LABELS[tx.category] || tx.category}
                     </span>
-                    <span className={`font-mono font-bold text-sm ${tx.type === 'receita' ? 'text-green-600' : 'text-red-600'}`}>
+                    <span className={`font-mono font-bold text-sm ${tx.type === 'receita' ? 'text-[#15803D]' : 'text-[#B91C1C]'}`}>
                       {tx.type === 'receita' ? '+' : '-'}{tx.amount.toLocaleString('pt')} CVE
                     </span>
                   </div>
@@ -279,7 +279,7 @@ export const CashFlowTab = ({ isAdmin }) => {
                     <span className="text-xs text-[#6B7280]">{tx.date ? format(new Date(tx.date), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span>
                     <div className="flex items-center gap-1">
                       <button onClick={() => openEdit(tx)} className="p-2 -m-2 text-gray-400 hover:text-carmesim" aria-label="Editar transação"><Pencil className="w-4 h-4" aria-hidden="true" /></button>
-                      <button onClick={() => handleDelete(tx.id)} className="p-2 -m-2 text-gray-400 hover:text-red-500" aria-label="Apagar transação"><Trash2 className="w-4 h-4" aria-hidden="true" /></button>
+                      <button onClick={() => handleDelete(tx.id)} className="p-2 -m-2 text-gray-400 hover:text-[#B91C1C]" aria-label="Apagar transação"><Trash2 className="w-4 h-4" aria-hidden="true" /></button>
                     </div>
                   </div>
                 </div>

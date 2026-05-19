@@ -35,7 +35,7 @@ export const PollCard = ({ poll, isActive = false, children }) => {
             </div>
             {isActive && (
               <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${
-                isUrgent ? 'bg-alert/10 text-alert' : 'bg-carmesim/10 text-carmesim'
+                isUrgent ? 'bg-[#FFFBEB] text-[#B45309]' : 'bg-carmesim/10 text-carmesim'
               }`}>
                 <Clock className="w-4 h-4" />
                 <span className="font-mono text-xs font-semibold">

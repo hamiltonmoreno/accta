@@ -107,7 +107,7 @@ export const ContactosPage = () => {
                 {/* Email General */}
                 <div className="flex gap-5">
                   <div className="w-14 h-14 bg-carmesim rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Mail className="w-7 h-7 text-grafite" />
+                    <Mail className="w-7 h-7 text-white" />
                   </div>
                   <div>
                     <h3 className="font-sans font-semibold text-lg text-grafite mb-1">Email Geral</h3>
@@ -145,7 +145,7 @@ export const ContactosPage = () => {
                     <li key={c.entidade} className="card-technical rounded-xl p-5">
                       <div className="flex items-start gap-4">
                         <div className="w-10 h-10 bg-grafite rounded-lg flex items-center justify-center flex-shrink-0">
-                          <MapPin className="w-5 h-5 text-carmesim" />
+                          <MapPin className="w-5 h-5 text-white" />
                         </div>
                         <div className="min-w-0">
                           <h4 className="font-semibold text-grafite">{c.entidade}</h4>

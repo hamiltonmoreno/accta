@@ -52,12 +52,12 @@ export const BeneficiosPublicoPage = () => {
   };
 
   const partnerCategories = [
-    { icon: Hotel, label: 'Hotelaria', color: 'bg-blue-50 text-blue-600' },
-    { icon: Dumbbell, label: 'Ginásios', color: 'bg-green-50 text-green-600' },
-    { icon: Stethoscope, label: 'Clínicas', color: 'bg-red-50 text-red-600' },
-    { icon: Shield, label: 'Seguros', color: 'bg-purple-50 text-purple-600' },
+    { icon: Hotel, label: 'Hotelaria', color: 'bg-[#EFF6FF] text-[#1D4ED8]' },
+    { icon: Dumbbell, label: 'Ginásios', color: 'bg-[#F0FDF4] text-[#15803D]' },
+    { icon: Stethoscope, label: 'Clínicas', color: 'bg-[#FEF2F2] text-[#B91C1C]' },
+    { icon: Shield, label: 'Seguros', color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
     { icon: Car, label: 'Rent-a-Car', color: 'bg-[#FFFBEB] text-[#B45309]' },
-    { icon: Heart, label: 'Bem-Estar', color: 'bg-pink-50 text-pink-600' },
+    { icon: Heart, label: 'Bem-Estar', color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
   ];
 
   return (
@@ -124,8 +124,8 @@ export const BeneficiosPublicoPage = () => {
             </div>
 
             <div className="animate-fade-up">
-              <div className="bg-gradient-to-br from-primary to-[#0A3A5A] rounded-2xl p-8 text-white">
-                <Gift className="w-12 h-12 text-carmesim mb-6" />
+              <div className="bg-gradient-to-br from-primary to-[#1e3a5f] rounded-2xl p-8 text-white">
+                <Gift className="w-12 h-12 text-white mb-6" />
                 <h3 className="font-sans font-bold text-2xl mb-4">Benefícios Exclusivos</h3>
                 <ul className="space-y-4">
                   {[
@@ -136,7 +136,7 @@ export const BeneficiosPublicoPage = () => {
                     'Condições especiais para família'
                   ].map((item, index) => (
                     <li key={index} className="flex items-start gap-3">
-                      <CheckCircle className="w-5 h-5 text-carmesim flex-shrink-0 mt-0.5" />
+                      <CheckCircle className="w-5 h-5 text-white flex-shrink-0 mt-0.5" />
                       <span className="text-white/90">{item}</span>
                     </li>
                   ))}
@@ -187,9 +187,9 @@ export const BeneficiosPublicoPage = () => {
                 className="text-center animate-fade-up">
                 <div className="relative mb-6">
                   <div className="w-20 h-20 bg-grafite rounded-2xl flex items-center justify-center mx-auto">
-                    <item.icon className="w-10 h-10 text-carmesim" />
+                    <item.icon className="w-10 h-10 text-white" />
                   </div>
-                  <span className="absolute -top-2 -right-2 w-8 h-8 bg-carmesim rounded-full flex items-center justify-center font-sans font-bold text-grafite text-sm">
+                  <span className="absolute -top-2 -right-2 w-8 h-8 bg-carmesim rounded-full flex items-center justify-center font-sans font-bold text-white text-sm">
                     {item.step}
                   </span>
                 </div>
@@ -257,7 +257,7 @@ export const BeneficiosPublicoPage = () => {
         <div className="max-w-4xl mx-auto px-6">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="animate-fade-up">
-              <HandshakeIcon className="w-16 h-16 text-carmesim mb-6" />
+              <HandshakeIcon className="w-16 h-16 text-white mb-6" />
               <h2 className="font-sans font-bold text-4xl text-white mb-6">
                 Quer ser nosso parceiro?
               </h2>
@@ -277,7 +277,7 @@ export const BeneficiosPublicoPage = () => {
                   'Validação digital integrada'
                 ].map((item, index) => (
                   <li key={index} className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-carmesim flex-shrink-0 mt-0.5" />
+                    <CheckCircle className="w-5 h-5 text-white flex-shrink-0 mt-0.5" />
                     <span className="text-white/90">{item}</span>
                   </li>
                 ))}

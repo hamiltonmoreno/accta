@@ -83,7 +83,7 @@ export const PerfilPage = () => {
   if (!user) return null;
 
   const roleLabel = { admin: 'Administrador', socio: 'Sócio', financeiro: 'Gestor Financeiro', moderador: 'Moderador' };
-  const statusColors = { ativo: 'bg-green-100 text-green-700', inativo: 'bg-gray-100 text-gray-600' };
+  const statusColors = { ativo: 'bg-[#F0FDF4] text-[#15803D]', inativo: 'bg-[#F5F5F5] text-[#3A3A3A]' };
 
   return (
     <div className="max-w-3xl mx-auto space-y-6" data-testid="profile-page">

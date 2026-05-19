@@ -17,16 +17,16 @@ import {
 } from '../../components/ui/alert-dialog';
 
 const CATEGORIES = [
-  { value: 'todos', label: 'Todos', color: 'bg-gray-100 text-gray-700' },
-  { value: 'geral', label: 'Geral', color: 'bg-blue-100 text-blue-700' },
-  { value: 'sugestao', label: 'Sugestao', color: 'bg-green-100 text-green-700' },
-  { value: 'discussao', label: 'Discussao', color: 'bg-purple-100 text-purple-700' },
-  { value: 'aviso', label: 'Aviso', color: 'bg-orange-100 text-orange-700' },
+  { value: 'todos', label: 'Todos', color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
+  { value: 'geral', label: 'Geral', color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
+  { value: 'sugestao', label: 'Sugestao', color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
+  { value: 'discussao', label: 'Discussao', color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
+  { value: 'aviso', label: 'Aviso', color: 'bg-[#FFFBEB] text-[#B45309]' },
 ];
 
 const getCategoryStyle = (cat) => {
   const found = CATEGORIES.find(c => c.value === cat);
-  return found?.color || 'bg-gray-100 text-gray-700';
+  return found?.color || 'bg-[#F5F5F5] text-[#3A3A3A]';
 };
 
 const getCategoryLabel = (cat) => {
@@ -188,15 +188,15 @@ const PendingPostsPanel = () => {
     <div className="card-technical rounded-xl overflow-hidden" data-testid="pending-posts-panel">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-4 bg-orange-50 hover:bg-orange-100 transition-colors"
+        className="w-full flex items-center justify-between p-4 bg-[#FFFBEB] hover:bg-[#FEF3C7] transition-colors"
       >
         <div className="flex items-center gap-3">
-          <Clock className="w-5 h-5 text-orange-600" />
-          <span className="font-semibold text-orange-800">
+          <Clock className="w-5 h-5 text-[#B45309]" />
+          <span className="font-semibold text-[#B45309]">
             {posts.length} post{posts.length !== 1 ? 's' : ''} pendente{posts.length !== 1 ? 's' : ''}
           </span>
         </div>
-        {expanded ? <ChevronUp className="w-5 h-5 text-orange-600" /> : <ChevronDown className="w-5 h-5 text-orange-600" />}
+        {expanded ? <ChevronUp className="w-5 h-5 text-[#B45309]" /> : <ChevronDown className="w-5 h-5 text-[#B45309]" />}
       </button>
 
       {expanded && (
@@ -206,10 +206,10 @@ const PendingPostsPanel = () => {
                 <div className="flex justify-center py-4"><div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
               ) : (
                 posts.map((post) => (
-                  <div key={post.id} className="border border-orange-200 rounded-lg p-4 bg-orange-50/50" data-testid={`pending-post-${post.id}`}>
+                  <div key={post.id} className="border border-[#FDE68A] rounded-lg p-4 bg-[#FFFBEB]/50" data-testid={`pending-post-${post.id}`}>
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-orange-200 rounded-full flex items-center justify-center text-sm font-bold text-orange-800">
+                        <div className="w-8 h-8 bg-[#FEF3C7] rounded-full flex items-center justify-center text-sm font-bold text-[#B45309]">
                           {post.user_name?.charAt(0).toUpperCase()}
                         </div>
                         <div>

@@ -27,11 +27,11 @@ import { ptBR } from 'date-fns/locale';
 
 const getEventStyle = (type) => {
   const styles = {
-    assembleia: { color: 'bg-blue-100 text-blue-700', border: 'border-blue-500' },
-    formacao: { color: 'bg-green-100 text-green-700', border: 'border-green-500' },
-    social: { color: 'bg-pink-100 text-pink-700', border: 'border-pink-500' },
+    assembleia: { color: 'bg-[#F5F5F5] text-[#3A3A3A]', border: 'border-[#9CA3AF]' },
+    formacao: { color: 'bg-[#F5F5F5] text-[#3A3A3A]', border: 'border-[#9CA3AF]' },
+    social: { color: 'bg-[#F5F5F5] text-[#3A3A3A]', border: 'border-[#9CA3AF]' },
     reuniao: { color: 'bg-[#FFFBEB] text-[#B45309]', border: 'border-[#D97706]' },
-    outro: { color: 'bg-gray-100 text-gray-700', border: 'border-gray-500' },
+    outro: { color: 'bg-[#F5F5F5] text-[#3A3A3A]', border: 'border-[#9CA3AF]' },
   };
   return styles[type] || styles.outro;
 };
@@ -223,13 +223,13 @@ export const EventosPage = () => {
                         {isRegistered ? (
                           <button
                             onClick={() => handleUnregister(event.id)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors font-medium text-xs sm:text-sm"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F0FDF4] text-[#15803D] rounded-lg hover:bg-[#DCFCE7] transition-colors font-medium text-xs sm:text-sm"
                           >
                             <UserCheck className="w-3.5 h-3.5" />
                             Inscrito
                           </button>
                         ) : isFull ? (
-                          <span className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-[#B91C1C] rounded-lg text-xs sm:text-sm">
+                          <span className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FEF2F2] text-[#B91C1C] rounded-lg text-xs sm:text-sm">
                             Lotado
                           </span>
                         ) : (

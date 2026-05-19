@@ -28,7 +28,7 @@ const StatCard = ({ title, value, icon: Icon, iconBg, change, changeLabel }) => 
     </div>
     <div className="font-bold text-3xl sm:text-4xl text-grafite mb-1 font-sans tracking-tight">{value}</div>
     {change !== undefined && (
-      <div className={`flex items-center gap-1 text-sm ${change >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+      <div className={`flex items-center gap-1 text-sm ${change >= 0 ? 'text-[#15803D]' : 'text-[#B91C1C]'}`}>
         {change >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
         <span className="font-semibold">{change >= 0 ? '+' : ''}{change}%</span>
         {changeLabel && <span className="text-[#6B7280] font-normal ml-0.5">{changeLabel}</span>}
@@ -41,12 +41,12 @@ const StatCard = ({ title, value, icon: Icon, iconBg, change, changeLabel }) => 
 const NotifIcon = ({ type }) => {
   const config = {
     poll_opened: { icon: Vote, color: 'text-carmesim', bg: 'bg-carmesim/10' },
-    invoice_due: { icon: DollarSign, color: 'text-orange-500', bg: 'bg-orange-50' },
-    event_new: { icon: Calendar, color: 'text-blue-500', bg: 'bg-blue-50' },
-    wall_post_approved: { icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-50' },
-    wall_comment: { icon: Bell, color: 'text-purple-500', bg: 'bg-purple-50' },
+    invoice_due: { icon: DollarSign, color: 'text-[#B45309]', bg: 'bg-[#FFFBEB]' },
+    event_new: { icon: Calendar, color: 'text-[#1D4ED8]', bg: 'bg-[#EFF6FF]' },
+    wall_post_approved: { icon: CheckCircle, color: 'text-[#15803D]', bg: 'bg-[#F0FDF4]' },
+    wall_comment: { icon: Bell, color: 'text-[#3A3A3A]', bg: 'bg-[#F5F5F5]' },
   };
-  const c = config[type] || { icon: Bell, color: 'text-gray-400', bg: 'bg-gray-100' };
+  const c = config[type] || { icon: Bell, color: 'text-[#3A3A3A]', bg: 'bg-[#F5F5F5]' };
   const IconComp = c.icon;
   return (
     <div className={`w-9 h-9 ${c.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
@@ -76,16 +76,16 @@ const ACTIVITY_ICONS = {
 };
 
 const ACTIVITY_COLORS = {
-  mural: { bg: 'bg-indigo-100', text: 'text-indigo-600' },
+  mural: { bg: 'bg-[#F5F5F5]', text: 'text-[#3A3A3A]' },
   projeto: { bg: 'bg-[#FFFBEB]', text: 'text-[#B45309]' },
-  evento: { bg: 'bg-purple-100', text: 'text-purple-600' },
-  financeiro: { bg: 'bg-green-100', text: 'text-green-600' },
-  votacao: { bg: 'bg-teal-100', text: 'text-teal-600' },
+  evento: { bg: 'bg-[#F5F5F5]', text: 'text-[#3A3A3A]' },
+  financeiro: { bg: 'bg-[#F0FDF4]', text: 'text-[#15803D]' },
+  votacao: { bg: 'bg-[#F5F5F5]', text: 'text-[#3A3A3A]' },
 };
 
 const ActivityIcon = ({ type }) => {
   const Icon = ACTIVITY_ICONS[type] || Activity;
-  const colors = ACTIVITY_COLORS[type] || { bg: 'bg-gray-100', text: 'text-gray-500' };
+  const colors = ACTIVITY_COLORS[type] || { bg: 'bg-[#F5F5F5]', text: 'text-[#3A3A3A]' };
   return (
     <div className={`w-9 h-9 ${colors.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
       <Icon className={`w-4 h-4 ${colors.text}`} />
@@ -223,7 +223,7 @@ export const DashboardPage = () => {
             title="Socios Ativos"
             value={stats.active_users}
             icon={CheckCircle}
-            iconBg="bg-green-100 text-green-600"
+            iconBg="bg-[#F0FDF4] text-[#15803D]"
             delay={0.1}
           />
           <StatCard
@@ -237,7 +237,7 @@ export const DashboardPage = () => {
             title="Receita Anual"
             value={financeSummary ? `${(financeSummary.total_receitas / 1000).toFixed(0)}k` : `${stats.total_revenue.toFixed(0)}`}
             icon={DollarSign}
-            iconBg="bg-blue-100 text-blue-600"
+            iconBg="bg-[#EFF6FF] text-[#1D4ED8]"
             change={financeSummary && financeSummary.total_receitas > 0 ? Math.round((financeSummary.resultado_liquido / financeSummary.total_receitas) * 100) : undefined}
             changeLabel="margem"
             delay={0.2}
@@ -275,17 +275,17 @@ export const DashboardPage = () => {
           <div className="grid grid-cols-3 gap-4 sm:gap-6">
             <div>
               <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Receitas</div>
-              <div className="font-mono text-xl sm:text-2xl font-bold text-green-600">{financeSummary.total_receitas.toLocaleString('pt')}</div>
+              <div className="font-mono text-xl sm:text-2xl font-bold text-[#15803D]">{financeSummary.total_receitas.toLocaleString('pt')}</div>
               <div className="text-xs text-[#6B7280] mt-0.5">CVE</div>
             </div>
             <div>
               <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Despesas</div>
-              <div className="font-mono text-xl sm:text-2xl font-bold text-red-500">{financeSummary.total_despesas.toLocaleString('pt')}</div>
+              <div className="font-mono text-xl sm:text-2xl font-bold text-[#B91C1C]">{financeSummary.total_despesas.toLocaleString('pt')}</div>
               <div className="text-xs text-[#6B7280] mt-0.5">CVE</div>
             </div>
             <div>
               <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Resultado</div>
-              <div className={`font-mono text-xl sm:text-2xl font-bold ${financeSummary.resultado_liquido >= 0 ? 'text-grafite' : 'text-orange-600'}`}>
+              <div className={`font-mono text-xl sm:text-2xl font-bold ${financeSummary.resultado_liquido >= 0 ? 'text-grafite' : 'text-[#B91C1C]'}`}>
                 {financeSummary.resultado_liquido.toLocaleString('pt')}
               </div>
               <div className="text-xs text-[#6B7280] mt-0.5">CVE</div>
@@ -303,8 +303,8 @@ export const DashboardPage = () => {
             <span className="text-xs text-[#6B7280] uppercase tracking-wider hidden sm:block">Desconto em Folha</span>
           </div>
           <div className="text-center py-8">
-            <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <CheckCircle className="w-7 h-7 text-green-500" />
+            <div className="w-14 h-14 bg-[#F0FDF4] rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <CheckCircle className="w-7 h-7 text-[#15803D]" />
             </div>
             <p className="text-sm text-grafite font-semibold" data-testid="contributions-status">Tudo em dia!</p>
             <p className="text-xs text-[#6B7280] mt-1">Quotas descontadas automaticamente na folha salarial</p>
@@ -469,28 +469,28 @@ export const DashboardPage = () => {
                 label: 'Votacoes',
                 value: personalReport.polls_voted,
                 total: personalReport.total_polls,
-                color: 'bg-blue-50 text-blue-600',
+                color: 'bg-[#EFF6FF] text-[#1D4ED8]',
               },
               {
                 icon: MessageSquare,
                 label: 'Publicacoes',
                 value: personalReport.wall_posts,
                 total: null,
-                color: 'bg-green-50 text-green-600',
+                color: 'bg-[#F0FDF4] text-[#15803D]',
               },
               {
                 icon: ThumbsUp,
                 label: 'Likes Recebidos',
                 value: personalReport.likes_received,
                 total: null,
-                color: 'bg-pink-50 text-pink-600',
+                color: 'bg-[#F5F5F5] text-[#3A3A3A]',
               },
               {
                 icon: FolderKanban,
                 label: 'Projetos',
                 value: personalReport.projects_member,
                 total: null,
-                color: 'bg-purple-50 text-purple-600',
+                color: 'bg-[#F5F5F5] text-[#3A3A3A]',
               },
               {
                 icon: Image,
@@ -504,14 +504,14 @@ export const DashboardPage = () => {
                 label: 'Beneficios',
                 value: personalReport.benefits_used,
                 total: null,
-                color: 'bg-red-50 text-red-500',
+                color: 'bg-[#F5F5F5] text-[#3A3A3A]',
               },
               {
                 icon: FileText,
                 label: 'Documentos',
                 value: personalReport.documents_available,
                 total: null,
-                color: 'bg-gray-50 text-gray-600',
+                color: 'bg-[#F5F5F5] text-[#3A3A3A]',
               },
             ].map((item, idx) => (
               <div key={item.label} className="bg-white p-4 sm:p-5 flex flex-col items-center text-center" data-testid={`report-stat-${idx}`}>

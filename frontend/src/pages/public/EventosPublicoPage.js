@@ -17,11 +17,11 @@ import { format, isFuture, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const eventTypeConfig = {
-  assembleia: { icon: CalendarDays, label: 'Assembleia', color: 'bg-blue-100 text-blue-700' },
-  formacao: { icon: GraduationCap, label: 'Formação', color: 'bg-green-100 text-green-700' },
-  social: { icon: PartyPopper, label: 'Evento Social', color: 'bg-pink-100 text-pink-700' },
+  assembleia: { icon: CalendarDays, label: 'Assembleia', color: 'bg-[#EFF6FF] text-[#1D4ED8]' },
+  formacao: { icon: GraduationCap, label: 'Formação', color: 'bg-[#F0FDF4] text-[#15803D]' },
+  social: { icon: PartyPopper, label: 'Evento Social', color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
   reuniao: { icon: Handshake, label: 'Reunião', color: 'bg-[#FFFBEB] text-[#B45309]' },
-  outro: { icon: Megaphone, label: 'Outro', color: 'bg-gray-100 text-gray-700' },
+  outro: { icon: Megaphone, label: 'Outro', color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
 };
 
 export const EventosPublicoPage = () => {
@@ -60,7 +60,7 @@ export const EventosPublicoPage = () => {
       <section className="relative py-12 sm:py-20 lg:py-24 bg-grafite overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{ 
-            backgroundImage: 'linear-gradient(rgba(0,255,156,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,156,0.3) 1px, transparent 1px)',
+            backgroundImage: 'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)',
             backgroundSize: '40px 40px'
           }} />
         </div>

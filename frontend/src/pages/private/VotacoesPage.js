@@ -184,7 +184,7 @@ export const VotacoesPage = () => {
       <div className="card-technical rounded-xl p-6 bg-carmesim/5 border-carmesim/20 animate-fade-up">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 bg-carmesim rounded-lg flex items-center justify-center flex-shrink-0">
-            <Vote className="w-6 h-6 text-grafite" />
+            <Vote className="w-6 h-6 text-white" />
           </div>
           <div>
             <h3 className="font-sans font-semibold text-lg text-grafite mb-2">Como Funciona</h3>

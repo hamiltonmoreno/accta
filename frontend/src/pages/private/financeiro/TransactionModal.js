@@ -75,7 +75,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Tipo</label>
             <div className="flex gap-2">
-              {[{ val: 'receita', label: 'Receita', color: 'bg-green-600' }, { val: 'despesa', label: 'Despesa', color: 'bg-red-600' }].map((opt) => (
+              {[{ val: 'receita', label: 'Receita', color: 'bg-[#16A34A]' }, { val: 'despesa', label: 'Despesa', color: 'bg-[#C7202F]' }].map((opt) => (
                 <button
                   key={opt.val}
                   type="button"

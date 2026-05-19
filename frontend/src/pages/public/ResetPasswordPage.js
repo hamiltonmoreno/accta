@@ -148,8 +148,8 @@ export const ResetPasswordPage = () => {
           </>
         ) : (
           <div className="card-technical p-6 sm:p-7 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-5">
-              <CheckCircle className="w-8 h-8 text-green-600" />
+            <div className="w-16 h-16 bg-[#F0FDF4] rounded-xl flex items-center justify-center mx-auto mb-5">
+              <CheckCircle className="w-8 h-8 text-[#15803D]" />
             </div>
             <h2 className="font-bold text-xl text-grafite mb-2" data-testid="reset-success-title">
               Senha alterada!

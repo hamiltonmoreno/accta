@@ -436,7 +436,7 @@ export const ProfissaoPage = () => {
       <section className="py-12 sm:py-20 lg:py-24 bg-grafite relative overflow-hidden">
         <div className="absolute inset-0 opacity-20">
           <div className="absolute inset-0" style={{
-            backgroundImage: 'radial-gradient(circle at 30% 50%, rgba(0,255,156,0.3) 0%, transparent 50%)',
+            backgroundImage: 'radial-gradient(circle at 30% 50%, rgba(255,255,255,0.06) 0%, transparent 50%)',
           }} />
         </div>
         <div className="relative z-10 max-w-7xl mx-auto px-6">

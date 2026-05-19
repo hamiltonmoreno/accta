@@ -14,10 +14,10 @@ import {
 
 const STATUS_CONFIG = {
   proposta: { label: 'Proposta', color: 'bg-[#FFFBEB] text-[#B45309]', dot: 'bg-[#D97706]' },
-  aprovado: { label: 'Aprovado', color: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
-  em_curso: { label: 'Em Curso', color: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
-  concluido: { label: 'Concluido', color: 'bg-gray-100 text-gray-600', dot: 'bg-gray-400' },
-  cancelado: { label: 'Cancelado', color: 'bg-red-100 text-red-600', dot: 'bg-red-400' },
+  aprovado: { label: 'Aprovado', color: 'bg-[#EFF6FF] text-[#1D4ED8]', dot: 'bg-[#2563EB]' },
+  em_curso: { label: 'Em Curso', color: 'bg-[#EFF6FF] text-[#1D4ED8]', dot: 'bg-[#2563EB]' },
+  concluido: { label: 'Concluido', color: 'bg-[#F0FDF4] text-[#15803D]', dot: 'bg-[#16A34A]' },
+  cancelado: { label: 'Cancelado', color: 'bg-[#FEF2F2] text-[#B91C1C]', dot: 'bg-[#C7202F]' },
 };
 
 const ProjectCard = ({ project, onClick }) => {

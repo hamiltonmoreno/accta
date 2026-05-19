@@ -10,8 +10,8 @@ import {
 } from 'lucide-react';
 
 const ROLE_LABELS = { admin: 'Administrador', socio: 'Sócio', financeiro: 'Financeiro', moderador: 'Moderador' };
-const ROLE_COLORS = { admin: 'bg-red-100 text-red-700', socio: 'bg-blue-100 text-blue-700', financeiro: 'bg-[#FFFBEB] text-[#B45309]', moderador: 'bg-purple-100 text-purple-700' };
-const STATUS_COLORS = { ativo: 'bg-green-100 text-green-700', inativo: 'bg-gray-100 text-gray-500', pendente_convite: 'bg-[#FFFBEB] text-[#B45309]' };
+const ROLE_COLORS = { admin: 'bg-[#F5F5F5] text-[#3A3A3A]', socio: 'bg-[#F5F5F5] text-[#3A3A3A]', financeiro: 'bg-[#F5F5F5] text-[#3A3A3A]', moderador: 'bg-[#F5F5F5] text-[#3A3A3A]' };
+const STATUS_COLORS = { ativo: 'bg-[#F0FDF4] text-[#15803D]', inativo: 'bg-[#F5F5F5] text-[#3A3A3A]', pendente_convite: 'bg-[#FFFBEB] text-[#B45309]' };
 
 const PRIVILEGE_LABELS = {
   manage_users: 'Gerir Utilizadores',
@@ -582,12 +582,12 @@ export const AdminUsuariosPage = () => {
               {inviteResult ? (
                 <div className="p-6 space-y-4">
                   <div className="text-center">
-                    <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                      <Link2 className="w-6 h-6 text-green-500" />
+                    <div className="w-12 h-12 bg-[#F0FDF4] rounded-2xl flex items-center justify-center mx-auto mb-3">
+                      <Link2 className="w-6 h-6 text-[#15803D]" />
                     </div>
                     <p className="text-sm text-gray-600 mb-1">Convite criado para <strong>{inviteResult.email}</strong></p>
                     {inviteResult.email_sent ? (
-                      <p className="text-xs text-green-600 font-medium">Email de convite enviado com sucesso!</p>
+                      <p className="text-xs text-[#15803D] font-medium">Email de convite enviado com sucesso!</p>
                     ) : (
                       <p className="text-xs text-[#B45309] font-medium">Convite criado, mas o email nao foi enviado. Reenvie o convite quando o servico de email estiver disponivel.</p>
                     )}

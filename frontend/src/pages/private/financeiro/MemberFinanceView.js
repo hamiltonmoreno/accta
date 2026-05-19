@@ -43,7 +43,7 @@ export const MemberFinanceView = () => {
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <StatBlock label="Registros" value={invoices.length} icon={DollarSign} color="bg-grafite" />
-        <StatBlock label="Total Pago" value={`${totalPago.toLocaleString('pt')} CVE`} icon={TrendingUp} color="bg-green-600" />
+        <StatBlock label="Total Pago" value={`${totalPago.toLocaleString('pt')} CVE`} icon={TrendingUp} color="bg-[#16A34A]" />
       </div>
 
       <div className="card-technical overflow-hidden">
@@ -66,7 +66,7 @@ export const MemberFinanceView = () => {
                 </div>
                 <div className="text-right">
                   <div className="font-mono font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{inv.amount} CVE</div>
-                  <span className={`text-xs font-semibold uppercase ${inv.status === 'pago' ? 'text-green-600' : 'text-orange-500'}`}>
+                  <span className={`text-xs font-semibold uppercase ${inv.status === 'pago' ? 'text-[#15803D]' : 'text-[#B45309]'}`}>
                     {inv.status}
                   </span>
                 </div>

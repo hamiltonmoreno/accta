@@ -75,7 +75,7 @@ export const SobrePage = () => {
               <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-8 text-white">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-16 h-16 bg-carmesim rounded-xl flex items-center justify-center">
-                    <Globe className="w-8 h-8 text-grafite" />
+                    <Globe className="w-8 h-8 text-white" />
                   </div>
                   <div>
                     <div className="font-sans font-bold text-2xl">{fir.nome}</div>
@@ -112,7 +112,7 @@ export const SobrePage = () => {
             <div className="card-technical rounded-2xl p-8 border-l-4 border-carmesim animate-fade-up">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-14 h-14 bg-carmesim rounded-xl flex items-center justify-center">
-                  <Target className="w-7 h-7 text-grafite" />
+                  <Target className="w-7 h-7 text-white" />
                 </div>
                 <h3 className="font-sans font-bold text-2xl text-grafite">Nossa Missão</h3>
               </div>
@@ -142,9 +142,9 @@ export const SobrePage = () => {
             {[
               { 
                 icon: Shield, 
-                title: 'Segurança', 
+                title: 'Segurança',
                 desc: 'O nosso compromisso inegociável.',
-                color: 'bg-red-50 text-red-600'
+                color: 'bg-[#FEF2F2] text-[#B91C1C]'
               },
               { 
                 icon: Award, 
@@ -154,15 +154,15 @@ export const SobrePage = () => {
               },
               { 
                 icon: Users, 
-                title: 'União', 
+                title: 'União',
                 desc: 'A força do coletivo acima do individual.',
-                color: 'bg-blue-50 text-blue-600'
+                color: 'bg-[#EFF6FF] text-[#1D4ED8]'
               },
               { 
                 icon: Star, 
-                title: 'Transparência', 
+                title: 'Transparência',
                 desc: 'Gestão clara e responsável.',
-                color: 'bg-green-50 text-green-600'
+                color: 'bg-[#F0FDF4] text-[#15803D]'
               },
             ].map((value, index) => (
               <div key={index}
@@ -217,7 +217,7 @@ export const SobrePage = () => {
             {/* Direção */}
             <div className="card-technical rounded-2xl p-8 border-2 border-carmesim animate-fade-up">
               <div className="w-16 h-16 bg-carmesim rounded-xl flex items-center justify-center mb-6">
-                <Users className="w-8 h-8 text-grafite" />
+                <Users className="w-8 h-8 text-white" />
               </div>
               <h3 className="font-sans font-bold text-2xl text-grafite mb-4">Direção</h3>
               <p className="text-gray-600 mb-6">

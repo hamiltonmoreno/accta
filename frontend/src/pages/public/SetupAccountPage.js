@@ -62,7 +62,7 @@ export const SetupAccountPage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 max-w-md w-full text-center animate-fade-up">
-          <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <div className="w-14 h-14 bg-[#FEF2F2] rounded-2xl flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-7 h-7 text-carmesim" />
           </div>
           <h1 className="text-xl font-bold text-grafite mb-2">Convite Invalido</h1>
@@ -85,8 +85,8 @@ export const SetupAccountPage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 max-w-md w-full text-center animate-fade-up">
-          <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="w-7 h-7 text-green-500" />
+          <div className="w-14 h-14 bg-[#F0FDF4] rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-7 h-7 text-[#16A34A]" />
           </div>
           <h1 className="text-xl font-bold text-grafite mb-2" data-testid="setup-success">Conta Ativada!</h1>
           <p className="text-sm text-gray-500">
