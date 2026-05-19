@@ -53,7 +53,7 @@ const FinanceCharts = ({ monthlyChartData, expensePieData, currentYear, onViewAl
           action={
             <button
               onClick={onViewAll}
-              className="text-xs text-carmesim font-semibold uppercase tracking-wider hover:text-carmesim-dark flex items-center gap-1"
+              className="text-xs text-carmesim font-semibold hover:text-carmesim-dark flex items-center gap-1"
               data-testid="chart-view-all"
             >
               Ver tudo <ArrowRight className="w-3.5 h-3.5" />

@@ -130,7 +130,7 @@ export const SetupAccountPage = () => {
                 aria-invalid={errors.password ? 'true' : 'false'}
                 {...register('password')}
                 placeholder="Minimo 6 caracteres"
-                className="w-full pl-9 pr-10 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none aria-[invalid=true]:border-carmesim/60"
+                className="w-full pl-9 pr-10 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none aria-[invalid=true]:border-carmesim/60"
                 data-testid="setup-password"
               />
               <button
@@ -158,7 +158,7 @@ export const SetupAccountPage = () => {
                 aria-invalid={errors.confirmPassword ? 'true' : 'false'}
                 {...register('confirmPassword')}
                 placeholder="Repetir a senha"
-                className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none aria-[invalid=true]:border-carmesim/60"
+                className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none aria-[invalid=true]:border-carmesim/60"
                 data-testid="setup-confirm-password"
               />
             </div>

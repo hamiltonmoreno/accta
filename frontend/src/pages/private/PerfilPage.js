@@ -149,7 +149,7 @@ export const PerfilPage = () => {
               id="profile-name"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none"
               data-testid="profile-edit-name"
             />
           </div>
@@ -163,7 +163,7 @@ export const PerfilPage = () => {
               value={form.phone_number}
               onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
               placeholder="+238 9XX XXXX"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none"
               data-testid="profile-edit-phone"
             />
           </div>
@@ -176,7 +176,7 @@ export const PerfilPage = () => {
               onChange={(e) => setForm({ ...form, bio: e.target.value })}
               rows={3}
               placeholder="Fale um pouco sobre si..."
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none resize-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none resize-none"
               data-testid="profile-edit-bio"
             />
           </div>

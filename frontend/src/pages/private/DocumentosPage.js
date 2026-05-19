@@ -38,7 +38,7 @@ export const DocumentosPage = () => {
         {isAdmin && (
           <button
             onClick={() => setShowUploadModal(true)}
-            className="flex items-center gap-2 bg-grafite text-white px-4 py-2 rounded-lg hover:bg-grafite/90 transition-all font-mono text-sm uppercase tracking-wider"
+            className="flex items-center gap-2 bg-carmesim text-white px-4 py-2 rounded-lg hover:bg-carmesim-dark transition-all text-sm font-semibold"
             data-testid="upload-document-btn"
           >
             <Upload className="w-4 h-4" />
@@ -56,7 +56,7 @@ export const DocumentosPage = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar documentos..."
-            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-transparent transition-all"
             data-testid="search-input"
           />
         </div>
@@ -127,7 +127,7 @@ export const DocumentosPage = () => {
                 href={documentsAPI.downloadUrl(doc.id)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-grafite text-white hover:bg-grafite/90 h-10 px-4 rounded-lg uppercase tracking-wider font-bold text-sm transition-all"
+                className="flex items-center justify-center gap-2 bg-white border border-[#D1D5DB] text-[#3A3A3A] hover:bg-[#F5F5F5] h-10 px-4 rounded-lg font-semibold text-sm transition-all"
                 data-testid={`download-${doc.id}`}
               >
                 <Download className="w-4 h-4" />
@@ -250,7 +250,7 @@ const UploadDocumentModal = ({ onClose }) => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Ex: Ata da Assembleia Geral - Março 2025"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-transparent"
                 required
                 data-testid="document-title-input"
               />
@@ -265,7 +265,7 @@ const UploadDocumentModal = ({ onClose }) => {
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-transparent"
                   data-testid="document-type-select"
                 >
                   <option value="ata">Ata</option>
@@ -280,7 +280,7 @@ const UploadDocumentModal = ({ onClose }) => {
                 <select
                   value={visibility}
                   onChange={(e) => setVisibility(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-transparent"
                   data-testid="document-visibility-select"
                 >
                   <option value="publico">Público</option>
@@ -300,7 +300,7 @@ const UploadDocumentModal = ({ onClose }) => {
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
                 placeholder="Ex: assembleia, 2025, decisões"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-transparent"
                 data-testid="document-tags-input"
               />
             </div>
@@ -380,7 +380,7 @@ const UploadDocumentModal = ({ onClose }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-3 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors font-mono uppercase tracking-wider"
+                className="flex-1 px-4 py-3 bg-white border border-[#D1D5DB] text-[#3A3A3A] rounded-lg hover:bg-[#F5F5F5] transition-colors font-semibold"
                 disabled={uploading}
               >
                 Cancelar
@@ -388,7 +388,7 @@ const UploadDocumentModal = ({ onClose }) => {
               <button
                 type="submit"
                 disabled={uploading || !file || !title}
-                className="flex-1 flex items-center justify-center gap-2 bg-grafite text-white px-4 py-3 rounded-lg hover:bg-grafite/90 transition-colors font-mono uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 bg-carmesim text-white px-4 py-3 rounded-lg hover:bg-carmesim-dark transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 data-testid="submit-document-btn"
               >
                 {uploading ? (

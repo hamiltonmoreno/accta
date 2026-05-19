@@ -205,7 +205,7 @@ export const ContactosPage = () => {
                         value={formData.name}
                         onChange={handleChange}
                         placeholder="O seu nome completo"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 transition-all"
                         required
                         data-testid="contact-name"
                       />
@@ -225,7 +225,7 @@ export const ContactosPage = () => {
                         value={formData.email}
                         onChange={handleChange}
                         placeholder="seu.email@exemplo.com"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 transition-all"
                         required
                         data-testid="contact-email"
                       />
@@ -273,7 +273,7 @@ export const ContactosPage = () => {
                         onChange={handleChange}
                         placeholder="Escreva a sua mensagem aqui..."
                         rows={5}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 transition-all resize-none"
                         required
                         data-testid="contact-message"
                       />

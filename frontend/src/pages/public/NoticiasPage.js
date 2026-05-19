@@ -43,7 +43,7 @@ export const NoticiasPage = () => {
         <div className="flex flex-wrap gap-3 mb-12 justify-center">
           <button
             onClick={() => setFilter('all')}
-            className={`px-6 py-2 rounded-full text-sm uppercase tracking-wider transition-all ${
+            className={`px-6 py-2 rounded-full text-sm font-semibold transition-all ${
               filter === 'all'
                 ? 'bg-grafite text-white'
                 : 'bg-white text-gray-600 hover:bg-gray-100'
@@ -54,7 +54,7 @@ export const NoticiasPage = () => {
           </button>
           <button
             onClick={() => setFilter('noticia')}
-            className={`px-6 py-2 rounded-full text-sm uppercase tracking-wider transition-all ${
+            className={`px-6 py-2 rounded-full text-sm font-semibold transition-all ${
               filter === 'noticia'
                 ? 'bg-grafite text-white'
                 : 'bg-white text-gray-600 hover:bg-gray-100'
@@ -65,7 +65,7 @@ export const NoticiasPage = () => {
           </button>
           <button
             onClick={() => setFilter('institucional')}
-            className={`px-6 py-2 rounded-full text-sm uppercase tracking-wider transition-all ${
+            className={`px-6 py-2 rounded-full text-sm font-semibold transition-all ${
               filter === 'institucional'
                 ? 'bg-grafite text-white'
                 : 'bg-white text-gray-600 hover:bg-gray-100'
@@ -76,7 +76,7 @@ export const NoticiasPage = () => {
           </button>
           <button
             onClick={() => setFilter('educativo')}
-            className={`px-6 py-2 rounded-full text-sm uppercase tracking-wider transition-all ${
+            className={`px-6 py-2 rounded-full text-sm font-semibold transition-all ${
               filter === 'educativo'
                 ? 'bg-grafite text-white'
                 : 'bg-white text-gray-600 hover:bg-gray-100'

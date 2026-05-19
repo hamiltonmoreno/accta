@@ -316,7 +316,7 @@ export const DashboardPage = () => {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-grafite">Votacoes Abertas</h2>
             {activePolls.length > 0 && (
-              <button onClick={() => navigate('/votacoes')} className="text-xs text-carmesim font-semibold uppercase tracking-wider hover:text-carmesim-dark">
+              <button onClick={() => navigate('/votacoes')} className="text-xs text-carmesim font-semibold hover:text-carmesim-dark">
                 Ver todas
               </button>
             )}
@@ -356,7 +356,7 @@ export const DashboardPage = () => {
             <h2 className="text-lg font-semibold text-grafite">Proximos Eventos</h2>
             <button
               onClick={() => navigate('/eventos')}
-              className="text-xs text-carmesim hover:text-carmesim-dark uppercase tracking-wider font-semibold flex items-center gap-1"
+              className="text-xs text-carmesim hover:text-carmesim-dark font-semibold flex items-center gap-1"
             >
               Ver todos <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -576,7 +576,7 @@ export const DashboardPage = () => {
             </div>
             <button
               onClick={() => navigate('/notificacoes')}
-              className="text-xs text-carmesim hover:text-carmesim-dark uppercase tracking-wider font-semibold"
+              className="text-xs text-carmesim hover:text-carmesim-dark font-semibold"
             >
               Ver todas
             </button>

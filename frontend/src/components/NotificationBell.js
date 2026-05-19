@@ -95,7 +95,7 @@ export const NotificationBell = () => {
                   {unreadCount > 0 && (
                     <button
                       onClick={markAllAsRead}
-                      className="text-xs text-carmesim hover:text-carmesim/80 font-mono uppercase tracking-wider flex items-center gap-1"
+                      className="text-xs text-carmesim hover:text-carmesim/80 font-semibold flex items-center gap-1"
                       data-testid="mark-all-read"
                     >
                       <CheckCheck className="w-4 h-4" />
@@ -167,7 +167,7 @@ export const NotificationBell = () => {
                       setIsOpen(false);
                       navigate('/notificacoes');
                     }}
-                    className="text-sm text-grafite hover:text-grafite/80 font-mono uppercase tracking-wider"
+                    className="text-sm text-grafite hover:text-grafite/80 font-semibold"
                   >
                     Ver todas as notificações
                   </button>

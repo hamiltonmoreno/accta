@@ -169,7 +169,7 @@ export const AdminUsuariosPage = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Pesquisar por nome, email ou n.º sócio..."
-              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
+              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none"
               data-testid="users-search-input"
             />
           </div>
@@ -177,7 +177,7 @@ export const AdminUsuariosPage = () => {
             <select
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
-              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none bg-white"
+              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none bg-white"
               data-testid="filter-role"
             >
               <option value="">Todas as funções</option>
@@ -188,7 +188,7 @@ export const AdminUsuariosPage = () => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none bg-white"
+              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none bg-white"
               data-testid="filter-status"
             >
               <option value="">Todos os estados</option>
@@ -354,7 +354,7 @@ export const AdminUsuariosPage = () => {
                     <input
                       value={editingUser.name || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
-                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none"
                       data-testid="modal-edit-name"
                     />
                   </div>
@@ -363,7 +363,7 @@ export const AdminUsuariosPage = () => {
                     <input
                       value={editingUser.member_id || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, member_id: e.target.value })}
-                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none"
                       data-testid="modal-edit-member-id"
                     />
                   </div>
@@ -379,7 +379,7 @@ export const AdminUsuariosPage = () => {
                     <select
                       value={editingUser.role}
                       onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
-                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none bg-white"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none bg-white"
                       data-testid="modal-edit-role"
                     >
                       {ROLES.map((r) => (
@@ -395,7 +395,7 @@ export const AdminUsuariosPage = () => {
                     <select
                       value={editingUser.status}
                       onChange={(e) => setEditingUser({ ...editingUser, status: e.target.value })}
-                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none bg-white"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none bg-white"
                       data-testid="modal-edit-status"
                     >
                       {STATUSES.map((s) => (
@@ -414,7 +414,7 @@ export const AdminUsuariosPage = () => {
                   <select
                     value={editingUser.cargo || 'Sócio'}
                     onChange={(e) => setEditingUser({ ...editingUser, cargo: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none bg-white"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none bg-white"
                     data-testid="modal-edit-cargo"
                   >
                     {CARGOS.map((c) => (
@@ -472,7 +472,7 @@ export const AdminUsuariosPage = () => {
                       autoComplete="tel"
                       value={editingUser.phone_number || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, phone_number: e.target.value })}
-                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none"
                     />
                   </div>
                   <div>
@@ -481,7 +481,7 @@ export const AdminUsuariosPage = () => {
                       value={editingUser.department || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, department: e.target.value })}
                       placeholder="Ex: Torre de Controlo Sal"
-                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none"
                     />
                   </div>
                 </div>
@@ -608,7 +608,7 @@ export const AdminUsuariosPage = () => {
                       <input
                         value={inviteData.name}
                         onChange={(e) => setInviteData({ ...inviteData, name: e.target.value })}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none"
                         placeholder="Nome do novo socio"
                         data-testid="invite-name"
                       />
@@ -621,7 +621,7 @@ export const AdminUsuariosPage = () => {
                         autoComplete="email"
                         value={inviteData.email}
                         onChange={(e) => setInviteData({ ...inviteData, email: e.target.value })}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none"
                         placeholder="email@controlador.cv"
                         data-testid="invite-email"
                       />
@@ -631,7 +631,7 @@ export const AdminUsuariosPage = () => {
                       <select
                         value={inviteData.role}
                         onChange={(e) => setInviteData({ ...inviteData, role: e.target.value })}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none"
                         data-testid="invite-role"
                       >
                         <option value="socio">Socio</option>
@@ -644,7 +644,7 @@ export const AdminUsuariosPage = () => {
                       <select
                         value={inviteData.cargo}
                         onChange={(e) => setInviteData({ ...inviteData, cargo: e.target.value })}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none"
                         data-testid="invite-cargo"
                       >
                         {CARGOS.map(c => <option key={c} value={c}>{c}</option>)}
@@ -655,7 +655,7 @@ export const AdminUsuariosPage = () => {
                       <input
                         value={inviteData.member_id}
                         onChange={(e) => setInviteData({ ...inviteData, member_id: e.target.value })}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none"
                         placeholder="ACCTA-XXX"
                         data-testid="invite-member-id"
                       />
@@ -665,7 +665,7 @@ export const AdminUsuariosPage = () => {
                       <input
                         value={inviteData.license_number}
                         onChange={(e) => setInviteData({ ...inviteData, license_number: e.target.value })}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none"
                         placeholder="ATC-CV-XXXX-XXX"
                         data-testid="invite-license"
                       />
@@ -675,7 +675,7 @@ export const AdminUsuariosPage = () => {
                       <input
                         value={inviteData.department}
                         onChange={(e) => setInviteData({ ...inviteData, department: e.target.value })}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none"
                         placeholder="Ex: Torre, Aproximacao"
                         data-testid="invite-department"
                       />
@@ -688,7 +688,7 @@ export const AdminUsuariosPage = () => {
                         autoComplete="tel"
                         value={inviteData.phone_number}
                         onChange={(e) => setInviteData({ ...inviteData, phone_number: e.target.value })}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none"
                         placeholder="+238 xxxxxxx"
                         data-testid="invite-phone"
                       />

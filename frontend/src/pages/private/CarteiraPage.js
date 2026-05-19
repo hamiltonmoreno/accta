@@ -312,7 +312,7 @@ export const CarteiraPage = () => {
       <div className="flex gap-3 justify-center">
         <button
           onClick={handleDownloadQR}
-          className="flex items-center gap-2 px-5 py-2.5 bg-grafite text-white rounded-lg text-sm font-semibold hover:bg-grafite/90 transition-colors"
+          className="flex items-center gap-2 px-5 py-2.5 bg-white border border-[#D1D5DB] text-[#3A3A3A] rounded-lg text-sm font-semibold hover:bg-[#F5F5F5] transition-colors"
           data-testid="download-qr-btn"
         >
           <Download className="w-4 h-4" />
@@ -320,7 +320,7 @@ export const CarteiraPage = () => {
         </button>
         <button
           onClick={handleShare}
-          className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 text-grafite rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors"
+          className="flex items-center gap-2 px-5 py-2.5 bg-white border border-[#D1D5DB] text-[#3A3A3A] rounded-lg text-sm font-semibold hover:bg-[#F5F5F5] transition-colors"
           data-testid="share-wallet-btn"
         >
           <Share2 className="w-4 h-4" />

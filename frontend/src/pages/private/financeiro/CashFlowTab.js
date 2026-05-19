@@ -153,16 +153,16 @@ export const CashFlowTab = ({ isAdmin }) => {
               placeholder="Pesquisar descricao..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
               data-testid="search-input"
             />
           </div>
           <div className="flex items-center gap-1.5">
             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-              className="px-2.5 py-2.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" data-testid="start-date-filter" />
+              className="px-2.5 py-2.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none" data-testid="start-date-filter" />
             <span className="text-[#6B7280] text-xs">a</span>
             <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-              className="px-2.5 py-2.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" data-testid="end-date-filter" />
+              className="px-2.5 py-2.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none" data-testid="end-date-filter" />
           </div>
           <div className="flex items-center gap-1.5 ml-auto">
             <Filter className="w-4 h-4 text-gray-400 hidden sm:block" />

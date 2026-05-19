@@ -109,7 +109,7 @@ export const EventosPublicoPage = () => {
               <button
                 key={f.value}
                 onClick={() => setFilter(f.value)}
-                className={`px-6 py-2 rounded-lg text-sm uppercase tracking-wider transition-all ${
+                className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all ${
                   filter === f.value
                     ? 'bg-grafite text-white'
                     : 'bg-white text-gray-600 hover:bg-gray-50'

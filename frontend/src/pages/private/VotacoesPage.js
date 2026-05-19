@@ -153,7 +153,7 @@ export const VotacoesPage = () => {
                     <button
                       onClick={() => toggleResults(poll.id)}
                       disabled={loadingResults[poll.id]}
-                      className="flex items-center gap-2 text-sm text-grafite hover:text-grafite/80 font-mono uppercase tracking-wider transition-colors disabled:opacity-50"
+                      className="flex items-center gap-2 text-sm text-grafite hover:text-grafite/80 font-semibold transition-colors disabled:opacity-50"
                       data-testid={`view-results-${poll.id}`}
                     >
                       {loadingResults[poll.id] ? (

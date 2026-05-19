@@ -112,7 +112,7 @@ export const EventosPage = () => {
         {isAdmin && (
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center justify-center gap-2 bg-grafite text-white px-4 py-2.5 rounded-lg hover:bg-grafite/90 transition-all font-mono text-xs uppercase tracking-wider touch-target"
+            className="flex items-center justify-center gap-2 bg-carmesim text-white px-4 py-2.5 rounded-lg hover:bg-carmesim-dark transition-all text-sm font-semibold touch-target"
             data-testid="create-event-btn"
           >
             <Plus className="w-4 h-4" />
@@ -126,7 +126,7 @@ export const EventosPage = () => {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-3 sm:px-4 py-2 rounded-lg font-mono text-xs uppercase tracking-wider transition-all whitespace-nowrap touch-target ${
+            className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap touch-target ${
               filter === f ? 'bg-grafite text-white' : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-100'
             }`}
           >
@@ -235,7 +235,7 @@ export const EventosPage = () => {
                         ) : (
                           <button
                             onClick={() => handleRegister(event.id)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-grafite text-white rounded-lg hover:bg-grafite/90 transition-colors font-medium text-xs sm:text-sm"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#D1D5DB] text-[#3A3A3A] rounded-lg hover:bg-[#F5F5F5] transition-colors font-semibold text-xs sm:text-sm"
                           >
                             <Plus className="w-3.5 h-3.5" />
                             Inscrever-me
@@ -448,14 +448,14 @@ const CreateEventModal = ({ onClose }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors font-mono text-xs uppercase tracking-wider"
+                className="flex-1 px-4 py-2.5 bg-white border border-[#D1D5DB] text-[#3A3A3A] rounded-lg hover:bg-[#F5F5F5] transition-colors text-sm font-semibold"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex-1 flex items-center justify-center gap-2 bg-grafite text-white px-4 py-2.5 rounded-lg hover:bg-grafite/90 transition-colors font-mono text-xs uppercase tracking-wider disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 bg-carmesim text-white px-4 py-2.5 rounded-lg hover:bg-carmesim-dark transition-colors text-sm font-semibold disabled:opacity-50"
               >
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 Criar
