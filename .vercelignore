@@ -1,0 +1,36 @@
+# Pastas e ficheiros que NAO precisam ir para o build do Vercel (frontend SPA)
+# Reduz upload, acelera build e poupa minutos no plano Hobby
+
+# Backend Python / FastAPI
+backend/
+
+# Memoria, tasks e documentacao interna do projeto
+memory/
+tasks/
+docs/
+
+# Testes
+tests/
+test_reports/
+
+# Scripts
+scripts/
+
+# Ferramentas internas
+.emergent/
+.claude/
+
+# Logs e temporarios
+*.log
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# IDEs
+.vscode/
+.idea/
