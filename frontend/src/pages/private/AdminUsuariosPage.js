@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersAPI, adminAPI } from '../../utils/api';
-import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
 import {
-  Users, Search, Shield, BadgeCheck, Briefcase, X, Save,
+  Users, Search, Shield, BadgeCheck, Briefcase, Save,
   Trash2, ChevronDown, Filter, UserCog, UserPlus, Clock, Link2
 } from 'lucide-react';
 import {
@@ -56,9 +55,6 @@ export const AdminUsuariosPage = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteData, setInviteData] = useState({ name: '', email: '', role: 'socio', cargo: 'Socio', member_id: '', license_number: '', department: '', phone_number: '' });
   const [inviteResult, setInviteResult] = useState(null);
-
-  // Body scroll lock for each modal (counter-based, supports nesting)
-  useBodyScrollLock(!!showInviteModal);
 
   // Debounce search 300ms — evita re-fetch a cada tecla.
   useEffect(() => {
@@ -567,27 +563,14 @@ export const AdminUsuariosPage = () => {
 
       {/* ===== INVITE MODAL ===== */}
       {showInviteModal && (
-          <>
-            <div className="fixed inset-0 bg-black/50 z-[60] animate-fade-up"
-              onClick={resetInviteModal} />
-            <div className="fixed inset-0 z-[60] overflow-y-auto animate-fade-up"
-              role="dialog"
-              aria-modal="true">
-              <div className="flex min-h-full items-center justify-center p-4">
-              <div
-                className="bg-white rounded-2xl shadow-xl w-full max-w-lg"
-                onClick={(e) => e.stopPropagation()}
-                data-testid="invite-modal"
-              >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <Dialog open onOpenChange={(o) => { if (!o) resetInviteModal(); }}>
+          <DialogContent className="max-w-lg rounded-2xl p-0 gap-0 max-h-[90vh] overflow-y-auto" data-testid="invite-modal">
+              <DialogHeader className="px-6 py-4 border-b border-gray-100 text-left space-y-0">
                 <div className="flex items-center gap-2">
                   <UserPlus className="w-5 h-5 text-carmesim" />
-                  <h2 className="font-bold text-lg text-grafite">{inviteResult ? 'Convite Criado' : 'Convidar Socio'}</h2>
+                  <DialogTitle className="font-bold text-lg text-grafite">{inviteResult ? 'Convite Criado' : 'Convidar Socio'}</DialogTitle>
                 </div>
-                <button onClick={resetInviteModal} className="p-2.5 hover:bg-gray-100 rounded-lg" aria-label="Fechar">
-                  <X className="w-4 h-4 text-gray-400" aria-hidden="true" />
-                </button>
-              </div>
+              </DialogHeader>
 
               {inviteResult ? (
                 <div className="p-6 space-y-4">
@@ -722,11 +705,9 @@ export const AdminUsuariosPage = () => {
                   </button>
                 </div>
               )}
-              </div>
-              </div>
-            </div>
-          </>
-        )}
+          </DialogContent>
+        </Dialog>
+      )}
       </div>
   );
 };
