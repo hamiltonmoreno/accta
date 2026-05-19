@@ -59,3 +59,24 @@ texto/fundo a ≥4.5:1 e fundamentar em regra de design (engine `ui-ux-pro-max`
 → Swiss Modernism AAA, contraste, foco visível), não em instinto.
 **Context**: Reescrita do design system ACCTA; `frontend-design/SKILL.md`
 (canônico) + sincronização do Brand Lock/CSVs da `ui-ux-pro-max`.
+
+### L6 — Backtick em mensagem de commit via Bash = substituição de comando
+**Mistake**: `git commit -m "... \`a{color}\` ..."` na ferramenta Bash: o
+bash interpretou os backticks como command substitution (`a{color}: command
+not found`), apagando essa parte da mensagem; foi preciso `--amend`.
+**Rule**: Mensagens de commit multi-linha ou com caracteres especiais
+(backtick, `$`, `!`) passam **sempre** por here-doc com delimitador entre
+aspas: `git commit -F - <<'EOF' … EOF`. Nunca `-m` com backticks no shell.
+**Context**: Qualquer commit via Bash tool (PowerShell/bash) nesta repo.
+
+### L7 — Remapear token legado exige classificar o PAPEL, não só o nome
+**Mistake**: Na limpeza Aero-Swiss, o map mecânico `amber → warning` do
+SKILL atingiu `PublicLayout` footer (slogan em ouro decorativo sobre
+`bg-grafite`): `text-amber` virou `text-[#B45309]` — warning-on-dark, o
+mesmo defeito de legibilidade que a migração visa eliminar.
+**Rule**: Ao migrar um token de identidade legado, classificar cada uso
+pelo **papel** (semântico vs decorativo vs sobre-escuro) antes de aplicar
+o mapeamento semântico. Ouro decorativo ≠ estado de aviso; sobre fundo
+escuro o destino é `text-white`/neutro claro, não o `-700` semântico.
+**Context**: `tasks/frontend-redesign-spec.md` Fase 4; qualquer remoção
+de token com `mapeamento de uso antes de remover`.

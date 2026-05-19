@@ -216,3 +216,32 @@ tabela `(pk bigserial, doc jsonb)`. Resultado: **zero alterações** em rotas,
 - [ ] Preservar: `CLAUDE.md`, `.claude/rules/database.md` (refs DAO intencionais),
   `tasks/*` (registo histórico)
 - [ ] Verificar grep limpo + commit + push + PR
+
+---
+
+## Review — Migração Frontend Neutral-Led (branch `fix/frontend-neutral-led`)
+
+> Spec: `tasks/frontend-redesign-spec.md`. Execução autónoma (todas as fases),
+> 1 commit/fase, base `fix/health-audit` (contém o SKILL.md canónico). Sem
+> merge em `main` (stop condition — aguarda OK do utilizador).
+
+| Fase | Commit | Resumo | Verificação |
+|------|--------|--------|-------------|
+| 0 — Fundação global | `1207858` | App.css reduzido (removido `a{color}` global, scrollbar/focus/selection Carmesim, `:root`/`.btn-*` duplicados, shimmer morto); `--text-muted` #9ca3af→#6B7280; `darkMode` removido; `dark:` do alert.jsx | grep C7202F App.css=0; dark:=0; eslint/build OK |
+| 1 — Red-on-dark (CRÍTICO) | `c0a5e16` | 6 subagentes / matriz fg-bg: 35 defeitos red-on-dark→text-white/`bg-white/10`; 12 erros→`#B91C1C`; preservado Carmesim-em-branco/finanças/nav | varredura inline=0; eslint/build OK |
+| 2 — Taxonomia de botões | `4f91615` | ≤1 primário/vista: bg-confianca→Carmesim Primary (Home/Sobre/BenefPub/PublicLayout); 4 toggles→outline; GaleriaAdmin/ErrorBoundary/EventosPub | eslint/build OK |
+| 3 — Texto muted | `7bbeb66` | ~108 `text-gray-400/300` de TEXTO→`#6B7280`; ~52 não-texto (ícones/divisórias) preservados | nenhum gray em texto; eslint/build OK |
+| 4 — Paleta + tokens legados | `dfd648c` | charts→sistema; amber→warning(14); slate→neutro(9); confianca→Carmesim; tokens confianca/navy/amber/slate + pulse-radar removidos do config; footer slogan→text-white | grep tokens=0; eslint/build OK |
+| 5 — QA final | (docs) | eslint 0err/44warn(<60); craco build OK; escopo frontend-only (41 fic., +229/-367); todos os greps de aceitação limpos | — |
+
+**Decisões de critério (conformes ao SKILL, reversíveis numa linha):**
+- `PublicLayout` "Entrar": era `bg-confianca` (único CTA da chrome) → promovido a Carmesim Primary (vs. demover a neutro).
+- `GaleriaAdmin` toggle de visibilidade segmentado: `bg-carmesim`→`bg-grafite` (tratado como CTA competidor).
+- `PublicLayout` footer slogan: `text-amber` (ouro decorativo legado) sobre `bg-grafite` → `text-white` (o map cego amber→warning teria criado warning-on-dark).
+
+**Pendente (QA do utilizador — não automatizável neste ambiente):**
+- Leitura visual dos 8 heros + amostragem de contraste; screenshots antes/depois vs `main`.
+- `backend && ruff check .`: ruff não instalado no ambiente; **backend não foi tocado** (0 ficheiros) → sanidade satisfeita por escopo.
+- Merge em `main`: **bloqueado** até OK explícito (stop condition CLAUDE.md).
+
+**Lições registadas:** `tasks/lessons.md` L6 (backtick em commit via Bash → here-doc) e L7 (remapear token legado exige classificar o papel, não só o nome).
