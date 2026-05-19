@@ -3,7 +3,6 @@ import { toast } from 'sonner';
 import { contactAPI } from '../../utils/api';
 import {
   Mail,
-  Phone,
   MapPin,
   Send,
   MessageSquare,
@@ -12,8 +11,11 @@ import {
   HelpCircle,
   Loader2,
   CheckCircle,
+  ExternalLink,
+  ChevronDown,
 } from 'lucide-react';
 import { unsplashSrcSet } from '../../utils/unsplash';
+import { faq, contactosUteis, notaContactos } from '../../content/cta';
 
 export const ContactosPage = () => {
   const [formData, setFormData] = useState({
@@ -102,20 +104,6 @@ export const ContactosPage = () => {
               </h2>
 
               <div className="space-y-6 mb-12">
-                {/* Address */}
-                <div className="flex gap-5">
-                  <div className="w-14 h-14 bg-grafite rounded-xl flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-7 h-7 text-carmesim" />
-                  </div>
-                  <div>
-                    <h3 className="font-sans font-semibold text-lg text-grafite mb-1">Sede</h3>
-                    <p className="text-gray-600">
-                      Aeroporto Internacional Nelson Mandela<br />
-                      Praia - Cabo Verde
-                    </p>
-                  </div>
-                </div>
-
                 {/* Email General */}
                 <div className="flex gap-5">
                   <div className="w-14 h-14 bg-carmesim rounded-xl flex items-center justify-center flex-shrink-0">
@@ -142,34 +130,41 @@ export const ContactosPage = () => {
                   </div>
                 </div>
 
-                {/* Phone */}
-                <div className="flex gap-5">
-                  <div className="w-14 h-14 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Phone className="w-7 h-7 text-grafite" />
-                  </div>
-                  <div>
-                    <h3 className="font-sans font-semibold text-lg text-grafite mb-1">Telefone</h3>
-                    <a href="tel:+238999999" className="text-gray-600 hover:text-carmesim transition-colors">
-                      (+238) 999 99 99
-                    </a>
-                  </div>
-                </div>
               </div>
 
-              {/* Mapa: iframe embed do Google Maps. Zero JS bundle cost
-                  (vs leaflet ~140KB). Pin no Aeroporto Internacional Nelson
-                  Mandela, Praia. Lazy-loaded para nao bloquear LCP. */}
-              <div className="rounded-2xl h-64 overflow-hidden border border-gray-200">
-                <iframe
-                  title="Localizacao da sede ACCTA — Aeroporto Internacional Nelson Mandela, Praia"
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3853.4!2d-23.493!3d14.946!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xb96c01b03f3d52d1%3A0x7a4f5e8d8b2c5b54!2sNelson%20Mandela%20International%20Airport!5e0!3m2!1spt-PT!2spt!4v1700000000000"
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  allowFullScreen=""
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
+              {/* Contactos úteis — recurso educativo (entidades terceiras).
+                  Sede/telefone institucionais da ACCTA omitidos enquanto não
+                  forem confirmados — sem placeholders (spec §5). */}
+              <div>
+                <h3 className="font-sans font-bold text-2xl text-grafite mb-2">
+                  Contactos Úteis
+                </h3>
+                <p className="text-sm text-gray-500 mb-6">{notaContactos}</p>
+                <ul className="space-y-4">
+                  {contactosUteis.map((c) => (
+                    <li key={c.entidade} className="card-technical rounded-xl p-5">
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-grafite rounded-lg flex items-center justify-center flex-shrink-0">
+                          <MapPin className="w-5 h-5 text-carmesim" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-semibold text-grafite">{c.entidade}</h4>
+                          <p className="text-xs text-carmesim uppercase tracking-wider font-semibold mb-1">{c.papel}</p>
+                          <p className="text-sm text-gray-600">{c.contacto}</p>
+                          <a
+                            href={c.site}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-sm text-grafite font-medium hover:text-carmesim transition-colors mt-1"
+                          >
+                            Site oficial
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
 
@@ -311,37 +306,37 @@ export const ContactosPage = () => {
         </div>
       </section>
 
-      {/* FAQ Quick Links */}
+      {/* FAQ — base de conhecimento (acordeão nativo, zero JS extra) */}
       <section className="py-16 bg-white">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="font-sans font-bold text-3xl text-grafite mb-6">
-            Perguntas Frequentes
-          </h2>
-          <p className="text-lg text-gray-600 mb-8">
-            Antes de nos contactar, verifique se a sua dúvida não está respondida nas nossas páginas informativas.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <a
-              href="/profissao"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gray-100 text-grafite rounded-lg hover:bg-gray-200 transition-all font-medium"
-            >
-              <HelpCircle className="w-5 h-5" />
-              Sobre a Profissão
-            </a>
-            <a
-              href="/sobre"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gray-100 text-grafite rounded-lg hover:bg-gray-200 transition-all font-medium"
-            >
-              <HelpCircle className="w-5 h-5" />
-              Sobre a Associação
-            </a>
-            <a
-              href="/beneficios-publico"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gray-100 text-grafite rounded-lg hover:bg-gray-200 transition-all font-medium"
-            >
-              <HelpCircle className="w-5 h-5" />
-              Parcerias
-            </a>
+        <div className="max-w-3xl mx-auto px-6">
+          <div className="text-center mb-10">
+            <span className="inline-flex items-center gap-2 px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-4">
+              <HelpCircle className="w-4 h-4" />
+              Base de Conhecimento
+            </span>
+            <h2 className="font-sans font-bold text-3xl text-grafite mb-3">
+              Perguntas Frequentes
+            </h2>
+            <p className="text-lg text-gray-600">
+              Respostas alinhadas à regulação aplicável (CV-CAR / decretos)
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {faq.map((item, index) => (
+              <details
+                key={index}
+                className="group card-technical rounded-xl overflow-hidden"
+              >
+                <summary className="flex items-center justify-between gap-4 p-5 cursor-pointer list-none font-semibold text-grafite">
+                  <span>{item.pergunta}</span>
+                  <ChevronDown className="w-5 h-5 text-carmesim flex-shrink-0 transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="px-5 pb-5 text-gray-600 text-sm leading-relaxed">
+                  {item.resposta}
+                </div>
+              </details>
+            ))}
           </div>
         </div>
       </section>

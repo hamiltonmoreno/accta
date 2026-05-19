@@ -13,7 +13,8 @@ import {
   Radio,
   Eye,
   ChevronRight,
-  Calendar
+  Calendar,
+  Globe
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -144,7 +145,7 @@ export const HomePage = () => {
         <div className="max-w-7xl mx-auto px-5 sm:px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-5 sm:gap-8">
             {[
-              { icon: Users, value: '+ 60', label: 'Profissionais' },
+              { icon: Globe, value: 'FIR', label: 'Oceânica do Sal' },
               { icon: Clock, value: '24/7', label: 'Operação Ininterrupta' },
               { icon: MapPin, value: '4', label: 'Aeroportos Internacionais' },
               { icon: Target, value: '1', label: 'Missão: Segurança Total' },

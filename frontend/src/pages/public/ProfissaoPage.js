@@ -2,20 +2,46 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   Radio,
-  Eye,
   Globe,
   Plane,
   Building2,
   Radar,
   GraduationCap,
-  Brain,
   Languages,
   Heart,
   ArrowRight,
   CheckCircle,
-  AlertTriangle
+  Users,
+  Clock,
+  MapPin,
+  Shield,
+  Scale,
+  FileText
 } from 'lucide-react';
 import { unsplashSrcSet } from '../../utils/unsplash';
+import {
+  definicaoCTA,
+  responsabilidades,
+  tiposControlo,
+  qualificacoes,
+  caminhoCTA,
+  camadas,
+  fir,
+  unidades,
+  infraestrutura,
+  requisitos,
+  recencia,
+  reentrada,
+  conversao,
+  notaRegulatoria,
+  ato,
+  caminhos,
+  academico,
+  notaFonte
+} from '../../content/cta';
+
+const TIPO_ICONS = { TWR: Building2, APP: Radar, ACC: Globe };
+const REQ_ICONS = [Users, GraduationCap, Radio, Languages, Heart];
 
 export const ProfissaoPage = () => {
   return (
@@ -36,7 +62,7 @@ export const ProfissaoPage = () => {
         <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6">
           <div className="max-w-2xl animate-fade-up">
             <span className="inline-block px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
-              Educativo
+              Base de conhecimento
             </span>
             <h1 className="font-bold text-3xl sm:text-5xl lg:text-6xl text-white mb-4" data-testid="profession-title">
               O que é ser um{' '}
@@ -55,41 +81,29 @@ export const ProfissaoPage = () => {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="animate-fade-up">
               <h2 className="font-sans font-bold text-4xl text-grafite mb-8">
-                A Autoridade nos{' '}
+                O profissional que guia os{' '}
                 <span className="text-carmesim">Céus</span>
               </h2>
               <div className="space-y-6 text-lg text-gray-600 leading-relaxed">
+                <p>{definicaoCTA.resumo}</p>
                 <p>
-                  O <strong className="text-grafite">Controlador de Tráfego Aéreo (CTA)</strong> é a autoridade que emite 
-                  instruções aos pilotos para garantir que as aeronaves mantenham distâncias seguras entre si, 
-                  tanto no ar quanto no solo.
+                  É uma profissão que exige <span className="text-carmesim font-semibold">concentração extrema</span>,
+                  capacidade de decidir rapidamente sob pressão e comunicação clara e precisa em inglês técnico.
                 </p>
-                <p>
-                  É uma profissão que exige <span className="text-carmesim font-semibold">concentração extrema</span>, 
-                  capacidade de tomar decisões rápidas sob pressão e uma comunicação clara e precisa em inglês técnico.
-                </p>
-                <p>
-                  Os controladores trabalham em turnos de 24 horas, garantindo que cada voo chegue ao seu destino em segurança, 
-                  seja um voo doméstico ou uma aeronave cruzando o Atlântico.
+                <p className="text-sm text-gray-500">
+                  Base legal: {definicaoCTA.baseLegal}.
                 </p>
               </div>
             </div>
 
             <div className="animate-fade-up">
-              <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-8 text-white">
-                <h3 className="font-sans font-bold text-2xl mb-6">Principais Responsabilidades</h3>
+              <div className="bg-white card-technical rounded-2xl p-8">
+                <h3 className="font-sans font-bold text-2xl text-grafite mb-6">Principais Responsabilidades</h3>
                 <ul className="space-y-4">
-                  {[
-                    'Evitar colisões entre aeronaves',
-                    'Organizar descolagens e aterragens',
-                    'Guiar aeronaves em rotas seguras',
-                    'Gerir emergências aéreas',
-                    'Coordenar com outros centros de controlo',
-                    'Informar condições meteorológicas críticas'
-                  ].map((item, index) => (
+                  {responsabilidades.map((item, index) => (
                     <li key={index} className="flex items-start gap-3">
                       <CheckCircle className="w-5 h-5 text-carmesim flex-shrink-0 mt-0.5" />
-                      <span className="text-white/90">{item}</span>
+                      <span className="text-gray-600">{item}</span>
                     </li>
                   ))}
                 </ul>
@@ -110,151 +124,46 @@ export const ProfissaoPage = () => {
               Os Tipos de Controlo em Cabo Verde
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Conheça as diferentes funções desempenhadas pelos controladores de tráfego aéreo
+              O serviço de controlo de tráfego aéreo desdobra-se, no CV-CAR 17, em controlo de aeródromo,
+              de aproximação e de área
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {/* TWR */}
-            <div className="card-technical rounded-2xl overflow-hidden animate-fade-up">
-              <div className="h-48 bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center relative">
-                <Building2 className="w-20 h-20 text-white/30 absolute" />
-                <Eye className="w-16 h-16 text-white relative z-10" />
-              </div>
-              <div className="p-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-bold">TWR</span>
-                  <h3 className="font-sans font-bold text-xl text-grafite">Torre de Controlo</h3>
+            {tiposControlo.map((tipo) => {
+              const Icon = TIPO_ICONS[tipo.sigla] || Radio;
+              return (
+                <div key={tipo.sigla} className="card-technical rounded-2xl p-8 animate-fade-up">
+                  <div className="w-14 h-14 bg-grafite rounded-xl flex items-center justify-center mb-5">
+                    <Icon className="w-7 h-7 text-carmesim" />
+                  </div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="px-3 py-1 bg-gray-100 text-grafite rounded-full text-sm font-bold">{tipo.sigla}</span>
+                    <h3 className="font-sans font-bold text-xl text-grafite">{tipo.nome}</h3>
+                  </div>
+                  <p className="text-gray-600 leading-relaxed mb-4">{tipo.descricao}</p>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">{tipo.detalheLabel}</div>
+                    <p className="text-sm text-grafite font-medium">{tipo.detalhe}</p>
+                  </div>
                 </div>
-                <p className="text-gray-600 leading-relaxed mb-4">
-                  São os <strong>"olhos" do aeroporto</strong>. Gerem as aeronaves que estão a aterrar, a descolar e 
-                  a movimentar-se nas pistas e pátios.
-                </p>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">Localizações</div>
-                  <p className="text-sm text-grafite font-medium">Sal, Praia, São Vicente, Boa Vista</p>
-                </div>
-              </div>
-            </div>
-
-            {/* APP */}
-            <div className="card-technical rounded-2xl overflow-hidden animate-fade-up">
-              <div className="h-48 bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center relative">
-                <Radar className="w-20 h-20 text-white/30 absolute animate-spin" style={{ animationDuration: '10s' }} />
-                <Radio className="w-16 h-16 text-white relative z-10" />
-              </div>
-              <div className="p-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-bold">APP</span>
-                  <h3 className="font-sans font-bold text-xl text-grafite">Controlo de Aproximação</h3>
-                </div>
-                <p className="text-gray-600 leading-relaxed mb-4">
-                  Cuidam das aeronaves numa área maior ao redor do aeroporto (geralmente até <strong>40-50 milhas</strong>), 
-                  organizando a fila para aterragem.
-                </p>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">Tecnologia</div>
-                  <p className="text-sm text-grafite font-medium">Radares de aproximação</p>
-                </div>
-              </div>
-            </div>
-
-            {/* ACC */}
-            <div className="card-technical rounded-2xl overflow-hidden animate-fade-up">
-              <div className="h-48 bg-gradient-to-br from-primary to-[#0A3A5A] flex items-center justify-center relative">
-                <Globe className="w-20 h-20 text-white/30 absolute" />
-                <Plane className="w-16 h-16 text-carmesim relative z-10 -rotate-45" />
-              </div>
-              <div className="p-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="px-3 py-1 bg-carmesim/20 text-grafite rounded-full text-sm font-bold">ACC</span>
-                  <h3 className="font-sans font-bold text-xl text-grafite">Centro Oceânico</h3>
-                </div>
-                <p className="text-gray-600 leading-relaxed mb-4">
-                  Gerem as aeronaves em voo de cruzeiro, muitas vezes atravessando o <strong>espaço aéreo FIR Sal</strong> 
-                  entre continentes.
-                </p>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">Rotas</div>
-                  <p className="text-sm text-grafite font-medium">Europa ↔ América do Sul, África ↔ América do Norte</p>
-                </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
-        </div>
-      </section>
 
-      {/* How to Become */}
-      <section className="py-12 sm:py-20 lg:py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-16 items-start">
-            <div className="animate-fade-up">
-              <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-6">
-                Carreira
-              </span>
-              <h2 className="font-sans font-bold text-4xl text-grafite mb-6">
-                Como se tornar um{' '}
-                <span className="text-carmesim">Controlador?</span>
-              </h2>
-              <p className="text-lg text-gray-600 leading-relaxed mb-8">
-                A carreira exige formação especializada e um perfil muito específico. Em Cabo Verde, 
-                a formação segue padrões internacionais <strong>(ICAO)</strong> e é validada pela 
-                Autoridade de Aviação Civil (AAC).
-              </p>
-              
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-8">
-                <div className="flex items-start gap-4">
-                  <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-1" />
+          {/* Qualificações */}
+          <div className="mt-16 max-w-4xl mx-auto">
+            <h3 className="font-sans font-bold text-2xl text-grafite mb-2 text-center">
+              As cinco qualificações de CTA
+            </h3>
+            <p className="text-sm text-gray-500 text-center mb-8">Base legal: {qualificacoes.baseLegal}</p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {qualificacoes.lista.map((q) => (
+                <div key={q.sigla} className="flex items-start gap-3 card-technical rounded-xl p-5 animate-fade-up">
+                  <CheckCircle className="w-5 h-5 text-carmesim flex-shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="font-sans font-semibold text-amber-800 mb-2">Seleção Rigorosa</h4>
-                    <p className="text-amber-700 text-sm">
-                      Apenas uma pequena percentagem dos candidatos consegue concluir todo o processo de formação 
-                      e obter a licença de CTA.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-6 animate-fade-up">
-              <h3 className="font-sans font-semibold text-2xl text-grafite mb-6">Requisitos Essenciais</h3>
-              
-              {[
-                { 
-                  icon: GraduationCap, 
-                  title: 'Formação Especializada', 
-                  desc: 'Curso teórico e prático em instituição certificada, com simuladores e estágios em ambiente operacional real.',
-                  color: 'bg-blue-50 text-blue-600'
-                },
-                { 
-                  icon: Languages, 
-                  title: 'Domínio do Inglês', 
-                  desc: 'Proficiência mínima nível 4 ICAO. A comunicação aeronáutica internacional é exclusivamente em inglês.',
-                  color: 'bg-green-50 text-green-600'
-                },
-                { 
-                  icon: Brain, 
-                  title: 'Aptidão Cognitiva', 
-                  desc: 'Testes psicotécnicos rigorosos que avaliam raciocínio espacial, memória, atenção dividida e gestão de stress.',
-                  color: 'bg-purple-50 text-purple-600'
-                },
-                { 
-                  icon: Heart, 
-                  title: 'Saúde e Estabilidade', 
-                  desc: 'Exames médicos classe 3 (ICAO) periódicos e avaliação psicológica para garantir aptidão para a função.',
-                  color: 'bg-red-50 text-red-600'
-                },
-              ].map((req, index) => (
-                <div
-                  key={index}
-                  className="card-technical rounded-xl p-6 flex gap-5"
-                >
-                  <div className={`w-14 h-14 ${req.color} rounded-xl flex items-center justify-center flex-shrink-0`}>
-                    <req.icon className="w-7 h-7" />
-                  </div>
-                  <div>
-                    <h4 className="font-sans font-semibold text-lg text-grafite mb-2">{req.title}</h4>
-                    <p className="text-gray-600">{req.desc}</p>
+                    <div className="font-semibold text-grafite">{q.sigla}</div>
+                    <div className="text-sm text-gray-600">{q.nome}</div>
                   </div>
                 </div>
               ))}
@@ -263,10 +172,270 @@ export const ProfissaoPage = () => {
         </div>
       </section>
 
-      {/* FIR Sal Section */}
+      {/* ATS Structure */}
+      <section className="py-12 sm:py-20 lg:py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-6">
+              Estrutura ATS
+            </span>
+            <h2 className="font-sans font-bold text-4xl text-grafite mb-4">
+              Quem faz o quê na navegação aérea
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              A navegação aérea de Cabo Verde organiza-se em quatro camadas funcionais
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+            {camadas.map((c) => (
+              <div key={c.sigla} className="card-technical rounded-xl p-6 animate-fade-up">
+                <div className="w-12 h-12 bg-grafite rounded-lg flex items-center justify-center mb-4">
+                  <Building2 className="w-6 h-6 text-carmesim" />
+                </div>
+                <h3 className="font-sans font-bold text-lg text-grafite mb-1">{c.nome}</h3>
+                <p className="text-xs text-carmesim uppercase tracking-wider font-semibold mb-3">{c.papel}</p>
+                <p className="text-sm text-gray-600 leading-relaxed mb-3">{c.descricao}</p>
+                <p className="text-xs text-gray-500">{c.baseLegal}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* FIR */}
+            <div className="card-technical rounded-2xl p-8 animate-fade-up">
+              <div className="flex items-center gap-3 mb-4">
+                <Globe className="w-7 h-7 text-carmesim" />
+                <h3 className="font-sans font-bold text-2xl text-grafite">{fir.nome}</h3>
+              </div>
+              <p className="text-gray-600 leading-relaxed mb-4">{fir.descricao}</p>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li><strong className="text-grafite">Base legal:</strong> {fir.baseLegal}</li>
+                <li><strong className="text-grafite">Comunicações:</strong> {fir.comunicacoes}</li>
+                <li><strong className="text-grafite">Vigilância:</strong> {fir.vigilancia}</li>
+                <li><strong className="text-grafite">UTA/UIR:</strong> {fir.utaUir}</li>
+              </ul>
+            </div>
+
+            {/* Órgãos ATS + infraestrutura */}
+            <div className="space-y-6">
+              <div className="card-technical rounded-2xl p-8 animate-fade-up">
+                <div className="flex items-center gap-3 mb-4">
+                  <MapPin className="w-7 h-7 text-carmesim" />
+                  <h3 className="font-sans font-bold text-2xl text-grafite">Órgãos ATS (operados pela ASA)</h3>
+                </div>
+                <dl className="space-y-3 text-sm">
+                  <div>
+                    <dt className="text-xs text-gray-500 uppercase tracking-wider">Centro de Controlo</dt>
+                    <dd className="text-grafite font-medium">{unidades.acc.join(' · ')}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-gray-500 uppercase tracking-wider">Torres de Controlo</dt>
+                    <dd className="text-grafite font-medium">{unidades.twr.join(' · ')}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-gray-500 uppercase tracking-wider">Serviço de Informação de Voo</dt>
+                    <dd className="text-grafite font-medium">{unidades.fis.join(' · ')}</dd>
+                  </div>
+                </dl>
+              </div>
+              <div className="card-technical rounded-2xl p-8 animate-fade-up">
+                <div className="flex items-center gap-3 mb-3">
+                  <Plane className="w-7 h-7 text-carmesim" />
+                  <h3 className="font-sans font-bold text-xl text-grafite">Infraestrutura aeroportuária</h3>
+                </div>
+                <p className="text-sm text-gray-600">{infraestrutura.resumo}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How to Become — timeline + requisitos */}
+      <section className="py-12 sm:py-20 lg:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
+              Carreira
+            </span>
+            <h2 className="font-sans font-bold text-4xl text-grafite mb-4">
+              Como se tornar um Controlador
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              É um percurso seletivo e exigente, que segue padrões internacionais (ICAO) e é
+              regulado pela AAC — Agência de Aviação Civil (Decreto-Lei n.º 47/2019), com a
+              disciplina técnica a vir dos regulamentos CV-CAR
+            </p>
+          </div>
+
+          {/* Timeline */}
+          <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-6 mb-20">
+            {caminhoCTA.map((fase, i) => (
+              <div key={fase.etapa} className="card-technical rounded-xl p-6 animate-fade-up">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-9 h-9 rounded-full bg-grafite text-white flex items-center justify-center font-bold text-sm">
+                    {i + 1}
+                  </div>
+                  <h3 className="font-sans font-semibold text-grafite">{fase.etapa}</h3>
+                </div>
+                <ul className="space-y-2">
+                  {fase.itens.map((it, k) => (
+                    <li key={k} className="flex items-start gap-2 text-sm text-gray-600">
+                      <CheckCircle className="w-4 h-4 text-carmesim flex-shrink-0 mt-0.5" />
+                      <span>{it}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          {/* Requisitos */}
+          <div className="max-w-4xl mx-auto">
+            <h3 className="font-sans font-semibold text-2xl text-grafite mb-8 text-center">Requisitos essenciais</h3>
+            <div className="grid sm:grid-cols-2 gap-6">
+              {requisitos.map((req, index) => {
+                const Icon = REQ_ICONS[index] || CheckCircle;
+                return (
+                  <div key={index} className="card-technical rounded-xl p-6 flex gap-5 animate-fade-up">
+                    <div className="w-14 h-14 bg-gray-100 text-grafite rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-7 h-7" />
+                    </div>
+                    <div>
+                      <h4 className="font-sans font-semibold text-lg text-grafite mb-2">{req.titulo}</h4>
+                      <p className="text-gray-600 text-sm mb-2">{req.desc}</p>
+                      <p className="text-xs text-carmesim font-semibold">{req.baseLegal}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Licensing, recency and validity */}
+      <section className="py-12 sm:py-20 lg:py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-6">
+              Licenciamento
+            </span>
+            <h2 className="font-sans font-bold text-4xl text-grafite mb-4">
+              Licenciamento, recência e validade
+            </h2>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-xl p-6 mb-12 max-w-4xl mx-auto flex items-start gap-4">
+            <Shield className="w-6 h-6 text-carmesim flex-shrink-0 mt-1" />
+            <p className="text-gray-600 text-sm">{notaRegulatoria}</p>
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Recência */}
+            <div className="card-technical rounded-2xl p-8 animate-fade-up">
+              <div className="flex items-center gap-3 mb-4">
+                <Clock className="w-7 h-7 text-carmesim" />
+                <h3 className="font-sans font-bold text-xl text-grafite">Recência e validade</h3>
+              </div>
+              <ul className="space-y-3">
+                {recencia.pontos.map((p, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                    <CheckCircle className="w-4 h-4 text-carmesim flex-shrink-0 mt-0.5" />
+                    <span>{p}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-gray-500 mt-4">Base legal: {recencia.baseLegal}</p>
+            </div>
+
+            {/* Reentrada */}
+            <div className="card-technical rounded-2xl p-8 animate-fade-up">
+              <div className="flex items-center gap-3 mb-4">
+                <Scale className="w-7 h-7 text-carmesim" />
+                <h3 className="font-sans font-bold text-xl text-grafite">Reentrada operacional</h3>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">{reentrada.intro}</p>
+              <ul className="space-y-3">
+                {reentrada.escalonamento.map((e, i) => (
+                  <li key={i} className="text-sm">
+                    <span className="font-semibold text-grafite">{e.periodo}:</span>{' '}
+                    <span className="text-gray-600">{e.medida}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-gray-500 mt-4">Base legal: {reentrada.baseLegal}</p>
+            </div>
+
+            {/* Conversão */}
+            <div className="card-technical rounded-2xl p-8 animate-fade-up">
+              <div className="flex items-center gap-3 mb-4">
+                <FileText className="w-7 h-7 text-carmesim" />
+                <h3 className="font-sans font-bold text-xl text-grafite">Conversão de licença estrangeira</h3>
+              </div>
+              <ol className="space-y-3 list-decimal list-inside">
+                {conversao.passos.map((p, i) => (
+                  <li key={i} className="text-sm text-gray-600">{p}</li>
+                ))}
+              </ol>
+              <p className="text-xs text-gray-500 mt-4">{conversao.baseLegal}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Training */}
+      <section className="py-12 sm:py-20 lg:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
+              Formação
+            </span>
+            <h2 className="font-sans font-bold text-4xl text-grafite mb-4">
+              Onde formar-se
+            </h2>
+            <p className="text-sm text-gray-500 max-w-2xl mx-auto">{notaFonte}</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            {ato.map((a) => (
+              <div key={a.nome} className="card-technical rounded-2xl p-8 animate-fade-up">
+                <div className="flex items-center gap-3 mb-4">
+                  <GraduationCap className="w-7 h-7 text-carmesim" />
+                  <div>
+                    <h3 className="font-sans font-bold text-xl text-grafite">{a.nome}</h3>
+                    <p className="text-sm text-gray-500">{a.pais} · {a.certificado}</p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 mb-3">{a.escopo}</p>
+                <p className="text-xs text-gray-500">
+                  Validade do certificado (à data desta publicação): {a.validade}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {caminhos.map((c) => (
+              <div key={c.titulo} className="card-technical rounded-xl p-6 animate-fade-up">
+                <h4 className="font-sans font-semibold text-lg text-grafite mb-2">{c.titulo}</h4>
+                <p className="text-sm text-gray-600">{c.desc}</p>
+              </div>
+            ))}
+            <div className="card-technical rounded-xl p-6 animate-fade-up">
+              <h4 className="font-sans font-semibold text-lg text-grafite mb-2">{academico.titulo}</h4>
+              <p className="text-sm text-gray-600">{academico.desc}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FIR Section — bloco de design adjacente (gradiente legado) registado
+          na spec §8 para tratamento separado; conteúdo atualizado, estilo
+          mantido intencionalmente intacto. */}
       <section className="py-12 sm:py-20 lg:py-24 bg-grafite relative overflow-hidden">
         <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0" style={{ 
+          <div className="absolute inset-0" style={{
             backgroundImage: 'radial-gradient(circle at 30% 50%, rgba(0,255,156,0.3) 0%, transparent 50%)',
           }} />
         </div>
@@ -274,10 +443,10 @@ export const ProfissaoPage = () => {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="animate-fade-up">
               <div className="relative">
-                <div className="w-80 h-80 mx-auto border-2 border-carmesim/30 rounded-full flex items-center justify-center">
-                  <div className="w-60 h-60 border border-carmesim/20 rounded-full flex items-center justify-center">
-                    <div className="w-40 h-40 bg-carmesim/10 rounded-full flex items-center justify-center">
-                      <Globe className="w-20 h-20 text-carmesim" />
+                <div className="w-80 h-80 mx-auto border-2 border-white/20 rounded-full flex items-center justify-center">
+                  <div className="w-60 h-60 border border-white/15 rounded-full flex items-center justify-center">
+                    <div className="w-40 h-40 bg-white/5 rounded-full flex items-center justify-center">
+                      <Globe className="w-20 h-20 text-white" />
                     </div>
                   </div>
                 </div>
@@ -285,33 +454,32 @@ export const ProfissaoPage = () => {
                   <Plane className="w-8 h-8 text-white animate-pulse" />
                 </div>
                 <div className="absolute bottom-20 left-5">
-                  <Plane className="w-6 h-6 text-carmesim -rotate-45" />
+                  <Plane className="w-6 h-6 text-white/70 -rotate-45" />
                 </div>
               </div>
             </div>
 
             <div className="animate-fade-up">
-              <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
+              <span className="inline-block px-4 py-2 bg-white/10 text-white rounded-full text-sm uppercase tracking-wider mb-6">
                 Espaço Aéreo
               </span>
               <h2 className="font-sans font-bold text-4xl text-white mb-6">
-                A FIR Sal: Um Espaço Estratégico
+                A {fir.nome}: um espaço estratégico
               </h2>
               <p className="text-xl text-white/80 leading-relaxed mb-6">
-                A <strong className="text-carmesim">Flight Information Region (FIR) de Sal</strong> é uma das maiores 
-                regiões de informação de voo do Atlântico, cobrindo milhões de quilómetros quadrados de oceano.
+                {fir.descricao}
               </p>
               <p className="text-lg text-white/70 leading-relaxed mb-8">
-                Os controladores cabo-verdianos gerem diariamente centenas de voos intercontinentais que atravessam 
-                este corredor vital entre a Europa, África e as Américas.
+                Os controladores cabo-verdianos asseguram diariamente a passagem segura de voos
+                intercontinentais por este corredor vital entre a Europa, África e as Américas.
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
-                  <div className="font-sans font-bold text-3xl text-amber mb-1">500+</div>
-                  <div className="text-xs text-white/60 uppercase tracking-wider">Voos/dia em média</div>
+                  <div className="font-sans font-bold text-2xl text-white mb-1">DL 9/80</div>
+                  <div className="text-xs text-white/60 uppercase tracking-wider">Decreto que criou a FIR</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
-                  <div className="font-sans font-bold text-3xl text-amber mb-1">24/7</div>
+                  <div className="font-sans font-bold text-3xl text-white mb-1">24/7</div>
                   <div className="text-xs text-white/60 uppercase tracking-wider">Operação contínua</div>
                 </div>
               </div>
@@ -332,14 +500,14 @@ export const ProfissaoPage = () => {
           <div className="flex flex-wrap justify-center gap-4">
             <Link
               to="/sobre"
-              className="inline-flex items-center gap-2 bg-grafite text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-grafite/90 transition-all"
+              className="inline-flex items-center gap-2 bg-carmesim text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-carmesim-dark transition-all"
             >
               Sobre a ACCTA
               <ArrowRight className="w-5 h-5" />
             </Link>
             <Link
               to="/contactos"
-              className="inline-flex items-center gap-2 border-2 border-primary text-grafite px-8 py-4 rounded-lg font-bold text-lg hover:bg-grafite hover:text-white transition-all"
+              className="inline-flex items-center gap-2 border-2 border-[#D1D5DB] text-grafite px-8 py-4 rounded-lg font-bold text-lg hover:bg-gray-50 transition-all"
             >
               Entre em Contacto
             </Link>

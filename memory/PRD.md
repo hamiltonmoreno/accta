@@ -1,7 +1,7 @@
-# Portal ACTACV - Product Requirements Document
+# Portal ACCTA - Product Requirements Document
 
 ## Problema Original
-Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aereo de Cabo Verde (ACTACV). Portal institucional publico + area reservada para associados.
+Ecossistema digital integrado para a Associacao dos Controladores de Trafego Aereo de Cabo Verde (ACCTA). Portal institucional publico + area reservada para associados.
 
 ## Stack Tecnica
 - **Frontend:** React, Tailwind CSS, Recharts, Framer Motion (Modo Claro exclusivo)
