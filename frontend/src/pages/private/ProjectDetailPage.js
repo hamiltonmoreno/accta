@@ -8,22 +8,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, CheckCircle, Clock, Plus, Trash2, Send,
   DollarSign, Target, MessageSquare, Calendar, Users,
-  Pencil, Eye, EyeOff, X, AlertCircle, Flag,
+  Pencil, Eye, EyeOff, X, AlertCircle,
 } from 'lucide-react';
-
-const STATUS_CONFIG = {
-  proposta: { label: 'Proposta', color: 'bg-[#FFFBEB] text-[#B45309]' },
-  aprovado: { label: 'Aprovado', color: 'bg-[#EFF6FF] text-[#1D4ED8]' },
-  em_curso: { label: 'Em Curso', color: 'bg-[#EFF6FF] text-[#1D4ED8]' },
-  concluido: { label: 'Concluido', color: 'bg-[#F0FDF4] text-[#15803D]' },
-  cancelado: { label: 'Cancelado', color: 'bg-[#FEF2F2] text-[#B91C1C]' },
-};
-
-const PRIORITY_CONFIG = {
-  baixa: { label: 'Baixa', color: 'text-[#6B7280]' },
-  media: { label: 'Media', color: 'text-[#2563EB]' },
-  alta: { label: 'Alta', color: 'text-carmesim' },
-};
+import {
+  PROJECT_STATUS_CONFIG, PROJECT_STATUS_FALLBACK,
+  TASK_PRIORITY_CONFIG, TASK_PRIORITY_FALLBACK,
+  getStatusConfig,
+} from '../../lib/statusConfig';
 
 const TabBtn = ({ active, label, icon: Icon, onClick, badge, testId }) => (
   <button onClick={onClick} data-testid={testId}
@@ -133,7 +124,8 @@ const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
       ) : (
         <div className="space-y-1.5">
           {tasks.map((task) => {
-            const pri = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.media;
+            const pri = getStatusConfig(TASK_PRIORITY_CONFIG, task.priority, TASK_PRIORITY_FALLBACK);
+            const PriIcon = pri.icon;
             const canUpdateTask = canManage || task.assignee_id === user?.id;
             return (
               <div key={task.id}
@@ -156,8 +148,8 @@ const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
                   <div className="flex items-center gap-3 mt-1.5 text-xs text-[#6B7280]">
                     {task.assignee_name && <span className="flex items-center gap-1"><Users className="w-3 h-3" />{task.assignee_name}</span>}
                     {task.due_date && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{task.due_date}</span>}
-                    <span className={`flex items-center gap-1 ${pri.color} font-semibold`}>
-                      <Flag className="w-3 h-3" />{pri.label}
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold ${pri.className}`}>
+                      <PriIcon className="w-3 h-3" aria-hidden="true" />{pri.label}
                     </span>
                   </div>
                 </div>
@@ -566,7 +558,8 @@ const ProjectDetailPage = () => {
 
   const canManage = isAdmin || project.created_by === user?.id || project.responsible_id === user?.id;
   const canEditProjectStatus = isAdmin;
-  const st = STATUS_CONFIG[project.status] || STATUS_CONFIG.proposta;
+  const st = getStatusConfig(PROJECT_STATUS_CONFIG, project.status, PROJECT_STATUS_FALLBACK);
+  const StatusIcon = st.icon;
 
   const handleStatusChange = (newStatus) => {
     updateMutation.mutate(
@@ -574,7 +567,7 @@ const ProjectDetailPage = () => {
       {
         onSuccess: () => {
           onReload();
-          toast.success(`Status atualizado para ${STATUS_CONFIG[newStatus]?.label || newStatus}`);
+          toast.success(`Status atualizado para ${PROJECT_STATUS_CONFIG[newStatus]?.label || newStatus}`);
         },
       },
     );
@@ -598,19 +591,24 @@ const ProjectDetailPage = () => {
             <div className="flex items-center gap-3 mt-1.5 flex-wrap">
               <div className="relative">
                 <button onClick={() => canEditProjectStatus && setEditingStatus(!editingStatus)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${st.color} ${canEditProjectStatus ? 'cursor-pointer hover:opacity-80' : ''}`}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${st.className} ${canEditProjectStatus ? 'cursor-pointer hover:opacity-80' : ''}`}
                   data-testid="project-status-badge">
+                  <StatusIcon className="w-3 h-3" aria-hidden="true" />
                   {st.label}
                 </button>
                 {editingStatus && canEditProjectStatus && (
                   <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1 min-w-[140px]">
-                    {Object.entries(STATUS_CONFIG).map(([key, val]) => (
-                      <button key={key} onClick={() => handleStatusChange(key)}
-                        className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${val.color.split(' ')[0]}`} />
-                        {val.label}
-                      </button>
-                    ))}
+                    {Object.entries(PROJECT_STATUS_CONFIG).map(([key, val]) => {
+                      const ValIcon = val.icon;
+                      return (
+                        <button key={key} onClick={() => handleStatusChange(key)}
+                          className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${val.dotClassName}`} />
+                          <ValIcon className="w-3.5 h-3.5 text-[#6B7280]" aria-hidden="true" />
+                          {val.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>

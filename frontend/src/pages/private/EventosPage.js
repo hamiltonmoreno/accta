@@ -24,28 +24,9 @@ import {
 } from 'lucide-react';
 import { format, isFuture, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-const getEventStyle = (type) => {
-  const styles = {
-    assembleia: { color: 'bg-[#F5F5F5] text-[#3A3A3A]', border: 'border-[#9CA3AF]' },
-    formacao: { color: 'bg-[#F5F5F5] text-[#3A3A3A]', border: 'border-[#9CA3AF]' },
-    social: { color: 'bg-[#F5F5F5] text-[#3A3A3A]', border: 'border-[#9CA3AF]' },
-    reuniao: { color: 'bg-[#FFFBEB] text-[#B45309]', border: 'border-[#D97706]' },
-    outro: { color: 'bg-[#F5F5F5] text-[#3A3A3A]', border: 'border-[#9CA3AF]' },
-  };
-  return styles[type] || styles.outro;
-};
-
-const getEventLabel = (type) => {
-  const labels = {
-    assembleia: 'Assembleia',
-    formacao: 'Formação',
-    social: 'Social',
-    reuniao: 'Reunião',
-    outro: 'Outro',
-  };
-  return labels[type] || 'Outro';
-};
+import {
+  EVENT_TYPE_CONFIG, EVENT_TYPE_FALLBACK, getStatusConfig,
+} from '../../lib/statusConfig';
 
 export const EventosPage = () => {
   const { user, isAdmin } = useAuth();
@@ -150,7 +131,8 @@ export const EventosPage = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {filteredEvents.map((event, index) => {
-            const style = getEventStyle(event.type);
+            const style = getStatusConfig(EVENT_TYPE_CONFIG, event.type, EVENT_TYPE_FALLBACK);
+            const EventIcon = style.icon;
             const eventDate = new Date(event.date);
             const isPastEvent = isPast(eventDate);
             const isRegistered = event.attendees?.includes(user?.id);
@@ -167,8 +149,9 @@ export const EventosPage = () => {
                         <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                       </div>
                       <div>
-                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-mono uppercase ${style.color}`}>
-                          {getEventLabel(event.type)}
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono uppercase ${style.className}`}>
+                          <EventIcon className="w-3 h-3" aria-hidden="true" />
+                          {style.label}
                         </span>
                         <div className="text-xs text-[#6B7280] mt-0.5">
                           {event.visibility === 'socios' ? 'Sócios' : event.visibility === 'direcao' ? 'Direção' : 'Público'}

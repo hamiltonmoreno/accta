@@ -5,6 +5,9 @@ import { queryKeys } from '../../../lib/queryClient';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DollarSign, TrendingUp } from 'lucide-react';
+import {
+  INVOICE_STATUS_CONFIG, INVOICE_STATUS_FALLBACK, getStatusConfig,
+} from '../../../lib/statusConfig';
 
 const StatBlock = ({ label, value, icon: Icon, color }) => (
   <div className="card-technical p-4 sm:p-5 animate-fade-up">
@@ -56,7 +59,10 @@ export const MemberFinanceView = () => {
           </div>
         ) : (
           <div className="divide-y divide-gray-50">
-            {invoices.map((inv) => (
+            {invoices.map((inv) => {
+              const statusCfg = getStatusConfig(INVOICE_STATUS_CONFIG, inv.status, INVOICE_STATUS_FALLBACK);
+              const StatusIcon = statusCfg.icon;
+              return (
               <div key={inv.id} className="p-4 flex items-center justify-between" data-testid={`invoice-${inv.id}`}>
                 <div>
                   <span className="font-semibold text-sm capitalize" style={{ color: 'var(--text-primary)' }}>{inv.type}</span>
@@ -66,12 +72,14 @@ export const MemberFinanceView = () => {
                 </div>
                 <div className="text-right">
                   <div className="font-mono font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{inv.amount} CVE</div>
-                  <span className={`text-xs font-semibold uppercase ${inv.status === 'pago' ? 'text-[#15803D]' : 'text-[#B45309]'}`}>
+                  <span className={`inline-flex items-center gap-1 text-xs font-semibold uppercase px-2 py-0.5 rounded-full mt-0.5 ${statusCfg.className}`}>
+                    <StatusIcon className="w-3 h-3" aria-hidden="true" />
                     {inv.status}
                   </span>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

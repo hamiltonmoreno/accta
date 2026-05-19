@@ -5,8 +5,11 @@ import { usersAPI } from '../../utils/api';
 import { toast } from 'sonner';
 import {
   User as UserIcon, Mail, Phone, Shield, Award, FileText,
-  Calendar, Save, BadgeCheck, Briefcase, Hash, Pencil, X
+  Calendar, Save, Briefcase, Hash, Pencil, X
 } from 'lucide-react';
+import {
+  USER_STATUS_CONFIG, USER_STATUS_FALLBACK, getStatusConfig,
+} from '../../lib/statusConfig';
 
 const PRIVILEGE_LABELS = {
   manage_users: 'Gerir Utilizadores',
@@ -83,7 +86,8 @@ export const PerfilPage = () => {
   if (!user) return null;
 
   const roleLabel = { admin: 'Administrador', socio: 'Sócio', financeiro: 'Gestor Financeiro', moderador: 'Moderador' };
-  const statusColors = { ativo: 'bg-[#F0FDF4] text-[#15803D]', inativo: 'bg-[#F5F5F5] text-[#3A3A3A]' };
+  const statusCfg = getStatusConfig(USER_STATUS_CONFIG, user.status, USER_STATUS_FALLBACK);
+  const StatusIcon = statusCfg.icon;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6" data-testid="profile-page">
@@ -126,8 +130,8 @@ export const PerfilPage = () => {
           {/* Name + badges */}
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <h2 className="text-xl font-bold text-grafite" data-testid="profile-name">{user.name}</h2>
-            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider ${statusColors[user.status] || 'bg-gray-100 text-gray-600'}`}>
-              <BadgeCheck className="w-3 h-3" />
+            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider ${statusCfg.className}`}>
+              <StatusIcon className="w-3 h-3" aria-hidden="true" />
               {user.status}
             </span>
           </div>

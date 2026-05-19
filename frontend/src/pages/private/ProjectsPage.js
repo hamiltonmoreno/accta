@@ -11,17 +11,13 @@ import {
   DollarSign, CheckCircle, Clock, Users, Eye, EyeOff, X,
   Target, AlertCircle,
 } from 'lucide-react';
-
-const STATUS_CONFIG = {
-  proposta: { label: 'Proposta', color: 'bg-[#FFFBEB] text-[#B45309]', dot: 'bg-[#D97706]' },
-  aprovado: { label: 'Aprovado', color: 'bg-[#EFF6FF] text-[#1D4ED8]', dot: 'bg-[#2563EB]' },
-  em_curso: { label: 'Em Curso', color: 'bg-[#EFF6FF] text-[#1D4ED8]', dot: 'bg-[#2563EB]' },
-  concluido: { label: 'Concluido', color: 'bg-[#F0FDF4] text-[#15803D]', dot: 'bg-[#16A34A]' },
-  cancelado: { label: 'Cancelado', color: 'bg-[#FEF2F2] text-[#B91C1C]', dot: 'bg-[#C7202F]' },
-};
+import {
+  PROJECT_STATUS_CONFIG, PROJECT_STATUS_FALLBACK, getStatusConfig,
+} from '../../lib/statusConfig';
 
 const ProjectCard = ({ project, onClick }) => {
-  const st = STATUS_CONFIG[project.status] || STATUS_CONFIG.proposta;
+  const st = getStatusConfig(PROJECT_STATUS_CONFIG, project.status, PROJECT_STATUS_FALLBACK);
+  const StatusIcon = st.icon;
   const progress = project.progress || 0;
   const budgetPct = project.budget > 0 ? Math.round((project.spent / project.budget) * 100) : 0;
 
@@ -34,8 +30,8 @@ const ProjectCard = ({ project, onClick }) => {
           <h3 className="font-semibold text-grafite text-base truncate">{project.title}</h3>
           <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{project.description || 'Sem descricao'}</p>
         </div>
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap ${st.color}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap ${st.className}`}>
+          <StatusIcon className="w-3 h-3" aria-hidden="true" />
           {st.label}
         </span>
       </div>

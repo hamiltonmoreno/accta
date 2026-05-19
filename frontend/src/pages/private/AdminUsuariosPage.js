@@ -8,10 +8,13 @@ import {
   Users, Search, Shield, BadgeCheck, Briefcase, X, Save,
   Trash2, ChevronDown, Filter, UserCog, UserPlus, Clock, Link2
 } from 'lucide-react';
+import {
+  ROLE_CONFIG, ROLE_FALLBACK,
+  USER_STATUS_CONFIG, USER_STATUS_FALLBACK,
+  getStatusConfig,
+} from '../../lib/statusConfig';
 
 const ROLE_LABELS = { admin: 'Administrador', socio: 'Sócio', financeiro: 'Financeiro', moderador: 'Moderador' };
-const ROLE_COLORS = { admin: 'bg-[#F5F5F5] text-[#3A3A3A]', socio: 'bg-[#F5F5F5] text-[#3A3A3A]', financeiro: 'bg-[#F5F5F5] text-[#3A3A3A]', moderador: 'bg-[#F5F5F5] text-[#3A3A3A]' };
-const STATUS_COLORS = { ativo: 'bg-[#F0FDF4] text-[#15803D]', inativo: 'bg-[#F5F5F5] text-[#3A3A3A]', pendente_convite: 'bg-[#FFFBEB] text-[#B45309]' };
 
 const PRIVILEGE_LABELS = {
   manage_users: 'Gerir Utilizadores',
@@ -222,7 +225,12 @@ export const AdminUsuariosPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((u) => (
+                  {users.map((u) => {
+                    const roleCfg = getStatusConfig(ROLE_CONFIG, u.role, ROLE_FALLBACK);
+                    const RoleIcon = roleCfg.icon;
+                    const statusCfg = getStatusConfig(USER_STATUS_CONFIG, u.status, USER_STATUS_FALLBACK);
+                    const StatusIcon = statusCfg.icon;
+                    return (
                     <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
@@ -239,13 +247,14 @@ export const AdminUsuariosPage = () => {
                         <span className="text-xs font-medium text-grafite">{u.cargo || 'Sócio'}</span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${ROLE_COLORS[u.role] || 'bg-gray-100 text-gray-600'}`}>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${roleCfg.className}`}>
+                          <RoleIcon className="w-3 h-3" aria-hidden="true" />
                           {ROLE_LABELS[u.role] || u.role}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLORS[u.status] || 'bg-gray-100 text-gray-600'}`}>
-                          <BadgeCheck className="w-3 h-3" />
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${statusCfg.className}`}>
+                          <StatusIcon className="w-3 h-3" aria-hidden="true" />
                           {u.status}
                         </span>
                       </td>
@@ -273,7 +282,8 @@ export const AdminUsuariosPage = () => {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -281,7 +291,12 @@ export const AdminUsuariosPage = () => {
 
           {/* Mobile Cards */}
           <div className="md:hidden space-y-3">
-            {users.map((u) => (
+            {users.map((u) => {
+              const roleCfg = getStatusConfig(ROLE_CONFIG, u.role, ROLE_FALLBACK);
+              const RoleIcon = roleCfg.icon;
+              const statusCfg = getStatusConfig(USER_STATUS_CONFIG, u.status, USER_STATUS_FALLBACK);
+              const StatusIcon = statusCfg.icon;
+              return (
               <div key={u.id} className="card-technical p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
@@ -302,15 +317,18 @@ export const AdminUsuariosPage = () => {
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${ROLE_COLORS[u.role]}`}>
+                  <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold ${roleCfg.className}`}>
+                    <RoleIcon className="w-3 h-3" aria-hidden="true" />
                     {ROLE_LABELS[u.role]}
                   </span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STATUS_COLORS[u.status]}`}>
+                  <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold ${statusCfg.className}`}>
+                    <StatusIcon className="w-3 h-3" aria-hidden="true" />
                     {u.status}
                   </span>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}
