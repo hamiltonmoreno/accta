@@ -493,7 +493,7 @@ export const GaleriaAdminPage = () => {
                     )}
                   </div>
                   <div className="absolute bottom-3 left-3 right-3">
-                    <h3 className="font-bold text-white text-lg group-hover:text-carmesim transition-colors">{album.title}</h3>
+                    <h3 className="font-bold text-white text-lg transition-colors">{album.title}</h3>
                     <div className="flex items-center gap-1.5 text-white/70 text-xs mt-0.5">
                       <Camera className="w-3.5 h-3.5" />
                       <span>{album.photo_count} foto{album.photo_count !== 1 ? 's' : ''}</span>

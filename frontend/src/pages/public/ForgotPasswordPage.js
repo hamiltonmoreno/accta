@@ -88,7 +88,7 @@ export const ForgotPasswordPage = () => {
                     data-testid="forgot-email-input"
                   />
                   {errors.email && (
-                    <p className="mt-1 text-xs text-carmesim" role="alert">{errors.email.message}</p>
+                    <p className="mt-1 text-xs text-[#B91C1C]" role="alert">{errors.email.message}</p>
                   )}
                 </div>
 

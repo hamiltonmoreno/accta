@@ -66,12 +66,12 @@ export const EventosPublicoPage = () => {
         </div>
         <div className="relative z-10 max-w-7xl mx-auto px-6">
           <div className="text-center animate-fade-up">
-            <span className="inline-block px-4 py-2 bg-carmesim/10 border border-carmesim/30 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
+            <span className="inline-block px-4 py-2 bg-white/10 text-white rounded-full text-sm uppercase tracking-wider mb-6">
               Agenda
             </span>
             <h1 className="font-sans font-bold text-5xl lg:text-6xl text-white mb-6" data-testid="events-title">
               Eventos da{' '}
-              <span className="text-carmesim">ACCTA</span>
+              <span className="text-white">ACCTA</span>
             </h1>
             <p className="text-xl text-white/80 max-w-3xl mx-auto leading-relaxed">
               Assembleias, formações, encontros e mais. Fique por dentro da agenda da associação.
@@ -154,7 +154,7 @@ export const EventosPublicoPage = () => {
                           <div className="font-sans font-bold text-3xl text-white">
                             {format(eventDate, 'dd')}
                           </div>
-                          <div className="text-carmesim uppercase text-sm">
+                          <div className="text-white uppercase text-sm">
                             {format(eventDate, 'MMM yyyy', { locale: ptBR })}
                           </div>
                         </div>

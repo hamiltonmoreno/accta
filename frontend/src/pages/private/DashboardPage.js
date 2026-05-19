@@ -386,7 +386,7 @@ export const DashboardPage = () => {
                           <span className="font-bold text-xs text-white leading-none">
                             {format(new Date(event.date), 'dd')}
                           </span>
-                          <span className="text-xs text-carmesim uppercase font-bold leading-none mt-0.5">
+                          <span className="text-xs text-white uppercase font-bold leading-none mt-0.5">
                             {format(new Date(event.date), 'MMM', { locale: ptBR })}
                           </span>
                         </div>
@@ -423,7 +423,7 @@ export const DashboardPage = () => {
                   <span className="font-bold text-sm text-white leading-none">
                     {format(new Date(event.date), 'dd')}
                   </span>
-                  <span className="text-xs text-carmesim uppercase font-bold leading-none mt-0.5">
+                  <span className="text-xs text-white uppercase font-bold leading-none mt-0.5">
                     {format(new Date(event.date), 'MMM', { locale: ptBR })}
                   </span>
                 </div>

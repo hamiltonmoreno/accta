@@ -143,7 +143,7 @@ export const SetupAccountPage = () => {
               </button>
             </div>
             {errors.password && (
-              <p className="text-xs text-carmesim mt-1" role="alert">{errors.password.message}</p>
+              <p className="text-xs text-[#B91C1C] mt-1" role="alert">{errors.password.message}</p>
             )}
           </div>
 
@@ -163,7 +163,7 @@ export const SetupAccountPage = () => {
               />
             </div>
             {errors.confirmPassword && (
-              <p className="text-xs text-carmesim mt-1" role="alert">{errors.confirmPassword.message}</p>
+              <p className="text-xs text-[#B91C1C] mt-1" role="alert">{errors.confirmPassword.message}</p>
             )}
           </div>
 

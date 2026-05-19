@@ -72,9 +72,9 @@ export const BeneficiosPage = () => {
       {!isAtivo && (
         <div className="card-technical rounded-xl p-6 border-2 border-alert" data-testid="benefits-restricted">
           <div className="flex items-start gap-4">
-            <Gift className="w-6 h-6 text-alert flex-shrink-0 mt-1" />
+            <Gift className="w-6 h-6 text-[#B91C1C] flex-shrink-0 mt-1" />
             <div>
-              <h3 className="font-sans font-semibold text-lg text-alert mb-2">Benefícios Restritos</h3>
+              <h3 className="font-sans font-semibold text-lg text-[#B91C1C] mb-2">Benefícios Restritos</h3>
               <p className="text-gray-600">
                 Apenas sócios com status ativo têm acesso ao clube de benefícios. Por favor, regularize sua situação.
               </p>

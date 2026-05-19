@@ -61,12 +61,12 @@ export const TransparenciaPage = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
         <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6">
           <div className="max-w-2xl animate-fade-up">
-            <span className="inline-block px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
+            <span className="inline-block px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-white rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
               Governança
             </span>
             <h1 className="font-bold text-3xl sm:text-5xl lg:text-6xl text-white mb-4" data-testid="transparency-title">
               Transparência e{' '}
-              <span className="text-carmesim">Prestação de Contas</span>
+              <span className="text-white">Prestação de Contas</span>
             </h1>
             <p className="text-base sm:text-xl text-white/80 max-w-xl leading-relaxed">
               A credibilidade da ACCTA baseia-se na transparência com os seus associados e com a sociedade
@@ -107,7 +107,7 @@ export const TransparenciaPage = () => {
                 <div key={doc.id}
                   className="card-technical rounded-xl p-6 hover:shadow-lg transition-all group animate-fade-up">
                   <div className="w-14 h-14 bg-grafite rounded-xl flex items-center justify-center mb-5">
-                    <IconComponent className="w-7 h-7 text-carmesim" />
+                    <IconComponent className="w-7 h-7 text-white" />
                   </div>
                   <h3 className="font-sans font-semibold text-xl text-grafite mb-3 group-hover:text-carmesim transition-colors">
                     {doc.title}
@@ -156,7 +156,7 @@ export const TransparenciaPage = () => {
                           <IconComponent className="w-6 h-6 text-grafite" />
                         </div>
                         <div>
-                          <span className="text-xs text-carmesim uppercase tracking-wider">{report.year}</span>
+                          <span className="text-xs text-white uppercase tracking-wider">{report.year}</span>
                           <h3 className="font-sans font-semibold text-lg text-white">{report.title}</h3>
                         </div>
                       </div>
@@ -232,7 +232,7 @@ export const TransparenciaPage = () => {
               <div key={index}
                 className="card-technical rounded-xl p-6 animate-fade-up sm:flex sm:items-start sm:gap-5">
                 <div className="w-12 h-12 bg-grafite rounded-lg flex items-center justify-center flex-shrink-0 mb-4 sm:mb-0">
-                  <Scale className="w-6 h-6 text-carmesim" />
+                  <Scale className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-3 mb-2">

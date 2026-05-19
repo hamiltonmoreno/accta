@@ -98,7 +98,7 @@ export const DocumentosPage = () => {
               data-testid={`document-${doc.id}`}>
               <div className="flex items-start gap-4 mb-4">
                 <div className="w-12 h-12 bg-grafite rounded-lg flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-6 h-6 text-carmesim" />
+                  <FileText className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <span className="inline-block px-3 py-1 bg-carmesim/10 text-carmesim rounded-full text-xs font-mono uppercase tracking-wider mb-2">

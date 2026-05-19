@@ -105,7 +105,7 @@ export const ResetPasswordPage = () => {
                     </button>
                   </div>
                   {errors.password && (
-                    <p className="mt-1 text-xs text-carmesim" role="alert">{errors.password.message}</p>
+                    <p className="mt-1 text-xs text-[#B91C1C]" role="alert">{errors.password.message}</p>
                   )}
                 </div>
 
@@ -124,7 +124,7 @@ export const ResetPasswordPage = () => {
                     data-testid="reset-confirm-password-input"
                   />
                   {errors.confirmPassword && (
-                    <p className="mt-1 text-xs text-carmesim" role="alert" data-testid="password-mismatch-error">{errors.confirmPassword.message}</p>
+                    <p className="mt-1 text-xs text-[#B91C1C]" role="alert" data-testid="password-mismatch-error">{errors.confirmPassword.message}</p>
                   )}
                 </div>
 
