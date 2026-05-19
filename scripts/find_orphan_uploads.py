@@ -37,8 +37,27 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv(os.path.join(os.path.dirname(__file__), "..", "backend", ".env"))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
+_HERE = os.path.dirname(os.path.abspath(__file__))
+# `database.py` vive em `backend/` no layout do repo (scripts/ + backend/
+# irmãos) OU em `/app` dentro do container (Dockerfile: COPY backend/ ./
+# + COPY scripts/ ./scripts/, logo o script fica em /app/scripts/).
+_BACKEND_DIR = next(
+    (
+        os.path.abspath(p)
+        for p in (os.path.join(_HERE, "..", "backend"), os.path.join(_HERE, ".."))
+        if os.path.isfile(os.path.join(p, "database.py"))
+    ),
+    None,
+)
+if _BACKEND_DIR is None:
+    sys.exit(
+        "ERRO: database.py não encontrado (nem ../backend nem ..). Correr do repo ou via `docker compose exec backend`."
+    )
+
+load_dotenv(
+    os.path.join(_BACKEND_DIR, ".env")
+)  # no-op se ausente (container usa env_file)
+sys.path.insert(0, _BACKEND_DIR)
 
 from database import COLLECTIONS, UPLOAD_DIR, close_pool, get_pool  # noqa: E402
 
@@ -102,15 +121,22 @@ def scan_disk(min_age_seconds: float) -> dict[str, list[tuple[Path, str, int]]]:
 
 
 async def main() -> int:
-    ap = argparse.ArgumentParser(description="Audita/limpa uploads órfãos do Portal ACCTA.")
-    ap.add_argument("--delete", action="store_true", help="Apaga os órfãos (default: só lista).")
+    ap = argparse.ArgumentParser(
+        description="Audita/limpa uploads órfãos do Portal ACCTA."
+    )
+    ap.add_argument(
+        "--delete", action="store_true", help="Apaga os órfãos (default: só lista)."
+    )
     ap.add_argument(
         "--include-proofs",
         action="store_true",
         help="Inclui a categoria proofs no delete (linkagem incerta — usar com cuidado).",
     )
     ap.add_argument(
-        "--min-age-hours", type=float, default=24.0, help="Ignora ficheiros mais novos que isto (default 24h)."
+        "--min-age-hours",
+        type=float,
+        default=24.0,
+        help="Ignora ficheiros mais novos que isto (default 24h).",
     )
     args = ap.parse_args()
 

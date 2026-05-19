@@ -14,6 +14,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ ./
 
+# Scripts de operação (create_admin, find_orphan_uploads, …). Ficam em
+# /app/scripts/ — o runbook corre-os com `docker compose exec backend`.
+COPY scripts/ ./scripts/
+
 RUN mkdir -p /app/uploads
 
 EXPOSE 8001

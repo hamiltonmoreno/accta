@@ -76,3 +76,12 @@ deploy.yml — não re-portar para 8000).
   scan live ao Supabase (egress DB bloqueado no sandbox — L4) e aplicação no VPS.
 - **Decisão**: porta mantida em 8001 (não re-portar p/ 8000 — quebraria
   compose/Dockerfile/healthcheck/docs sem ganho).
+- **Codex P2 (PR #47)**: o runbook usava `docker compose exec backend python
+  /app/scripts/...` mas o `backend/Dockerfile` faz `COPY backend/ ./` →
+  `scripts/` não estava na imagem. Fix: Dockerfile `COPY scripts/ ./scripts/`
+  + bootstrap do `find_orphan_uploads.py` que localiza `database.py` em ambos
+  os layouts (repo `../backend` / container `/app`). Verificado (ruff+compile+
+  resolução de path nos 2 layouts).
+- **CI (PR #47)**: 2 runs, ambos os jobs falham em ~3-4s; Frontend falha sem
+  qualquer alteração frontend e o Vercel build passa → falha de infra
+  Actions ao nível do repo/org, não do código. Não re-kickar mais.
