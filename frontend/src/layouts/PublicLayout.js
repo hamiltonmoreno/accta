@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ArrowRight } from 'lucide-react';
 import { ACCTALogoHorizontal } from '../components/ACCTALogo';
+import { ASSOCIACAO_NOME } from '../content/cta';
 
 export const PublicLayout = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
@@ -129,7 +130,7 @@ export const PublicLayout = ({ children }) => {
             <div className="col-span-2 sm:col-span-2 md:col-span-2">
               <ACCTALogoHorizontal dark className="mb-4" />
               <p className="text-sm text-white/70 mb-3 max-w-sm">
-                Associação dos Controladores de Tráfego Aéreo de Cabo Verde
+                {ASSOCIACAO_NOME}
               </p>
               <p className="text-amber font-semibold italic text-sm">
                 "Segurança no céu, união em terra."

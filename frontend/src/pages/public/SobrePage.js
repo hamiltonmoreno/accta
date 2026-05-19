@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { unsplashSrcSet } from '../../utils/unsplash';
-import { 
-  Shield, 
+import { ASSOCIACAO_NOME_COMPLETO, fir } from '../../content/cta';
+import {
+  Shield,
   Eye, 
   Users, 
   Star,
@@ -58,8 +59,8 @@ export const SobrePage = () => {
               </h2>
               <div className="space-y-6 text-lg text-gray-600 leading-relaxed">
                 <p>
-                  A <strong className="text-grafite">Associação dos Controladores de Tráfego Aéreo de Cabo Verde (ACCTA)</strong> é 
-                  a entidade representativa máxima da classe no arquipélago. Fundada com o propósito de unir os profissionais que 
+                  A <strong className="text-grafite">{ASSOCIACAO_NOME_COMPLETO}</strong> é
+                  a entidade representativa máxima da classe no arquipélago. Fundada com o propósito de unir os profissionais que
                   gerem um dos espaços aéreos mais estratégicos do mundo, a nossa associação atua na defesa dos direitos laborais, 
                   na promoção da excelência técnica e na cooperação com autoridades nacionais e internacionais.
                 </p>
@@ -77,13 +78,16 @@ export const SobrePage = () => {
                     <Globe className="w-8 h-8 text-grafite" />
                   </div>
                   <div>
-                    <div className="font-sans font-bold text-2xl">FIR Sal</div>
-                    <div className="text-white/70">Flight Information Region</div>
+                    <div className="font-sans font-bold text-2xl">{fir.nome}</div>
+                    <div className="text-white/70">{fir.baseLegal}</div>
                   </div>
                 </div>
                 <p className="text-white/80 leading-relaxed">
-                  Os nossos profissionais gerem a FIR Sal, uma das maiores regiões de informação de voo sobre o Atlântico, 
-                  coordenando voos entre a Europa, África e as Américas.
+                  Os nossos profissionais atuam na {fir.nome}, uma das maiores
+                  regiões de informação de voo sobre o Atlântico, coordenando
+                  voos entre a Europa, África e as Américas. A prestação dos
+                  serviços de tráfego aéreo é operada pela ASA — Navegação
+                  Aérea de Cabo Verde.
                 </p>
               </div>
             </div>

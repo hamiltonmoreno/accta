@@ -10,9 +10,10 @@ import {
   Calendar,
   ExternalLink,
   CheckCircle,
-  Building
+  Scale
 } from 'lucide-react';
 import { unsplashSrcSet } from '../../utils/unsplash';
+import { legislacao } from '../../content/cta';
 
 export const TransparenciaPage = () => {
   const [documents, setDocuments] = useState([]);
@@ -180,30 +181,69 @@ export const TransparenciaPage = () => {
         </div>
       </section>
 
-      {/* Governance Stats */}
+      {/* Governance Commitments (qualitativo, sem números não oficiais) */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
             <h2 className="font-sans font-bold text-3xl text-grafite mb-4">
-              Indicadores de Governança
+              Compromissos de Governança
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Números que demonstram o nosso compromisso com a gestão responsável
+              O nosso compromisso com uma gestão responsável e prestação de contas aos associados
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { value: '60+', label: 'Sócios Ativos', icon: Building },
-              { value: '90%', label: 'Taxa de Adimplência', icon: CheckCircle },
-              { value: '100%', label: 'Assembleias Realizadas', icon: Calendar },
-              { value: '4', label: 'Relatórios Anuais', icon: FileText },
-            ].map((stat, index) => (
+              { icon: BarChart3, title: 'Prestação de contas', desc: 'Publicamos contas e planos de atividades para consulta.' },
+              { icon: Calendar, title: 'Assembleias regulares', desc: 'Decisões estratégicas tomadas em assembleia, com os associados.' },
+              { icon: BookOpen, title: 'Documentos públicos', desc: 'Estatutos e regulamentos acessíveis nesta página.' },
+              { icon: CheckCircle, title: 'Gestão responsável', desc: 'A transparência é um dos nossos valores fundamentais.' },
+            ].map((item, index) => (
               <div key={index}
                 className="card-technical rounded-xl p-6 text-center animate-fade-up">
-                <stat.icon className="w-8 h-8 text-carmesim mx-auto mb-3" />
-                <div className="font-sans font-bold text-3xl text-grafite mb-1">{stat.value}</div>
-                <div className="text-xs text-gray-500 uppercase tracking-wider">{stat.label}</div>
+                <item.icon className="w-8 h-8 text-carmesim mx-auto mb-3" />
+                <div className="font-sans font-semibold text-lg text-grafite mb-2">{item.title}</div>
+                <div className="text-sm text-gray-600">{item.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Legislação e Regulamentos (base de conhecimento) */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-4">
+              Base de Conhecimento
+            </span>
+            <h2 className="font-sans font-bold text-3xl text-grafite mb-4">
+              Legislação e Regulamentos
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              O Código Aeronáutico é a base legal superior; os regulamentos CV-CAR detalham a
+              implementação técnica aplicável aos controladores de tráfego aéreo
+            </p>
+          </div>
+
+          <div className="space-y-4 max-w-5xl mx-auto">
+            {legislacao.map((lei, index) => (
+              <div key={index}
+                className="card-technical rounded-xl p-6 animate-fade-up sm:flex sm:items-start sm:gap-5">
+                <div className="w-12 h-12 bg-grafite rounded-lg flex items-center justify-center flex-shrink-0 mb-4 sm:mb-0">
+                  <Scale className="w-6 h-6 text-carmesim" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-3 mb-2">
+                    <h3 className="font-sans font-semibold text-grafite">{lei.documento}</h3>
+                    <span className="px-2.5 py-0.5 bg-gray-100 text-grafite rounded-full text-xs font-medium">
+                      {lei.natureza}
+                    </span>
+                  </div>
+                  <p className="text-sm text-grafite mb-1">{lei.tema}</p>
+                  <p className="text-sm text-gray-500">{lei.relevancia}</p>
+                </div>
               </div>
             ))}
           </div>
