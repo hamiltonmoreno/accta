@@ -1,9 +1,12 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, EmailStr
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from email_service import send_email, _base_template
 import os
 
 router = APIRouter(tags=["contact"])
+limiter = Limiter(key_func=get_remote_address)
 
 CONTACT_EMAIL = os.environ.get("CONTACT_EMAIL", "secretariado@controlador.cv")
 
@@ -54,7 +57,8 @@ def _contact_email_html(name: str, email: str, subject: str, message: str) -> st
 
 
 @router.post("/contact")
-async def submit_contact(data: ContactRequest):
+@limiter.limit("5/minute")
+async def submit_contact(request: Request, data: ContactRequest):
     if len(data.message.strip()) < 10:
         raise HTTPException(status_code=400, detail="Mensagem demasiado curta")
 

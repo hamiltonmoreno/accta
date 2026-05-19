@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
-from typing import List, Optional
+from typing import List, Literal, Optional
 from datetime import datetime, timezone
 import uuid
 
@@ -93,7 +93,7 @@ class InviteCreate(BaseModel):
 
 class SetupAccount(BaseModel):
     token: str
-    password: str
+    password: str = Field(min_length=8)
 
 
 # ===== INVOICE MODELS =====
@@ -162,6 +162,12 @@ class UserVote(BaseModel):
 class VoteCreate(BaseModel):
     poll_id: str
     vote_option: int
+
+
+class PollStatusUpdate(BaseModel):
+    # Transição de ciclo de vida da votação. "rascunho" é o estado inicial
+    # (criação); só se transita para "aberta" e depois "encerrada".
+    status: Literal["aberta", "encerrada"]
 
 
 # ===== POST MODELS =====
@@ -469,6 +475,11 @@ class FinanceSettingsUpdate(BaseModel):
     quota_description: Optional[str] = None
 
 
+# Estados válidos de conta. NÃO existe "inadimplente" (quotas são descontadas
+# em folha) — invariante de negócio do projeto.
+USER_STATUSES = ["ativo", "inativo", "pendente_convite"]
+
+
 # ===== PROJECT MODELS =====
 
 PROJECT_STATUSES = ["proposta", "aprovado", "em_curso", "concluido", "cancelado"]
@@ -586,6 +597,29 @@ class ProjectMilestone(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+# Request models — validação Pydantic em vez de `data: dict` cru
+# (payload inválido → 422 em vez de TypeError/500).
+class ProjectCommentCreate(BaseModel):
+    content: str = Field(min_length=1)
+
+
+class ProjectExpenseCreate(BaseModel):
+    description: str = Field(min_length=1)
+    amount: float = Field(gt=0)
+    date: Optional[str] = None
+
+
+class ProjectMilestoneCreate(BaseModel):
+    title: str = Field(min_length=1)
+    date: str = Field(min_length=1)
+
+
+class ProjectMilestoneUpdate(BaseModel):
+    completed: Optional[bool] = None
+    title: Optional[str] = None
+    date: Optional[str] = None
+
+
 # ===== PASSWORD RESET MODELS =====
 
 
@@ -595,4 +629,4 @@ class PasswordResetRequest(BaseModel):
 
 class PasswordResetConfirm(BaseModel):
     token: str
-    new_password: str
+    new_password: str = Field(min_length=8)

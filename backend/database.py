@@ -762,7 +762,9 @@ _INDEX_DDL: tuple[str, ...] = (
     "((doc->>'project_id'), (doc->>'status'))",
     # polls / votes
     "CREATE INDEX IF NOT EXISTS ix_polls_status_created ON \"polls\" ((doc->>'status'), (doc->>'created_at') DESC)",
-    "CREATE INDEX IF NOT EXISTS ix_votes_user_poll ON \"user_votes\" ((doc->>'user_id'), (doc->>'poll_id'))",
+    # UNIQUE: no máximo 1 voto por (user_id, poll_id) — fecha a race em vote().
+    # Também serve as queries por (user_id, poll_id).
+    "CREATE UNIQUE INDEX IF NOT EXISTS ux_votes_user_poll ON \"user_votes\" ((doc->>'user_id'), (doc->>'poll_id'))",
     "CREATE INDEX IF NOT EXISTS ix_votes_poll ON \"user_votes\" ((doc->>'poll_id'))",
     # gallery
     "CREATE INDEX IF NOT EXISTS ix_gphoto_album_status ON \"gallery_photos\" ((doc->>'album_id'), (doc->>'status'))",

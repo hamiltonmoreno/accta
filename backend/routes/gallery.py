@@ -4,8 +4,9 @@ from pathlib import Path
 from models import User, GalleryAlbum, GalleryAlbumCreate, GalleryPhoto
 from database import db, UPLOAD_DIR
 from auth import get_current_user
-from helpers import notify_admins, create_notification
+from helpers import notify_admins, create_notification, create_audit_log
 from file_validation import validate_file_content
+import asyncio
 import uuid
 
 GALLERY_ALLOWED_EXTS = [".jpg", ".jpeg", ".png", ".webp"]
@@ -108,7 +109,7 @@ async def create_gallery_album(album_data: GalleryAlbumCreate, current_user: Use
     album_dict = album.model_dump()
     album_dict["created_at"] = album_dict["created_at"].isoformat()
     await db.gallery_albums.insert_one(album_dict)
-    album_dict.pop("_id", None)
+    await create_audit_log(current_user.id, f"Criou álbum de galeria {album.id}", album.id)
     return album_dict
 
 
@@ -123,6 +124,7 @@ async def update_gallery_album(
         raise HTTPException(status_code=404, detail="Album nao encontrado")
     update_data = {k: v for k, v in album_data.model_dump().items() if v is not None}
     await db.gallery_albums.update_one({"id": album_id}, {"$set": update_data})
+    await create_audit_log(current_user.id, f"Atualizou álbum de galeria {album_id}", album_id)
     return {"message": "Album atualizado"}
 
 
@@ -137,6 +139,11 @@ async def delete_gallery_album(album_id: str, current_user: User = Depends(get_c
 
     await db.gallery_albums.delete_one({"id": album_id})
     await db.gallery_photos.delete_many({"album_id": album_id})
+    await create_audit_log(
+        current_user.id,
+        f"Removeu álbum de galeria {album_id} ({len(photos)} fotos)",
+        album_id,
+    )
     return {"message": "Album e fotos removidos"}
 
 
@@ -200,8 +207,8 @@ async def upload_gallery_photo(
     unique_filename = f"{uuid.uuid4()}{ext}"
     file_path = GALLERY_DIR / unique_filename
 
-    with open(file_path, "wb") as buffer:
-        buffer.write(contents)
+    # I/O off-loaded para thread — não bloquear o event loop com até 10 MB.
+    await asyncio.to_thread(file_path.write_bytes, contents)
 
     photo_url = f"/uploads/gallery/{unique_filename}"
     is_admin = current_user.role == "admin"
@@ -217,7 +224,6 @@ async def upload_gallery_photo(
     photo_dict = photo.model_dump()
     photo_dict["created_at"] = photo_dict["created_at"].isoformat()
     await db.gallery_photos.insert_one(photo_dict)
-    photo_dict.pop("_id", None)
 
     if is_admin:
         count = await db.gallery_photos.count_documents({"album_id": album_id, "status": "approved"})
@@ -258,6 +264,7 @@ async def approve_photo(photo_id: str, current_user: User = Depends(get_current_
             "/galeria",
         )
 
+    await create_audit_log(current_user.id, f"Aprovou foto da galeria {photo_id}", photo_id)
     return {"message": "Foto aprovada"}
 
 
@@ -282,6 +289,7 @@ async def reject_photo(photo_id: str, current_user: User = Depends(get_current_u
             None,
         )
 
+    await create_audit_log(current_user.id, f"Rejeitou foto da galeria {photo_id}", photo_id)
     return {"message": "Foto rejeitada e removida"}
 
 

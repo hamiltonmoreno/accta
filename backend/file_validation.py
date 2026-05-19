@@ -26,7 +26,8 @@ _MAGIC_PREFIXES: dict[str, list[bytes]] = {
     ".jpeg": [b"\xFF\xD8\xFF"],
     ".png": [b"\x89PNG\r\n\x1A\n"],
     ".webp": [b"RIFF"],  # mais validacao abaixo
-    ".svg": [b"<?xml", b"<svg", b"<!--"],  # texto
+    # .svg deliberadamente ausente: SVG e XML executavel (stored XSS) e nao
+    # e aceite em nenhuma categoria de upload.
 }
 
 _IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp"}

@@ -133,7 +133,11 @@ async def create_notification_route(notif_data: NotificationCreate, current_user
     notif_dict["created_at"] = notif_dict["created_at"].isoformat()
 
     await db.notifications.insert_one(notif_dict)
-    notif_dict.pop("_id", None)
+    await create_audit_log(
+        current_user.id,
+        f"Criou notificação manual para {notif_data.user_id}",
+        notif_data.user_id,
+    )
     return notification
 
 

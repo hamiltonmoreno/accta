@@ -35,6 +35,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "Permissions-Policy",
             "geolocation=(self), camera=(), microphone=(), interest-cohort=()",
         )
+        # CSP: contém qualquer XSS residual (sem inline-script, sem objetos,
+        # sem ser embutido em iframe). API serve JSON; img/data p/ uploads.
+        response.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; img-src 'self' data: blob:; "
+            "script-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'",
+        )
         # HSTS só em produção (atrás de TLS) — assumimos que ENVIRONMENT=production.
         if os.environ.get("ENVIRONMENT") == "production":
             response.headers.setdefault(
