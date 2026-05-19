@@ -56,7 +56,7 @@ export const BeneficiosPublicoPage = () => {
     { icon: Dumbbell, label: 'Ginásios', color: 'bg-green-50 text-green-600' },
     { icon: Stethoscope, label: 'Clínicas', color: 'bg-red-50 text-red-600' },
     { icon: Shield, label: 'Seguros', color: 'bg-purple-50 text-purple-600' },
-    { icon: Car, label: 'Rent-a-Car', color: 'bg-amber-50 text-amber-600' },
+    { icon: Car, label: 'Rent-a-Car', color: 'bg-[#FFFBEB] text-[#B45309]' },
     { icon: Heart, label: 'Bem-Estar', color: 'bg-pink-50 text-pink-600' },
   ];
 

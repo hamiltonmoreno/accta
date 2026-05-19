@@ -132,7 +132,7 @@ export const PublicLayout = ({ children }) => {
               <p className="text-sm text-white/70 mb-3 max-w-sm">
                 {ASSOCIACAO_NOME}
               </p>
-              <p className="text-amber font-semibold italic text-sm">
+              <p className="text-white font-semibold italic text-sm">
                 "Segurança no céu, união em terra."
               </p>
             </div>

@@ -77,7 +77,7 @@ const ACTIVITY_ICONS = {
 
 const ACTIVITY_COLORS = {
   mural: { bg: 'bg-indigo-100', text: 'text-indigo-600' },
-  projeto: { bg: 'bg-amber-100', text: 'text-amber-600' },
+  projeto: { bg: 'bg-[#FFFBEB]', text: 'text-[#B45309]' },
   evento: { bg: 'bg-purple-100', text: 'text-purple-600' },
   financeiro: { bg: 'bg-green-100', text: 'text-green-600' },
   votacao: { bg: 'bg-teal-100', text: 'text-teal-600' },
@@ -497,7 +497,7 @@ export const DashboardPage = () => {
                 label: 'Fotos',
                 value: personalReport.photos_approved,
                 total: personalReport.photos_submitted,
-                color: 'bg-amber-50 text-amber-600',
+                color: 'bg-[#FFFBEB] text-[#B45309]',
               },
               {
                 icon: Heart,

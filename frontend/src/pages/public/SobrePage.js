@@ -150,7 +150,7 @@ export const SobrePage = () => {
                 icon: Award, 
                 title: 'Excelência', 
                 desc: 'Rigor técnico em cada comunicação.',
-                color: 'bg-amber-50 text-amber-600'
+                color: 'bg-[#FFFBEB] text-[#B45309]'
               },
               { 
                 icon: Users, 

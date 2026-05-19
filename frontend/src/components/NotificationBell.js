@@ -121,7 +121,7 @@ export const NotificationBell = () => {
                     <p className="text-gray-500">Nenhuma notificação</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-slate-100">
+                  <div className="divide-y divide-[#E5E7EB]">
                     {recentNotifications.map((notification) => (
                       <button
                         key={notification.id}

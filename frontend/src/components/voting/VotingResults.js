@@ -22,7 +22,7 @@ export const VotingResults = ({ poll, results }) => {
   // Sort by votes descending
   chartData.sort((a, b) => b.votes - a.votes);
 
-  const COLORS = ['#00FF9C', '#0A1F44', '#6B7280', '#9CA3AF'];
+  const COLORS = ['#C7202F', '#3A3A3A', '#6B7280', '#9CA3AF'];
 
   return (
     <div className="mt-6 pt-6 border-t border-gray-200">

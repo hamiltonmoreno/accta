@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
-  proposta: { label: 'Proposta', color: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' },
+  proposta: { label: 'Proposta', color: 'bg-[#FFFBEB] text-[#B45309]', dot: 'bg-[#D97706]' },
   aprovado: { label: 'Aprovado', color: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
   em_curso: { label: 'Em Curso', color: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
   concluido: { label: 'Concluido', color: 'bg-gray-100 text-gray-600', dot: 'bg-gray-400' },
@@ -271,8 +271,8 @@ const ProjectsPage = () => {
         <>
           {/* Pending approval banner for admin */}
           {isAdmin && projects.some(p => p.status === 'proposta') && (
-            <div className="bg-white border border-amber-200 rounded-xl p-4 flex items-center gap-3" data-testid="pending-approval-banner">
-              <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0" />
+            <div className="bg-white border border-[#FDE68A] rounded-xl p-4 flex items-center gap-3" data-testid="pending-approval-banner">
+              <AlertCircle className="w-5 h-5 text-[#B45309] flex-shrink-0" />
               <span className="text-sm text-gray-700">
                 <strong>{projects.filter(p => p.status === 'proposta').length}</strong> projeto(s) aguardam a sua aprovacao
               </span>

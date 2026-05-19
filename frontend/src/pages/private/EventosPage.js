@@ -30,7 +30,7 @@ const getEventStyle = (type) => {
     assembleia: { color: 'bg-blue-100 text-blue-700', border: 'border-blue-500' },
     formacao: { color: 'bg-green-100 text-green-700', border: 'border-green-500' },
     social: { color: 'bg-pink-100 text-pink-700', border: 'border-pink-500' },
-    reuniao: { color: 'bg-amber-100 text-amber-700', border: 'border-amber-500' },
+    reuniao: { color: 'bg-[#FFFBEB] text-[#B45309]', border: 'border-[#D97706]' },
     outro: { color: 'bg-gray-100 text-gray-700', border: 'border-gray-500' },
   };
   return styles[type] || styles.outro;

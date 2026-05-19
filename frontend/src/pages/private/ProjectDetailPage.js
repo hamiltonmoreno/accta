@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
-  proposta: { label: 'Proposta', color: 'bg-amber-100 text-amber-700' },
+  proposta: { label: 'Proposta', color: 'bg-[#FFFBEB] text-[#B45309]' },
   aprovado: { label: 'Aprovado', color: 'bg-blue-100 text-blue-700' },
   em_curso: { label: 'Em Curso', color: 'bg-green-100 text-green-700' },
   concluido: { label: 'Concluido', color: 'bg-gray-100 text-gray-600' },
@@ -323,7 +323,7 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
             <span className="font-mono font-bold">{pct}%</span>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-2.5">
-            <div className={`h-2.5 rounded-full transition-all ${pct > 90 ? 'bg-red-500' : pct > 70 ? 'bg-amber-500' : 'bg-green-500'}`}
+            <div className={`h-2.5 rounded-full transition-all ${pct > 90 ? 'bg-red-500' : pct > 70 ? 'bg-[#D97706]' : 'bg-green-500'}`}
               style={{ width: `${Math.min(pct, 100)}%` }} />
           </div>
         </div>

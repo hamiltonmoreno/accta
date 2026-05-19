@@ -5,7 +5,7 @@ import {
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
 
-const CHART_COLORS = ['#C7202F', '#3A3A3A', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6'];
+const CHART_COLORS = ['#C7202F', '#3A3A3A', '#D97706', '#2563EB', '#16A34A', '#6B7280'];
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;

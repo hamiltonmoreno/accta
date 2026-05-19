@@ -226,7 +226,7 @@ export const CarteiraPage = () => {
               className={`absolute inset-0 ${
                 isActive
                   ? 'bg-gradient-to-br from-grafite via-grafite to-grafite-dark'
-                  : 'bg-gradient-to-br from-slate-400 to-slate-600 grayscale'
+                  : 'bg-gradient-to-br from-[#9CA3AF] to-[#6B7280] grayscale'
               }`}
             >
               {/* Holographic overlay for active */}

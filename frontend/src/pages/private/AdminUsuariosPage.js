@@ -10,8 +10,8 @@ import {
 } from 'lucide-react';
 
 const ROLE_LABELS = { admin: 'Administrador', socio: 'Sócio', financeiro: 'Financeiro', moderador: 'Moderador' };
-const ROLE_COLORS = { admin: 'bg-red-100 text-red-700', socio: 'bg-blue-100 text-blue-700', financeiro: 'bg-amber-100 text-amber-700', moderador: 'bg-purple-100 text-purple-700' };
-const STATUS_COLORS = { ativo: 'bg-green-100 text-green-700', inativo: 'bg-gray-100 text-gray-500', pendente_convite: 'bg-amber-100 text-amber-700' };
+const ROLE_COLORS = { admin: 'bg-red-100 text-red-700', socio: 'bg-blue-100 text-blue-700', financeiro: 'bg-[#FFFBEB] text-[#B45309]', moderador: 'bg-purple-100 text-purple-700' };
+const STATUS_COLORS = { ativo: 'bg-green-100 text-green-700', inativo: 'bg-gray-100 text-gray-500', pendente_convite: 'bg-[#FFFBEB] text-[#B45309]' };
 
 const PRIVILEGE_LABELS = {
   manage_users: 'Gerir Utilizadores',
@@ -589,7 +589,7 @@ export const AdminUsuariosPage = () => {
                     {inviteResult.email_sent ? (
                       <p className="text-xs text-green-600 font-medium">Email de convite enviado com sucesso!</p>
                     ) : (
-                      <p className="text-xs text-amber-600 font-medium">Convite criado, mas o email nao foi enviado. Reenvie o convite quando o servico de email estiver disponivel.</p>
+                      <p className="text-xs text-[#B45309] font-medium">Convite criado, mas o email nao foi enviado. Reenvie o convite quando o servico de email estiver disponivel.</p>
                     )}
                   </div>
 

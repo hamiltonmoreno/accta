@@ -34,7 +34,7 @@ const NOTIFICATION_COLORS = {
   geral: 'bg-blue-500',
   financeiro: 'bg-green-600',
   evento: 'bg-purple-600',
-  projeto: 'bg-amber-600',
+  projeto: 'bg-[#D97706]',
   mural: 'bg-indigo-500',
   wall_post_pending: 'bg-orange-500',
   wall_post_approved: 'bg-green-500',

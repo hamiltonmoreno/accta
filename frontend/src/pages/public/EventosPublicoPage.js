@@ -20,7 +20,7 @@ const eventTypeConfig = {
   assembleia: { icon: CalendarDays, label: 'Assembleia', color: 'bg-blue-100 text-blue-700' },
   formacao: { icon: GraduationCap, label: 'Formação', color: 'bg-green-100 text-green-700' },
   social: { icon: PartyPopper, label: 'Evento Social', color: 'bg-pink-100 text-pink-700' },
-  reuniao: { icon: Handshake, label: 'Reunião', color: 'bg-amber-100 text-amber-700' },
+  reuniao: { icon: Handshake, label: 'Reunião', color: 'bg-[#FFFBEB] text-[#B45309]' },
   outro: { icon: Megaphone, label: 'Outro', color: 'bg-gray-100 text-gray-700' },
 };
 

@@ -29,12 +29,12 @@ export const PollVoteForm = ({ poll, isAtivo, onVoteSuccess }) => {
   if (!isAtivo) return null;
 
   return (
-    <div className="border-t border-slate-200 pt-6 mt-6">
+    <div className="border-t border-[#E5E7EB] pt-6 mt-6">
       <div className="space-y-3 mb-4">
         {poll.options.map((option) => (
           <label
             key={option.id}
-            className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors"
+            className="flex items-center gap-3 p-4 bg-[#F5F5F5] rounded-lg cursor-pointer hover:bg-[#E5E7EB] transition-colors"
           >
             <input
               type="radio"
