@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { financesAPI } from '../../../utils/api';
-import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import { toast } from 'sonner';
-import { X } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from './constants';
 
 export const TransactionModal = ({ tx, onClose, onSaved }) => {
-  useBodyScrollLock(true);
   const isEdit = !!tx;
   const [form, setForm] = useState({
     type: tx?.type || 'receita',
@@ -56,20 +54,11 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-sm"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="flex min-h-full items-center justify-center p-4">
-      <div className="rounded-xl shadow-2xl w-full max-w-md animate-fade-up"
-        style={{ backgroundColor: 'var(--surface-card)' }}
-        onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5" style={{ borderBottom: '1px solid var(--surface-border)' }}>
-          <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>{isEdit ? 'Editar Transacao' : 'Nova Transacao'}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" aria-label="Fechar" data-testid="close-modal-btn"><X className="w-5 h-5" aria-hidden="true" /></button>
-        </div>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-md rounded-xl p-0 gap-0 max-h-[90vh] overflow-y-auto" data-testid="transaction-modal">
+        <DialogHeader className="p-5 border-b border-gray-200 text-left space-y-0">
+          <DialogTitle className="font-bold text-lg text-grafite">{isEdit ? 'Editar Transacao' : 'Nova Transacao'}</DialogTitle>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
@@ -165,8 +154,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
             {saving ? 'A guardar...' : isEdit ? 'Atualizar' : 'Criar Transacao'}
           </button>
         </form>
-      </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
