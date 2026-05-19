@@ -14,6 +14,10 @@ import {
   AlertDialogHeader, AlertDialogTitle,
 } from '../../components/ui/alert-dialog';
 import {
+  Dialog, DialogContent, DialogDescription,
+  DialogHeader, DialogTitle,
+} from '../../components/ui/dialog';
+import {
   ROLE_CONFIG, ROLE_FALLBACK,
   USER_STATUS_CONFIG, USER_STATUS_FALLBACK,
   getStatusConfig,
@@ -54,7 +58,6 @@ export const AdminUsuariosPage = () => {
   const [inviteResult, setInviteResult] = useState(null);
 
   // Body scroll lock for each modal (counter-based, supports nesting)
-  useBodyScrollLock(!!editingUser);
   useBodyScrollLock(!!showInviteModal);
 
   // Debounce search 300ms — evita re-fetch a cada tecla.
@@ -355,33 +358,20 @@ export const AdminUsuariosPage = () => {
 
       {/* ===== Edit Modal ===== */}
       {editingUser && (
-          <>
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 animate-fade-up"
-              onClick={() => setEditingUser(null)} />
-            <div className="fixed inset-0 z-50 overflow-y-auto animate-fade-up"
-              role="dialog"
-              aria-modal="true">
-              <div className="flex min-h-full items-center justify-center p-4">
-              <div
-                className="bg-white rounded-xl shadow-xl w-full max-w-lg flex flex-col"
-                onClick={(e) => e.stopPropagation()}
-                data-testid="edit-user-modal"
-              >
+        <Dialog open onOpenChange={(o) => { if (!o) setEditingUser(null); }}>
+          <DialogContent className="max-w-lg rounded-xl p-0 gap-0 max-h-[90vh] overflow-y-auto" data-testid="edit-user-modal">
               {/* Modal Header */}
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <DialogHeader className="px-5 py-4 border-b border-gray-100 text-left space-y-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-carmesim rounded-lg flex items-center justify-center text-white font-bold">
+                  <div className="w-10 h-10 bg-carmesim rounded-lg flex items-center justify-center text-white font-bold shrink-0">
                     {editingUser.name?.charAt(0).toUpperCase()}
                   </div>
-                  <div>
-                    <h3 className="font-bold text-grafite text-sm">{editingUser.name}</h3>
-                    <p className="text-xs text-[#6B7280]">{editingUser.email}</p>
+                  <div className="min-w-0">
+                    <DialogTitle className="font-bold text-grafite text-sm truncate">{editingUser.name}</DialogTitle>
+                    <DialogDescription className="text-xs text-[#6B7280] truncate">{editingUser.email}</DialogDescription>
                   </div>
                 </div>
-                <button onClick={() => setEditingUser(null)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Fechar">
-                  <X className="w-4 h-4 text-gray-400" aria-hidden="true" />
-                </button>
-              </div>
+              </DialogHeader>
 
               {/* Modal Body */}
               <div className="p-5 space-y-5">
@@ -552,11 +542,9 @@ export const AdminUsuariosPage = () => {
                   </button>
                 </div>
               </div>
-              </div>
-              </div>
-            </div>
-          </>
-        )}
+          </DialogContent>
+        </Dialog>
+      )}
       {/* Delete Confirm */}
       <AlertDialog open={!!deleteConfirm} onOpenChange={(o) => { if (!o) setDeleteConfirm(null); }}>
         <AlertDialogContent className="max-w-sm" data-testid="delete-confirm-modal">
