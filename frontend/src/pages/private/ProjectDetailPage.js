@@ -152,7 +152,7 @@ const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
                   </div>
                 </div>
                 {canManage && (
-                  <button onClick={() => handleDelete(task.id)} className="p-1 text-gray-400 hover:text-red-500 flex-shrink-0" aria-label="Apagar tarefa">
+                  <button onClick={() => handleDelete(task.id)} className="p-1 text-gray-400 hover:text-[#B91C1C] flex-shrink-0" aria-label="Apagar tarefa">
                     <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 )}
@@ -231,7 +231,7 @@ const CommentsTab = ({ project, comments, onReload }) => {
                   {c.created_at ? new Date(c.created_at).toLocaleDateString('pt') : ''}
                 </span>
                 {(c.user_id === user?.id || user?.role === 'admin') && (
-                  <button onClick={() => handleDelete(c.id)} className="p-1 text-gray-400 hover:text-red-500" aria-label="Apagar comentário">
+                  <button onClick={() => handleDelete(c.id)} className="p-1 text-gray-400 hover:text-[#B91C1C]" aria-label="Apagar comentário">
                     <Trash2 className="w-3 h-3" aria-hidden="true" />
                   </button>
                 )}
@@ -372,7 +372,7 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
                   <td className="px-4 py-3 text-gray-500 text-xs">{e.date}</td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{e.created_by_name}</td>
                   {canManage && (
-                    <td className="px-4 py-3"><button onClick={() => handleDelete(e.id)} className="p-1 text-gray-400 hover:text-red-500" aria-label="Apagar despesa"><Trash2 className="w-3.5 h-3.5" aria-hidden="true" /></button></td>
+                    <td className="px-4 py-3"><button onClick={() => handleDelete(e.id)} className="p-1 text-gray-400 hover:text-[#B91C1C]" aria-label="Apagar despesa"><Trash2 className="w-3.5 h-3.5" aria-hidden="true" /></button></td>
                   )}
                 </tr>
               ))}
@@ -475,7 +475,7 @@ const TimelineTab = ({ project, milestones, canManage, onReload }) => {
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-[#6B7280] font-mono">{m.date}</span>
                       {canManage && (
-                        <button onClick={() => handleDelete(m.id)} className="p-1 text-gray-400 hover:text-red-500" aria-label="Apagar milestone">
+                        <button onClick={() => handleDelete(m.id)} className="p-1 text-gray-400 hover:text-[#B91C1C]" aria-label="Apagar milestone">
                           <Trash2 className="w-3 h-3" aria-hidden="true" />
                         </button>
                       )}

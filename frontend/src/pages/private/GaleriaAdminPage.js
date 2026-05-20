@@ -525,7 +525,7 @@ export const GaleriaAdminPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-[#C7202F] hover:bg-[#B91C1C]"
               onClick={() => { handleDeleteAlbum(confirmDeleteAlbum); setConfirmDeleteAlbum(null); }}
             >
               Remover álbum
@@ -545,7 +545,7 @@ export const GaleriaAdminPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-[#C7202F] hover:bg-[#B91C1C]"
               onClick={() => { handleDeletePhoto(confirmDeletePhoto); setConfirmDeletePhoto(null); }}
             >
               Remover foto

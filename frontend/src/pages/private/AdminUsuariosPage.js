@@ -516,7 +516,7 @@ export const AdminUsuariosPage = () => {
               <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 bg-gray-50/50">
                 <button
                   onClick={() => setDeleteConfirm(editingUser.id)}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-500 hover:text-red-700 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#B91C1C] hover:text-[#991B1B] transition-colors"
                   data-testid="delete-user-btn"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -553,7 +553,7 @@ export const AdminUsuariosPage = () => {
             <AlertDialogCancel onClick={() => setDeleteConfirm(null)}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => handleDelete(deleteConfirm)}
-              className="bg-red-600 text-white hover:bg-red-700"
+              className="bg-[#C7202F] text-white hover:bg-[#B91C1C]"
               data-testid="confirm-delete-btn"
             >
               Sim, remover

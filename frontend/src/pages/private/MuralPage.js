@@ -565,7 +565,7 @@ export const MuralPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-[#C7202F] hover:bg-[#B91C1C]"
               onClick={() => { deleteMutation.mutate(confirmDeletePost); setConfirmDeletePost(null); }}
             >
               Remover
