@@ -67,6 +67,171 @@ Não existe. Auditoria de mandatos é zero.
 
 ## Modelo proposto
 
+### Estrutura de cargos por órgão social
+
+Uma associação CV/PT típica tem três órgãos sociais eleitos +
+coordenações funcionais. Cargos agrupados:
+
+```python
+CARGOS_ORGAOS_SOCIAIS = {
+    "Direcção": [
+        "Presidente",
+        "Vice-Presidente",
+        "Secretário-Geral",
+        "Tesoureiro",
+        "Vogal da Direcção",
+    ],
+    "Conselho Fiscal": [
+        "Presidente do Conselho Fiscal",
+        "Vogal do Conselho Fiscal",
+    ],
+    "Mesa da Assembleia Geral": [
+        "Presidente da Mesa",
+        "Vice-Presidente da Mesa",
+        "Secretário da Mesa",
+    ],
+    "Coordenações": [
+        "Coordenador de Comunicação",
+        "Coordenador de Eventos",
+        "Coordenador de Projectos",
+    ],
+    "Comissões": [
+        "Membro da Comissão de Ética",
+    ],
+    "Base": [
+        "Sócio",  # default, sem mandato institucional
+    ],
+}
+
+# Lista plana usada para validação no auto-registo e endpoints
+CARGOS = [c for grupo in CARGOS_ORGAOS_SOCIAIS.values() for c in grupo]
+```
+
+A constante `CARGOS` existente em `models.py` (com 7 entradas) é
+substituída por esta lista de 14 cargos institucionais + Sócio.
+
+### Privilégios — extensão necessária
+
+A lista actual em `models.py:11-19`:
+
+```python
+PRIVILEGES = [
+    "manage_users", "manage_finances", "manage_events",
+    "manage_documents", "moderate_content", "manage_benefits",
+    "view_audit_logs",
+]
+```
+
+Está incompleta para o Conselho Fiscal (que precisa de auditar
+finanças sem poder alterar). Adicionar **um** novo privilégio:
+
+```python
+PRIVILEGES.append("view_finances_readonly")
+```
+
+Total: 8 privilégios.
+
+### Mapeamento cargo → role + privilégios (defaults sugeridos)
+
+Estes são **defaults pré-carregados no modal de aprovação/promoção**.
+O admin pode sobrepor caso a caso.
+
+| Cargo | Role | Privilégios | Racional |
+|-------|------|-------------|----------|
+| **Presidente** | `admin` | TODOS os 8 | Cargo máximo, acesso total |
+| **Vice-Presidente** | `admin` | TODOS os 8 | Substitui o Presidente |
+| **Secretário-Geral** | `admin` | `manage_users`, `manage_events`, `manage_documents`, `moderate_content` | Secretaria, actas, comunicação |
+| **Tesoureiro** | `financeiro` | `manage_finances`, `view_audit_logs` | Responsável financeiro |
+| **Vogal da Direcção** | `moderador` | `moderate_content`, `manage_events` | Apoio operacional |
+| **Presidente do Conselho Fiscal** | `socio` | `view_finances_readonly`, `view_audit_logs` | Audita finanças (leitura) |
+| **Vogal do Conselho Fiscal** | `socio` | `view_finances_readonly`, `view_audit_logs` | Audita |
+| **Presidente da Mesa** | `socio` | `manage_events` | Conduz assembleias |
+| **Vice-Presidente da Mesa** | `socio` | (nenhum extra) | Apoia o Presidente da Mesa |
+| **Secretário da Mesa** | `socio` | `manage_documents` | Lavra actas |
+| **Coordenador de Comunicação** | `moderador` | `moderate_content`, `manage_events` | Mural, galeria, redes |
+| **Coordenador de Eventos** | `socio` | `manage_events` | Organiza eventos |
+| **Coordenador de Projectos** | `socio` | `manage_events`, `manage_documents` | Gestão de projectos |
+| **Membro da Comissão de Ética** | `socio` | `view_audit_logs` | Verifica condutas |
+| **Sócio** | `socio` | (nenhum) | Default |
+
+Materializado em código:
+
+```python
+CARGO_DEFAULTS = {
+    "Presidente": {
+        "role": "admin",
+        "privileges": list(PRIVILEGES),  # todos
+    },
+    "Vice-Presidente": {
+        "role": "admin",
+        "privileges": list(PRIVILEGES),
+    },
+    "Secretário-Geral": {
+        "role": "admin",
+        "privileges": ["manage_users", "manage_events",
+                       "manage_documents", "moderate_content"],
+    },
+    "Tesoureiro": {
+        "role": "financeiro",
+        "privileges": ["manage_finances", "view_audit_logs"],
+    },
+    "Vogal da Direcção": {
+        "role": "moderador",
+        "privileges": ["moderate_content", "manage_events"],
+    },
+    "Presidente do Conselho Fiscal": {
+        "role": "socio",
+        "privileges": ["view_finances_readonly", "view_audit_logs"],
+    },
+    "Vogal do Conselho Fiscal": {
+        "role": "socio",
+        "privileges": ["view_finances_readonly", "view_audit_logs"],
+    },
+    "Presidente da Mesa": {
+        "role": "socio",
+        "privileges": ["manage_events"],
+    },
+    "Vice-Presidente da Mesa": {
+        "role": "socio",
+        "privileges": [],
+    },
+    "Secretário da Mesa": {
+        "role": "socio",
+        "privileges": ["manage_documents"],
+    },
+    "Coordenador de Comunicação": {
+        "role": "moderador",
+        "privileges": ["moderate_content", "manage_events"],
+    },
+    "Coordenador de Eventos": {
+        "role": "socio",
+        "privileges": ["manage_events"],
+    },
+    "Coordenador de Projectos": {
+        "role": "socio",
+        "privileges": ["manage_events", "manage_documents"],
+    },
+    "Membro da Comissão de Ética": {
+        "role": "socio",
+        "privileges": ["view_audit_logs"],
+    },
+    "Sócio": {
+        "role": "socio",
+        "privileges": [],
+    },
+}
+```
+
+**Importante** — `role` é o nível de acesso "grosso" (admin/financeiro/
+moderador/socio). `privileges` são overlays granulares que dão acesso
+extra a módulos específicos. Combinação útil:
+
+- Conselho Fiscal tem `role=socio` (não pode editar nada), mas com
+  `view_finances_readonly` ganha leitura ao módulo financeiro.
+  Separação de poderes preservada.
+- Coordenador de Eventos tem `role=socio` mas com `manage_events`
+  pode criar e editar eventos. Não toca em mais nada.
+
 ### 1. Schema — campo `cargo_history` em `users`
 
 Array opcional no `doc.cargo_history`. Cada entrada documenta um
@@ -91,21 +256,10 @@ fase 1; código basta).
 
 ```python
 ROLES_VALID = ["admin", "financeiro", "moderador", "socio"]
-
-# Mantém-se a constante CARGOS existente.
-
-# Hint de role default por cargo — só para preencher o modal do admin.
-# Admin pode sempre sobrepor.
-CARGO_DEFAULT_ROLE = {
-    "Presidente": "admin",
-    "Vice-Presidente": "admin",
-    "Secretário-Geral": "admin",
-    "Tesoureiro": "financeiro",
-    "Vogal": "moderador",
-    "Membro da Direção": "moderador",
-    "Sócio": "socio",
-}
 ```
+
+`CARGOS`, `PRIVILEGES` e `CARGO_DEFAULTS` são definidos na secção
+"Estrutura de cargos por órgão social" acima.
 
 ### 3. Modelos Pydantic novos
 
@@ -403,16 +557,25 @@ Não toca em:
 
 ---
 
-## Decisões a confirmar antes de implementar
+## Decisões já confirmadas
 
-1. **Estratégia de migração**: A (limpar tudo + recriar) ou B
-   (preservar e migrar in-place)?
-2. **Email pessoal do admin actual** a usar como conta principal?
-3. **Outras contas partilhadas a migrar** além das listadas
-   (`admin@controlador.cv`, `admin@controlador.com`)?
-4. **Privilégios granulares** (`PRIVILEGES` array): mantemos como
-   estão (overlay opcional ao `role`) ou simplificamos para "role
-   chega"? Sugestão: deixar como está, fora do scope deste spec.
-5. **Ordem de implementação das fases**: tudo num PR, ou um PR por
-   fase (recomendado: um PR por fase 1-2-3, fase 4 como PR
-   separado com revisão extra, fase 5 junto da última)?
+- ✅ **Estratégia de migração**: A — limpar tabela `users` + recriar
+  via `create_admin.py` adaptado.
+- ✅ **Cargos**: lista completa por órgão social (15 entradas, ver
+  secção "Estrutura de cargos").
+- ✅ **Privilégios**: alinhados por função, com `view_finances_readonly`
+  adicionado para o Conselho Fiscal.
+- ✅ **Ordem de implementação**: PR único cobrindo todas as fases.
+
+## Ainda a confirmar antes de arrancar
+
+1. **Email pessoal do primeiro admin** — depois de limpar a tabela
+   `users`, é preciso criar uma conta admin nova. Que email queres
+   usar? (Pode ser o teu email pessoal, ou um email novo que
+   prefiras.)
+2. **Outros emails partilhados existentes** — além de
+   `admin@controlador.cv` (que detectei no código) e do
+   `admin@controlador.com` que mencionaste, há outros emails de
+   "papel" criados (tipo `tesoureiro@controlador.cv`,
+   `secretario@controlador.cv`)? Se sim, lista-os para incluir no
+   plano de limpeza.
