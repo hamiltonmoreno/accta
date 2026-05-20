@@ -8,6 +8,7 @@ import {
   forgotPasswordSchema,
   setupAccountSchema,
   resetPasswordSchema,
+  registrationSchema,
 } from '../authSchemas';
 
 const expectError = (result, path, message) => {
@@ -105,5 +106,41 @@ describe('setupAccountSchema (= resetPasswordSchema)', () => {
 
   test('resetPasswordSchema partilha o mesmo schema', () => {
     expect(resetPasswordSchema).toBe(setupAccountSchema);
+  });
+});
+
+// ---------- registrationSchema (auto-registo) ----------
+
+describe('registrationSchema', () => {
+  const valid = {
+    name: 'João Candidato',
+    email: 'joao@x.cv',
+    cargo_declarado: 'Sócio',
+    consent_data: true,
+  };
+
+  test('aceita pedido válido (sem campos opcionais)', () => {
+    expect(registrationSchema.safeParse(valid).success).toBe(true);
+  });
+
+  test('aceita opcionais vazios (string vazia)', () => {
+    const r = registrationSchema.safeParse({ ...valid, phone_number: '', department: '', website: '' });
+    expect(r.success).toBe(true);
+  });
+
+  test('rejeita nome com menos de 2 caracteres', () => {
+    expectError(registrationSchema.safeParse({ ...valid, name: 'A' }), 'name');
+  });
+
+  test('rejeita email malformado', () => {
+    expectError(registrationSchema.safeParse({ ...valid, email: 'nope' }), 'email', 'Email inválido');
+  });
+
+  test('exige consentimento RGPD (consent_data=true)', () => {
+    expectError(
+      registrationSchema.safeParse({ ...valid, consent_data: false }),
+      'consent_data',
+      'É necessário consentir o tratamento dos seus dados',
+    );
   });
 });

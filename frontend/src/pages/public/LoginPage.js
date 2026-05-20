@@ -231,6 +231,17 @@ export const LoginPage = () => {
                   </>
                 )}
               </button>
+
+              <p className="text-center text-sm text-[#6B7280] mt-4">
+                Ainda não é sócio?{' '}
+                <Link
+                  to="/criar-conta"
+                  className="text-carmesim hover:text-carmesim-dark font-medium transition-colors"
+                  data-testid="criar-conta-link"
+                >
+                  Criar conta
+                </Link>
+              </p>
             </form>
           </div>
         </div>

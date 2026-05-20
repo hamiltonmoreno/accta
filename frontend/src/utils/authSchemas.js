@@ -31,3 +31,21 @@ const passwordPairSchema = z
 
 export const setupAccountSchema = passwordPairSchema;
 export const resetPasswordSchema = passwordPairSchema;
+
+// Auto-registo público de sócio (spec-auto-registo). Sem password — esta só é
+// definida depois de o admin aprovar, via o fluxo setup-account. O campo
+// `website` é um honeypot anti-bot (escondido no form; deve ficar vazio).
+export const registrationSchema = z.object({
+  name: z
+    .string()
+    .min(2, 'O nome deve ter pelo menos 2 caracteres')
+    .max(100, 'O nome não pode ter mais de 100 caracteres'),
+  email: z.string().min(1, 'Email obrigatório').email('Email inválido'),
+  phone_number: z.string().max(30, 'Telefone demasiado longo').optional().or(z.literal('')),
+  department: z.string().max(80, 'Departamento demasiado longo').optional().or(z.literal('')),
+  cargo_declarado: z.string().min(1, 'Selecione um cargo'),
+  consent_data: z.boolean().refine((v) => v === true, {
+    message: 'É necessário consentir o tratamento dos seus dados',
+  }),
+  website: z.string().optional().or(z.literal('')), // honeypot
+});

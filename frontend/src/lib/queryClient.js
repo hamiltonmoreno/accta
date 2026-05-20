@@ -67,6 +67,9 @@ export const queryKeys = {
     list: (filters) => ['users', filters || {}],
     byId: (id) => ['users', id],
   },
+  registration: {
+    requests: (status) => ['registration', 'requests', status || 'pendente_aprovacao'],
+  },
   transactions: {
     list: (filters) => ['transactions', filters || {}],
     summary: (year, month) => ['transactions', 'summary', year, month],

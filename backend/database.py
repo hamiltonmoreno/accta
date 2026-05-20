@@ -726,6 +726,9 @@ _INDEX_DDL: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS ix_users_id ON \"users\" ((doc->>'id'))",
     "CREATE INDEX IF NOT EXISTS ix_users_status ON \"users\" ((doc->>'status'))",
     "CREATE INDEX IF NOT EXISTS ix_users_role ON \"users\" ((doc->>'role'))",
+    # auto-registo: listagem rápida de pedidos pendentes/rejeitados (painel admin)
+    "CREATE INDEX IF NOT EXISTS ix_users_status_registration ON \"users\" ((doc->>'status')) "
+    "WHERE doc->>'status' IN ('pendente_aprovacao', 'rejeitado')",
     # auth
     "CREATE INDEX IF NOT EXISTS ix_pwreset_token ON \"password_resets\" ((doc->>'token'))",
     "CREATE INDEX IF NOT EXISTS ix_pwreset_email ON \"password_resets\" ((doc->>'email'))",
@@ -825,6 +828,13 @@ async def ensure_schema() -> None:
             await conn.execute(
                 f"CREATE TABLE IF NOT EXISTS {_quote_ident(table)} (pk bigserial PRIMARY KEY, doc jsonb NOT NULL)"
             )
+        # Sequência atómica para member_id do auto-registo (resolve race sob carga).
+        # NOTA deploy: em produção, fazer setval para MAX(member_id numérico
+        # existente)+1 ANTES do primeiro pedido, senão colide com IDs já dados.
+        try:
+            await conn.execute("CREATE SEQUENCE IF NOT EXISTS member_id_seq START 1")
+        except Exception as e:  # noqa: BLE001 - sequence creation non-fatal
+            logger.warning(f"member_id_seq creation warning (non-fatal): {e}")
         for ddl in _INDEX_DDL:
             try:
                 await conn.execute(ddl)
@@ -842,3 +852,14 @@ async def ensure_schema() -> None:
             except Exception as e:  # noqa: BLE001 - pg_cron optional
                 logger.info(f"pg_cron not configured (using opportunistic purge): {e}")
     logger.info("PostgreSQL schema and indexes ensured")
+
+
+async def next_member_id() -> str:
+    """Atribui o próximo member_id sequencial e imutável via `member_id_seq`.
+    Formato `ACCTA-{n:04d}` (zero-padded, expande para 5+ dígitos > 9999).
+    Mantém o raw SQL no DAO — as rotas chamam só este helper (regra api.md).
+    """
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        n = await conn.fetchval("SELECT nextval('member_id_seq')")
+    return f"ACCTA-{int(n):04d}"

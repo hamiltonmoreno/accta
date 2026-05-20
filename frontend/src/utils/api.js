@@ -17,7 +17,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       const currentPath = window.location.pathname;
-      const publicPaths = ['/login', '/validador', '/profissao', '/noticias', '/transparencia', '/sobre', '/beneficios-publico', '/contactos', '/eventos-publico', '/galeria', '/forgot-password', '/reset-password'];
+      const publicPaths = ['/login', '/validador', '/profissao', '/noticias', '/transparencia', '/sobre', '/beneficios-publico', '/contactos', '/eventos-publico', '/galeria', '/forgot-password', '/reset-password', '/criar-conta'];
       const isPublic = currentPath === '/' || publicPaths.some(p => currentPath.startsWith(p));
       if (!isPublic) {
         // Cookie e httpOnly — JS nao consegue limpa-lo. Backend ja invalida
@@ -48,6 +48,15 @@ export const adminAPI = {
   invite: (data) => api.post('/admin/invite', data),
   getPendingInvites: () => api.get('/admin/invites/pending'),
   revokeInvite: (userId) => api.delete(`/admin/invite/${userId}`),
+};
+
+// Auto-registo de sócios (spec-auto-registo)
+export const registrationAPI = {
+  options: () => api.get('/auth/registration-options'),
+  submit: (payload) => api.post('/auth/register', payload),
+  listPending: (params) => api.get('/admin/registration-requests', { params }),
+  approve: (userId, data) => api.post(`/admin/registration-requests/${userId}/approve`, data),
+  reject: (userId, reason) => api.post(`/admin/registration-requests/${userId}/reject`, { reason }),
 };
 
 // Users API

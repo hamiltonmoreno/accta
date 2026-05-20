@@ -96,6 +96,42 @@ class SetupAccount(BaseModel):
     password: str = Field(min_length=6, max_length=72)
 
 
+# ===== AUTO-REGISTO MODELS (spec-auto-registo) =====
+
+# Cargos que o candidato pode DECLARAR no formulário público. É apenas um
+# label informativo para o admin — NÃO promove o role (que é sempre "socio"
+# no submit; o admin decide o role final ao aprovar).
+CARGOS_DECLARADOS = [
+    "Sócio",
+    "Vogal",
+    "Tesoureiro",
+    "Secretário",
+    "Vice-Presidente",
+    "Presidente",
+    "Direcção",
+    "Conselho Fiscal",
+]
+
+
+class RegistrationRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=100)
+    email: EmailStr
+    phone_number: Optional[str] = Field(default=None, max_length=30)
+    department: Optional[str] = Field(default=None, max_length=80)
+    cargo_declarado: str = Field(default="Sócio")  # validado contra CARGOS_DECLARADOS na rota
+    consent_data: bool  # tem de ser True (RGPD)
+    website: Optional[str] = Field(default=None, max_length=200)  # HONEYPOT — preenchido => descartar
+
+
+class RegistrationApprove(BaseModel):
+    role: str = "socio"  # validado contra ["socio","financeiro","moderador","admin"] na rota
+    cargo: Optional[str] = None  # se None, mantém o cargo_declarado
+
+
+class RegistrationReject(BaseModel):
+    reason: Optional[str] = Field(default=None, max_length=500)
+
+
 # ===== INVOICE MODELS =====
 
 
@@ -477,7 +513,9 @@ class FinanceSettingsUpdate(BaseModel):
 
 # Estados válidos de conta. NÃO existe "inadimplente" (quotas são descontadas
 # em folha) — invariante de negócio do projeto.
-USER_STATUSES = ["ativo", "inativo", "pendente_convite"]
+# - pendente_aprovacao / rejeitado: fluxo de auto-registo (spec-auto-registo).
+#   `rejeitado` mantém o documento (auditoria + evita re-registo trivial).
+USER_STATUSES = ["ativo", "inativo", "pendente_convite", "pendente_aprovacao", "rejeitado"]
 
 
 # ===== PROJECT MODELS =====
