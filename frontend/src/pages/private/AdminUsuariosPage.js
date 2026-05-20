@@ -92,6 +92,7 @@ export const AdminUsuariosPage = () => {
     onSuccess: () => {
       toast.success('Utilizador removido');
       setDeleteConfirm(null);
+      setEditingUser(null); // Fecha tambem o edit-modal que disparou o delete
       invalidateUsers();
     },
     onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao remover'),
