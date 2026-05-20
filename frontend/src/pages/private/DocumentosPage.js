@@ -348,8 +348,9 @@ const UploadDocumentModal = ({ onClose }) => {
                   <span className="font-mono text-carmesim">{uploadProgress}%</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div animate={{ width: `${uploadProgress}%` }}
-                    className="h-full bg-carmesim rounded-full animate-fade-up" />
+                  <div
+                    className="h-full bg-carmesim rounded-full transition-[width] duration-300"
+                    style={{ width: `${uploadProgress}%` }} />
                 </div>
               </div>
             )}
