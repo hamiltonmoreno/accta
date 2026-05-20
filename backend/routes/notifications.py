@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Optional
 from models import User, Notification, NotificationCreate, AuditLog
 from database import db
-from auth import _extract_token, get_current_user, get_user_from_token
+from auth import _extract_token, get_current_user, get_user_from_token, has_role_or_privilege
 from helpers import create_audit_log, notify_all_active_users
 import asyncio
 import json
@@ -160,7 +160,7 @@ async def get_notification_types(current_user: User = Depends(get_current_user))
 # AUDIT LOGS
 @router.get("/audit-logs", response_model=List[AuditLog])
 async def get_audit_logs(current_user: User = Depends(get_current_user)):
-    if current_user.role != "admin":
+    if not has_role_or_privilege(current_user, ("admin",), "view_audit_logs"):
         raise HTTPException(status_code=403, detail="Sem permissao")
 
     logs = await db.audit_logs.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)

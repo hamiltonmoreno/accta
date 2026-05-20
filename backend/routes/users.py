@@ -4,7 +4,7 @@ from typing import List, Optional
 import re
 from models import User, UserProfileUpdate, UserAdminUpdate, CARGOS, PRIVILEGES, USER_STATUSES
 from database import db
-from auth import get_current_user
+from auth import get_current_user, has_role_or_privilege
 from helpers import create_audit_log, create_notification, delete_upload_file
 
 router = APIRouter(tags=["users"])
@@ -28,7 +28,7 @@ async def get_users(
     cargo: Optional[str] = None,
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in ["admin", "financeiro"]:
+    if not has_role_or_privilege(current_user, ("admin", "financeiro"), "manage_users"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     query = {}
@@ -96,7 +96,7 @@ async def admin_update_user(
     request: Request,
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role != "admin":
+    if not has_role_or_privilege(current_user, ("admin",), "manage_users"):
         raise HTTPException(status_code=403, detail="Apenas administradores podem editar utilizadores")
 
     existing = await db.users.find_one({"id": user_id}, {"_id": 0})
@@ -164,7 +164,7 @@ async def admin_update_user(
 # ===== UPDATE USER STATUS (legacy, kept for backwards compat) =====
 @router.patch("/users/{user_id}/status")
 async def update_user_status(user_id: str, status: str, current_user: User = Depends(get_current_user)):
-    if current_user.role != "admin":
+    if not has_role_or_privilege(current_user, ("admin",), "manage_users"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     if status not in USER_STATUSES:
@@ -178,7 +178,7 @@ async def update_user_status(user_id: str, status: str, current_user: User = Dep
 # ===== DELETE USER =====
 @router.delete("/users/{user_id}")
 async def delete_user(user_id: str, current_user: User = Depends(get_current_user)):
-    if current_user.role != "admin":
+    if not has_role_or_privilege(current_user, ("admin",), "manage_users"):
         raise HTTPException(status_code=403, detail="Apenas administradores podem remover utilizadores")
 
     if user_id == current_user.id:

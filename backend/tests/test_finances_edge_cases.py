@@ -25,7 +25,7 @@ from models import (
     TransactionCreate,
     TransactionUpdate,
 )
-from routes.finances import require_finance_role
+from routes.finances import require_view_finances, require_manage_finances
 
 
 pytestmark = pytest.mark.unit
@@ -171,27 +171,32 @@ class TestFinanceSettings:
 
 
 # --------------------------------------------------------------------------- #
-# require_finance_role — gateway used by every finance endpoint
+# require_view_finances / require_manage_finances — gateways do módulo financeiro
+# (spec-identidade-cargos: leitura aceita view_finances_readonly; escrita não)
 # --------------------------------------------------------------------------- #
 
-class TestRequireFinanceRole:
-    def test_admin_passes(self, admin_user):
-        require_finance_role(admin_user)  # must not raise
+class TestFinanceGateways:
+    def test_admin_passes_both(self, admin_user):
+        require_view_finances(admin_user)  # must not raise
+        require_manage_finances(admin_user)  # must not raise
 
-    def test_financeiro_passes(self, financeiro_user):
-        require_finance_role(financeiro_user)  # must not raise
+    def test_financeiro_passes_both(self, financeiro_user):
+        require_view_finances(financeiro_user)
+        require_manage_finances(financeiro_user)
 
-    def test_socio_blocked(self, socio_user):
+    def test_socio_blocked_on_both(self, socio_user):
         from fastapi import HTTPException
-        with pytest.raises(HTTPException) as exc_info:
-            require_finance_role(socio_user)
-        assert exc_info.value.status_code == 403
+        for gate in (require_view_finances, require_manage_finances):
+            with pytest.raises(HTTPException) as exc_info:
+                gate(socio_user)
+            assert exc_info.value.status_code == 403
 
-    def test_moderador_blocked(self, moderador_user):
+    def test_moderador_blocked_on_both(self, moderador_user):
         from fastapi import HTTPException
-        with pytest.raises(HTTPException) as exc_info:
-            require_finance_role(moderador_user)
-        assert exc_info.value.status_code == 403
+        for gate in (require_view_finances, require_manage_finances):
+            with pytest.raises(HTTPException) as exc_info:
+                gate(moderador_user)
+            assert exc_info.value.status_code == 403
 
 
 # --------------------------------------------------------------------------- #

@@ -15,7 +15,7 @@ from models import (
     EXPENSE_CATEGORIES,
 )
 from database import db
-from auth import get_current_user
+from auth import get_current_user, can_view_finances, can_manage_finances
 from helpers import create_audit_log, notify_admins, notify_all_active_users
 from fpdf import FPDF
 import io
@@ -32,8 +32,17 @@ def _safe_search_regex(s: str) -> str:
 router = APIRouter(prefix="/finances", tags=["finances"])
 
 
-def require_finance_role(user: User):
-    if user.role not in ["admin", "financeiro"]:
+def require_view_finances(user: User):
+    """Leitura do módulo financeiro (GET). Aceita admin/financeiro,
+    view_finances_readonly (Conselho Fiscal) ou manage_finances."""
+    if not can_view_finances(user):
+        raise HTTPException(status_code=403, detail="Sem permissao para ver financas")
+
+
+def require_manage_finances(user: User):
+    """Escrita no módulo financeiro (POST/PATCH/DELETE/quotas). view_finances_readonly
+    NÃO basta — só admin/financeiro ou manage_finances."""
+    if not can_manage_finances(user):
         raise HTTPException(status_code=403, detail="Sem permissao para gerir financas")
 
 
@@ -58,7 +67,7 @@ async def list_transactions(
     limit: int = 100,
     current_user: User = Depends(get_current_user),
 ):
-    require_finance_role(current_user)
+    require_view_finances(current_user)
     limit = min(limit, 200)
     query = {}
     if type:
@@ -88,7 +97,7 @@ async def count_transactions(
     category: Optional[str] = None,
     current_user: User = Depends(get_current_user),
 ):
-    require_finance_role(current_user)
+    require_view_finances(current_user)
     query = {}
     if type:
         query["type"] = type
@@ -103,7 +112,7 @@ async def create_transaction(
     data: TransactionCreate,
     current_user: User = Depends(get_current_user),
 ):
-    require_finance_role(current_user)
+    require_manage_finances(current_user)
 
     if data.type not in TRANSACTION_TYPES:
         raise HTTPException(status_code=400, detail=f"Tipo invalido. Use: {TRANSACTION_TYPES}")
@@ -144,7 +153,7 @@ async def update_transaction(
     data: TransactionUpdate,
     current_user: User = Depends(get_current_user),
 ):
-    require_finance_role(current_user)
+    require_manage_finances(current_user)
 
     existing = await db.transactions.find_one({"id": transaction_id}, {"_id": 0})
     if not existing:
@@ -181,7 +190,7 @@ async def delete_transaction(
     transaction_id: str,
     current_user: User = Depends(get_current_user),
 ):
-    require_finance_role(current_user)
+    require_manage_finances(current_user)
 
     existing = await db.transactions.find_one({"id": transaction_id}, {"_id": 0})
     if not existing:
@@ -201,7 +210,7 @@ async def get_financial_summary(
     month: Optional[int] = None,
     current_user: User = Depends(get_current_user),
 ):
-    require_finance_role(current_user)
+    require_view_finances(current_user)
 
     query = {}
     if year:
@@ -253,7 +262,7 @@ async def get_dre_report(
     year: int = Query(..., description="Ano do relatorio"),
     current_user: User = Depends(get_current_user),
 ):
-    require_finance_role(current_user)
+    require_view_finances(current_user)
 
     start = f"{year}-01-01T00:00:00"
     end = f"{year}-12-31T23:59:59"
@@ -310,7 +319,7 @@ async def get_dre_report(
 async def get_finance_settings(
     current_user: User = Depends(get_current_user),
 ):
-    require_finance_role(current_user)
+    require_view_finances(current_user)
     settings = await db.finance_settings.find_one({"id": "finance_settings"}, {"_id": 0})
     if not settings:
         default = FinanceSettings()
@@ -375,7 +384,7 @@ async def generate_monthly_quotas(
     year: int = Query(...),
     current_user: User = Depends(get_current_user),
 ):
-    require_finance_role(current_user)
+    require_manage_finances(current_user)
 
     # Get settings for quota amount
     settings = await db.finance_settings.find_one({"id": "finance_settings"}, {"_id": 0})
@@ -482,7 +491,7 @@ async def export_transactions_csv(
     search: Optional[str] = None,
     current_user: User = Depends(get_current_user),
 ):
-    require_finance_role(current_user)
+    require_view_finances(current_user)
 
     query = {}
     if type:
@@ -535,7 +544,7 @@ async def export_dre_pdf(
     year: int = Query(..., description="Ano do relatorio"),
     current_user: User = Depends(get_current_user),
 ):
-    require_finance_role(current_user)
+    require_view_finances(current_user)
 
     start = f"{year}-01-01T00:00:00"
     end = f"{year}-12-31T23:59:59"

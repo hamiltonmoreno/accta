@@ -56,17 +56,23 @@ Spec: `tasks/spec-identidade-cargos.md` (decisões já confirmadas na secção f
       `test_member_profile_crud.py` (integração) aos novos cargos.
 - [x] Verificação: ruff limpo; **78 passed** (users+auto-registo+models).
 
-### Fase 2 — RBAC granular (ADITIVO — `role OR privilege`, sem regressão)
-- [ ] `auth.py`: helpers `can_view_finances(user)`, `can_manage_finances(user)`,
-      `has_privilege(user, priv)` (role existente **OU** privilégio).
-- [ ] `finances.py`: GET → `can_view_finances`; POST/PATCH/DELETE/quotas →
-      `can_manage_finances`; `/settings` PATCH mantém admin-only.
-- [ ] events/documents/content(wall)/benefits/audit: aceitar privilégio relevante
-      **além** do role já permitido (aditivo). Módulos fora de escopo ficam
-      explícitos aqui e não recebem privilégio "falso".
-- [ ] Frontend Finanças: modo só-leitura quando `view` sem `manage` (esconde
-      botões criar/editar/eliminar; menu visível para quem pode ver).
-- [ ] Testes: view-only não escreve; manage escreve; admin/financeiro inalterados.
+### Fase 2 — RBAC granular (ADITIVO — `role OR privilege`, sem regressão) ✅
+- [x] `auth.py`: `has_privilege`, `has_role_or_privilege`, `can_view_finances`,
+      `can_manage_finances`.
+- [x] `finances.py`: `require_view_finances` (7 GET) / `require_manage_finances`
+      (4 escrita); `/settings` PATCH mantém admin-only.
+- [x] events (`manage_events`), documents (`manage_documents`), wall+gallery
+      (`moderate_content`, [admin,moderador]), benefits (`manage_benefits`),
+      audit-logs (`view_audit_logs`), users (`manage_users`) — todos aditivos.
+- [x] Frontend: `AuthContext.canViewFinances/canManageFinances/hasPrivilege`;
+      `FinanceiroPage` gate por view + badge "Modo leitura"; `CashFlowTab`
+      esconde criar/editar/eliminar quando `!canManage`; `PrivateLayout` +
+      `App.js ProtectedRoute` mostram/permitem Financeiro por privilégio.
+- [x] Verificação: ruff limpo; **266 passed** (rbac_matrix/finances/events/
+      benefits/wall/notifications/users/admin + novos rbac_privileges);
+      eslint 0 erros (1 warning pré-existente).
+- ℹ️ Fora de escopo (sem privilégio "falso"): upload.py (documents/logos
+      ainda admin-only), polls (admin-only), projects (lógica própria).
 
 ### Fase 3 — Endpoints backend
 - [ ] `admin.py`: `POST /admin/users/{id}/promote`, `/demote`,

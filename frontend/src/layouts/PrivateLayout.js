@@ -44,7 +44,7 @@ const menuSections = [
   {
     title: 'Gestão',
     items: [
-      { label: 'Financeiro', path: '/financeiro', icon: DollarSign, roles: ['admin', 'financeiro'] },
+      { label: 'Financeiro', path: '/financeiro', icon: DollarSign, roles: ['admin', 'financeiro'], privileges: ['view_finances_readonly', 'manage_finances'] },
       { label: 'Projetos', path: '/projetos', icon: FolderKanban, roles: ['all'] },
       { label: 'Votações', path: '/votacoes', icon: Vote, roles: ['all'] },
       { label: 'Eventos', path: '/eventos', icon: Calendar, roles: ['all'] },
@@ -142,13 +142,15 @@ export const PrivateLayout = ({ children }) => {
     setExpanded((prev) => !prev);
   }, []);
 
-  /* Filter menu items by role */
+  /* Filter menu items by role (ou por privilégio granular — RBAC aditivo) */
   const filterItem = (item) => {
     if (item.roles.includes('all')) return true;
     if (item.roles.includes('admin') && isAdmin) return true;
     if (item.roles.includes('financeiro') && (isFinanceiro || isAdmin)) return true;
     if (item.roles.includes('moderador') && (isModerador || isAdmin)) return true;
     if (item.roles.includes('socio') && user?.role === 'socio') return true;
+    // Privilégios concedem acesso EXTRA à entrada (ex.: Conselho Fiscal vê Financeiro).
+    if (item.privileges?.some((p) => (user?.privileges || []).includes(p))) return true;
     return false;
   };
 

@@ -62,6 +62,39 @@ def generate_qr_hash(user_id: str) -> str:
     return hashlib.sha256(f"accta-cv-{user_id}-{uuid.uuid4()}".encode()).hexdigest()
 
 
+# ===== Authorization helpers (spec-identidade-cargos) =====
+# RBAC ADITIVO: um privilégio concede acesso EXTRA além do role já permitido.
+# Quem já tinha acesso por `role` continua exactamente igual → zero regressão.
+# `user` é um models.User (duck-typed: basta ter .role e .privileges).
+
+
+def has_privilege(user, privilege: str) -> bool:
+    """True se o utilizador tem o privilégio granular indicado."""
+    return privilege in (getattr(user, "privileges", None) or [])
+
+
+def has_role_or_privilege(user, roles, privilege: str) -> bool:
+    """RBAC aditivo genérico: True se o role está em `roles` OU se o utilizador
+    tem o `privilege`. Base dos checks de escrita por módulo."""
+    return user.role in roles or has_privilege(user, privilege)
+
+
+def can_view_finances(user) -> bool:
+    """Pode VER o módulo financeiro: admin/financeiro, ou quem tem
+    view_finances_readonly (Conselho Fiscal) ou manage_finances."""
+    return (
+        user.role in ("admin", "financeiro")
+        or has_privilege(user, "view_finances_readonly")
+        or has_privilege(user, "manage_finances")
+    )
+
+
+def can_manage_finances(user) -> bool:
+    """Pode ESCREVER no módulo financeiro: admin/financeiro ou manage_finances.
+    view_finances_readonly NÃO concede escrita (separação de poderes)."""
+    return user.role in ("admin", "financeiro") or has_privilege(user, "manage_finances")
+
+
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)

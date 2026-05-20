@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import List
 from models import User, Benefit, BenefitCreate, BenefitUpdate
 from database import db
-from auth import get_current_user
+from auth import get_current_user, has_role_or_privilege
 from helpers import create_audit_log, delete_upload_file
 
 router = APIRouter(tags=["benefits"])
@@ -37,8 +37,8 @@ async def get_benefits(current_user: User = Depends(get_current_user)):
 
 @router.post("/benefits", response_model=Benefit)
 async def create_benefit(benefit_data: BenefitCreate, current_user: User = Depends(get_current_user)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Sem permissão")
+    if not has_role_or_privilege(current_user, ("admin",), "manage_benefits"):
+        raise HTTPException(status_code=403, detail="Sem permissão para gerir benefícios")
 
     benefit = Benefit(**benefit_data.model_dump())
     benefit_dict = benefit.model_dump()
@@ -55,8 +55,8 @@ async def update_benefit(
     update: BenefitUpdate,
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Sem permissão")
+    if not has_role_or_privilege(current_user, ("admin",), "manage_benefits"):
+        raise HTTPException(status_code=403, detail="Sem permissão para gerir benefícios")
 
     existing = await db.benefits.find_one({"id": benefit_id}, {"_id": 0})
     if not existing:
@@ -84,8 +84,8 @@ async def update_benefit(
 
 @router.delete("/benefits/{benefit_id}")
 async def delete_benefit(benefit_id: str, current_user: User = Depends(get_current_user)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Sem permissão")
+    if not has_role_or_privilege(current_user, ("admin",), "manage_benefits"):
+        raise HTTPException(status_code=403, detail="Sem permissão para gerir benefícios")
 
     existing = await db.benefits.find_one({"id": benefit_id}, {"_id": 0})
     if not existing:

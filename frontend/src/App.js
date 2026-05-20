@@ -56,7 +56,7 @@ const RouteSpinner = () => (
   </div>
 );
 
-const ProtectedRoute = ({ children, requireAdmin = false, allowedRoles = [] }) => {
+const ProtectedRoute = ({ children, requireAdmin = false, allowedRoles = [], allowedPrivileges = [] }) => {
   const { isAuthenticated, isAdmin, user, loading } = useAuth();
 
   if (loading) {
@@ -76,8 +76,14 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowedRoles = [] }) =
     return <Navigate to="/dashboard" replace />;
   }
 
-  if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
-    return <Navigate to="/dashboard" replace />;
+  if (allowedRoles.length > 0) {
+    // RBAC aditivo: passa por role OU por privilégio granular (ex.: Conselho
+    // Fiscal com view_finances_readonly acede ao /financeiro em modo leitura).
+    const roleOk = allowedRoles.includes(user?.role);
+    const privOk = allowedPrivileges.some((p) => (user?.privileges || []).includes(p));
+    if (!roleOk && !privOk) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return children;
@@ -124,7 +130,7 @@ function AppRoutes() {
         <Route
           path="/financeiro"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'financeiro']}>
+            <ProtectedRoute allowedRoles={['admin', 'financeiro']} allowedPrivileges={['view_finances_readonly', 'manage_finances']}>
               <PrivateLayout><FinanceiroPage /></PrivateLayout>
             </ProtectedRoute>
           }

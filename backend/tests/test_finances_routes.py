@@ -23,26 +23,30 @@ def _cursor(items, limit_supports=True):  # noqa: ARG001
 
 
 # --------------------------------------------------------------------------- #
-# require_finance_role
+# require_view_finances / require_manage_finances
 # --------------------------------------------------------------------------- #
 
 
-class TestRequireFinanceRole:
+class TestFinanceGateways:
     def test_admin_passes(self, admin_user):
-        finances_route.require_finance_role(admin_user)  # no raise
+        finances_route.require_view_finances(admin_user)  # no raise
+        finances_route.require_manage_finances(admin_user)
 
     def test_financeiro_passes(self, financeiro_user):
-        finances_route.require_finance_role(financeiro_user)
+        finances_route.require_view_finances(financeiro_user)
+        finances_route.require_manage_finances(financeiro_user)
 
     def test_socio_403(self, socio_user):
-        with pytest.raises(HTTPException) as exc:
-            finances_route.require_finance_role(socio_user)
-        assert exc.value.status_code == 403
+        for gate in (finances_route.require_view_finances, finances_route.require_manage_finances):
+            with pytest.raises(HTTPException) as exc:
+                gate(socio_user)
+            assert exc.value.status_code == 403
 
     def test_moderador_403(self, moderador_user):
-        with pytest.raises(HTTPException) as exc:
-            finances_route.require_finance_role(moderador_user)
-        assert exc.value.status_code == 403
+        for gate in (finances_route.require_view_finances, finances_route.require_manage_finances):
+            with pytest.raises(HTTPException) as exc:
+                gate(moderador_user)
+            assert exc.value.status_code == 403
 
 
 # --------------------------------------------------------------------------- #

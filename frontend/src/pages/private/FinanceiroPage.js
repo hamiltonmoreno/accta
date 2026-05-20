@@ -20,11 +20,11 @@ const TabBtn = ({ active, label, icon: Icon, onClick, testId }) => (
 );
 
 export const FinanceiroPage = () => {
-  const { isAdmin, isFinanceiro } = useAuth();
-  const hasFinanceAccess = isAdmin || isFinanceiro;
+  const { isAdmin, canViewFinances, canManageFinances } = useAuth();
   const [activeTab, setActiveTab] = useState('cashflow');
 
-  if (!hasFinanceAccess) {
+  // Quem não pode ver finanças (sócio comum) cai na vista pessoal.
+  if (!canViewFinances) {
     return <MemberFinanceView />;
   }
 
@@ -32,7 +32,14 @@ export const FinanceiroPage = () => {
     <div className="space-y-6">
       <div>
         <h1 className="page-title" data-testid="finance-title">Gestao Financeira</h1>
-        <p className="page-subtitle">Fluxo de caixa, relatorios DRE e configuracoes</p>
+        <p className="page-subtitle">
+          Fluxo de caixa, relatorios DRE e configuracoes
+          {!canManageFinances && (
+            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-[#F5F5F5] text-[#6B7280]" data-testid="finance-readonly-badge">
+              Modo leitura
+            </span>
+          )}
+        </p>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
@@ -43,7 +50,7 @@ export const FinanceiroPage = () => {
         )}
       </div>
 
-      {activeTab === 'cashflow' && <CashFlowTab isAdmin={isAdmin} />}
+      {activeTab === 'cashflow' && <CashFlowTab canManage={canManageFinances} />}
       {activeTab === 'dre' && <DRETab />}
       {activeTab === 'settings' && isAdmin && <SettingsTab />}
     </div>

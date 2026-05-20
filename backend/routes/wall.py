@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 from models import User, WallPost, WallPostCreate, WallComment, WallCommentCreate
 from database import db
-from auth import get_current_user
+from auth import get_current_user, has_role_or_privilege
 from helpers import create_audit_log, create_notification
 
 router = APIRouter(tags=["wall"])
@@ -32,7 +32,7 @@ async def get_wall_posts(category: Optional[str] = None, current_user: User = De
 
 @router.get("/wall/pending")
 async def get_pending_wall_posts(current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["admin", "moderador"]:
+    if not has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     posts = await db.wall_posts.find({"approved": False}, {"_id": 0}).sort("created_at", -1).to_list(100)
@@ -50,7 +50,7 @@ async def create_wall_post(post_data: WallPostCreate, current_user: User = Depen
     if current_user.status != "ativo":
         raise HTTPException(status_code=403, detail="Apenas sócios ativos podem postar")
 
-    auto_approve = current_user.role in ["admin", "moderador"]
+    auto_approve = has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content")
 
     post = WallPost(
         user_id=current_user.id, user_name=current_user.name, approved=auto_approve, **post_data.model_dump()
@@ -77,7 +77,7 @@ async def create_wall_post(post_data: WallPostCreate, current_user: User = Depen
 
 @router.patch("/wall/{post_id}/approve")
 async def approve_wall_post(post_id: str, current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["admin", "moderador"]:
+    if not has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     post = await db.wall_posts.find_one({"id": post_id}, {"_id": 0})
@@ -102,7 +102,10 @@ async def delete_wall_post(post_id: str, current_user: User = Depends(get_curren
     if not post:
         raise HTTPException(status_code=404, detail="Post não encontrado")
 
-    if current_user.role not in ["admin", "moderador"] and current_user.id != post["user_id"]:
+    if (
+        not has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content")
+        and current_user.id != post["user_id"]
+    ):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     await db.wall_posts.delete_one({"id": post_id})
@@ -113,7 +116,7 @@ async def delete_wall_post(post_id: str, current_user: User = Depends(get_curren
 
 @router.patch("/wall/{post_id}/pin")
 async def pin_wall_post(post_id: str, current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["admin", "moderador"]:
+    if not has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     post = await db.wall_posts.find_one({"id": post_id}, {"_id": 0})
@@ -202,7 +205,10 @@ async def delete_wall_comment(post_id: str, comment_id: str, current_user: User 
     if not comment:
         raise HTTPException(status_code=404, detail="Comentário não encontrado")
 
-    if current_user.role not in ["admin", "moderador"] and current_user.id != comment["user_id"]:
+    if (
+        not has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content")
+        and current_user.id != comment["user_id"]
+    ):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     await db.wall_comments.delete_one({"id": comment_id})
