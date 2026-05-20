@@ -143,7 +143,13 @@ html, body {
         @apply bg-carmesim text-white hover:bg-carmesim-dark h-10 sm:h-11 px-5 sm:px-6 rounded-lg font-semibold text-sm transition-colors;
     }
     .btn-secondary {
-        @apply bg-grafite text-white hover:bg-grafite-dark h-10 sm:h-11 px-5 sm:px-6 rounded-lg font-semibold text-sm transition-colors;
+        @apply h-10 sm:h-11 px-5 sm:px-6 rounded-lg font-semibold text-sm transition-colors;
+        background-color: var(--surface-card);
+        color: var(--text-primary);
+        border: 1px solid #D1D5DB;
+    }
+    .btn-secondary:hover {
+        background-color: var(--surface-card-hover);
     }
     .btn-outline {
         @apply h-10 sm:h-11 px-5 sm:px-6 rounded-lg text-sm font-semibold transition-colors;
