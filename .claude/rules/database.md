@@ -29,7 +29,11 @@ paths:
   needed, extend the DAO in `database.py` — keep the Mongo-style call sites.
 
 ## Collections & Schema (27 tables)
-- **users**: email (unique), role, status, invite_token, qr_code_hash
+- **users**: email (unique), role, status, invite_token, qr_code_hash,
+  `account_type` (member|technical), `member_id` (immutable; via `member_id_seq`),
+  `privileges[]` (additive overlays), `cargo` + `cargo_history[]` (mandate log;
+  written only by `/admin/cargos` promote/demote/transfer — `transfer` is atomic
+  via `database.transfer_cargo`)
 - **transactions**: type (receita/despesa), amount, date, category, user_id
 - **projects** (+ project_tasks, project_comments, project_expenses,
   project_milestones): title, status, team_members[]
@@ -67,6 +71,8 @@ paths:
 
 ## Business Rules
 - No "inadimplente" status — quotas are payroll-deducted
-- User statuses: ativo, inativo, pendente_convite
+- User statuses: ativo, inativo, pendente_convite, pendente_aprovacao, rejeitado
+- `account_type="technical"` accounts are hidden from member listings by default
+  (`GET /users` filters member-or-missing; `?include_technical=true` to reveal)
 - Gallery photos require admin approval before visibility
 - Wall posts require moderation (status: pending → approved/rejected)

@@ -118,14 +118,35 @@ Spec: `tasks/spec-identidade-cargos.md` (decisões já confirmadas na secção f
 - [ ] ⏸ **NÃO EXECUTADO**: `DELETE FROM users` / wipe da tabela = passo manual
       de deploy (sem acesso a VPS/DB). STOP condition — requer o utilizador.
 
-### Fase 6 — Documentação
-- [ ] `CLAUDE.md`: modelo de cargos/account_type.
-- [ ] `.claude/rules/database.md`: `cargo_history`/`account_type`.
-- [ ] `spec-auto-registo.md`: referência cruzada.
+### Fase 6 — Documentação ✅
+- [x] `CLAUDE.md`: bullet "Identity & cargos" (account_type, member_id imutável,
+      RBAC aditivo, cargos via /admin/cargos, metadata) + statuses atualizados.
+- [x] `.claude/rules/database.md`: users com account_type/member_id/privileges/
+      cargo_history + transfer atómico; statuses + filtro técnico.
+- [x] `spec-auto-registo.md`: referência cruzada ao spec-identidade-cargos.
 
-### Verificação final
-- [ ] `ruff check` limpo; suite unit backend verde (novos testes incluídos).
-- [ ] `eslint` 0 erros; testes frontend; `npx craco build` OK.
+### Verificação final ✅
+- [x] `ruff check` limpo em todos os ficheiros backend alterados.
+- [x] Backend unit: models 23 · rbac_privileges + suites afetadas 266 ·
+      auto-registo+admin 28 · cargos 29 — todos verdes; rbac_matrix inalterado.
+- [x] `eslint` 0 erros; `npx craco build` Compiled successfully.
+
+---
+
+## Review (resumo da execução)
+
+Implementado em `feat/identidade-cargos`, 6 commits (1 por fase):
+- **F1** `3165738` models/constantes + member_id imutável + transfer_cargo atómico.
+- **F2** `02302d3` RBAC granular aditivo (finanças view/manage + 6 módulos) + UI finanças read-only.
+- **F3** `b463218` endpoints promote/demote/transfer/cargos/candidates + filtro account_type + cargo-history + metadata.
+- **F4** `151e580` UI /admin/cargos + member_id read-only + timelines + cargosAPI.
+- **F5** `6b7f9a0` create_admin.py → conta técnica (wipe destrutivo NÃO executado).
+- **F6** docs (CLAUDE.md, database.md, spec cross-ref).
+
+**Princípio-chave**: RBAC 100% aditivo (`role OR privilege`) → zero regressão
+(rbac_matrix inalterado). **Pendente do utilizador** (STOP/sem acesso): (1) wipe
++ recriação de `users` no deploy; (2) `setval('member_id_seq', …)` antes do 1º
+sócio; (3) billing das GitHub Actions (CI/CD vermelhos até resolver).
 
 ---
 
