@@ -132,9 +132,7 @@ async def logout(
 
 @router.post("/setup-account")
 @limiter.limit("5/minute")
-async def setup_account(
-    request: Request, response: Response, background_tasks: BackgroundTasks, data: SetupAccount
-):
+async def setup_account(request: Request, response: Response, background_tasks: BackgroundTasks, data: SetupAccount):
     """Invited user sets their password and activates their account."""
     user_doc = await db.users.find_one({"invite_token": data.token, "status": "pendente_convite"}, {"_id": 0})
     if not user_doc:
@@ -150,8 +148,8 @@ async def setup_account(
         except (ValueError, TypeError):
             pass  # Token sem formato válido — trata como legado
 
-    if len(data.password) < 8:
-        raise HTTPException(status_code=400, detail="A senha deve ter pelo menos 8 caracteres")
+    if len(data.password) < 6:
+        raise HTTPException(status_code=400, detail="A senha deve ter pelo menos 6 caracteres")
 
     hashed = hash_password(data.password)
     now = datetime.now(timezone.utc).isoformat()
@@ -261,8 +259,8 @@ async def reset_password(request: Request, data: PasswordResetConfirm):
     if datetime.now(timezone.utc) > expires_at:
         raise HTTPException(status_code=400, detail="Token expirado. Solicite um novo.")
 
-    if len(data.new_password) < 8:
-        raise HTTPException(status_code=400, detail="A senha deve ter pelo menos 8 caracteres")
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="A senha deve ter pelo menos 6 caracteres")
 
     hashed = hash_password(data.new_password)
     await db.users.update_one({"email": reset_doc["email"]}, {"$set": {"password": hashed}})
