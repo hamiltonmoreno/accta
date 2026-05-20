@@ -74,19 +74,23 @@ Spec: `tasks/spec-identidade-cargos.md` (decisões já confirmadas na secção f
 - ℹ️ Fora de escopo (sem privilégio "falso"): upload.py (documents/logos
       ainda admin-only), polls (admin-only), projects (lógica própria).
 
-### Fase 3 — Endpoints backend
-- [ ] `admin.py`: `POST /admin/users/{id}/promote`, `/demote`,
+### Fase 3 — Endpoints backend ✅
+- [x] `admin.py`: `POST /admin/users/{id}/promote`, `/demote`,
       `POST /admin/cargos/transfer` (usa `transfer_cargo` atómico),
       `GET /admin/cargos`, `GET /admin/cargos/candidates`.
-      RBAC: `role=admin` **ou** `manage_users`. Audit + notify em cada acção.
-      Valida `account_type=member`, `status=ativo`, `CARGO_SEATS`.
-- [ ] `users.py`: `GET /users` filtra `account_type` member-or-missing +
-      `?include_technical=true`; `GET /users/cargos` (metadata completa:
-      CARGOS, CARGOS_ORGAOS_SOCIAIS, PRIVILEGES, CARGO_DEFAULTS, CARGO_SEATS);
-      `GET /users/{id}/cargo-history` (próprio ou admin).
-- [ ] Integração auto-registo: ao aprovar com cargo≠"Sócio", criar 1ª entrada
-      em `cargo_history` (toca `admin.py` approve).
-- [ ] Testes unitários (`mock_db`): promote/demote/transfer/seats/RBAC/404.
+      RBAC `_require_manage_users` (admin **ou** manage_users); valida
+      account_type=member, status=ativo, CARGO_SEATS; audit + notify.
+- [x] `users.py`: `GET /users` filtra account_type member-or-missing via `$and`
+      + `?include_technical=true`; metadata completa em `GET /users/meta/cargos`
+      (reusa client `getCargos`, evita colisão com `/users/{id}`);
+      `GET /users/{id}/cargo-history` (próprio ou admin, ordem desc).
+- [x] Integração auto-registo: approve com cargo≠"Sócio" cria 1ª entrada em
+      `cargo_history`.
+- [x] Testes: `tests/test_cargos_routes.py` (29) — promote/demote/transfer/
+      seats/RBAC/404 + metadata/account_type/cargo-history. ruff limpo.
+      auto-registo+admin (28) inalterados.
+- ℹ️ Desvio: endpoint de metadata é `/users/meta/cargos` (não `/users/cargos`
+      do spec) — evita a colisão de rota com `/users/{user_id}`; já wired no client.
 
 ### Fase 4 — UI admin
 - [ ] `/admin/cargos` — tabela cargos + ocupante/Vago + modais
