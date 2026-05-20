@@ -2,28 +2,58 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { postsAPI, eventsAPI } from '../../utils/api';
 import { unsplashSrcSet } from '../../utils/unsplash';
-import { 
-  Plane, 
-  Shield, 
-  Users, 
-  Clock, 
-  MapPin, 
-  Target, 
-  ArrowRight, 
+import {
+  Plane,
+  Shield,
+  Users,
+  Clock,
+  MapPin,
+  Target,
+  ArrowRight,
   Radio,
   Eye,
   ChevronRight,
   Calendar,
-  Globe
+  Globe,
+  TowerControl,
+  PlaneLanding,
+  Navigation,
+  Landmark,
+  Building2,
+  Search,
+  Waves,
+  GraduationCap,
+  HelpCircle,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '../../components/ui/accordion';
+import { tiposControlo, camadas, fir, caminhoCTA, faq } from '../../content/cta';
 
 const NEWS_IMAGES = [
   'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=800&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1540962351504-03099e0a754b?q=80&w=800&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1474302770737-173ee21bab63?q=80&w=800&auto=format&fit=crop',
 ];
+
+// Mapas visuais para as secções educativas (conteúdo em content/cta/).
+const CONTROL_ICONS = { TWR: TowerControl, APP: PlaneLanding, ACC: Navigation };
+
+const ATS_ICONS = {
+  AAC: Landmark,
+  ASA: Radio,
+  'Cabo Verde Airports': Building2,
+  IPIAAM: Search,
+};
+
+// Resumo de uma linha por etapa — o detalhe completo vive em /profissao.
+const CAMINHO_RESUMO = {
+  'Pré-requisitos': '21 anos, certificado médico Classe 3 e inglês ICAO nível 4.',
+  'Formação inicial': 'Curso teórico numa ATO aprovada pela AAC, com exame.',
+  'Formação operacional': 'Qualificação (ADI/APP/ACC) com tráfego real sob OJTI.',
+  'Ingresso numa unidade': 'Averbamento de órgão e autorização para a posição.',
+  'Manutenção': 'Revalidação periódica e recência operacional contínua.',
+};
 
 export const HomePage = () => {
   const [news, setNews] = useState([]);
@@ -285,6 +315,213 @@ export const HomePage = () => {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How ATC works — TWR / APP / ACC */}
+      <section className="py-16 sm:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6">
+          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16 animate-fade-up">
+            <span className="inline-block px-3 py-1.5 bg-carmesim/10 text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold mb-4 sm:mb-6">
+              Como funciona
+            </span>
+            <h2 className="font-bold text-2xl sm:text-4xl lg:text-5xl text-grafite mb-3 sm:mb-4">
+              Três formas de{' '}
+              <span className="text-carmesim">controlar o tráfego</span>
+            </h2>
+            <p className="text-sm sm:text-lg text-gray-600">
+              Do solo ao cruzeiro sobre o Atlântico, cada voo passa por diferentes serviços de controlo.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-5 sm:gap-8">
+            {tiposControlo.map((t) => {
+              const Icon = CONTROL_ICONS[t.sigla] || Radio;
+              return (
+                <div key={t.sigla} className="card-technical card-hover p-6 sm:p-8 animate-fade-up">
+                  <div className="flex items-center gap-3 mb-4 sm:mb-5">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-grafite rounded-xl flex items-center justify-center shrink-0">
+                      <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                    </div>
+                    <span className="font-mono text-2xl sm:text-3xl font-bold text-gray-200">{t.sigla}</span>
+                  </div>
+                  <h3 className="font-semibold text-lg sm:text-xl text-grafite mb-2 sm:mb-3">{t.nome}</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed mb-4">{t.descricao}</p>
+                  <div className="pt-4 border-t border-gray-100">
+                    <div className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-1">{t.detalheLabel}</div>
+                    <div className="text-sm text-grafite">{t.detalhe}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="text-center mt-8 sm:mt-12 animate-fade-up">
+            <Link
+              to="/profissao"
+              className="inline-flex items-center gap-2 text-carmesim font-semibold hover:text-carmesim-dark transition-colors group text-sm sm:text-base"
+            >
+              Explorar a profissão em detalhe
+              <ChevronRight className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ATS structure — the 4 entities */}
+      <section className="py-16 sm:py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6">
+          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16 animate-fade-up">
+            <span className="inline-block px-3 py-1.5 bg-grafite/5 text-grafite rounded-full text-xs uppercase tracking-wider font-semibold mb-4 sm:mb-6">
+              Estrutura do setor
+            </span>
+            <h2 className="font-bold text-2xl sm:text-4xl lg:text-5xl text-grafite mb-3 sm:mb-4">
+              Quem é quem na{' '}
+              <span className="text-carmesim">aviação cabo-verdiana</span>
+            </h2>
+            <p className="text-sm sm:text-lg text-gray-600">
+              Quatro entidades sustentam a navegação aérea do arquipélago — cada uma com um papel distinto.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {camadas.map((c) => {
+              const Icon = ATS_ICONS[c.sigla] || Building2;
+              return (
+                <div key={c.sigla} className="card-technical card-hover p-5 sm:p-6 animate-fade-up">
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 bg-grafite rounded-lg flex items-center justify-center mb-4">
+                    <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                  </div>
+                  <div className="font-bold text-lg text-grafite mb-1 leading-tight">{c.sigla}</div>
+                  <div className="text-sm text-gray-600 leading-snug">{c.papel}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* FIR Oceânica do Sal — dark highlight band */}
+      <section className="py-12 sm:py-16 bg-grafite relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-carmesim/10 rounded-full blur-3xl -translate-y-1/3 translate-x-1/4" />
+        <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            <div className="animate-fade-up">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 border border-white/20 rounded-full mb-4 sm:mb-5">
+                <Waves className="w-3.5 h-3.5 text-white" />
+                <span className="text-xs text-white font-semibold uppercase tracking-wider">Espaço aéreo</span>
+              </div>
+              <h2 className="font-bold text-2xl sm:text-3xl lg:text-4xl text-white mb-3 sm:mb-4">
+                {fir.nome}
+              </h2>
+              <p className="text-sm sm:text-base text-white/70 leading-relaxed max-w-xl">
+                Uma das maiores regiões de informação de voo do Atlântico, operada pela ASA a partir da ilha do Sal.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 animate-fade-up">
+              {[
+                { icon: Globe, label: 'Cobertura', value: 'Atlântico Médio' },
+                { icon: Radio, label: 'Comunicações', value: fir.comunicacoes },
+                { icon: Navigation, label: 'Vigilância', value: 'Radar + ADS-C' },
+                { icon: Plane, label: 'Rotas', value: 'Europa ↔ Américas' },
+              ].map((s) => (
+                <div key={s.label} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 sm:p-5">
+                  <s.icon className="w-5 h-5 text-white/80 mb-2" />
+                  <div className="text-xs text-white/50 uppercase tracking-wider mb-0.5">{s.label}</div>
+                  <div className="text-sm sm:text-base text-white font-semibold">{s.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Path to become a CTA — 5-step timeline */}
+      <section className="py-16 sm:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6">
+          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16 animate-fade-up">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-carmesim/10 text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold mb-4 sm:mb-6">
+              <GraduationCap className="w-3.5 h-3.5" />
+              Carreira
+            </span>
+            <h2 className="font-bold text-2xl sm:text-4xl lg:text-5xl text-grafite mb-3 sm:mb-4">
+              O caminho para ser{' '}
+              <span className="text-carmesim">Controlador</span>
+            </h2>
+            <p className="text-sm sm:text-lg text-gray-600">
+              Da candidatura à operação real — as cinco etapas do percurso, conforme o CV-CAR.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-5 sm:gap-6">
+            {caminhoCTA.map((step, i) => (
+              <div key={step.etapa} className="animate-fade-up">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-grafite text-white font-mono font-bold flex items-center justify-center text-sm shrink-0">
+                    {String(i + 1).padStart(2, '0')}
+                  </div>
+                  {i < caminhoCTA.length - 1 && <div className="hidden lg:block flex-1 h-px bg-gray-200" />}
+                </div>
+                <h3 className="font-semibold text-base text-grafite mb-1.5">{step.etapa}</h3>
+                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{CAMINHO_RESUMO[step.etapa]}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-10 sm:mt-14 animate-fade-up">
+            <Link
+              to="/profissao"
+              className="inline-flex items-center gap-2 text-carmesim font-semibold hover:text-carmesim-dark transition-colors group text-sm sm:text-base"
+            >
+              Ver requisitos e licenciamento
+              <ChevronRight className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ — interactive accordion */}
+      <section className="py-16 sm:py-24 bg-gray-50">
+        <div className="max-w-3xl mx-auto px-5 sm:px-6">
+          <div className="text-center mb-10 sm:mb-12 animate-fade-up">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-grafite/5 text-grafite rounded-full text-xs uppercase tracking-wider font-semibold mb-4 sm:mb-6">
+              <HelpCircle className="w-3.5 h-3.5" />
+              Perguntas frequentes
+            </span>
+            <h2 className="font-bold text-2xl sm:text-4xl lg:text-5xl text-grafite mb-3 sm:mb-4">
+              Ainda com{' '}
+              <span className="text-carmesim">dúvidas?</span>
+            </h2>
+            <p className="text-sm sm:text-lg text-gray-600">
+              As perguntas mais comuns sobre a profissão e o setor em Cabo Verde.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-200 px-5 sm:px-8 animate-fade-up">
+            <Accordion type="single" collapsible className="w-full">
+              {faq.slice(0, 6).map((item, i) => (
+                <AccordionItem key={i} value={`faq-${i}`} className="border-gray-100 last:border-0">
+                  <AccordionTrigger className="text-grafite font-semibold text-sm sm:text-base hover:no-underline py-5 gap-4">
+                    {item.pergunta}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-gray-600 text-sm leading-relaxed">
+                    {item.resposta}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+
+          <div className="text-center mt-8 animate-fade-up">
+            <Link
+              to="/profissao"
+              className="inline-flex items-center gap-2 text-carmesim font-semibold hover:text-carmesim-dark transition-colors group text-sm sm:text-base"
+            >
+              Ver tudo sobre a profissão
+              <ChevronRight className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
           </div>
         </div>
       </section>
