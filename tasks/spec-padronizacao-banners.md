@@ -151,8 +151,9 @@ do tamanho. Substitui as `<section>` hero copiadas em cada página.
 
 ```jsx
 <section className="relative h-64 sm:h-72 lg:h-80 flex items-center overflow-hidden">
+  {/* above-the-fold / provável LCP → eager (sem loading="lazy") + fetchPriority alta */}
   <img src={imageUrl} srcSet={…} sizes="100vw" alt={alt || ''} aria-hidden={!alt}
-       loading="lazy" decoding="async"
+       fetchPriority="high" decoding="async"
        className="absolute inset-0 w-full h-full object-cover" />
   {/* overlay grafite — garante contraste do texto branco (nunca vermelho aqui) */}
   <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
@@ -167,6 +168,9 @@ do tamanho. Substitui as `<section>` hero copiadas em cada página.
 - **Altura:** `h-64 sm:h-72 lg:h-80` (D3) — igual em **todas** as páginas
   secundárias.
 - **Imagem:** lida da config (§5/§6); fallback embebido se faltar (§9).
+- **Performance/LCP:** o banner está above-the-fold e é o provável elemento LCP
+  → **nunca `loading="lazy"`** (atrasa o fetch e piora o LCP); carregar eager e
+  usar `fetchPriority="high"`. Aplica-se igualmente ao hero da Home (§4.2).
 - **Contraste:** texto sempre branco sobre overlay grafite (par permitido);
   acento carmesim só na pílula/border, **nunca texto vermelho sobre escuro**.
 
