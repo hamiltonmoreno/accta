@@ -296,7 +296,7 @@ class UserBase(BaseModel):
     account_type: Literal["member","technical"] = "member"
     orgao: Optional[str] = None                       # ∈ ORGAOS keys ou None
     member_category: str = "ordinario"                # ∈ MEMBER_CATEGORIES
-    cargo: str = "Sócio"                              # passa a guardar KEY canónico ("socio", "dir_tesoureiro", ...)
+    cargo: str = "socio"                              # KEY canónico ("socio","dir_tesoureiro",...); label só para display. NUNCA usar o label "Sócio" como default — partiria CARGO_DEFAULTS/orgao_of_cargo/seat checks
 
 class CargoMandate(BaseModel):                        # entrada de cargo_history
     cargo: str; role: str; orgao: Optional[str] = None
@@ -326,14 +326,17 @@ cru nas rotas.**
 | `assembleia_presencas` | Presença/representação por sessão | `(doc->>'assembleia_id')`, `(doc->>'user_id')` |
 | `eleicoes` | Atos eleitorais (mandato, calendário, comissão, mesa de voto, listas, resultado) | `(doc->>'status')`, `(doc->>'ano')` |
 | `eleicao_listas` | Listas candidatas (letra, candidatos por cargo+suplentes, programa) | `(doc->>'eleicao_id')` |
-| `eleicao_votos` | Votos (secreto: registo de *quem votou* separado do *sentido de voto*) | `(doc->>'eleicao_id')`, `(doc->>'voter_hash')` |
+| `eleicao_votos` | Votos (secreto: registo de *quem votou* separado do *sentido de voto*) | **UNIQUE** `(doc->>'eleicao_id', doc->>'voter_hash')` — garante **1 voto/eleitor atomicamente** sob escrita concorrente; checks só na aplicação não bastam (race) |
 | `sancoes` | Processos disciplinares (tipo, comissão de inquérito, decisão, recurso) | `(doc->>'user_id')`, `(doc->>'status')` |
 
 > **Voto secreto** (Art. 48): separar a *lista de quem votou* (para evitar voto
 > duplo e conferência de assinaturas, Art. 50.1) do *boletim* (sentido de voto)
 > que não pode ser ligado ao eleitor. Modelar `eleicao_votos` com `voter_hash`
 > (marca que votou) e contagem agregada de boletins por lista, **sem FK
-> voter→boletim**.
+> voter→boletim**. O **índice UNIQUE `(eleicao_id, voter_hash)`** é o guard de
+> unicidade do voto: o INSERT do "já votou" tem de ser a operação atómica que
+> falha no 2º voto — não confiar em `find`+`insert` na aplicação (TOCTOU sob
+> concorrência). `ensure_schema()` deve criar este índice como `UNIQUE`.
 
 ---
 
