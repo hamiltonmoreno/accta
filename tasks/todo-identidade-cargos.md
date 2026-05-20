@@ -92,25 +92,31 @@ Spec: `tasks/spec-identidade-cargos.md` (decisões já confirmadas na secção f
 - ℹ️ Desvio: endpoint de metadata é `/users/meta/cargos` (não `/users/cargos`
       do spec) — evita a colisão de rota com `/users/{user_id}`; já wired no client.
 
-### Fase 4 — UI admin
-- [ ] `/admin/cargos` — tabela cargos + ocupante/Vago + modais
-      atribuir/transferir/terminar (autocomplete candidates, defaults de
-      CARGO_DEFAULTS, primário Carmesim único). Rota + nav (admin).
-- [ ] `/admin/usuarios`: `member_id` só-leitura (remover input); timeline
-      "Histórico de Cargos" no detalhe/modal existente.
-- [ ] `/perfil`: secção "Os meus cargos".
-- [ ] Substituir constantes hard-coded por `GET /users/cargos` (Admin/Perfil).
-- [ ] `api.js` `registrationAPI`/`usersAPI`/novo grupo cargos; `queryClient` keys.
-- [ ] Verificação design system (neutral-led) + eslint + build.
+### Fase 4 — UI admin ✅
+- [x] `/admin/cargos` (`AdminCargosPage`) — tabela cargos + titulares/Vago +
+      modais atribuir/transferir/terminar (CandidatePicker debounced, defaults
+      de CARGO_DEFAULTS, confirm Carmesim único por modal, ações de linha
+      neutras). Rota (`allowedRoles admin` + `allowedPrivileges manage_users`)
+      + nav `Cargos & Mandatos` (Award) + title.
+- [x] `/admin/usuarios`: `member_id` só-leitura (display, removido do save);
+      timeline "Histórico de Cargos" no modal; cargos/privilégios via metadata.
+- [x] `/perfil`: secção "Os Meus Cargos" (timeline via cargo-history).
+- [x] `lib/cargoLabels.js` (rótulos PT partilhados); listas canónicas vêm de
+      `GET /users/meta/cargos`. Rotas `/admin/usuarios` e `/admin/logs` passam a
+      honrar privilégios (`manage_users`/`view_audit_logs`).
+- [x] `api.js cargosAPI` + `queryClient queryKeys.cargos`.
+- [x] Verificação: eslint **0 erros** (só warnings pré-existentes de imports não
+      usados, dentro do budget); `npx craco build` — **Compiled successfully**.
 
-### Fase 5 — Migração contas (⚠️ STOP CONDITION — destrutivo)
-- [ ] `create_admin.py`: cria SÓ conta técnica `admin@controlador.cv`
-      (`account_type="technical"`, `member_id=None`, todos privilégios,
-      `cargo_history=[]`). **CÓDIGO seguro — não destrutivo.**
-- [ ] Fixtures/`conftest.py`/`seed_data.py`: entender `account_type`.
-- [ ] **NÃO EXECUTADO aqui**: `DELETE FROM users` / wipe da tabela é passo
-      manual de deploy (sem acesso a VPS/DB) — documentado, requer confirmação
-      explícita do utilizador.
+### Fase 5 — Migração contas (⚠️ STOP CONDITION — destrutivo) ✅ (código) / ⏸ (wipe)
+- [x] `create_admin.py`: cria SÓ conta técnica (`account_type="technical"`,
+      `member_id=None`, cargo "Técnico de Sistema", 8 privilégios,
+      `cargo_history=[]`). **Código seguro — não destrutivo.** ruff limpo.
+- [x] `seed_data.py`/fixtures: sem alteração necessária — users sem
+      `account_type` são tratados como `member` (retro-compat) e não usam
+      cargos removidos; member_ids demo são literais.
+- [ ] ⏸ **NÃO EXECUTADO**: `DELETE FROM users` / wipe da tabela = passo manual
+      de deploy (sem acesso a VPS/DB). STOP condition — requer o utilizador.
 
 ### Fase 6 — Documentação
 - [ ] `CLAUDE.md`: modelo de cargos/account_type.
