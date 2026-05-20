@@ -332,7 +332,7 @@ export const CashFlowTab = ({ isAdmin }) => {
         <TransactionModal
           tx={editingTx}
           onClose={() => { setShowModal(false); setEditingTx(null); }}
-          onSaved={() => { setShowModal(false); setEditingTx(null); invalidateAll(); }}
+          onSaved={invalidateAll}
         />
       )}
     </div>
