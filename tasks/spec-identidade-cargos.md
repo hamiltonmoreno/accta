@@ -566,16 +566,39 @@ Não toca em:
 - ✅ **Privilégios**: alinhados por função, com `view_finances_readonly`
   adicionado para o Conselho Fiscal.
 - ✅ **Ordem de implementação**: PR único cobrindo todas as fases.
+- ✅ **Conta de bootstrap**: apenas `admin@controlador.cv` é criada
+  pelo script. É a conta técnica de superuser do sistema — todas as
+  outras pessoas (incluindo Presidente, Tesoureiro, etc.) entram pelo
+  auto-registo e ganham cargo via os endpoints `promote`/`transfer`.
+- ✅ **Sem outras contas partilhadas**: `presidente@controlador.com`
+  e similares NÃO são criadas como contas de login. Se forem
+  necessárias como endereços institucionais, são aliases de email
+  fora do sistema.
 
-## Ainda a confirmar antes de arrancar
+## Forma final da conta `admin@controlador.cv`
 
-1. **Email pessoal do primeiro admin** — depois de limpar a tabela
-   `users`, é preciso criar uma conta admin nova. Que email queres
-   usar? (Pode ser o teu email pessoal, ou um email novo que
-   prefiras.)
-2. **Outros emails partilhados existentes** — além de
-   `admin@controlador.cv` (que detectei no código) e do
-   `admin@controlador.com` que mencionaste, há outros emails de
-   "papel" criados (tipo `tesoureiro@controlador.cv`,
-   `secretario@controlador.cv`)? Se sim, lista-os para incluir no
-   plano de limpeza.
+Depois do `create_admin.py` adaptado correr:
+
+```python
+{
+    "id": "<uuid>",
+    "name": "Administrador ACCTA",       # ou nome a definir
+    "email": "admin@controlador.cv",
+    "role": "admin",
+    "status": "ativo",
+    "member_id": "ACCTA-0001",            # da sequência, não mais "ACCTA-ADMIN"
+    "cargo": "Administrador",             # label técnico, fora de CARGOS oficiais
+    "privileges": [                       # todos os 8
+        "manage_users", "manage_finances", "manage_events",
+        "manage_documents", "moderate_content", "manage_benefits",
+        "view_audit_logs", "view_finances_readonly",
+    ],
+    "cargo_history": [],                  # vazio — não é cargo eleito
+    "consent_data": True,
+    "created_at": "...",
+}
+```
+
+Nota: o `cargo="Administrador"` é um label informativo apenas — não está
+na lista `CARGOS` institucionais. Esta conta nunca participa em
+mandatos eleitos; é mantida fora desse fluxo.
