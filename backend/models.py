@@ -93,7 +93,7 @@ class InviteCreate(BaseModel):
 
 class SetupAccount(BaseModel):
     token: str
-    password: str = Field(min_length=6)
+    password: str = Field(min_length=6, max_length=72)
 
 
 # ===== INVOICE MODELS =====
@@ -629,4 +629,4 @@ class PasswordResetRequest(BaseModel):
 
 class PasswordResetConfirm(BaseModel):
     token: str
-    new_password: str = Field(min_length=6)
+    new_password: str = Field(min_length=6, max_length=72)
