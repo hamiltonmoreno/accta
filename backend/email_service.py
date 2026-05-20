@@ -116,6 +116,27 @@ def welcome_email_html(name: str) -> str:
     return _base_template(content)
 
 
+def registration_rejected_email_html(name: str, reason: str = None) -> str:
+    reason_block = ""
+    if reason:
+        reason_block = f"""
+    <div style="margin:0 0 24px;padding:14px 16px;background-color:#f9fafb;border-left:3px solid #d1d5db;border-radius:6px;">
+      <p style="margin:0;font-size:13px;color:#6b7280;line-height:1.6;"><strong style="color:#3A3A3A;">Motivo:</strong> {reason}</p>
+    </div>"""
+    content = f"""
+    <h2 style="margin:0 0 8px;font-size:20px;color:#3A3A3A;">Pedido de inscricao</h2>
+    <p style="margin:0 0 20px;font-size:14px;color:#6b7280;line-height:1.6;">
+      Ola {name}, agradecemos o seu interesse na Associacao dos Controladores de Trafego Aereo de Cabo Verde.
+    </p>
+    <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">
+      Apos analise, nao nos foi possivel aprovar o seu pedido de inscricao neste momento.
+    </p>{reason_block}
+    <p style="margin:0;font-size:13px;color:#9ca3af;line-height:1.6;">
+      Se considerar que se trata de um engano, pode contactar a direcao da ACCTA.
+    </p>"""
+    return _base_template(content)
+
+
 async def send_email(to: str, subject: str, html: str) -> dict:
     """Send email via Resend API (non-blocking)."""
     if not RESEND_API_KEY:
@@ -151,3 +172,8 @@ async def send_password_reset_email(name: str, email: str, reset_url: str, token
 async def send_welcome_email(name: str, email: str) -> dict:
     html = welcome_email_html(name)
     return await send_email(email, f"Bem-vindo — {APP_NAME}", html)
+
+
+async def send_registration_rejected_email(name: str, email: str, reason: str = None) -> dict:
+    html = registration_rejected_email_html(name, reason)
+    return await send_email(email, f"Pedido de inscricao — {APP_NAME}", html)

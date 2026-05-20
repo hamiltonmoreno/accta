@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from datetime import datetime, timedelta, timezone
-from models import User, InviteCreate
+from models import User, InviteCreate, RegistrationApprove, RegistrationReject
 from database import db
 from auth import get_current_user, generate_qr_hash
 from helpers import create_audit_log, resolve_link_base
-from email_service import send_invite_email
+from email_service import send_invite_email, send_registration_rejected_email
 import uuid
 import secrets
+
+VALID_APPROVE_ROLES = ["socio", "financeiro", "moderador", "admin"]
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -118,3 +120,126 @@ async def revoke_invite(user_id: str, request: Request, current_user: User = Dep
     )
 
     return {"message": "Convite revogado"}
+
+
+# ===== AUTO-REGISTO — gestão de pedidos de inscrição (spec-auto-registo) =====
+
+
+@router.get("/registration-requests")
+async def list_registration_requests(
+    current_user: User = Depends(get_current_user),
+    status: str = "pendente_aprovacao",
+    limit: int = 100,
+    skip: int = 0,
+):
+    """Lista pedidos de auto-registo. `status`: pendente_aprovacao (default) ou rejeitado."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Sem permissao")
+
+    if status not in ("pendente_aprovacao", "rejeitado"):
+        raise HTTPException(status_code=400, detail="Status invalido")
+
+    requests = (
+        await db.users.find(
+            {"status": status},
+            {"_id": 0, "password": 0, "invite_token": 0, "qr_code_hash": 0},
+        )
+        .sort("registration_request_at", -1)
+        .skip(skip)
+        .limit(limit)
+        .to_list(limit)
+    )
+    return requests
+
+
+@router.post("/registration-requests/{user_id}/approve")
+async def approve_registration(
+    user_id: str, request: Request, data: RegistrationApprove, current_user: User = Depends(get_current_user)
+):
+    """Aprova um pedido: gera invite e reusa o fluxo `setup-account` existente.
+    NÃO ativa a conta directamente — o candidato define a password via o link."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Apenas administradores podem aprovar pedidos")
+
+    if data.role not in VALID_APPROVE_ROLES:
+        raise HTTPException(status_code=422, detail="Role invalido")
+
+    user = await db.users.find_one({"id": user_id, "status": "pendente_aprovacao"}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Pedido nao encontrado ou ja processado")
+
+    invite_token = secrets.token_urlsafe(32)
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(days=INVITE_TOKEN_TTL_DAYS)
+    cargo_final = data.cargo or user.get("cargo_declarado") or user.get("cargo") or "Sócio"
+
+    await db.users.update_one(
+        {"id": user_id},
+        {
+            "$set": {
+                "status": "pendente_convite",
+                "role": data.role,
+                "cargo": cargo_final,
+                "invite_token": invite_token,
+                "invite_token_expires_at": expires_at.isoformat(),
+                "registration_review_at": now.isoformat(),
+                "registration_reviewer_id": current_user.id,
+            }
+        },
+    )
+
+    await create_audit_log(
+        current_user.id,
+        "registration_approved",
+        user_id,
+        request=request,
+        details={"role": data.role, "cargo": cargo_final, "member_id": user.get("member_id")},
+    )
+
+    # Base segura: FRONTEND_URL ou Origin/Referer só se na allowlist CORS.
+    origin = resolve_link_base(request)
+    setup_url = f"{origin}/setup-account?token={invite_token}" if origin else ""
+    email_result = await send_invite_email(user.get("name", ""), user.get("email", ""), setup_url)
+
+    return {
+        "message": "Pedido aprovado. Email de activação enviado.",
+        "email_sent": email_result.get("status") == "sent",
+    }
+
+
+@router.post("/registration-requests/{user_id}/reject")
+async def reject_registration(
+    user_id: str, request: Request, data: RegistrationReject, current_user: User = Depends(get_current_user)
+):
+    """Rejeita um pedido: mantém o documento (auditoria + evita re-registo trivial)."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Apenas administradores podem rejeitar pedidos")
+
+    user = await db.users.find_one({"id": user_id, "status": "pendente_aprovacao"}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Pedido nao encontrado ou ja processado")
+
+    now = datetime.now(timezone.utc)
+    await db.users.update_one(
+        {"id": user_id},
+        {
+            "$set": {
+                "status": "rejeitado",
+                "registration_rejection_reason": data.reason or "",
+                "registration_review_at": now.isoformat(),
+                "registration_reviewer_id": current_user.id,
+            }
+        },
+    )
+
+    await create_audit_log(
+        current_user.id,
+        "registration_rejected",
+        user_id,
+        request=request,
+        details={"reason": data.reason, "member_id": user.get("member_id")},
+    )
+
+    email_result = await send_registration_rejected_email(user.get("name", ""), user.get("email", ""), data.reason)
+
+    return {"message": "Pedido rejeitado.", "email_sent": email_result.get("status") == "sent"}

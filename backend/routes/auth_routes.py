@@ -1,14 +1,24 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response
 from datetime import datetime, timezone, timedelta
 from jose import JWTError, jwt
-from models import User, UserLogin, Token, PasswordResetRequest, PasswordResetConfirm, SetupAccount
-from database import db
+from models import (
+    User,
+    UserLogin,
+    Token,
+    PasswordResetRequest,
+    PasswordResetConfirm,
+    SetupAccount,
+    RegistrationRequest,
+    CARGOS_DECLARADOS,
+)
+from database import db, next_member_id
 from auth import (
     ALGORITHM,
     SECRET_KEY,
     _extract_token,
     clear_session_cookie,
     create_access_token,
+    generate_qr_hash,
     get_current_user,
     hash_password,
     revoke_token,
@@ -20,6 +30,7 @@ from helpers import (
     LOCKOUT_WINDOW_MINUTES,
     create_audit_log,
     is_account_locked,
+    notify_admins,
     record_failed_login,
     reset_failed_logins,
     resolve_link_base,
@@ -128,6 +139,86 @@ async def logout(
     clear_session_cookie(response)
     await create_audit_log(current_user.id, "logout", request=request)
     return {"message": "Sessão encerrada"}
+
+
+@router.get("/registration-options")
+async def registration_options():
+    """Opções públicas para o formulário de auto-registo (cargos declaráveis).
+    Evita hardcode no frontend — fonte única em models.CARGOS_DECLARADOS."""
+    return {"cargos": CARGOS_DECLARADOS}
+
+
+@router.post("/register", status_code=201)
+@limiter.limit("3/hour")
+async def register(request: Request, data: RegistrationRequest):
+    """Auto-registo público de sócio. Cria um pedido `pendente_aprovacao` —
+    NÃO ativa a conta nem define password (isso só após aprovação do admin,
+    via o fluxo `setup-account` existente). Anti-spam: rate-limit + honeypot.
+    """
+    # Honeypot: campo `website` é escondido no form. Bots preenchem-no →
+    # devolvemos 201 falso e descartamos silenciosamente (não cria registo).
+    if data.website:
+        return {"message": "Pedido recebido. Receberá um email quando for analisado.", "request_id": str(uuid.uuid4())}
+
+    if not data.consent_data:
+        raise HTTPException(status_code=400, detail="É necessário consentir o tratamento dos seus dados.")
+
+    if data.cargo_declarado not in CARGOS_DECLARADOS:
+        raise HTTPException(status_code=422, detail="Cargo declarado inválido.")
+
+    # Anti-enumeração: mensagens neutras, sem confirmar/desmentir além do necessário.
+    existing = await db.users.find_one({"email": data.email}, {"_id": 0, "status": 1})
+    if existing:
+        status = existing.get("status")
+        if status == "pendente_aprovacao":
+            raise HTTPException(status_code=409, detail="Já existe um pedido em análise para este email.")
+        if status == "rejeitado":
+            raise HTTPException(status_code=409, detail="Não foi possível processar este pedido.")
+        raise HTTPException(status_code=409, detail="Já existe uma conta com este email.")
+
+    user_id = str(uuid.uuid4())
+    member_id = await next_member_id()
+    now = datetime.now(timezone.utc).isoformat()
+
+    user_doc = {
+        "id": user_id,
+        "name": data.name,
+        "email": data.email,
+        "password": "",  # definida só no setup-account, após aprovação
+        "role": "socio",  # sempre socio no submit; admin decide o role ao aprovar
+        "status": "pendente_aprovacao",
+        "cargo_declarado": data.cargo_declarado,
+        "cargo": data.cargo_declarado,  # campo legado; admin pode editar ao aprovar
+        "member_id": member_id,  # sequencial e imutável
+        "license_number": "",
+        "department": data.department or "",
+        "phone_number": data.phone_number or "",
+        "admission_date": None,
+        "privileges": [],
+        "consent_data": True,
+        "qr_code_hash": generate_qr_hash(user_id),
+        "last_login_at": None,
+        "created_at": now,
+        "registration_request_at": now,
+    }
+    await db.users.insert_one(user_doc)
+
+    await notify_admins(
+        "system",
+        "Novo pedido de inscrição",
+        f"{data.name} ({data.cargo_declarado}) submeteu um pedido de inscrição.",
+        "/admin/pedidos-inscricao",
+    )
+    # Actor é o próprio candidato (não há admin envolvido neste passo).
+    await create_audit_log(
+        user_id,
+        "registration_requested",
+        user_id,
+        request=request,
+        details={"cargo_declarado": data.cargo_declarado, "member_id": member_id},
+    )
+
+    return {"message": "Pedido recebido. Receberá um email quando for analisado.", "request_id": user_id}
 
 
 @router.post("/setup-account")

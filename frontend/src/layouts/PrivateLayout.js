@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
+import { registrationAPI } from '../utils/api';
+import { queryKeys } from '../lib/queryClient';
 import { NotificationBell } from '../components/NotificationBell';
 import { ACCTALogoHorizontal } from '../components/ACCTALogo';
 import {
@@ -23,6 +26,7 @@ import {
   UserCircle,
   FolderKanban,
   Camera,
+  UserPlus,
 } from 'lucide-react';
 
 const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
@@ -59,6 +63,7 @@ const menuSections = [
     title: 'Sistema',
     items: [
       { label: 'Notificações', path: '/notificacoes', icon: Bell, roles: ['all'] },
+      { label: 'Pedidos de Inscrição', path: '/admin/pedidos-inscricao', icon: UserPlus, roles: ['admin'], badge: 'registration' },
       { label: 'Utilizadores', path: '/admin/usuarios', icon: Users, roles: ['admin'] },
       { label: 'Audit Logs', path: '/admin/logs', icon: ClipboardList, roles: ['admin'] },
     ],
@@ -70,6 +75,16 @@ export const PrivateLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const pathname = location.pathname;
+
+  // Badge de pedidos de inscrição pendentes (só admin). staleTime moderado —
+  // o número muda devagar; é apenas um indicador no menu.
+  const { data: pendingRegistrations = [] } = useQuery({
+    queryKey: queryKeys.registration.requests('pendente_aprovacao'),
+    queryFn: async () => (await registrationAPI.listPending({ status: 'pendente_aprovacao' })).data,
+    enabled: !!isAdmin,
+    staleTime: 60 * 1000,
+  });
+  const registrationBadgeCount = Array.isArray(pendingRegistrations) ? pendingRegistrations.length : 0;
 
   const [expanded, setExpanded] = useState(() => {
     if (typeof window === 'undefined') return true;
@@ -111,6 +126,7 @@ export const PrivateLayout = ({ children }) => {
     if (pathname === '/galeria-admin') return 'Galeria';
     if (pathname === '/beneficios') return 'Benefícios';
     if (pathname === '/notificacoes') return 'Notificações';
+    if (pathname === '/admin/pedidos-inscricao') return 'Pedidos de Inscrição';
     if (pathname === '/admin/usuarios') return 'Utilizadores';
     if (pathname === '/admin/logs') return 'Audit Logs';
     return 'Portal';
@@ -233,6 +249,20 @@ export const PrivateLayout = ({ children }) => {
                         >
                           {item.label}
                         </span>
+                        {item.badge === 'registration' && registrationBadgeCount > 0 && (
+                          collapsed && !isMobile ? (
+                            <span className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-carmesim" aria-hidden="true" />
+                          ) : (
+                            <span
+                              className={`ml-auto mr-2 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center ${
+                                isActive ? 'bg-white text-carmesim' : 'bg-carmesim text-white'
+                              }`}
+                              aria-label={`${registrationBadgeCount} pedidos pendentes`}
+                            >
+                              {registrationBadgeCount}
+                            </span>
+                          )
+                        )}
                       </Link>
                     </li>
                   );

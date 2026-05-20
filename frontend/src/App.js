@@ -28,6 +28,7 @@ const BeneficiosPublicoPage = lazy(() => import('./pages/public/BeneficiosPublic
 const ContactosPage = lazy(() => import('./pages/public/ContactosPage').then((m) => ({ default: m.ContactosPage })));
 const EventosPublicoPage = lazy(() => import('./pages/public/EventosPublicoPage').then((m) => ({ default: m.EventosPublicoPage })));
 const GaleriaPage = lazy(() => import('./pages/public/GaleriaPage').then((m) => ({ default: m.GaleriaPage })));
+const CriarContaPage = lazy(() => import('./pages/public/CriarContaPage').then((m) => ({ default: m.CriarContaPage })));
 
 // Private pages — lazy. They're only loaded after a user logs in, so we
 // don't want their bundle weight on the public landing page.
@@ -46,6 +47,7 @@ const GaleriaAdminPage = lazy(() => import('./pages/private/GaleriaAdminPage').t
 const AdminUsuariosPage = lazy(() => import('./pages/private/AdminUsuariosPage').then((m) => ({ default: m.AdminUsuariosPage })));
 const PerfilPage = lazy(() => import('./pages/private/PerfilPage').then((m) => ({ default: m.PerfilPage })));
 const AdminLogsPage = lazy(() => import('./pages/private/AdminLogsPage').then((m) => ({ default: m.AdminLogsPage })));
+const AdminPedidosInscricaoPage = lazy(() => import('./pages/private/AdminPedidosInscricaoPage').then((m) => ({ default: m.AdminPedidosInscricaoPage })));
 
 const RouteSpinner = () => (
   <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-live="polite">
@@ -100,6 +102,7 @@ function AppRoutes() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/setup-account" element={<SetupAccountPage />} />
+        <Route path="/criar-conta" element={<PublicLayout><CriarContaPage /></PublicLayout>} />
 
         {/* Private Routes */}
         <Route
@@ -221,6 +224,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute requireAdmin>
               <PrivateLayout><AdminLogsPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/pedidos-inscricao"
+          element={
+            <ProtectedRoute requireAdmin>
+              <PrivateLayout><AdminPedidosInscricaoPage /></PrivateLayout>
             </ProtectedRoute>
           }
         />
