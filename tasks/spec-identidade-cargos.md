@@ -99,21 +99,49 @@ class UserBase(BaseModel):
     account_type: Literal["member", "technical"] = "member"
 ```
 
+Validação de `cargo`:
+
+- Contas `member`: `cargo` tem de estar em `CARGOS`.
+- Contas `technical`: `cargo` pode ser um label técnico fora de
+  `CARGOS`, por exemplo `"Técnico de Sistema"`.
+- Endpoints de promoção/transferência só aceitam contas `member`, então
+  a excepção técnica não entra em mandatos.
+
 ### Impacto noutras rotas
 
-- `GET /api/admin/users` — filtro default `account_type="member"`;
-  query param `?include_technical=true` para mostrar todas.
-- `GET /api/users/socios` (público em `/transparencia`) — **sempre**
-  filtra `account_type="member"`, nunca expõe técnicas.
-- `GET /api/admin/cargos` — só lista contas `member` como candidatos
-  a promote/transfer.
+- `GET /api/users` — endpoint real usado pelo admin. Filtro default:
+  mostrar só contas de sócios reais. Para retro-compatibilidade, tratar
+  documentos sem `account_type` como `"member"`:
+  `account_type == "member" OR account_type missing`. Query param
+  `?include_technical=true` mostra também contas técnicas.
+- Listagens públicas de sócios/transparência — onde existirem no
+  frontend/backend, devem sempre filtrar só contas `member` e nunca
+  aceitar `include_technical`.
+- `GET /api/admin/cargos` — lista o quadro de cargos e ocupantes.
+- `GET /api/admin/cargos/candidates` — lista apenas contas `member`
+  com `status="ativo"` para promote/transfer, com busca por nome,
+  email ou `member_id`.
 - `POST /api/auth/register` (auto-registo) — força
-  `account_type="member"` no servidor (não vem do request).
-- Notificações `notify_admins` — continua a filtrar por `role="admin"`,
-  o que apanha tanto técnicas como cargos eleitos com `role=admin`.
-  Aceitável: técnico recebe notificações enquanto manutenção, mas pode
-  ser refinado para `account_type="member" AND role="admin"` se for
-  ruído.
+  `account_type="member"` no servidor (não vem do request) e inicializa
+  `cargo_history=[]`.
+- Notificações `notify_admins` — continua a filtrar por `role="admin"`
+  na fase 1. Se o ruído da conta técnica incomodar, ajustar depois para
+  `account_type="member" AND role="admin"`.
+
+### Imutabilidade de `member_id`
+
+`member_id` passa a ser identificador permanente do sócio real:
+
+- Auto-registo e convites de membros devem usar sempre `next_member_id`
+  / sequência (`ACCTA-0001`, `ACCTA-0002`, ...).
+- Conta técnica tem `member_id=None` e não consome sequência.
+- `UserAdminUpdate` deixa de aceitar alteração de `member_id` depois da
+  migração/bootstrap. O backend deve ignorar/rejeitar esse campo em
+  updates normais.
+- A UI de `/admin/usuarios` remove o input editável de `member_id` e
+  mostra o valor como texto somente leitura.
+- Alterações manuais de `member_id`, se alguma vez forem necessárias,
+  ficam restritas a script de migração/administração fora da API comum.
 
 ### Estrutura de cargos por órgão social
 
@@ -280,6 +308,38 @@ extra a módulos específicos. Combinação útil:
 - Coordenador de Eventos tem `role=socio` mas com `manage_events`
   pode criar e editar eventos. Não toca em mais nada.
 
+### Matriz RBAC obrigatória
+
+Antes dos endpoints de cargos entrarem, a implementação deve alinhar
+as rotas existentes com `privileges`. Hoje vários módulos ainda validam
+apenas `role`, então os novos defaults não teriam efeito sem este
+passo.
+
+Regras alvo:
+
+| Módulo | Leitura | Escrita/administração |
+|--------|---------|-----------------------|
+| Finanças | `role in ["admin", "financeiro"]` **ou** `view_finances_readonly` | `role in ["admin", "financeiro"]` **ou** `manage_finances` |
+| Eventos | público/logado conforme regra actual | `role="admin"` **ou** `manage_events` |
+| Documentos | conforme regra actual | `role="admin"` **ou** `manage_documents` |
+| Conteúdo/comunicação | conforme regra actual | `role in ["admin", "moderador"]` **ou** `moderate_content` |
+| Benefícios | conforme regra actual | `role="admin"` **ou** `manage_benefits` |
+| Auditoria | `role="admin"` **ou** `view_audit_logs` | sem escrita pela UI |
+| Utilizadores/cargos | `role="admin"` **ou** `manage_users` | `role="admin"` **ou** `manage_users` |
+
+Finanças precisa de separação explícita:
+
+- `can_view_finances(user)` para endpoints `GET`.
+- `can_manage_finances(user)` para endpoints `POST`, `PUT`, `PATCH`,
+  `DELETE`, importações e reconciliações.
+- Frontend mostra o módulo financeiro para quem pode ver, mas desactiva
+  botões, formulários e acções destrutivas quando o utilizador tem só
+  `view_finances_readonly`.
+
+Se algum módulo ficar fora do escopo do PR inicial, deixar isso
+explícito na implementação e não atribuir privilégio que sugira acesso
+funcional inexistente.
+
 ### 1. Schema — campo `cargo_history` em `users`
 
 Array opcional no `doc.cargo_history`. Cada entrada documenta um
@@ -296,18 +356,43 @@ class CargoMandate(BaseModel):
     notes: Optional[str] = None
 ```
 
-**Invariante**: no máximo UM mandato activo (`fim=None`) por sócio.
-Validado em código + opcionalmente por trigger Postgres (não para a
-fase 1; código basta).
+**Invariantes**:
+
+- No máximo UM mandato activo (`fim=None`) por sócio.
+- No máximo o número de vagas permitido por cargo. Cargos singulares
+  como Presidente, Tesoureiro e Secretário-Geral têm 1 vaga; cargos
+  colectivos como Vogal e Comissão podem ter mais de uma.
+- Conta `account_type="technical"` nunca pode receber mandato activo.
+
+Validado em código na fase 1. Trigger/constraint em Postgres pode ficar
+para uma fase posterior se o DAO suportar bem essa garantia.
 
 ### 2. Constantes e mapeamentos (em `models.py`)
 
 ```python
 ROLES_VALID = ["admin", "financeiro", "moderador", "socio"]
+
+CARGO_SEATS = {
+    "Presidente": 1,
+    "Vice-Presidente": 1,
+    "Secretário-Geral": 1,
+    "Tesoureiro": 1,
+    "Vogal da Direcção": 3,
+    "Presidente do Conselho Fiscal": 1,
+    "Vogal do Conselho Fiscal": 2,
+    "Presidente da Mesa": 1,
+    "Vice-Presidente da Mesa": 1,
+    "Secretário da Mesa": 1,
+    "Coordenador de Comunicação": 1,
+    "Coordenador de Eventos": 1,
+    "Coordenador de Projectos": 1,
+    "Membro da Comissão de Ética": 3,
+    "Sócio": 0,
+}
 ```
 
-`CARGOS`, `PRIVILEGES` e `CARGO_DEFAULTS` são definidos na secção
-"Estrutura de cargos por órgão social" acima.
+`CARGOS`, `PRIVILEGES`, `CARGO_DEFAULTS` e `CARGO_SEATS` são definidos
+na secção "Estrutura de cargos por órgão social" acima.
 
 ### 3. Modelos Pydantic novos
 
@@ -331,24 +416,30 @@ class TransferCargoRequest(BaseModel):
 
 ---
 
-## Endpoints novos
+## Endpoints novos/alterados
 
-Todos sob `routes/admin.py` (já é o sítio dos endpoints `/admin/*`).
-RBAC: apenas `admin`.
+Endpoints administrativos ficam em `routes/admin.py`. RBAC:
+`role="admin"` ou privilégio `manage_users`.
 
 ### `POST /api/admin/users/{user_id}/promote`
 
 Promove um sócio a um cargo institucional.
 
 **Acção**:
-1. Valida `cargo ∈ CARGOS` e `role ∈ ROLES_VALID`.
-2. Fecha mandato actual do sócio (se houver mandato activo no
+1. Valida `cargo ∈ CARGOS`, `role ∈ ROLES_VALID` e, se vierem no
+   request, `privileges ⊆ PRIVILEGES`.
+2. Valida `user.account_type="member"` e `user.status="ativo"`.
+3. Valida `CARGO_SEATS[cargo]`: não pode exceder o número de titulares
+   activos daquele cargo.
+4. Fecha mandato actual do sócio (se houver mandato activo no
    `cargo_history`, set `fim = effective_date`).
-3. Acrescenta nova entrada ao `cargo_history` com `fim=None`.
-4. Actualiza `users.doc.role` e `users.doc.cargo` para os novos.
-5. `create_audit_log("cargo_promote", actor=current_user.id,
+5. Acrescenta nova entrada ao `cargo_history` com `fim=None`.
+6. Actualiza `users.doc.role`, `users.doc.cargo` e
+   `users.doc.privileges`. Se privilégios não vierem no request, aplica
+   `CARGO_DEFAULTS[cargo]`.
+7. `create_audit_log("cargo_promote", actor=current_user.id,
    details={target: user_id, cargo, role, mandate_id})`.
-6. `notify_users([user_id], "system", f"Foi atribuído o cargo de
+8. `notify_users([user_id], "system", f"Foi atribuído o cargo de
    {cargo}", "/perfil")`.
 
 **Response**: `{"message": "...", "cargo_history": [...]}`
@@ -358,52 +449,82 @@ Promove um sócio a um cargo institucional.
 Despromove (fim de mandato sem substituto imediato).
 
 **Acção**:
-1. Fecha mandato activo (`fim=effective_date`).
-2. `role` volta a `"socio"`, `cargo` volta a `"Sócio"`.
-3. Audit log `cargo_demote`.
-4. Notifica o sócio.
+1. Valida `user.account_type="member"`.
+2. Fecha mandato activo (`fim=effective_date`).
+3. `role` volta a `"socio"`, `cargo` volta a `"Sócio"` e
+   `privileges=[]`.
+4. Audit log `cargo_demote`.
+5. Notifica o sócio.
 
 ### `POST /api/admin/cargos/transfer`
 
 **Operação atómica** — transição de mandato de uma pessoa para outra.
 Use case: AGA elege novo presidente.
 
-**Acção** (numa única função, dentro de um bloco try com rollback
-manual em caso de falha — não há transacções no DAO Mongo-compat, mas
-podemos fazer as duas updates sequencialmente e logar a discrepância
-em caso de falha entre elas):
-
-1. Valida ambos os sócios existem e `to_user.status="ativo"`.
-2. **Despromove from_user**:
+**Acção**:
+1. Executar numa transacção real do banco. Se o helper actual do DAO não
+   expuser transacções, criar uma função dedicada no `Database` para
+   esta operação antes de implementar a rota.
+2. Valida ambos os utilizadores existem, são `account_type="member"` e
+   `to_user.status="ativo"`.
+3. Valida que `from_user` é titular activo do `cargo` informado.
+4. Valida `CARGO_SEATS[cargo]` considerando a saída do `from_user` e a
+   entrada do `to_user`.
+5. **Despromove from_user**:
    - Fecha mandato activo
-   - `role="socio"`, `cargo="Sócio"`
-3. **Promove to_user**:
-   - Fecha mandato anterior se existir (raro mas possível)
+   - `role="socio"`, `cargo="Sócio"`, `privileges=[]`
+6. **Promove to_user**:
+   - Fecha mandato anterior se existir
    - Acrescenta novo mandato
-   - Actualiza `role`/`cargo`
-4. **Dois audit logs** linkados por `transition_id` (uuid partilhado):
+   - Actualiza `role`/`cargo`/`privileges`
+7. Cria dois audit logs linkados por `transition_id` (uuid partilhado):
    - `cargo_transfer_out` em `from_user`
    - `cargo_transfer_in` em `to_user`
-5. Notifica ambos.
+8. Notifica ambos.
 
 **Response**: `{"message": "...", "transition_id": "..."}`
 
 ### `GET /api/admin/cargos`
 
-Lista o estado actual de todos os cargos institucionais.
+Lista o estado actual de todos os cargos institucionais, incluindo
+vagas e cardinalidade.
 
 **Response**:
 ```json
 {
   "cargos": [
-    {"cargo": "Presidente", "user": {id, name, email, member_id}, "since": "2024-01-01"},
-    {"cargo": "Tesoureiro", "user": null, "since": null},
-    ...
+    {
+      "cargo": "Presidente",
+      "seats": 1,
+      "holders": [
+        {"id": "...", "name": "...", "email": "...", "member_id": "ACCTA-0001", "since": "2024-01-01"}
+      ]
+    },
+    {"cargo": "Tesoureiro", "seats": 1, "holders": []}
   ]
 }
 ```
 
-Vacancies (sem ocupante) aparecem com `user: null`.
+Vagas aparecem com `holders: []` ou com menos titulares do que
+`seats`.
+
+### `GET /api/admin/cargos/candidates`
+
+Lista candidatos elegíveis para atribuição/transferência de cargo.
+
+Query params:
+- `q`: busca por nome, email ou `member_id`
+- `status`: default `"ativo"`
+- `exclude_cargo`: opcional, para ocultar quem já ocupa determinado
+  cargo
+
+Sempre filtra `account_type="member"`. Nunca retorna a conta técnica.
+
+### `GET /api/users/cargos`
+
+Endpoint de metadata para o frontend. Deve devolver `CARGOS`,
+`CARGOS_ORGAOS_SOCIAIS`, `PRIVILEGES`, `CARGO_DEFAULTS` e
+`CARGO_SEATS`, evitando constantes hard-coded no React.
 
 ### `GET /api/users/{user_id}/cargo-history` (auth: próprio ou admin)
 
@@ -412,6 +533,18 @@ Devolve o histórico de cargos de um sócio (ordenado descendente).
 ---
 
 ## Frontend
+
+### Ajustes transversais
+
+- Substituir constantes hard-coded de cargos/privilégios por
+  `GET /api/users/cargos`.
+- Em `/admin/usuarios`, mostrar `member_id` como somente leitura e
+  remover edição directa.
+- Listagens de usuários devem ocultar `account_type="technical"` por
+  defeito; a flag `include_technical` deve existir só em fluxo de
+  debug/admin explícito.
+- Menu e rota de Finanças passam a usar `can_view_finances`; botões e
+  formulários de escrita usam `can_manage_finances`.
 
 ### Página nova: `/admin/cargos`
 
@@ -427,8 +560,11 @@ Layout:
 Modal de transferência:
 - Cargo: read-only
 - De: read-only (sócio actual)
-- Para: autocomplete de utilizadores `status=ativo` (debounce 300ms)
-- Role: prefilled de `CARGO_DEFAULT_ROLE[cargo]`, editável
+- Para: autocomplete via `GET /api/admin/cargos/candidates` (debounce
+  300ms)
+- Role: prefilled de `CARGO_DEFAULTS[cargo].role`, editável
+- Privilégios: prefilled de `CARGO_DEFAULTS[cargo].privileges`,
+  editável por checkboxes
 - Data efectiva: date picker, default hoje
 - "Eleito por" (texto livre): default "AGA YYYY"
 - Notas (textarea)
@@ -438,7 +574,7 @@ Design — `frontend-design`: botão primário Carmesim para "Confirmar
 transferência", `bg-white` na tabela, badges neutros para cargos,
 hover linha `bg-[#F5F5F5]`.
 
-### Página `/admin/usuarios/[id]` — adicionar secção "Histórico de Cargos"
+### `/admin/usuarios` — histórico no detalhe existente
 
 Timeline simples:
 ```
@@ -446,8 +582,13 @@ Presidente   2024-01-01 → presente
 Vogal        2022-01-01 → 2023-12-31
 ```
 
-Sem necessidade de UI de edição directa — apenas leitura. Mudanças
-acontecem via `/admin/cargos`.
+O app actual não tem rota `/admin/usuarios/[id]`; portanto a primeira
+implementação deve adicionar a timeline no modal/detalhe existente de
+`/admin/usuarios`. Criar uma rota dedicada só se isso for decidido no
+redesign do admin.
+
+Sem UI de edição directa — apenas leitura. Mudanças acontecem via
+`/admin/cargos`.
 
 ### Página `/perfil` (sócio comum) — adicionar mesma secção
 
@@ -458,64 +599,37 @@ Visibilidade do próprio percurso na associação.
 ## Migração das contas partilhadas existentes
 
 Como o sistema **não está em produção**, podemos fazer migração
-destrutiva controlada. Plano:
+destrutiva controlada. A decisão final é **limpar/recriar utilizadores**
+e manter `admin@controlador.cv` apenas como conta técnica de bootstrap.
 
-### Fase de descoberta (manual, com o utilizador)
+### Estratégia final confirmada
 
-Mapear cada conta partilhada existente para uma pessoa real:
+1. Fazer backup/export antes de qualquer limpeza, mesmo em ambiente de
+   teste.
+2. Limpar `users` e dados acoplados que dependem directamente de
+   `user_id` de teste (`audit_logs`, `notifications`, sessões/tokens se
+   existirem).
+3. Adaptar `create_admin.py` para criar exclusivamente:
+   - `email="admin@controlador.cv"`
+   - `name="Administrador de Sistema"`
+   - `account_type="technical"`
+   - `member_id=None`
+   - `cargo="Técnico de Sistema"` fora de `CARGOS`
+   - `role="admin"`
+   - todos os privilégios
+   - `cargo_history=[]`
+4. Garantir que `member_id_seq` arranca em `ACCTA-0001` para o primeiro
+   sócio real, não para a conta técnica.
+5. Adaptar `seed_data.py`, fixtures e testes para entenderem
+   `account_type` e para continuarem usando `admin@controlador.cv` como
+   bootstrap técnico quando precisarem de superuser.
+6. Todos os Presidente/Tesoureiro/Secretário/etc. entram pelo
+   auto-registo ou convite como contas `member` e depois recebem cargo
+   via `promote`/`transfer`.
 
-| Conta partilhada | Pessoa real | Email pessoal |
-|------------------|-------------|---------------|
-| `admin@controlador.cv` | ? | ? |
-| `admin@controlador.com` | ? | ? |
-| `presidente@controlador.cv` | (não existe ainda) | n/a |
-
-> **Acção requerida do utilizador**: identificar a pessoa real por
-> trás de cada conta. Se ainda não houver pessoa real definida (sistema
-> em teste), podemos simplesmente deletar a conta partilhada e re-criar
-> uma conta admin pessoal nova.
-
-### Estratégia A — sistema só em teste, sem dados a preservar
-
-**Recomendada se o utilizador confirmar que não há nada de valor.**
-
-1. Drop completo da tabela `users` (ou `delete_many({})`) e
-   re-criação via `create_admin.py` adaptado:
-   ```bash
-   python scripts/create_admin.py \
-       --email <email-pessoal-do-developer> \
-       --password <senha> \
-       --name "Nome Real"
-   ```
-2. `create_admin.py` é modificado para:
-   - Receber também `--cargo` (default "Presidente")
-   - Receber também `--role` (default "admin")
-   - **Não usar `ACCTA-ADMIN` como sentinel**; usar `member_id` do
-     contador sequencial (`ACCTA-0001`)
-   - Criar a primeira entrada no `cargo_history`
-3. Limpar audit_logs, notifications, etc. (estão acoplados a user_ids
-   que vão desaparecer).
-4. Re-correr `seed_data.py` (também adaptado para usar emails pessoais
-   fictícios em vez de `admin@controlador.cv`).
-
-### Estratégia B — preservar a conta admin actual
-
-Se houver algum dado de teste a preservar, migrar in-place:
-
-1. Renomear `admin@controlador.cv` para o email pessoal do
-   developer/admin.
-2. Actualizar `name`, atribuir `member_id="ACCTA-0001"` (via sequência).
-3. Acrescentar primeira entrada em `cargo_history`.
-4. Manter audit_logs e referências (já apontam para o mesmo `id` UUID,
-   só o email mudou).
-5. Actualizar os 17 ficheiros de teste para usar uma fixture
-   centralizada — `ADMIN_EMAIL` em `tests/conftest_integration.py`.
-
-### Decisão a tomar
-
-Pergunta para o utilizador antes de implementar:
-- Estratégia A (limpar tudo) ou B (preservar e migrar)?
-- Que email(s) reais usar para a(s) conta(s) admin?
+Não há migração in-place de `admin@controlador.cv` para pessoa real.
+Emails institucionais como `presidente@controlador.cv` ou
+`tesoureiro@controlador.cv` não viram login; são aliases fora do ACCTA.
 
 ---
 
@@ -523,37 +637,64 @@ Pergunta para o utilizador antes de implementar:
 
 Implementação em ordem para minimizar quebras:
 
-### Fase 1 — Schema + models (~1h)
-- Adicionar `cargo_history` ao `User` (campo opcional, retro-compatível)
+### Fase 0 — Alinhamento com o código actual (~45min)
+- Confirmar endpoints reais: `GET /api/users`, `GET /api/users/cargos`,
+  rotas de admin e rotas de finanças.
+- Mapear todas as validações por `role` que precisam passar a aceitar
+  `privileges`.
+- Definir helper comum de autorização para evitar checks duplicados.
+
+### Fase 1 — Schema + models (~1h30)
+- Adicionar `account_type` e `cargo_history` ao `User` (campos
+  retro-compatíveis)
 - Adicionar `CargoMandate`, `PromoteUserRequest`,
   `TransferCargoRequest` aos models
-- Adicionar `ROLES_VALID` e `CARGO_DEFAULT_ROLE` aos models
+- Adicionar `ROLES_VALID`, `CARGO_DEFAULTS`, `CARGO_SEATS` e novo
+  privilégio `view_finances_readonly`
+- Remover `member_id` de updates administrativos comuns
 - Testes unitários dos models
 
-### Fase 2 — Endpoints backend (~3h)
+### Fase 2 — RBAC granular (~2h)
+- Separar `can_view_finances` de `can_manage_finances`
+- Actualizar eventos/documentos/conteúdo/benefícios/auditoria para
+  aceitar privilégios relevantes
+- Ajustar frontend de Finanças para modo somente leitura quando
+  aplicável
+
+### Fase 3 — Endpoints backend (~3h)
 - `routes/admin.py`: novos endpoints `promote`/`demote`/`transfer`
 - `routes/admin.py`: novo endpoint `GET /admin/cargos`
+- `routes/admin.py`: novo endpoint `GET /admin/cargos/candidates`
+- `routes/users.py`: actualizar `GET /users` com filtro
+  `account_type` e `include_technical`
+- `routes/users.py`: actualizar `GET /users/cargos` para retornar
+  metadata completa
 - `routes/users.py`: `GET /users/{id}/cargo-history`
 - Audit log + notify em cada acção
+- Transacção real para `transfer`
 - Testes unitários (com `mock_db`, padrão do projecto)
 
-### Fase 3 — UI admin (~3h)
+### Fase 4 — UI admin (~3h)
 - `/admin/cargos` — tabela + modais
-- Secção "Histórico de Cargos" em `/admin/usuarios/[id]`
+- Secção "Histórico de Cargos" no modal/detalhe actual de
+  `/admin/usuarios`
 - Secção "Os meus cargos" em `/perfil`
+- Remover edição de `member_id`
+- Substituir constantes hard-coded por metadata do backend
 - Lighthouse / verificação design system
 
-### Fase 4 — Migração das contas (~1h, depende da estratégia)
+### Fase 5 — Migração das contas (~1h)
 - Adaptar `create_admin.py`
-- Executar plano de migração (A ou B)
-- Actualizar ficheiros de teste para usar a nova conta admin
+- Executar estratégia final confirmada: conta técnica
+  `admin@controlador.cv`, `member_id=None`
+- Actualizar fixtures/testes para `account_type`
 
-### Fase 5 — Documentação (~30min)
+### Fase 6 — Documentação (~30min)
 - Actualizar `CLAUDE.md` com o modelo de cargos
 - Actualizar `.claude/rules/database.md` com `cargo_history`
 - Actualizar `spec-auto-registo.md` para referenciar este spec
 
-**Total estimado**: ~8-9h de trabalho focado, divisível em PRs por fase.
+**Total estimado**: ~11h de trabalho focado, divisível em PRs por fase.
 
 ---
 
@@ -563,9 +704,13 @@ O auto-registo continua **exactamente igual** ao definido:
 
 - Candidato preenche `cargo_declarado` (dropdown).
 - Admin aprova → escolhe `role` e `cargo` no modal de aprovação.
+- Backend força `account_type="member"` e usa `next_member_id`.
+- Modal de aprovação deve preencher `role` e `privileges` a partir de
+  `CARGO_DEFAULTS[cargo]`, mantendo override manual pelo admin.
 - **Acção extra** (acrescentada por este spec): no momento da
   aprovação, se o `cargo` aprovado não for "Sócio", criar
   automaticamente a primeira entrada no `cargo_history`.
+- Se o cargo aprovado for "Sócio", `cargo_history` fica vazio.
 
 Mínimo de fricção entre as duas specs — ambas tocam o mesmo modal de
 aprovação, mas em campos diferentes.
@@ -579,6 +724,8 @@ aprovação, mas em campos diferentes.
   da pontuação precisa de tratar "papéis" de forma especial — sempre
   pessoa.
 - **Auditoria**: `audit_logs.user_id` sempre humano. Nunca um "papel".
+  Excepção aceitável: acções de manutenção feitas pela conta técnica
+  `admin@controlador.cv`, que ficam marcadas como actor técnico.
 - **Notificações**: `notify_admins` (em `helpers.py`) — não muda,
   continua a filtrar por `role="admin"`. Funciona porque o role da
   conta pessoal é actualizado dinamicamente quando alguém é promovido.
@@ -591,10 +738,9 @@ Este spec **atinge uma stop condition**:
 
 > "A task requires dropping or migrating data in PostgreSQL/Supabase"
 
-A Fase 4 envolve migração/limpeza da tabela `users`. **Requer
-confirmação explícita do utilizador** antes de executar — em
-particular, a escolha entre Estratégia A (drop + recriar) e B (migrar
-in-place), e os emails pessoais a usar.
+A Fase 5 envolve migração/limpeza da tabela `users`. **Requer
+confirmação explícita do utilizador** antes de executar comandos
+destrutivos, mesmo com a estratégia final já definida.
 
 Não toca em:
 - JWT secret
@@ -613,7 +759,12 @@ Não toca em:
   secção "Estrutura de cargos").
 - ✅ **Privilégios**: alinhados por função, com `view_finances_readonly`
   adicionado para o Conselho Fiscal.
-- ✅ **Ordem de implementação**: PR único cobrindo todas as fases.
+- ✅ **RBAC**: privilégios precisam ser aplicados nas rotas existentes;
+  `view_finances_readonly` é leitura apenas e não concede escrita.
+- ✅ **`member_id`**: imutável para sócios reais; conta técnica usa
+  `member_id=None`.
+- ✅ **Ordem de implementação**: pode ser PR único, mas o plano está
+  separado em fases para facilitar revisão.
 - ✅ **Conta de bootstrap**: apenas `admin@controlador.cv` é criada
   pelo script. É a conta técnica de superuser do sistema — todas as
   outras pessoas (incluindo Presidente, Tesoureiro, etc.) entram pelo
