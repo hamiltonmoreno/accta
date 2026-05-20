@@ -4,7 +4,7 @@ from pathlib import Path
 from models import User, GalleryAlbum, GalleryAlbumCreate, GalleryPhoto
 from database import db, UPLOAD_DIR
 from auth import get_current_user
-from helpers import notify_admins, create_notification, create_audit_log
+from helpers import notify_admins, create_notification, create_audit_log, delete_upload_file
 from file_validation import validate_file_content
 import asyncio
 import uuid
@@ -16,22 +16,6 @@ router = APIRouter(prefix="/gallery", tags=["gallery"])
 
 GALLERY_DIR = UPLOAD_DIR / "gallery"
 GALLERY_DIR.mkdir(exist_ok=True)
-
-
-def _safe_unlink_url(url: str) -> bool:
-    """Apaga ficheiro físico associado a um URL `/uploads/...` com guard de path traversal.
-    Retorna True se apagado. Falha silenciosa em caminhos suspeitos para nao expor estado.
-    """
-    if not url or not url.startswith("/uploads/"):
-        return False
-    upload_root = UPLOAD_DIR.resolve()
-    fp = (UPLOAD_DIR.parent / url.lstrip("/")).resolve()
-    if not fp.is_relative_to(upload_root):
-        return False  # tentativa de escapar do uploads/
-    if not fp.exists() or not fp.is_file():
-        return False
-    fp.unlink()
-    return True
 
 
 # ===== PUBLIC ENDPOINTS (no auth) =====
@@ -135,7 +119,7 @@ async def delete_gallery_album(album_id: str, current_user: User = Depends(get_c
 
     photos = await db.gallery_photos.find({"album_id": album_id}, {"_id": 0, "url": 1}).to_list(None)
     for photo in photos:
-        _safe_unlink_url(photo.get("url", ""))
+        delete_upload_file(photo.get("url", ""))
 
     await db.gallery_albums.delete_one({"id": album_id})
     await db.gallery_photos.delete_many({"album_id": album_id})
@@ -276,7 +260,7 @@ async def reject_photo(photo_id: str, current_user: User = Depends(get_current_u
     if not photo:
         raise HTTPException(status_code=404, detail="Foto nao encontrada")
 
-    _safe_unlink_url(photo.get("url", ""))
+    delete_upload_file(photo.get("url", ""))
 
     await db.gallery_photos.delete_one({"id": photo_id})
 
@@ -304,7 +288,7 @@ async def delete_gallery_photo(photo_id: str, current_user: User = Depends(get_c
     if not is_admin and not is_owner:
         raise HTTPException(status_code=403, detail="Sem permissao")
 
-    _safe_unlink_url(photo.get("url", ""))
+    delete_upload_file(photo.get("url", ""))
 
     await db.gallery_photos.delete_one({"id": photo_id})
     return {"message": "Foto removida"}

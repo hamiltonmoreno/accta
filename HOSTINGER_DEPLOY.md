@@ -104,47 +104,30 @@ cd /app
 
 ## ✅ Etapa 3 — Nginx (proxy reverso + SSL)
 
-### 3.1 Criar ficheiro de configuração
+### 3.1 Instalar a configuração (ficheiro versionado)
+
+A configuração canónica está versionada no repo em **`deploy/nginx/accta.conf`**
+(não copiar/colar inline — usar o ficheiro, manter os dois em sync):
+
 ```bash
-sudo tee /etc/nginx/sites-available/accta <<'EOF'
-server {
-    listen 80;
-    server_name controlador.cv www.controlador.cv;
-
-    client_max_body_size 20M;
-
-    # API → Backend
-    location /api/ {
-        proxy_pass http://127.0.0.1:8001;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-
-        # SSE (Server-Sent Events) — notificações em tempo real
-        proxy_buffering off;
-        proxy_cache off;
-        proxy_read_timeout 24h;
-    }
-
-    # Uploads servidos pelo backend
-    location /uploads/ {
-        proxy_pass http://127.0.0.1:8001;
-    }
-
-    # Frontend (build estático)
-    location / {
-        root /app/frontend/build;
-        try_files $uri /index.html;
-    }
-}
-EOF
-
+sudo cp /app/deploy/nginx/accta.conf /etc/nginx/sites-available/accta
 sudo ln -sf /etc/nginx/sites-available/accta /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
 ```
+
+O que mudou face à versão antiga (proxy puro):
+
+- **Uploads públicos servidos pelo nginx** (`alias /srv/accta/uploads/`,
+  `expires 7d`, `X-Content-Type-Options nosniff`) — liberta o worker uvicorn.
+  Requer o bind-mount da **Etapa 3.5**.
+- **`/uploads/documents/` → `return 404`**: documentos NUNCA são servidos do
+  disco; o RBAC continua em `/api/documents/{id}/download`. Espelha o
+  `UploadsStaticFiles` em `backend/server.py`.
+- **`client_max_body_size 12M`** (era 20M): folga acima do maior limite de
+  upload (documents = 10MB). Se subir o limite no backend, subir aqui também.
+- Headers de proxy explícitos (sem `include proxy_params`, que só existe em
+  Debian/Ubuntu).
 
 ### 3.2 Ativar HTTPS (Let's Encrypt)
 ```bash
@@ -153,6 +136,53 @@ sudo certbot --nginx -d controlador.cv -d www.controlador.cv
 ```
 
 > Renovação automática já está ativa via `systemctl status certbot.timer`.
+> **HTTPS é obrigatório**: o backend usa cookie de sessão `SameSite=None; Secure`
+> — sem TLS o browser não envia o cookie e o login parte.
+
+---
+
+## ✅ Etapa 3.5 — Uploads: bind-mount + migração (Docker Compose)
+
+Para o nginx servir `/uploads/` directamente, os ficheiros têm de estar numa
+pasta do **host** (`/srv/accta/uploads`), não num volume nomeado do Docker.
+O `docker-compose.yml` já aponta para o bind-mount; falta criar a pasta e
+**migrar os ficheiros existentes** (senão os uploads já enviados desaparecem).
+
+> ⚠️ **Permissões**: o `backend/Dockerfile` não define `USER` → o container
+> corre como **root (UID 0)**, logo os ficheiros são gravados `root:root`.
+> A pasta no host tem de ser **`chmod 755`** (não 750): o nginx corre como
+> `www-data` — com 750 e dono `root`, o `www-data` leva **403**. 755 dir +
+> 644 ficheiros é seguro aqui (uploads públicos), nunca 777.
+
+```bash
+# 1. Backup preventivo do estado atual (do volume nomeado antigo)
+docker cp accta-backend:/app/uploads ./uploads-backup-$(date +%F)
+
+# 2. Criar a pasta no host com dono/permissões corretos (container = root)
+sudo mkdir -p /srv/accta/uploads
+sudo chown -R root:root /srv/accta/uploads
+sudo chmod 755 /srv/accta/uploads
+
+# 3. Migrar os uploads existentes para a nova localização
+sudo cp -a ./uploads-backup-*/. /srv/accta/uploads/
+
+# 4. Recriar o container (docker-compose.yml já tem o bind-mount)
+cd /docker/accta            # onde está o docker-compose.yml gerido
+docker compose down
+docker compose up -d
+docker compose logs -f backend     # confirmar arranque
+
+# 5. Recarregar o nginx (config da Etapa 3.1)
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+**Testes de aceitação** (após migrar):
+
+- Upload de um logo (admin) → o ficheiro aparece em `/srv/accta/uploads/logos/`.
+- `GET https://controlador.cv/uploads/logos/<uuid>.png` → **200**, servido pelo
+  nginx (header `X-Content-Type-Options: nosniff`, `Cache-Control` de 7d).
+- `GET https://controlador.cv/uploads/documents/<uuid>.pdf` → **404** (bloqueado).
+- `GET /api/documents/<id>/download` com sessão válida → **200** (pela API/RBAC).
 
 ---
 
@@ -215,6 +245,46 @@ deploy ALL=(ALL) NOPASSWD: /usr/bin/supervisorctl
 ```bash
 git push origin main
 # → Vá a GitHub → Actions → veja "CD — Deploy to Production"
+```
+
+---
+
+## ✅ Etapa 6 — Backup, monitorização e limpeza (cron)
+
+Scripts versionados em `scripts/` (assumir o repo em `/app`; ajustar o caminho).
+
+**6.1 Backup diário dos uploads** (rsync espelhado, com guard anti-vazio):
+
+```bash
+# 0. (uma vez) chave SSH do VPS → host de backup, e testar:
+DRY_RUN=1 BACKUP_DEST="backup@HOST:/backups/accta/uploads/" /app/scripts/backup_uploads.sh
+
+# cron (3h da manhã). `crontab -e`:
+0 3 * * * BACKUP_DEST="backup@HOST:/backups/accta/uploads/" /app/scripts/backup_uploads.sh >> /var/log/accta-backup.log 2>&1
+```
+
+> ⚠️ `rsync --delete` é **espelho**, não versão. Para retenção/snapshots
+> (recuperar de apagar/corromper por engano) considerar `restic`/`borg`.
+> **Uploads sem a BD são inúteis** — no mesmo ciclo, fazer o dump do Supabase
+> (ver "Comandos úteis" → `pg_dump`) e enviar ambos para o backup.
+
+**6.2 Alerta de espaço em disco** (cada 30 min; alerta ≥85% + tamanho de uploads):
+
+```bash
+# Opcional: ALERT_WEBHOOK_URL para Slack/Discord/Telegram (senão, email do cron).
+*/30 * * * * /app/scripts/check_disk_space.sh
+```
+
+**6.3 Limpeza de uploads órfãos** (rede de segurança p/ o backlog antigo):
+
+A limpeza reativa já apaga o ficheiro quando se remove user/benefício/foto.
+Este script trata órfãos **antigos** — **dry-run por defeito**, conservador
+(só apaga o que não está referenciado em nenhuma tabela):
+
+```bash
+docker compose exec backend python /app/scripts/find_orphan_uploads.py            # relatório
+docker compose exec backend python /app/scripts/find_orphan_uploads.py --delete   # aplicar
+# proofs (linkagem incerta) só com --include-proofs
 ```
 
 ---
