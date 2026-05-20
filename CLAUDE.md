@@ -78,7 +78,24 @@ STOP and check in with the user when:
 - **Two consecutive approaches have failed** — re-plan before attempting a third
 - The scope of a "small fix" expands to touch **more than 3 files**
 - Any action that **sends emails** to real users (invite, reset, welcome)
-- Any action that **pushes to `main`** — always confirm first
+- Any action that **pushes to `main`** — always confirm first (`main` is reached
+  only via a release/hotfix PR; see Git Workflow)
+
+---
+
+## Git Workflow (GitFlow)
+
+The project uses **GitFlow** — `CONTRIBUTING.md` is the canonical source; this is
+the summary and defers to it on any conflict.
+
+- `main` — production; every merge is a release. **Never push/PR directly to it.**
+- `develop` — integration; **everything goes here first.**
+- `feature/*` → branch off `develop`, PR back into `develop`.
+- `release/*` → branch off `develop`, PR into `main`, then merge back to `develop`; tag the release.
+- `hotfix/*` → branch off `main`, PR into `main` **and** `develop`.
+
+Normal path: `feature/* → develop → (release) → main`. Commits follow
+Conventional Commits with a scope (`feat(escopo): …`, `fix(escopo): …`).
 
 ---
 
