@@ -107,10 +107,10 @@ estão alinhadas com as convenções já existentes no projeto.
 |---|---|---|---|
 | D1 | **Quem gere o blog?** | `admin` **+** `moderador` (criar/editar/eliminar). | O backend já autoriza ambos a criar; `moderador` já é responsável por conteúdo (Mural + Galeria). Coerente. |
 | D2 | **Rascunho vs. publicado?** | Sim — adicionar `status: rascunho \| publicado`. Público só vê `publicado`. | Permite preparar notícias sem as expor. |
-| D3 | **Imagem de capa?** | Sim — `cover_url`, via sistema de upload existente (`POST /api/upload/{category}`). | Blog sem capa fica pobre; reutiliza infra. Categoria → ver D6. |
+| D3 | **Imagem de capa?** | Sim — `cover_url`, via upload (`POST /api/upload/{category}`). | Blog sem capa fica pobre; reutiliza infra. Categoria → ver D6 + §4.5. |
 | D4 | **Detalhe por `slug` ou `id`?** | `slug` (SEO) gerado do título, com `id` como fallback na rota. | URLs legíveis (`/noticias/nova-rota-praia-sal`). |
 | D5 | **Notificar sócios ao publicar?** | Opcional, default **não**; se `visibility=socios`, oferecer toggle "notificar sócios" que chama `notify_all_active_users('system', …)`. | Evitar spam; dar controlo ao editor. ⚠️ não é email, é notificação in-app. |
-| D6 | **Categoria de upload da capa** | Reutilizar `logos` (2MB, imagens) **ou** criar categoria `posts`/`covers`. | Decisão de limites/validação em `file_validation.py`. |
+| D6 | **Categoria de upload da capa** | **Criar categoria `covers`** (imagens, 2MB) permitida a `admin`+`moderador`. | ⚠️ `logos`/`documents` são **admin-only** (`upload.py:33`) → reutilizá-las daria **403** ao `moderador` (D1). Nova categoria evita relaxar a RBAC de `logos`. Detalhe em §4.5. |
 | D7 | **Migrar `NoticiasPage`/`HomePage` para TanStack Query?** | Sim (alinhar com as regras de frontend). | Coerência; cache; menos `console.error`. |
 | D8 | **Validar `type`/`visibility` com enum?** | Sim — `Literal[...]` no modelo. | Evita lixo nos dados; o frontend já assume valores fixos. |
 
@@ -235,6 +235,39 @@ Adicionar índice de expressão em `(doc->>'slug')` para o lookup de detalhe
 (coerente com os índices `(doc->>'field')` já existentes). **Não** criar índices
 a partir das rotas (regra de DB).
 
+### 4.5 Upload da capa — nova categoria `covers` (resolve D3/D6)
+
+⚠️ **Restrição atual (verificada):** `POST /api/upload/{category}` em
+`backend/routes/upload.py:33` faz `if category in ["documents", "logos"] and
+current_user.role != "admin": 403`. Ou seja, `logos`/`documents` são
+**admin-only**. Como o blog é gerido por **`admin` + `moderador`** (D1),
+**reutilizar `logos` para a capa faria o `moderador` levar 403** — a workflow
+documentada ficaria impossível para uma das funções previstas.
+
+**Decisão (D6):** adicionar uma categoria dedicada **`covers`**, permitida a
+`admin` + `moderador`. Mudanças mínimas em `backend/routes/upload.py`:
+
+```python
+# whitelist de categorias (linha ~30): incluir "covers"
+if category not in ["documents", "proofs", "logos", "avatars", "covers"]:
+    raise HTTPException(400, "Categoria inválida")
+
+# RBAC (linha ~33): manter logos/documents admin-only e gatear covers p/ staff
+if category in ["documents", "logos"] and current_user.role != "admin":
+    raise HTTPException(403, "Sem permissão")
+if category == "covers" and current_user.role not in ["admin", "moderador"]:
+    raise HTTPException(403, "Sem permissão")
+
+ALLOWED_EXTENSIONS["covers"] = [".png", ".jpg", ".jpeg"]   # SVG bloqueado (XSS)
+MAX_FILE_SIZES["covers"]     = 2 * 1024 * 1024              # 2 MB
+```
+
+`file_validation.py` já valida magic-bytes/Pillow para imagens — `covers` herda
+o mesmo trato que `logos`/`avatars`, sem código novo de validação.
+
+> Alternativa (não recomendada): relaxar a linha 33 para permitir `moderador`
+> em `logos`. Rejeitada — `logos` é branding institucional; manter admin-only.
+
 ---
 
 ## 5. Mudanças no Frontend
@@ -256,7 +289,8 @@ export const postsAPI = {
 Adicionar ao registo `queryKeys`:
 ```js
 posts: {
-  list: (params) => ['posts', params ?? {}],
+  all: ['posts'],                              // prefixo p/ invalidação abrangente
+  list: (params) => ['posts', params ?? {}],   // ['posts', { visibility, type, status }]
   detail: (idOrSlug) => ['posts', 'detail', idOrSlug],
 },
 ```
@@ -271,11 +305,19 @@ posts: {
 - Botão **"Novo post"** → `Dialog` com formulário:
   título, tipo (select), visibilidade (select), status (select),
   excerpt, conteúdo (textarea), tags (input → array), **upload de capa**
-  (reutilizar `uploadAPI` como em `DocumentosPage`).
+  via `uploadAPI.upload('covers', file)` (padrão do `DocumentosPage`). **Usar a
+  categoria `covers`** (§4.5) — **nunca** `logos`/`documents`, que são admin-only
+  e dariam 403 ao `moderador`.
 - Por linha: **Editar** (mesmo `Dialog` pré-preenchido) e **Eliminar**
   (confirmação, ex.: `AlertDialog`).
-- Mutations: `onSuccess → qc.invalidateQueries({ queryKey: queryKeys.posts.list() })`
-  + `toast.success`; erros via `toast.error(error.response?.data?.detail)`.
+- Mutations (criar/editar/eliminar): no `onSuccess`, invalidar pelo **prefixo**
+  `qc.invalidateQueries({ queryKey: queryKeys.posts.all })` — `['posts']` faz
+  *prefix match* e refresca **todas** as variantes filtradas da lista
+  (`['posts', { status:'rascunho' }]`, `['posts', { type:'noticia' }]`, …) e o
+  detalhe. ⚠️ **Não** usar `queryKeys.posts.list()` sozinho: resolve só para
+  `['posts', {}]` e deixaria as tabelas filtradas **stale** até refresh manual.
+  Em edição/eliminação, invalidar também `queryKeys.posts.detail(idOrSlug)`.
+  Feedback: `toast.success`; erros via `toast.error(error.response?.data?.detail)`.
 - Gate: renderizar/permitir só a `admin` + `moderador` (ver §6).
 
 ### 5.4 Rota + navegação
@@ -341,7 +383,8 @@ posts: {
 - [ ] `NoticiasPage.js`: cards ligam ao detalhe.
 
 ### Fase 3 — Melhorias (D3/D5/D7)
-- [ ] Upload de capa no formulário (categoria conforme D6) + `file_validation.py`.
+- [ ] Nova categoria `covers` em `routes/upload.py` (RBAC `admin`+`moderador`, §4.5);
+  upload de capa no formulário via `uploadAPI.upload('covers', …)`.
 - [ ] Toggle "notificar sócios" ao publicar com `visibility=socios` (D5).
 - [ ] Migrar `NoticiasPage`/`HomePage` para TanStack Query (D7).
 - [ ] Excerpt/capa nos cards de lista e na Home.
@@ -381,6 +424,7 @@ posts: {
 | `backend/models.py` | `Post`/`PostCreate` estendidos, `PostUpdate` novo, enums |
 | `backend/routes/posts.py` | +GET detalhe, +PUT, +DELETE, status no GET, autor/slug no POST |
 | `backend/database.py` | índice `(doc->>'slug')` em `ensure_schema` |
+| `backend/routes/upload.py` | nova categoria `covers` (ext/limite/RBAC admin+moderador) — §4.5 |
 | `backend/tests/test_posts.py` | **novo** — cobertura CRUD + RBAC |
 | `frontend/src/utils/api.js` | `postsAPI`: getOne/update/remove |
 | `frontend/src/lib/queryClient.js` | chaves `posts` |
