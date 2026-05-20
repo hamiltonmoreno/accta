@@ -70,6 +70,12 @@ export const queryKeys = {
   registration: {
     requests: (status) => ['registration', 'requests', status || 'pendente_aprovacao'],
   },
+  cargos: {
+    meta: () => ['cargos', 'meta'],
+    list: () => ['cargos', 'list'],
+    candidates: (params) => ['cargos', 'candidates', params || {}],
+    history: (userId) => ['cargos', 'history', userId],
+  },
   transactions: {
     list: (filters) => ['transactions', filters || {}],
     summary: (year, month) => ['transactions', 'summary', year, month],

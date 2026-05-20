@@ -48,6 +48,7 @@ const AdminUsuariosPage = lazy(() => import('./pages/private/AdminUsuariosPage')
 const PerfilPage = lazy(() => import('./pages/private/PerfilPage').then((m) => ({ default: m.PerfilPage })));
 const AdminLogsPage = lazy(() => import('./pages/private/AdminLogsPage').then((m) => ({ default: m.AdminLogsPage })));
 const AdminPedidosInscricaoPage = lazy(() => import('./pages/private/AdminPedidosInscricaoPage').then((m) => ({ default: m.AdminPedidosInscricaoPage })));
+const AdminCargosPage = lazy(() => import('./pages/private/AdminCargosPage').then((m) => ({ default: m.AdminCargosPage })));
 
 const RouteSpinner = () => (
   <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-live="polite">
@@ -220,7 +221,7 @@ function AppRoutes() {
         <Route
           path="/admin/usuarios"
           element={
-            <ProtectedRoute requireAdmin>
+            <ProtectedRoute allowedRoles={['admin']} allowedPrivileges={['manage_users']}>
               <PrivateLayout><AdminUsuariosPage /></PrivateLayout>
             </ProtectedRoute>
           }
@@ -228,7 +229,7 @@ function AppRoutes() {
         <Route
           path="/admin/logs"
           element={
-            <ProtectedRoute requireAdmin>
+            <ProtectedRoute allowedRoles={['admin']} allowedPrivileges={['view_audit_logs']}>
               <PrivateLayout><AdminLogsPage /></PrivateLayout>
             </ProtectedRoute>
           }
@@ -238,6 +239,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute requireAdmin>
               <PrivateLayout><AdminPedidosInscricaoPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/cargos"
+          element={
+            <ProtectedRoute allowedRoles={['admin']} allowedPrivileges={['manage_users']}>
+              <PrivateLayout><AdminCargosPage /></PrivateLayout>
             </ProtectedRoute>
           }
         />

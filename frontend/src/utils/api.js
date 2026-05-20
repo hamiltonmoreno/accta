@@ -59,6 +59,17 @@ export const registrationAPI = {
   reject: (userId, reason) => api.post(`/admin/registration-requests/${userId}/reject`, { reason }),
 };
 
+// Cargos / mandatos (spec-identidade-cargos)
+export const cargosAPI = {
+  getMeta: () => api.get('/users/meta/cargos'),  // CARGOS, agrupamento, privilégios, defaults, vagas
+  list: () => api.get('/admin/cargos'),
+  candidates: (params) => api.get('/admin/cargos/candidates', { params }),
+  promote: (userId, data) => api.post(`/admin/users/${userId}/promote`, data),
+  demote: (userId, data) => api.post(`/admin/users/${userId}/demote`, data),
+  transfer: (data) => api.post('/admin/cargos/transfer', data),
+  history: (userId) => api.get(`/users/${userId}/cargo-history`),
+};
+
 // Users API
 export const usersAPI = {
   getAll: (params) => api.get('/users', { params }),

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { usersAPI, adminAPI } from '../../utils/api';
+import { usersAPI, adminAPI, cargosAPI } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
+import { ROLE_LABELS, PRIVILEGE_LABELS } from '../../lib/cargoLabels';
 import { toast } from 'sonner';
 import {
   Users, Search, Shield, BadgeCheck, Briefcase, Save,
-  Trash2, ChevronDown, Filter, UserCog, UserPlus, Clock, Link2
+  Trash2, ChevronDown, Filter, UserCog, UserPlus, Clock, Link2, History
 } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -24,25 +25,19 @@ import {
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
 
-const ROLE_LABELS = { admin: 'Administrador', socio: 'Sócio', financeiro: 'Financeiro', moderador: 'Moderador' };
-
-const PRIVILEGE_LABELS = {
-  manage_users: 'Gerir Utilizadores',
-  manage_finances: 'Gerir Finanças',
-  manage_events: 'Gerir Eventos',
-  manage_documents: 'Gerir Documentos',
-  moderate_content: 'Moderar Conteúdo',
-  manage_benefits: 'Gerir Benefícios',
-  view_audit_logs: 'Ver Audit Logs',
-};
-
-const CARGOS = [
-  'Presidente', 'Vice-Presidente', 'Secretário-Geral',
-  'Tesoureiro', 'Vogal', 'Membro da Direção', 'Sócio'
-];
+// CARGOS e PRIVILEGES vêm do backend (GET /users/meta/cargos). Aqui só os
+// conjuntos pequenos e estáveis; rótulos PT em lib/cargoLabels.
 const ROLES = ['admin', 'socio', 'financeiro', 'moderador'];
 const STATUSES = ['ativo', 'inativo', 'pendente_convite'];
-const PRIVILEGES = Object.keys(PRIVILEGE_LABELS);
+
+const formatHistoryDate = (iso) => {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  } catch {
+    return null;
+  }
+};
 
 export const AdminUsuariosPage = () => {
   const qc = useQueryClient();
@@ -73,6 +68,22 @@ export const AdminUsuariosPage = () => {
       if (filters.status) params.status = filters.status;
       return (await usersAPI.getAll(params)).data;
     },
+  });
+
+  // Metadata canónica do backend (cargos + privilégios). Estático -> staleTime alto.
+  const { data: meta } = useQuery({
+    queryKey: queryKeys.cargos.meta(),
+    queryFn: async () => (await cargosAPI.getMeta()).data,
+    staleTime: 60 * 60 * 1000,
+  });
+  const CARGOS = meta?.cargos || [];
+  const PRIVILEGES = meta?.privileges || Object.keys(PRIVILEGE_LABELS);
+
+  // Histórico de mandatos do utilizador em edição (timeline só-leitura).
+  const { data: cargoHistory = [] } = useQuery({
+    queryKey: queryKeys.cargos.history(editingUser?.id),
+    queryFn: async () => (await cargosAPI.history(editingUser.id)).data.cargo_history,
+    enabled: !!editingUser?.id,
   });
 
   const invalidateUsers = () => qc.invalidateQueries({ queryKey: ['users'] });
@@ -115,12 +126,12 @@ export const AdminUsuariosPage = () => {
     updateMutation.mutate({
       id: editingUser.id,
       data: {
+        // member_id é imutável (spec-identidade-cargos) — não enviado.
         name: editingUser.name,
         role: editingUser.role,
         status: editingUser.status,
         cargo: editingUser.cargo,
         privileges: editingUser.privileges || [],
-        member_id: editingUser.member_id,
         department: editingUser.department,
         phone_number: editingUser.phone_number,
       },
@@ -384,13 +395,13 @@ export const AdminUsuariosPage = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs uppercase tracking-widest text-[#6B7280] font-semibold mb-1">N.º Sócio</label>
-                    <input
-                      value={editingUser.member_id || ''}
-                      onChange={(e) => setEditingUser({ ...editingUser, member_id: e.target.value })}
-                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none"
-                      data-testid="modal-edit-member-id"
-                    />
+                    <label className="block text-xs uppercase tracking-widest text-[#6B7280] font-semibold mb-1">N.º Sócio <span className="normal-case tracking-normal text-[#9CA3AF]">(imutável)</span></label>
+                    <div
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-[#F5F5F5] text-[#6B7280] font-mono"
+                      data-testid="modal-member-id-readonly"
+                    >
+                      {editingUser.member_id || '—'}
+                    </div>
                   </div>
                 </div>
 
@@ -442,10 +453,13 @@ export const AdminUsuariosPage = () => {
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none bg-white"
                     data-testid="modal-edit-cargo"
                   >
-                    {CARGOS.map((c) => (
+                    {(CARGOS.includes(editingUser.cargo) || !editingUser.cargo ? CARGOS : [editingUser.cargo, ...CARGOS]).map((c) => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
+                  <p className="text-[11px] text-[#9CA3AF] mt-1">
+                    Para mandatos de órgãos sociais use <span className="text-grafite font-medium">Cargos &amp; Mandatos</span> (regista histórico).
+                  </p>
                 </div>
 
                 {/* Privileges */}
@@ -486,6 +500,26 @@ export const AdminUsuariosPage = () => {
                     })}
                   </div>
                 </div>
+
+                {/* Histórico de Cargos (timeline só-leitura) */}
+                {cargoHistory.length > 0 && (
+                  <div>
+                    <label className="block text-xs uppercase tracking-widest text-[#6B7280] font-semibold mb-2">
+                      <History className="w-3 h-3 inline mr-1" aria-hidden="true" />
+                      Histórico de Cargos
+                    </label>
+                    <ul className="space-y-1.5" data-testid="cargo-history-timeline">
+                      {cargoHistory.map((m) => (
+                        <li key={m.id || `${m.cargo}-${m.inicio}`} className="flex items-center justify-between text-xs">
+                          <span className="text-grafite font-medium">{m.cargo}</span>
+                          <span className="font-mono text-[#6B7280]">
+                            {formatHistoryDate(m.inicio) || '—'} → {m.fim ? formatHistoryDate(m.fim) : 'presente'}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {/* Phone + Department */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

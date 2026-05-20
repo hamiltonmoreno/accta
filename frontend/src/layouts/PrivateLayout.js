@@ -27,6 +27,7 @@ import {
   FolderKanban,
   Camera,
   UserPlus,
+  Award,
 } from 'lucide-react';
 
 const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
@@ -64,8 +65,9 @@ const menuSections = [
     items: [
       { label: 'Notificações', path: '/notificacoes', icon: Bell, roles: ['all'] },
       { label: 'Pedidos de Inscrição', path: '/admin/pedidos-inscricao', icon: UserPlus, roles: ['admin'], badge: 'registration' },
-      { label: 'Utilizadores', path: '/admin/usuarios', icon: Users, roles: ['admin'] },
-      { label: 'Audit Logs', path: '/admin/logs', icon: ClipboardList, roles: ['admin'] },
+      { label: 'Utilizadores', path: '/admin/usuarios', icon: Users, roles: ['admin'], privileges: ['manage_users'] },
+      { label: 'Cargos & Mandatos', path: '/admin/cargos', icon: Award, roles: ['admin'], privileges: ['manage_users'] },
+      { label: 'Audit Logs', path: '/admin/logs', icon: ClipboardList, roles: ['admin'], privileges: ['view_audit_logs'] },
     ],
   },
 ];
@@ -127,6 +129,7 @@ export const PrivateLayout = ({ children }) => {
     if (pathname === '/beneficios') return 'Benefícios';
     if (pathname === '/notificacoes') return 'Notificações';
     if (pathname === '/admin/pedidos-inscricao') return 'Pedidos de Inscrição';
+    if (pathname === '/admin/cargos') return 'Cargos & Mandatos';
     if (pathname === '/admin/usuarios') return 'Utilizadores';
     if (pathname === '/admin/logs') return 'Audit Logs';
     return 'Portal';
