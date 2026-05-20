@@ -32,8 +32,10 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
         : financesAPI.createTransaction(payload),
     onSuccess: () => {
       toast.success(isEdit ? 'Transacao atualizada' : 'Transacao criada');
-      // Parent invalida ['transactions'] via onSaved (CashFlowTab.invalidateAll).
+      // onSaved: parent invalida ['transactions']. onClose: o modal fecha-se a
+      // si proprio, sem depender do parent para o fechar.
       onSaved();
+      onClose();
     },
     onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao salvar'),
   });

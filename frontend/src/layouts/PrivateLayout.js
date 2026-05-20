@@ -214,7 +214,7 @@ export const PrivateLayout = ({ children }) => {
                         className={`flex items-center rounded-lg transition-all duration-200 group relative ${
                           isActive
                             ? 'bg-carmesim text-white shadow-sm'
-                            : 'hover:bg-carmesim hover:text-white text-secondary-auto'
+                            : 'hover:bg-[#F5F5F5] hover:text-grafite text-secondary-auto'
                         }`}
                         data-testid={`sidebar-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                         title={collapsed && !isMobile ? item.label : undefined}
@@ -222,7 +222,7 @@ export const PrivateLayout = ({ children }) => {
                         <span className="flex items-center justify-center min-w-[48px] h-[44px]">
                           <Icon
                             className={`w-[20px] h-[20px] transition-colors ${
-                              isActive ? 'text-white' : 'group-hover:text-white text-muted-auto'
+                              isActive ? 'text-white' : 'group-hover:text-grafite text-muted-auto'
                             }`}
                           />
                         </span>
