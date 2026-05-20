@@ -48,6 +48,7 @@ const AdminUsuariosPage = lazy(() => import('./pages/private/AdminUsuariosPage')
 const PerfilPage = lazy(() => import('./pages/private/PerfilPage').then((m) => ({ default: m.PerfilPage })));
 const AdminLogsPage = lazy(() => import('./pages/private/AdminLogsPage').then((m) => ({ default: m.AdminLogsPage })));
 const AdminPedidosInscricaoPage = lazy(() => import('./pages/private/AdminPedidosInscricaoPage').then((m) => ({ default: m.AdminPedidosInscricaoPage })));
+const AdminCargosPage = lazy(() => import('./pages/private/AdminCargosPage').then((m) => ({ default: m.AdminCargosPage })));
 
 const RouteSpinner = () => (
   <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-live="polite">
@@ -56,7 +57,7 @@ const RouteSpinner = () => (
   </div>
 );
 
-const ProtectedRoute = ({ children, requireAdmin = false, allowedRoles = [] }) => {
+const ProtectedRoute = ({ children, requireAdmin = false, allowedRoles = [], allowedPrivileges = [] }) => {
   const { isAuthenticated, isAdmin, user, loading } = useAuth();
 
   if (loading) {
@@ -76,8 +77,14 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowedRoles = [] }) =
     return <Navigate to="/dashboard" replace />;
   }
 
-  if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
-    return <Navigate to="/dashboard" replace />;
+  if (allowedRoles.length > 0) {
+    // RBAC aditivo: passa por role OU por privilégio granular (ex.: Conselho
+    // Fiscal com view_finances_readonly acede ao /financeiro em modo leitura).
+    const roleOk = allowedRoles.includes(user?.role);
+    const privOk = allowedPrivileges.some((p) => (user?.privileges || []).includes(p));
+    if (!roleOk && !privOk) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return children;
@@ -124,7 +131,7 @@ function AppRoutes() {
         <Route
           path="/financeiro"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'financeiro']}>
+            <ProtectedRoute allowedRoles={['admin', 'financeiro']} allowedPrivileges={['view_finances_readonly', 'manage_finances']}>
               <PrivateLayout><FinanceiroPage /></PrivateLayout>
             </ProtectedRoute>
           }
@@ -214,7 +221,7 @@ function AppRoutes() {
         <Route
           path="/admin/usuarios"
           element={
-            <ProtectedRoute requireAdmin>
+            <ProtectedRoute allowedRoles={['admin']} allowedPrivileges={['manage_users']}>
               <PrivateLayout><AdminUsuariosPage /></PrivateLayout>
             </ProtectedRoute>
           }
@@ -222,7 +229,7 @@ function AppRoutes() {
         <Route
           path="/admin/logs"
           element={
-            <ProtectedRoute requireAdmin>
+            <ProtectedRoute allowedRoles={['admin']} allowedPrivileges={['view_audit_logs']}>
               <PrivateLayout><AdminLogsPage /></PrivateLayout>
             </ProtectedRoute>
           }
@@ -232,6 +239,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute requireAdmin>
               <PrivateLayout><AdminPedidosInscricaoPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/cargos"
+          element={
+            <ProtectedRoute allowedRoles={['admin']} allowedPrivileges={['manage_users']}>
+              <PrivateLayout><AdminCargosPage /></PrivateLayout>
             </ProtectedRoute>
           }
         />

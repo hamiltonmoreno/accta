@@ -5,8 +5,50 @@ import uuid
 
 
 # ===== USER MODELS =====
+# Modelo de identidade e cargos (spec-identidade-cargos):
+# - account_type separa pessoas reais ("member") de contas de sistema ("technical").
+# - role = nível de acesso "grosso" (admin/financeiro/moderador/socio).
+# - cargo = função institucional eleita; privileges = overlays granulares.
+# - member_id = identificador permanente e imutável do sócio real.
 
-CARGOS = ["Presidente", "Vice-Presidente", "Secretário-Geral", "Tesoureiro", "Vogal", "Membro da Direção", "Sócio"]
+ACCOUNT_TYPES = ["member", "technical"]
+
+ROLES_VALID = ["admin", "financeiro", "moderador", "socio"]
+
+# Cargos agrupados por órgão social (CV/PT típico). A lista plana `CARGOS` é
+# derivada daqui e usada para validação em endpoints e auto-registo.
+CARGOS_ORGAOS_SOCIAIS = {
+    "Direcção": [
+        "Presidente",
+        "Vice-Presidente",
+        "Secretário-Geral",
+        "Tesoureiro",
+        "Vogal da Direcção",
+    ],
+    "Conselho Fiscal": [
+        "Presidente do Conselho Fiscal",
+        "Vogal do Conselho Fiscal",
+    ],
+    "Mesa da Assembleia Geral": [
+        "Presidente da Mesa",
+        "Vice-Presidente da Mesa",
+        "Secretário da Mesa",
+    ],
+    "Coordenações": [
+        "Coordenador de Comunicação",
+        "Coordenador de Eventos",
+        "Coordenador de Projectos",
+    ],
+    "Comissões": [
+        "Membro da Comissão de Ética",
+    ],
+    "Base": [
+        "Sócio",  # default, sem mandato institucional
+    ],
+}
+
+# Lista plana (15 cargos institucionais + Sócio) para validação.
+CARGOS = [c for grupo in CARGOS_ORGAOS_SOCIAIS.values() for c in grupo]
 
 PRIVILEGES = [
     "manage_users",
@@ -16,7 +58,59 @@ PRIVILEGES = [
     "moderate_content",
     "manage_benefits",
     "view_audit_logs",
+    "view_finances_readonly",  # leitura do módulo financeiro sem poder editar (Conselho Fiscal)
 ]
+
+# Defaults pré-carregados no modal de aprovação/promoção. O admin pode sobrepor.
+# role é o nível grosso; privileges são overlays granulares (ver spec).
+CARGO_DEFAULTS = {
+    "Presidente": {"role": "admin", "privileges": list(PRIVILEGES)},
+    "Vice-Presidente": {"role": "admin", "privileges": list(PRIVILEGES)},
+    "Secretário-Geral": {
+        "role": "admin",
+        "privileges": ["manage_users", "manage_events", "manage_documents", "moderate_content"],
+    },
+    "Tesoureiro": {"role": "financeiro", "privileges": ["manage_finances", "view_audit_logs"]},
+    "Vogal da Direcção": {"role": "moderador", "privileges": ["moderate_content", "manage_events"]},
+    "Presidente do Conselho Fiscal": {
+        "role": "socio",
+        "privileges": ["view_finances_readonly", "view_audit_logs"],
+    },
+    "Vogal do Conselho Fiscal": {
+        "role": "socio",
+        "privileges": ["view_finances_readonly", "view_audit_logs"],
+    },
+    "Presidente da Mesa": {"role": "socio", "privileges": ["manage_events"]},
+    "Vice-Presidente da Mesa": {"role": "socio", "privileges": []},
+    "Secretário da Mesa": {"role": "socio", "privileges": ["manage_documents"]},
+    "Coordenador de Comunicação": {
+        "role": "moderador",
+        "privileges": ["moderate_content", "manage_events"],
+    },
+    "Coordenador de Eventos": {"role": "socio", "privileges": ["manage_events"]},
+    "Coordenador de Projectos": {"role": "socio", "privileges": ["manage_events", "manage_documents"]},
+    "Membro da Comissão de Ética": {"role": "socio", "privileges": ["view_audit_logs"]},
+    "Sócio": {"role": "socio", "privileges": []},
+}
+
+# Número de vagas por cargo. 0 = sem limite (Sócio é o estado base de todos).
+CARGO_SEATS = {
+    "Presidente": 1,
+    "Vice-Presidente": 1,
+    "Secretário-Geral": 1,
+    "Tesoureiro": 1,
+    "Vogal da Direcção": 3,
+    "Presidente do Conselho Fiscal": 1,
+    "Vogal do Conselho Fiscal": 2,
+    "Presidente da Mesa": 1,
+    "Vice-Presidente da Mesa": 1,
+    "Secretário da Mesa": 1,
+    "Coordenador de Comunicação": 1,
+    "Coordenador de Eventos": 1,
+    "Coordenador de Projectos": 1,
+    "Membro da Comissão de Ética": 3,
+    "Sócio": 0,
+}
 
 
 class UserBase(BaseModel):
@@ -29,8 +123,10 @@ class UserBase(BaseModel):
     admission_date: Optional[datetime] = None
     phone_number: Optional[str] = None
     consent_data: bool = False
+    account_type: Literal["member", "technical"] = "member"
     cargo: str = "Sócio"
     privileges: List[str] = []
+    cargo_history: List[dict] = []
     bio: Optional[str] = None
     department: Optional[str] = None
     photo_url: Optional[str] = None
@@ -56,13 +152,15 @@ class UserProfileUpdate(BaseModel):
 
 
 class UserAdminUpdate(BaseModel):
+    # NOTA: member_id NÃO é editável aqui — é imutável depois de atribuído
+    # (spec-identidade-cargos). Alterações manuais ficam restritas a script de
+    # migração fora da API comum.
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     role: Optional[str] = None
     status: Optional[str] = None
     cargo: Optional[str] = None
     privileges: Optional[List[str]] = None
-    member_id: Optional[str] = None
     license_number: Optional[str] = None
     phone_number: Optional[str] = None
     department: Optional[str] = None
@@ -130,6 +228,46 @@ class RegistrationApprove(BaseModel):
 
 class RegistrationReject(BaseModel):
     reason: Optional[str] = Field(default=None, max_length=500)
+
+
+# ===== CARGO / MANDATO MODELS (spec-identidade-cargos) =====
+
+# Cada entrada de cargo_history documenta um mandato do sócio. Armazenado como
+# dict no doc.cargo_history; este modelo valida/serializa as escritas.
+class CargoMandate(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    cargo: str
+    role: str
+    inicio: str  # ISO 8601, obrigatório
+    fim: Optional[str] = None  # ISO 8601; None = mandato activo
+    elected_by: Optional[str] = None  # "AGA 2026", "Direcção", texto livre
+    transitioned_by: str  # id do admin que efectuou a alteração
+    notes: Optional[str] = None
+
+
+class PromoteUserRequest(BaseModel):
+    cargo: str  # tem de estar em CARGOS
+    role: str  # tem de estar em ROLES_VALID
+    privileges: Optional[List[str]] = None  # se None, usa CARGO_DEFAULTS[cargo]
+    elected_by: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=500)
+    effective_date: Optional[str] = None  # ISO 8601, default = agora
+
+
+class DemoteUserRequest(BaseModel):
+    effective_date: Optional[str] = None  # ISO 8601, default = agora
+    notes: Optional[str] = Field(default=None, max_length=500)
+
+
+class TransferCargoRequest(BaseModel):
+    from_user_id: str
+    to_user_id: str
+    cargo: str
+    role: str
+    privileges: Optional[List[str]] = None
+    elected_by: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=500)
+    effective_date: Optional[str] = None  # ISO 8601, default = agora
 
 
 # ===== INVOICE MODELS =====

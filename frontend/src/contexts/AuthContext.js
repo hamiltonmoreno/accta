@@ -73,18 +73,29 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const value = useMemo(() => ({
-    user,
-    loading,
-    login,
-    logout,
-    isAuthenticated: !!user,
-    isAdmin: user?.role === 'admin',
-    isFinanceiro: user?.role === 'financeiro',
-    isModerador: user?.role === 'moderador',
-    isAtivo: user?.status === 'ativo',
-    refreshUser,
-  }), [user, loading, login, logout, refreshUser]);
+  const value = useMemo(() => {
+    // RBAC granular aditivo (spec-identidade-cargos): privilégios concedem
+    // acesso EXTRA além do role. Espelha auth.can_view/manage_finances do backend.
+    const privileges = user?.privileges || [];
+    const canManageFinances =
+      user?.role === 'admin' || user?.role === 'financeiro' || privileges.includes('manage_finances');
+    const canViewFinances = canManageFinances || privileges.includes('view_finances_readonly');
+    return {
+      user,
+      loading,
+      login,
+      logout,
+      isAuthenticated: !!user,
+      isAdmin: user?.role === 'admin',
+      isFinanceiro: user?.role === 'financeiro',
+      isModerador: user?.role === 'moderador',
+      isAtivo: user?.status === 'ativo',
+      hasPrivilege: (p) => privileges.includes(p),
+      canViewFinances,
+      canManageFinances,
+      refreshUser,
+    };
+  }, [user, loading, login, logout, refreshUser]);
 
   return (
     <AuthContext.Provider value={value}>

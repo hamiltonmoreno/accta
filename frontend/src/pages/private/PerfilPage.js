@@ -1,24 +1,52 @@
 import React, { useState, useEffect } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
-import { usersAPI } from '../../utils/api';
+import { usersAPI, cargosAPI } from '../../utils/api';
+import { queryKeys } from '../../lib/queryClient';
+import { PRIVILEGE_LABELS } from '../../lib/cargoLabels';
 import { toast } from 'sonner';
 import {
   User as UserIcon, Mail, Phone, Shield, Award, FileText,
-  Calendar, Save, Briefcase, Hash, Pencil, X
+  Calendar, Save, Briefcase, Hash, Pencil, X, History
 } from 'lucide-react';
 import {
   USER_STATUS_CONFIG, USER_STATUS_FALLBACK, getStatusConfig,
 } from '../../lib/statusConfig';
 
-const PRIVILEGE_LABELS = {
-  manage_users: 'Gerir Utilizadores',
-  manage_finances: 'Gerir Finanças',
-  manage_events: 'Gerir Eventos',
-  manage_documents: 'Gerir Documentos',
-  moderate_content: 'Moderar Conteúdo',
-  manage_benefits: 'Gerir Benefícios',
-  view_audit_logs: 'Ver Logs',
+const formatHistoryDate = (iso) => {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  } catch {
+    return null;
+  }
+};
+
+// Timeline só-leitura do percurso do próprio sócio na associação.
+const MeusCargosSection = ({ userId }) => {
+  const { data: history = [] } = useQuery({
+    queryKey: queryKeys.cargos.history(userId),
+    queryFn: async () => (await cargosAPI.history(userId)).data.cargo_history,
+    enabled: !!userId,
+  });
+  if (history.length === 0) return null;
+  return (
+    <div className="card-technical p-5 animate-fade-up">
+      <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280] mb-3">
+        <History className="w-3 h-3 inline mr-1" aria-hidden="true" /> Os Meus Cargos
+      </h3>
+      <ul className="space-y-2" data-testid="meus-cargos-timeline">
+        {history.map((m) => (
+          <li key={m.id || `${m.cargo}-${m.inicio}`} className="flex items-center justify-between text-sm">
+            <span className="text-grafite font-medium">{m.cargo}</span>
+            <span className="font-mono text-xs text-[#6B7280]">
+              {formatHistoryDate(m.inicio) || '—'} → {m.fim ? formatHistoryDate(m.fim) : 'presente'}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 };
 
 const PrivilegesSection = ({ privileges }) => {
@@ -218,6 +246,9 @@ export const PerfilPage = () => {
 
       {/* Privileges */}
       <PrivilegesSection privileges={user.privileges} />
+
+      {/* Histórico de cargos do próprio sócio */}
+      <MeusCargosSection userId={user.id} />
     </div>
   );
 };

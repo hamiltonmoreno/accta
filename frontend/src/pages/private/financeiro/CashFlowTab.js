@@ -25,7 +25,7 @@ const StatBlock = ({ label, value, icon: Icon, color }) => (
   </div>
 );
 
-export const CashFlowTab = ({ isAdmin }) => {
+export const CashFlowTab = ({ canManage = true }) => {
   const qc = useQueryClient();
   const [filterType, setFilterType] = useState('');
   const [searchText, setSearchText] = useState('');
@@ -136,9 +136,11 @@ export const CashFlowTab = ({ isAdmin }) => {
       )}
 
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-        <button onClick={openNew} className="btn-primary flex items-center gap-2 text-sm" data-testid="add-transaction-btn">
-          <Plus className="w-4 h-4" /> Nova Transacao
-        </button>
+        {canManage && (
+          <button onClick={openNew} className="btn-primary flex items-center gap-2 text-sm" data-testid="add-transaction-btn">
+            <Plus className="w-4 h-4" /> Nova Transacao
+          </button>
+        )}
         <button onClick={handleExportCSV} disabled={csvExporting} className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all btn-outline" data-testid="export-csv-btn">
           <FileSpreadsheet className={`w-4 h-4 ${csvExporting ? 'animate-spin' : ''}`} />
           {csvExporting ? 'A exportar...' : 'Exportar CSV'}
@@ -232,7 +234,7 @@ export const CashFlowTab = ({ isAdmin }) => {
                     <th className="px-4 py-3 font-semibold">Descricao</th>
                     <th className="px-4 py-3 font-semibold text-right">Valor</th>
                     <th className="px-4 py-3 font-semibold">Data</th>
-                    <th className="px-4 py-3 font-semibold text-center">Acoes</th>
+                    {canManage && <th className="px-4 py-3 font-semibold text-center">Acoes</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -254,16 +256,18 @@ export const CashFlowTab = ({ isAdmin }) => {
                       <td className="px-4 py-3 font-mono text-xs text-muted-auto">
                         {tx.date ? format(new Date(tx.date), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
                       </td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <button onClick={() => openEdit(tx)} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400 hover:text-carmesim" aria-label="Editar transação" data-testid={`edit-tx-${tx.id}`}>
-                            <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
-                          </button>
-                          <button onClick={() => handleDelete(tx.id)} className="p-1.5 rounded-md hover:bg-[#FEF2F2] text-gray-400 hover:text-[#B91C1C]" aria-label="Apagar transação" data-testid={`delete-tx-${tx.id}`}>
-                            <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
-                          </button>
-                        </div>
-                      </td>
+                      {canManage && (
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <button onClick={() => openEdit(tx)} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400 hover:text-carmesim" aria-label="Editar transação" data-testid={`edit-tx-${tx.id}`}>
+                              <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
+                            </button>
+                            <button onClick={() => handleDelete(tx.id)} className="p-1.5 rounded-md hover:bg-[#FEF2F2] text-gray-400 hover:text-[#B91C1C]" aria-label="Apagar transação" data-testid={`delete-tx-${tx.id}`}>
+                              <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -286,10 +290,12 @@ export const CashFlowTab = ({ isAdmin }) => {
                   <p className="text-xs truncate text-grafite-auto">{tx.description}</p>
                   <div className="flex items-center justify-between mt-2">
                     <span className="text-xs text-[#6B7280]">{tx.date ? format(new Date(tx.date), 'dd/MM/yyyy', { locale: ptBR }) : '-'}</span>
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => openEdit(tx)} className="p-2 -m-2 text-gray-400 hover:text-carmesim" aria-label="Editar transação"><Pencil className="w-4 h-4" aria-hidden="true" /></button>
-                      <button onClick={() => handleDelete(tx.id)} className="p-2 -m-2 text-gray-400 hover:text-[#B91C1C]" aria-label="Apagar transação"><Trash2 className="w-4 h-4" aria-hidden="true" /></button>
-                    </div>
+                    {canManage && (
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => openEdit(tx)} className="p-2 -m-2 text-gray-400 hover:text-carmesim" aria-label="Editar transação"><Pencil className="w-4 h-4" aria-hidden="true" /></button>
+                        <button onClick={() => handleDelete(tx.id)} className="p-2 -m-2 text-gray-400 hover:text-[#B91C1C]" aria-label="Apagar transação"><Trash2 className="w-4 h-4" aria-hidden="true" /></button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

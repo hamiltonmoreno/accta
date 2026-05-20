@@ -27,6 +27,7 @@ import {
   FolderKanban,
   Camera,
   UserPlus,
+  Award,
 } from 'lucide-react';
 
 const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
@@ -44,7 +45,7 @@ const menuSections = [
   {
     title: 'Gestão',
     items: [
-      { label: 'Financeiro', path: '/financeiro', icon: DollarSign, roles: ['admin', 'financeiro'] },
+      { label: 'Financeiro', path: '/financeiro', icon: DollarSign, roles: ['admin', 'financeiro'], privileges: ['view_finances_readonly', 'manage_finances'] },
       { label: 'Projetos', path: '/projetos', icon: FolderKanban, roles: ['all'] },
       { label: 'Votações', path: '/votacoes', icon: Vote, roles: ['all'] },
       { label: 'Eventos', path: '/eventos', icon: Calendar, roles: ['all'] },
@@ -64,8 +65,9 @@ const menuSections = [
     items: [
       { label: 'Notificações', path: '/notificacoes', icon: Bell, roles: ['all'] },
       { label: 'Pedidos de Inscrição', path: '/admin/pedidos-inscricao', icon: UserPlus, roles: ['admin'], badge: 'registration' },
-      { label: 'Utilizadores', path: '/admin/usuarios', icon: Users, roles: ['admin'] },
-      { label: 'Audit Logs', path: '/admin/logs', icon: ClipboardList, roles: ['admin'] },
+      { label: 'Utilizadores', path: '/admin/usuarios', icon: Users, roles: ['admin'], privileges: ['manage_users'] },
+      { label: 'Cargos & Mandatos', path: '/admin/cargos', icon: Award, roles: ['admin'], privileges: ['manage_users'] },
+      { label: 'Audit Logs', path: '/admin/logs', icon: ClipboardList, roles: ['admin'], privileges: ['view_audit_logs'] },
     ],
   },
 ];
@@ -127,6 +129,7 @@ export const PrivateLayout = ({ children }) => {
     if (pathname === '/beneficios') return 'Benefícios';
     if (pathname === '/notificacoes') return 'Notificações';
     if (pathname === '/admin/pedidos-inscricao') return 'Pedidos de Inscrição';
+    if (pathname === '/admin/cargos') return 'Cargos & Mandatos';
     if (pathname === '/admin/usuarios') return 'Utilizadores';
     if (pathname === '/admin/logs') return 'Audit Logs';
     return 'Portal';
@@ -142,13 +145,15 @@ export const PrivateLayout = ({ children }) => {
     setExpanded((prev) => !prev);
   }, []);
 
-  /* Filter menu items by role */
+  /* Filter menu items by role (ou por privilégio granular — RBAC aditivo) */
   const filterItem = (item) => {
     if (item.roles.includes('all')) return true;
     if (item.roles.includes('admin') && isAdmin) return true;
     if (item.roles.includes('financeiro') && (isFinanceiro || isAdmin)) return true;
     if (item.roles.includes('moderador') && (isModerador || isAdmin)) return true;
     if (item.roles.includes('socio') && user?.role === 'socio') return true;
+    // Privilégios concedem acesso EXTRA à entrada (ex.: Conselho Fiscal vê Financeiro).
+    if (item.privileges?.some((p) => (user?.privileges || []).includes(p))) return true;
     return false;
   };
 

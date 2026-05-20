@@ -1,0 +1,24 @@
+// Rótulos PT (apresentação) para roles e privilégios. A LISTA canónica de
+// cargos/privilégios vem SEMPRE do backend (GET /users/meta/cargos) — aqui
+// ficam apenas as traduções legíveis, partilhadas pelas páginas de admin/perfil.
+
+export const ROLE_LABELS = {
+  admin: 'Administrador',
+  socio: 'Sócio',
+  financeiro: 'Financeiro',
+  moderador: 'Moderador',
+};
+
+export const PRIVILEGE_LABELS = {
+  manage_users: 'Gerir Utilizadores',
+  manage_finances: 'Gerir Finanças',
+  manage_events: 'Gerir Eventos',
+  manage_documents: 'Gerir Documentos',
+  moderate_content: 'Moderar Conteúdo',
+  manage_benefits: 'Gerir Benefícios',
+  view_audit_logs: 'Ver Audit Logs',
+  view_finances_readonly: 'Ver Finanças (leitura)',
+};
+
+export const roleLabel = (role) => ROLE_LABELS[role] || role || '—';
+export const privilegeLabel = (priv) => PRIVILEGE_LABELS[priv] || priv;

@@ -15,9 +15,16 @@ ADMIN_PASSWORD = "admin123"
 SOCIO_EMAIL = "socio1@controlador.cv"
 SOCIO_PASSWORD = "socio123"
 
-# Valid cargos and privileges from backend
-VALID_CARGOS = ["Presidente", "Vice-Presidente", "Secretário-Geral", "Tesoureiro", "Vogal", "Membro da Direção", "Sócio"]
-VALID_PRIVILEGES = ["manage_users", "manage_finances", "manage_events", "manage_documents", "moderate_content", "manage_benefits", "view_audit_logs"]
+# Valid cargos and privileges from backend (spec-identidade-cargos: 15 cargos por
+# órgão social + Sócio; privilégio view_finances_readonly adicionado).
+VALID_CARGOS = [
+    "Presidente", "Vice-Presidente", "Secretário-Geral", "Tesoureiro", "Vogal da Direcção",
+    "Presidente do Conselho Fiscal", "Vogal do Conselho Fiscal",
+    "Presidente da Mesa", "Vice-Presidente da Mesa", "Secretário da Mesa",
+    "Coordenador de Comunicação", "Coordenador de Eventos", "Coordenador de Projectos",
+    "Membro da Comissão de Ética", "Sócio",
+]
+VALID_PRIVILEGES = ["manage_users", "manage_finances", "manage_events", "manage_documents", "moderate_content", "manage_benefits", "view_audit_logs", "view_finances_readonly"]
 
 
 @pytest.fixture
@@ -179,14 +186,14 @@ class TestAdminUserUpdate:
         # Update user
         update_data = {
             "role": "socio",
-            "cargo": "Vogal",
+            "cargo": "Vogal da Direcção",
             "privileges": ["manage_events", "moderate_content"]
         }
         response = requests.patch(f"{BASE_URL}/api/users/{user_id}", json=update_data, headers=admin_headers)
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         data = response.json()
         assert data["role"] == "socio"
-        assert data["cargo"] == "Vogal"
+        assert data["cargo"] == "Vogal da Direcção"
         assert "manage_events" in data["privileges"]
         assert "moderate_content" in data["privileges"]
         print(f"✓ Admin update successful: role={data['role']}, cargo={data['cargo']}, privileges={data['privileges']}")

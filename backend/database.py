@@ -863,3 +863,31 @@ async def next_member_id() -> str:
     async with pool.acquire() as conn:
         n = await conn.fetchval("SELECT nextval('member_id_seq')")
     return f"ACCTA-{int(n):04d}"
+
+
+async def transfer_cargo(from_user_id: str, to_user_id: str, from_update: dict, to_update: dict) -> None:
+    """Aplica dois updates de utilizador numa ÚNICA transação atómica
+    (transferência de mandato: despromove `from_user`, promove `to_user`).
+
+    As rotas passam apenas update specs Mongo-style ($set/$push/...); o raw SQL
+    fica aqui no DAO (regra api.md). Ambos os docs são bloqueados (FOR UPDATE) e
+    actualizados; se algum não existir, faz rollback e levanta ValueError.
+    """
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            for uid, update in ((from_user_id, from_update), (to_user_id, to_update)):
+                wb = _WhereBuilder()
+                where = wb.build({"id": uid})
+                row = await conn.fetchrow(
+                    f"SELECT pk, doc FROM {_quote_ident('users')} WHERE {where} ORDER BY pk LIMIT 1 FOR UPDATE",
+                    *wb.params,
+                )
+                if row is None:
+                    raise ValueError(f"Utilizador {uid} não encontrado")
+                new_doc = _mongo_update(dict(row["doc"]), update)
+                await conn.execute(
+                    f"UPDATE {_quote_ident('users')} SET doc=$1 WHERE pk=$2",
+                    new_doc,
+                    row["pk"],
+                )

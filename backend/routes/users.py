@@ -2,9 +2,19 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from datetime import datetime
 from typing import List, Optional
 import re
-from models import User, UserProfileUpdate, UserAdminUpdate, CARGOS, PRIVILEGES, USER_STATUSES
+from models import (
+    User,
+    UserProfileUpdate,
+    UserAdminUpdate,
+    CARGOS,
+    CARGOS_ORGAOS_SOCIAIS,
+    CARGO_DEFAULTS,
+    CARGO_SEATS,
+    PRIVILEGES,
+    USER_STATUSES,
+)
 from database import db
-from auth import get_current_user
+from auth import get_current_user, has_role_or_privilege
 from helpers import create_audit_log, create_notification, delete_upload_file
 
 router = APIRouter(tags=["users"])
@@ -26,28 +36,42 @@ async def get_users(
     role: Optional[str] = None,
     status: Optional[str] = None,
     cargo: Optional[str] = None,
+    include_technical: bool = False,
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in ["admin", "financeiro"]:
+    if not has_role_or_privilege(current_user, ("admin", "financeiro"), "manage_users"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     query = {}
+    # `$and` acumula os dois `$or` possíveis (pesquisa + filtro account_type)
+    # sem colisão de chaves (um dict só pode ter um `$or`).
+    and_clauses = []
     if search:
         # Truncar ANTES de escape — re.escape pode duplicar bytes (ex: '*' -> '\\*')
         # e cortar a meio uma sequencia escapada deixaria backslash final = regex
         # invalido. Cap input bruto a 100 chars (ReDoS guard) + escape.
         safe = re.escape(search.strip()[:100])
-        query["$or"] = [
-            {"name": {"$regex": safe, "$options": "i"}},
-            {"email": {"$regex": safe, "$options": "i"}},
-            {"member_id": {"$regex": safe, "$options": "i"}},
-        ]
+        and_clauses.append(
+            {
+                "$or": [
+                    {"name": {"$regex": safe, "$options": "i"}},
+                    {"email": {"$regex": safe, "$options": "i"}},
+                    {"member_id": {"$regex": safe, "$options": "i"}},
+                ]
+            }
+        )
     if role:
         query["role"] = role
     if status:
         query["status"] = status
     if cargo:
         query["cargo"] = cargo
+    # Por defeito oculta contas técnicas (spec-identidade-cargos). Retro-compat:
+    # documentos sem account_type tratam-se como "member".
+    if not include_technical:
+        and_clauses.append({"$or": [{"account_type": "member"}, {"account_type": {"$exists": False}}]})
+    if and_clauses:
+        query["$and"] = and_clauses
 
     limit = min(limit, 100)
     users = await db.users.find(query, {"_id": 0, "password": 0}).skip(skip).limit(limit).to_list(limit)
@@ -96,7 +120,7 @@ async def admin_update_user(
     request: Request,
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role != "admin":
+    if not has_role_or_privilege(current_user, ("admin",), "manage_users"):
         raise HTTPException(status_code=403, detail="Apenas administradores podem editar utilizadores")
 
     existing = await db.users.find_one({"id": user_id}, {"_id": 0})
@@ -164,7 +188,7 @@ async def admin_update_user(
 # ===== UPDATE USER STATUS (legacy, kept for backwards compat) =====
 @router.patch("/users/{user_id}/status")
 async def update_user_status(user_id: str, status: str, current_user: User = Depends(get_current_user)):
-    if current_user.role != "admin":
+    if not has_role_or_privilege(current_user, ("admin",), "manage_users"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     if status not in USER_STATUSES:
@@ -178,7 +202,7 @@ async def update_user_status(user_id: str, status: str, current_user: User = Dep
 # ===== DELETE USER =====
 @router.delete("/users/{user_id}")
 async def delete_user(user_id: str, current_user: User = Depends(get_current_user)):
-    if current_user.role != "admin":
+    if not has_role_or_privilege(current_user, ("admin",), "manage_users"):
         raise HTTPException(status_code=403, detail="Apenas administradores podem remover utilizadores")
 
     if user_id == current_user.id:
@@ -195,10 +219,37 @@ async def delete_user(user_id: str, current_user: User = Depends(get_current_use
     return {"message": "Utilizador removido com sucesso"}
 
 
+# ===== CARGO HISTORY =====
+@router.get("/users/{user_id}/cargo-history")
+async def get_cargo_history(user_id: str, current_user: User = Depends(get_current_user)):
+    """Histórico de mandatos de um sócio (ordenado descendente). Próprio ou admin/manage_users."""
+    is_self = current_user.id == user_id
+    if not (is_self or has_role_or_privilege(current_user, ("admin",), "manage_users")):
+        raise HTTPException(status_code=403, detail="Sem permissão")
+
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "cargo_history": 1, "name": 1})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilizador não encontrado")
+
+    history = user.get("cargo_history") or []
+    # Mandato mais recente primeiro (por data de início ISO-8601).
+    history = sorted(history, key=lambda m: m.get("inicio") or "", reverse=True)
+    return {"cargo_history": history}
+
+
 # ===== METADATA ENDPOINTS =====
 @router.get("/users/meta/cargos")
 async def get_cargos():
-    return {"cargos": CARGOS}
+    """Metadata completa do modelo de cargos (spec-identidade-cargos), para o
+    frontend não hard-codar constantes: lista plana, agrupamento por órgão
+    social, privilégios, defaults role+privileges e nº de vagas por cargo."""
+    return {
+        "cargos": CARGOS,
+        "cargos_orgaos_sociais": CARGOS_ORGAOS_SOCIAIS,
+        "privileges": PRIVILEGES,
+        "cargo_defaults": CARGO_DEFAULTS,
+        "cargo_seats": CARGO_SEATS,
+    }
 
 
 @router.get("/users/meta/privileges")

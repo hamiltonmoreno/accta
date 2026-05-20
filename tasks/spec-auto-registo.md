@@ -1,5 +1,10 @@
 # Spec — Auto-registo de Sócios com Aprovação do Admin
 
+> **Relacionado**: `tasks/spec-identidade-cargos.md` (implementado). O auto-registo
+> força `account_type="member"` e, ao aprovar com um cargo institucional (≠ Sócio),
+> cria a 1ª entrada em `cargo_history`. O modal de aprovação pré-preenche
+> `role`/`privileges` a partir de `CARGO_DEFAULTS[cargo]`.
+
 ## Objectivo
 
 Permitir que potenciais sócios criem o seu pedido de inscrição directamente

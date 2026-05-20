@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from models import User, Event, EventCreate, EventUpdate
 from database import db
-from auth import get_current_user
+from auth import get_current_user, has_role_or_privilege
 from helpers import create_audit_log, create_notification, notify_all_active_users
 
 router = APIRouter(tags=["events"])
@@ -138,8 +138,8 @@ async def get_event(event_id: str, current_user: User = Depends(get_current_user
 
 @router.post("/events", response_model=Event)
 async def create_event(event_data: EventCreate, current_user: User = Depends(get_current_user)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Apenas administradores podem criar eventos")
+    if not has_role_or_privilege(current_user, ("admin",), "manage_events"):
+        raise HTTPException(status_code=403, detail="Sem permissão para gerir eventos")
     ensure_valid_event_visibility(event_data.visibility)
 
     event = Event(created_by=current_user.id, **event_data.model_dump())
@@ -159,8 +159,8 @@ async def create_event(event_data: EventCreate, current_user: User = Depends(get
 
 @router.patch("/events/{event_id}", response_model=Event)
 async def update_event(event_id: str, event_data: EventUpdate, current_user: User = Depends(get_current_user)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Sem permissão")
+    if not has_role_or_privilege(current_user, ("admin",), "manage_events"):
+        raise HTTPException(status_code=403, detail="Sem permissão para gerir eventos")
 
     event = await db.events.find_one({"id": event_id})
     if not event:
@@ -189,8 +189,8 @@ async def update_event(event_id: str, event_data: EventUpdate, current_user: Use
 
 @router.delete("/events/{event_id}")
 async def delete_event(event_id: str, current_user: User = Depends(get_current_user)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Sem permissão")
+    if not has_role_or_privilege(current_user, ("admin",), "manage_events"):
+        raise HTTPException(status_code=403, detail="Sem permissão para gerir eventos")
 
     result = await db.events.delete_one({"id": event_id})
     if result.deleted_count == 0:
@@ -248,7 +248,9 @@ async def get_event_attendees(event_id: str, current_user: User = Depends(get_cu
         raise HTTPException(status_code=404, detail="Evento não encontrado")
     ensure_can_view_event(current_user, event)
 
-    if current_user.role != "admin" and current_user.id != event.get("created_by"):
+    if not has_role_or_privilege(current_user, ("admin",), "manage_events") and current_user.id != event.get(
+        "created_by"
+    ):
         return {
             "count": len(event.get("attendees", [])),
             "is_registered": current_user.id in event.get("attendees", []),

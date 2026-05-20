@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
-CLI para criar o primeiro administrador em producao.
-Uso: python create_admin.py --email admin@controlador.cv --password <senha> --name "Nome Admin"
+CLI para criar a conta TÉCNICA de bootstrap do sistema (spec-identidade-cargos).
+Uso: python create_admin.py --email admin@controlador.cv --password <senha> --name "Administrador de Sistema"
+
+NOTA (spec-identidade-cargos): esta conta é `account_type="technical"` — NÃO é
+um sócio. Não tem member_id (member_id_seq fica reservado p/ sócios reais), não
+participa em pontuação/AGAs/listagens, e cargo_history fica vazio. Presidente,
+Tesoureiro, etc. entram pelo auto-registo/convite (contas "member") e ganham
+cargo via /admin/cargos (promote/transfer).
 """
 
 import asyncio
@@ -57,12 +63,13 @@ async def create_admin(email: str, password: str, name: str):
         "name": name,
         "email": email,
         "password": hash_password(password),
+        "account_type": "technical",  # ← conta de sistema, não é um sócio
         "role": "admin",
         "status": "ativo",
-        "cargo": "Administrador",
-        "member_id": "ACCTA-ADMIN",
+        "cargo": "Técnico de Sistema",  # label livre, fora de CARGOS institucionais
+        "member_id": None,  # técnicas não consomem member_id_seq
         "license_number": "",
-        "department": "Direcao",
+        "department": "Sistema",
         "phone_number": "",
         "admission_date": now,
         "privileges": [
@@ -73,7 +80,9 @@ async def create_admin(email: str, password: str, name: str):
             "moderate_content",
             "manage_benefits",
             "view_audit_logs",
+            "view_finances_readonly",
         ],
+        "cargo_history": [],  # nunca ocupa mandato eleito
         "consent_data": True,
         "qr_code_hash": generate_qr_hash(user_id),
         "last_login_at": None,
@@ -86,12 +95,13 @@ async def create_admin(email: str, password: str, name: str):
     await close_pool()
 
     print("=" * 50)
-    print("  Administrador criado com sucesso!")
+    print("  Conta técnica de sistema criada com sucesso!")
     print("=" * 50)
-    print(f"  Email:  {email}")
-    print(f"  Nome:   {name}")
-    print("  Role:   admin")
-    print(f"  ID:     {user_id}")
+    print(f"  Email:        {email}")
+    print(f"  Nome:         {name}")
+    print("  Role:         admin")
+    print("  account_type: technical  (não é sócio; sem member_id)")
+    print(f"  ID:           {user_id}")
     print("=" * 50)
     print("  Pode agora fazer login no portal.")
     print("=" * 50)

@@ -125,8 +125,21 @@ python scripts/seed_gallery.py  # Seed gallery data
 - **Styling**: Tailwind CSS only — no inline styles. **Neutral-led**: white/`#F5F5F5` surfaces, Grafite `#3A3A3A` text; **Carmesim `#C7202F` is the single restrained accent** (≤1 primary button per view, active nav, links-on-white, destructive, focus ring) — neutral everywhere else, **never red text on dark/colored backgrounds**. The **`/frontend-design` skill** (`.claude/skills/frontend-design/SKILL.md`) is the single source of truth for the full design system (color/contrast rules, button taxonomy, typography, spacing, animation) — follow it, don't hardcode tokens from elsewhere
 - **Backend**: Async/await everywhere; Pydantic models for all request/response validation
 - **Auth**: Role-based access check on every protected endpoint; audit log on every admin action
+- **Identity & cargos** (spec-identidade-cargos) — one person = one account for life.
+  `account_type` is `member` (real sócio; missing ⇒ treated as member) or
+  `technical` (system account like `admin@controlador.cv`: `member_id=None`,
+  excluded from member listings/scoring/AGAs by default). `member_id` is
+  **immutable** (not editable via `UserAdminUpdate`/API). `role` (admin/
+  financeiro/moderador/socio) is the coarse access level; `privileges` are
+  **additive overlays** (`role OR privilege`, e.g. `view_finances_readonly` for
+  Conselho Fiscal). Institutional cargos (`CARGOS`, by órgão social) are assigned
+  only via `/admin/cargos` (promote/demote/transfer), which records `cargo_history`
+  mandates; never hand-edit a mandate. Constants live in `models.py`
+  (`CARGOS_ORGAOS_SOCIAIS`, `CARGO_DEFAULTS`, `CARGO_SEATS`); the frontend reads
+  them from `GET /users/meta/cargos`, never hard-codes them
 - **No dark mode** — disabled by design decision, do not add
-- **No inadimplente status** — quotas are payroll-deducted; statuses are only `ativo` / `inativo` / `pendente_convite`
+- **No inadimplente status** — quotas are payroll-deducted; statuses are
+  `ativo` / `inativo` / `pendente_convite` / `pendente_aprovacao` / `rejeitado`
 - **Photo approval workflow** — all gallery photos require admin approval before visibility
 - **Notifications** — SSE real-time stream; fallback to 30s polling
 

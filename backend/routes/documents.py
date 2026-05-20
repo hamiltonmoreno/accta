@@ -6,7 +6,7 @@ from typing import List
 from urllib.parse import urlparse
 from models import User, Document, DocumentCreate
 from database import UPLOAD_DIR, db
-from auth import get_current_user
+from auth import get_current_user, has_role_or_privilege
 from helpers import create_audit_log
 
 router = APIRouter(tags=["documents"])
@@ -113,8 +113,8 @@ async def get_documents(current_user: User = Depends(get_current_user)):
 
 @router.post("/documents", response_model=Document)
 async def create_document(doc_data: DocumentCreate, current_user: User = Depends(get_current_user)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Sem permissão")
+    if not has_role_or_privilege(current_user, ("admin",), "manage_documents"):
+        raise HTTPException(status_code=403, detail="Sem permissão para gerir documentos")
     ensure_valid_document_visibility(doc_data.visibility)
 
     doc = Document(**doc_data.model_dump())
