@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
+import { EmptyState } from '../../components/EmptyState';
 import {
   Camera, Upload, CheckCircle, XCircle, Trash2,
   Images, X, ChevronLeft, ChevronRight, Clock, Eye,
@@ -15,6 +16,7 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from '../../components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 
 // ===== LIGHTBOX =====
 const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
@@ -57,7 +59,6 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
 
 // ===== UPLOAD MODAL =====
 const UploadModal = ({ albums, onClose }) => {
-  useBodyScrollLock(true);
   const qc = useQueryClient();
   const [albumId, setAlbumId] = useState(albums[0]?.id || '');
   const [caption, setCaption] = useState('');
@@ -98,38 +99,31 @@ const UploadModal = ({ albums, onClose }) => {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-sm"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="flex min-h-full items-center justify-center p-4">
-      <div className="rounded-xl shadow-2xl w-full max-w-md animate-fade-up" style={{ backgroundColor: 'var(--surface-card)' }} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5" style={{ borderBottom: '1px solid var(--surface-border)' }}>
-          <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Submeter Fotos</h2>
-          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100" aria-label="Fechar" data-testid="close-upload-modal"><X className="w-5 h-5 text-gray-400" aria-hidden="true" /></button>
-        </div>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-md rounded-xl p-0 gap-0 max-h-[90vh] overflow-y-auto" data-testid="upload-modal">
+        <DialogHeader className="p-5 border-b border-gray-200 text-left space-y-0">
+          <DialogTitle className="font-bold text-lg text-grafite">Submeter Fotos</DialogTitle>
+        </DialogHeader>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Album *</label>
+            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Album *</label>
             <select value={albumId} onChange={(e) => setAlbumId(e.target.value)} data-testid="upload-album-select"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none">
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none">
               {albums.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Legenda</label>
+            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Legenda</label>
             <input type="text" value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Descricao da foto..."
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
               data-testid="upload-caption-input" />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Fotos * (JPG, PNG, WEBP)</label>
+            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Fotos * (JPG, PNG, WEBP)</label>
             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-carmesim/50 transition-colors"
               data-testid="upload-file-input">
               <Upload className="w-8 h-8 text-gray-300 mb-2" />
-              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              <span className="text-sm text-muted-auto">
                 {files.length > 0 ? `${files.length} foto${files.length > 1 ? 's' : ''} selecionada${files.length > 1 ? 's' : ''}` : 'Clique para selecionar'}
               </span>
               <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
@@ -142,7 +136,7 @@ const UploadModal = ({ albums, onClose }) => {
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div className="bg-carmesim h-2 rounded-full transition-all" style={{ width: `${progress}%` }} />
               </div>
-              <p className="text-xs text-center mt-1" style={{ color: 'var(--text-muted)' }}>{progress}%</p>
+              <p className="text-xs text-center mt-1 text-muted-auto">{progress}%</p>
             </div>
           )}
 
@@ -150,15 +144,13 @@ const UploadModal = ({ albums, onClose }) => {
             {uploading ? 'A enviar...' : `Submeter ${files.length > 0 ? files.length : ''} Foto${files.length > 1 ? 's' : ''}`}
           </button>
         </form>
-      </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
 // ===== ALBUM MODAL =====
 const AlbumModal = ({ album, onClose }) => {
-  useBodyScrollLock(true);
   const isEdit = !!album;
   const qc = useQueryClient();
   const [form, setForm] = useState({
@@ -186,35 +178,28 @@ const AlbumModal = ({ album, onClose }) => {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-sm"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="flex min-h-full items-center justify-center p-4">
-      <div className="rounded-xl shadow-2xl w-full max-w-md animate-fade-up" style={{ backgroundColor: 'var(--surface-card)' }} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5" style={{ borderBottom: '1px solid var(--surface-border)' }}>
-          <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>{isEdit ? 'Editar Album' : 'Novo Album'}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100" aria-label="Fechar" data-testid="close-album-modal"><X className="w-5 h-5 text-gray-400" aria-hidden="true" /></button>
-        </div>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-md rounded-xl p-0 gap-0 max-h-[90vh] overflow-y-auto" data-testid="album-modal">
+        <DialogHeader className="p-5 border-b border-gray-200 text-left space-y-0">
+          <DialogTitle className="font-bold text-lg text-grafite">{isEdit ? 'Editar Album' : 'Novo Album'}</DialogTitle>
+        </DialogHeader>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Titulo *</label>
+            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Titulo *</label>
             <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="Ex: Aeroportos de Cabo Verde"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
               data-testid="album-title-input" />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Descricao</label>
+            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Descricao</label>
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Descricao do album..." rows={2}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none resize-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none resize-none"
               data-testid="album-desc-input" />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Visibilidade</label>
+            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Visibilidade</label>
             <div className="flex gap-2">
               {[{ val: 'public', label: 'Publico', icon: Eye }, { val: 'private', label: 'Socios', icon: EyeOff }].map(opt => (
                 <button key={opt.val} type="button" onClick={() => setForm({ ...form, visibility: opt.val })}
@@ -231,9 +216,8 @@ const AlbumModal = ({ album, onClose }) => {
             {saving ? 'A guardar...' : isEdit ? 'Atualizar Album' : 'Criar Album'}
           </button>
         </form>
-      </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
@@ -278,12 +262,12 @@ const PendingPanel = () => {
           <Clock className="w-4 h-4 text-white" />
         </div>
         <div>
-          <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Fotos Pendentes</h3>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{pending.length} foto{pending.length !== 1 ? 's' : ''} a aguardar aprovacao</p>
+          <h3 className="font-semibold text-sm text-grafite-auto">Fotos Pendentes</h3>
+          <p className="text-xs text-muted-auto">{pending.length} foto{pending.length !== 1 ? 's' : ''} a aguardar aprovacao</p>
         </div>
       </div>
       {loading ? (
-        <div className="p-6 text-center"><div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin inline-block" /></div>
+        <div className="p-6 text-center"><div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" /></div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-4">
           {pending.map(photo => (
@@ -391,7 +375,7 @@ export const GaleriaAdminPage = () => {
       {selectedAlbum ? (
         <div>
           <button onClick={() => setSelectedAlbum(null)}
-            className="flex items-center gap-2 text-sm mb-4" style={{ color: 'var(--text-muted)' }} data-testid="back-to-albums">
+            className="flex items-center gap-2 text-sm mb-4 text-muted-auto" data-testid="back-to-albums">
             <ChevronLeft className="w-4 h-4" /> Voltar aos albuns
           </button>
 
@@ -399,18 +383,18 @@ export const GaleriaAdminPage = () => {
             <div className="flex items-start justify-between flex-wrap gap-3">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <h2 className="font-bold text-xl" style={{ color: 'var(--text-primary)' }}>{selectedAlbum.title}</h2>
+                  <h2 className="font-bold text-xl text-grafite-auto">{selectedAlbum.title}</h2>
                   {selectedAlbum.visibility === 'private' && (
                     <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs uppercase tracking-wider rounded-full font-semibold">Privado</span>
                   )}
                 </div>
-                {selectedAlbum.description && <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{selectedAlbum.description}</p>}
-                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{photos.length} foto{photos.length !== 1 ? 's' : ''}</p>
+                {selectedAlbum.description && <p className="text-sm text-secondary-auto">{selectedAlbum.description}</p>}
+                <p className="text-xs mt-1 text-muted-auto">{photos.length} foto{photos.length !== 1 ? 's' : ''}</p>
               </div>
               {isAdmin && (
                 <div className="flex gap-2">
                   <button onClick={() => { setEditingAlbum(selectedAlbum); setShowAlbumModal(true); }}
-                    className="p-2 rounded-lg hover:bg-gray-100" style={{ color: 'var(--text-muted)' }} aria-label="Editar álbum" data-testid="edit-album-btn">
+                    className="p-2 rounded-lg hover:bg-gray-100 text-muted-auto" aria-label="Editar álbum" data-testid="edit-album-btn">
                     <Pencil className="w-4 h-4" aria-hidden="true" />
                   </button>
                   <button onClick={() => setConfirmDeleteAlbum(selectedAlbum.id)}
@@ -423,13 +407,21 @@ export const GaleriaAdminPage = () => {
           </div>
 
           {loading ? (
-            <div className="text-center py-12"><div className="w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin inline-block" /></div>
+            <div className="text-center py-12"><div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" /></div>
           ) : photos.length === 0 ? (
-            <div className="card-technical p-12 text-center" data-testid="no-photos">
-              <Camera className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
-              <p style={{ color: 'var(--text-secondary)' }}>Nenhuma foto neste album</p>
-              <button onClick={() => setShowUpload(true)} className="text-carmesim text-sm font-semibold mt-2 hover:underline">Submeter a primeira foto</button>
-            </div>
+            <EmptyState
+              icon={Camera}
+              title="Nenhuma foto neste album"
+              testId="no-photos"
+              action={(
+                <button
+                  onClick={() => setShowUpload(true)}
+                  className="text-carmesim text-sm font-semibold hover:underline"
+                >
+                  Submeter a primeira foto
+                </button>
+              )}
+            />
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
               {photos.map((photo, index) => (
@@ -463,13 +455,14 @@ export const GaleriaAdminPage = () => {
       ) : (
         /* Albums Grid */
         loading ? (
-          <div className="text-center py-12"><div className="w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin inline-block" /></div>
+          <div className="text-center py-12"><div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" /></div>
         ) : albums.length === 0 ? (
-          <div className="card-technical p-12 text-center" data-testid="no-albums-private">
-            <Images className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
-            <p className="font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Nenhum album criado</p>
-            {isAdmin && <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Crie o primeiro album para comecar a receber fotos</p>}
-          </div>
+          <EmptyState
+            icon={Images}
+            title="Nenhum album criado"
+            description={isAdmin ? 'Crie o primeiro album para comecar a receber fotos' : undefined}
+            testId="no-albums-private"
+          />
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {albums.map((album, i) => (
@@ -481,7 +474,7 @@ export const GaleriaAdminPage = () => {
                     <img src={album.cover_url} alt={album.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: 'var(--surface-card-hover)' }}>
-                      <Images className="w-12 h-12" style={{ color: 'var(--text-muted)' }} />
+                      <Images className="w-12 h-12 text-muted-auto" />
                     </div>
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -502,7 +495,7 @@ export const GaleriaAdminPage = () => {
                 </div>
                 {album.description && (
                   <div className="px-4 py-3">
-                    <p className="text-xs line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{album.description}</p>
+                    <p className="text-xs line-clamp-2 text-secondary-auto">{album.description}</p>
                   </div>
                 )}
               </div>
@@ -532,7 +525,7 @@ export const GaleriaAdminPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-[#C7202F] hover:bg-[#B91C1C]"
               onClick={() => { handleDeleteAlbum(confirmDeleteAlbum); setConfirmDeleteAlbum(null); }}
             >
               Remover álbum
@@ -552,7 +545,7 @@ export const GaleriaAdminPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-[#C7202F] hover:bg-[#B91C1C]"
               onClick={() => { handleDeletePhoto(confirmDeletePhoto); setConfirmDeletePhoto(null); }}
             >
               Remover foto

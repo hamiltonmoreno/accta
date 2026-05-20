@@ -107,7 +107,7 @@ export const ContactosPage = () => {
                 {/* Email General */}
                 <div className="flex gap-5">
                   <div className="w-14 h-14 bg-carmesim rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Mail className="w-7 h-7 text-grafite" />
+                    <Mail className="w-7 h-7 text-white" />
                   </div>
                   <div>
                     <h3 className="font-sans font-semibold text-lg text-grafite mb-1">Email Geral</h3>
@@ -145,7 +145,7 @@ export const ContactosPage = () => {
                     <li key={c.entidade} className="card-technical rounded-xl p-5">
                       <div className="flex items-start gap-4">
                         <div className="w-10 h-10 bg-grafite rounded-lg flex items-center justify-center flex-shrink-0">
-                          <MapPin className="w-5 h-5 text-carmesim" />
+                          <MapPin className="w-5 h-5 text-white" />
                         </div>
                         <div className="min-w-0">
                           <h4 className="font-semibold text-grafite">{c.entidade}</h4>
@@ -205,7 +205,7 @@ export const ContactosPage = () => {
                         value={formData.name}
                         onChange={handleChange}
                         placeholder="O seu nome completo"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 transition-all"
                         required
                         data-testid="contact-name"
                       />
@@ -225,7 +225,7 @@ export const ContactosPage = () => {
                         value={formData.email}
                         onChange={handleChange}
                         placeholder="seu.email@exemplo.com"
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 transition-all"
                         required
                         data-testid="contact-email"
                       />
@@ -273,7 +273,7 @@ export const ContactosPage = () => {
                         onChange={handleChange}
                         placeholder="Escreva a sua mensagem aqui..."
                         rows={5}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 transition-all resize-none"
                         required
                         data-testid="contact-message"
                       />

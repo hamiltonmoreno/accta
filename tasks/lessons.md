@@ -59,3 +59,78 @@ texto/fundo a ≥4.5:1 e fundamentar em regra de design (engine `ui-ux-pro-max`
 → Swiss Modernism AAA, contraste, foco visível), não em instinto.
 **Context**: Reescrita do design system ACCTA; `frontend-design/SKILL.md`
 (canônico) + sincronização do Brand Lock/CSVs da `ui-ux-pro-max`.
+
+### L6 — Backtick em mensagem de commit via Bash = substituição de comando
+**Mistake**: `git commit -m "... \`a{color}\` ..."` na ferramenta Bash: o
+bash interpretou os backticks como command substitution (`a{color}: command
+not found`), apagando essa parte da mensagem; foi preciso `--amend`.
+**Rule**: Mensagens de commit multi-linha ou com caracteres especiais
+(backtick, `$`, `!`) passam **sempre** por here-doc com delimitador entre
+aspas: `git commit -F - <<'EOF' … EOF`. Nunca `-m` com backticks no shell.
+**Context**: Qualquer commit via Bash tool (PowerShell/bash) nesta repo.
+
+### L7 — Remapear token legado exige classificar o PAPEL, não só o nome
+**Mistake**: Na limpeza Aero-Swiss, o map mecânico `amber → warning` do
+SKILL atingiu `PublicLayout` footer (slogan em ouro decorativo sobre
+`bg-grafite`): `text-amber` virou `text-[#B45309]` — warning-on-dark, o
+mesmo defeito de legibilidade que a migração visa eliminar.
+**Rule**: Ao migrar um token de identidade legado, classificar cada uso
+pelo **papel** (semântico vs decorativo vs sobre-escuro) antes de aplicar
+o mapeamento semântico. Ouro decorativo ≠ estado de aviso; sobre fundo
+escuro o destino é `text-white`/neutro claro, não o `-700` semântico.
+**Context**: `tasks/frontend-redesign-spec.md` Fase 4; qualquer remoção
+de token com `mapeamento de uso antes de remover`.
+
+### L8 — Nunca editar source-of-truth de design autonomamente
+**Mistake**: Durante a Fase 0 da `frontend-consistency-spec.md`, ao
+resolver a divergência entre `.card-technical=rounded-xl` (12px) no CSS
+e `Cards: rounded-lg (8px)` no §Components do SKILL, tentei editar
+`.claude/skills/frontend-design/SKILL.md` autonomamente para alinhar o
+texto. O utilizador rejeitou a tool-call e disse "continue", obrigando
+a reconciliar **só** code-side e a sinalizar a nota de doc para o dono.
+**Rule**: Os ficheiros canónicos de design (`.claude/skills/**/SKILL.md`
+e, por extensão, `.claude/rules/*`, `design_guidelines.json`) só são
+editados pelo dono. Em conflito: reconciliar code-side a favor do que
+está no canónico (ou da decisão explicitamente registada), e **sinalizar
+a nota de doc para o dono** em vez de re-escrever a fonte. O canónico
+ganha por defeito; código segue, doc não muda sem owner.
+**Context**: Qualquer fase de qualquer spec que toque sistema de design.
+Memória pessoal `no-autonomous-skill-edits.md` reforça esta regra.
+
+### L9 — Modal aninhado: migrar de dentro para fora (Radix `modal=true`)
+**Mistake**: Na Fase 6 da `frontend-consistency-spec.md`, o
+`AdminUsuariosPage` tem o delete-confirm a ser aberto **a partir do
+rodapé do edit-modal**. A ordem natural da listagem do utilizador era
+"edit + invite + delete". Migrar o edit primeiro para Radix Dialog
+tornaria o delete (ainda hand-rolled, `position: fixed` z-[60])
+**não-clicável** no estado intermédio, porque Radix Dialog com
+`modal=true` (default) aplica `pointer-events: none` em tudo fora do
+seu portal — qualquer descendente do body (incluindo um fixed sibling)
+herda e fica inerte.
+**Rule**: Quando o modal A abre o modal B a partir de dentro, **migrar
+B (interno) ANTES de A (externo)**. Cada commit deixa estado funcional:
+B-Radix sobre A-hand-rolled funciona (A fica inerte por baixo de B,
+comportamento desejado); depois A-Radix sobre B-Radix é nested-dialog
+oficialmente suportado. O oposto produz um estado intermédio partido
+no meio da revisão.
+**Context**: Qualquer migração faseada de modais hand-rolled → Radix
+Dialog/AlertDialog. Aplica-se também a Drawers e Sheets do Radix.
+
+### L10 — Subagent fan-out para edição mecânica multi-ficheiro
+**Mistake**: Fase 7.1 (substituir 97 inline `style={{ color: 'var(--text-X)' }}`
+por classes Tailwind em 8 ficheiros) seria sequencialmente 8× Read + 97× Edit
+no main agent — custo de tokens e duração proibitivos para trabalho
+puramente mecânico.
+**Rule**: Para edição mecânica idempotente em N ficheiros disjuntos
+(mapeamento determinístico, sem decisões UX): fan-out via subagents
+`general-purpose` em paralelo, **balanceados por ocorrências** (não por
+ficheiros). Cada subagent recebe: lista exata de ficheiros, regra de
+substituição literal (com tabela de mapeamento), scope estrito do que
+NÃO tocar, regras de merge de className (string vs template literal),
+e instruções para NÃO correr eslint/build/git/commit — esses gates são
+do orquestrador. Pede relatório por ficheiro (contagem + grep
+acceptance) para verificação cruzada. Casos exóticos (ex.: ternários
+`style={cond ? {...} : undefined}`) ficam fora do regex literal e são
+sinalizados como resíduos para owner — não tentar inferi-los.
+**Context**: `tasks/frontend-consistency-spec.md` Fase 7.1 (4 subagents,
+97/97 substituições, 6 resíduos ternários documentados).

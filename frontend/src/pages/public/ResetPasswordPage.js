@@ -59,7 +59,7 @@ export const ResetPasswordPage = () => {
 
         <Link
           to="/login"
-          className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-grafite transition-colors mb-6"
+          className="inline-flex items-center gap-1.5 text-sm text-[#6B7280] hover:text-grafite transition-colors mb-6"
           data-testid="back-to-login-reset"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -80,7 +80,7 @@ export const ResetPasswordPage = () => {
             <div className="card-technical p-6 sm:p-7">
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
                 <div>
-                  <label htmlFor="password" className="block text-xs uppercase tracking-widest text-gray-400 mb-2 font-semibold">
+                  <label htmlFor="password" className="block text-xs uppercase tracking-widest text-[#6B7280] mb-2 font-semibold">
                     Nova senha
                   </label>
                   <div className="relative">
@@ -110,7 +110,7 @@ export const ResetPasswordPage = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-xs uppercase tracking-widest text-gray-400 mb-2 font-semibold">
+                  <label htmlFor="confirmPassword" className="block text-xs uppercase tracking-widest text-[#6B7280] mb-2 font-semibold">
                     Confirmar senha
                   </label>
                   <input
@@ -131,7 +131,7 @@ export const ResetPasswordPage = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-carmesim text-white hover:bg-carmesim-dark h-11 rounded-lg uppercase tracking-wider font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full bg-carmesim text-white hover:bg-carmesim-dark h-11 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   data-testid="reset-submit"
                 >
                   {isSubmitting ? (
@@ -148,8 +148,8 @@ export const ResetPasswordPage = () => {
           </>
         ) : (
           <div className="card-technical p-6 sm:p-7 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-5">
-              <CheckCircle className="w-8 h-8 text-green-600" />
+            <div className="w-16 h-16 bg-[#F0FDF4] rounded-xl flex items-center justify-center mx-auto mb-5">
+              <CheckCircle className="w-8 h-8 text-[#15803D]" />
             </div>
             <h2 className="font-bold text-xl text-grafite mb-2" data-testid="reset-success-title">
               Senha alterada!
@@ -159,7 +159,7 @@ export const ResetPasswordPage = () => {
             </p>
             <button
               onClick={() => navigate('/login')}
-              className="w-full bg-carmesim text-white hover:bg-carmesim-dark h-11 rounded-lg uppercase tracking-wider font-bold text-sm transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-carmesim text-white hover:bg-carmesim-dark h-11 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2"
               data-testid="go-to-login-after-reset"
             >
               Ir para o login

@@ -5,6 +5,7 @@ import { ClipboardList, Activity } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { queryKeys } from '../../lib/queryClient';
+import { EmptyState } from '../../components/EmptyState';
 
 export const AdminLogsPage = () => {
   const { data: logs = [], isLoading: loading } = useQuery({
@@ -19,13 +20,13 @@ export const AdminLogsPage = () => {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="font-sans font-bold text-4xl text-grafite mb-2" data-testid="admin-logs-title">
+        <h1 className="page-title" data-testid="admin-logs-title">
           Audit Logs
         </h1>
-        <p className="text-gray-600">Registro de todas as ações administrativas no sistema</p>
+        <p className="page-subtitle">Registro de todas as ações administrativas no sistema</p>
       </div>
 
       {/* Stats */}
@@ -43,7 +44,7 @@ export const AdminLogsPage = () => {
         <div className="card-technical rounded-xl p-6 animate-fade-up">
           <div className="flex items-center justify-between mb-4">
             <div className="w-12 h-12 bg-carmesim rounded-lg flex items-center justify-center">
-              <Activity className="w-6 h-6 text-grafite" />
+              <Activity className="w-6 h-6 text-white" />
             </div>
           </div>
           <div className="font-mono text-3xl font-bold text-carmesim mb-1">
@@ -58,16 +59,14 @@ export const AdminLogsPage = () => {
       </div>
 
       {/* Logs Timeline */}
-      <div className="card-technical rounded-xl p-6">
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : logs.length === 0 ? (
-          <div className="text-center py-12" data-testid="no-logs">
-            <p className="text-gray-500">Nenhum registro de auditoria</p>
-          </div>
-        ) : (
+      {loading ? (
+        <div className="card-technical rounded-xl p-6 text-center py-12">
+          <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : logs.length === 0 ? (
+        <EmptyState icon={ClipboardList} title="Nenhum registro de auditoria" testId="no-logs" />
+      ) : (
+        <div className="card-technical rounded-xl p-6">
           <div className="space-y-4 max-h-[600px] overflow-y-auto">
             {logs.map((log) => (
               <div
@@ -89,8 +88,8 @@ export const AdminLogsPage = () => {
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

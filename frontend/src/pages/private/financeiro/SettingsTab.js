@@ -61,26 +61,26 @@ export const SettingsTab = () => {
   };
 
   if (loading) {
-    return <div className="p-10 text-center"><div className="inline-block w-7 h-7 border-3 border-carmesim border-t-transparent rounded-full animate-spin" /></div>;
+    return <div className="p-10 text-center"><div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" /></div>;
   }
 
   return (
     <div className="space-y-5">
       <div className="card-technical p-5 sm:p-6">
-        <h3 className="font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+        <h3 className="font-semibold mb-4 flex items-center gap-2 text-grafite-auto">
           <Settings className="w-4 h-4 text-carmesim" /> Configuracao de Quotas
         </h3>
         <div className="space-y-4">
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Valor da Quota Mensal (CVE)</label>
             <input type="number" inputMode="decimal" min="0" value={quotaAmount} onChange={(e) => setQuotaAmount(e.target.value)}
-              className="w-full max-w-xs px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              className="w-full max-w-xs px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
               data-testid="quota-amount-input" />
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Descricao da Quota</label>
             <input type="text" value={quotaDesc} onChange={(e) => setQuotaDesc(e.target.value)}
-              className="w-full max-w-sm px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              className="w-full max-w-sm px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
               data-testid="quota-desc-input" />
           </div>
           <button onClick={handleSave} disabled={saving} className="btn-primary text-sm px-6" data-testid="save-settings-btn">
@@ -90,17 +90,17 @@ export const SettingsTab = () => {
       </div>
 
       <div className="card-technical p-5 sm:p-6">
-        <h3 className="font-semibold mb-2 flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+        <h3 className="font-semibold mb-2 flex items-center gap-2 text-grafite-auto">
           <RefreshCw className="w-4 h-4 text-carmesim" /> Gerar Quotas Mensais
         </h3>
-        <p className="text-xs mb-4 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-xs mb-4 leading-relaxed text-muted-auto">
           Gera automaticamente as quotas mensais para todos os socios ativos. Socios que ja possuem quota para o mes selecionado serao ignorados.
         </p>
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Mes</label>
             <select value={genMonth} onChange={(e) => setGenMonth(parseInt(e.target.value))}
-              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
               data-testid="gen-month-select">
               {MONTH_NAMES.map((name, i) => <option key={i} value={i + 1}>{name}</option>)}
             </select>
@@ -108,7 +108,7 @@ export const SettingsTab = () => {
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Ano</label>
             <select value={genYear} onChange={(e) => setGenYear(parseInt(e.target.value))}
-              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
               data-testid="gen-year-select">
               {[2024, 2025, 2026, 2027].map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
@@ -120,22 +120,22 @@ export const SettingsTab = () => {
         </div>
 
         {genResult && (
-          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg animate-fade-up" data-testid="gen-result">
+          <div className="mt-4 p-4 bg-[#F0FDF4] border border-[#BBF7D0] rounded-lg animate-fade-up" data-testid="gen-result">
             <div className="flex items-center gap-2 mb-2">
-              <CheckCircle className="w-4 h-4 text-green-600" />
-              <span className="font-semibold text-sm text-green-700">Quotas Geradas com Sucesso</span>
+              <CheckCircle className="w-4 h-4 text-[#15803D]" />
+              <span className="font-semibold text-sm text-[#15803D]">Quotas Geradas com Sucesso</span>
             </div>
             <div className="grid grid-cols-3 gap-3 mt-2">
               <div className="text-center">
-                <div className="font-mono text-lg font-bold text-green-700" data-testid="gen-created">{genResult.created}</div>
-                <div className="text-xs text-green-600 uppercase tracking-wider">Criadas</div>
+                <div className="font-mono text-lg font-bold text-[#15803D]" data-testid="gen-created">{genResult.created}</div>
+                <div className="text-xs text-[#15803D] uppercase tracking-wider">Criadas</div>
               </div>
               <div className="text-center">
                 <div className="font-mono text-lg font-bold text-gray-500" data-testid="gen-skipped">{genResult.skipped}</div>
                 <div className="text-xs text-gray-500 uppercase tracking-wider">Ignoradas</div>
               </div>
               <div className="text-center">
-                <div className="font-mono text-lg font-bold" style={{ color: 'var(--text-primary)' }} data-testid="gen-total-value">{genResult.total_value?.toLocaleString('pt')}</div>
+                <div className="font-mono text-lg font-bold text-grafite-auto" data-testid="gen-total-value">{genResult.total_value?.toLocaleString('pt')}</div>
                 <div className="text-xs text-gray-500 uppercase tracking-wider">CVE Total</div>
               </div>
             </div>
@@ -147,8 +147,8 @@ export const SettingsTab = () => {
         <div className="flex items-start gap-3">
           <DollarSign className="w-5 h-5 text-carmesim flex-shrink-0 mt-0.5" />
           <div>
-            <h4 className="font-semibold text-sm mb-1" style={{ color: 'var(--text-primary)' }}>Desconto em Folha</h4>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            <h4 className="font-semibold text-sm mb-1 text-grafite-auto">Desconto em Folha</h4>
+            <p className="text-xs leading-relaxed text-secondary-auto">
               As quotas dos socios ativos sao descontadas diretamente na folha de pagamento. Nao existe o conceito de "socio inadimplente" nesta associacao.
             </p>
           </div>

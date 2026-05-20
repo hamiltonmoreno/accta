@@ -7,6 +7,8 @@ import { queryKeys } from '../../lib/queryClient';
 import { PollCard } from '../../components/voting/PollCard';
 import { VotingInterface } from '../../components/voting/VotingInterface';
 import { VotingResults } from '../../components/voting/VotingResults';
+import { EmptyState } from '../../components/EmptyState';
+import { Skeleton } from '../../components/ui/skeleton';
 
 export const VotacoesPage = () => {
   const { isAtivo } = useAuth();
@@ -57,14 +59,22 @@ export const VotacoesPage = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-9 w-48 mb-2" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <div className="grid grid-cols-1 gap-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-48 rounded-xl" />
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-5 sm:space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="page-title" data-testid="polls-title">
@@ -104,11 +114,12 @@ export const VotacoesPage = () => {
         </div>
 
         {openPolls.length === 0 ? (
-          <div className="card-technical rounded-xl p-12 text-center" data-testid="no-open-polls">
-            <Vote className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 font-medium mb-1">Nenhuma votação aberta no momento</p>
-            <p className="text-sm text-gray-400">Você será notificado quando novas votações forem criadas</p>
-          </div>
+          <EmptyState
+            icon={Vote}
+            title="Nenhuma votação aberta no momento"
+            description="Você será notificado quando novas votações forem criadas"
+            testId="no-open-polls"
+          />
         ) : (
           <div className="grid grid-cols-1 gap-6">
             {openPolls.map((poll, index) => (
@@ -153,12 +164,12 @@ export const VotacoesPage = () => {
                     <button
                       onClick={() => toggleResults(poll.id)}
                       disabled={loadingResults[poll.id]}
-                      className="flex items-center gap-2 text-sm text-grafite hover:text-grafite/80 font-mono uppercase tracking-wider transition-colors disabled:opacity-50"
+                      className="flex items-center gap-2 text-sm text-grafite hover:text-grafite/80 font-semibold transition-colors disabled:opacity-50"
                       data-testid={`view-results-${poll.id}`}
                     >
                       {loadingResults[poll.id] ? (
                         <>
-                          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                          <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
                           <span>Carregando...</span>
                         </>
                       ) : (
@@ -184,7 +195,7 @@ export const VotacoesPage = () => {
       <div className="card-technical rounded-xl p-6 bg-carmesim/5 border-carmesim/20 animate-fade-up">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 bg-carmesim rounded-lg flex items-center justify-center flex-shrink-0">
-            <Vote className="w-6 h-6 text-grafite" />
+            <Vote className="w-6 h-6 text-white" />
           </div>
           <div>
             <h3 className="font-sans font-semibold text-lg text-grafite mb-2">Como Funciona</h3>

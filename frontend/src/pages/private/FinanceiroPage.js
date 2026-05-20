@@ -11,9 +11,8 @@ const TabBtn = ({ active, label, icon: Icon, onClick, testId }) => (
     onClick={onClick}
     data-testid={testId}
     className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all whitespace-nowrap ${
-      active ? 'bg-carmesim text-white shadow-sm' : ''
+      active ? 'bg-carmesim text-white shadow-sm' : 'text-muted-auto'
     }`}
-    style={!active ? { color: 'var(--text-muted)' } : undefined}
   >
     <Icon className="w-4 h-4" />
     {label}
@@ -30,7 +29,7 @@ export const FinanceiroPage = () => {
   }
 
   return (
-    <div className="space-y-5 sm:space-y-6">
+    <div className="space-y-6">
       <div>
         <h1 className="page-title" data-testid="finance-title">Gestao Financeira</h1>
         <p className="page-subtitle">Fluxo de caixa, relatorios DRE e configuracoes</p>

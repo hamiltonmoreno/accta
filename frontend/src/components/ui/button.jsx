@@ -13,8 +13,6 @@ const buttonVariants = cva(
           "bg-primary text-primary-foreground shadow hover:bg-primary/90",
         brand:
           "bg-carmesim text-white shadow hover:bg-carmesim-dark",
-        confianca:
-          "bg-confianca text-white shadow hover:bg-confianca-dark",
         destructive:
           "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
         outline:

@@ -189,11 +189,11 @@ export const CarteiraPage = () => {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
-      <div className="text-center">
-        <h1 className="font-sans font-bold text-4xl text-grafite mb-2" data-testid="wallet-title">
+      <div>
+        <h1 className="page-title" data-testid="wallet-title">
           Carteira Digital
         </h1>
-        <div className="flex items-center justify-center gap-2 text-gray-500">
+        <div className="flex items-center gap-2 text-gray-500 mt-1">
           {isOnline ? (
             <Wifi className="w-4 h-4 text-green-500" />
           ) : (
@@ -226,7 +226,7 @@ export const CarteiraPage = () => {
               className={`absolute inset-0 ${
                 isActive
                   ? 'bg-gradient-to-br from-grafite via-grafite to-grafite-dark'
-                  : 'bg-gradient-to-br from-slate-400 to-slate-600 grayscale'
+                  : 'bg-gradient-to-br from-[#9CA3AF] to-[#6B7280] grayscale'
               }`}
             >
               {/* Holographic overlay for active */}
@@ -289,9 +289,9 @@ export const CarteiraPage = () => {
               )}
 
               <div className="mt-4 text-center">
-                <div className="font-mono text-xs text-gray-400 uppercase tracking-widest">ACCTA - Cabo Verde</div>
+                <div className="font-mono text-xs text-[#6B7280] uppercase tracking-widest">ACCTA - Cabo Verde</div>
                 {displayUser?.admission_date && (
-                  <div className="font-mono text-xs text-gray-400 mt-1">
+                  <div className="font-mono text-xs text-[#6B7280] mt-1">
                     Socio desde {format(new Date(displayUser.admission_date), 'MMMM yyyy', { locale: ptBR })}
                   </div>
                 )}
@@ -312,7 +312,7 @@ export const CarteiraPage = () => {
       <div className="flex gap-3 justify-center">
         <button
           onClick={handleDownloadQR}
-          className="flex items-center gap-2 px-5 py-2.5 bg-grafite text-white rounded-lg text-sm font-semibold hover:bg-grafite/90 transition-colors"
+          className="flex items-center gap-2 px-5 py-2.5 bg-white border border-[#D1D5DB] text-[#3A3A3A] rounded-lg text-sm font-semibold hover:bg-[#F5F5F5] transition-colors"
           data-testid="download-qr-btn"
         >
           <Download className="w-4 h-4" />
@@ -320,7 +320,7 @@ export const CarteiraPage = () => {
         </button>
         <button
           onClick={handleShare}
-          className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 text-grafite rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors"
+          className="flex items-center gap-2 px-5 py-2.5 bg-white border border-[#D1D5DB] text-[#3A3A3A] rounded-lg text-sm font-semibold hover:bg-[#F5F5F5] transition-colors"
           data-testid="share-wallet-btn"
         >
           <Share2 className="w-4 h-4" />

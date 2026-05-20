@@ -5,6 +5,7 @@ import { Gift, MapPin, Percent, ExternalLink, Phone, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { queryKeys } from '../../lib/queryClient';
+import { EmptyState } from '../../components/EmptyState';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,13 +60,13 @@ export const BeneficiosPage = () => {
   const confirmedBenefit = benefits.find((b) => b.id === confirmId);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="font-sans font-bold text-4xl text-grafite mb-2" data-testid="benefits-title">
+        <h1 className="page-title" data-testid="benefits-title">
           Clube de Benefícios
         </h1>
-        <p className="text-gray-600">Descontos exclusivos para sócios ACCTA em parceiros selecionados</p>
+        <p className="page-subtitle">Descontos exclusivos para sócios ACCTA em parceiros selecionados</p>
       </div>
 
       {/* Status Alert */}
@@ -88,7 +89,7 @@ export const BeneficiosPage = () => {
         <div className="card-technical rounded-xl p-6 bg-carmesim/5 border-carmesim/20 animate-fade-up">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 bg-carmesim rounded-lg flex items-center justify-center flex-shrink-0">
-              <Gift className="w-6 h-6 text-grafite" />
+              <Gift className="w-6 h-6 text-white" />
             </div>
             <div>
               <h3 className="font-sans font-semibold text-lg text-grafite mb-2">Como Usar</h3>
@@ -106,12 +107,14 @@ export const BeneficiosPage = () => {
       {/* Benefits Grid */}
       {isLoading ? (
         <div className="text-center py-12">
-          <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
         </div>
       ) : benefits.length === 0 ? (
-        <div className="card-technical rounded-xl p-12 text-center" data-testid="no-benefits">
-          <p className="text-gray-500">Nenhum benefício disponível no momento</p>
-        </div>
+        <EmptyState
+          icon={Gift}
+          title="Nenhum benefício disponível no momento"
+          testId="no-benefits"
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {benefits.map((benefit, index) => (

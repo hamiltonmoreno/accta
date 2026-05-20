@@ -10,6 +10,7 @@ import { ptBR } from 'date-fns/locale';
 import { useAuth } from '../../contexts/AuthContext';
 import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
+import { EmptyState } from '../../components/EmptyState';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -17,16 +18,16 @@ import {
 } from '../../components/ui/alert-dialog';
 
 const CATEGORIES = [
-  { value: 'todos', label: 'Todos', color: 'bg-gray-100 text-gray-700' },
-  { value: 'geral', label: 'Geral', color: 'bg-blue-100 text-blue-700' },
-  { value: 'sugestao', label: 'Sugestao', color: 'bg-green-100 text-green-700' },
-  { value: 'discussao', label: 'Discussao', color: 'bg-purple-100 text-purple-700' },
-  { value: 'aviso', label: 'Aviso', color: 'bg-orange-100 text-orange-700' },
+  { value: 'todos', label: 'Todos', color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
+  { value: 'geral', label: 'Geral', color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
+  { value: 'sugestao', label: 'Sugestao', color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
+  { value: 'discussao', label: 'Discussao', color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
+  { value: 'aviso', label: 'Aviso', color: 'bg-[#FFFBEB] text-[#B45309]' },
 ];
 
 const getCategoryStyle = (cat) => {
   const found = CATEGORIES.find(c => c.value === cat);
-  return found?.color || 'bg-gray-100 text-gray-700';
+  return found?.color || 'bg-[#F5F5F5] text-[#3A3A3A]';
 };
 
 const getCategoryLabel = (cat) => {
@@ -78,8 +79,7 @@ const CommentSection = ({ postId, commentCount, user }) => {
     <div className="mt-4 pt-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
       <button
         onClick={() => setExpanded((p) => !p)}
-        className="flex items-center gap-2 text-sm transition-colors"
-        style={{ color: 'var(--text-muted)' }}
+        className="flex items-center gap-2 text-sm transition-colors text-muted-auto"
         data-testid={`toggle-comments-${postId}`}
       >
         <MessageCircle className="w-4 h-4" />
@@ -92,22 +92,22 @@ const CommentSection = ({ postId, commentCount, user }) => {
             <div className="mt-3 space-y-3">
               {loading ? (
                 <div className="flex justify-center py-3">
-                  <div className="w-5 h-5 border-2 border-carmesim border-t-transparent rounded-full animate-spin" />
+                  <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : comments.length === 0 ? (
-                <p className="text-sm py-2" style={{ color: 'var(--text-muted)' }}>Nenhum comentario ainda. Seja o primeiro!</p>
+                <p className="text-sm py-2 text-muted-auto">Nenhum comentario ainda. Seja o primeiro!</p>
               ) : (
                 comments.map((comment) => (
                   <div key={comment.id} className="flex gap-3 group" data-testid={`comment-${comment.id}`}>
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                      style={{ backgroundColor: 'var(--surface-border)', color: 'var(--text-primary)' }}>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 text-grafite-auto"
+                      style={{ backgroundColor: 'var(--surface-border)' }}>
                       {comment.user_name?.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--surface-card-hover)' }}>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{comment.user_name}</span>
+                        <span className="text-sm font-semibold text-grafite-auto">{comment.user_name}</span>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                          <span className="text-xs text-muted-auto">
                             {format(new Date(comment.created_at), "dd MMM HH:mm", { locale: ptBR })}
                           </span>
                           {(user?.role === 'admin' || user?.role === 'moderador' || user?.id === comment.user_id) && (
@@ -122,7 +122,7 @@ const CommentSection = ({ postId, commentCount, user }) => {
                           )}
                         </div>
                       </div>
-                      <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>{comment.content}</p>
+                      <p className="text-sm mt-1 text-secondary-auto">{comment.content}</p>
                     </div>
                   </div>
                 ))
@@ -188,33 +188,33 @@ const PendingPostsPanel = () => {
     <div className="card-technical rounded-xl overflow-hidden" data-testid="pending-posts-panel">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-4 bg-orange-50 hover:bg-orange-100 transition-colors"
+        className="w-full flex items-center justify-between p-4 bg-[#FFFBEB] hover:bg-[#FEF3C7] transition-colors"
       >
         <div className="flex items-center gap-3">
-          <Clock className="w-5 h-5 text-orange-600" />
-          <span className="font-semibold text-orange-800">
+          <Clock className="w-5 h-5 text-[#B45309]" />
+          <span className="font-semibold text-[#B45309]">
             {posts.length} post{posts.length !== 1 ? 's' : ''} pendente{posts.length !== 1 ? 's' : ''}
           </span>
         </div>
-        {expanded ? <ChevronUp className="w-5 h-5 text-orange-600" /> : <ChevronDown className="w-5 h-5 text-orange-600" />}
+        {expanded ? <ChevronUp className="w-5 h-5 text-[#B45309]" /> : <ChevronDown className="w-5 h-5 text-[#B45309]" />}
       </button>
 
       {expanded && (
           <div className="overflow-hidden animate-fade-up">
             <div className="p-4 space-y-4">
               {loading ? (
-                <div className="flex justify-center py-4"><div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
+                <div className="flex justify-center py-4"><div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" /></div>
               ) : (
                 posts.map((post) => (
-                  <div key={post.id} className="border border-orange-200 rounded-lg p-4 bg-orange-50/50" data-testid={`pending-post-${post.id}`}>
+                  <div key={post.id} className="border border-[#FDE68A] rounded-lg p-4 bg-[#FFFBEB]/50" data-testid={`pending-post-${post.id}`}>
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-orange-200 rounded-full flex items-center justify-center text-sm font-bold text-orange-800">
+                        <div className="w-8 h-8 bg-[#FEF3C7] rounded-full flex items-center justify-center text-sm font-bold text-[#B45309]">
                           {post.user_name?.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{post.user_name}</span>
-                          <span className="text-xs ml-2" style={{ color: 'var(--text-muted)' }}>
+                          <span className="font-semibold text-sm text-grafite-auto">{post.user_name}</span>
+                          <span className="text-xs ml-2 text-muted-auto">
                             {format(new Date(post.created_at), "dd MMM HH:mm", { locale: ptBR })}
                           </span>
                         </div>
@@ -223,7 +223,7 @@ const PendingPostsPanel = () => {
                         {getCategoryLabel(post.category || 'geral')}
                       </span>
                     </div>
-                    <p className="text-sm mb-3 whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>{post.content}</p>
+                    <p className="text-sm mb-3 whitespace-pre-wrap text-secondary-auto">{post.content}</p>
                     <div className="flex gap-2 justify-end">
                       <button onClick={() => rejectMutation.mutate(post.id)}
                         className="flex items-center gap-1 px-3 py-1.5 text-sm text-carmesim border border-carmesim/30 rounded-lg hover:bg-carmesim/10 transition-colors"
@@ -356,7 +356,7 @@ export const MuralPage = () => {
             <MessageSquare className="w-6 h-6 text-carmesim flex-shrink-0 mt-1" />
             <div>
               <h3 className="font-semibold text-lg text-carmesim mb-2">Acesso Restrito</h3>
-              <p style={{ color: 'var(--text-secondary)' }}>
+              <p className="text-secondary-auto">
                 Apenas socios com status ativo podem participar no mural. Por favor, regularize a sua situacao.
               </p>
             </div>
@@ -372,7 +372,7 @@ export const MuralPage = () => {
         <div className="card-technical rounded-xl p-5 sm:p-6 animate-fade-up">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block font-mono text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>
+              <label className="block font-mono text-xs uppercase tracking-widest mb-2 text-muted-auto">
                 Nova Mensagem
               </label>
               <textarea
@@ -387,7 +387,7 @@ export const MuralPage = () => {
 
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-2">
-                <label className="text-xs uppercase tracking-wider font-mono" style={{ color: 'var(--text-muted)' }}>Categoria:</label>
+                <label className="text-xs uppercase tracking-wider font-mono text-muted-auto">Categoria:</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
@@ -402,7 +402,7 @@ export const MuralPage = () => {
 
               <div className="flex items-center gap-3">
                 {!canModerate && (
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Aguarda aprovacao</p>
+                  <p className="text-xs text-muted-auto">Aguarda aprovacao</p>
                 )}
                 <button
                   type="submit"
@@ -428,18 +428,18 @@ export const MuralPage = () => {
       {/* Search + Filter Bar */}
       <div className="space-y-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-auto" />
           <input
             type="text"
             placeholder="Pesquisar no mural..."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+            className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
             data-testid="mural-search-input"
           />
         </div>
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          <Filter className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+          <Filter className="w-4 h-4 flex-shrink-0 text-muted-auto" />
           {CATEGORIES.map(c => (
             <button
               key={c.value}
@@ -464,13 +464,12 @@ export const MuralPage = () => {
             <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filteredPosts.length === 0 ? (
-          <div className="card-technical rounded-xl p-12 text-center" data-testid="no-posts">
-            <MessageSquare className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
-            <p style={{ color: 'var(--text-secondary)' }}>
-              {searchText ? 'Nenhum resultado encontrado' : 'Nenhuma mensagem no mural ainda'}
-            </p>
-            {isAtivo && !searchText && <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Seja o primeiro a publicar!</p>}
-          </div>
+          <EmptyState
+            icon={MessageSquare}
+            title={searchText ? 'Nenhum resultado encontrado' : 'Nenhuma mensagem no mural ainda'}
+            description={isAtivo && !searchText ? 'Seja o primeiro a publicar!' : undefined}
+            testId="no-posts"
+          />
         ) : (
           filteredPosts.map((post, index) => {
             const isLiked = (post.likes || []).includes(user?.id);
@@ -478,7 +477,7 @@ export const MuralPage = () => {
 
             return (
               <div key={post.id}
-                className="card-technical rounded-xl p-5 sm:p-6 ${post.pinned ? 'border-l-4 border-l-carmesim' : ''} animate-fade-up"
+                className={`card-technical rounded-xl p-5 sm:p-6 ${post.pinned ? 'border-l-4 border-l-carmesim' : ''} animate-fade-up`}
                 data-testid={`wall-post-${post.id}`}>
                 {post.pinned && (
                   <div className="flex items-center gap-1 text-xs text-carmesim font-semibold mb-3">
@@ -494,12 +493,12 @@ export const MuralPage = () => {
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{post.user_name}</span>
+                          <span className="font-semibold text-grafite-auto">{post.user_name}</span>
                           <span className={`text-xs px-2 py-0.5 rounded-full ${getCategoryStyle(post.category || 'geral')}`}>
                             {getCategoryLabel(post.category || 'geral')}
                           </span>
                         </div>
-                        <div className="font-mono text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        <div className="font-mono text-xs mt-0.5 text-muted-auto">
                           {format(new Date(post.created_at), "dd 'de' MMMM 'de' yyyy 'as' HH:mm", { locale: ptBR })}
                         </div>
                       </div>
@@ -530,15 +529,14 @@ export const MuralPage = () => {
                       )}
                     </div>
 
-                    <p className="leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>{post.content}</p>
+                    <p className="leading-relaxed whitespace-pre-wrap text-secondary-auto">{post.content}</p>
 
                     <div className="flex items-center gap-4 mt-4">
                       <button
                         onClick={() => likeMutation.mutate(post.id)}
                         className={`flex items-center gap-1.5 text-sm transition-colors ${
-                          isLiked ? 'text-carmesim font-semibold' : 'hover:text-carmesim'
+                          isLiked ? 'text-carmesim font-semibold' : 'hover:text-carmesim text-muted-auto'
                         }`}
-                        style={!isLiked ? { color: 'var(--text-muted)' } : undefined}
                         data-testid={`like-post-${post.id}`}
                       >
                         <Heart className={`w-4 h-4 ${isLiked ? 'fill-carmesim' : ''}`} />
@@ -567,7 +565,7 @@ export const MuralPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-[#C7202F] hover:bg-[#B91C1C]"
               onClick={() => { deleteMutation.mutate(confirmDeletePost); setConfirmDeletePost(null); }}
             >
               Remover

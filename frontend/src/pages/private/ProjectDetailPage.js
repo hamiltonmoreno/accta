@@ -8,22 +8,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, CheckCircle, Clock, Plus, Trash2, Send,
   DollarSign, Target, MessageSquare, Calendar, Users,
-  Pencil, Eye, EyeOff, X, AlertCircle, Flag,
+  Pencil, Eye, EyeOff, X, AlertCircle,
 } from 'lucide-react';
-
-const STATUS_CONFIG = {
-  proposta: { label: 'Proposta', color: 'bg-amber-100 text-amber-700' },
-  aprovado: { label: 'Aprovado', color: 'bg-blue-100 text-blue-700' },
-  em_curso: { label: 'Em Curso', color: 'bg-green-100 text-green-700' },
-  concluido: { label: 'Concluido', color: 'bg-gray-100 text-gray-600' },
-  cancelado: { label: 'Cancelado', color: 'bg-red-100 text-red-600' },
-};
-
-const PRIORITY_CONFIG = {
-  baixa: { label: 'Baixa', color: 'text-gray-500' },
-  media: { label: 'Media', color: 'text-blue-500' },
-  alta: { label: 'Alta', color: 'text-carmesim' },
-};
+import {
+  PROJECT_STATUS_CONFIG, PROJECT_STATUS_FALLBACK,
+  TASK_PRIORITY_CONFIG, TASK_PRIORITY_FALLBACK,
+  getStatusConfig,
+} from '../../lib/statusConfig';
+import { EmptyState } from '../../components/EmptyState';
 
 const TabBtn = ({ active, label, icon: Icon, onClick, badge, testId }) => (
   <button onClick={onClick} data-testid={testId}
@@ -80,8 +72,8 @@ const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
   const handleDelete = (taskId) => deleteMutation.mutate(taskId);
 
   const taskStatusIcon = (status) => {
-    if (status === 'concluido') return <CheckCircle className="w-4 h-4 text-green-500" />;
-    if (status === 'em_curso') return <Clock className="w-4 h-4 text-blue-500" />;
+    if (status === 'concluido') return <CheckCircle className="w-4 h-4 text-[#16A34A]" />;
+    if (status === 'em_curso') return <Clock className="w-4 h-4 text-[#2563EB]" />;
     return <div className="w-4 h-4 rounded-full border-2 border-gray-300" />;
   };
 
@@ -99,25 +91,25 @@ const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
         <div className="bg-white border border-gray-200/80 rounded-xl p-4 space-y-3 animate-fade-up">
           <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
             placeholder="Titulo da tarefa" data-testid="task-title-input"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" />
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none" />
           <textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
             placeholder="Descricao (opcional)"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none resize-none" />
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none resize-none" />
           <div className="flex flex-wrap gap-2">
             <select value={form.assignee_id} onChange={(e) => setForm({ ...form, assignee_id: e.target.value })}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm flex-1 min-w-[140px] focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm flex-1 min-w-[140px] focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
               data-testid="task-assignee-select">
               <option value="">Sem responsavel</option>
               {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
             <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none">
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none">
               <option value="baixa">Baixa</option>
               <option value="media">Media</option>
               <option value="alta">Alta</option>
             </select>
             <input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" />
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none" />
             <button onClick={handleAdd} disabled={saving} className="btn-primary text-sm px-5" data-testid="save-task-btn">
               {saving ? '...' : 'Adicionar'}
             </button>
@@ -126,14 +118,12 @@ const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
       )}
 
       {tasks.length === 0 ? (
-        <div className="text-center py-10">
-          <CheckCircle className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-          <p className="text-sm text-gray-400">Nenhuma tarefa criada</p>
-        </div>
+        <EmptyState icon={CheckCircle} title="Nenhuma tarefa criada" className="p-6 sm:p-8" testId="no-tasks" />
       ) : (
         <div className="space-y-1.5">
           {tasks.map((task) => {
-            const pri = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.media;
+            const pri = getStatusConfig(TASK_PRIORITY_CONFIG, task.priority, TASK_PRIORITY_FALLBACK);
+            const PriIcon = pri.icon;
             const canUpdateTask = canManage || task.assignee_id === user?.id;
             return (
               <div key={task.id}
@@ -149,20 +139,20 @@ const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
                   {taskStatusIcon(task.status)}
                 </button>
                 <div className="flex-1 min-w-0">
-                  <div className={`font-medium text-sm ${task.status === 'concluido' ? 'line-through text-gray-400' : 'text-grafite'}`}>
+                  <div className={`font-medium text-sm ${task.status === 'concluido' ? 'line-through text-[#6B7280]' : 'text-grafite'}`}>
                     {task.title}
                   </div>
                   {task.description && <p className="text-xs text-gray-500 mt-0.5">{task.description}</p>}
-                  <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
+                  <div className="flex items-center gap-3 mt-1.5 text-xs text-[#6B7280]">
                     {task.assignee_name && <span className="flex items-center gap-1"><Users className="w-3 h-3" />{task.assignee_name}</span>}
                     {task.due_date && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{task.due_date}</span>}
-                    <span className={`flex items-center gap-1 ${pri.color} font-semibold`}>
-                      <Flag className="w-3 h-3" />{pri.label}
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold ${pri.className}`}>
+                      <PriIcon className="w-3 h-3" aria-hidden="true" />{pri.label}
                     </span>
                   </div>
                 </div>
                 {canManage && (
-                  <button onClick={() => handleDelete(task.id)} className="p-1 text-gray-400 hover:text-red-500 flex-shrink-0" aria-label="Apagar tarefa">
+                  <button onClick={() => handleDelete(task.id)} className="p-1 text-gray-400 hover:text-[#B91C1C] flex-shrink-0" aria-label="Apagar tarefa">
                     <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 )}
@@ -214,7 +204,7 @@ const CommentsTab = ({ project, comments, onReload }) => {
         <div className="flex-1">
           <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)}
             placeholder="Partilhe uma ideia ou comentario..."
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none resize-none"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none resize-none"
             data-testid="comment-input" />
           <div className="flex justify-end mt-2">
             <button onClick={handleSend} disabled={sending || !text.trim()}
@@ -227,10 +217,7 @@ const CommentsTab = ({ project, comments, onReload }) => {
 
       {/* List */}
       {comments.length === 0 ? (
-        <div className="text-center py-10">
-          <MessageSquare className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-          <p className="text-sm text-gray-400">Nenhum comentario ainda</p>
-        </div>
+        <EmptyState icon={MessageSquare} title="Nenhum comentario ainda" className="p-6 sm:p-8" testId="no-comments" />
       ) : (
         <div className="space-y-2">
           {comments.map((c) => (
@@ -240,11 +227,11 @@ const CommentsTab = ({ project, comments, onReload }) => {
                   {c.user_name?.charAt(0)?.toUpperCase() || '?'}
                 </div>
                 <span className="font-semibold text-sm text-grafite">{c.user_name}</span>
-                <span className="text-xs text-gray-400 ml-auto">
+                <span className="text-xs text-[#6B7280] ml-auto">
                   {c.created_at ? new Date(c.created_at).toLocaleDateString('pt') : ''}
                 </span>
                 {(c.user_id === user?.id || user?.role === 'admin') && (
-                  <button onClick={() => handleDelete(c.id)} className="p-1 text-gray-400 hover:text-red-500" aria-label="Apagar comentário">
+                  <button onClick={() => handleDelete(c.id)} className="p-1 text-gray-400 hover:text-[#B91C1C]" aria-label="Apagar comentário">
                     <Trash2 className="w-3 h-3" aria-hidden="true" />
                   </button>
                 )}
@@ -304,12 +291,12 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
         </div>
         <div className="bg-white border border-gray-200/80 rounded-xl p-4">
           <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Gasto</div>
-          <div className="font-mono text-xl font-bold text-red-600" data-testid="budget-spent">{spent.toLocaleString('pt')} CVE</div>
-          {budget > 0 && <div className="text-xs text-gray-400 mt-0.5">{pct}% do orcamento</div>}
+          <div className="font-mono text-xl font-bold text-[#3A3A3A]" data-testid="budget-spent">{spent.toLocaleString('pt')} CVE</div>
+          {budget > 0 && <div className="text-xs text-[#6B7280] mt-0.5">{pct}% do orcamento</div>}
         </div>
         <div className="bg-white border border-gray-200/80 rounded-xl p-4">
           <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Disponivel</div>
-          <div className={`font-mono text-xl font-bold ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`} data-testid="budget-remaining">
+          <div className={`font-mono text-xl font-bold ${remaining >= 0 ? 'text-[#15803D]' : 'text-[#B91C1C]'}`} data-testid="budget-remaining">
             {remaining.toLocaleString('pt')} CVE
           </div>
         </div>
@@ -323,7 +310,7 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
             <span className="font-mono font-bold">{pct}%</span>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-2.5">
-            <div className={`h-2.5 rounded-full transition-all ${pct > 90 ? 'bg-red-500' : pct > 70 ? 'bg-amber-500' : 'bg-green-500'}`}
+            <div className={`h-2.5 rounded-full transition-all ${pct > 90 ? 'bg-[#C7202F]' : pct > 70 ? 'bg-[#D97706]' : 'bg-[#16A34A]'}`}
               style={{ width: `${Math.min(pct, 100)}%` }} />
           </div>
         </div>
@@ -341,21 +328,21 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
       {showAdd && (
         <div className="bg-white border border-gray-200/80 rounded-xl p-4 flex flex-wrap items-end gap-2 animate-fade-up">
           <div className="flex-1 min-w-[180px]">
-            <label className="text-xs text-gray-400 uppercase tracking-wider block mb-1">Descricao</label>
+            <label className="text-xs text-[#6B7280] uppercase tracking-wider block mb-1">Descricao</label>
             <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
               data-testid="expense-desc-input" />
           </div>
           <div className="w-28">
-            <label className="text-xs text-gray-400 uppercase tracking-wider block mb-1">Valor (CVE)</label>
+            <label className="text-xs text-[#6B7280] uppercase tracking-wider block mb-1">Valor (CVE)</label>
             <input type="number" inputMode="decimal" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
               data-testid="expense-amount-input" />
           </div>
           <div className="w-36">
-            <label className="text-xs text-gray-400 uppercase tracking-wider block mb-1">Data</label>
+            <label className="text-xs text-[#6B7280] uppercase tracking-wider block mb-1">Data</label>
             <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none" />
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none" />
           </div>
           <button onClick={handleAdd} disabled={saving} className="btn-primary text-sm px-5" data-testid="save-expense-btn">
             {saving ? '...' : 'Adicionar'}
@@ -364,14 +351,11 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
       )}
 
       {expenses.length === 0 ? (
-        <div className="text-center py-8">
-          <DollarSign className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-          <p className="text-sm text-gray-400">Nenhuma despesa registrada</p>
-        </div>
+        <EmptyState icon={DollarSign} title="Nenhuma despesa registrada" className="p-6 sm:p-8" testId="no-expenses" />
       ) : (
         <div className="bg-white border border-gray-200/80 rounded-xl overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50/80 text-gray-400 uppercase text-xs tracking-wider">
+            <thead className="bg-gray-50/80 text-[#6B7280] uppercase text-xs tracking-wider">
               <tr>
                 <th className="px-4 py-3 text-left font-semibold">Descricao</th>
                 <th className="px-4 py-3 text-right font-semibold">Valor</th>
@@ -384,11 +368,11 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
               {expenses.map(e => (
                 <tr key={e.id} className="border-t border-gray-50" data-testid={`expense-${e.id}`}>
                   <td className="px-4 py-3 text-grafite">{e.description}</td>
-                  <td className="px-4 py-3 text-right font-mono font-bold text-red-600">{e.amount.toLocaleString('pt')} CVE</td>
+                  <td className="px-4 py-3 text-right font-mono font-bold text-[#3A3A3A]">{e.amount.toLocaleString('pt')} CVE</td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{e.date}</td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{e.created_by_name}</td>
                   {canManage && (
-                    <td className="px-4 py-3"><button onClick={() => handleDelete(e.id)} className="p-1 text-gray-400 hover:text-red-500" aria-label="Apagar despesa"><Trash2 className="w-3.5 h-3.5" aria-hidden="true" /></button></td>
+                    <td className="px-4 py-3"><button onClick={() => handleDelete(e.id)} className="p-1 text-gray-400 hover:text-[#B91C1C]" aria-label="Apagar despesa"><Trash2 className="w-3.5 h-3.5" aria-hidden="true" /></button></td>
                   )}
                 </tr>
               ))}
@@ -452,16 +436,16 @@ const TimelineTab = ({ project, milestones, canManage, onReload }) => {
       {showAdd && (
         <div className="bg-white border border-gray-200/80 rounded-xl p-4 flex flex-wrap items-end gap-2 animate-fade-up">
           <div className="flex-1 min-w-[180px]">
-            <label className="text-xs text-gray-400 uppercase tracking-wider block mb-1">Titulo</label>
+            <label className="text-xs text-[#6B7280] uppercase tracking-wider block mb-1">Titulo</label>
             <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="Ex: Reservar local do evento"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
               data-testid="milestone-title-input" />
           </div>
           <div className="w-40">
-            <label className="text-xs text-gray-400 uppercase tracking-wider block mb-1">Data</label>
+            <label className="text-xs text-[#6B7280] uppercase tracking-wider block mb-1">Data</label>
             <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
               data-testid="milestone-date-input" />
           </div>
           <button onClick={handleAdd} disabled={saving} className="btn-primary text-sm px-5" data-testid="save-milestone-btn">
@@ -471,10 +455,7 @@ const TimelineTab = ({ project, milestones, canManage, onReload }) => {
       )}
 
       {milestones.length === 0 ? (
-        <div className="text-center py-10">
-          <Target className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-          <p className="text-sm text-gray-400">Nenhum milestone definido</p>
-        </div>
+        <EmptyState icon={Target} title="Nenhum milestone definido" className="p-6 sm:p-8" testId="no-milestones" />
       ) : (
         <div className="relative pl-6">
           {/* Timeline line */}
@@ -484,17 +465,17 @@ const TimelineTab = ({ project, milestones, canManage, onReload }) => {
               <div key={m.id} className="relative flex items-start gap-4" data-testid={`milestone-${m.id}`}>
                 <button onClick={() => toggleComplete(m)}
                   className={`absolute -left-3.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 z-10 transition-colors ${
-                    m.completed ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-gray-300'
+                    m.completed ? 'bg-[#16A34A] border-[#16A34A] text-white' : 'bg-white border-gray-300'
                   }`} aria-label={m.completed ? 'Marcar milestone como pendente' : 'Marcar milestone como concluído'} data-testid={`toggle-milestone-${m.id}`}>
                   {m.completed && <CheckCircle className="w-3 h-3" aria-hidden="true" />}
                 </button>
                 <div className="bg-white border border-gray-200/80 rounded-xl p-4 flex-1 ml-2">
                   <div className="flex items-center justify-between">
-                    <span className={`font-semibold text-sm ${m.completed ? 'text-gray-400 line-through' : 'text-grafite'}`}>{m.title}</span>
+                    <span className={`font-semibold text-sm ${m.completed ? 'text-[#6B7280] line-through' : 'text-grafite'}`}>{m.title}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400 font-mono">{m.date}</span>
+                      <span className="text-xs text-[#6B7280] font-mono">{m.date}</span>
                       {canManage && (
-                        <button onClick={() => handleDelete(m.id)} className="p-1 text-gray-400 hover:text-red-500" aria-label="Apagar milestone">
+                        <button onClick={() => handleDelete(m.id)} className="p-1 text-gray-400 hover:text-[#B91C1C]" aria-label="Apagar milestone">
                           <Trash2 className="w-3 h-3" aria-hidden="true" />
                         </button>
                       )}
@@ -561,12 +542,13 @@ const ProjectDetailPage = () => {
     onError: (err) => toast.error(err.response?.data?.detail || 'Erro'),
   });
 
-  if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-3 border-carmesim border-t-transparent rounded-full animate-spin" /></div>;
+  if (loading) return <div className="flex justify-center py-20"><div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" /></div>;
   if (!project) return null;
 
   const canManage = isAdmin || project.created_by === user?.id || project.responsible_id === user?.id;
   const canEditProjectStatus = isAdmin;
-  const st = STATUS_CONFIG[project.status] || STATUS_CONFIG.proposta;
+  const st = getStatusConfig(PROJECT_STATUS_CONFIG, project.status, PROJECT_STATUS_FALLBACK);
+  const StatusIcon = st.icon;
 
   const handleStatusChange = (newStatus) => {
     updateMutation.mutate(
@@ -574,7 +556,7 @@ const ProjectDetailPage = () => {
       {
         onSuccess: () => {
           onReload();
-          toast.success(`Status atualizado para ${STATUS_CONFIG[newStatus]?.label || newStatus}`);
+          toast.success(`Status atualizado para ${PROJECT_STATUS_CONFIG[newStatus]?.label || newStatus}`);
         },
       },
     );
@@ -586,7 +568,7 @@ const ProjectDetailPage = () => {
   const handleProgressChange = (val) => updateMutation.mutate({ progress: parseInt(val) });
 
   return (
-    <div className="space-y-5 sm:space-y-6">
+    <div className="space-y-6">
       {/* Back + Title */}
       <div>
         <button onClick={() => navigate('/projetos')} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-carmesim mb-3 transition-colors" data-testid="back-to-projects">
@@ -598,26 +580,31 @@ const ProjectDetailPage = () => {
             <div className="flex items-center gap-3 mt-1.5 flex-wrap">
               <div className="relative">
                 <button onClick={() => canEditProjectStatus && setEditingStatus(!editingStatus)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${st.color} ${canEditProjectStatus ? 'cursor-pointer hover:opacity-80' : ''}`}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${st.className} ${canEditProjectStatus ? 'cursor-pointer hover:opacity-80' : ''}`}
                   data-testid="project-status-badge">
+                  <StatusIcon className="w-3 h-3" aria-hidden="true" />
                   {st.label}
                 </button>
                 {editingStatus && canEditProjectStatus && (
                   <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1 min-w-[140px]">
-                    {Object.entries(STATUS_CONFIG).map(([key, val]) => (
-                      <button key={key} onClick={() => handleStatusChange(key)}
-                        className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${val.color.split(' ')[0]}`} />
-                        {val.label}
-                      </button>
-                    ))}
+                    {Object.entries(PROJECT_STATUS_CONFIG).map(([key, val]) => {
+                      const ValIcon = val.icon;
+                      return (
+                        <button key={key} onClick={() => handleStatusChange(key)}
+                          className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${val.dotClassName}`} />
+                          <ValIcon className="w-3.5 h-3.5 text-[#6B7280]" aria-hidden="true" />
+                          {val.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
               {project.visibility === 'privado' && (
                 <span className="flex items-center gap-1 text-xs text-carmesim font-semibold"><EyeOff className="w-3.5 h-3.5" /> Privado</span>
               )}
-              {project.category && <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{project.category}</span>}
+              {project.category && <span className="text-xs text-[#6B7280] bg-gray-100 px-2 py-0.5 rounded-full">{project.category}</span>}
             </div>
           </div>
 
@@ -633,7 +620,7 @@ const ProjectDetailPage = () => {
       {/* Info cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-white border border-gray-200/80 rounded-xl p-3.5">
-          <div className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Progresso</div>
+          <div className="text-xs text-[#6B7280] uppercase tracking-wider mb-0.5">Progresso</div>
           <div className="flex items-center gap-2">
             {canManage ? (
               <input type="range" min="0" max="100" step="5" value={project.progress}
@@ -648,15 +635,15 @@ const ProjectDetailPage = () => {
           </div>
         </div>
         <div className="bg-white border border-gray-200/80 rounded-xl p-3.5">
-          <div className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Responsavel</div>
+          <div className="text-xs text-[#6B7280] uppercase tracking-wider mb-0.5">Responsavel</div>
           <div className="text-sm font-medium text-grafite truncate">{project.responsible_name || project.created_by_name || '-'}</div>
         </div>
         <div className="bg-white border border-gray-200/80 rounded-xl p-3.5">
-          <div className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Periodo</div>
+          <div className="text-xs text-[#6B7280] uppercase tracking-wider mb-0.5">Periodo</div>
           <div className="text-xs text-gray-600">{project.start_date || '?'} - {project.end_date || '?'}</div>
         </div>
         <div className="bg-white border border-gray-200/80 rounded-xl p-3.5">
-          <div className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Orcamento</div>
+          <div className="text-xs text-[#6B7280] uppercase tracking-wider mb-0.5">Orcamento</div>
           <div className="font-mono text-sm font-bold text-grafite">{(project.budget || 0).toLocaleString('pt')} CVE</div>
         </div>
       </div>

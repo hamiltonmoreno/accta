@@ -140,13 +140,19 @@ html, body {
 
     /* Buttons */
     .btn-primary {
-        @apply bg-carmesim text-white hover:bg-carmesim-dark h-10 sm:h-11 px-5 sm:px-6 rounded-lg uppercase tracking-wider font-bold text-xs sm:text-sm transition-colors;
+        @apply bg-carmesim text-white hover:bg-carmesim-dark h-10 sm:h-11 px-5 sm:px-6 rounded-lg font-semibold text-sm transition-colors;
     }
     .btn-secondary {
-        @apply bg-grafite text-white hover:bg-grafite-dark h-10 sm:h-11 px-5 sm:px-6 rounded-lg uppercase tracking-wider font-bold text-xs sm:text-sm transition-colors;
+        @apply h-10 sm:h-11 px-5 sm:px-6 rounded-lg font-semibold text-sm transition-colors;
+        background-color: var(--surface-card);
+        color: var(--text-primary);
+        border: 1px solid #D1D5DB;
+    }
+    .btn-secondary:hover {
+        background-color: var(--surface-card-hover);
     }
     .btn-outline {
-        @apply h-10 sm:h-11 px-5 sm:px-6 rounded-lg text-xs sm:text-sm font-semibold transition-colors;
+        @apply h-10 sm:h-11 px-5 sm:px-6 rounded-lg text-sm font-semibold transition-colors;
         border: 1px solid var(--surface-border);
         color: var(--text-primary);
     }
@@ -206,4 +212,24 @@ html, body {
 .sidebar-scroll {
     -ms-overflow-style: none;
     scrollbar-width: none;
+}
+
+/* Acessibilidade — respeitar prefers-reduced-motion (SKILL §Acceptance).
+ * Anula animações/transições decorativas para utilizadores que pedem
+ * movimento reduzido. scroll-behavior também volta a auto. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    .animate-fadeIn,
+    .animate-fade-up,
+    .animate-fade-in,
+    .animate-fade-out {
+        animation: none !important;
+    }
 }

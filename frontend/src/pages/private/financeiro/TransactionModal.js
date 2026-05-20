@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { financesAPI } from '../../../utils/api';
-import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import { toast } from 'sonner';
-import { X } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from './constants';
 
 export const TransactionModal = ({ tx, onClose, onSaved }) => {
-  useBodyScrollLock(true);
   const isEdit = !!tx;
   const [form, setForm] = useState({
     type: tx?.type || 'receita',
@@ -56,26 +54,17 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-sm"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="flex min-h-full items-center justify-center p-4">
-      <div className="rounded-xl shadow-2xl w-full max-w-md animate-fade-up"
-        style={{ backgroundColor: 'var(--surface-card)' }}
-        onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5" style={{ borderBottom: '1px solid var(--surface-border)' }}>
-          <h2 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>{isEdit ? 'Editar Transacao' : 'Nova Transacao'}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" aria-label="Fechar" data-testid="close-modal-btn"><X className="w-5 h-5" aria-hidden="true" /></button>
-        </div>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-md rounded-xl p-0 gap-0 max-h-[90vh] overflow-y-auto" data-testid="transaction-modal">
+        <DialogHeader className="p-5 border-b border-gray-200 text-left space-y-0">
+          <DialogTitle className="font-bold text-lg text-grafite">{isEdit ? 'Editar Transacao' : 'Nova Transacao'}</DialogTitle>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Tipo</label>
             <div className="flex gap-2">
-              {[{ val: 'receita', label: 'Receita', color: 'bg-green-600' }, { val: 'despesa', label: 'Despesa', color: 'bg-red-600' }].map((opt) => (
+              {[{ val: 'receita', label: 'Receita', color: 'bg-[#16A34A]' }, { val: 'despesa', label: 'Despesa', color: 'bg-[#C7202F]' }].map((opt) => (
                 <button
                   key={opt.val}
                   type="button"
@@ -96,7 +85,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
             <select
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
               data-testid="category-select"
             >
               {categories.map((c) => (
@@ -112,7 +101,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Ex: Quota mensal Janeiro 2026"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
               data-testid="description-input"
             />
           </div>
@@ -128,7 +117,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
                 placeholder="2000"
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
                 data-testid="amount-input"
               />
             </div>
@@ -138,7 +127,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
                 type="date"
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
                 data-testid="date-input"
               />
             </div>
@@ -151,7 +140,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
               value={form.reference}
               onChange={(e) => setForm({ ...form, reference: e.target.value })}
               placeholder="Ex: FOLHA-202601"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/20 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
               data-testid="reference-input"
             />
           </div>
@@ -165,8 +154,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
             {saving ? 'A guardar...' : isEdit ? 'Atualizar' : 'Criar Transacao'}
           </button>
         </form>
-      </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };

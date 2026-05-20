@@ -15,13 +15,15 @@ import {
 } from 'lucide-react';
 import { format, isFuture, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { EmptyState } from '../../components/EmptyState';
+import { Skeleton } from '../../components/ui/skeleton';
 
 const eventTypeConfig = {
-  assembleia: { icon: CalendarDays, label: 'Assembleia', color: 'bg-blue-100 text-blue-700' },
-  formacao: { icon: GraduationCap, label: 'Formação', color: 'bg-green-100 text-green-700' },
-  social: { icon: PartyPopper, label: 'Evento Social', color: 'bg-pink-100 text-pink-700' },
-  reuniao: { icon: Handshake, label: 'Reunião', color: 'bg-amber-100 text-amber-700' },
-  outro: { icon: Megaphone, label: 'Outro', color: 'bg-gray-100 text-gray-700' },
+  assembleia: { icon: CalendarDays, label: 'Assembleia', color: 'bg-[#EFF6FF] text-[#1D4ED8]' },
+  formacao: { icon: GraduationCap, label: 'Formação', color: 'bg-[#F0FDF4] text-[#15803D]' },
+  social: { icon: PartyPopper, label: 'Evento Social', color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
+  reuniao: { icon: Handshake, label: 'Reunião', color: 'bg-[#FFFBEB] text-[#B45309]' },
+  outro: { icon: Megaphone, label: 'Outro', color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
 };
 
 export const EventosPublicoPage = () => {
@@ -60,7 +62,7 @@ export const EventosPublicoPage = () => {
       <section className="relative py-12 sm:py-20 lg:py-24 bg-grafite overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{ 
-            backgroundImage: 'linear-gradient(rgba(0,255,156,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,156,0.3) 1px, transparent 1px)',
+            backgroundImage: 'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)',
             backgroundSize: '40px 40px'
           }} />
         </div>
@@ -89,7 +91,7 @@ export const EventosPublicoPage = () => {
               <div className="text-sm text-gray-500">Próximos Eventos</div>
             </div>
             <div className="text-center">
-              <div className="font-sans font-bold text-3xl text-gray-400">{pastEvents.length}</div>
+              <div className="font-sans font-bold text-3xl text-[#6B7280]">{pastEvents.length}</div>
               <div className="text-sm text-gray-500">Eventos Realizados</div>
             </div>
           </div>
@@ -109,7 +111,7 @@ export const EventosPublicoPage = () => {
               <button
                 key={f.value}
                 onClick={() => setFilter(f.value)}
-                className={`px-6 py-2 rounded-lg text-sm uppercase tracking-wider transition-all ${
+                className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all ${
                   filter === f.value
                     ? 'bg-grafite text-white'
                     : 'bg-white text-gray-600 hover:bg-gray-50'
@@ -122,19 +124,17 @@ export const EventosPublicoPage = () => {
           </div>
 
           {loading ? (
-            <div className="text-center py-12">
-              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8" data-testid="events-loading">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-72 rounded-xl" />
+              ))}
             </div>
           ) : filteredEvents.length === 0 ? (
-            <div className="text-center py-16">
-              <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 font-medium mb-2">
-                {filter === 'upcoming' ? 'Nenhum evento programado' : 'Nenhum evento encontrado'}
-              </p>
-              <p className="text-sm text-gray-400">
-                Os eventos públicos serão exibidos aqui quando disponíveis
-              </p>
-            </div>
+            <EmptyState
+              icon={Calendar}
+              title={filter === 'upcoming' ? 'Nenhum evento programado' : 'Nenhum evento encontrado'}
+              description="Os eventos públicos serão exibidos aqui quando disponíveis"
+            />
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredEvents.map((event, index) => {
@@ -145,7 +145,7 @@ export const EventosPublicoPage = () => {
 
                 return (
                   <div key={event.id}
-                    className="card-technical rounded-xl overflow-hidden ${isPastEvent ? 'opacity-70' : ''} animate-fade-up"
+                    className={`card-technical rounded-xl overflow-hidden ${isPastEvent ? 'opacity-70' : ''} animate-fade-up`}
                     data-testid={`event-${event.id}`}>
                     {/* Date Header */}
                     <div className="bg-grafite px-6 py-4">
@@ -185,7 +185,7 @@ export const EventosPublicoPage = () => {
                       </div>
 
                       {isPastEvent ? (
-                        <span className="inline-flex items-center gap-2 text-gray-400 font-medium text-sm">
+                        <span className="inline-flex items-center gap-2 text-[#6B7280] font-medium text-sm">
                           Evento realizado
                         </span>
                       ) : (

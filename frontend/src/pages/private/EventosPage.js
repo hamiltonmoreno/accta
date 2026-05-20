@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { eventsAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
 import {
@@ -16,7 +16,6 @@ import {
   MapPin, 
   Users,
   Plus,
-  X,
   Check,
   Loader2,
   UserCheck,
@@ -24,28 +23,10 @@ import {
 } from 'lucide-react';
 import { format, isFuture, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-const getEventStyle = (type) => {
-  const styles = {
-    assembleia: { color: 'bg-blue-100 text-blue-700', border: 'border-blue-500' },
-    formacao: { color: 'bg-green-100 text-green-700', border: 'border-green-500' },
-    social: { color: 'bg-pink-100 text-pink-700', border: 'border-pink-500' },
-    reuniao: { color: 'bg-amber-100 text-amber-700', border: 'border-amber-500' },
-    outro: { color: 'bg-gray-100 text-gray-700', border: 'border-gray-500' },
-  };
-  return styles[type] || styles.outro;
-};
-
-const getEventLabel = (type) => {
-  const labels = {
-    assembleia: 'Assembleia',
-    formacao: 'Formação',
-    social: 'Social',
-    reuniao: 'Reunião',
-    outro: 'Outro',
-  };
-  return labels[type] || 'Outro';
-};
+import {
+  EVENT_TYPE_CONFIG, EVENT_TYPE_FALLBACK, getStatusConfig,
+} from '../../lib/statusConfig';
+import { EmptyState } from '../../components/EmptyState';
 
 export const EventosPage = () => {
   const { user, isAdmin } = useAuth();
@@ -100,7 +81,7 @@ export const EventosPage = () => {
   });
 
   return (
-    <div className="space-y-5 sm:space-y-8">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
           <h1 className="page-title" data-testid="events-title">
@@ -112,7 +93,7 @@ export const EventosPage = () => {
         {isAdmin && (
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center justify-center gap-2 bg-grafite text-white px-4 py-2.5 rounded-lg hover:bg-grafite/90 transition-all font-mono text-xs uppercase tracking-wider touch-target"
+            className="flex items-center justify-center gap-2 bg-carmesim text-white px-4 py-2.5 rounded-lg hover:bg-carmesim-dark transition-all text-sm font-semibold touch-target"
             data-testid="create-event-btn"
           >
             <Plus className="w-4 h-4" />
@@ -126,7 +107,7 @@ export const EventosPage = () => {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-3 sm:px-4 py-2 rounded-lg font-mono text-xs uppercase tracking-wider transition-all whitespace-nowrap touch-target ${
+            className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap touch-target ${
               filter === f ? 'bg-grafite text-white' : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-100'
             }`}
           >
@@ -137,20 +118,20 @@ export const EventosPage = () => {
 
       {loading ? (
         <div className="text-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto text-grafite" />
+          <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filteredEvents.length === 0 ? (
-        <div className="card-technical rounded-xl p-12 text-center">
-          <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 font-medium mb-1">Nenhum evento encontrado</p>
-          <p className="text-sm text-gray-400">
-            {isAdmin ? 'Clique em "Novo Evento" para criar' : 'Os eventos serão exibidos aqui quando disponíveis'}
-          </p>
-        </div>
+        <EmptyState
+          icon={Calendar}
+          title="Nenhum evento encontrado"
+          description={isAdmin ? 'Clique em "Novo Evento" para criar' : 'Os eventos serão exibidos aqui quando disponíveis'}
+          testId="no-events"
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {filteredEvents.map((event, index) => {
-            const style = getEventStyle(event.type);
+            const style = getStatusConfig(EVENT_TYPE_CONFIG, event.type, EVENT_TYPE_FALLBACK);
+            const EventIcon = style.icon;
             const eventDate = new Date(event.date);
             const isPastEvent = isPast(eventDate);
             const isRegistered = event.attendees?.includes(user?.id);
@@ -158,7 +139,7 @@ export const EventosPage = () => {
 
             return (
               <div key={event.id}
-                className="card-technical card-hover overflow-hidden border-l-4 ${style.border} ${isPastEvent ? 'opacity-70' : ''} animate-fade-up"
+                className={`card-technical card-hover overflow-hidden border-l-4 ${style.border} ${isPastEvent ? 'opacity-70' : ''} animate-fade-up`}
                 data-testid={`event-${event.id}`}>
                 <div className="p-4 sm:p-6">
                   <div className="flex items-start justify-between mb-3 sm:mb-4">
@@ -167,10 +148,11 @@ export const EventosPage = () => {
                         <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                       </div>
                       <div>
-                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-mono uppercase ${style.color}`}>
-                          {getEventLabel(event.type)}
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono uppercase ${style.className}`}>
+                          <EventIcon className="w-3 h-3" aria-hidden="true" />
+                          {style.label}
                         </span>
-                        <div className="text-xs text-gray-400 mt-0.5">
+                        <div className="text-xs text-[#6B7280] mt-0.5">
                           {event.visibility === 'socios' ? 'Sócios' : event.visibility === 'direcao' ? 'Direção' : 'Público'}
                         </div>
                       </div>
@@ -210,7 +192,7 @@ export const EventosPage = () => {
                   </div>
 
                   <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-gray-100">
-                    <div className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-400">
+                    <div className="flex items-center gap-1.5 text-xs sm:text-sm text-[#6B7280]">
                       <Users className="w-3.5 h-3.5" />
                       <span>
                         {event.attendees?.length || 0}
@@ -223,19 +205,19 @@ export const EventosPage = () => {
                         {isRegistered ? (
                           <button
                             onClick={() => handleUnregister(event.id)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors font-medium text-xs sm:text-sm"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F0FDF4] text-[#15803D] rounded-lg hover:bg-[#DCFCE7] transition-colors font-medium text-xs sm:text-sm"
                           >
                             <UserCheck className="w-3.5 h-3.5" />
                             Inscrito
                           </button>
                         ) : isFull ? (
-                          <span className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-[#B91C1C] rounded-lg text-xs sm:text-sm">
+                          <span className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FEF2F2] text-[#B91C1C] rounded-lg text-xs sm:text-sm">
                             Lotado
                           </span>
                         ) : (
                           <button
                             onClick={() => handleRegister(event.id)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-grafite text-white rounded-lg hover:bg-grafite/90 transition-colors font-medium text-xs sm:text-sm"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#D1D5DB] text-[#3A3A3A] rounded-lg hover:bg-[#F5F5F5] transition-colors font-semibold text-xs sm:text-sm"
                           >
                             <Plus className="w-3.5 h-3.5" />
                             Inscrever-me
@@ -245,7 +227,7 @@ export const EventosPage = () => {
                     )}
 
                     {isPastEvent && (
-                      <span className="text-xs text-gray-400">Realizado</span>
+                      <span className="text-xs text-[#6B7280]">Realizado</span>
                     )}
                   </div>
                 </div>
@@ -271,7 +253,7 @@ export const EventosPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-[#C7202F] hover:bg-[#B91C1C]"
               onClick={() => { handleDelete(confirmDelete); setConfirmDelete(null); }}
             >
               Eliminar
@@ -284,7 +266,6 @@ export const EventosPage = () => {
 };
 
 const CreateEventModal = ({ onClose }) => {
-  useBodyScrollLock(true);
   const qc = useQueryClient();
   const [formData, setFormData] = useState({
     title: '',
@@ -328,24 +309,15 @@ const CreateEventModal = ({ onClose }) => {
   };
 
   return (
-    <>
-      <div className="fixed inset-0 bg-black/50 z-40 animate-fade-up"
-        onClick={onClose} />
-      <div className="fixed inset-0 z-50 overflow-y-auto animate-fade-up"
-        role="dialog"
-        aria-modal="true">
-        <div className="flex min-h-full items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
-          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
-            <h2 className="font-bold text-xl sm:text-2xl text-grafite">Novo Evento</h2>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Fechar">
-              <X className="w-5 h-5 text-gray-400" aria-hidden="true" />
-            </button>
-          </div>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg rounded-xl p-0 gap-0 max-h-[90vh] overflow-y-auto" data-testid="create-event-modal">
+        <DialogHeader className="p-4 sm:p-6 border-b border-gray-200 text-left space-y-0">
+          <DialogTitle className="font-bold text-xl sm:text-2xl text-grafite">Novo Evento</DialogTitle>
+        </DialogHeader>
 
           <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5">
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Titulo *</label>
+              <label className="block font-mono text-xs uppercase tracking-wider text-[#6B7280] mb-1.5">Titulo *</label>
               <input
                 type="text"
                 value={formData.title}
@@ -357,7 +329,7 @@ const CreateEventModal = ({ onClose }) => {
             </div>
 
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Descricao</label>
+              <label className="block font-mono text-xs uppercase tracking-wider text-[#6B7280] mb-1.5">Descricao</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -369,7 +341,7 @@ const CreateEventModal = ({ onClose }) => {
 
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Tipo *</label>
+                <label className="block font-mono text-xs uppercase tracking-wider text-[#6B7280] mb-1.5">Tipo *</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -383,7 +355,7 @@ const CreateEventModal = ({ onClose }) => {
                 </select>
               </div>
               <div>
-                <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Visibilidade</label>
+                <label className="block font-mono text-xs uppercase tracking-wider text-[#6B7280] mb-1.5">Visibilidade</label>
                 <select
                   value={formData.visibility}
                   onChange={(e) => setFormData({ ...formData, visibility: e.target.value })}
@@ -398,7 +370,7 @@ const CreateEventModal = ({ onClose }) => {
 
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Data *</label>
+                <label className="block font-mono text-xs uppercase tracking-wider text-[#6B7280] mb-1.5">Data *</label>
                 <input
                   type="date"
                   value={formData.date}
@@ -408,7 +380,7 @@ const CreateEventModal = ({ onClose }) => {
                 />
               </div>
               <div>
-                <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Hora *</label>
+                <label className="block font-mono text-xs uppercase tracking-wider text-[#6B7280] mb-1.5">Hora *</label>
                 <input
                   type="time"
                   value={formData.time}
@@ -420,7 +392,7 @@ const CreateEventModal = ({ onClose }) => {
             </div>
 
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Local *</label>
+              <label className="block font-mono text-xs uppercase tracking-wider text-[#6B7280] mb-1.5">Local *</label>
               <input
                 type="text"
                 value={formData.location}
@@ -432,7 +404,7 @@ const CreateEventModal = ({ onClose }) => {
             </div>
 
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-gray-400 mb-1.5">Limite de Participantes</label>
+              <label className="block font-mono text-xs uppercase tracking-wider text-[#6B7280] mb-1.5">Limite de Participantes</label>
               <input
                 type="number"
                 inputMode="numeric"
@@ -448,23 +420,21 @@ const CreateEventModal = ({ onClose }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors font-mono text-xs uppercase tracking-wider"
+                className="flex-1 px-4 py-2.5 bg-white border border-[#D1D5DB] text-[#3A3A3A] rounded-lg hover:bg-[#F5F5F5] transition-colors text-sm font-semibold"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex-1 flex items-center justify-center gap-2 bg-grafite text-white px-4 py-2.5 rounded-lg hover:bg-grafite/90 transition-colors font-mono text-xs uppercase tracking-wider disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 bg-carmesim text-white px-4 py-2.5 rounded-lg hover:bg-carmesim-dark transition-colors text-sm font-semibold disabled:opacity-50"
               >
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 Criar
               </button>
             </div>
           </form>
-          </div>
-        </div>
-      </div>
-    </>
+      </DialogContent>
+    </Dialog>
   );
 };

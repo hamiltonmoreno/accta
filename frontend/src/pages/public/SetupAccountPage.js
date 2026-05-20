@@ -62,7 +62,7 @@ export const SetupAccountPage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 max-w-md w-full text-center animate-fade-up">
-          <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <div className="w-14 h-14 bg-[#FEF2F2] rounded-2xl flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-7 h-7 text-carmesim" />
           </div>
           <h1 className="text-xl font-bold text-grafite mb-2">Convite Invalido</h1>
@@ -85,8 +85,8 @@ export const SetupAccountPage = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 max-w-md w-full text-center animate-fade-up">
-          <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="w-7 h-7 text-green-500" />
+          <div className="w-14 h-14 bg-[#F0FDF4] rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-7 h-7 text-[#16A34A]" />
           </div>
           <h1 className="text-xl font-bold text-grafite mb-2" data-testid="setup-success">Conta Ativada!</h1>
           <p className="text-sm text-gray-500">
@@ -115,7 +115,7 @@ export const SetupAccountPage = () => {
           <p className="text-sm text-gray-500">
             {inviteData?.name}, defina a sua senha para ativar a conta.
           </p>
-          <p className="text-xs text-gray-400 mt-1">{inviteData?.email}</p>
+          <p className="text-xs text-[#6B7280] mt-1">{inviteData?.email}</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
@@ -130,7 +130,7 @@ export const SetupAccountPage = () => {
                 aria-invalid={errors.password ? 'true' : 'false'}
                 {...register('password')}
                 placeholder="Minimo 6 caracteres"
-                className="w-full pl-9 pr-10 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none aria-[invalid=true]:border-carmesim/60"
+                className="w-full pl-9 pr-10 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none aria-[invalid=true]:border-carmesim/60"
                 data-testid="setup-password"
               />
               <button
@@ -158,7 +158,7 @@ export const SetupAccountPage = () => {
                 aria-invalid={errors.confirmPassword ? 'true' : 'false'}
                 {...register('confirmPassword')}
                 placeholder="Repetir a senha"
-                className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none aria-[invalid=true]:border-carmesim/60"
+                className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none aria-[invalid=true]:border-carmesim/60"
                 data-testid="setup-confirm-password"
               />
             </div>

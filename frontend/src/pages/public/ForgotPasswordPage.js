@@ -52,7 +52,7 @@ export const ForgotPasswordPage = () => {
 
         <Link
           to="/login"
-          className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-grafite transition-colors mb-6"
+          className="inline-flex items-center gap-1.5 text-sm text-[#6B7280] hover:text-grafite transition-colors mb-6"
           data-testid="back-to-login"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -73,7 +73,7 @@ export const ForgotPasswordPage = () => {
             <div className="card-technical p-6 sm:p-7">
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
                 <div>
-                  <label htmlFor="email" className="block text-xs uppercase tracking-widest text-gray-400 mb-2 font-semibold">
+                  <label htmlFor="email" className="block text-xs uppercase tracking-widest text-[#6B7280] mb-2 font-semibold">
                     Email
                   </label>
                   <input
@@ -95,7 +95,7 @@ export const ForgotPasswordPage = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-carmesim text-white hover:bg-carmesim-dark h-11 rounded-lg uppercase tracking-wider font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full bg-carmesim text-white hover:bg-carmesim-dark h-11 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   data-testid="forgot-submit"
                 >
                   {isSubmitting ? (
@@ -113,8 +113,8 @@ export const ForgotPasswordPage = () => {
         ) : (
           <>
             <div className="mb-6">
-              <div className="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center mb-4">
-                <CheckCircle className="w-7 h-7 text-green-600" />
+              <div className="w-14 h-14 bg-[#F0FDF4] rounded-xl flex items-center justify-center mb-4">
+                <CheckCircle className="w-7 h-7 text-[#15803D]" />
               </div>
               <h1 className="font-bold text-2xl text-grafite mb-1" data-testid="forgot-success-title">
                 Pedido recebido
@@ -126,7 +126,7 @@ export const ForgotPasswordPage = () => {
 
             {submitted.token && (
               <div className="card-technical p-5">
-                <label className="block text-xs uppercase tracking-widest text-gray-400 mb-2 font-semibold">
+                <label className="block text-xs uppercase tracking-widest text-[#6B7280] mb-2 font-semibold">
                   Link de recuperação (modo demo)
                 </label>
                 <div className="flex items-center gap-2">
@@ -149,7 +149,7 @@ export const ForgotPasswordPage = () => {
 
                 <Link
                   to={`/reset-password?token=${submitted.token}`}
-                  className="mt-4 w-full bg-carmesim text-white hover:bg-carmesim-dark h-11 rounded-lg uppercase tracking-wider font-bold text-sm transition-colors flex items-center justify-center gap-2"
+                  className="mt-4 w-full bg-carmesim text-white hover:bg-carmesim-dark h-11 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2"
                   data-testid="go-to-reset-btn"
                 >
                   <ExternalLink className="w-4 h-4" />
@@ -160,7 +160,7 @@ export const ForgotPasswordPage = () => {
 
             <button
               onClick={() => setSubmitted(null)}
-              className="mt-4 text-sm text-gray-400 hover:text-grafite transition-colors"
+              className="mt-4 text-sm text-[#6B7280] hover:text-grafite transition-colors"
               data-testid="try-another-email"
             >
               Tentar com outro email

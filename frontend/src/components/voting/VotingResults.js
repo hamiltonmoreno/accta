@@ -22,7 +22,7 @@ export const VotingResults = ({ poll, results }) => {
   // Sort by votes descending
   chartData.sort((a, b) => b.votes - a.votes);
 
-  const COLORS = ['#00FF9C', '#0A1F44', '#6B7280', '#9CA3AF'];
+  const COLORS = ['#C7202F', '#3A3A3A', '#6B7280', '#9CA3AF'];
 
   return (
     <div className="mt-6 pt-6 border-t border-gray-200">
@@ -101,7 +101,7 @@ export const VotingResults = ({ poll, results }) => {
         <div className="mt-6 p-4 bg-carmesim/5 rounded-lg border border-carmesim/20">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-carmesim rounded-full flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-grafite" />
+              <TrendingUp className="w-5 h-5 text-white" />
             </div>
             <div>
               <div className="text-sm text-gray-500 uppercase tracking-wider mb-1">Opção Mais Votada</div>

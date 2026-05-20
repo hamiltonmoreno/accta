@@ -259,7 +259,7 @@ export const HomePage = () => {
               </p>
               <Link
                 to="/profissao"
-                className="inline-flex items-center gap-2 text-confianca font-semibold hover:text-confianca-dark transition-colors group text-sm sm:text-base"
+                className="inline-flex items-center gap-2 text-carmesim font-semibold hover:text-carmesim-dark transition-colors group text-sm sm:text-base"
               >
                 Saiba como funciona o controlo aéreo
                 <ChevronRight className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-1 transition-transform" />
@@ -339,7 +339,7 @@ export const HomePage = () => {
                       <p className="text-gray-600 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 line-clamp-3">{post.content}</p>
                       <Link
                         to="/noticias"
-                        className="inline-flex items-center gap-2 text-xs sm:text-sm text-confianca font-semibold hover:text-confianca-dark transition-colors"
+                        className="inline-flex items-center gap-2 text-xs sm:text-sm text-carmesim font-semibold hover:text-carmesim-dark transition-colors"
                       >
                         Ler mais
                         <ChevronRight className="w-3.5 h-3.5" />

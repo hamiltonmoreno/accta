@@ -29,12 +29,12 @@ export const PollVoteForm = ({ poll, isAtivo, onVoteSuccess }) => {
   if (!isAtivo) return null;
 
   return (
-    <div className="border-t border-slate-200 pt-6 mt-6">
+    <div className="border-t border-[#E5E7EB] pt-6 mt-6">
       <div className="space-y-3 mb-4">
         {poll.options.map((option) => (
           <label
             key={option.id}
-            className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors"
+            className="flex items-center gap-3 p-4 bg-[#F5F5F5] rounded-lg cursor-pointer hover:bg-[#E5E7EB] transition-colors"
           >
             <input
               type="radio"
@@ -53,7 +53,7 @@ export const PollVoteForm = ({ poll, isAtivo, onVoteSuccess }) => {
       <button
         onClick={handleVote}
         disabled={selectedOption === null || voting}
-        className="bg-primary text-white hover:bg-primary/90 h-12 px-6 rounded-lg uppercase tracking-wider font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="bg-carmesim text-white hover:bg-carmesim-dark h-12 px-6 rounded-lg font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         data-testid="vote-button"
       >
         {voting ? (

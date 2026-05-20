@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { unsplashSrcSet } from '../../utils/unsplash';
 import { legislacao } from '../../content/cta';
+import { EmptyState } from '../../components/EmptyState';
 
 export const TransparenciaPage = () => {
   const [documents, setDocuments] = useState([]);
@@ -142,7 +143,11 @@ export const TransparenciaPage = () => {
           </div>
 
           {reports.length === 0 ? (
-            <p className="text-center text-gray-400">Nenhum relatório publicado ainda.</p>
+            <EmptyState
+              icon={BarChart3}
+              title="Nenhum relatório publicado ainda."
+              className="max-w-4xl mx-auto"
+            />
           ) : (
             <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
               {reports.map((report, index) => {
@@ -150,10 +155,10 @@ export const TransparenciaPage = () => {
                 return (
                   <div key={report.id}
                     className="card-technical rounded-xl overflow-hidden animate-fade-up">
-                    <div className="h-24 bg-gradient-to-r from-primary to-[#0A3A5A] flex items-center px-6">
+                    <div className="h-24 bg-gradient-to-r from-primary to-[#1e3a5f] flex items-center px-6">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-carmesim rounded-lg flex items-center justify-center">
-                          <IconComponent className="w-6 h-6 text-grafite" />
+                          <IconComponent className="w-6 h-6 text-white" />
                         </div>
                         <div>
                           <span className="text-xs text-white uppercase tracking-wider">{report.year}</span>

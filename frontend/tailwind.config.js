@@ -43,13 +43,6 @@ module.exports = {
           DEFAULT: "#F5F5F5",
           foreground: "#3A3A3A",
         },
-        confianca: {
-          DEFAULT: "#1B2B4B",
-          light: "#2D4A7A",
-          dark: "#0F1A30",
-          50: "#EFF3FA",
-          foreground: "#FFFFFF",
-        },
         carmesim: {
           DEFAULT: "#C7202F",
           light: "#E8444F",
@@ -62,25 +55,6 @@ module.exports = {
           light: "#5A5A5A",
           dark: "#2A2A2A",
           50: "#F7F7F7",
-        },
-        // Complementary colors
-        navy: {
-          DEFAULT: "#1B2B4B",
-          light: "#2D4A7A",
-          dark: "#0F1A30",
-          50: "#EFF3FA",
-        },
-        amber: {
-          DEFAULT: "#D4A843",
-          light: "#E6C56E",
-          dark: "#B08930",
-          50: "#FFF9EC",
-        },
-        slate: {
-          DEFAULT: "#64748B",
-          light: "#94A3B8",
-          dark: "#475569",
-          50: "#F8FAFC",
         },
         alert: {
           DEFAULT: "#C7202F",
@@ -122,10 +96,6 @@ module.exports = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
-        "pulse-radar": {
-          "0%, 100%": { transform: "scale(1)", opacity: "0.5" },
-          "50%": { transform: "scale(1.2)", opacity: "0" },
-        },
         // Substitutos CSS para os <motion.div initial/animate> mais comuns —
         // permite remover framer-motion de paginas estaticas sem perder o efeito.
         "fade-up": {
@@ -146,7 +116,6 @@ module.exports = {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "pulse-radar": "pulse-radar 2s ease-in-out infinite",
         "fade-up": "fade-up 0.3s cubic-bezier(0.32, 0.72, 0, 1) both",
         "fade-in": "fade-in 0.3s ease-out both",
         "fade-out": "fade-out 0.18s cubic-bezier(0.32, 0.72, 0, 1) both",

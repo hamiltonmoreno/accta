@@ -1,8 +1,15 @@
 import React, { useState } from 'react';
-import { QrCode, CheckCircle, XCircle, Search } from 'lucide-react';
+import { QrCode, Search } from 'lucide-react';
 import { validatorAPI } from '../../utils/api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import {
+  WALLET_VALIDATION_CONFIG,
+  USER_STATUS_CONFIG, USER_STATUS_FALLBACK, getStatusConfig,
+} from '../../lib/statusConfig';
+
+const VALID = WALLET_VALIDATION_CONFIG.valida;
+const INVALID = WALLET_VALIDATION_CONFIG.invalida;
 
 export const ValidadorPage = () => {
   const [qrHash, setQrHash] = useState('');
@@ -57,7 +64,7 @@ export const ValidadorPage = () => {
                 value={qrHash}
                 onChange={(e) => setQrHash(e.target.value)}
                 placeholder="Cole o código QR aqui"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 transition-all"
                 data-testid="qr-input"
               />
             </div>
@@ -65,7 +72,7 @@ export const ValidadorPage = () => {
             <button
               type="submit"
               disabled={loading || !qrHash.trim()}
-              className="w-full bg-grafite text-white hover:bg-grafite/90 h-12 px-6 rounded-lg uppercase tracking-wider font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-grafite text-white hover:bg-grafite/90 h-12 px-6 rounded-lg font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               data-testid="validate-button"
             >
               {loading ? (
@@ -82,14 +89,14 @@ export const ValidadorPage = () => {
 
         {/* Result */}
         {error && (
-          <div className="card-technical rounded-2xl p-8 border-2 border-alert animate-fade-up"
+          <div className="card-technical rounded-2xl p-8 border-2 border-[#B91C1C] animate-fade-up"
             data-testid="validation-error">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-alert/10 rounded-full flex items-center justify-center">
-                <XCircle className="w-6 h-6 text-alert" />
+              <div className="w-12 h-12 bg-[#FEF2F2] rounded-full flex items-center justify-center">
+                <INVALID.icon className="w-6 h-6 text-[#B91C1C]" aria-hidden="true" />
               </div>
               <div>
-                <h3 className="font-sans font-semibold text-xl text-[#B91C1C]">Carteira Inválida</h3>
+                <h3 className="font-sans font-semibold text-xl text-[#B91C1C]">{INVALID.label}</h3>
                 <p className="text-gray-600">{error}</p>
               </div>
             </div>
@@ -97,14 +104,14 @@ export const ValidadorPage = () => {
         )}
 
         {result && (
-          <div className="card-technical rounded-2xl p-8 border-2 border-carmesim animate-fade-up"
+          <div className="card-technical rounded-2xl p-8 border-2 border-[#15803D] animate-fade-up"
             data-testid="validation-success">
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-carmesim/10 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-carmesim" />
+              <div className="w-12 h-12 bg-[#F0FDF4] rounded-full flex items-center justify-center">
+                <VALID.icon className="w-6 h-6 text-[#15803D]" aria-hidden="true" />
               </div>
               <div>
-                <h3 className="font-sans font-semibold text-xl text-grafite">Carteira Válida</h3>
+                <h3 className="font-sans font-semibold text-xl text-[#15803D]">{VALID.label}</h3>
                 <p className="text-gray-600">Esta carteira é autêntica</p>
               </div>
             </div>
@@ -128,16 +135,19 @@ export const ValidadorPage = () => {
                     <label className="block text-xs uppercase tracking-widest text-gray-500 mb-1">
                       Status
                     </label>
-                    <span
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs uppercase tracking-wide ${
-                        result.status === 'ativo'
-                          ? 'bg-carmesim/10 text-carmesim'
-                          : 'bg-alert/10 text-[#B91C1C]'
-                      }`}
-                      data-testid="validated-status"
-                    >
-                      {result.status}
-                    </span>
+                    {(() => {
+                      const sc = getStatusConfig(USER_STATUS_CONFIG, result.status, USER_STATUS_FALLBACK);
+                      const ScIcon = sc.icon;
+                      return (
+                        <span
+                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs uppercase tracking-wide ${sc.className}`}
+                          data-testid="validated-status"
+                        >
+                          <ScIcon className="w-3 h-3" aria-hidden="true" />
+                          {result.status}
+                        </span>
+                      );
+                    })()}
                   </div>
                   {result.admission_date && (
                     <div>

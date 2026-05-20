@@ -5,8 +5,11 @@ import { usersAPI } from '../../utils/api';
 import { toast } from 'sonner';
 import {
   User as UserIcon, Mail, Phone, Shield, Award, FileText,
-  Calendar, Save, BadgeCheck, Briefcase, Hash, Pencil, X
+  Calendar, Save, Briefcase, Hash, Pencil, X
 } from 'lucide-react';
+import {
+  USER_STATUS_CONFIG, USER_STATUS_FALLBACK, getStatusConfig,
+} from '../../lib/statusConfig';
 
 const PRIVILEGE_LABELS = {
   manage_users: 'Gerir Utilizadores',
@@ -23,7 +26,7 @@ const PrivilegesSection = ({ privileges }) => {
   
   return (
     <div className="card-technical p-5 animate-fade-up">
-      <h3 className="font-semibold text-xs uppercase tracking-widest text-gray-400 mb-3">Privilégios Atribuídos</h3>
+      <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280] mb-3">Privilégios Atribuídos</h3>
       <div className="flex flex-wrap gap-2">
         {privileges.map((p) => (
           <span key={p} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-carmesim/10 text-carmesim text-xs font-semibold rounded-lg">
@@ -83,7 +86,8 @@ export const PerfilPage = () => {
   if (!user) return null;
 
   const roleLabel = { admin: 'Administrador', socio: 'Sócio', financeiro: 'Gestor Financeiro', moderador: 'Moderador' };
-  const statusColors = { ativo: 'bg-green-100 text-green-700', inativo: 'bg-gray-100 text-gray-600' };
+  const statusCfg = getStatusConfig(USER_STATUS_CONFIG, user.status, USER_STATUS_FALLBACK);
+  const StatusIcon = statusCfg.icon;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6" data-testid="profile-page">
@@ -102,7 +106,7 @@ export const PerfilPage = () => {
         ) : (
           <button
             onClick={() => setEditing(false)}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-gray-400 hover:text-grafite transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-[#6B7280] hover:text-grafite transition-colors"
             data-testid="cancel-edit-btn"
           >
             <X className="w-4 h-4" />
@@ -126,8 +130,8 @@ export const PerfilPage = () => {
           {/* Name + badges */}
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <h2 className="text-xl font-bold text-grafite" data-testid="profile-name">{user.name}</h2>
-            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider ${statusColors[user.status] || 'bg-gray-100 text-gray-600'}`}>
-              <BadgeCheck className="w-3 h-3" />
+            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider ${statusCfg.className}`}>
+              <StatusIcon className="w-3 h-3" aria-hidden="true" />
               {user.status}
             </span>
           </div>
@@ -149,7 +153,7 @@ export const PerfilPage = () => {
               id="profile-name"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none"
               data-testid="profile-edit-name"
             />
           </div>
@@ -163,7 +167,7 @@ export const PerfilPage = () => {
               value={form.phone_number}
               onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
               placeholder="+238 9XX XXXX"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none"
               data-testid="profile-edit-phone"
             />
           </div>
@@ -176,7 +180,7 @@ export const PerfilPage = () => {
               onChange={(e) => setForm({ ...form, bio: e.target.value })}
               rows={3}
               placeholder="Fale um pouco sobre si..."
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/30 focus:border-carmesim/30 outline-none resize-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none resize-none"
               data-testid="profile-edit-bio"
             />
           </div>
@@ -196,7 +200,7 @@ export const PerfilPage = () => {
       {/* Details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="card-technical p-5 animate-fade-up">
-          <h3 className="font-semibold text-xs uppercase tracking-widest text-gray-400 mb-3">Dados Pessoais</h3>
+          <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280] mb-3">Dados Pessoais</h3>
           <InfoRow icon={Mail} label="Email" value={user.email} />
           <InfoRow icon={Phone} label="Telefone" value={user.phone_number} />
           <InfoRow icon={FileText} label="Biografia" value={user.bio} />
@@ -204,7 +208,7 @@ export const PerfilPage = () => {
         </div>
 
         <div className="card-technical p-5 animate-fade-up">
-          <h3 className="font-semibold text-xs uppercase tracking-widest text-gray-400 mb-3">Associação</h3>
+          <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280] mb-3">Associação</h3>
           <InfoRow icon={Shield} label="Função" value={roleLabel[user.role]} />
           <InfoRow icon={Briefcase} label="Cargo" value={user.cargo || 'Sócio'} />
           <InfoRow icon={Award} label="Licença" value={user.license_number} />

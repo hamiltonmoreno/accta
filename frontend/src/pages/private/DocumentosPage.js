@@ -2,12 +2,13 @@ import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentsAPI, uploadAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { queryKeys } from '../../lib/queryClient';
 import { FileText, Download, Search, Upload, X, Plus, Check, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { EmptyState } from '../../components/EmptyState';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 
 export const DocumentosPage = () => {
   const { isAdmin } = useAuth();
@@ -25,20 +26,20 @@ export const DocumentosPage = () => {
     .filter((doc) => doc.title.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="font-sans font-bold text-4xl text-grafite mb-2" data-testid="documents-title">
+          <h1 className="page-title" data-testid="documents-title">
             Secretaria & Documentos
           </h1>
-          <p className="text-gray-600">Acesse atas, estatutos, balancetes e outros documentos oficiais</p>
+          <p className="page-subtitle">Acesse atas, estatutos, balancetes e outros documentos oficiais</p>
         </div>
         
         {isAdmin && (
           <button
             onClick={() => setShowUploadModal(true)}
-            className="flex items-center gap-2 bg-grafite text-white px-4 py-2 rounded-lg hover:bg-grafite/90 transition-all font-mono text-sm uppercase tracking-wider"
+            className="flex items-center gap-2 bg-carmesim text-white px-4 py-2 rounded-lg hover:bg-carmesim-dark transition-all text-sm font-semibold"
             data-testid="upload-document-btn"
           >
             <Upload className="w-4 h-4" />
@@ -56,7 +57,7 @@ export const DocumentosPage = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar documentos..."
-            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-transparent transition-all"
             data-testid="search-input"
           />
         </div>
@@ -80,16 +81,15 @@ export const DocumentosPage = () => {
       {/* Documents List */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filteredDocuments.length === 0 ? (
-        <div className="card-technical rounded-xl p-12 text-center" data-testid="no-documents">
-          <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 font-medium mb-1">Nenhum documento encontrado</p>
-          <p className="text-sm text-gray-400">
-            {isAdmin ? 'Clique em "Novo Documento" para adicionar' : 'Os documentos serão exibidos aqui quando disponíveis'}
-          </p>
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="Nenhum documento encontrado"
+          description={isAdmin ? 'Clique em "Novo Documento" para adicionar' : 'Os documentos serão exibidos aqui quando disponíveis'}
+          testId="no-documents"
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredDocuments.map((doc, index) => (
@@ -127,7 +127,7 @@ export const DocumentosPage = () => {
                 href={documentsAPI.downloadUrl(doc.id)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-grafite text-white hover:bg-grafite/90 h-10 px-4 rounded-lg uppercase tracking-wider font-bold text-sm transition-all"
+                className="flex items-center justify-center gap-2 bg-white border border-[#D1D5DB] text-[#3A3A3A] hover:bg-[#F5F5F5] h-10 px-4 rounded-lg font-semibold text-sm transition-all"
                 data-testid={`download-${doc.id}`}
               >
                 <Download className="w-4 h-4" />
@@ -147,7 +147,6 @@ export const DocumentosPage = () => {
 };
 
 const UploadDocumentModal = ({ onClose }) => {
-  useBodyScrollLock(true);
   const qc = useQueryClient();
   const fileInputRef = useRef(null);
   const [title, setTitle] = useState('');
@@ -211,35 +210,15 @@ const UploadDocumentModal = ({ onClose }) => {
   };
 
   return (
-    <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/50 z-40 animate-fade-up"
-        onClick={onClose} />
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg rounded-xl p-0 gap-0 max-h-[90vh] overflow-y-auto" data-testid="upload-modal">
+        <DialogHeader className="p-6 border-b border-gray-200 text-left space-y-1">
+          <DialogTitle className="font-sans font-bold text-2xl text-grafite">Novo Documento</DialogTitle>
+          <DialogDescription className="text-sm text-gray-500">Faça upload de um documento para a secretaria</DialogDescription>
+        </DialogHeader>
 
-      {/* Modal */}
-      <div className="fixed inset-0 z-50 overflow-y-auto animate-fade-up"
-        role="dialog"
-        aria-modal="true">
-        <div className="flex min-h-full items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg" data-testid="upload-modal" onClick={(e) => e.stopPropagation()}>
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <div>
-              <h2 className="font-sans font-bold text-2xl text-grafite">Novo Documento</h2>
-              <p className="text-sm text-gray-500">Faça upload de um documento para a secretaria</p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              aria-label="Fechar"
-              data-testid="close-modal"
-            >
-              <X className="w-5 h-5 text-gray-400" aria-hidden="true" />
-            </button>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Title */}
             <div>
               <label className="block font-mono text-xs uppercase tracking-wider text-gray-500 mb-2">
@@ -250,7 +229,7 @@ const UploadDocumentModal = ({ onClose }) => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Ex: Ata da Assembleia Geral - Março 2025"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-transparent"
                 required
                 data-testid="document-title-input"
               />
@@ -265,7 +244,7 @@ const UploadDocumentModal = ({ onClose }) => {
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-transparent"
                   data-testid="document-type-select"
                 >
                   <option value="ata">Ata</option>
@@ -280,7 +259,7 @@ const UploadDocumentModal = ({ onClose }) => {
                 <select
                   value={visibility}
                   onChange={(e) => setVisibility(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-transparent"
                   data-testid="document-visibility-select"
                 >
                   <option value="publico">Público</option>
@@ -300,7 +279,7 @@ const UploadDocumentModal = ({ onClose }) => {
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
                 placeholder="Ex: assembleia, 2025, decisões"
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-transparent"
                 data-testid="document-tags-input"
               />
             </div>
@@ -355,7 +334,7 @@ const UploadDocumentModal = ({ onClose }) => {
                     <span className="font-sans font-semibold text-gray-600 mb-1">
                       Clique para selecionar
                     </span>
-                    <span className="text-xs text-gray-400">PDF, DOC ou DOCX (máx. 10MB)</span>
+                    <span className="text-xs text-[#6B7280]">PDF, DOC ou DOCX (máx. 10MB)</span>
                   </div>
                 </button>
               )}
@@ -369,8 +348,9 @@ const UploadDocumentModal = ({ onClose }) => {
                   <span className="font-mono text-carmesim">{uploadProgress}%</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div animate={{ width: `${uploadProgress}%` }}
-                    className="h-full bg-carmesim rounded-full animate-fade-up" />
+                  <div
+                    className="h-full bg-carmesim rounded-full transition-[width] duration-300"
+                    style={{ width: `${uploadProgress}%` }} />
                 </div>
               </div>
             )}
@@ -380,7 +360,7 @@ const UploadDocumentModal = ({ onClose }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-3 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors font-mono uppercase tracking-wider"
+                className="flex-1 px-4 py-3 bg-white border border-[#D1D5DB] text-[#3A3A3A] rounded-lg hover:bg-[#F5F5F5] transition-colors font-semibold"
                 disabled={uploading}
               >
                 Cancelar
@@ -388,7 +368,7 @@ const UploadDocumentModal = ({ onClose }) => {
               <button
                 type="submit"
                 disabled={uploading || !file || !title}
-                className="flex-1 flex items-center justify-center gap-2 bg-grafite text-white px-4 py-3 rounded-lg hover:bg-grafite/90 transition-colors font-mono uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 bg-carmesim text-white px-4 py-3 rounded-lg hover:bg-carmesim-dark transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 data-testid="submit-document-btn"
               >
                 {uploading ? (
@@ -405,9 +385,7 @@ const UploadDocumentModal = ({ onClose }) => {
               </button>
             </div>
           </form>
-        </div>
-        </div>
-      </div>
-    </>
+      </DialogContent>
+    </Dialog>
   );
 };
