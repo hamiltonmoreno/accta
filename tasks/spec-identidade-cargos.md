@@ -67,6 +67,54 @@ Não existe. Auditoria de mandatos é zero.
 
 ## Modelo proposto
 
+### Tipo de conta — separar humanos de sistema
+
+Distinção fundamental introduzida por este spec:
+
+| `account_type` | Quem | Exemplo |
+|----------------|------|---------|
+| `"member"` | Pessoa real, sócio da associação | Todos os auto-registos, contas pessoais |
+| `"technical"` | Conta de manutenção do sistema, não é um sócio | `admin@controlador.cv` |
+
+A conta técnica:
+- Tem `role="admin"` e todos os privilégios — pode tudo.
+- **NÃO** aparece em listagens de sócios (`/admin/usuarios`,
+  `/transparencia`, etc.) por defeito.
+- **NÃO** participa em sistema de pontuação dos sócios.
+- **NÃO** vota em assembleias.
+- **NÃO** ocupa cargos institucionais (`cargo_history` fica vazio).
+- **Pode** ser actor em `audit_logs` — todas as acções continuam
+  registadas (técnico continua responsabilizável).
+- **Pode** ser revelada em listagens com flag explícito
+  `?include_technical=true` (utilidade: debug, suporte).
+
+Implementação:
+
+```python
+# models.py
+ACCOUNT_TYPES = ["member", "technical"]
+
+class UserBase(BaseModel):
+    # ... campos existentes ...
+    account_type: Literal["member", "technical"] = "member"
+```
+
+### Impacto noutras rotas
+
+- `GET /api/admin/users` — filtro default `account_type="member"`;
+  query param `?include_technical=true` para mostrar todas.
+- `GET /api/users/socios` (público em `/transparencia`) — **sempre**
+  filtra `account_type="member"`, nunca expõe técnicas.
+- `GET /api/admin/cargos` — só lista contas `member` como candidatos
+  a promote/transfer.
+- `POST /api/auth/register` (auto-registo) — força
+  `account_type="member"` no servidor (não vem do request).
+- Notificações `notify_admins` — continua a filtrar por `role="admin"`,
+  o que apanha tanto técnicas como cargos eleitos com `role=admin`.
+  Aceitável: técnico recebe notificações enquanto manutenção, mas pode
+  ser refinado para `account_type="member" AND role="admin"` se for
+  ruído.
+
 ### Estrutura de cargos por órgão social
 
 Uma associação CV/PT típica tem três órgãos sociais eleitos +
@@ -582,12 +630,13 @@ Depois do `create_admin.py` adaptado correr:
 ```python
 {
     "id": "<uuid>",
-    "name": "Administrador ACCTA",       # ou nome a definir
+    "name": "Administrador de Sistema",
     "email": "admin@controlador.cv",
+    "account_type": "technical",          # ← chave: não é um sócio
     "role": "admin",
     "status": "ativo",
-    "member_id": "ACCTA-0001",            # da sequência, não mais "ACCTA-ADMIN"
-    "cargo": "Administrador",             # label técnico, fora de CARGOS oficiais
+    "member_id": None,                    # técnicas não têm member_id
+    "cargo": "Técnico de Sistema",        # label informativo, fora de CARGOS
     "privileges": [                       # todos os 8
         "manage_users", "manage_finances", "manage_events",
         "manage_documents", "moderate_content", "manage_benefits",
@@ -599,6 +648,10 @@ Depois do `create_admin.py` adaptado correr:
 }
 ```
 
-Nota: o `cargo="Administrador"` é um label informativo apenas — não está
-na lista `CARGOS` institucionais. Esta conta nunca participa em
-mandatos eleitos; é mantida fora desse fluxo.
+Notas:
+- `account_type="technical"` é o que retira esta conta de
+  listagens/pontuação/AGAs.
+- `member_id` fica `None` (a sequência `member_id_seq` arranca em
+  ACCTA-0001 para o primeiro sócio real, não para a técnica).
+- `cargo` é um label livre, NÃO está em `CARGOS` institucionais — a
+  conta nunca participa em mandatos eleitos.
