@@ -83,6 +83,7 @@ COLLECTIONS: tuple[str, ...] = (
     "eleicao_voter_receipts",
     "eleicao_ballots",
     "sancoes",
+    "finance_settings_history",
     # no Pydantic model — schema derived from usage:
     "password_resets",
     "tokens_revoked",
@@ -823,6 +824,11 @@ _INDEX_DDL: tuple[str, ...] = (
     # governança — disciplina
     "CREATE INDEX IF NOT EXISTS ix_sancoes_user ON \"sancoes\" ((doc->>'user_id'), (doc->>'status'))",
     "CREATE INDEX IF NOT EXISTS ix_sancoes_status_tipo ON \"sancoes\" ((doc->>'status'), (doc->>'tipo'))",
+    # governança — histórico de quota/jóia
+    "CREATE INDEX IF NOT EXISTS ix_finsetthist_eff ON \"finance_settings_history\" "
+    "((doc->>'effective_from') DESC)",
+    "CREATE INDEX IF NOT EXISTS ix_finsetthist_assemb ON \"finance_settings_history\" "
+    "((doc->>'assembleia_id'))",
 )
 
 REQUIRED_INDEX_NAMES = {

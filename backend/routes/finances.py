@@ -19,6 +19,10 @@ from auth import get_current_user, can_view_finances, can_manage_finances
 from helpers import create_audit_log, notify_admins, notify_all_active_users
 from fpdf import FPDF
 import io
+import uuid
+
+# Maiorias qualificadas de 3/4 que legitimam a fixação de quota/jóia (spec §14).
+_QUOTA_MAJORIAS = ("qualificada_3_4_presentes", "qualificada_3_4_universo")
 
 
 def _safe_search_regex(s: str) -> str:
@@ -347,10 +351,65 @@ async def update_finance_settings(
     if "quota_amount" in updates and updates["quota_amount"] <= 0:
         raise HTTPException(status_code=400, detail="O valor da quota deve ser positivo")
 
-    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
-    updates["updated_by"] = current_user.id
+    # Inputs de governança (não são colunas de settings directas).
+    assembleia_id = updates.pop("assembleia_id", None)
+    deliberacao_id = updates.pop("deliberacao_id", None)
+    effective_from = updates.pop("effective_from", None)
+
+    # Alterações monetárias (quota/jóia) exigem deliberação de AG por 3/4 e
+    # registam a versão anterior em finance_settings_history (spec §14).
+    monetary = {k for k in ("quota_amount", "joia_multiplier", "joia_amount") if k in updates}
 
     existing = await db.finance_settings.find_one({"id": "finance_settings"})
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    if monetary:
+        if not (assembleia_id and deliberacao_id):
+            raise HTTPException(
+                status_code=400,
+                detail="Alterar quota/jóia exige referência a deliberação de AG (maioria 3/4)",
+            )
+        delib = await db.assembleia_deliberacoes.find_one(
+            {"id": deliberacao_id, "assembleia_id": assembleia_id},
+            {"_id": 0, "aprovado": 1, "tipo_maioria": 1},
+        )
+        if not delib:
+            raise HTTPException(status_code=404, detail="Deliberação da AG não encontrada")
+        if not delib.get("aprovado"):
+            raise HTTPException(status_code=400, detail="A deliberação não foi aprovada")
+        if delib.get("tipo_maioria") not in _QUOTA_MAJORIAS:
+            raise HTTPException(
+                status_code=400, detail="A fixação de quota/jóia exige deliberação por maioria de 3/4"
+            )
+        # Snapshot da versão anterior.
+        if existing:
+            snapshot = {
+                k: existing.get(k)
+                for k in (
+                    "quota_amount", "quota_description", "joia_multiplier", "joia_amount",
+                    "quota_fixed_by_assembleia_id", "quota_fixed_by_deliberacao_id", "effective_from",
+                )
+            }
+            snapshot.update({
+                "id": str(uuid.uuid4()),
+                "replaced_at": now_iso,
+                "replaced_by": current_user.id,
+                "assembleia_id": assembleia_id,
+                "deliberacao_id": deliberacao_id,
+            })
+            await db.finance_settings_history.insert_one(snapshot)
+        updates["quota_fixed_by_assembleia_id"] = assembleia_id
+        updates["quota_fixed_by_deliberacao_id"] = deliberacao_id
+        updates["effective_from"] = effective_from or now_iso
+        # Resolve a jóia: explícita, ou multiplicador * quota.
+        if "joia_amount" not in updates:
+            new_quota = updates.get("quota_amount", (existing or {}).get("quota_amount", 2000.0))
+            new_mult = updates.get("joia_multiplier", (existing or {}).get("joia_multiplier", 2.0))
+            updates["joia_amount"] = new_mult * new_quota
+
+    updates["updated_at"] = now_iso
+    updates["updated_by"] = current_user.id
+
     if not existing:
         default = FinanceSettings()
         d = default.model_dump()
@@ -373,6 +432,17 @@ async def update_finance_settings(
         )
 
     return {"message": "Configuracoes atualizadas"}
+
+
+@router.get("/settings/history")
+async def get_finance_settings_history(current_user: User = Depends(get_current_user)):
+    """Histórico de alterações de quota/jóia (cada uma ligada a uma deliberação
+    de AG). Leitura do módulo financeiro (inclui Conselho Fiscal)."""
+    require_view_finances(current_user)
+    rows = await db.finance_settings_history.find(
+        {}, {"_id": 0}
+    ).sort("replaced_at", -1).to_list(200)
+    return {"history": rows}
 
 
 # ===== GENERATE QUOTAS =====

@@ -588,6 +588,14 @@ class FinanceSettings(BaseModel):
     id: str = "finance_settings"
     quota_amount: float = 2000.0
     quota_description: str = "Quota Mensal"
+    # Jóia de admissão (spec-governanca §14): default = 2x quota, salvo
+    # deliberação em contrário. joia_amount resolvido pelo backend.
+    joia_multiplier: float = 2.0
+    joia_amount: Optional[float] = None
+    # Alterar quota/jóia exige deliberação de AG por maioria 3/4.
+    quota_fixed_by_assembleia_id: Optional[str] = None
+    quota_fixed_by_deliberacao_id: Optional[str] = None
+    effective_from: Optional[str] = None
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_by: Optional[str] = None
 
@@ -595,6 +603,12 @@ class FinanceSettings(BaseModel):
 class FinanceSettingsUpdate(BaseModel):
     quota_amount: Optional[float] = None
     quota_description: Optional[str] = None
+    joia_multiplier: Optional[float] = None
+    joia_amount: Optional[float] = None
+    # Referência à deliberação de AG (obrigatória para alterar quota/jóia).
+    assembleia_id: Optional[str] = None
+    deliberacao_id: Optional[str] = None
+    effective_from: Optional[str] = None
 
 
 # Estados válidos de conta. NÃO existe "inadimplente" (quotas são descontadas

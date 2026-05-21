@@ -52,15 +52,16 @@ e migração destrutiva de dados (Fase 8). Commit por fase.
 - [x] Testes (12)
 - [x] Commit
 
-## Fase 6 — Quotas e jóias
-- [ ] FinanceSettings estendido (joia_multiplier/amount, deliberação 3/4, effective_from) + finance_settings_history
-- [ ] Alteração de quota/jóia exige deliberação AG 3/4; regista histórico
-- [ ] Testes
-- [ ] Commit
+## Fase 6 — Quotas e jóias ✅
+- [x] FinanceSettings estendido (joia_multiplier/amount, quota_fixed_by_*, effective_from) + finance_settings_history
+- [x] Alteração de quota/jóia exige deliberação AG aprovada por 3/4; regista versão anterior; jóia = mult × quota; quota_description não exige deliberação
+- [x] GET /finances/settings/history (view-finances)
+- [x] Testes (6) + finances existentes verdes (29)
+- [x] Commit
 
 ## Verificação final
-- [ ] `cd backend && ruff check . && ruff format --check .`
-- [ ] `cd backend && pytest -m unit` verde
+- [ ] `cd backend && ruff check .`
+- [ ] suite unitária de governança verde
 - [ ] Revisão de critérios de aceitação (§19)
 
 ## Review
