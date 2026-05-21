@@ -51,7 +51,7 @@ if not DATABASE_URL:
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
-# All logical collections -> tables. 21 with Pydantic models + 6 without.
+# All logical collections -> tables. 29 with Pydantic models + 7 without.
 COLLECTIONS: tuple[str, ...] = (
     "users",
     "invoices",
