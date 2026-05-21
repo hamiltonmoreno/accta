@@ -60,9 +60,41 @@ e migração destrutiva de dados (Fase 8). Commit por fase.
 - [x] Commit
 
 ## Verificação final
-- [ ] `cd backend && ruff check .`
-- [ ] suite unitária de governança verde
-- [ ] Revisão de critérios de aceitação (§19)
+- [x] `cd backend && ruff check .` — All checks passed
+- [x] `ruff format` aplicado aos ficheiros tocados (commit style)
+- [x] Suite unitária completa (29 ficheiros, sem integração): **579 passed, 2 failed**
+  (as 2 falhas — test_users_routes get_users `$or` search — são PRÉ-EXISTENTES na
+  branch base, confirmado por `git stash`; fora de âmbito)
+- [x] Revisão de critérios de aceitação §19 — ver abaixo
 
 ## Review
-_(preencher no fim)_
+
+Branch `feature/governanca-estatutaria` (off `develop`). 7 commits:
+0+1 núcleo/taxonomia · 2 RBAC · 3 Assembleia · 4 Eleições · 5 Disciplina ·
+6 Quotas/jóias · style (ruff format).
+
+Entregue (Fases 0-6, backend): `governance.py` (fonte única) + `permissions.py`,
+4 grupos de rotas novos (`/api/governance`, `/api/assembleias`, `/api/eleicoes`,
+`/api/sancoes`) = 28 endpoints de governança, 9 colecções novas + índices,
+`database.cast_ballot` (voto atómico), FinanceSettings estendido. ~120 testes
+unitários novos de governança.
+
+Critérios §19: ✅ governance.py fonte única · ✅ models.py só re-exporta · ✅ 3
+órgãos + Relator + Secretário (sem -Geral) · ✅ sem Coordenações/Comissões · ✅
+cargo/cargo_history em keys canónicas · ✅ honorário/técnico/inactivo/suspenso não
+votam · ✅ quórum/maiorias por helpers testados · ✅ boletim sem user_id/voter_hash
+· ✅ proclamação cria mandatos (posse/cessantes) · ✅ expulsão exige deliberação AG
+· ✅ quota/jóia exigem 3/4.
+
+FORA DE ÂMBITO (não pedido nesta sessão): Fase 7 (frontend) e Fase 8 (migração
+destrutiva `scripts/migrate_governance_cargos.py --apply` — STOP condition).
+
+Notas de seguimento para o owner (não bloqueantes):
+- Docs com contagens agora desactualizadas: `.claude/rules/database.md` ("27
+  tables" → +9 colecções de governança) e CLAUDE.md menciona spec-identidade-cargos
+  (a taxonomia foi superada por spec-governanca). Não editei (políticas de doc
+  canónica) — sinalizo para revisão.
+- 2 falhas pré-existentes em `test_users_routes` (get_users `$or` search) merecem
+  fix à parte.
+- Decisões em aberto §21 que afectam fases futuras: voto digital vinculativo?,
+  Direcção 5 vs 7 (default 5), representação de honorário, residência no Sal.
