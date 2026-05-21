@@ -1055,3 +1055,24 @@ class PageBanner(BaseModel):
 class PageBannerUpdate(BaseModel):
     image_url: Optional[str] = None
     alt: Optional[str] = Field(default=None, max_length=300)
+
+
+# ===== GESTÃO DA MARCA / LOGO (spec-gestao-logo-marca) =====
+# Single-doc settings (molde finance_settings). logo_*_url None → SVG fallback.
+# Semântica de "limpar": "" repõe default (grava None); None/ausente = manter.
+
+
+class BrandSettings(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = "brand_settings"
+    logo_light_url: Optional[str] = None  # fundo claro; None → SVG fallback
+    logo_dark_url: Optional[str] = None  # fundo escuro; None → SVG fallback
+    alt: str = "ACCTA Cabo Verde"
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_by: Optional[str] = None
+
+
+class BrandSettingsUpdate(BaseModel):
+    logo_light_url: Optional[str] = None  # "" = repor default; None = manter
+    logo_dark_url: Optional[str] = None
+    alt: Optional[str] = Field(default=None, max_length=200)
