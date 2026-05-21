@@ -44,8 +44,14 @@ export const registrationSchema = z.object({
   phone_number: z.string().max(30, 'Telefone demasiado longo').optional().or(z.literal('')),
   department: z.string().max(80, 'Departamento demasiado longo').optional().or(z.literal('')),
   cargo_declarado: z.string().min(1, 'Selecione um cargo'),
+  // Patrocínio de admissão (Art. 8.3): 2 padrinhos sócios activos (member_id ou email).
+  sponsor1: z.string().min(1, 'Indique o 1.º padrinho (nº de sócio ou email)'),
+  sponsor2: z.string().min(1, 'Indique o 2.º padrinho (nº de sócio ou email)'),
   consent_data: z.boolean().refine((v) => v === true, {
     message: 'É necessário consentir o tratamento dos seus dados',
   }),
   website: z.string().optional().or(z.literal('')), // honeypot
+}).refine((d) => !d.sponsor1 || !d.sponsor2 || d.sponsor1.trim() !== d.sponsor2.trim(), {
+  path: ['sponsor2'],
+  message: 'Os 2 padrinhos têm de ser distintos',
 });

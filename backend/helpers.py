@@ -222,3 +222,42 @@ def get_project_stakeholder_ids(project: dict) -> List[str]:
     if project.get("responsible_id"):
         ids.append(project["responsible_id"])
     return ids
+
+
+# --------------------------------------------------------------------------- #
+# Participação do sócio (spec-voz-participacao-socio §2.3) — contagem de
+# elegíveis e resolução de membros de um órgão. Import local de permissions
+# para evitar qualquer ciclo no import-order (helpers é carregado cedo).
+# --------------------------------------------------------------------------- #
+
+
+async def count_voting_members() -> int:
+    """Nº de sócios com direito a voto (fundador/ordinário, activo, sem direitos
+    suspensos). Base de limiares (petição 1/4) e maiorias. Conta em Python via
+    `is_voting_member` para respeitar a regra time-based de suspensão."""
+    from permissions import is_voting_member
+
+    users = await db.users.find(
+        {"status": "ativo"},
+        {"_id": 0, "account_type": 1, "status": 1, "member_category": 1, "rights_suspended_until": 1, "cargo": 1},
+    ).to_list(None)
+    return sum(1 for u in users if is_voting_member(u))
+
+
+async def members_of_orgao(orgao: str) -> List[str]:
+    """IDs de utilizadores activos com cargo no órgão (`direcao`/`mesa_ag`/
+    `conselho_fiscal`). Fallback: se nenhum titular estiver definido, devolve os
+    admins activos — para não perder notificações antes da governança estar
+    povoada. Nunca falha silenciosamente."""
+    from permissions import is_conselho_fiscal, is_direcao, is_mesa_ag
+
+    matcher = {"direcao": is_direcao, "mesa_ag": is_mesa_ag, "conselho_fiscal": is_conselho_fiscal}.get(orgao)
+    if matcher is not None:
+        users = await db.users.find(
+            {"status": "ativo", "account_type": "member"}, {"_id": 0, "id": 1, "cargo": 1}
+        ).to_list(None)
+        matched = [u["id"] for u in users if matcher(u)]
+        if matched:
+            return matched
+    admins = await db.users.find({"role": "admin", "status": "ativo"}, {"_id": 0, "id": 1}).to_list(100)
+    return [a["id"] for a in admins]

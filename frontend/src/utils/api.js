@@ -59,6 +59,13 @@ export const registrationAPI = {
   reject: (userId, reason) => api.post(`/admin/registration-requests/${userId}/reject`, { reason }),
 };
 
+// Patrocínio de admissão (spec-voz-participacao §3, Art. 8.3)
+export const patrociniosAPI = {
+  pendentes: () => api.get('/participacao/patrocinios/pendentes'),
+  confirmar: (candidateId, note) => api.post(`/participacao/patrocinios/${candidateId}/confirmar`, { note }),
+  recusar: (candidateId, note) => api.post(`/participacao/patrocinios/${candidateId}/recusar`, { note }),
+};
+
 // Cargos / mandatos (spec-identidade-cargos / spec-governanca)
 export const cargosAPI = {
   getMeta: () => api.get('/users/meta/cargos'),  // [DEPRECATED] usar governanceAPI.structure

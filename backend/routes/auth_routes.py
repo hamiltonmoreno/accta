@@ -9,6 +9,7 @@ from models import (
     PasswordResetConfirm,
     SetupAccount,
     RegistrationRequest,
+    Patrocinio,
     CARGOS_DECLARADOS,
 )
 from database import db, next_member_id
@@ -31,6 +32,7 @@ from helpers import (
     create_audit_log,
     is_account_locked,
     notify_admins,
+    notify_users,
     record_failed_login,
     reset_failed_logins,
     resolve_link_base,
@@ -176,6 +178,22 @@ async def register(request: Request, data: RegistrationRequest):
             raise HTTPException(status_code=409, detail="Não foi possível processar este pedido.")
         raise HTTPException(status_code=409, detail="Já existe uma conta com este email.")
 
+    # Patrocínio de admissão (Art. 8.3): 2 padrinhos sócios activos distintos.
+    # Mensagens neutras (anti-enumeração) — não revelam quem existe.
+    sponsors = data.sponsors or []
+    if len(sponsors) != 2:
+        raise HTTPException(status_code=422, detail="Indique 2 padrinhos (sócios activos) — Art. 8.3.")
+    resolved_sponsors = []
+    for ident in sponsors:
+        ident = (ident or "").strip()
+        q = {"email": ident} if "@" in ident else {"member_id": ident}
+        s = await db.users.find_one({**q, "status": "ativo"}, {"_id": 0, "id": 1, "member_id": 1, "account_type": 1})
+        if not s or (s.get("account_type") or "member") != "member":
+            raise HTTPException(status_code=422, detail="Padrinho inválido. Indique 2 sócios activos.")
+        resolved_sponsors.append(s)
+    if resolved_sponsors[0]["id"] == resolved_sponsors[1]["id"]:
+        raise HTTPException(status_code=422, detail="Os 2 padrinhos têm de ser distintos.")
+
     user_id = str(uuid.uuid4())
     member_id = await next_member_id()
     now = datetime.now(timezone.utc).isoformat()
@@ -202,6 +220,23 @@ async def register(request: Request, data: RegistrationRequest):
         "registration_request_at": now,
     }
     await db.users.insert_one(user_doc)
+
+    # Cria 2 pedidos de patrocínio (pendente) e notifica cada padrinho (Art. 8.3).
+    for s in resolved_sponsors:
+        patrocinio = Patrocinio(
+            candidate_id=user_id,
+            sponsor_user_id=s["id"],
+            sponsor_member_id=s.get("member_id"),
+            created_at=now,
+        )
+        await db.patrocinios.insert_one(patrocinio.model_dump())
+    await notify_users(
+        [s["id"] for s in resolved_sponsors],
+        "system",
+        "Pedido de patrocínio",
+        f"{data.name} indicou-o como padrinho de admissão (Art. 8.3). Confirme no portal.",
+        link="/participacao/patrocinios",
+    )
 
     await notify_admins(
         "system",

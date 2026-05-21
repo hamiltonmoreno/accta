@@ -54,6 +54,7 @@ const AdminEleicoesPage = lazy(() => import('./pages/private/AdminEleicoesPage')
 const AdminDisciplinarPage = lazy(() => import('./pages/private/AdminDisciplinarPage').then((m) => ({ default: m.AdminDisciplinarPage })));
 const AdminAparenciaPage = lazy(() => import('./pages/private/AdminAparenciaPage').then((m) => ({ default: m.AdminAparenciaPage })));
 const AdminNoticiasPage = lazy(() => import('./pages/private/AdminNoticiasPage').then((m) => ({ default: m.AdminNoticiasPage })));
+const PatrociniosPage = lazy(() => import('./pages/private/PatrociniosPage').then((m) => ({ default: m.PatrociniosPage })));
 const NoticiaDetailPage = lazy(() => import('./pages/public/NoticiaDetailPage').then((m) => ({ default: m.NoticiaDetailPage })));
 
 const RouteSpinner = () => (
@@ -290,6 +291,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={['admin', 'moderador']}>
               <PrivateLayout><AdminNoticiasPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participacao/patrocinios"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><PatrociniosPage /></PrivateLayout>
             </ProtectedRoute>
           }
         />
