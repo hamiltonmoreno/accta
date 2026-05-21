@@ -234,7 +234,11 @@ class TestApproveRegistration:
         )
         assert captured["status"] == "pendente_convite"
         assert captured["role"] == "financeiro"  # admin escala no approve
-        assert captured["cargo"] == "Tesoureiro"  # herda o cargo_declarado
+        # herda o cargo_declarado ("Tesoureiro"), normalizado p/ key canónica
+        assert captured["cargo"] == "dir_tesoureiro"
+        assert captured["orgao"] == "direcao"
+        # cargo estatutário cria a 1ª entrada de mandato
+        assert captured["cargo_history"][-1]["cargo"] == "dir_tesoureiro"
         assert captured["invite_token"]
         assert "invite_token_expires_at" in captured
         assert captured["registration_reviewer_id"] == admin_user.id

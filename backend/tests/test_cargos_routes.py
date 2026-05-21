@@ -137,12 +137,15 @@ class TestPromote:
             data=PromoteUserRequest(cargo="Tesoureiro", role="financeiro"), current_user=admin_user,
         )
         assert captured["role"] == "financeiro"
-        assert captured["cargo"] == "Tesoureiro"
+        # input por label legado, gravado como key canónica + órgão denormalizado
+        assert captured["cargo"] == "dir_tesoureiro"
+        assert captured["orgao"] == "direcao"
         # privilégios default do Tesoureiro
         assert set(captured["privileges"]) == {"manage_finances", "view_audit_logs"}
         assert len(captured["cargo_history"]) == 1
         m = captured["cargo_history"][0]
-        assert m["cargo"] == "Tesoureiro" and m["fim"] is None
+        assert m["cargo"] == "dir_tesoureiro" and m["fim"] is None
+        assert m["label"] == "Tesoureiro" and m["orgao"] == "direcao"
         assert m["transitioned_by"] == admin_user.id
         assert result["cargo_history"] == captured["cargo_history"]
         admin_route.create_audit_log.assert_awaited()
@@ -173,7 +176,7 @@ class TestPromote:
         hist = captured["cargo_history"]
         assert len(hist) == 2
         assert hist[0]["fim"] == "2026-01-01"  # mandato anterior fechado
-        assert hist[1]["cargo"] == "Presidente" and hist[1]["fim"] is None
+        assert hist[1]["cargo"] == "dir_presidente" and hist[1]["fim"] is None
 
 
 # --------------------------------------------------------------------------- #
@@ -218,7 +221,8 @@ class TestDemote:
             data=DemoteUserRequest(effective_date="2026-02-01"), current_user=admin_user,
         )
         assert captured["role"] == "socio"
-        assert captured["cargo"] == "Sócio"
+        assert captured["cargo"] == "socio"
+        assert captured["orgao"] is None
         assert captured["privileges"] == []
         assert captured["cargo_history"][0]["fim"] == "2026-02-01"
 
@@ -305,13 +309,15 @@ class TestTransfer:
         assert args[0] == "a" and args[1] == "b"
         from_set = args[2]["$set"]
         to_set = args[3]["$set"]
-        # from volta a Sócio; mandato fechado
-        assert from_set["cargo"] == "Sócio" and from_set["role"] == "socio"
+        # from volta a sócio base; mandato fechado; órgão limpo
+        assert from_set["cargo"] == "socio" and from_set["role"] == "socio"
+        assert from_set["orgao"] is None
         assert from_set["cargo_history"][0]["fim"] is not None
-        # to recebe Presidente com defaults (todos os privilégios) + transition_id
-        assert to_set["cargo"] == "Presidente" and to_set["role"] == "admin"
+        # to recebe dir_presidente com defaults (todos os privilégios) + transition_id
+        assert to_set["cargo"] == "dir_presidente" and to_set["role"] == "admin"
+        assert to_set["orgao"] == "direcao"
         new_mandate = to_set["cargo_history"][-1]
-        assert new_mandate["cargo"] == "Presidente" and new_mandate["fim"] is None
+        assert new_mandate["cargo"] == "dir_presidente" and new_mandate["fim"] is None
         assert new_mandate["transition_id"] == result["transition_id"]
         assert new_mandate["elected_by"] == "AGA 2026"
 
@@ -331,18 +337,20 @@ class TestListCargos:
         cargo_env.users.find = MagicMock(
             return_value=_cursor([
                 {"id": "p", "name": "Pres", "email": "p@x.cv", "member_id": "ACCTA-0001",
-                 "cargo": "Presidente",
-                 "cargo_history": [{"cargo": "Presidente", "fim": None, "inicio": "2025-01-01"}]},
-                {"id": "s", "name": "Soc", "email": "s@x.cv", "member_id": "ACCTA-0002", "cargo": "Sócio"},
+                 "cargo": "dir_presidente",
+                 "cargo_history": [{"cargo": "dir_presidente", "fim": None, "inicio": "2025-01-01"}]},
+                {"id": "s", "name": "Soc", "email": "s@x.cv", "member_id": "ACCTA-0002", "cargo": "socio"},
             ])
         )
         result = await admin_route.list_cargos(current_user=admin_user)
         by = {c["cargo"]: c for c in result["cargos"]}
-        assert "Sócio" not in by  # Sócio não é cargo institucional
-        assert by["Presidente"]["seats"] == 1
-        assert len(by["Presidente"]["holders"]) == 1
-        assert by["Presidente"]["holders"][0]["since"] == "2025-01-01"
-        assert by["Tesoureiro"]["holders"] == []  # vago
+        assert "socio" not in by  # Sócio não é cargo institucional
+        assert by["dir_presidente"]["seats"] == 1
+        assert by["dir_presidente"]["label"] == "Presidente da Direcção"
+        assert by["dir_presidente"]["orgao"] == "direcao"
+        assert len(by["dir_presidente"]["holders"]) == 1
+        assert by["dir_presidente"]["holders"][0]["since"] == "2025-01-01"
+        assert by["dir_tesoureiro"]["holders"] == []  # vago
 
 
 class TestCandidates:

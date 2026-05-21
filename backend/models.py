@@ -3,6 +3,29 @@ from typing import List, Literal, Optional
 from datetime import datetime, timezone
 import uuid
 
+# Governança estatutária (spec-governanca-estatutaria): a fonte ÚNICA de
+# cargos/órgãos/categorias/privilégios é `governance.py`. models.py apenas
+# re-exporta estas constantes para preservar imports e testes existentes
+# (re-export intencional → noqa F401).
+from governance import (  # noqa: F401
+    CARGOS,
+    CARGO_KEYS,
+    CARGOS_ORGAOS_SOCIAIS,
+    CARGO_DEFAULTS,
+    CARGO_SEATS,
+    PRIVILEGES,
+    ROLES,
+    MEMBER_CATEGORIES,
+    MEMBER_CATEGORY_LABELS,
+    VOTING_CATEGORIES,
+    DEFAULT_MEMBER_CATEGORY,
+    MANDATO_ANOS,
+    normalize_cargo,
+    cargo_label,
+    orgao_of_cargo,
+    is_estatutary_cargo,
+)
+
 
 # ===== USER MODELS =====
 # Modelo de identidade e cargos (spec-identidade-cargos):
@@ -13,104 +36,8 @@ import uuid
 
 ACCOUNT_TYPES = ["member", "technical"]
 
-ROLES_VALID = ["admin", "financeiro", "moderador", "socio"]
-
-# Cargos agrupados por órgão social (CV/PT típico). A lista plana `CARGOS` é
-# derivada daqui e usada para validação em endpoints e auto-registo.
-CARGOS_ORGAOS_SOCIAIS = {
-    "Direcção": [
-        "Presidente",
-        "Vice-Presidente",
-        "Secretário-Geral",
-        "Tesoureiro",
-        "Vogal da Direcção",
-    ],
-    "Conselho Fiscal": [
-        "Presidente do Conselho Fiscal",
-        "Vogal do Conselho Fiscal",
-    ],
-    "Mesa da Assembleia Geral": [
-        "Presidente da Mesa",
-        "Vice-Presidente da Mesa",
-        "Secretário da Mesa",
-    ],
-    "Coordenações": [
-        "Coordenador de Comunicação",
-        "Coordenador de Eventos",
-        "Coordenador de Projectos",
-    ],
-    "Comissões": [
-        "Membro da Comissão de Ética",
-    ],
-    "Base": [
-        "Sócio",  # default, sem mandato institucional
-    ],
-}
-
-# Lista plana (15 cargos institucionais + Sócio) para validação.
-CARGOS = [c for grupo in CARGOS_ORGAOS_SOCIAIS.values() for c in grupo]
-
-PRIVILEGES = [
-    "manage_users",
-    "manage_finances",
-    "manage_events",
-    "manage_documents",
-    "moderate_content",
-    "manage_benefits",
-    "view_audit_logs",
-    "view_finances_readonly",  # leitura do módulo financeiro sem poder editar (Conselho Fiscal)
-]
-
-# Defaults pré-carregados no modal de aprovação/promoção. O admin pode sobrepor.
-# role é o nível grosso; privileges são overlays granulares (ver spec).
-CARGO_DEFAULTS = {
-    "Presidente": {"role": "admin", "privileges": list(PRIVILEGES)},
-    "Vice-Presidente": {"role": "admin", "privileges": list(PRIVILEGES)},
-    "Secretário-Geral": {
-        "role": "admin",
-        "privileges": ["manage_users", "manage_events", "manage_documents", "moderate_content"],
-    },
-    "Tesoureiro": {"role": "financeiro", "privileges": ["manage_finances", "view_audit_logs"]},
-    "Vogal da Direcção": {"role": "moderador", "privileges": ["moderate_content", "manage_events"]},
-    "Presidente do Conselho Fiscal": {
-        "role": "socio",
-        "privileges": ["view_finances_readonly", "view_audit_logs"],
-    },
-    "Vogal do Conselho Fiscal": {
-        "role": "socio",
-        "privileges": ["view_finances_readonly", "view_audit_logs"],
-    },
-    "Presidente da Mesa": {"role": "socio", "privileges": ["manage_events"]},
-    "Vice-Presidente da Mesa": {"role": "socio", "privileges": []},
-    "Secretário da Mesa": {"role": "socio", "privileges": ["manage_documents"]},
-    "Coordenador de Comunicação": {
-        "role": "moderador",
-        "privileges": ["moderate_content", "manage_events"],
-    },
-    "Coordenador de Eventos": {"role": "socio", "privileges": ["manage_events"]},
-    "Coordenador de Projectos": {"role": "socio", "privileges": ["manage_events", "manage_documents"]},
-    "Membro da Comissão de Ética": {"role": "socio", "privileges": ["view_audit_logs"]},
-    "Sócio": {"role": "socio", "privileges": []},
-}
-
-# Número de vagas por cargo. 0 = sem limite (Sócio é o estado base de todos).
-CARGO_SEATS = {
-    "Presidente": 1,
-    "Vice-Presidente": 1,
-    "Secretário-Geral": 1,
-    "Tesoureiro": 1,
-    "Vogal da Direcção": 3,
-    "Presidente do Conselho Fiscal": 1,
-    "Vogal do Conselho Fiscal": 2,
-    "Presidente da Mesa": 1,
-    "Vice-Presidente da Mesa": 1,
-    "Secretário da Mesa": 1,
-    "Coordenador de Comunicação": 1,
-    "Coordenador de Eventos": 1,
-    "Coordenador de Projectos": 1,
-    "Membro da Comissão de Ética": 3,
-    "Sócio": 0,
-}
+# Nome legado mantido para compat de imports (admin.py/users.py importam isto).
+ROLES_VALID = ROLES
 
 
 class UserBase(BaseModel):
@@ -124,9 +51,20 @@ class UserBase(BaseModel):
     phone_number: Optional[str] = None
     consent_data: bool = False
     account_type: Literal["member", "technical"] = "member"
-    cargo: str = "Sócio"
+    # Categoria estatutária de membro (spec-governanca §3.3): fundador / ordinario
+    # / honorario. Define o voto base; sanções suspendem direitos sem alterar.
+    member_category: str = "ordinario"
+    # Órgão social derivado do cargo e denormalizado para filtros/relatórios.
+    orgao: Optional[str] = None
+    cargo: str = "socio"  # key canónica (governance.py); nunca o label.
     privileges: List[str] = []
     cargo_history: List[dict] = []
+    # Perda de direitos disciplinar (spec §13): afecta voto/elegibilidade sem
+    # tornar a conta inactiva. ISO-8601 string.
+    rights_suspended_until: Optional[str] = None
+    rights_suspension_reason: Optional[str] = None
+    # Necessário para validar representação em AG (regra do Sal — spec §11).
+    residence_island: Optional[str] = None
     bio: Optional[str] = None
     department: Optional[str] = None
     photo_url: Optional[str] = None
@@ -236,12 +174,22 @@ class RegistrationReject(BaseModel):
 # dict no doc.cargo_history; este modelo valida/serializa as escritas.
 class CargoMandate(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    cargo: str
+    cargo: str  # key canónica (governance.py)
+    label: Optional[str] = None  # snapshot do label p/ auditoria/display
     role: str
+    orgao: Optional[str] = None  # órgão social derivado do cargo
     inicio: str  # ISO 8601, obrigatório
     fim: Optional[str] = None  # ISO 8601; None = mandato activo
+    posse_em: Optional[str] = None  # data de posse (eleições)
+    mandato_inicio: Optional[str] = None  # início formal do mandato eleitoral
+    mandato_fim: Optional[str] = None  # fim formal do mandato eleitoral
+    suplente: bool = False
+    seat_index: Optional[int] = None
     elected_by: Optional[str] = None  # "AGA 2026", "Direcção", texto livre
+    eleicao_id: Optional[str] = None
+    assembleia_id: Optional[str] = None
     transitioned_by: str  # id do admin que efectuou a alteração
+    transition_id: Optional[str] = None  # liga as 2 pontas de um transfer
     notes: Optional[str] = None
 
 
