@@ -163,7 +163,7 @@ async def admin_update_user(
     await db.users.update_one({"id": user_id}, {"$set": update_data})
 
     # Audit log estruturado: details captura before/after dos campos sensiveis (role/status/privileges).
-    sensitive = {"role", "status", "privileges", "cargo"}
+    sensitive = {"role", "status", "privileges"}
     before = {k: existing.get(k) for k in update_data if k in sensitive}
     after = {k: v for k, v in update_data.items() if k in sensitive}
     await create_audit_log(
@@ -180,7 +180,7 @@ async def admin_update_user(
     )
 
     # Notify user of role/cargo changes
-    notify_fields = {"role", "cargo", "privileges", "status"}
+    notify_fields = {"role", "privileges", "status"}
     if notify_fields & set(update_data.keys()):
         await create_notification(
             user_id,

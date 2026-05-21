@@ -150,6 +150,16 @@ class TestUserAdminUpdate:
         upd = UserAdminUpdate(name="Novo Nome")
         assert "member_id" not in upd.model_dump()
 
+    def test_cargo_nao_e_editavel(self):
+        # cargo é atribuído só via /admin/cargos (mandato + vagas), nunca no
+        # update admin genérico — não deve existir no modelo.
+        assert "cargo" not in UserAdminUpdate.model_fields
+
+    def test_cargo_e_ignorado_no_dump(self):
+        # extra ignorado no Pydantic v2 → um cargo enviado no body nunca chega ao $set.
+        upd = UserAdminUpdate(name="Novo Nome", cargo="Presidente")
+        assert "cargo" not in upd.model_dump()
+
 
 # ---------- CargoMandate ----------
 

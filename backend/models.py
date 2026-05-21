@@ -90,14 +90,16 @@ class UserProfileUpdate(BaseModel):
 
 
 class UserAdminUpdate(BaseModel):
-    # NOTA: member_id NÃO é editável aqui — é imutável depois de atribuído
-    # (spec-identidade-cargos). Alterações manuais ficam restritas a script de
-    # migração fora da API comum.
+    # NOTA: member_id e cargo NÃO são editáveis aqui (spec-identidade-cargos).
+    # - member_id é imutável depois de atribuído (alterações só via script de
+    #   migração, fora da API comum).
+    # - cargo institucional é atribuído EXCLUSIVAMENTE via /admin/cargos
+    #   (promote/demote/transfer), que regista o mandato em cargo_history e
+    #   valida as vagas (CARGO_SEATS). Editá-lo aqui contornaria esse histórico.
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     role: Optional[str] = None
     status: Optional[str] = None
-    cargo: Optional[str] = None
     privileges: Optional[List[str]] = None
     license_number: Optional[str] = None
     phone_number: Optional[str] = None
