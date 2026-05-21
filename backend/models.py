@@ -754,3 +754,92 @@ class PasswordResetRequest(BaseModel):
 class PasswordResetConfirm(BaseModel):
     token: str
     new_password: str = Field(min_length=6, max_length=72)
+
+
+# ===== GOVERNANÇA: ASSEMBLEIA GERAL (spec-governanca §11) =====
+
+ASSEMBLEIA_TIPOS = ["ordinaria", "extraordinaria", "eleitoral"]
+ASSEMBLEIA_STATUS = ["rascunho", "convocada", "em_curso", "encerrada", "anulada"]
+MAIORIA_TIPOS = ["absoluta", "qualificada_3_4_presentes", "qualificada_3_4_universo"]
+MAX_REPRESENTADOS = 3  # um membro representa no máximo 3 outros (Estatutos)
+
+
+class Assembleia(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tipo: Literal["ordinaria", "extraordinaria", "eleitoral"]
+    titulo: str
+    data: str  # ISO 8601 (data/hora da sessão)
+    local: str
+    convocada_por: str
+    convocatoria_em: str  # ISO 8601 (momento da convocação)
+    antecedencia_dias: int
+    requerente_tipo: Optional[str] = None  # mesa | direcao | conselho_fiscal | membros
+    requerentes: List[str] = []
+    ordem_trabalhos: List[dict] = []
+    status: Literal["rascunho", "convocada", "em_curso", "encerrada", "anulada"] = "convocada"
+    eligible_voters_count: int = 0
+    chamada_actual: Literal[1, 2] = 1
+    quorum_required: int = 0
+    quorum_met: bool = False
+    acta_document_id: Optional[str] = None
+    encerrada_em: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class AssembleiaCreate(BaseModel):
+    tipo: Literal["ordinaria", "extraordinaria", "eleitoral"]
+    titulo: str = Field(min_length=3, max_length=200)
+    data: str  # ISO 8601
+    local: str = Field(min_length=2, max_length=200)
+    antecedencia_dias: Optional[int] = None  # se None, calculado de (data - agora)
+    requerente_tipo: Optional[str] = None
+    requerentes: List[str] = []
+    ordem_trabalhos: List[dict] = []
+
+
+class AssembleiaPresenca(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    assembleia_id: str
+    user_id: str  # membro presente
+    tipo: Literal["propria", "representacao"] = "propria"
+    representados: List[str] = []  # ids de membros representados
+    voting_power: int = 1  # 1 (se votante) + nº de representados votantes
+    documento_id: Optional[str] = None  # procuração/representação
+    registado_por: str
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class AssembleiaPresencaCreate(BaseModel):
+    user_id: str
+    representados: List[str] = Field(default_factory=list, max_length=MAX_REPRESENTADOS)
+    documento_id: Optional[str] = None
+
+
+class AssembleiaDeliberacao(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    assembleia_id: str
+    ponto: str  # ponto da ordem de trabalhos
+    descricao: str
+    tipo_maioria: Literal["absoluta", "qualificada_3_4_presentes", "qualificada_3_4_universo"]
+    base_calculo: int  # poder de voto presente OU universo (computado pelo servidor)
+    votos_favor: int
+    votos_contra: int
+    abstencoes: int
+    threshold: int  # nº de votos necessário (computado)
+    aprovado: bool
+    source_article: Optional[str] = None
+    registado_por: str
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class AssembleiaDeliberacaoCreate(BaseModel):
+    ponto: str = Field(min_length=1, max_length=200)
+    descricao: str = Field(min_length=1, max_length=2000)
+    tipo_maioria: Literal["absoluta", "qualificada_3_4_presentes", "qualificada_3_4_universo"]
+    votos_favor: int = Field(ge=0)
+    votos_contra: int = Field(ge=0)
+    abstencoes: int = Field(ge=0)
+    source_article: Optional[str] = Field(default=None, max_length=50)

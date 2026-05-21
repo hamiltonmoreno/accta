@@ -24,18 +24,18 @@ e migração destrutiva de dados (Fase 8). Commit por fase.
 - [x] Commit (Fase 0+1)
 - NOTA: 2 falhas pré-existentes em test_users_routes (get_users $or search) — NÃO regressão, fora de âmbito.
 
-## Fase 2 — RBAC e elegibilidade
-- [ ] `backend/permissions.py` (ou auth.py): user_can, is_mesa_ag, is_direcao, is_conselho_fiscal
-- [ ] is_voting_member / is_eligible_for_office wired (status, categoria, suspensão)
-- [ ] Testes RBAC/elegibilidade
-- [ ] Commit
+## Fase 2 — RBAC e elegibilidade ✅
+- [x] `backend/permissions.py`: user_can, is_mesa_ag, is_direcao, is_conselho_fiscal, is_tesoureiro, can_convene_assembleia
+- [x] is_voting_member / is_eligible_for_office wired (status, categoria, suspensão)
+- [x] Testes RBAC/elegibilidade (test_permissions.py, 17)
+- [x] Commit
 
-## Fase 3 — Assembleia Geral
-- [ ] Modelos: Assembleia, AssembleiaPresenca, AssembleiaDeliberacao
-- [ ] Colecções + índices (assembleias, assembleia_presencas)
-- [ ] `routes/assembleias.py`: convocar, presenças, deliberações, encerrar, quórum
-- [ ] Testes (quórum 1ª/2ª, representação max 3, Mesa não representa, RBAC)
-- [ ] Commit
+## Fase 3 — Assembleia Geral ✅
+- [x] Modelos: Assembleia, AssembleiaPresenca, AssembleiaDeliberacao (+ Create)
+- [x] Colecções + índices (assembleias, assembleia_presencas, assembleia_deliberacoes)
+- [x] `routes/assembleias.py`: convocar, presenças, deliberações (+ list), encerrar, quórum
+- [x] Testes (quórum 1ª/2ª, representação max 3, Mesa não representa, maiorias, RBAC) — 15
+- [x] Commit
 
 ## Fase 4 — Eleições + proclamação
 - [ ] Modelos: Eleicao, EleicaoLista, EleicaoVoterReceipt, EleicaoBallot

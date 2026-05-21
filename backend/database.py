@@ -74,6 +74,10 @@ COLLECTIONS: tuple[str, ...] = (
     "gallery_photos",
     "notifications",
     "audit_logs",
+    # governança estatutária (spec-governanca):
+    "assembleias",
+    "assembleia_presencas",
+    "assembleia_deliberacoes",
     # no Pydantic model — schema derived from usage:
     "password_resets",
     "tokens_revoked",
@@ -793,6 +797,14 @@ _INDEX_DDL: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS ix_docacc_user_doc ON \"document_accesses\" ((doc->>'user_id'), (doc->>'document_id'))",
     'CREATE INDEX IF NOT EXISTS ix_benval_user_at ON "benefit_validations" '
     "((doc->>'user_id'), (doc->>'validated_at') DESC)",
+    # governança — assembleias
+    "CREATE INDEX IF NOT EXISTS ix_assemb_status ON \"assembleias\" ((doc->>'status'))",
+    "CREATE INDEX IF NOT EXISTS ix_assemb_tipo ON \"assembleias\" ((doc->>'tipo'))",
+    "CREATE INDEX IF NOT EXISTS ix_assemb_data ON \"assembleias\" ((doc->>'data') DESC)",
+    "CREATE INDEX IF NOT EXISTS ix_assembpres_assemb_user ON \"assembleia_presencas\" "
+    "((doc->>'assembleia_id'), (doc->>'user_id'))",
+    "CREATE INDEX IF NOT EXISTS ix_assembdelib_assemb ON \"assembleia_deliberacoes\" "
+    "((doc->>'assembleia_id'), (doc->>'created_at') DESC)",
 )
 
 REQUIRED_INDEX_NAMES = {
