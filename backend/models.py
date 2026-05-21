@@ -843,3 +843,109 @@ class AssembleiaDeliberacaoCreate(BaseModel):
     votos_contra: int = Field(ge=0)
     abstencoes: int = Field(ge=0)
     source_article: Optional[str] = Field(default=None, max_length=50)
+
+
+# ===== GOVERNANÇA: ELEIÇÕES (spec-governanca §12) =====
+
+ELEICAO_STATUS = [
+    "preparacao", "candidaturas", "campanha", "votacao",
+    "apurada", "recurso", "proclamada", "anulada",
+]
+MODO_VOTACAO = ["presencial", "correspondencia", "digital", "hibrido"]
+# Marcadores de boletim que NÃO contam para os votos válidos.
+VOTO_BRANCO = "branco"
+VOTO_NULO = "nulo"
+
+
+class Eleicao(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    ano: int
+    mandato_inicio: str  # ISO 8601
+    mandato_fim: str  # ISO 8601
+    status: Literal[
+        "preparacao", "candidaturas", "campanha", "votacao",
+        "apurada", "recurso", "proclamada", "anulada",
+    ] = "preparacao"
+    calendario: dict = {}  # convocatoria, candidaturas_fim, votacao, etc. (ISO strings)
+    assembleia_id: Optional[str] = None
+    comissao_eleitoral: List[str] = []  # ids; não podem ser candidatos
+    mesa_voto: List[str] = []  # ids; não podem ser candidatos
+    modo_votacao: Literal["presencial", "correspondencia", "digital", "hibrido"] = "presencial"
+    direcao_titulares: int = 5  # 5 ou 7 (spec decisão #3)
+    resultado: Optional[dict] = None
+    created_by: str = ""
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class EleicaoCreate(BaseModel):
+    ano: int = Field(ge=2024, le=2100)
+    mandato_inicio: str
+    mandato_fim: str
+    calendario: dict = {}
+    assembleia_id: Optional[str] = None
+    comissao_eleitoral: List[str] = []
+    mesa_voto: List[str] = []
+    modo_votacao: Literal["presencial", "correspondencia", "digital", "hibrido"] = "presencial"
+    direcao_titulares: Literal[5, 7] = 5
+
+
+class EleicaoLista(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    eleicao_id: str
+    letra: str
+    nome: Optional[str] = None
+    candidatos: List[dict]  # {slot_key, cargo, user_id, suplente, seat_index}
+    programa_document_id: Optional[str] = None
+    estado: Literal["submetida", "aceite", "rejeitada"] = "submetida"
+    rejeicao_motivo: Optional[str] = None
+    submetida_por: str = ""
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class EleicaoListaCreate(BaseModel):
+    letra: str = Field(min_length=1, max_length=2)
+    nome: Optional[str] = Field(default=None, max_length=120)
+    candidatos: List[dict]  # cada item: slot_key, cargo, user_id, suplente, seat_index
+    programa_document_id: Optional[str] = None
+
+
+class EleicaoListaValidar(BaseModel):
+    aceite: bool
+    motivo: Optional[str] = Field(default=None, max_length=500)
+
+
+class VotarRequest(BaseModel):
+    # lista_id da escolha, ou "branco"/"nulo".
+    voto: str
+
+
+class VotoCorrespondenciaRequest(BaseModel):
+    user_id: str
+    voto: str  # lista_id, "branco" ou "nulo"
+    justificacao: str = Field(min_length=3, max_length=500)
+
+
+# Boletim secreto: NUNCA contém user_id nem voter_hash (spec §7).
+class EleicaoBallot(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    eleicao_id: str
+    voto: str  # lista_id, "branco" ou "nulo"
+    ballot_box_id: Optional[str] = None
+    modo: str = "digital"
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+# Recibo de eleitor: prova (anónima por HMAC) que um eleitor votou uma vez.
+# NUNCA contém o sentido de voto (spec §7).
+class EleicaoVoterReceipt(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    eleicao_id: str
+    voter_hash: str  # HMAC(secret, f"{eleicao_id}:{user_id}")
+    modo: str = "digital"
+    justificacao: Optional[str] = None  # só para voto por correspondência
+    registado_por: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())

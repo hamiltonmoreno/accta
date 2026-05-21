@@ -78,6 +78,10 @@ COLLECTIONS: tuple[str, ...] = (
     "assembleias",
     "assembleia_presencas",
     "assembleia_deliberacoes",
+    "eleicoes",
+    "eleicao_listas",
+    "eleicao_voter_receipts",
+    "eleicao_ballots",
     # no Pydantic model — schema derived from usage:
     "password_resets",
     "tokens_revoked",
@@ -805,10 +809,21 @@ _INDEX_DDL: tuple[str, ...] = (
     "((doc->>'assembleia_id'), (doc->>'user_id'))",
     "CREATE INDEX IF NOT EXISTS ix_assembdelib_assemb ON \"assembleia_deliberacoes\" "
     "((doc->>'assembleia_id'), (doc->>'created_at') DESC)",
+    # governança — eleições
+    "CREATE INDEX IF NOT EXISTS ix_eleicoes_status_ano ON \"eleicoes\" ((doc->>'status'), (doc->>'ano'))",
+    "CREATE INDEX IF NOT EXISTS ix_eleicoes_assemb ON \"eleicoes\" ((doc->>'assembleia_id'))",
+    "CREATE UNIQUE INDEX IF NOT EXISTS ux_eleicao_lista_letra ON \"eleicao_listas\" "
+    "((doc->>'eleicao_id'), (doc->>'letra'))",
+    # voto secreto: recibo prova que votou (único por eleitor); boletim é anónimo
+    "CREATE UNIQUE INDEX IF NOT EXISTS ux_eleicao_receipt ON \"eleicao_voter_receipts\" "
+    "((doc->>'eleicao_id'), (doc->>'voter_hash'))",
+    "CREATE INDEX IF NOT EXISTS ix_eleicao_ballots_eleicao ON \"eleicao_ballots\" "
+    "((doc->>'eleicao_id'), (doc->>'ballot_box_id'))",
 )
 
 REQUIRED_INDEX_NAMES = {
     "ux_votes_user_poll",
+    "ux_eleicao_receipt",  # garante 1 voto por eleitor (voto secreto)
 }
 
 
@@ -903,3 +918,30 @@ async def transfer_cargo(from_user_id: str, to_user_id: str, from_update: dict, 
                     new_doc,
                     row["pk"],
                 )
+
+
+async def cast_ballot(eleicao_id: str, voter_hash: str, receipt_doc: dict, ballot_doc: dict) -> None:
+    """Voto secreto (spec-governanca §7): insere o recibo do eleitor e o boletim
+    numa ÚNICA transação. O recibo prova (por HMAC) que o eleitor votou; o
+    boletim não tem qualquer ligação ao eleitor. Levanta ValueError em voto
+    duplicado (também garantido pelo índice único ux_eleicao_receipt).
+
+    O raw SQL fica no DAO (regra api.md). As rotas chamam só este helper.
+    """
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            wb = _WhereBuilder()
+            where = wb.build({"eleicao_id": eleicao_id, "voter_hash": voter_hash})
+            existing = await conn.fetchrow(
+                f"SELECT pk FROM {_quote_ident('eleicao_voter_receipts')} WHERE {where} LIMIT 1",
+                *wb.params,
+            )
+            if existing is not None:
+                raise ValueError("voto duplicado")
+            await conn.execute(
+                f"INSERT INTO {_quote_ident('eleicao_voter_receipts')} (doc) VALUES ($1)", receipt_doc
+            )
+            await conn.execute(
+                f"INSERT INTO {_quote_ident('eleicao_ballots')} (doc) VALUES ($1)", ballot_doc
+            )

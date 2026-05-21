@@ -37,13 +37,13 @@ e migração destrutiva de dados (Fase 8). Commit por fase.
 - [x] Testes (quórum 1ª/2ª, representação max 3, Mesa não representa, maiorias, RBAC) — 15
 - [x] Commit
 
-## Fase 4 — Eleições + proclamação
-- [ ] Modelos: Eleicao, EleicaoLista, EleicaoVoterReceipt, EleicaoBallot
-- [ ] Colecções + índices (voto secreto: receipt/ballot separados)
-- [ ] `database.py`: função transaccional de voto (receipt + ballot atómico) + voter_hash HMAC
-- [ ] `routes/eleicoes.py`: ciclo completo + proclamação cria mandatos (serviço comum c/ promote)
-- [ ] Testes (lista incompleta, candidato duplicado, comissão candidata, voto duplo, boletim sem identidade)
-- [ ] Commit
+## Fase 4 — Eleições + proclamação ✅
+- [x] Modelos: Eleicao, EleicaoLista, EleicaoVoterReceipt, EleicaoBallot (+ Create/Votar)
+- [x] Colecções + índices (voto secreto: receipt/ballot separados; ux_eleicao_receipt único)
+- [x] `database.py`: `cast_ballot` transaccional (receipt + ballot atómico) + voter_hash HMAC
+- [x] `routes/eleicoes.py`: ciclo completo (criar→listas→validar→abrir→votar→correspondência→apurar→proclamar); proclamação cria mandatos (serviço comum `_proclaim_list`)
+- [x] Testes (lista incompleta/duplicada/comissão, inelegível, boletim anónimo, voto duplo, apuramento, empate, proclamação) — 14
+- [x] Commit
 
 ## Fase 5 — Disciplina
 - [ ] Modelo Sancao + colecção sancoes
