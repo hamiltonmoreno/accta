@@ -64,7 +64,7 @@ const LogoSlot = ({ label, hint, field, url, dark, onUpload, onReset, busy }) =>
   );
 };
 
-export const AdminMarcaPage = () => {
+export const AdminMarcaPage = ({ embedded = false }) => {
   const qc = useQueryClient();
   const [busyField, setBusyField] = useState(null);
   const [alt, setAlt] = useState('');
@@ -108,17 +108,19 @@ export const AdminMarcaPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-carmesim/10 flex items-center justify-center">
-          <Palette className="w-5 h-5 text-carmesim" aria-hidden="true" />
+      {!embedded && (
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-carmesim/10 flex items-center justify-center">
+            <Palette className="w-5 h-5 text-carmesim" aria-hidden="true" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-grafite">Marca / Logótipo</h1>
+            <p className="text-sm text-[#6B7280]">
+              Carregue o logótipo do portal. Recomendado PNG transparente ~360×72px. Sem upload, usa-se o logótipo vetorial por defeito.
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-grafite">Marca / Logótipo</h1>
-          <p className="text-sm text-[#6B7280]">
-            Carregue o logótipo do portal. Recomendado PNG transparente ~360×72px. Sem upload, usa-se o logótipo vetorial por defeito.
-          </p>
-        </div>
-      </div>
+      )}
 
       {isLoading ? (
         <div className="grid sm:grid-cols-2 gap-4">

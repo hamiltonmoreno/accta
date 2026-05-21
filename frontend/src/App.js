@@ -52,8 +52,7 @@ const AdminCargosPage = lazy(() => import('./pages/private/AdminCargosPage').the
 const AdminAssembleiasPage = lazy(() => import('./pages/private/AdminAssembleiasPage').then((m) => ({ default: m.AdminAssembleiasPage })));
 const AdminEleicoesPage = lazy(() => import('./pages/private/AdminEleicoesPage').then((m) => ({ default: m.AdminEleicoesPage })));
 const AdminDisciplinarPage = lazy(() => import('./pages/private/AdminDisciplinarPage').then((m) => ({ default: m.AdminDisciplinarPage })));
-const AdminBannersPage = lazy(() => import('./pages/private/AdminBannersPage').then((m) => ({ default: m.AdminBannersPage })));
-const AdminMarcaPage = lazy(() => import('./pages/private/AdminMarcaPage').then((m) => ({ default: m.AdminMarcaPage })));
+const AdminAparenciaPage = lazy(() => import('./pages/private/AdminAparenciaPage').then((m) => ({ default: m.AdminAparenciaPage })));
 
 const RouteSpinner = () => (
   <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-live="polite">
@@ -276,21 +275,16 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/admin/banners"
+          path="/admin/aparencia"
           element={
             <ProtectedRoute allowedRoles={['admin', 'moderador']}>
-              <PrivateLayout><AdminBannersPage /></PrivateLayout>
+              <PrivateLayout><AdminAparenciaPage /></PrivateLayout>
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/admin/marca"
-          element={
-            <ProtectedRoute allowedRoles={['admin', 'moderador']}>
-              <PrivateLayout><AdminMarcaPage /></PrivateLayout>
-            </ProtectedRoute>
-          }
-        />
+        {/* Consolidado em /admin/aparencia — redirects mantêm links antigos. */}
+        <Route path="/admin/banners" element={<Navigate to="/admin/aparencia?tab=banners" replace />} />
+        <Route path="/admin/marca" element={<Navigate to="/admin/aparencia?tab=logo" replace />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
