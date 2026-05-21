@@ -56,16 +56,22 @@ def _coll(**methods):
 
 
 def _mesa_ag(**over) -> User:
-    base = {"name": "Mesa", "email": "mesa@x.cv", "role": "socio", "status": "ativo",
-            "cargo": "ag_presidente", "account_type": "member", "member_category": "ordinario"}
+    base = {
+        "name": "Mesa",
+        "email": "mesa@x.cv",
+        "role": "socio",
+        "status": "ativo",
+        "cargo": "ag_presidente",
+        "account_type": "member",
+        "member_category": "ordinario",
+    }
     base.update(over)
     return User(**base)
 
 
 def _voters(n: int) -> list[dict]:
     return [
-        {"id": f"v{i}", "account_type": "member", "status": "ativo", "member_category": "ordinario"}
-        for i in range(n)
+        {"id": f"v{i}", "account_type": "member", "status": "ativo", "member_category": "ordinario"} for i in range(n)
     ]
 
 
@@ -170,12 +176,18 @@ class TestPresencas:
     async def test_mesa_ag_nao_representa(self, gov_env):
         gov_env.assembleias.find_one = AsyncMock(return_value=self._assembleia())
         gov_env.users.find_one = AsyncMock(
-            return_value={"id": "u1", "account_type": "member", "status": "ativo",
-                          "member_category": "ordinario", "cargo": "ag_presidente"}
+            return_value={
+                "id": "u1",
+                "account_type": "member",
+                "status": "ativo",
+                "member_category": "ordinario",
+                "cargo": "ag_presidente",
+            }
         )
         with pytest.raises(HTTPException) as exc:
             await a_route.register_presenca(
-                assembleia_id="a1", request=_request(),
+                assembleia_id="a1",
+                request=_request(),
                 data=AssembleiaPresencaCreate(user_id="u1", representados=["r1"]),
                 current_user=_mesa_ag(),
             )
@@ -185,7 +197,8 @@ class TestPresencas:
         gov_env.assembleias.find_one = AsyncMock(return_value=self._assembleia())
         with pytest.raises(HTTPException) as exc:
             await a_route.register_presenca(
-                assembleia_id="a1", request=_request(),
+                assembleia_id="a1",
+                request=_request(),
                 data=AssembleiaPresencaCreate(user_id="u1", representados=["u1"]),
                 current_user=_mesa_ag(),
             )
@@ -194,14 +207,23 @@ class TestPresencas:
     async def test_voting_power_conta_votantes(self, gov_env):
         gov_env.assembleias.find_one = AsyncMock(return_value=self._assembleia())
         gov_env.users.find_one = AsyncMock(
-            return_value={"id": "u1", "account_type": "member", "status": "ativo",
-                          "member_category": "ordinario", "cargo": "socio"}
+            return_value={
+                "id": "u1",
+                "account_type": "member",
+                "status": "ativo",
+                "member_category": "ordinario",
+                "cargo": "socio",
+            }
         )
         # 2 representados: 1 votante + 1 honorário (não vota) → power = 1 + 1 = 2
-        gov_env.users.find = MagicMock(return_value=_cursor([
-            {"id": "r1", "account_type": "member", "status": "ativo", "member_category": "ordinario"},
-            {"id": "r2", "account_type": "member", "status": "ativo", "member_category": "honorario"},
-        ]))
+        gov_env.users.find = MagicMock(
+            return_value=_cursor(
+                [
+                    {"id": "r1", "account_type": "member", "status": "ativo", "member_category": "ordinario"},
+                    {"id": "r2", "account_type": "member", "status": "ativo", "member_category": "honorario"},
+                ]
+            )
+        )
         captured = {}
         gov_env.assembleia_presencas.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
 
@@ -213,7 +235,8 @@ class TestPresencas:
 
         gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_find)
         result = await a_route.register_presenca(
-            assembleia_id="a1", request=_request(),
+            assembleia_id="a1",
+            request=_request(),
             data=AssembleiaPresencaCreate(user_id="u1", representados=["r1", "r2"]),
             current_user=_mesa_ag(),
         )
@@ -224,15 +247,19 @@ class TestPresencas:
     async def test_ja_registado_409(self, gov_env):
         gov_env.assembleias.find_one = AsyncMock(return_value=self._assembleia())
         gov_env.users.find_one = AsyncMock(
-            return_value={"id": "u1", "account_type": "member", "status": "ativo",
-                          "member_category": "ordinario", "cargo": "socio"}
+            return_value={
+                "id": "u1",
+                "account_type": "member",
+                "status": "ativo",
+                "member_category": "ordinario",
+                "cargo": "socio",
+            }
         )
-        gov_env.assembleia_presencas.find = MagicMock(
-            return_value=_cursor([{"user_id": "u1", "representados": []}])
-        )
+        gov_env.assembleia_presencas.find = MagicMock(return_value=_cursor([{"user_id": "u1", "representados": []}]))
         with pytest.raises(HTTPException) as exc:
             await a_route.register_presenca(
-                assembleia_id="a1", request=_request(),
+                assembleia_id="a1",
+                request=_request(),
                 data=AssembleiaPresencaCreate(user_id="u1"),
                 current_user=_mesa_ag(),
             )
@@ -276,10 +303,15 @@ class TestDeliberacoes:
         gov_env.assembleia_presencas.find = MagicMock(return_value=_cursor([{"voting_power": 2}]))  # < 4
         with pytest.raises(HTTPException) as exc:
             await a_route.register_deliberacao(
-                assembleia_id="a1", request=_request(),
+                assembleia_id="a1",
+                request=_request(),
                 data=AssembleiaDeliberacaoCreate(
-                    ponto="1", descricao="Aprovar contas", tipo_maioria="absoluta",
-                    votos_favor=2, votos_contra=0, abstencoes=0,
+                    ponto="1",
+                    descricao="Aprovar contas",
+                    tipo_maioria="absoluta",
+                    votos_favor=2,
+                    votos_contra=0,
+                    abstencoes=0,
                 ),
                 current_user=_mesa_ag(),
             )
@@ -292,10 +324,15 @@ class TestDeliberacoes:
         captured = {}
         gov_env.assembleia_deliberacoes.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
         result = await a_route.register_deliberacao(
-            assembleia_id="a1", request=_request(),
+            assembleia_id="a1",
+            request=_request(),
             data=AssembleiaDeliberacaoCreate(
-                ponto="1", descricao="Aprovar contas", tipo_maioria="absoluta",
-                votos_favor=6, votos_contra=2, abstencoes=0,
+                ponto="1",
+                descricao="Aprovar contas",
+                tipo_maioria="absoluta",
+                votos_favor=6,
+                votos_contra=2,
+                abstencoes=0,
             ),
             current_user=_mesa_ag(),
         )
@@ -309,10 +346,15 @@ class TestDeliberacoes:
         captured = {}
         gov_env.assembleia_deliberacoes.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
         result = await a_route.register_deliberacao(
-            assembleia_id="a1", request=_request(),
+            assembleia_id="a1",
+            request=_request(),
             data=AssembleiaDeliberacaoCreate(
-                ponto="2", descricao="Alterar estatutos", tipo_maioria="qualificada_3_4_universo",
-                votos_favor=6, votos_contra=0, abstencoes=0,
+                ponto="2",
+                descricao="Alterar estatutos",
+                tipo_maioria="qualificada_3_4_universo",
+                votos_favor=6,
+                votos_contra=0,
+                abstencoes=0,
             ),
             current_user=_mesa_ag(),
         )

@@ -47,8 +47,13 @@ router = APIRouter(prefix="/eleicoes", tags=["eleicoes"])
 
 _MEMBER_FILTER = {"$or": [{"account_type": "member"}, {"account_type": {"$exists": False}}]}
 _VOTER_PROJ = {
-    "_id": 0, "id": 1, "account_type": 1, "status": 1,
-    "member_category": 1, "rights_suspended_until": 1, "name": 1,
+    "_id": 0,
+    "id": 1,
+    "account_type": 1,
+    "status": 1,
+    "member_category": 1,
+    "rights_suspended_until": 1,
+    "name": 1,
 }
 
 
@@ -59,9 +64,7 @@ def _now_iso() -> str:
 def _voter_hash(eleicao_id: str, user_id: str) -> str:
     """HMAC-SHA256 — nunca um hash simples (spec §7), para que o recibo não seja
     reversível para o user_id sem o segredo do servidor."""
-    return hmac.new(
-        SECRET_KEY.encode(), f"{eleicao_id}:{user_id}".encode(), hashlib.sha256
-    ).hexdigest()
+    return hmac.new(SECRET_KEY.encode(), f"{eleicao_id}:{user_id}".encode(), hashlib.sha256).hexdigest()
 
 
 def _close_active(history, fim: str) -> list:
@@ -97,9 +100,7 @@ async def _get_eleicao(eleicao_id: str) -> dict:
 
 
 @router.post("")
-async def create_eleicao(
-    request: Request, data: EleicaoCreate, current_user: User = Depends(get_current_user)
-):
+async def create_eleicao(request: Request, data: EleicaoCreate, current_user: User = Depends(get_current_user)):
     """Cria a eleição já em fase de candidaturas (a criação abre candidaturas)."""
     _require_create(current_user)
     eleicao = Eleicao(
@@ -118,7 +119,10 @@ async def create_eleicao(
     doc = eleicao.model_dump()
     await db.eleicoes.insert_one(doc)
     await create_audit_log(
-        current_user.id, "eleicao_criada", doc["id"], request=request,
+        current_user.id,
+        "eleicao_criada",
+        doc["id"],
+        request=request,
         details={"ano": data.ano, "direcao_titulares": data.direcao_titulares},
     )
     return doc
@@ -147,7 +151,9 @@ async def get_eleicao(eleicao_id: str, current_user: User = Depends(get_current_
 
 @router.post("/{eleicao_id}/listas")
 async def submit_lista(
-    eleicao_id: str, request: Request, data: EleicaoListaCreate,
+    eleicao_id: str,
+    request: Request,
+    data: EleicaoListaCreate,
     current_user: User = Depends(get_current_user),
 ):
     """Submete uma lista. Tem de preencher TODOS os slots; sem candidato
@@ -172,9 +178,7 @@ async def submit_lista(
     barred = set(eleicao.get("comissao_eleitoral") or []) | set(eleicao.get("mesa_voto") or [])
     overlap = barred & set(user_ids)
     if overlap:
-        raise HTTPException(
-            status_code=400, detail="Comissão Eleitoral / Mesa de Voto não podem ser candidatos"
-        )
+        raise HTTPException(status_code=400, detail="Comissão Eleitoral / Mesa de Voto não podem ser candidatos")
 
     candidatos_users = await db.users.find({"id": {"$in": user_ids}}, _VOTER_PROJ).to_list(None)
     by_id = {u["id"]: u for u in candidatos_users}
@@ -187,25 +191,36 @@ async def submit_lista(
     candidatos = []
     for c in data.candidatos:
         s = slot_by_key[c["slot_key"]]
-        candidatos.append({
-            "slot_key": s["slot_key"], "cargo": s["cargo"], "orgao": s["orgao"],
-            "suplente": s["suplente"], "seat_index": s["seat_index"], "user_id": c["user_id"],
-        })
+        candidatos.append(
+            {
+                "slot_key": s["slot_key"],
+                "cargo": s["cargo"],
+                "orgao": s["orgao"],
+                "suplente": s["suplente"],
+                "seat_index": s["seat_index"],
+                "user_id": c["user_id"],
+            }
+        )
 
     lista = EleicaoLista(
-        eleicao_id=eleicao_id, letra=data.letra.upper(), nome=data.nome,
-        candidatos=candidatos, programa_document_id=data.programa_document_id,
-        estado="submetida", submetida_por=current_user.id,
+        eleicao_id=eleicao_id,
+        letra=data.letra.upper(),
+        nome=data.nome,
+        candidatos=candidatos,
+        programa_document_id=data.programa_document_id,
+        estado="submetida",
+        submetida_por=current_user.id,
     )
     doc = lista.model_dump()
-    existing = await db.eleicao_listas.find_one(
-        {"eleicao_id": eleicao_id, "letra": doc["letra"]}, {"_id": 0, "id": 1}
-    )
+    existing = await db.eleicao_listas.find_one({"eleicao_id": eleicao_id, "letra": doc["letra"]}, {"_id": 0, "id": 1})
     if existing:
         raise HTTPException(status_code=409, detail=f"Já existe a lista {doc['letra']}")
     await db.eleicao_listas.insert_one(doc)
     await create_audit_log(
-        current_user.id, "eleicao_lista_submetida", doc["id"], request=request,
+        current_user.id,
+        "eleicao_lista_submetida",
+        doc["id"],
+        request=request,
         details={"eleicao_id": eleicao_id, "letra": doc["letra"]},
     )
     return doc
@@ -220,7 +235,10 @@ async def list_listas(eleicao_id: str, current_user: User = Depends(get_current_
 
 @router.post("/{eleicao_id}/listas/{lista_id}/validar")
 async def validar_lista(
-    eleicao_id: str, lista_id: str, request: Request, data: EleicaoListaValidar,
+    eleicao_id: str,
+    lista_id: str,
+    request: Request,
+    data: EleicaoListaValidar,
     current_user: User = Depends(get_current_user),
 ):
     eleicao = await _get_eleicao(eleicao_id)
@@ -233,7 +251,10 @@ async def validar_lista(
         {"id": lista_id}, {"$set": {"estado": estado, "rejeicao_motivo": data.motivo if not data.aceite else None}}
     )
     await create_audit_log(
-        current_user.id, "eleicao_lista_validada", lista_id, request=request,
+        current_user.id,
+        "eleicao_lista_validada",
+        lista_id,
+        request=request,
         details={"eleicao_id": eleicao_id, "estado": estado, "motivo": data.motivo},
     )
     return {"message": f"Lista {lista['letra']} {estado}.", "estado": estado}
@@ -245,9 +266,7 @@ async def validar_lista(
 
 
 @router.post("/{eleicao_id}/abrir-votacao")
-async def abrir_votacao(
-    eleicao_id: str, request: Request, current_user: User = Depends(get_current_user)
-):
+async def abrir_votacao(eleicao_id: str, request: Request, current_user: User = Depends(get_current_user)):
     eleicao = await _get_eleicao(eleicao_id)
     _require_manage(current_user, eleicao)
     if eleicao["status"] not in ("candidaturas", "campanha"):
@@ -263,16 +282,16 @@ async def abrir_votacao(
 async def _validate_voto(eleicao_id: str, voto: str):
     if voto in (VOTO_BRANCO, VOTO_NULO):
         return
-    lista = await db.eleicao_listas.find_one(
-        {"id": voto, "eleicao_id": eleicao_id}, {"_id": 0, "estado": 1}
-    )
+    lista = await db.eleicao_listas.find_one({"id": voto, "eleicao_id": eleicao_id}, {"_id": 0, "estado": 1})
     if not lista or lista.get("estado") != "aceite":
         raise HTTPException(status_code=400, detail="Lista inválida ou não aceite")
 
 
 @router.post("/{eleicao_id}/votar")
 async def votar(
-    eleicao_id: str, request: Request, data: VotarRequest,
+    eleicao_id: str,
+    request: Request,
+    data: VotarRequest,
     current_user: User = Depends(get_current_user),
 ):
     """Voto digital do próprio eleitor. Recibo + boletim atómicos; o boletim não
@@ -300,7 +319,9 @@ async def votar(
 
 @router.post("/{eleicao_id}/voto-correspondencia")
 async def voto_correspondencia(
-    eleicao_id: str, request: Request, data: VotoCorrespondenciaRequest,
+    eleicao_id: str,
+    request: Request,
+    data: VotoCorrespondenciaRequest,
     current_user: User = Depends(get_current_user),
 ):
     """Voto por correspondência registado pela Comissão/Mesa/admin, com
@@ -318,8 +339,11 @@ async def voto_correspondencia(
 
     vh = _voter_hash(eleicao_id, data.user_id)
     receipt = EleicaoVoterReceipt(
-        eleicao_id=eleicao_id, voter_hash=vh, modo="correspondencia",
-        justificacao=data.justificacao, registado_por=current_user.id,
+        eleicao_id=eleicao_id,
+        voter_hash=vh,
+        modo="correspondencia",
+        justificacao=data.justificacao,
+        registado_por=current_user.id,
     ).model_dump()
     ballot = EleicaoBallot(eleicao_id=eleicao_id, voto=data.voto, modo="correspondencia").model_dump()
     try:
@@ -327,7 +351,10 @@ async def voto_correspondencia(
     except ValueError:
         raise HTTPException(status_code=409, detail="Este eleitor já votou")
     await create_audit_log(
-        current_user.id, "eleicao_voto_correspondencia", eleicao_id, request=request,
+        current_user.id,
+        "eleicao_voto_correspondencia",
+        eleicao_id,
+        request=request,
         details={"modo": "correspondencia"},
     )
     return {"message": "Voto por correspondência registado."}
@@ -375,11 +402,12 @@ async def apurar(eleicao_id: str, request: Request, current_user: User = Depends
     if empate:
         resultado["nova_eleicao_ate"] = (datetime.now(timezone.utc) + timedelta(days=15)).isoformat()
 
-    await db.eleicoes.update_one(
-        {"id": eleicao_id}, {"$set": {"status": "apurada", "resultado": resultado}}
-    )
+    await db.eleicoes.update_one({"id": eleicao_id}, {"$set": {"status": "apurada", "resultado": resultado}})
     await create_audit_log(
-        current_user.id, "eleicao_apurada", eleicao_id, request=request,
+        current_user.id,
+        "eleicao_apurada",
+        eleicao_id,
+        request=request,
         details={"vencedora": vencedora, "empate": empate, "total_validos": total_validos},
     )
     return resultado
@@ -419,21 +447,33 @@ async def _proclaim_list(eleicao: dict, lista: dict, by_id: str) -> list[dict]:
         cargo_key = c["cargo"]
         hist = _close_active(user.get("cargo_history"), posse)
         mandate = CargoMandate(
-            cargo=cargo_key, label=cargo_label(cargo_key), role=role_for_cargo(cargo_key),
-            orgao=orgao_of_cargo(cargo_key), inicio=posse, posse_em=posse,
-            mandato_inicio=eleicao["mandato_inicio"], mandato_fim=eleicao["mandato_fim"],
-            suplente=False, seat_index=c.get("seat_index"),
-            elected_by=f"Eleição {eleicao['ano']}", eleicao_id=eleicao["id"],
-            assembleia_id=eleicao.get("assembleia_id"), transitioned_by=by_id,
+            cargo=cargo_key,
+            label=cargo_label(cargo_key),
+            role=role_for_cargo(cargo_key),
+            orgao=orgao_of_cargo(cargo_key),
+            inicio=posse,
+            posse_em=posse,
+            mandato_inicio=eleicao["mandato_inicio"],
+            mandato_fim=eleicao["mandato_fim"],
+            suplente=False,
+            seat_index=c.get("seat_index"),
+            elected_by=f"Eleição {eleicao['ano']}",
+            eleicao_id=eleicao["id"],
+            assembleia_id=eleicao.get("assembleia_id"),
+            transitioned_by=by_id,
         ).model_dump()
         hist.append(mandate)
         await db.users.update_one(
             {"id": c["user_id"]},
-            {"$set": {
-                "role": role_for_cargo(cargo_key), "cargo": cargo_key,
-                "orgao": orgao_of_cargo(cargo_key), "privileges": privileges_for_cargo(cargo_key),
-                "cargo_history": hist,
-            }},
+            {
+                "$set": {
+                    "role": role_for_cargo(cargo_key),
+                    "cargo": cargo_key,
+                    "orgao": orgao_of_cargo(cargo_key),
+                    "privileges": privileges_for_cargo(cargo_key),
+                    "cargo_history": hist,
+                }
+            },
         )
         proclaimed.append({"user_id": c["user_id"], "cargo": cargo_key, "suplente": False})
 
@@ -444,12 +484,20 @@ async def _proclaim_list(eleicao: dict, lista: dict, by_id: str) -> list[dict]:
             continue
         cargo_key = c["cargo"]
         mandate = CargoMandate(
-            cargo=cargo_key, label=cargo_label(cargo_key), role=role_for_cargo(cargo_key),
-            orgao=orgao_of_cargo(cargo_key), inicio=posse, posse_em=posse,
-            mandato_inicio=eleicao["mandato_inicio"], mandato_fim=eleicao["mandato_fim"],
-            suplente=True, seat_index=c.get("seat_index"),
-            elected_by=f"Eleição {eleicao['ano']} (suplente)", eleicao_id=eleicao["id"],
-            assembleia_id=eleicao.get("assembleia_id"), transitioned_by=by_id,
+            cargo=cargo_key,
+            label=cargo_label(cargo_key),
+            role=role_for_cargo(cargo_key),
+            orgao=orgao_of_cargo(cargo_key),
+            inicio=posse,
+            posse_em=posse,
+            mandato_inicio=eleicao["mandato_inicio"],
+            mandato_fim=eleicao["mandato_fim"],
+            suplente=True,
+            seat_index=c.get("seat_index"),
+            elected_by=f"Eleição {eleicao['ano']} (suplente)",
+            eleicao_id=eleicao["id"],
+            assembleia_id=eleicao.get("assembleia_id"),
+            transitioned_by=by_id,
         ).model_dump()
         hist = [*(user.get("cargo_history") or []), mandate]
         await db.users.update_one({"id": c["user_id"]}, {"$set": {"cargo_history": hist}})
@@ -470,9 +518,7 @@ async def proclamar(eleicao_id: str, request: Request, current_user: User = Depe
     if resultado.get("empate") or not resultado.get("vencedora"):
         raise HTTPException(status_code=400, detail="Sem lista vencedora (empate exige nova eleição)")
 
-    lista = await db.eleicao_listas.find_one(
-        {"id": resultado["vencedora"], "eleicao_id": eleicao_id}, {"_id": 0}
-    )
+    lista = await db.eleicao_listas.find_one({"id": resultado["vencedora"], "eleicao_id": eleicao_id}, {"_id": 0})
     if not lista:
         raise HTTPException(status_code=404, detail="Lista vencedora não encontrada")
 
@@ -483,12 +529,18 @@ async def proclamar(eleicao_id: str, request: Request, current_user: User = Depe
         {"$set": {"status": "proclamada", "resultado": {**resultado, "posse_em": posse, "proclaimed": proclaimed}}},
     )
     await create_audit_log(
-        current_user.id, "eleicao_proclamada", eleicao_id, request=request,
+        current_user.id,
+        "eleicao_proclamada",
+        eleicao_id,
+        request=request,
         details={"lista": lista.get("letra"), "proclaimed": len(proclaimed)},
     )
     for p in proclaimed:
         await notify_users(
-            [p["user_id"]], "system", "Mandato proclamado",
-            f"Foi eleito para {cargo_label(p['cargo'])}.", "/perfil",
+            [p["user_id"]],
+            "system",
+            "Mandato proclamado",
+            f"Foi eleito para {cargo_label(p['cargo'])}.",
+            "/perfil",
         )
     return {"message": "Eleição proclamada.", "posse_em": posse, "proclaimed": proclaimed}

@@ -378,25 +378,30 @@ async def update_finance_settings(
         if not delib.get("aprovado"):
             raise HTTPException(status_code=400, detail="A deliberação não foi aprovada")
         if delib.get("tipo_maioria") not in _QUOTA_MAJORIAS:
-            raise HTTPException(
-                status_code=400, detail="A fixação de quota/jóia exige deliberação por maioria de 3/4"
-            )
+            raise HTTPException(status_code=400, detail="A fixação de quota/jóia exige deliberação por maioria de 3/4")
         # Snapshot da versão anterior.
         if existing:
             snapshot = {
                 k: existing.get(k)
                 for k in (
-                    "quota_amount", "quota_description", "joia_multiplier", "joia_amount",
-                    "quota_fixed_by_assembleia_id", "quota_fixed_by_deliberacao_id", "effective_from",
+                    "quota_amount",
+                    "quota_description",
+                    "joia_multiplier",
+                    "joia_amount",
+                    "quota_fixed_by_assembleia_id",
+                    "quota_fixed_by_deliberacao_id",
+                    "effective_from",
                 )
             }
-            snapshot.update({
-                "id": str(uuid.uuid4()),
-                "replaced_at": now_iso,
-                "replaced_by": current_user.id,
-                "assembleia_id": assembleia_id,
-                "deliberacao_id": deliberacao_id,
-            })
+            snapshot.update(
+                {
+                    "id": str(uuid.uuid4()),
+                    "replaced_at": now_iso,
+                    "replaced_by": current_user.id,
+                    "assembleia_id": assembleia_id,
+                    "deliberacao_id": deliberacao_id,
+                }
+            )
             await db.finance_settings_history.insert_one(snapshot)
         updates["quota_fixed_by_assembleia_id"] = assembleia_id
         updates["quota_fixed_by_deliberacao_id"] = deliberacao_id
@@ -439,9 +444,7 @@ async def get_finance_settings_history(current_user: User = Depends(get_current_
     """Histórico de alterações de quota/jóia (cada uma ligada a uma deliberação
     de AG). Leitura do módulo financeiro (inclui Conselho Fiscal)."""
     require_view_finances(current_user)
-    rows = await db.finance_settings_history.find(
-        {}, {"_id": 0}
-    ).sort("replaced_at", -1).to_list(200)
+    rows = await db.finance_settings_history.find({}, {"_id": 0}).sort("replaced_at", -1).to_list(200)
     return {"history": rows}
 
 

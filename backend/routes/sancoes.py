@@ -74,9 +74,7 @@ async def _get_sancao(sancao_id: str) -> dict:
 
 
 @router.post("")
-async def create_sancao(
-    request: Request, data: SancaoCreate, current_user: User = Depends(get_current_user)
-):
+async def create_sancao(request: Request, data: SancaoCreate, current_user: User = Depends(get_current_user)):
     """Propõe uma sanção. Multa <= 3x quota; perda de direitos exige data-limite."""
     _require_disciplina(current_user)
     target = await db.users.find_one({"id": data.user_id}, {"_id": 0, "id": 1, "name": 1})
@@ -108,7 +106,10 @@ async def create_sancao(
     doc = sancao.model_dump()
     await db.sancoes.insert_one(doc)
     await create_audit_log(
-        current_user.id, "sancao_proposta", doc["id"], request=request,
+        current_user.id,
+        "sancao_proposta",
+        doc["id"],
+        request=request,
         details={"user_id": data.user_id, "tipo": data.tipo},
     )
     return doc
@@ -142,7 +143,9 @@ async def get_sancao(sancao_id: str, current_user: User = Depends(get_current_us
 
 @router.post("/{sancao_id}/comissao")
 async def set_comissao(
-    sancao_id: str, request: Request, data: SancaoComissao,
+    sancao_id: str,
+    request: Request,
+    data: SancaoComissao,
     current_user: User = Depends(get_current_user),
 ):
     """Nomeia a Comissão de Inquérito (3 elementos) e abre prazo de 30 dias."""
@@ -151,20 +154,27 @@ async def set_comissao(
     if s["status"] not in ("proposta", "inquerito"):
         raise HTTPException(status_code=400, detail="A comissão só se nomeia antes da decisão")
     if len(set(data.membros)) != COMISSAO_INQUERITO_MEMBROS:
-        raise HTTPException(status_code=400, detail=f"A Comissão de Inquérito tem {COMISSAO_INQUERITO_MEMBROS} elementos distintos")
+        raise HTTPException(
+            status_code=400, detail=f"A Comissão de Inquérito tem {COMISSAO_INQUERITO_MEMBROS} elementos distintos"
+        )
 
     prazo = (datetime.now(timezone.utc) + timedelta(days=data.prazo_dias or INQUERITO_PRAZO_DIAS)).isoformat()
     await db.sancoes.update_one(
         {"id": sancao_id},
-        {"$set": {
-            "comissao_inquerito": [{"user_id": m} for m in data.membros],
-            "inquerito_prazo": prazo,
-            "conclusoes_document_id": data.conclusoes_document_id,
-            "status": "inquerito",
-        }},
+        {
+            "$set": {
+                "comissao_inquerito": [{"user_id": m} for m in data.membros],
+                "inquerito_prazo": prazo,
+                "conclusoes_document_id": data.conclusoes_document_id,
+                "status": "inquerito",
+            }
+        },
     )
     await create_audit_log(
-        current_user.id, "sancao_comissao", sancao_id, request=request,
+        current_user.id,
+        "sancao_comissao",
+        sancao_id,
+        request=request,
         details={"membros": data.membros, "prazo": prazo},
     )
     return {"message": "Comissão de Inquérito nomeada.", "inquerito_prazo": prazo}
@@ -172,7 +182,9 @@ async def set_comissao(
 
 @router.post("/{sancao_id}/decidir")
 async def decidir_sancao(
-    sancao_id: str, request: Request, data: SancaoDecidir,
+    sancao_id: str,
+    request: Request,
+    data: SancaoDecidir,
     current_user: User = Depends(get_current_user),
 ):
     """Regista a decisão. Expulsão exige assembleia_id + deliberação APROVADA da AG."""
@@ -204,7 +216,10 @@ async def decidir_sancao(
     set_fields["status"] = "decidida"
     await db.sancoes.update_one({"id": sancao_id}, {"$set": set_fields})
     await create_audit_log(
-        current_user.id, "sancao_decidida", sancao_id, request=request,
+        current_user.id,
+        "sancao_decidida",
+        sancao_id,
+        request=request,
         details={"aprovado": data.aprovado, "tipo": s["tipo"]},
     )
     return {"message": "Decisão registada.", "status": "decidida"}
@@ -212,7 +227,9 @@ async def decidir_sancao(
 
 @router.post("/{sancao_id}/recurso")
 async def recurso_sancao(
-    sancao_id: str, request: Request, data: SancaoRecurso,
+    sancao_id: str,
+    request: Request,
+    data: SancaoRecurso,
     current_user: User = Depends(get_current_user),
 ):
     """Recurso do visado à AG (15 dias) para multa / perda de direitos."""
@@ -226,19 +243,19 @@ async def recurso_sancao(
 
     await db.sancoes.update_one(
         {"id": sancao_id},
-        {"$set": {
-            "recurso": {"fundamentacao": data.fundamentacao, "por": current_user.id, "em": _now_iso()},
-            "status": "recurso",
-        }},
+        {
+            "$set": {
+                "recurso": {"fundamentacao": data.fundamentacao, "por": current_user.id, "em": _now_iso()},
+                "status": "recurso",
+            }
+        },
     )
     await create_audit_log(current_user.id, "sancao_recurso", sancao_id, request=request, details={})
     return {"message": "Recurso submetido.", "status": "recurso"}
 
 
 @router.post("/{sancao_id}/aplicar")
-async def aplicar_sancao(
-    sancao_id: str, request: Request, current_user: User = Depends(get_current_user)
-):
+async def aplicar_sancao(sancao_id: str, request: Request, current_user: User = Depends(get_current_user)):
     """Aplica os efeitos: perda de direitos suspende voto/elegibilidade (mantém
     ativo); expulsão encerra mandato e inactiva a conta (exige deliberação)."""
     _require_disciplina(current_user)
@@ -256,30 +273,44 @@ async def aplicar_sancao(
     if tipo == "perda_direitos":
         await db.users.update_one(
             {"id": s["user_id"]},
-            {"$set": {
-                "rights_suspended_until": s.get("perda_direitos_ate"),
-                "rights_suspension_reason": s.get("motivo"),
-            }},
+            {
+                "$set": {
+                    "rights_suspended_until": s.get("perda_direitos_ate"),
+                    "rights_suspension_reason": s.get("motivo"),
+                }
+            },
         )
     elif tipo == "expulsao":
         user = await db.users.find_one({"id": s["user_id"]}, {"_id": 0, "cargo_history": 1})
         hist = _close_active((user or {}).get("cargo_history"), now)
         await db.users.update_one(
             {"id": s["user_id"]},
-            {"$set": {
-                "status": "inativo", "role": "socio", "cargo": "socio",
-                "orgao": None, "privileges": [], "cargo_history": hist,
-            }},
+            {
+                "$set": {
+                    "status": "inativo",
+                    "role": "socio",
+                    "cargo": "socio",
+                    "orgao": None,
+                    "privileges": [],
+                    "cargo_history": hist,
+                }
+            },
         )
 
     await db.sancoes.update_one({"id": sancao_id}, {"$set": {"status": "aplicada", "aplicada_em": now}})
     await create_audit_log(
-        current_user.id, "sancao_aplicada", sancao_id, request=request,
+        current_user.id,
+        "sancao_aplicada",
+        sancao_id,
+        request=request,
         details={"user_id": s["user_id"], "tipo": tipo},
     )
     await notify_users(
-        [s["user_id"]], "system", "Sanção disciplinar aplicada",
-        "Foi aplicada uma sanção ao seu processo. Consulte os detalhes no perfil.", "/perfil",
+        [s["user_id"]],
+        "system",
+        "Sanção disciplinar aplicada",
+        "Foi aplicada uma sanção ao seu processo. Consulte os detalhes no perfil.",
+        "/perfil",
     )
     return {"message": "Sanção aplicada.", "status": "aplicada"}
 

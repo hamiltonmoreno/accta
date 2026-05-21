@@ -55,22 +55,25 @@ def _coll(**methods):
 
 
 def _mesa_ag(**over) -> User:
-    base = {"name": "Mesa", "email": "mesa@x.cv", "role": "socio", "status": "ativo",
-            "cargo": "ag_presidente", "account_type": "member", "member_category": "ordinario"}
+    base = {
+        "name": "Mesa",
+        "email": "mesa@x.cv",
+        "role": "socio",
+        "status": "ativo",
+        "cargo": "ag_presidente",
+        "account_type": "member",
+        "member_category": "ordinario",
+    }
     base.update(over)
     return User(**base)
 
 
 def _eligible(ids):
-    return [
-        {"id": i, "account_type": "member", "status": "ativo", "member_category": "ordinario"}
-        for i in ids
-    ]
+    return [{"id": i, "account_type": "member", "status": "ativo", "member_category": "ordinario"} for i in ids]
 
 
 def _full_candidatos(prefix="u"):
-    return [{"slot_key": s["slot_key"], "user_id": f"{prefix}{i}"}
-            for i, s in enumerate(election_slots(5))]
+    return [{"slot_key": s["slot_key"], "user_id": f"{prefix}{i}"} for i, s in enumerate(election_slots(5))]
 
 
 @pytest.fixture
@@ -86,9 +89,15 @@ def gov_env(mock_db, monkeypatch):
 
 def _eleicao(**over):
     base = {
-        "id": "el1", "ano": 2030, "status": "candidaturas", "direcao_titulares": 5,
-        "comissao_eleitoral": [], "mesa_voto": [],
-        "mandato_inicio": "2030-04-01", "mandato_fim": "2033-04-01", "assembleia_id": None,
+        "id": "el1",
+        "ano": 2030,
+        "status": "candidaturas",
+        "direcao_titulares": 5,
+        "comissao_eleitoral": [],
+        "mesa_voto": [],
+        "mandato_inicio": "2030-04-01",
+        "mandato_fim": "2033-04-01",
+        "assembleia_id": None,
     }
     base.update(over)
     return base
@@ -130,8 +139,10 @@ class TestListas:
         candidatos = _full_candidatos()[:-1]  # falta 1 slot
         with pytest.raises(HTTPException) as exc:
             await e_route.submit_lista(
-                eleicao_id="el1", request=_request(),
-                data=EleicaoListaCreate(letra="A", candidatos=candidatos), current_user=_mesa_ag(),
+                eleicao_id="el1",
+                request=_request(),
+                data=EleicaoListaCreate(letra="A", candidatos=candidatos),
+                current_user=_mesa_ag(),
             )
         assert exc.value.status_code == 400
 
@@ -141,20 +152,22 @@ class TestListas:
         candidatos[1]["user_id"] = candidatos[0]["user_id"]  # mesmo user em 2 slots
         with pytest.raises(HTTPException) as exc:
             await e_route.submit_lista(
-                eleicao_id="el1", request=_request(),
-                data=EleicaoListaCreate(letra="A", candidatos=candidatos), current_user=_mesa_ag(),
+                eleicao_id="el1",
+                request=_request(),
+                data=EleicaoListaCreate(letra="A", candidatos=candidatos),
+                current_user=_mesa_ag(),
             )
         assert exc.value.status_code == 400
 
     async def test_comissao_candidata_400(self, gov_env):
         candidatos = _full_candidatos()
-        gov_env.eleicoes.find_one = AsyncMock(
-            return_value=_eleicao(comissao_eleitoral=[candidatos[0]["user_id"]])
-        )
+        gov_env.eleicoes.find_one = AsyncMock(return_value=_eleicao(comissao_eleitoral=[candidatos[0]["user_id"]]))
         with pytest.raises(HTTPException) as exc:
             await e_route.submit_lista(
-                eleicao_id="el1", request=_request(),
-                data=EleicaoListaCreate(letra="A", candidatos=candidatos), current_user=_mesa_ag(),
+                eleicao_id="el1",
+                request=_request(),
+                data=EleicaoListaCreate(letra="A", candidatos=candidatos),
+                current_user=_mesa_ag(),
             )
         assert exc.value.status_code == 400
 
@@ -167,8 +180,10 @@ class TestListas:
         gov_env.users.find = MagicMock(return_value=_cursor(users))
         with pytest.raises(HTTPException) as exc:
             await e_route.submit_lista(
-                eleicao_id="el1", request=_request(),
-                data=EleicaoListaCreate(letra="A", candidatos=candidatos), current_user=_mesa_ag(),
+                eleicao_id="el1",
+                request=_request(),
+                data=EleicaoListaCreate(letra="A", candidatos=candidatos),
+                current_user=_mesa_ag(),
             )
         assert exc.value.status_code == 400
 
@@ -180,8 +195,10 @@ class TestListas:
         captured = {}
         gov_env.eleicao_listas.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
         result = await e_route.submit_lista(
-            eleicao_id="el1", request=_request(),
-            data=EleicaoListaCreate(letra="a", candidatos=candidatos), current_user=_mesa_ag(),
+            eleicao_id="el1",
+            request=_request(),
+            data=EleicaoListaCreate(letra="a", candidatos=candidatos),
+            current_user=_mesa_ag(),
         )
         assert result["letra"] == "A"  # uppercased
         assert result["estado"] == "submetida"
@@ -197,12 +214,21 @@ class TestListas:
 class TestVoto:
     async def test_nao_eleitor_403(self, gov_env):
         gov_env.eleicoes.find_one = AsyncMock(return_value=_eleicao(status="votacao"))
-        honorario = User(name="H", email="h@x.cv", role="socio", status="ativo",
-                         cargo="socio", account_type="member", member_category="honorario")
+        honorario = User(
+            name="H",
+            email="h@x.cv",
+            role="socio",
+            status="ativo",
+            cargo="socio",
+            account_type="member",
+            member_category="honorario",
+        )
         with pytest.raises(HTTPException) as exc:
             await e_route.votar(
-                eleicao_id="el1", request=_request(),
-                data=VotarRequest(voto="branco"), current_user=honorario,
+                eleicao_id="el1",
+                request=_request(),
+                data=VotarRequest(voto="branco"),
+                current_user=honorario,
             )
         assert exc.value.status_code == 403
 
@@ -217,8 +243,10 @@ class TestVoto:
 
         monkeypatch.setattr(e_route, "cast_ballot", AsyncMock(side_effect=fake_cast))
         await e_route.votar(
-            eleicao_id="el1", request=_request(),
-            data=VotarRequest(voto="L1"), current_user=socio_user,
+            eleicao_id="el1",
+            request=_request(),
+            data=VotarRequest(voto="L1"),
+            current_user=socio_user,
         )
         # boletim NUNCA liga ao eleitor
         assert "user_id" not in captured["ballot"]
@@ -234,8 +262,10 @@ class TestVoto:
         monkeypatch.setattr(e_route, "cast_ballot", AsyncMock(side_effect=ValueError("voto duplicado")))
         with pytest.raises(HTTPException) as exc:
             await e_route.votar(
-                eleicao_id="el1", request=_request(),
-                data=VotarRequest(voto="branco"), current_user=socio_user,
+                eleicao_id="el1",
+                request=_request(),
+                data=VotarRequest(voto="branco"),
+                current_user=socio_user,
             )
         assert exc.value.status_code == 409
 
@@ -248,10 +278,7 @@ class TestVoto:
 class TestApurar:
     async def test_maioria_simples(self, gov_env):
         gov_env.eleicoes.find_one = AsyncMock(return_value=_eleicao(status="votacao"))
-        ballots = (
-            [{"voto": "L1"}] * 5 + [{"voto": "L2"}] * 3
-            + [{"voto": "branco"}] * 2 + [{"voto": "nulo"}] * 1
-        )
+        ballots = [{"voto": "L1"}] * 5 + [{"voto": "L2"}] * 3 + [{"voto": "branco"}] * 2 + [{"voto": "nulo"}] * 1
         gov_env.eleicao_ballots.find = MagicMock(return_value=_cursor(ballots))
         result = await e_route.apurar(eleicao_id="el1", request=_request(), current_user=_mesa_ag())
         assert result["vencedora"] == "L1"
@@ -261,9 +288,7 @@ class TestApurar:
 
     async def test_empate_marca_nova_eleicao(self, gov_env):
         gov_env.eleicoes.find_one = AsyncMock(return_value=_eleicao(status="votacao"))
-        gov_env.eleicao_ballots.find = MagicMock(
-            return_value=_cursor([{"voto": "L1"}] * 4 + [{"voto": "L2"}] * 4)
-        )
+        gov_env.eleicao_ballots.find = MagicMock(return_value=_cursor([{"voto": "L1"}] * 4 + [{"voto": "L2"}] * 4))
         result = await e_route.apurar(eleicao_id="el1", request=_request(), current_user=_mesa_ag())
         assert result["empate"] is True
         assert result["vencedora"] is None
@@ -289,12 +314,24 @@ class TestProclamar:
             return_value=_eleicao(status="apurada", resultado={"empate": False, "vencedora": "L1"})
         )
         lista = {
-            "id": "L1", "letra": "A", "eleicao_id": "el1",
+            "id": "L1",
+            "letra": "A",
+            "eleicao_id": "el1",
             "candidatos": [
-                {"slot_key": "dir_presidente", "cargo": "dir_presidente", "user_id": "p1",
-                 "suplente": False, "seat_index": 1},
-                {"slot_key": "dir_suplente_1", "cargo": "dir_vogal", "user_id": "s1",
-                 "suplente": True, "seat_index": 1},
+                {
+                    "slot_key": "dir_presidente",
+                    "cargo": "dir_presidente",
+                    "user_id": "p1",
+                    "suplente": False,
+                    "seat_index": 1,
+                },
+                {
+                    "slot_key": "dir_suplente_1",
+                    "cargo": "dir_vogal",
+                    "user_id": "s1",
+                    "suplente": True,
+                    "seat_index": 1,
+                },
             ],
         }
         gov_env.eleicao_listas.find_one = AsyncMock(return_value=lista)

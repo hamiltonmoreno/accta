@@ -15,8 +15,13 @@ pytestmark = [pytest.mark.unit]
 
 def _user(**over) -> User:
     base = {
-        "name": "X", "email": "x@x.cv", "role": "socio", "status": "ativo",
-        "cargo": "socio", "privileges": [], "account_type": "member",
+        "name": "X",
+        "email": "x@x.cv",
+        "role": "socio",
+        "status": "ativo",
+        "cargo": "socio",
+        "privileges": [],
+        "account_type": "member",
         "member_category": "ordinario",
     }
     base.update(over)

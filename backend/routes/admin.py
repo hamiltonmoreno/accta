@@ -209,7 +209,10 @@ async def approve_registration(
     # entrada no cargo_history. Cargo "socio" (estado base) não gera mandato.
     if is_estatutary_cargo(cargo_key):
         mandate = _build_mandate(
-            cargo_key, data.role, now.isoformat(), current_user.id,
+            cargo_key,
+            data.role,
+            now.isoformat(),
+            current_user.id,
             notes="Atribuído na aprovação do auto-registo",
         )
         set_fields["cargo_history"] = [*(user.get("cargo_history") or []), mandate]
@@ -323,9 +326,9 @@ def _resolve_privileges(cargo_key: str, provided):
 
 
 async def _count_cargo_holders(cargo: str, exclude_ids=()) -> int:
-    holders = await db.users.find(
-        {"cargo": cargo, "status": "ativo", **_MEMBER_FILTER}, {"_id": 0, "id": 1}
-    ).to_list(None)
+    holders = await db.users.find({"cargo": cargo, "status": "ativo", **_MEMBER_FILTER}, {"_id": 0, "id": 1}).to_list(
+        None
+    )
     return len([h for h in holders if h.get("id") not in set(exclude_ids)])
 
 
@@ -363,9 +366,7 @@ async def promote_user(
 
     seats = CARGO_SEATS.get(cargo_key, 0)
     if seats > 0 and await _count_cargo_holders(cargo_key, exclude_ids={user_id}) >= seats:
-        raise HTTPException(
-            status_code=409, detail=f"Cargo '{label}' já tem o número máximo de titulares ({seats})"
-        )
+        raise HTTPException(status_code=409, detail=f"Cargo '{label}' já tem o número máximo de titulares ({seats})")
 
     effective = data.effective_date or _now_iso()
     privileges = _resolve_privileges(cargo_key, data.privileges)
@@ -375,10 +376,15 @@ async def promote_user(
 
     await db.users.update_one(
         {"id": user_id},
-        {"$set": {
-            "role": data.role, "cargo": cargo_key, "orgao": orgao_of_cargo(cargo_key),
-            "privileges": privileges, "cargo_history": history,
-        }},
+        {
+            "$set": {
+                "role": data.role,
+                "cargo": cargo_key,
+                "orgao": orgao_of_cargo(cargo_key),
+                "privileges": privileges,
+                "cargo_history": history,
+            }
+        },
     )
     await create_audit_log(
         current_user.id,
@@ -387,9 +393,7 @@ async def promote_user(
         request=request,
         details={"cargo": cargo_key, "role": data.role, "mandate_id": mandate["id"], "privileges": privileges},
     )
-    await notify_users(
-        [user_id], "system", "Novo cargo atribuído", f"Foi-lhe atribuído o cargo de {label}.", "/perfil"
-    )
+    await notify_users([user_id], "system", "Novo cargo atribuído", f"Foi-lhe atribuído o cargo de {label}.", "/perfil")
     return {"message": f"{user.get('name', 'Utilizador')} promovido a {label}.", "cargo_history": history}
 
 
@@ -419,9 +423,7 @@ async def demote_user(
         request=request,
         details={"previous_cargo": normalize_cargo(user.get("cargo") or "socio"), "notes": data.notes},
     )
-    await notify_users(
-        [user_id], "system", "Fim de mandato", "O seu mandato foi encerrado. Passou a Sócio.", "/perfil"
-    )
+    await notify_users([user_id], "system", "Fim de mandato", "O seu mandato foi encerrado. Passou a Sócio.", "/perfil")
     return {"message": "Mandato encerrado.", "cargo_history": history}
 
 
@@ -453,9 +455,7 @@ async def transfer_cargo_endpoint(
     if seats > 0:
         count = await _count_cargo_holders(cargo_key, exclude_ids={data.from_user_id, data.to_user_id})
         if count + 1 > seats:
-            raise HTTPException(
-                status_code=409, detail=f"Cargo '{label}' excederia o máximo de titulares ({seats})"
-            )
+            raise HTTPException(status_code=409, detail=f"Cargo '{label}' excederia o máximo de titulares ({seats})")
 
     effective = data.effective_date or _now_iso()
     transition_id = str(uuid.uuid4())
@@ -469,8 +469,11 @@ async def transfer_cargo_endpoint(
     mandate["transition_id"] = transition_id
     to_history.append(mandate)
     to_set = {
-        "role": data.role, "cargo": cargo_key, "orgao": orgao_of_cargo(cargo_key),
-        "privileges": privileges, "cargo_history": to_history,
+        "role": data.role,
+        "cargo": cargo_key,
+        "orgao": orgao_of_cargo(cargo_key),
+        "privileges": privileges,
+        "cargo_history": to_history,
     }
 
     await transfer_cargo(data.from_user_id, data.to_user_id, {"$set": from_set}, {"$set": to_set})

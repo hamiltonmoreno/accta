@@ -170,6 +170,7 @@ class RegistrationReject(BaseModel):
 
 # ===== CARGO / MANDATO MODELS (spec-identidade-cargos) =====
 
+
 # Cada entrada de cargo_history documenta um mandato do sócio. Armazenado como
 # dict no doc.cargo_history; este modelo valida/serializa as escritas.
 class CargoMandate(BaseModel):
@@ -862,8 +863,14 @@ class AssembleiaDeliberacaoCreate(BaseModel):
 # ===== GOVERNANÇA: ELEIÇÕES (spec-governanca §12) =====
 
 ELEICAO_STATUS = [
-    "preparacao", "candidaturas", "campanha", "votacao",
-    "apurada", "recurso", "proclamada", "anulada",
+    "preparacao",
+    "candidaturas",
+    "campanha",
+    "votacao",
+    "apurada",
+    "recurso",
+    "proclamada",
+    "anulada",
 ]
 MODO_VOTACAO = ["presencial", "correspondencia", "digital", "hibrido"]
 # Marcadores de boletim que NÃO contam para os votos válidos.
@@ -878,8 +885,14 @@ class Eleicao(BaseModel):
     mandato_inicio: str  # ISO 8601
     mandato_fim: str  # ISO 8601
     status: Literal[
-        "preparacao", "candidaturas", "campanha", "votacao",
-        "apurada", "recurso", "proclamada", "anulada",
+        "preparacao",
+        "candidaturas",
+        "campanha",
+        "votacao",
+        "apurada",
+        "recurso",
+        "proclamada",
+        "anulada",
     ] = "preparacao"
     calendario: dict = {}  # convocatoria, candidaturas_fim, votacao, etc. (ISO strings)
     assembleia_id: Optional[str] = None
@@ -982,9 +995,7 @@ class Sancao(BaseModel):
     tipo: Literal["advertencia", "multa", "perda_direitos", "expulsao"]
     motivo: str
     artigo_violado: Optional[str] = None
-    status: Literal[
-        "proposta", "inquerito", "decidida", "recurso", "aplicada", "arquivada", "anulada"
-    ] = "proposta"
+    status: Literal["proposta", "inquerito", "decidida", "recurso", "aplicada", "arquivada", "anulada"] = "proposta"
     proposta_por: str
     comissao_inquerito: List[dict] = []
     inquerito_prazo: Optional[str] = None

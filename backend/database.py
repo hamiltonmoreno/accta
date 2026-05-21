@@ -807,28 +807,26 @@ _INDEX_DDL: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS ix_assemb_status ON \"assembleias\" ((doc->>'status'))",
     "CREATE INDEX IF NOT EXISTS ix_assemb_tipo ON \"assembleias\" ((doc->>'tipo'))",
     "CREATE INDEX IF NOT EXISTS ix_assemb_data ON \"assembleias\" ((doc->>'data') DESC)",
-    "CREATE INDEX IF NOT EXISTS ix_assembpres_assemb_user ON \"assembleia_presencas\" "
+    'CREATE INDEX IF NOT EXISTS ix_assembpres_assemb_user ON "assembleia_presencas" '
     "((doc->>'assembleia_id'), (doc->>'user_id'))",
-    "CREATE INDEX IF NOT EXISTS ix_assembdelib_assemb ON \"assembleia_deliberacoes\" "
+    'CREATE INDEX IF NOT EXISTS ix_assembdelib_assemb ON "assembleia_deliberacoes" '
     "((doc->>'assembleia_id'), (doc->>'created_at') DESC)",
     # governança — eleições
     "CREATE INDEX IF NOT EXISTS ix_eleicoes_status_ano ON \"eleicoes\" ((doc->>'status'), (doc->>'ano'))",
     "CREATE INDEX IF NOT EXISTS ix_eleicoes_assemb ON \"eleicoes\" ((doc->>'assembleia_id'))",
-    "CREATE UNIQUE INDEX IF NOT EXISTS ux_eleicao_lista_letra ON \"eleicao_listas\" "
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_eleicao_lista_letra ON "eleicao_listas" '
     "((doc->>'eleicao_id'), (doc->>'letra'))",
     # voto secreto: recibo prova que votou (único por eleitor); boletim é anónimo
-    "CREATE UNIQUE INDEX IF NOT EXISTS ux_eleicao_receipt ON \"eleicao_voter_receipts\" "
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_eleicao_receipt ON "eleicao_voter_receipts" '
     "((doc->>'eleicao_id'), (doc->>'voter_hash'))",
-    "CREATE INDEX IF NOT EXISTS ix_eleicao_ballots_eleicao ON \"eleicao_ballots\" "
+    'CREATE INDEX IF NOT EXISTS ix_eleicao_ballots_eleicao ON "eleicao_ballots" '
     "((doc->>'eleicao_id'), (doc->>'ballot_box_id'))",
     # governança — disciplina
     "CREATE INDEX IF NOT EXISTS ix_sancoes_user ON \"sancoes\" ((doc->>'user_id'), (doc->>'status'))",
     "CREATE INDEX IF NOT EXISTS ix_sancoes_status_tipo ON \"sancoes\" ((doc->>'status'), (doc->>'tipo'))",
     # governança — histórico de quota/jóia
-    "CREATE INDEX IF NOT EXISTS ix_finsetthist_eff ON \"finance_settings_history\" "
-    "((doc->>'effective_from') DESC)",
-    "CREATE INDEX IF NOT EXISTS ix_finsetthist_assemb ON \"finance_settings_history\" "
-    "((doc->>'assembleia_id'))",
+    "CREATE INDEX IF NOT EXISTS ix_finsetthist_eff ON \"finance_settings_history\" ((doc->>'effective_from') DESC)",
+    "CREATE INDEX IF NOT EXISTS ix_finsetthist_assemb ON \"finance_settings_history\" ((doc->>'assembleia_id'))",
 )
 
 REQUIRED_INDEX_NAMES = {
@@ -949,9 +947,5 @@ async def cast_ballot(eleicao_id: str, voter_hash: str, receipt_doc: dict, ballo
             )
             if existing is not None:
                 raise ValueError("voto duplicado")
-            await conn.execute(
-                f"INSERT INTO {_quote_ident('eleicao_voter_receipts')} (doc) VALUES ($1)", receipt_doc
-            )
-            await conn.execute(
-                f"INSERT INTO {_quote_ident('eleicao_ballots')} (doc) VALUES ($1)", ballot_doc
-            )
+            await conn.execute(f"INSERT INTO {_quote_ident('eleicao_voter_receipts')} (doc) VALUES ($1)", receipt_doc)
+            await conn.execute(f"INSERT INTO {_quote_ident('eleicao_ballots')} (doc) VALUES ($1)", ballot_doc)

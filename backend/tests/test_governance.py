@@ -198,8 +198,14 @@ class TestStructure:
     def test_shape_completo(self):
         st = g.governance_structure()
         for key in (
-            "orgaos", "cargos", "funcoes_operacionais", "member_categories",
-            "privileges", "roles", "mandato_anos", "election_slots",
+            "orgaos",
+            "cargos",
+            "funcoes_operacionais",
+            "member_categories",
+            "privileges",
+            "roles",
+            "mandato_anos",
+            "election_slots",
         ):
             assert key in st
         assert st["mandato_anos"] == 3

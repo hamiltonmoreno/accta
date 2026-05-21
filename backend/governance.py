@@ -65,46 +65,107 @@ ORGAOS: dict[str, dict] = {
 # `seats`: dir_vogal = 3 (1 base + até 2 fora da sede); socio = 0 (sem limite).
 
 CARGOS_CATALOG: list[dict] = [
-    {"key": "ag_presidente", "label": "Presidente da Mesa da AG",
-     "orgao": ASSEMBLEIA_GERAL, "ordem": 1, "seats": 1,
-     "role": "socio", "privileges": ["manage_events"]},
-    {"key": "ag_vice_presidente", "label": "Vice-Presidente da Mesa da AG",
-     "orgao": ASSEMBLEIA_GERAL, "ordem": 2, "seats": 1,
-     "role": "socio", "privileges": []},
-    {"key": "ag_secretario", "label": "Secretário da Mesa da AG",
-     "orgao": ASSEMBLEIA_GERAL, "ordem": 3, "seats": 1,
-     "role": "socio", "privileges": ["manage_documents"]},
-
-    {"key": "dir_presidente", "label": "Presidente da Direcção",
-     "orgao": DIRECAO, "ordem": 1, "seats": 1,
-     "role": "admin", "privileges": "ALL", "is_president_accta": True},
-    {"key": "dir_vice_presidente", "label": "Vice-Presidente da Direcção",
-     "orgao": DIRECAO, "ordem": 2, "seats": 1,
-     "role": "admin", "privileges": "ALL"},
-    {"key": "dir_secretario", "label": "Secretário da Direcção",
-     "orgao": DIRECAO, "ordem": 3, "seats": 1,
-     "role": "admin",
-     "privileges": ["manage_users", "manage_events", "manage_documents", "moderate_content"]},
-    {"key": "dir_tesoureiro", "label": "Tesoureiro",
-     "orgao": DIRECAO, "ordem": 4, "seats": 1,
-     "role": "financeiro", "privileges": ["manage_finances", "view_audit_logs"]},
-    {"key": "dir_vogal", "label": "Vogal da Direcção",
-     "orgao": DIRECAO, "ordem": 5, "seats": 3,
-     "role": "moderador", "privileges": ["moderate_content", "manage_events"]},
-
-    {"key": "cf_presidente", "label": "Presidente do Conselho Fiscal",
-     "orgao": CONSELHO_FISCAL, "ordem": 1, "seats": 1,
-     "role": "socio", "privileges": ["view_finances_readonly", "view_audit_logs"]},
-    {"key": "cf_relator", "label": "Relator do Conselho Fiscal",
-     "orgao": CONSELHO_FISCAL, "ordem": 2, "seats": 1,
-     "role": "socio", "privileges": ["view_finances_readonly", "view_audit_logs"]},
-    {"key": "cf_vogal", "label": "Vogal do Conselho Fiscal",
-     "orgao": CONSELHO_FISCAL, "ordem": 3, "seats": 1,
-     "role": "socio", "privileges": ["view_finances_readonly", "view_audit_logs"]},
-
-    {"key": "socio", "label": "Sócio",
-     "orgao": None, "ordem": 99, "seats": 0,
-     "role": "socio", "privileges": []},
+    {
+        "key": "ag_presidente",
+        "label": "Presidente da Mesa da AG",
+        "orgao": ASSEMBLEIA_GERAL,
+        "ordem": 1,
+        "seats": 1,
+        "role": "socio",
+        "privileges": ["manage_events"],
+    },
+    {
+        "key": "ag_vice_presidente",
+        "label": "Vice-Presidente da Mesa da AG",
+        "orgao": ASSEMBLEIA_GERAL,
+        "ordem": 2,
+        "seats": 1,
+        "role": "socio",
+        "privileges": [],
+    },
+    {
+        "key": "ag_secretario",
+        "label": "Secretário da Mesa da AG",
+        "orgao": ASSEMBLEIA_GERAL,
+        "ordem": 3,
+        "seats": 1,
+        "role": "socio",
+        "privileges": ["manage_documents"],
+    },
+    {
+        "key": "dir_presidente",
+        "label": "Presidente da Direcção",
+        "orgao": DIRECAO,
+        "ordem": 1,
+        "seats": 1,
+        "role": "admin",
+        "privileges": "ALL",
+        "is_president_accta": True,
+    },
+    {
+        "key": "dir_vice_presidente",
+        "label": "Vice-Presidente da Direcção",
+        "orgao": DIRECAO,
+        "ordem": 2,
+        "seats": 1,
+        "role": "admin",
+        "privileges": "ALL",
+    },
+    {
+        "key": "dir_secretario",
+        "label": "Secretário da Direcção",
+        "orgao": DIRECAO,
+        "ordem": 3,
+        "seats": 1,
+        "role": "admin",
+        "privileges": ["manage_users", "manage_events", "manage_documents", "moderate_content"],
+    },
+    {
+        "key": "dir_tesoureiro",
+        "label": "Tesoureiro",
+        "orgao": DIRECAO,
+        "ordem": 4,
+        "seats": 1,
+        "role": "financeiro",
+        "privileges": ["manage_finances", "view_audit_logs"],
+    },
+    {
+        "key": "dir_vogal",
+        "label": "Vogal da Direcção",
+        "orgao": DIRECAO,
+        "ordem": 5,
+        "seats": 3,
+        "role": "moderador",
+        "privileges": ["moderate_content", "manage_events"],
+    },
+    {
+        "key": "cf_presidente",
+        "label": "Presidente do Conselho Fiscal",
+        "orgao": CONSELHO_FISCAL,
+        "ordem": 1,
+        "seats": 1,
+        "role": "socio",
+        "privileges": ["view_finances_readonly", "view_audit_logs"],
+    },
+    {
+        "key": "cf_relator",
+        "label": "Relator do Conselho Fiscal",
+        "orgao": CONSELHO_FISCAL,
+        "ordem": 2,
+        "seats": 1,
+        "role": "socio",
+        "privileges": ["view_finances_readonly", "view_audit_logs"],
+    },
+    {
+        "key": "cf_vogal",
+        "label": "Vogal do Conselho Fiscal",
+        "orgao": CONSELHO_FISCAL,
+        "ordem": 3,
+        "seats": 1,
+        "role": "socio",
+        "privileges": ["view_finances_readonly", "view_audit_logs"],
+    },
+    {"key": "socio", "label": "Sócio", "orgao": None, "ordem": 99, "seats": 0, "role": "socio", "privileges": []},
 ]
 
 # Key da conta técnica de sistema (admin@controlador.cv). Fora do catálogo
@@ -356,10 +417,15 @@ def _titular_slots_for_orgao(orgao_id: str) -> list[dict]:
         seats = c["seats"]
         for i in range(1, seats + 1):
             slot_key = c["key"] if seats == 1 else f"{c['key']}_{i}"
-            slots.append({
-                "slot_key": slot_key, "cargo": c["key"], "orgao": orgao_id,
-                "suplente": False, "seat_index": i,
-            })
+            slots.append(
+                {
+                    "slot_key": slot_key,
+                    "cargo": c["key"],
+                    "orgao": orgao_id,
+                    "suplente": False,
+                    "seat_index": i,
+                }
+            )
     return slots
 
 
@@ -368,16 +434,26 @@ def _direcao_titular_slots(direcao_titulares: int) -> list[dict]:
     slots: list[dict] = []
     singles = ["dir_presidente", "dir_vice_presidente", "dir_secretario", "dir_tesoureiro"]
     for key in singles:
-        slots.append({
-            "slot_key": key, "cargo": key, "orgao": DIRECAO,
-            "suplente": False, "seat_index": 1,
-        })
+        slots.append(
+            {
+                "slot_key": key,
+                "cargo": key,
+                "orgao": DIRECAO,
+                "suplente": False,
+                "seat_index": 1,
+            }
+        )
     n_vogais = max(0, direcao_titulares - len(singles))
     for i in range(1, n_vogais + 1):
-        slots.append({
-            "slot_key": f"dir_vogal_{i}", "cargo": "dir_vogal", "orgao": DIRECAO,
-            "suplente": False, "seat_index": i,
-        })
+        slots.append(
+            {
+                "slot_key": f"dir_vogal_{i}",
+                "cargo": "dir_vogal",
+                "orgao": DIRECAO,
+                "suplente": False,
+                "seat_index": i,
+            }
+        )
     return slots
 
 
@@ -388,8 +464,11 @@ def _suplente_slots(orgao_id: str, n: int) -> list[dict]:
     junior = _orgao_cargos_ordered(orgao_id)[-1]["key"]
     return [
         {
-            "slot_key": f"{prefix}_suplente_{i}", "cargo": junior, "orgao": orgao_id,
-            "suplente": True, "seat_index": i,
+            "slot_key": f"{prefix}_suplente_{i}",
+            "cargo": junior,
+            "orgao": orgao_id,
+            "suplente": True,
+            "seat_index": i,
         }
         for i in range(1, n + 1)
     ]
@@ -432,8 +511,7 @@ def governance_structure(direcao_titulares: int = DEFAULT_DIRECAO_TITULARES) -> 
         ],
         "funcoes_operacionais": [],
         "member_categories": [
-            {"key": k, "label": MEMBER_CATEGORY_LABELS[k], "vota": k in VOTING_CATEGORIES}
-            for k in MEMBER_CATEGORIES
+            {"key": k, "label": MEMBER_CATEGORY_LABELS[k], "vota": k in VOTING_CATEGORIES} for k in MEMBER_CATEGORIES
         ],
         "privileges": list(PRIVILEGES),
         "roles": list(ROLES),
@@ -448,15 +526,12 @@ def governance_structure(direcao_titulares: int = DEFAULT_DIRECAO_TITULARES) -> 
 
 CARGOS = [c["label"] for c in CARGOS_CATALOG]
 CARGO_KEYS = [c["key"] for c in CARGOS_CATALOG]
-CARGO_DEFAULTS = {
-    c["key"]: {"role": c["role"], "privileges": privileges_for_cargo(c["key"])}
-    for c in CARGOS_CATALOG
-}
+CARGO_DEFAULTS = {c["key"]: {"role": c["role"], "privileges": privileges_for_cargo(c["key"])} for c in CARGOS_CATALOG}
 CARGO_SEATS = {c["key"]: c["seats"] for c in CARGOS_CATALOG}
 
 # Agrupamento por órgão (label -> [labels de cargo]); usado pelo alias deprecated
 # /users/meta/cargos. "Base" agrupa o estado-base Sócio.
 CARGOS_ORGAOS_SOCIAIS: dict[str, list[str]] = {}
-for _c in sorted(CARGOS_CATALOG, key=lambda c: (c["ordem"] if c["orgao"] else 999)):
+for _c in sorted(CARGOS_CATALOG, key=lambda c: c["ordem"] if c["orgao"] else 999):
     _grupo = ORGAOS[_c["orgao"]]["nome"] if _c["orgao"] else "Base"
     CARGOS_ORGAOS_SOCIAIS.setdefault(_grupo, []).append(_c["label"])

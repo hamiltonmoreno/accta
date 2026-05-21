@@ -38,8 +38,14 @@ router = APIRouter(prefix="/assembleias", tags=["assembleias"])
 # Sócios reais (account_type member ou ausente — retro-compat).
 _MEMBER_FILTER = {"$or": [{"account_type": "member"}, {"account_type": {"$exists": False}}]}
 _VOTER_PROJ = {
-    "_id": 0, "id": 1, "account_type": 1, "status": 1,
-    "member_category": 1, "rights_suspended_until": 1, "cargo": 1, "name": 1,
+    "_id": 0,
+    "id": 1,
+    "account_type": 1,
+    "status": 1,
+    "member_category": 1,
+    "rights_suspended_until": 1,
+    "cargo": 1,
+    "name": 1,
 }
 
 
@@ -66,16 +72,14 @@ async def _count_voting_members(as_of: str | None = None) -> int:
 
 
 async def _present_voting_power(assembleia_id: str) -> tuple[int, int]:
-    rows = await db.assembleia_presencas.find(
-        {"assembleia_id": assembleia_id}, {"_id": 0, "voting_power": 1}
-    ).to_list(None)
+    rows = await db.assembleia_presencas.find({"assembleia_id": assembleia_id}, {"_id": 0, "voting_power": 1}).to_list(
+        None
+    )
     return len(rows), sum(int(r.get("voting_power", 0)) for r in rows)
 
 
 @router.post("")
-async def create_assembleia(
-    request: Request, data: AssembleiaCreate, current_user: User = Depends(get_current_user)
-):
+async def create_assembleia(request: Request, data: AssembleiaCreate, current_user: User = Depends(get_current_user)):
     """Convoca uma assembleia. Convocatória: >=10 dias (geral) ou >=20 dias
     (eleitoral). Extraordinária exige requerente_tipo."""
     _require_convene(current_user)
@@ -116,20 +120,23 @@ async def create_assembleia(
     doc = assembleia.model_dump()
     await db.assembleias.insert_one(doc)
     await create_audit_log(
-        current_user.id, "assembleia_convocada", doc["id"], request=request,
+        current_user.id,
+        "assembleia_convocada",
+        doc["id"],
+        request=request,
         details={"tipo": data.tipo, "data": data.data, "eligible_voters": eligible},
     )
     await notify_all_active_users(
-        "system", "Assembleia convocada",
-        f"{data.titulo} — {data.data} ({data.local}).", f"/assembleias/{doc['id']}",
+        "system",
+        "Assembleia convocada",
+        f"{data.titulo} — {data.data} ({data.local}).",
+        f"/assembleias/{doc['id']}",
     )
     return doc
 
 
 @router.get("")
-async def list_assembleias(
-    current_user: User = Depends(get_current_user), status: str = "", tipo: str = ""
-):
+async def list_assembleias(current_user: User = Depends(get_current_user), status: str = "", tipo: str = ""):
     query: dict = {}
     if status:
         query["status"] = status
@@ -174,7 +181,9 @@ async def get_quorum(assembleia_id: str, current_user: User = Depends(get_curren
 
 @router.post("/{assembleia_id}/presencas")
 async def register_presenca(
-    assembleia_id: str, request: Request, data: AssembleiaPresencaCreate,
+    assembleia_id: str,
+    request: Request,
+    data: AssembleiaPresencaCreate,
     current_user: User = Depends(get_current_user),
 ):
     """Regista presença própria ou com representação. Um membro representa no
@@ -199,9 +208,7 @@ async def register_presenca(
     if present.get("account_type", "member") != "member":
         raise HTTPException(status_code=400, detail="Conta técnica não participa em assembleias")
     if data.representados and is_mesa_ag(present):
-        raise HTTPException(
-            status_code=400, detail="Titulares da Mesa da AG não podem representar outros membros"
-        )
+        raise HTTPException(status_code=400, detail="Titulares da Mesa da AG não podem representar outros membros")
 
     # Ninguém pode ser registado duas vezes (presente ou representado).
     existing = await db.assembleia_presencas.find(
@@ -238,7 +245,10 @@ async def register_presenca(
     quorum_met = present_power >= a.get("quorum_required", 0)
     await db.assembleias.update_one({"id": assembleia_id}, {"$set": {"quorum_met": quorum_met}})
     await create_audit_log(
-        current_user.id, "assembleia_presenca", assembleia_id, request=request,
+        current_user.id,
+        "assembleia_presenca",
+        assembleia_id,
+        request=request,
         details={"user_id": data.user_id, "representados": data.representados, "voting_power": power},
     )
     return {
@@ -251,7 +261,9 @@ async def register_presenca(
 
 @router.post("/{assembleia_id}/deliberacoes")
 async def register_deliberacao(
-    assembleia_id: str, request: Request, data: AssembleiaDeliberacaoCreate,
+    assembleia_id: str,
+    request: Request,
+    data: AssembleiaDeliberacaoCreate,
     current_user: User = Depends(get_current_user),
 ):
     """Regista uma deliberação e calcula a aprovação pela maioria aplicável:
@@ -299,7 +311,10 @@ async def register_deliberacao(
     if a["status"] == "convocada":
         await db.assembleias.update_one({"id": assembleia_id}, {"$set": {"status": "em_curso"}})
     await create_audit_log(
-        current_user.id, "assembleia_deliberacao", assembleia_id, request=request,
+        current_user.id,
+        "assembleia_deliberacao",
+        assembleia_id,
+        request=request,
         details={"ponto": data.ponto, "tipo_maioria": data.tipo_maioria, "aprovado": aprovado},
     )
     return doc
@@ -310,15 +325,19 @@ async def list_deliberacoes(assembleia_id: str, current_user: User = Depends(get
     a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "id": 1})
     if not a:
         raise HTTPException(status_code=404, detail="Assembleia não encontrada")
-    rows = await db.assembleia_deliberacoes.find(
-        {"assembleia_id": assembleia_id}, {"_id": 0}
-    ).sort("created_at", 1).to_list(None)
+    rows = (
+        await db.assembleia_deliberacoes.find({"assembleia_id": assembleia_id}, {"_id": 0})
+        .sort("created_at", 1)
+        .to_list(None)
+    )
     return {"deliberacoes": rows}
 
 
 @router.post("/{assembleia_id}/encerrar")
 async def encerrar_assembleia(
-    assembleia_id: str, request: Request, acta_document_id: str = "",
+    assembleia_id: str,
+    request: Request,
+    acta_document_id: str = "",
     current_user: User = Depends(get_current_user),
 ):
     """Encerra a assembleia. A acta deve ser anexada até 30 dias depois."""
@@ -334,7 +353,10 @@ async def encerrar_assembleia(
         update["acta_document_id"] = acta_document_id
     await db.assembleias.update_one({"id": assembleia_id}, {"$set": update})
     await create_audit_log(
-        current_user.id, "assembleia_encerrada", assembleia_id, request=request,
+        current_user.id,
+        "assembleia_encerrada",
+        assembleia_id,
+        request=request,
         details={"acta_document_id": acta_document_id or None},
     )
     return {"message": "Assembleia encerrada.", "status": "encerrada"}

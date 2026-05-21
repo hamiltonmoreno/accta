@@ -89,9 +89,7 @@ class TestRegister:
         assert exc.value.status_code == 400
 
     async def test_invalid_cargo_422(self, reg_env):
-        data = RegistrationRequest(
-            name="Ana", email="ana@x.cv", consent_data=True, cargo_declarado="Imperador"
-        )
+        data = RegistrationRequest(name="Ana", email="ana@x.cv", consent_data=True, cargo_declarado="Imperador")
         with pytest.raises(HTTPException) as exc:
             await auth_routes.register(request=_request(), data=data)
         assert exc.value.status_code == 422

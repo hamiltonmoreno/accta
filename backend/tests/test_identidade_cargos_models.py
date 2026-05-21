@@ -45,10 +45,18 @@ class TestConstantes:
 
     def test_keys_canonicas_esperadas(self):
         for key in (
-            "ag_presidente", "ag_vice_presidente", "ag_secretario",
-            "dir_presidente", "dir_vice_presidente", "dir_secretario",
-            "dir_tesoureiro", "dir_vogal",
-            "cf_presidente", "cf_relator", "cf_vogal", "socio",
+            "ag_presidente",
+            "ag_vice_presidente",
+            "ag_secretario",
+            "dir_presidente",
+            "dir_vice_presidente",
+            "dir_secretario",
+            "dir_tesoureiro",
+            "dir_vogal",
+            "cf_presidente",
+            "cf_relator",
+            "cf_vogal",
+            "socio",
         ):
             assert key in CARGO_KEYS
 
@@ -63,9 +71,7 @@ class TestConstantes:
         assert "comissão" not in labels_lower
 
     def test_orgaos_sociais_sao_tres(self):
-        assert set(CARGOS_ORGAOS_SOCIAIS) == {
-            "Assembleia Geral", "Direcção", "Conselho Fiscal", "Base"
-        }
+        assert set(CARGOS_ORGAOS_SOCIAIS) == {"Assembleia Geral", "Direcção", "Conselho Fiscal", "Base"}
 
     def test_member_categories(self):
         assert MEMBER_CATEGORIES == ["fundador", "ordinario", "honorario"]
@@ -163,9 +169,15 @@ class TestCargoMandate:
 
     def test_campos_estatutarios_opcionais(self):
         m = CargoMandate(
-            cargo="dir_vogal", role="moderador", inicio="2026-01-01",
-            transitioned_by="x", orgao="direcao", label="Vogal da Direcção",
-            suplente=True, seat_index=2, eleicao_id="e1",
+            cargo="dir_vogal",
+            role="moderador",
+            inicio="2026-01-01",
+            transitioned_by="x",
+            orgao="direcao",
+            label="Vogal da Direcção",
+            suplente=True,
+            seat_index=2,
+            eleicao_id="e1",
         )
         assert m.orgao == "direcao" and m.seat_index == 2 and m.suplente is True
 
@@ -192,8 +204,6 @@ class TestRequests:
             TransferCargoRequest(cargo="dir_presidente", role="admin", to_user_id="b")
 
     def test_transfer_valido(self):
-        r = TransferCargoRequest(
-            from_user_id="a", to_user_id="b", cargo="dir_presidente", role="admin"
-        )
+        r = TransferCargoRequest(from_user_id="a", to_user_id="b", cargo="dir_presidente", role="admin")
         assert r.from_user_id == "a"
         assert r.to_user_id == "b"

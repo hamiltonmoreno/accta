@@ -55,24 +55,30 @@ class TestPromote:
     async def test_socio_403(self, cargo_env, socio_user):
         with pytest.raises(HTTPException) as exc:
             await admin_route.promote_user(
-                user_id="u1", request=_admin_request(),
-                data=PromoteUserRequest(cargo="Tesoureiro", role="financeiro"), current_user=socio_user,
+                user_id="u1",
+                request=_admin_request(),
+                data=PromoteUserRequest(cargo="Tesoureiro", role="financeiro"),
+                current_user=socio_user,
             )
         assert exc.value.status_code == 403
 
     async def test_invalid_cargo_422(self, cargo_env, admin_user):
         with pytest.raises(HTTPException) as exc:
             await admin_route.promote_user(
-                user_id="u1", request=_admin_request(),
-                data=PromoteUserRequest(cargo="Imperador", role="admin"), current_user=admin_user,
+                user_id="u1",
+                request=_admin_request(),
+                data=PromoteUserRequest(cargo="Imperador", role="admin"),
+                current_user=admin_user,
             )
         assert exc.value.status_code == 422
 
     async def test_invalid_role_422(self, cargo_env, admin_user):
         with pytest.raises(HTTPException) as exc:
             await admin_route.promote_user(
-                user_id="u1", request=_admin_request(),
-                data=PromoteUserRequest(cargo="Tesoureiro", role="superuser"), current_user=admin_user,
+                user_id="u1",
+                request=_admin_request(),
+                data=PromoteUserRequest(cargo="Tesoureiro", role="superuser"),
+                current_user=admin_user,
             )
         assert exc.value.status_code == 422
 
@@ -80,19 +86,21 @@ class TestPromote:
         cargo_env.users.find_one = AsyncMock(return_value=None)
         with pytest.raises(HTTPException) as exc:
             await admin_route.promote_user(
-                user_id="u1", request=_admin_request(),
-                data=PromoteUserRequest(cargo="Tesoureiro", role="financeiro"), current_user=admin_user,
+                user_id="u1",
+                request=_admin_request(),
+                data=PromoteUserRequest(cargo="Tesoureiro", role="financeiro"),
+                current_user=admin_user,
             )
         assert exc.value.status_code == 404
 
     async def test_technical_account_400(self, cargo_env, admin_user):
-        cargo_env.users.find_one = AsyncMock(
-            return_value={"id": "u1", "account_type": "technical", "status": "ativo"}
-        )
+        cargo_env.users.find_one = AsyncMock(return_value={"id": "u1", "account_type": "technical", "status": "ativo"})
         with pytest.raises(HTTPException) as exc:
             await admin_route.promote_user(
-                user_id="u1", request=_admin_request(),
-                data=PromoteUserRequest(cargo="Tesoureiro", role="financeiro"), current_user=admin_user,
+                user_id="u1",
+                request=_admin_request(),
+                data=PromoteUserRequest(cargo="Tesoureiro", role="financeiro"),
+                current_user=admin_user,
             )
         assert exc.value.status_code == 400
 
@@ -100,8 +108,10 @@ class TestPromote:
         cargo_env.users.find_one = AsyncMock(return_value={"id": "u1", "status": "inativo"})
         with pytest.raises(HTTPException) as exc:
             await admin_route.promote_user(
-                user_id="u1", request=_admin_request(),
-                data=PromoteUserRequest(cargo="Tesoureiro", role="financeiro"), current_user=admin_user,
+                user_id="u1",
+                request=_admin_request(),
+                data=PromoteUserRequest(cargo="Tesoureiro", role="financeiro"),
+                current_user=admin_user,
             )
         assert exc.value.status_code == 400
 
@@ -111,16 +121,21 @@ class TestPromote:
         cargo_env.users.find = MagicMock(return_value=_cursor([{"id": "outro"}]))
         with pytest.raises(HTTPException) as exc:
             await admin_route.promote_user(
-                user_id="u1", request=_admin_request(),
-                data=PromoteUserRequest(cargo="Presidente", role="admin"), current_user=admin_user,
+                user_id="u1",
+                request=_admin_request(),
+                data=PromoteUserRequest(cargo="Presidente", role="admin"),
+                current_user=admin_user,
             )
         assert exc.value.status_code == 409
 
     async def test_happy_opens_mandate_and_defaults(self, cargo_env, admin_user):
         cargo_env.users.find_one = AsyncMock(
             return_value={
-                "id": "u1", "name": "Ana", "status": "ativo",
-                "cargo": "Sócio", "cargo_history": [],
+                "id": "u1",
+                "name": "Ana",
+                "status": "ativo",
+                "cargo": "Sócio",
+                "cargo_history": [],
             }
         )
         cargo_env.users.find = MagicMock(return_value=_cursor([]))  # sem titulares
@@ -133,8 +148,10 @@ class TestPromote:
         cargo_env.users.update_one = capture_update
 
         result = await admin_route.promote_user(
-            user_id="u1", request=_admin_request(),
-            data=PromoteUserRequest(cargo="Tesoureiro", role="financeiro"), current_user=admin_user,
+            user_id="u1",
+            request=_admin_request(),
+            data=PromoteUserRequest(cargo="Tesoureiro", role="financeiro"),
+            current_user=admin_user,
         )
         assert captured["role"] == "financeiro"
         # input por label legado, gravado como key canónica + órgão denormalizado
@@ -154,9 +171,20 @@ class TestPromote:
     async def test_happy_closes_previous_active_mandate(self, cargo_env, admin_user):
         cargo_env.users.find_one = AsyncMock(
             return_value={
-                "id": "u1", "name": "Ana", "status": "ativo", "cargo": "Vogal da Direcção",
-                "cargo_history": [{"id": "old", "cargo": "Vogal da Direcção", "role": "moderador",
-                                   "inicio": "2024-01-01", "fim": None, "transitioned_by": "x"}],
+                "id": "u1",
+                "name": "Ana",
+                "status": "ativo",
+                "cargo": "Vogal da Direcção",
+                "cargo_history": [
+                    {
+                        "id": "old",
+                        "cargo": "Vogal da Direcção",
+                        "role": "moderador",
+                        "inicio": "2024-01-01",
+                        "fim": None,
+                        "transitioned_by": "x",
+                    }
+                ],
             }
         )
         cargo_env.users.find = MagicMock(return_value=_cursor([]))
@@ -169,7 +197,8 @@ class TestPromote:
         cargo_env.users.update_one = capture_update
 
         await admin_route.promote_user(
-            user_id="u1", request=_admin_request(),
+            user_id="u1",
+            request=_admin_request(),
             data=PromoteUserRequest(cargo="Presidente", role="admin", effective_date="2026-01-01"),
             current_user=admin_user,
         )
@@ -203,9 +232,20 @@ class TestDemote:
     async def test_happy_resets_to_socio(self, cargo_env, admin_user):
         cargo_env.users.find_one = AsyncMock(
             return_value={
-                "id": "u1", "name": "Ana", "status": "ativo", "cargo": "Tesoureiro",
-                "cargo_history": [{"id": "m", "cargo": "Tesoureiro", "role": "financeiro",
-                                   "inicio": "2024-01-01", "fim": None, "transitioned_by": "x"}],
+                "id": "u1",
+                "name": "Ana",
+                "status": "ativo",
+                "cargo": "Tesoureiro",
+                "cargo_history": [
+                    {
+                        "id": "m",
+                        "cargo": "Tesoureiro",
+                        "role": "financeiro",
+                        "inicio": "2024-01-01",
+                        "fim": None,
+                        "transitioned_by": "x",
+                    }
+                ],
             }
         )
         captured = {}
@@ -217,8 +257,10 @@ class TestDemote:
         cargo_env.users.update_one = capture_update
 
         await admin_route.demote_user(
-            user_id="u1", request=_admin_request(),
-            data=DemoteUserRequest(effective_date="2026-02-01"), current_user=admin_user,
+            user_id="u1",
+            request=_admin_request(),
+            data=DemoteUserRequest(effective_date="2026-02-01"),
+            current_user=admin_user,
         )
         assert captured["role"] == "socio"
         assert captured["cargo"] == "socio"
@@ -287,9 +329,22 @@ class TestTransfer:
         async def find_one(filt, proj=None):
             uid = filt.get("id")
             if uid == "a":
-                return {"id": "a", "name": "Velho", "cargo": "Presidente", "status": "ativo",
-                        "cargo_history": [{"id": "m", "cargo": "Presidente", "role": "admin",
-                                           "inicio": "2024-01-01", "fim": None, "transitioned_by": "x"}]}
+                return {
+                    "id": "a",
+                    "name": "Velho",
+                    "cargo": "Presidente",
+                    "status": "ativo",
+                    "cargo_history": [
+                        {
+                            "id": "m",
+                            "cargo": "Presidente",
+                            "role": "admin",
+                            "inicio": "2024-01-01",
+                            "fim": None,
+                            "transitioned_by": "x",
+                        }
+                    ],
+                }
             return {"id": "b", "name": "Novo", "cargo": "Sócio", "status": "ativo", "cargo_history": []}
 
         cargo_env.users.find_one = find_one
@@ -335,12 +390,19 @@ class TestListCargos:
 
     async def test_buckets_holders(self, cargo_env, admin_user):
         cargo_env.users.find = MagicMock(
-            return_value=_cursor([
-                {"id": "p", "name": "Pres", "email": "p@x.cv", "member_id": "ACCTA-0001",
-                 "cargo": "dir_presidente",
-                 "cargo_history": [{"cargo": "dir_presidente", "fim": None, "inicio": "2025-01-01"}]},
-                {"id": "s", "name": "Soc", "email": "s@x.cv", "member_id": "ACCTA-0002", "cargo": "socio"},
-            ])
+            return_value=_cursor(
+                [
+                    {
+                        "id": "p",
+                        "name": "Pres",
+                        "email": "p@x.cv",
+                        "member_id": "ACCTA-0001",
+                        "cargo": "dir_presidente",
+                        "cargo_history": [{"cargo": "dir_presidente", "fim": None, "inicio": "2025-01-01"}],
+                    },
+                    {"id": "s", "name": "Soc", "email": "s@x.cv", "member_id": "ACCTA-0002", "cargo": "socio"},
+                ]
+            )
         )
         result = await admin_route.list_cargos(current_user=admin_user)
         by = {c["cargo"]: c for c in result["cargos"]}
@@ -364,10 +426,18 @@ class TestCandidates:
 
         def find(query, proj):
             captured["query"] = query
-            return _cursor([
-                {"id": "1", "name": "Ana Silva", "email": "ana@x.cv", "member_id": "ACCTA-0001", "cargo": "Sócio"},
-                {"id": "2", "name": "Bruno Costa", "email": "b@x.cv", "member_id": "ACCTA-0002", "cargo": "Tesoureiro"},
-            ])
+            return _cursor(
+                [
+                    {"id": "1", "name": "Ana Silva", "email": "ana@x.cv", "member_id": "ACCTA-0001", "cargo": "Sócio"},
+                    {
+                        "id": "2",
+                        "name": "Bruno Costa",
+                        "email": "b@x.cv",
+                        "member_id": "ACCTA-0002",
+                        "cargo": "Tesoureiro",
+                    },
+                ]
+            )
 
         cargo_env.users.find = find
         result = await admin_route.list_cargo_candidates(current_user=admin_user, q="ana")
@@ -378,10 +448,12 @@ class TestCandidates:
 
     async def test_exclude_cargo(self, cargo_env, admin_user):
         cargo_env.users.find = MagicMock(
-            return_value=_cursor([
-                {"id": "1", "name": "Ana", "email": "a@x.cv", "member_id": "ACCTA-0001", "cargo": "Tesoureiro"},
-                {"id": "2", "name": "Bruno", "email": "b@x.cv", "member_id": "ACCTA-0002", "cargo": "Sócio"},
-            ])
+            return_value=_cursor(
+                [
+                    {"id": "1", "name": "Ana", "email": "a@x.cv", "member_id": "ACCTA-0001", "cargo": "Tesoureiro"},
+                    {"id": "2", "name": "Bruno", "email": "b@x.cv", "member_id": "ACCTA-0002", "cargo": "Sócio"},
+                ]
+            )
         )
         result = await admin_route.list_cargo_candidates(current_user=admin_user, exclude_cargo="Tesoureiro")
         assert [c["id"] for c in result["candidates"]] == ["2"]

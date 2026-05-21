@@ -50,8 +50,15 @@ def _coll(**methods):
 
 
 def _direcao(**over) -> User:
-    base = {"name": "Dir", "email": "dir@x.cv", "role": "admin", "status": "ativo",
-            "cargo": "dir_presidente", "account_type": "member", "member_category": "ordinario"}
+    base = {
+        "name": "Dir",
+        "email": "dir@x.cv",
+        "role": "admin",
+        "status": "ativo",
+        "cargo": "dir_presidente",
+        "account_type": "member",
+        "member_category": "ordinario",
+    }
     base.update(over)
     return User(**base)
 
@@ -126,8 +133,10 @@ class TestDecidir:
         )
         with pytest.raises(HTTPException) as exc:
             await s_route.decidir_sancao(
-                sancao_id="s1", request=_request(),
-                data=SancaoDecidir(aprovado=True), current_user=_direcao(),
+                sancao_id="s1",
+                request=_request(),
+                data=SancaoDecidir(aprovado=True),
+                current_user=_direcao(),
             )
         assert exc.value.status_code == 400
 
@@ -138,7 +147,8 @@ class TestDecidir:
         gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value={"aprovado": False})
         with pytest.raises(HTTPException) as exc:
             await s_route.decidir_sancao(
-                sancao_id="s1", request=_request(),
+                sancao_id="s1",
+                request=_request(),
                 data=SancaoDecidir(aprovado=True, assembleia_id="a1", deliberacao_id="d1"),
                 current_user=_direcao(),
             )
@@ -152,7 +162,8 @@ class TestDecidir:
         captured = {}
         gov_env.sancoes.update_one = AsyncMock(side_effect=lambda f, u: captured.update(u["$set"]))
         result = await s_route.decidir_sancao(
-            sancao_id="s1", request=_request(),
+            sancao_id="s1",
+            request=_request(),
             data=SancaoDecidir(aprovado=True, assembleia_id="a1", deliberacao_id="d1"),
             current_user=_direcao(),
         )
@@ -167,37 +178,59 @@ class TestDecidir:
 
 class TestAplicar:
     async def test_perda_direitos_suspende_voto(self, gov_env):
-        gov_env.sancoes.find_one = AsyncMock(return_value={
-            "id": "s1", "user_id": "u1", "tipo": "perda_direitos", "status": "decidida",
-            "decisao": {"aprovado": True}, "perda_direitos_ate": "2027-01-01T00:00:00+00:00",
-            "motivo": "Conduta",
-        })
+        gov_env.sancoes.find_one = AsyncMock(
+            return_value={
+                "id": "s1",
+                "user_id": "u1",
+                "tipo": "perda_direitos",
+                "status": "decidida",
+                "decisao": {"aprovado": True},
+                "perda_direitos_ate": "2027-01-01T00:00:00+00:00",
+                "motivo": "Conduta",
+            }
+        )
         captured = {}
         gov_env.users.update_one = AsyncMock(side_effect=lambda f, u: captured.update(u["$set"]))
         await s_route.aplicar_sancao(sancao_id="s1", request=_request(), current_user=_direcao())
         assert captured["rights_suspended_until"] == "2027-01-01T00:00:00+00:00"
         # o membro deixa de poder votar enquanto vigente
-        member = {"account_type": "member", "status": "ativo", "member_category": "ordinario",
-                  "rights_suspended_until": captured["rights_suspended_until"]}
+        member = {
+            "account_type": "member",
+            "status": "ativo",
+            "member_category": "ordinario",
+            "rights_suspended_until": captured["rights_suspended_until"],
+        }
         assert is_voting_member(member, as_of="2026-06-01T00:00:00+00:00") is False
 
     async def test_expulsao_sem_deliberacao_400(self, gov_env):
-        gov_env.sancoes.find_one = AsyncMock(return_value={
-            "id": "s1", "user_id": "u1", "tipo": "expulsao", "status": "decidida",
-            "decisao": {"aprovado": True},
-        })
+        gov_env.sancoes.find_one = AsyncMock(
+            return_value={
+                "id": "s1",
+                "user_id": "u1",
+                "tipo": "expulsao",
+                "status": "decidida",
+                "decisao": {"aprovado": True},
+            }
+        )
         with pytest.raises(HTTPException) as exc:
             await s_route.aplicar_sancao(sancao_id="s1", request=_request(), current_user=_direcao())
         assert exc.value.status_code == 400
 
     async def test_expulsao_inactiva_e_encerra_mandato(self, gov_env):
-        gov_env.sancoes.find_one = AsyncMock(return_value={
-            "id": "s1", "user_id": "u1", "tipo": "expulsao", "status": "decidida",
-            "decisao": {"aprovado": True}, "assembleia_id": "a1", "deliberacao_id": "d1",
-        })
-        gov_env.users.find_one = AsyncMock(return_value={
-            "id": "u1", "cargo_history": [{"cargo": "dir_vogal", "fim": None, "inicio": "2024-01-01"}]
-        })
+        gov_env.sancoes.find_one = AsyncMock(
+            return_value={
+                "id": "s1",
+                "user_id": "u1",
+                "tipo": "expulsao",
+                "status": "decidida",
+                "decisao": {"aprovado": True},
+                "assembleia_id": "a1",
+                "deliberacao_id": "d1",
+            }
+        )
+        gov_env.users.find_one = AsyncMock(
+            return_value={"id": "u1", "cargo_history": [{"cargo": "dir_vogal", "fim": None, "inicio": "2024-01-01"}]}
+        )
         captured = {}
         gov_env.users.update_one = AsyncMock(side_effect=lambda f, u: captured.update(u["$set"]))
         await s_route.aplicar_sancao(sancao_id="s1", request=_request(), current_user=_direcao())
@@ -213,21 +246,32 @@ class TestAplicar:
 
 class TestConfidencialidade:
     async def test_visado_ve_versao_redigida(self, gov_env, socio_user):
-        gov_env.sancoes.find_one = AsyncMock(return_value={
-            "id": "s1", "user_id": socio_user.id, "tipo": "multa", "status": "decidida",
-            "motivo": "Falta", "comissao_inquerito": [{"user_id": "x"}],
-            "decisao": {"aprovado": True, "fundamentacao": "detalhe sensível", "por": "admin"},
-            "created_at": "2026-01-01",
-        })
+        gov_env.sancoes.find_one = AsyncMock(
+            return_value={
+                "id": "s1",
+                "user_id": socio_user.id,
+                "tipo": "multa",
+                "status": "decidida",
+                "motivo": "Falta",
+                "comissao_inquerito": [{"user_id": "x"}],
+                "decisao": {"aprovado": True, "fundamentacao": "detalhe sensível", "por": "admin"},
+                "created_at": "2026-01-01",
+            }
+        )
         result = await s_route.get_sancao(sancao_id="s1", current_user=socio_user)
         # versão redigida: sem comissão nem fundamentação
         assert "comissao_inquerito" not in result
         assert result["decisao"] == {"aprovado": True}
 
     async def test_terceiro_403(self, gov_env, socio_user):
-        gov_env.sancoes.find_one = AsyncMock(return_value={
-            "id": "s1", "user_id": "outro", "tipo": "multa", "status": "decidida",
-        })
+        gov_env.sancoes.find_one = AsyncMock(
+            return_value={
+                "id": "s1",
+                "user_id": "outro",
+                "tipo": "multa",
+                "status": "decidida",
+            }
+        )
         with pytest.raises(HTTPException) as exc:
             await s_route.get_sancao(sancao_id="s1", current_user=socio_user)
         assert exc.value.status_code == 403
