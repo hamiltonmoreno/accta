@@ -57,8 +57,8 @@ const RouteSpinner = () => (
   </div>
 );
 
-const ProtectedRoute = ({ children, requireAdmin = false, allowedRoles = [], allowedPrivileges = [] }) => {
-  const { isAuthenticated, isAdmin, user, loading } = useAuth();
+const ProtectedRoute = ({ children, allowedRoles = [], allowedPrivileges = [] }) => {
+  const { isAuthenticated, user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -71,10 +71,6 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowedRoles = [], all
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
-  }
-
-  if (requireAdmin && !isAdmin) {
-    return <Navigate to="/dashboard" replace />;
   }
 
   if (allowedRoles.length > 0) {
@@ -237,7 +233,7 @@ function AppRoutes() {
         <Route
           path="/admin/pedidos-inscricao"
           element={
-            <ProtectedRoute requireAdmin>
+            <ProtectedRoute allowedRoles={['admin']}>
               <PrivateLayout><AdminPedidosInscricaoPage /></PrivateLayout>
             </ProtectedRoute>
           }
