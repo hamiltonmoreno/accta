@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
-import { usersAPI, cargosAPI } from '../../utils/api';
+import { usersAPI, cargosAPI, governanceAPI } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
-import { PRIVILEGE_LABELS } from '../../lib/cargoLabels';
+import { PRIVILEGE_LABELS, cargoLabelFrom, memberCategoryLabel } from '../../lib/governanceLabels';
 import { toast } from 'sonner';
 import {
-  User as UserIcon, Mail, Phone, Shield, Award, FileText,
-  Calendar, Save, Briefcase, Hash, Pencil, X, History
+  Mail, Phone, Shield, Award, FileText,
+  Calendar, Save, Briefcase, Hash, Pencil, X, History, AlertTriangle, Users as UsersIcon
 } from 'lucide-react';
 import {
   USER_STATUS_CONFIG, USER_STATUS_FALLBACK, getStatusConfig,
@@ -22,8 +22,9 @@ const formatHistoryDate = (iso) => {
   }
 };
 
-// Timeline só-leitura do percurso do próprio sócio na associação.
-const MeusCargosSection = ({ userId }) => {
+// Timeline só-leitura do percurso do próprio sócio na associação. Mostra o
+// label do cargo (a key canónica é interna), com marcação de suplente.
+const MeusCargosSection = ({ userId, structure }) => {
   const { data: history = [] } = useQuery({
     queryKey: queryKeys.cargos.history(userId),
     queryFn: async () => (await cargosAPI.history(userId)).data.cargo_history,
@@ -33,12 +34,15 @@ const MeusCargosSection = ({ userId }) => {
   return (
     <div className="card-technical p-5 animate-fade-up">
       <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280] mb-3">
-        <History className="w-3 h-3 inline mr-1" aria-hidden="true" /> Os Meus Cargos
+        <History className="w-3 h-3 inline mr-1" aria-hidden="true" /> Os Meus Cargos e Mandatos
       </h3>
       <ul className="space-y-2" data-testid="meus-cargos-timeline">
         {history.map((m) => (
           <li key={m.id || `${m.cargo}-${m.inicio}`} className="flex items-center justify-between text-sm">
-            <span className="text-grafite font-medium">{m.cargo}</span>
+            <span className="text-grafite font-medium">
+              {m.label || cargoLabelFrom(structure, m.cargo)}
+              {m.suplente && <span className="ml-1.5 text-xs text-[#6B7280]">(suplente)</span>}
+            </span>
             <span className="font-mono text-xs text-[#6B7280]">
               {formatHistoryDate(m.inicio) || '—'} → {m.fim ? formatHistoryDate(m.fim) : 'presente'}
             </span>
@@ -108,6 +112,13 @@ export const PerfilPage = () => {
     },
   });
 
+  // Estrutura canónica (labels de cargo). Estática — cache longo.
+  const { data: structure } = useQuery({
+    queryKey: queryKeys.governance.structure(),
+    queryFn: async () => (await governanceAPI.structure()).data,
+    staleTime: 60 * 60 * 1000,
+  });
+
   const loading = updateMutation.isPending;
   const handleSave = () => updateMutation.mutate(form);
 
@@ -115,6 +126,11 @@ export const PerfilPage = () => {
 
   const roleLabel = { admin: 'Administrador', socio: 'Sócio', financeiro: 'Gestor Financeiro', moderador: 'Moderador' };
   const statusCfg = getStatusConfig(USER_STATUS_CONFIG, user.status, USER_STATUS_FALLBACK);
+  const cargoNome = cargoLabelFrom(structure, user.cargo);
+  const isSocioBase = !user.cargo || user.cargo === 'socio';
+  // Suspensão de direitos disciplinar ainda vigente?
+  const suspendedUntil = user.rights_suspended_until;
+  const rightsSuspended = !!suspendedUntil && new Date(suspendedUntil) > new Date();
   const StatusIcon = statusCfg.icon;
 
   return (
@@ -164,11 +180,30 @@ export const PerfilPage = () => {
             </span>
           </div>
           <p className="text-sm text-gray-500 mb-1">{roleLabel[user.role] || user.role}</p>
-          {user.cargo && user.cargo !== 'Sócio' && (
-            <p className="text-xs text-carmesim font-semibold">{user.cargo}</p>
+          {!isSocioBase && (
+            <p className="text-xs text-carmesim font-semibold">{cargoNome}</p>
           )}
         </div>
       </div>
+
+      {/* Banner de suspensão de direitos (perda de direitos disciplinar) */}
+      {rightsSuspended && (
+        <div
+          className="flex items-start gap-3 rounded-lg border border-[#FDE68A] bg-[#FFFBEB] p-4"
+          role="alert"
+          data-testid="rights-suspended-banner"
+        >
+          <AlertTriangle className="w-5 h-5 text-[#B45309] flex-shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="text-sm">
+            <p className="font-semibold text-[#B45309]">Direitos suspensos</p>
+            <p className="text-[#6B7280]">
+              Os seus direitos de voto e elegibilidade estão suspensos até{' '}
+              {formatHistoryDate(suspendedUntil) || suspendedUntil}.
+              {user.rights_suspension_reason ? ` Motivo: ${user.rights_suspension_reason}.` : ''}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Edit Form */}
       {editing && (
@@ -238,7 +273,8 @@ export const PerfilPage = () => {
         <div className="card-technical p-5 animate-fade-up">
           <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280] mb-3">Associação</h3>
           <InfoRow icon={Shield} label="Função" value={roleLabel[user.role]} />
-          <InfoRow icon={Briefcase} label="Cargo" value={user.cargo || 'Sócio'} />
+          <InfoRow icon={Briefcase} label="Cargo" value={cargoNome} />
+          <InfoRow icon={UsersIcon} label="Categoria" value={memberCategoryLabel(user.member_category)} />
           <InfoRow icon={Award} label="Licença" value={user.license_number} />
           <InfoRow icon={Calendar} label="Admissão" value={user.admission_date ? new Date(user.admission_date).toLocaleDateString('pt-PT') : '—'} />
         </div>
@@ -248,7 +284,7 @@ export const PerfilPage = () => {
       <PrivilegesSection privileges={user.privileges} />
 
       {/* Histórico de cargos do próprio sócio */}
-      <MeusCargosSection userId={user.id} />
+      <MeusCargosSection userId={user.id} structure={structure} />
     </div>
   );
 };

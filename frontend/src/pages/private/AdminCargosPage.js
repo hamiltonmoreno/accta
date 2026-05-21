@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { cargosAPI } from '../../utils/api';
+import { cargosAPI, governanceAPI } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
-import { ROLE_LABELS, PRIVILEGE_LABELS } from '../../lib/cargoLabels';
+import { ROLE_LABELS, PRIVILEGE_LABELS, orgaoLabel } from '../../lib/governanceLabels';
 import { toast } from 'sonner';
 import { Award, UserPlus, ArrowRightLeft, UserMinus, Search, Hash } from 'lucide-react';
 import {
@@ -170,9 +170,10 @@ export const AdminCargosPage = () => {
   const [form, setForm] = useState(null); // form partilhado de mandato
   const [endNotes, setEndNotes] = useState('');
 
-  const { data: meta } = useQuery({
-    queryKey: queryKeys.cargos.meta(),
-    queryFn: async () => (await cargosAPI.getMeta()).data,
+  // Fonte canónica de governança (spec §9) — substitui o hard-code.
+  const { data: structure } = useQuery({
+    queryKey: queryKeys.governance.structure(),
+    queryFn: async () => (await governanceAPI.structure()).data,
     staleTime: 60 * 60 * 1000, // estático
   });
 
@@ -182,8 +183,14 @@ export const AdminCargosPage = () => {
   });
 
   const cargos = cargosResp?.cargos || [];
-  const privileges = meta?.privileges || [];
-  const cargoDefaults = useMemo(() => meta?.cargo_defaults || {}, [meta]);
+  const privileges = structure?.privileges || [];
+  const cargoDefaults = useMemo(() => {
+    const out = {};
+    (structure?.cargos || []).forEach((c) => {
+      out[c.key] = { role: c.role_default, privileges: c.privileges_default || [] };
+    });
+    return out;
+  }, [structure]);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['cargos'] });
@@ -243,6 +250,7 @@ export const AdminCargosPage = () => {
             <thead>
               <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wider text-[#6B7280]">
                 <th className="px-4 py-3 font-semibold">Cargo</th>
+                <th className="px-4 py-3 font-semibold">Órgão</th>
                 <th className="px-4 py-3 font-semibold">Titular(es)</th>
                 <th className="px-4 py-3 font-semibold">Vagas</th>
                 <th className="px-4 py-3 font-semibold text-right">Ações</th>
@@ -254,7 +262,8 @@ export const AdminCargosPage = () => {
                 const hasVacancy = c.seats === 0 || occupied < c.seats;
                 return (
                   <tr key={c.cargo} className="border-b border-gray-100 last:border-0 align-top" data-testid={`cargo-row-${c.cargo}`}>
-                    <td className="px-4 py-3 font-medium text-grafite">{c.cargo}</td>
+                    <td className="px-4 py-3 font-medium text-grafite">{c.label || c.cargo}</td>
+                    <td className="px-4 py-3 text-xs text-[#6B7280]">{orgaoLabel(c.orgao)}</td>
                     <td className="px-4 py-3">
                       {occupied === 0 ? (
                         <span className="text-xs text-[#6B7280] italic">Vago</span>
@@ -316,7 +325,7 @@ export const AdminCargosPage = () => {
       <Dialog open={!!assigning} onOpenChange={(o) => { if (!o) { setAssigning(null); setForm(null); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Atribuir cargo: {assigning?.cargo}</DialogTitle>
+            <DialogTitle>Atribuir cargo: {assigning?.label || assigning?.cargo}</DialogTitle>
             <DialogDescription>Escolha o sócio e confirme o nível de acesso e privilégios.</DialogDescription>
           </DialogHeader>
           {form && (
@@ -354,7 +363,7 @@ export const AdminCargosPage = () => {
       <Dialog open={!!transferring} onOpenChange={(o) => { if (!o) { setTransferring(null); setForm(null); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Transferir cargo: {transferring?.cargo.cargo}</DialogTitle>
+            <DialogTitle>Transferir cargo: {transferring?.cargo.label || transferring?.cargo.cargo}</DialogTitle>
             <DialogDescription>De {transferring?.holder.name} para outro sócio (operação atómica).</DialogDescription>
           </DialogHeader>
           {form && (
@@ -404,7 +413,7 @@ export const AdminCargosPage = () => {
           <DialogHeader>
             <DialogTitle>Terminar mandato</DialogTitle>
             <DialogDescription>
-              {ending?.holder.name} deixa de ser {ending?.cargo.cargo} e volta a Sócio.
+              {ending?.holder.name} deixa de ser {ending?.cargo.label || ending?.cargo.cargo} e volta a Sócio.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

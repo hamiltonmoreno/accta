@@ -59,6 +59,20 @@ e migração destrutiva de dados (Fase 8). Commit por fase.
 - [x] Testes (6) + finances existentes verdes (29)
 - [x] Commit
 
+## Fase 7 — Frontend (em curso)
+- [x] Transversal: `governanceAPI`/`assembleiasAPI`/`eleicoesAPI`/`sancoesAPI` em api.js; `lib/governanceLabels.js` (labels + cargoLabelFrom, fallback leve); queryKeys (governance/assembleias/eleicoes/sancoes)
+- [x] `AuthContext`: `can(p)`, `isMesaAG`, `isDirecao`, `isConselhoFiscal`, `isTesoureiro`, `isVotingMember`
+- [x] `PrivateLayout`: secção "Órgãos Sociais" (Assembleias, Eleições; Disciplina gated Direcção/admin) + títulos
+- [x] `App.js`: rotas + lazy imports das novas páginas
+- [x] `/admin/cargos`: keys + órgão (label, não key)
+- [x] `/perfil`: "Os Meus Cargos e Mandatos" (labels + suplente), categoria, banner de suspensão de direitos
+- [x] `/admin/assembleias`: convocar, presenças/representação, quórum, deliberações, encerrar (subagent)
+- [x] `/admin/eleicoes`: ciclo + listas/slots + votar (membro) + apuramento/proclamação; resultados só agregados (subagent)
+- [x] `/admin/disciplinar`: processos, comissão, decidir, recurso, aplicar; access-gate Direcção/admin (subagent)
+- [x] eslint limpo (0 erros; 2 warnings pré-existentes, < threshold 60)
+- [x] `craco build` verde — "Compiled successfully" (corrigido: AdminAssembleiasPage importava framer-motion, que não é dependência → trocado por CSS `animate-fade-up`)
+- [x] Commit
+
 ## Verificação final
 - [x] `cd backend && ruff check .` — All checks passed
 - [x] `ruff format` aplicado aos ficheiros tocados (commit style)

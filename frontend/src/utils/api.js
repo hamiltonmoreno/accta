@@ -59,15 +59,59 @@ export const registrationAPI = {
   reject: (userId, reason) => api.post(`/admin/registration-requests/${userId}/reject`, { reason }),
 };
 
-// Cargos / mandatos (spec-identidade-cargos)
+// Cargos / mandatos (spec-identidade-cargos / spec-governanca)
 export const cargosAPI = {
-  getMeta: () => api.get('/users/meta/cargos'),  // CARGOS, agrupamento, privilégios, defaults, vagas
+  getMeta: () => api.get('/users/meta/cargos'),  // [DEPRECATED] usar governanceAPI.structure
   list: () => api.get('/admin/cargos'),
   candidates: (params) => api.get('/admin/cargos/candidates', { params }),
   promote: (userId, data) => api.post(`/admin/users/${userId}/promote`, data),
   demote: (userId, data) => api.post(`/admin/users/${userId}/demote`, data),
   transfer: (data) => api.post('/admin/cargos/transfer', data),
   history: (userId) => api.get(`/users/${userId}/cargo-history`),
+};
+
+// Governança estatutária — estrutura canónica (spec-governanca §9)
+export const governanceAPI = {
+  structure: () => api.get('/governance/structure'),
+};
+
+// Assembleia Geral (spec-governanca §11)
+export const assembleiasAPI = {
+  list: (params) => api.get('/assembleias', { params }),
+  get: (id) => api.get(`/assembleias/${id}`),
+  create: (data) => api.post('/assembleias', data),
+  quorum: (id) => api.get(`/assembleias/${id}/quorum`),
+  addPresenca: (id, data) => api.post(`/assembleias/${id}/presencas`, data),
+  deliberacoes: (id) => api.get(`/assembleias/${id}/deliberacoes`),
+  addDeliberacao: (id, data) => api.post(`/assembleias/${id}/deliberacoes`, data),
+  encerrar: (id, params) => api.post(`/assembleias/${id}/encerrar`, null, { params }),
+};
+
+// Eleições (spec-governanca §12)
+export const eleicoesAPI = {
+  list: (params) => api.get('/eleicoes', { params }),
+  get: (id) => api.get(`/eleicoes/${id}`),
+  create: (data) => api.post('/eleicoes', data),
+  listas: (id) => api.get(`/eleicoes/${id}/listas`),
+  submitLista: (id, data) => api.post(`/eleicoes/${id}/listas`, data),
+  validarLista: (id, listaId, data) => api.post(`/eleicoes/${id}/listas/${listaId}/validar`, data),
+  abrirVotacao: (id) => api.post(`/eleicoes/${id}/abrir-votacao`),
+  votar: (id, data) => api.post(`/eleicoes/${id}/votar`, data),
+  votoCorrespondencia: (id, data) => api.post(`/eleicoes/${id}/voto-correspondencia`, data),
+  apurar: (id) => api.post(`/eleicoes/${id}/apurar`),
+  proclamar: (id) => api.post(`/eleicoes/${id}/proclamar`),
+};
+
+// Regime disciplinar (spec-governanca §13)
+export const sancoesAPI = {
+  list: (params) => api.get('/sancoes', { params }),
+  get: (id) => api.get(`/sancoes/${id}`),
+  create: (data) => api.post('/sancoes', data),
+  comissao: (id, data) => api.post(`/sancoes/${id}/comissao`, data),
+  decidir: (id, data) => api.post(`/sancoes/${id}/decidir`, data),
+  recurso: (id, data) => api.post(`/sancoes/${id}/recurso`, data),
+  aplicar: (id) => api.post(`/sancoes/${id}/aplicar`),
+  ofUser: (userId) => api.get(`/users/${userId}/sancoes`),
 };
 
 // Users API
