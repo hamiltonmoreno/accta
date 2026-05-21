@@ -86,6 +86,14 @@ COLLECTIONS: tuple[str, ...] = (
     "finance_settings_history",
     "page_banners",
     "brand_settings",
+    # voz e participação do sócio (spec-voz-participacao-socio):
+    "patrocinios",
+    "honorarios_nominations",
+    "peticoes",
+    "peticao_assinaturas",
+    "propostas_ag",
+    "reclamacoes",
+    "esclarecimentos",
     # no Pydantic model — schema derived from usage:
     "password_resets",
     "tokens_revoked",
@@ -833,6 +841,25 @@ _INDEX_DDL: tuple[str, ...] = (
     # governança — histórico de quota/jóia
     "CREATE INDEX IF NOT EXISTS ix_finsetthist_eff ON \"finance_settings_history\" ((doc->>'effective_from') DESC)",
     "CREATE INDEX IF NOT EXISTS ix_finsetthist_assemb ON \"finance_settings_history\" ((doc->>'assembleia_id'))",
+    # voz e participação do sócio (spec-voz-participacao-socio §9)
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_patrocinio_cand_sponsor ON "patrocinios" '
+    "((doc->>'candidate_id'), (doc->>'sponsor_user_id'))",
+    "CREATE INDEX IF NOT EXISTS ix_patrocinio_sponsor ON \"patrocinios\" ((doc->>'sponsor_user_id'), (doc->>'status'))",
+    "CREATE INDEX IF NOT EXISTS ix_patrocinio_candidate ON \"patrocinios\" ((doc->>'candidate_id'), (doc->>'status'))",
+    "CREATE INDEX IF NOT EXISTS ix_honorarios_status ON \"honorarios_nominations\" ((doc->>'status'))",
+    "CREATE INDEX IF NOT EXISTS ix_honorarios_nominee ON \"honorarios_nominations\" ((doc->>'nominee_user_id'))",
+    "CREATE INDEX IF NOT EXISTS ix_peticoes_status_created ON \"peticoes\" ((doc->>'status'), (doc->>'created_at') DESC)",
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_peticao_assinatura ON "peticao_assinaturas" '
+    "((doc->>'peticao_id'), (doc->>'user_id'))",
+    "CREATE INDEX IF NOT EXISTS ix_peticao_assinatura_pet ON \"peticao_assinaturas\" ((doc->>'peticao_id'))",
+    'CREATE INDEX IF NOT EXISTS ix_propostas_status_created ON "propostas_ag" '
+    "((doc->>'status'), (doc->>'created_at') DESC)",
+    "CREATE INDEX IF NOT EXISTS ix_propostas_autor ON \"propostas_ag\" ((doc->>'created_by'))",
+    "CREATE INDEX IF NOT EXISTS ix_reclamacoes_autor ON \"reclamacoes\" ((doc->>'created_by'), (doc->>'status'))",
+    "CREATE INDEX IF NOT EXISTS ix_reclamacoes_status ON \"reclamacoes\" ((doc->>'status'))",
+    'CREATE INDEX IF NOT EXISTS ix_esclarecimentos_orgao ON "esclarecimentos" '
+    "((doc->>'orgao_destino'), (doc->>'status'))",
+    "CREATE INDEX IF NOT EXISTS ix_esclarecimentos_autor ON \"esclarecimentos\" ((doc->>'created_by'))",
 )
 
 REQUIRED_INDEX_NAMES = {

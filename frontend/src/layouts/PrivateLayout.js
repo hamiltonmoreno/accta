@@ -33,6 +33,7 @@ import {
   Gavel,
   Palette,
   Newspaper,
+  Handshake,
 } from 'lucide-react';
 
 const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
@@ -63,6 +64,12 @@ const menuSections = [
       { label: 'Assembleias', path: '/admin/assembleias', icon: Landmark, roles: ['all'] },
       { label: 'Eleições', path: '/admin/eleicoes', icon: ListChecks, roles: ['all'] },
       { label: 'Disciplina', path: '/admin/disciplinar', icon: Gavel, roles: ['admin'], match: 'direcao' },
+    ],
+  },
+  {
+    title: 'Participação',
+    items: [
+      { label: 'Patrocínios', path: '/participacao/patrocinios', icon: Handshake, roles: ['all'] },
     ],
   },
   {
@@ -152,6 +159,7 @@ export const PrivateLayout = ({ children }) => {
     if (pathname === '/admin/disciplinar') return 'Disciplina';
     if (pathname === '/admin/aparencia') return 'Aparência do Site';
     if (pathname === '/admin/noticias') return 'Notícias / Blog';
+    if (pathname === '/participacao/patrocinios') return 'Patrocínios';
     if (pathname === '/admin/usuarios') return 'Utilizadores';
     if (pathname === '/admin/logs') return 'Audit Logs';
     return 'Portal';

@@ -6,6 +6,7 @@ from models import User, Poll, PollCreate, PollStatusUpdate, UserVote, VoteCreat
 from database import db
 from auth import get_current_user
 from helpers import create_audit_log, notify_all_active_users
+from permissions import is_voting_member
 
 router = APIRouter(tags=["polls"])
 
@@ -104,8 +105,10 @@ async def update_poll_status(
 
 @router.post("/polls/vote", response_model=UserVote)
 async def vote(vote_data: VoteCreate, current_user: User = Depends(get_current_user)):
-    if current_user.status != "ativo":
-        raise HTTPException(status_code=403, detail="Apenas sócios ativos podem votar")
+    # Elegibilidade de voto: sócio votante (exclui honorário/técnico/inactivo/
+    # suspenso) — spec-voz-participacao §2.2.
+    if not is_voting_member(current_user):
+        raise HTTPException(status_code=403, detail="Apenas sócios com direito a voto podem votar")
 
     poll = await db.polls.find_one({"id": vote_data.poll_id}, {"_id": 0})
     if not poll:
