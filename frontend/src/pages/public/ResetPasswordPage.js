@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Lock, ArrowLeft, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
-import { ACCTALogoHorizontal } from '../../components/ACCTALogo';
+import { BrandLogo } from '../../components/BrandLogo';
 import api from '../../utils/api';
 import { resetPasswordSchema } from '../../utils/authSchemas';
 
@@ -53,7 +53,7 @@ export const ResetPasswordPage = () => {
       <div className="w-full max-w-md animate-fade-up">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex justify-center mb-5">
-            <ACCTALogoHorizontal />
+            <BrandLogo />
           </Link>
         </div>
 

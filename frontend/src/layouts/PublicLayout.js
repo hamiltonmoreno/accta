@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ArrowRight } from 'lucide-react';
-import { ACCTALogoHorizontal } from '../components/ACCTALogo';
+import { BrandLogo } from '../components/BrandLogo';
 import { ASSOCIACAO_NOME } from '../content/cta';
 
 export const PublicLayout = ({ children }) => {
@@ -26,7 +26,7 @@ export const PublicLayout = ({ children }) => {
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex-shrink-0">
-              <ACCTALogoHorizontal />
+              <BrandLogo />
             </Link>
 
             {/* Desktop Nav */}
@@ -128,7 +128,7 @@ export const PublicLayout = ({ children }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-8">
             <div className="col-span-2 sm:col-span-2 md:col-span-2">
-              <ACCTALogoHorizontal dark className="mb-4" />
+              <BrandLogo dark className="mb-4" />
               <p className="text-sm text-white/70 mb-3 max-w-sm">
                 {ASSOCIACAO_NOME}
               </p>
