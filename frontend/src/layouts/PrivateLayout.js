@@ -31,7 +31,6 @@ import {
   Landmark,
   ListChecks,
   Gavel,
-  Image as ImageIcon,
   Palette,
 } from 'lucide-react';
 
@@ -70,8 +69,7 @@ const menuSections = [
     items: [
       { label: 'Mural', path: '/mural', icon: MessageSquare, roles: ['all'] },
       { label: 'Galeria', path: '/galeria-admin', icon: Camera, roles: ['all'] },
-      { label: 'Banners', path: '/admin/banners', icon: ImageIcon, roles: ['admin', 'moderador'] },
-      { label: 'Marca', path: '/admin/marca', icon: Palette, roles: ['admin', 'moderador'] },
+      { label: 'Aparência', path: '/admin/aparencia', icon: Palette, roles: ['admin', 'moderador'] },
       { label: 'Benefícios', path: '/beneficios', icon: Gift, roles: ['all'] },
     ],
   },
@@ -150,8 +148,7 @@ export const PrivateLayout = ({ children }) => {
     if (pathname === '/admin/eleicoes') return 'Eleições';
     if (pathname.startsWith('/admin/eleicoes/')) return 'Eleição';
     if (pathname === '/admin/disciplinar') return 'Disciplina';
-    if (pathname === '/admin/banners') return 'Banners das Páginas';
-    if (pathname === '/admin/marca') return 'Marca / Logótipo';
+    if (pathname === '/admin/aparencia') return 'Aparência do Site';
     if (pathname === '/admin/usuarios') return 'Utilizadores';
     if (pathname === '/admin/logs') return 'Audit Logs';
     return 'Portal';
