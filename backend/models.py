@@ -193,6 +193,35 @@ class PatrocinioRespond(BaseModel):
     note: Optional[str] = Field(default=None, max_length=500)
 
 
+# 1.3 — Petição para AG extraordinária (Art. 9.f, 19.2.d)
+
+
+class Peticao(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    titulo: str = Field(min_length=3, max_length=180)
+    fundamentacao: str = Field(min_length=1, max_length=5000)
+    tipo: str = "ag_extraordinaria"
+    threshold_fraction: float = 0.25  # 1/4 dos membros votantes
+    target_count: Optional[int] = None  # snapshot do alvo no momento de atingir
+    status: Literal["aberta", "atingida", "encaminhada", "encerrada", "expirada"] = "aberta"
+    created_by: Optional[str] = None
+    created_at: Optional[str] = None
+    expires_at: Optional[str] = None
+    met_at: Optional[str] = None
+    assembleia_id: Optional[str] = None
+    source_article: str = "9.f"
+
+
+class PeticaoCreate(BaseModel):
+    titulo: str = Field(min_length=3, max_length=180)
+    fundamentacao: str = Field(min_length=1, max_length=5000)
+
+
+class PeticaoEncaminhar(BaseModel):
+    assembleia_id: Optional[str] = None
+
+
 class RegistrationReject(BaseModel):
     reason: Optional[str] = Field(default=None, max_length=500)
 

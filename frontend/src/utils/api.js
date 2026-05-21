@@ -66,6 +66,16 @@ export const patrociniosAPI = {
   recusar: (candidateId, note) => api.post(`/participacao/patrocinios/${candidateId}/recusar`, { note }),
 };
 
+// Petição para AG extraordinária (spec-voz-participacao §5, Art. 9.f/19.2.d)
+export const peticoesAPI = {
+  list: () => api.get('/peticoes'),
+  get: (id) => api.get(`/peticoes/${id}`),
+  create: (data) => api.post('/peticoes', data),
+  assinar: (id) => api.post(`/peticoes/${id}/assinar`),
+  retirar: (id) => api.delete(`/peticoes/${id}/assinar`),
+  encaminhar: (id, assembleiaId) => api.post(`/peticoes/${id}/encaminhar`, { assembleia_id: assembleiaId }),
+};
+
 // Cargos / mandatos (spec-identidade-cargos / spec-governanca)
 export const cargosAPI = {
   getMeta: () => api.get('/users/meta/cargos'),  // [DEPRECATED] usar governanceAPI.structure
