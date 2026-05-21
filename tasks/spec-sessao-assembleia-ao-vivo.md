@@ -29,10 +29,16 @@ funcionalidades:
   `meeting_link` (URL externa) + `meeting_provider`/`meeting_notes`. O portal
   mostra o botão "Entrar na reunião" aos presentes; **link out**, sem iframe
   (a maioria dos fornecedores bloqueia embedding).
-- **Check-in** tem de funcionar **remotamente**: o caminho primário é o
-  **self check-in autenticado** (o sócio com sessão iniciada confirma presença
-  com um **código de sessão** partilhado na chamada). O scan do QR pessoal
-  (carteira) mantém-se como caminho **presencial** alternativo.
+- **Check-in** é detectado **dentro do portal autenticado**: o caminho primário
+  é **entrar pela app** — clicar em "Entrar na reunião" (ou ler o **QR da
+  reunião**) regista a presença *e* abre o `meeting_link`. Como o clique/scan
+  acontece na app autenticada, **sabemos quem entrou e quando** (atribuível e
+  datado). O scan do **QR pessoal (carteira)** pela Mesa mantém-se para o
+  presencial; um **código de sessão** é opcional (reforço anti-proxy). Ressalva
+  honesta: isto prova *intenção de entrar a partir de uma sessão autenticada*
+  (equivalente a assinar a folha de presenças), **não** que a pessoa permaneceu
+  na chamada — prova real de presença-em-chamada exigiria integração com a API do
+  fornecedor (relatório de presenças do Meet/Zoom), de scope próprio.
 - **Fila de palavra, votação e quórum** são em **tempo real** — reutilizam e
   estendem o mecanismo SSE existente (polling), agora **por-assembleia**.
 - **Braço no ar** numa chamada de vídeo não é auto-contável: a Mesa **regista a
@@ -168,7 +174,7 @@ class AssembleiaPresenca(BaseModel):   # estende a da governança
     voting_power: int = 1                    # 1 + nº de representados
     is_member: bool = True
     can_vote: bool                           # is_voting_member no momento
-    method: Literal["self_code", "qr_scan", "mesa_manual"]
+    method: Literal["join_click", "qr_meeting", "qr_scan", "self_code", "mesa_manual"]
     checked_in_at: str
     source_article: str = "21"
 ```
@@ -177,15 +183,25 @@ class AssembleiaPresenca(BaseModel):   # estende a da governança
 
 ### 3.2 Caminhos de check-in
 
-- **Self check-in (online, primário)** — `POST /assembleias/{id}/checkin` com
-  `{code}`. Valida: sessão em `checkin`/`em_curso`, `code == check_in_code`
-  (não expirado), utilizador autenticado é `is_voting_member` (ou membro
-  presente sem voto, p. ex. honorário/suspenso → `can_vote=false`). O código é
-  **partilhado pela Mesa na videochamada** (anti-proxy básico).
-- **QR scan (presencial)** — `POST /assembleias/{id}/checkin/scan` com `{qr_hash}`
-  (a Mesa lê o QR da carteira do sócio). Reusa o lookup de
+- **Entrar pela app (online, primário)** — o botão "Entrar na reunião" chama
+  `POST /assembleias/{id}/checkin` (`method=join_click`) e a seguir abre o
+  `meeting_link`. Um clique = presença + ingresso; como é na app autenticada,
+  fica registado **quem** e **quando**. Valida: sessão em `checkin`/`em_curso` e
+  o utilizador é membro (votante → `can_vote=true`; honorário/suspenso →
+  `can_vote=false`).
+- **QR da reunião (online/presencial)** — `POST .../checkin` (`method=qr_meeting`)
+  por leitura do **QR da sessão** (deep-link para a acção de entrada do portal,
+  ex.: `/assembleias/{id}/entrar?t=<token>`). Útil num ecrã partilhado/cartaz: o
+  sócio lê com o telemóvel autenticado, fica presente e é encaminhado para o
+  `meeting_link`.
+- **Código de sessão (opcional, anti-proxy)** — `POST .../checkin` com `{code}`
+  exige `code == check_in_code` (não expirado, partilhado pela Mesa na chamada);
+  usar quando se quiser reforçar que o sócio está mesmo na sessão.
+- **QR pessoal / carteira (presencial)** — `POST /assembleias/{id}/checkin/scan`
+  com `{qr_hash}` (a **Mesa lê o QR da carteira** do sócio). Reusa o lookup de
   `GET /stats/validate/{qr_hash}` (resolve `qr_code_hash → user`). Regista
-  presença em nome desse user.
+  presença em nome desse user. **Distinto** do QR da reunião acima (aqui é a Mesa
+  a ler o sócio; lá é o sócio a ler a reunião).
 - **Representação** — `POST /assembleias/{id}/checkin` com
   `{code, represented_member_ids: [...]}` (máx. 3; cada representado tem de ser
   votante e não estar já presente; o representante não pode ser da Mesa). Define
@@ -227,9 +243,11 @@ modal de **self check-in** (introduz código), e modo **Mesa-scan** (câmara/col
 
 ### 3.7 Critérios de aceitação
 
-Self check-in só com código válido e sessão aberta; QR scan resolve o sócio certo;
-representação respeita o limite de 3 e Mesa-não-representa; quórum recalcula em
-tempo real e distingue 1ª/2ª convocatória; presença duplicada bloqueada (índice).
+Check-in por clique/QR da reunião regista presença **atribuível** (quem + quando)
+com a sessão aberta; o código de sessão (se usado) tem de bater certo; o QR da
+carteira (lido pela Mesa) resolve o sócio certo; representação respeita o limite
+de 3 e Mesa-não-representa; quórum recalcula em tempo real e distingue 1ª/2ª
+convocatória; presença duplicada bloqueada (índice).
 
 ---
 
@@ -538,9 +556,9 @@ Documentos da sessão: lista no doc da assembleia (sem colecção).
   - **Consola da Mesa** (`is_mesa_ag`/admin): abrir/fechar fases, código de
     check-in + scan, ordenar/conceder palavra, abrir/apurar votos e registar
     braço no ar, gerir moções/expediente/documentos/convidados.
-  - **Participante** (membro presente): "Entrar na reunião" (`meeting_link`),
-    self check-in, pedir a palavra, votar, submeter moção, ver quórum/fila/voto
-    ao vivo.
+  - **Participante** (membro presente): **"Entrar na reunião"** (faz check-in e
+    abre o `meeting_link`) ou leitura do **QR da reunião**, pedir a palavra,
+    votar, submeter moção, ver quórum/fila/voto ao vivo.
 - Reutilizar: `QRCode` (carteira) e o lookup do validador para o scan; upload de
   documentos; TanStack Query + SSE. Design neutral-led + Carmesim, sem dark mode
   (skill `frontend-design`); cronómetros e barra de quórum com estados claros.
@@ -612,9 +630,11 @@ Confirmar com o utilizador antes de:
 
 ## 15. Decisões em aberto
 
-1. **Check-in online anti-proxy**: código de sessão partilhado na chamada
-   (recomendado) é suficiente, ou exigir ligação mais forte (confirmação por
-   par, presença na chamada)?
+1. **Prova de presença online**: o check-in por **clique/QR da reunião** regista
+   *intenção de entrar* a partir de sessão autenticada (recomendado — atribuível
+   e simples; fonte de verdade do quórum). Basta isto, ou exige-se prova de
+   **permanência na chamada** via integração com a API do Meet/Zoom (scope
+   próprio)? O código de sessão fica como reforço anti-proxy opcional.
 2. **`meeting_link`**: só armazenar/abrir (recomendado) ou tentar embeber? (A
    maioria dos fornecedores bloqueia iframe.)
 3. **Durações da palavra** por tipo: confirmar valores com o Regimento.
