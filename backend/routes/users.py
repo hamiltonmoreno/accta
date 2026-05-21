@@ -13,6 +13,11 @@ from models import (
     PRIVILEGES,
     USER_STATUSES,
 )
+from governance import (
+    CARGO_KEYS,
+    normalize_cargo,
+    orgao_of_cargo,
+)
 from database import db
 from auth import get_current_user, has_role_or_privilege
 from helpers import create_audit_log, create_notification, delete_upload_file
@@ -131,9 +136,14 @@ async def admin_update_user(
     if not update_data:
         raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
 
-    # NOTA: cargo NÃO é editável aqui — atribuído só via /admin/cargos
-    # (promote/demote/transfer), que regista mandato + valida vagas. Foi
-    # removido de UserAdminUpdate, logo é ignorado mesmo que enviado no body.
+    # Validate cargo: aceita key/label/alias legado, grava sempre a key canónica
+    # e denormaliza o órgão social (spec-governanca §4).
+    if "cargo" in update_data:
+        cargo_key = normalize_cargo(update_data["cargo"])
+        if cargo_key not in CARGO_KEYS:
+            raise HTTPException(status_code=400, detail=f"Cargo inválido. Opções: {', '.join(CARGOS)}")
+        update_data["cargo"] = cargo_key
+        update_data["orgao"] = orgao_of_cargo(cargo_key)
 
     # Validate privileges
     if "privileges" in update_data:
@@ -237,21 +247,42 @@ async def get_cargo_history(user_id: str, current_user: User = Depends(get_curre
     return {"cargo_history": history}
 
 
-# ===== METADATA ENDPOINTS =====
+# ===== SANÇÕES DO MEMBRO (spec-governanca §13) =====
+@router.get("/users/{user_id}/sancoes")
+async def get_user_sancoes(user_id: str, current_user: User = Depends(get_current_user)):
+    """Sanções de um membro. O próprio vê (forma redigida); Direcção/admin tudo.
+    Dados disciplinares são sensíveis — ocultados a quem não tem permissão."""
+    from permissions import is_direcao
+    from routes.sancoes import _redact
+
+    is_self = current_user.id == user_id
+    privileged = current_user.role == "admin" or is_direcao(current_user)
+    if not (is_self or privileged):
+        raise HTTPException(status_code=403, detail="Sem permissão")
+    rows = await db.sancoes.find({"user_id": user_id}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    if not privileged:
+        rows = [_redact(r) for r in rows]
+    return {"sancoes": rows}
+
+
+# ===== METADATA ENDPOINTS (DEPRECATED — usar GET /api/governance/structure) =====
 @router.get("/users/meta/cargos")
 async def get_cargos():
-    """Metadata completa do modelo de cargos (spec-identidade-cargos), para o
-    frontend não hard-codar constantes: lista plana, agrupamento por órgão
-    social, privilégios, defaults role+privileges e nº de vagas por cargo."""
+    """[DEPRECATED] Alias temporário de compatibilidade. A fonte canónica é
+    GET /api/governance/structure (spec-governanca §9). Mantém o shape legado
+    para clientes ainda não migrados; cargos/defaults usam keys canónicas."""
     return {
         "cargos": CARGOS,
         "cargos_orgaos_sociais": CARGOS_ORGAOS_SOCIAIS,
         "privileges": PRIVILEGES,
         "cargo_defaults": CARGO_DEFAULTS,
         "cargo_seats": CARGO_SEATS,
+        "deprecated": True,
+        "structure_endpoint": "/api/governance/structure",
     }
 
 
 @router.get("/users/meta/privileges")
 async def get_privileges():
-    return {"privileges": PRIVILEGES}
+    """[DEPRECATED] Ver GET /api/governance/structure."""
+    return {"privileges": PRIVILEGES, "deprecated": True, "structure_endpoint": "/api/governance/structure"}

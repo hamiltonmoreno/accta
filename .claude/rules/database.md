@@ -28,12 +28,15 @@ paths:
   `$match/$group($sum/$cond)/$count/$sort/$limit/$project`. If a new op is
   needed, extend the DAO in `database.py` — keep the Mongo-style call sites.
 
-## Collections & Schema (27 tables)
+## Collections & Schema (36 tables)
 - **users**: email (unique), role, status, invite_token, qr_code_hash,
   `account_type` (member|technical), `member_id` (immutable; via `member_id_seq`),
-  `privileges[]` (additive overlays), `cargo` + `cargo_history[]` (mandate log;
-  written only by `/admin/cargos` promote/demote/transfer — `transfer` is atomic
-  via `database.transfer_cargo`)
+  `member_category` (fundador|ordinario|honorario), `orgao` (denormalized from
+  cargo), `rights_suspended_until` (disciplinary), `privileges[]` (additive
+  overlays), `cargo` (**canonical key from `governance.py`**, e.g.
+  `dir_tesoureiro` — never a label) + `cargo_history[]` (mandate log; written
+  only by `/admin/cargos` promote/demote/transfer and election proclamation —
+  `transfer` is atomic via `database.transfer_cargo`)
 - **transactions**: type (receita/despesa), amount, date, category, user_id
 - **projects** (+ project_tasks, project_comments, project_expenses,
   project_milestones): title, status, team_members[]
@@ -46,7 +49,16 @@ paths:
   (+ benefit_validations, benefit_partners)
 - **gallery_albums**, **gallery_photos**: album_id, url, status
 - **audit_logs**: action, user_id, details, created_at
-- **finance_settings**: quota_amount
+- **finance_settings**: quota_amount, quota_description, joia
+  (`joia_multiplier`/`joia_amount`), `quota_fixed_by_assembleia/deliberacao`,
+  `effective_from` (changing quota/jóia needs an AG 3/4 deliberation —
+  spec-governanca §14)
+- Governança estatutária (spec-governanca): **assembleias**,
+  **assembleia_presencas**, **assembleia_deliberacoes**, **eleicoes**,
+  **eleicao_listas**, **sancoes**, **finance_settings_history**. Secret vote
+  (no Pydantic-on-doc link): **eleicao_voter_receipts** (HMAC receipt, unique
+  `(eleicao_id, voter_hash)`) and **eleicao_ballots** (no `user_id`/`voter_hash`)
+  — written together atomically via `database.cast_ballot`.
 - Auth (no Pydantic model): **password_resets**, **tokens_revoked**,
   **login_attempts**
 

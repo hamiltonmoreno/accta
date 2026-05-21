@@ -76,6 +76,25 @@ export const queryKeys = {
     candidates: (params) => ['cargos', 'candidates', params || {}],
     history: (userId) => ['cargos', 'history', userId],
   },
+  governance: {
+    structure: () => ['governance', 'structure'],
+  },
+  assembleias: {
+    list: (filters) => ['assembleias', filters || {}],
+    byId: (id) => ['assembleias', id],
+    quorum: (id) => ['assembleias', id, 'quorum'],
+    deliberacoes: (id) => ['assembleias', id, 'deliberacoes'],
+  },
+  eleicoes: {
+    list: (filters) => ['eleicoes', filters || {}],
+    byId: (id) => ['eleicoes', id],
+    listas: (id) => ['eleicoes', id, 'listas'],
+  },
+  sancoes: {
+    list: (filters) => ['sancoes', filters || {}],
+    byId: (id) => ['sancoes', id],
+    ofUser: (userId) => ['sancoes', 'user', userId],
+  },
   transactions: {
     list: (filters) => ['transactions', filters || {}],
     summary: (year, month) => ['transactions', 'summary', year, month],

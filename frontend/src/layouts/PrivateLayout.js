@@ -28,6 +28,9 @@ import {
   Camera,
   UserPlus,
   Award,
+  Landmark,
+  ListChecks,
+  Gavel,
 } from 'lucide-react';
 
 const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
@@ -53,6 +56,14 @@ const menuSections = [
     ],
   },
   {
+    title: 'Órgãos Sociais',
+    items: [
+      { label: 'Assembleias', path: '/admin/assembleias', icon: Landmark, roles: ['all'] },
+      { label: 'Eleições', path: '/admin/eleicoes', icon: ListChecks, roles: ['all'] },
+      { label: 'Disciplina', path: '/admin/disciplinar', icon: Gavel, roles: ['admin'], match: 'direcao' },
+    ],
+  },
+  {
     title: 'Comunidade',
     items: [
       { label: 'Mural', path: '/mural', icon: MessageSquare, roles: ['all'] },
@@ -73,7 +84,7 @@ const menuSections = [
 ];
 
 export const PrivateLayout = ({ children }) => {
-  const { user, logout, isAdmin, isFinanceiro, isModerador } = useAuth();
+  const { user, logout, isAdmin, isFinanceiro, isModerador, isDirecao } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const pathname = location.pathname;
@@ -130,6 +141,11 @@ export const PrivateLayout = ({ children }) => {
     if (pathname === '/notificacoes') return 'Notificações';
     if (pathname === '/admin/pedidos-inscricao') return 'Pedidos de Inscrição';
     if (pathname === '/admin/cargos') return 'Cargos & Mandatos';
+    if (pathname === '/admin/assembleias') return 'Assembleias';
+    if (pathname.startsWith('/admin/assembleias/')) return 'Assembleia';
+    if (pathname === '/admin/eleicoes') return 'Eleições';
+    if (pathname.startsWith('/admin/eleicoes/')) return 'Eleição';
+    if (pathname === '/admin/disciplinar') return 'Disciplina';
     if (pathname === '/admin/usuarios') return 'Utilizadores';
     if (pathname === '/admin/logs') return 'Audit Logs';
     return 'Portal';
@@ -147,6 +163,8 @@ export const PrivateLayout = ({ children }) => {
 
   /* Filter menu items by role (ou por privilégio granular — RBAC aditivo) */
   const filterItem = (item) => {
+    // Gating por cargo/órgão (extensão ao RBAC por role/privilégio).
+    if (item.match === 'direcao' && (isAdmin || isDirecao)) return true;
     if (item.roles.includes('all')) return true;
     if (item.roles.includes('admin') && isAdmin) return true;
     if (item.roles.includes('financeiro') && (isFinanceiro || isAdmin)) return true;

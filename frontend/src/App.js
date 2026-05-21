@@ -49,6 +49,9 @@ const PerfilPage = lazy(() => import('./pages/private/PerfilPage').then((m) => (
 const AdminLogsPage = lazy(() => import('./pages/private/AdminLogsPage').then((m) => ({ default: m.AdminLogsPage })));
 const AdminPedidosInscricaoPage = lazy(() => import('./pages/private/AdminPedidosInscricaoPage').then((m) => ({ default: m.AdminPedidosInscricaoPage })));
 const AdminCargosPage = lazy(() => import('./pages/private/AdminCargosPage').then((m) => ({ default: m.AdminCargosPage })));
+const AdminAssembleiasPage = lazy(() => import('./pages/private/AdminAssembleiasPage').then((m) => ({ default: m.AdminAssembleiasPage })));
+const AdminEleicoesPage = lazy(() => import('./pages/private/AdminEleicoesPage').then((m) => ({ default: m.AdminEleicoesPage })));
+const AdminDisciplinarPage = lazy(() => import('./pages/private/AdminDisciplinarPage').then((m) => ({ default: m.AdminDisciplinarPage })));
 
 const RouteSpinner = () => (
   <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-live="polite">
@@ -243,6 +246,30 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={['admin']} allowedPrivileges={['manage_users']}>
               <PrivateLayout><AdminCargosPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/assembleias"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><AdminAssembleiasPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/eleicoes"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><AdminEleicoesPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/disciplinar"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><AdminDisciplinarPage /></PrivateLayout>
             </ProtectedRoute>
           }
         />
