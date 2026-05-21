@@ -126,11 +126,11 @@ export const AdminUsuariosPage = () => {
     updateMutation.mutate({
       id: editingUser.id,
       data: {
-        // member_id é imutável (spec-identidade-cargos) — não enviado.
+        // member_id (imutável) e cargo (gerido em /admin/cargos, com histórico
+        // de mandatos) não são enviados — spec-identidade-cargos.
         name: editingUser.name,
         role: editingUser.role,
         status: editingUser.status,
-        cargo: editingUser.cargo,
         privileges: editingUser.privileges || [],
         department: editingUser.department,
         phone_number: editingUser.phone_number,
@@ -441,24 +441,20 @@ export const AdminUsuariosPage = () => {
                   </div>
                 </div>
 
-                {/* Cargo */}
+                {/* Cargo — só-leitura: atribuído via Cargos & Mandatos (regista histórico) */}
                 <div>
                   <label className="block text-xs uppercase tracking-widest text-[#6B7280] font-semibold mb-1">
                     <Briefcase className="w-3 h-3 inline mr-1" />
                     Cargo na Associação
                   </label>
-                  <select
-                    value={editingUser.cargo || 'Sócio'}
-                    onChange={(e) => setEditingUser({ ...editingUser, cargo: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none bg-white"
+                  <div
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-[#F5F5F5] text-grafite"
                     data-testid="modal-edit-cargo"
                   >
-                    {(CARGOS.includes(editingUser.cargo) || !editingUser.cargo ? CARGOS : [editingUser.cargo, ...CARGOS]).map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
+                    {editingUser.cargo || 'Sócio'}
+                  </div>
                   <p className="text-[11px] text-[#9CA3AF] mt-1">
-                    Para mandatos de órgãos sociais use <span className="text-grafite font-medium">Cargos &amp; Mandatos</span> (regista histórico).
+                    O cargo é gerido em <span className="text-grafite font-medium">Cargos &amp; Mandatos</span> (atribui mandato e valida vagas).
                   </p>
                 </div>
 

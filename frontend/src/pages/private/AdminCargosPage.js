@@ -32,7 +32,7 @@ const CandidatePicker = ({ excludeCargo, value, onSelect, testId }) => {
     return () => clearTimeout(t);
   }, [search]);
 
-  const { data: candidates = [], isFetching } = useQuery({
+  const { data: candidates = [], isFetching, isError } = useQuery({
     queryKey: queryKeys.cargos.candidates({ q: debounced, excludeCargo }),
     queryFn: async () => (await cargosAPI.candidates({ q: debounced, exclude_cargo: excludeCargo || undefined })).data.candidates,
     staleTime: 30 * 1000,
@@ -65,6 +65,8 @@ const CandidatePicker = ({ excludeCargo, value, onSelect, testId }) => {
           <div className="mt-1.5 max-h-44 overflow-y-auto rounded-lg border border-gray-100 divide-y divide-gray-50">
             {isFetching && candidates.length === 0 ? (
               <div className="px-3 py-3"><Skeleton className="h-4 w-40" /></div>
+            ) : isError ? (
+              <p className="px-3 py-3 text-xs text-carmesim font-medium">Não foi possível carregar os sócios. Tente novamente.</p>
             ) : candidates.length === 0 ? (
               <p className="px-3 py-3 text-xs text-[#6B7280]">Nenhum sócio encontrado.</p>
             ) : (
