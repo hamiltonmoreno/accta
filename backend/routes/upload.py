@@ -15,6 +15,7 @@ ALLOWED_EXTENSIONS = {
     "proofs": [".pdf", ".jpg", ".jpeg", ".png"],
     "logos": [".png", ".jpg", ".jpeg"],  # SVG bloqueado: risco de stored XSS
     "avatars": [".jpg", ".jpeg", ".png"],
+    "banners": [".jpg", ".jpeg", ".png", ".webp"],  # hero wide (spec-padronizacao-banners)
 }
 
 MAX_FILE_SIZES = {
@@ -22,15 +23,20 @@ MAX_FILE_SIZES = {
     "proofs": 5 * 1024 * 1024,  # 5 MB
     "logos": 2 * 1024 * 1024,  # 2 MB
     "avatars": 2 * 1024 * 1024,  # 2 MB
+    "banners": 4 * 1024 * 1024,  # 4 MB (hero wide)
 }
 
 
 @router.post("/upload/{category}")
 async def upload_file(category: str, file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
-    if category not in ["documents", "proofs", "logos", "avatars"]:
+    if category not in ["documents", "proofs", "logos", "avatars", "banners"]:
         raise HTTPException(status_code=400, detail="Categoria inválida")
 
     if category in ["documents", "logos"] and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Sem permissão")
+
+    # Banners: gestão de conteúdo institucional (spec-padronizacao-banners D1).
+    if category == "banners" and current_user.role not in ("admin", "moderador"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     # Le tudo em memoria (limite por categoria, max 10MB) — necessario para

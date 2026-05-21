@@ -84,6 +84,7 @@ COLLECTIONS: tuple[str, ...] = (
     "eleicao_ballots",
     "sancoes",
     "finance_settings_history",
+    "page_banners",
     # no Pydantic model — schema derived from usage:
     "password_resets",
     "tokens_revoked",
