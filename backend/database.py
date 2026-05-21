@@ -789,6 +789,10 @@ _INDEX_DDL: tuple[str, ...] = (
     # documents / posts
     "CREATE INDEX IF NOT EXISTS ix_docs_vis ON \"documents\" ((doc->>'visibility'))",
     "CREATE INDEX IF NOT EXISTS ix_posts_vis_created ON \"posts\" ((doc->>'visibility'), (doc->>'created_at') DESC)",
+    # blog/notícias (spec-blog-noticias §4.4): lookup por slug + listas públicas/gestão
+    "CREATE INDEX IF NOT EXISTS ix_posts_slug ON \"posts\" ((doc->>'slug'))",
+    'CREATE INDEX IF NOT EXISTS ix_posts_status_vis_pub ON "posts" '
+    "((doc->>'status'), (doc->>'visibility'), (doc->>'published_at') DESC)",
     # invoices
     "CREATE INDEX IF NOT EXISTS ix_inv_user_status ON \"invoices\" ((doc->>'user_id'), (doc->>'status'))",
     "CREATE INDEX IF NOT EXISTS ix_inv_status_created ON \"invoices\" ((doc->>'status'), (doc->>'created_at') DESC)",

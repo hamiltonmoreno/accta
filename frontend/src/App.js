@@ -53,6 +53,8 @@ const AdminAssembleiasPage = lazy(() => import('./pages/private/AdminAssembleias
 const AdminEleicoesPage = lazy(() => import('./pages/private/AdminEleicoesPage').then((m) => ({ default: m.AdminEleicoesPage })));
 const AdminDisciplinarPage = lazy(() => import('./pages/private/AdminDisciplinarPage').then((m) => ({ default: m.AdminDisciplinarPage })));
 const AdminAparenciaPage = lazy(() => import('./pages/private/AdminAparenciaPage').then((m) => ({ default: m.AdminAparenciaPage })));
+const AdminNoticiasPage = lazy(() => import('./pages/private/AdminNoticiasPage').then((m) => ({ default: m.AdminNoticiasPage })));
+const NoticiaDetailPage = lazy(() => import('./pages/public/NoticiaDetailPage').then((m) => ({ default: m.NoticiaDetailPage })));
 
 const RouteSpinner = () => (
   <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-live="polite">
@@ -99,6 +101,7 @@ function AppRoutes() {
         <Route path="/sobre" element={<PublicLayout><SobrePage /></PublicLayout>} />
         <Route path="/profissao" element={<PublicLayout><ProfissaoPage /></PublicLayout>} />
         <Route path="/noticias" element={<PublicLayout><NoticiasPage /></PublicLayout>} />
+        <Route path="/noticias/:slug" element={<PublicLayout><NoticiaDetailPage /></PublicLayout>} />
         <Route path="/transparencia" element={<PublicLayout><TransparenciaPage /></PublicLayout>} />
         <Route path="/beneficios-publico" element={<PublicLayout><BeneficiosPublicoPage /></PublicLayout>} />
         <Route path="/contactos" element={<PublicLayout><ContactosPage /></PublicLayout>} />
@@ -279,6 +282,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={['admin', 'moderador']}>
               <PrivateLayout><AdminAparenciaPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/noticias"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'moderador']}>
+              <PrivateLayout><AdminNoticiasPage /></PrivateLayout>
             </ProtectedRoute>
           }
         />

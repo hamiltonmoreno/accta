@@ -69,13 +69,16 @@ export const HomePage = () => {
   const heroImg = bannerCfg?.home?.image_url || bannerDefault('home');
   const heroIsUnsplash = heroImg.includes('images.unsplash.com');
 
-  const [news, setNews] = useState([]);
-  const [loadingNews, setLoadingNews] = useState(true);
   const [featuredEvent, setFeaturedEvent] = useState(null);
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
+  // Últimas 3 notícias públicas — pedidas com limit=3 (não cortadas no browser).
+  const { data: news = [], isLoading: loadingNews } = useQuery({
+    queryKey: queryKeys.posts.list({ visibility: 'publico', status: 'publicado', limit: 3 }),
+    queryFn: async () => (await postsAPI.getAll({ visibility: 'publico', status: 'publicado', limit: 3 })).data,
+  });
+
   useEffect(() => {
-    loadNews();
     loadFeaturedEvent();
   }, []);
 
@@ -105,17 +108,6 @@ export const HomePage = () => {
       const res = await eventsAPI.getFeatured();
       if (res.data) setFeaturedEvent(res.data);
     } catch (err) { /* no featured event */ }
-  };
-
-  const loadNews = async () => {
-    try {
-      const response = await postsAPI.getAll('publico');
-      setNews(response.data.slice(0, 3));
-    } catch (error) {
-      console.error('Erro ao carregar notícias:', error);
-    } finally {
-      setLoadingNews(false);
-    }
   };
 
   return (
@@ -572,7 +564,7 @@ export const HomePage = () => {
                   <div className="card-technical overflow-hidden hover:shadow-lg transition-all">
                     <div className="h-36 sm:h-48 relative overflow-hidden">
                       <img
-                        src={NEWS_IMAGES[index % NEWS_IMAGES.length]}
+                        src={post.cover_url || NEWS_IMAGES[index % NEWS_IMAGES.length]}
                         alt={post.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         loading="lazy"
@@ -587,9 +579,9 @@ export const HomePage = () => {
                       <h3 className="font-semibold text-base sm:text-lg text-grafite mb-2 sm:mb-3 group-hover:text-carmesim transition-colors">
                         {post.title}
                       </h3>
-                      <p className="text-gray-600 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 line-clamp-3">{post.content}</p>
+                      <p className="text-gray-600 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 line-clamp-3">{post.excerpt || post.content}</p>
                       <Link
-                        to="/noticias"
+                        to={`/noticias/${post.slug ?? post.id}`}
                         className="inline-flex items-center gap-2 text-xs sm:text-sm text-carmesim font-semibold hover:text-carmesim-dark transition-colors"
                       >
                         Ler mais

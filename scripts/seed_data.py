@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / "backend" / ".env")
 
 from database import db, ensure_schema, close_pool  # noqa: E402
+from routes.posts import slugify  # noqa: E402
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -263,6 +264,19 @@ async def seed_database():
             "created_at": (datetime.now(timezone.utc) - timedelta(days=7)).isoformat(),
         },
     ]
+
+    # Blog/notícias (spec-blog-noticias): garantir slug/status/published_at p/
+    # que detalhe por slug, filtro de rascunhos e ordenação pública funcionem.
+    used_slugs: set[str] = set()
+    for p in posts:
+        p.setdefault("status", "publicado")
+        p.setdefault("published_at", p["created_at"])
+        base = slugify(p["title"])
+        slug, n = base, 2
+        while slug in used_slugs:
+            slug, n = f"{base}-{n}", n + 1
+        used_slugs.add(slug)
+        p["slug"] = slug
 
     await db.posts.insert_many(posts)
     print(f"✅ {len(posts)} posts/notícias criados")

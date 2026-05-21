@@ -160,6 +160,7 @@ def mock_db(monkeypatch):
         "audit_logs",
         "notifications",
         "password_resets",
+        "posts",
         "wall_posts",
         "wall_comments",
         "invoices",
