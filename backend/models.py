@@ -297,24 +297,58 @@ class PollStatusUpdate(BaseModel):
 
 # ===== POST MODELS =====
 
+# Enums do blog/notícias (spec-blog-noticias D8). Strings livres davam lixo nos
+# dados; o frontend já assume estes valores fixos.
+POST_TYPES = ["noticia", "institucional", "educativo"]
+POST_VISIBILITIES = ["publico", "socios", "privado"]
+POST_STATUSES = ["rascunho", "publicado"]
+
 
 class Post(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    title: str
-    content: str
-    type: str = "noticia"
-    visibility: str = "publico"
-    tags: List[str] = []
+    title: str = Field(min_length=3, max_length=180)
+    # slug Optional p/ compat com posts antigos (seed) sem slug; gerado no create.
+    slug: Optional[str] = None
+    content: str = Field(min_length=1, max_length=20000)
+    excerpt: Optional[str] = Field(default=None, max_length=320)
+    cover_url: Optional[str] = None  # /uploads/covers/... ou None
+    type: Literal["noticia", "institucional", "educativo"] = "noticia"
+    visibility: Literal["publico", "socios", "privado"] = "publico"
+    status: Literal["rascunho", "publicado"] = "publicado"
+    tags: List[str] = Field(default_factory=list, max_length=10)
+    author_id: Optional[str] = None
+    author_name: Optional[str] = None  # desnormalizado p/ render simples
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: Optional[str] = None  # ISO string (regra: datas como str)
+    published_at: Optional[str] = None
 
 
 class PostCreate(BaseModel):
-    title: str
-    content: str
-    type: str = "noticia"
-    visibility: str = "publico"
-    tags: List[str] = []
+    title: str = Field(min_length=3, max_length=180)
+    content: str = Field(min_length=1, max_length=20000)
+    excerpt: Optional[str] = Field(default=None, max_length=320)
+    cover_url: Optional[str] = None
+    type: Literal["noticia", "institucional", "educativo"] = "noticia"
+    visibility: Literal["publico", "socios", "privado"] = "publico"
+    status: Literal["rascunho", "publicado"] = "publicado"
+    tags: List[str] = Field(default_factory=list, max_length=10)
+    # D5 — toggle in-app (não email): notifica sócios ao publicar visibility=socios.
+    notify_socios: bool = False
+
+
+class PostUpdate(BaseModel):
+    # Todos opcionais (semântica PATCH). Só os campos enviados são aplicados.
+    title: Optional[str] = Field(default=None, min_length=3, max_length=180)
+    content: Optional[str] = Field(default=None, min_length=1, max_length=20000)
+    excerpt: Optional[str] = Field(default=None, max_length=320)
+    cover_url: Optional[str] = None
+    type: Optional[Literal["noticia", "institucional", "educativo"]] = None
+    visibility: Optional[Literal["publico", "socios", "privado"]] = None
+    status: Optional[Literal["rascunho", "publicado"]] = None
+    tags: Optional[List[str]] = Field(default=None, max_length=10)
+    # Flag de comando: só respeitada enquanto rascunho; nunca persistida no doc.
+    regenerate_slug: bool = False
 
 
 # ===== DOCUMENT MODELS =====

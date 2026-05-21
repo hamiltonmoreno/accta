@@ -1,121 +1,53 @@
-# TODO — Governança Estatutária da ACCTA (spec-governanca-estatutaria.md)
+# TODO — Blog / Notícias (spec-blog-noticias.md)
 
-Branch: `feature/governanca-estatutaria` (off `develop`).
-Âmbito desta sessão: **Backend completo (Fases 0–6)**. Exclui Frontend (Fase 7)
-e migração destrutiva de dados (Fase 8). Commit por fase.
+Branch: `feature/blog-noticias` (off `develop`).
+Âmbito: MVP completo — Fase 1 (backend CRUD), Fase 2 (frontend gestão+detalhe),
+Fase 4 (testes). Fase 3 (melhorias) parcialmente incluída: toggle D5 (notificar
+sócios) + backfill no seed. Decisões D1–D11 seguidas conforme recomendações.
 
-## Fase 0 — Núcleo de governança (foundation, aditivo) ✅
-- [x] `backend/governance.py`: ORGAOS, CARGOS_CATALOG, MEMBER_CATEGORIES, PRIVILEGES, ROLES, LEGACY_CARGO_ALIASES
-- [x] Helpers: cargo_info, normalize_cargo, cargo_label, privileges_for_cargo, role_for_cargo, orgao_of_cargo, seats_for_cargo, is_estatutary_cargo, is_voting_member, is_eligible_for_office, required_quorum, required_absolute_majority, required_three_quarters, election_slots, governance_structure
-- [x] Re-exports derivados: CARGOS, CARGO_KEYS, CARGO_DEFAULTS, CARGO_SEATS
-- [x] `models.py` re-exporta de governance (sem quebrar imports)
-- [x] `routes/governance.py`: `GET /api/governance/structure`
-- [x] `/users/meta/cargos` + `/users/meta/privileges` viram aliases (deprecated)
-- [x] Testes unitários governance + structure (test_governance.py, 44)
+## Fase 1 — Backend CRUD
+- [x] `models.py`: `Post`/`PostCreate` estendidos, `PostUpdate` novo, enums `Literal`, limites, `slug` Optional, `notify_socios` (D5).
+- [x] `posts.py`: `GET /posts/{id_or_slug}` (detalhe, visibility-aware, 404 não-leak).
+- [x] `posts.py`: `PATCH /posts/{id}` (RBAC, audit, slug estável, updated_at/published_at, cleanup capa).
+- [x] `posts.py`: `DELETE /posts/{id}` (RBAC, audit, cleanup capa).
+- [x] `posts.py`: `GET /posts` filtros `status`/`type`/`q`/`skip`/`limit` + ordenação por data efetiva (D9).
+- [x] `posts.py`: `POST /posts` preenche autor/slug/published_at + notify D5.
+- [x] util `slugify` + unicidade; índices `slug` e `status/visibility/published_at` em `ensure_schema`.
+- [x] `routes/upload.py`: categoria `covers` (RBAC admin+moderador, 2MB, SVG bloqueado).
+- [x] `conftest.py`: `posts` adicionado ao `mock_db` global.
 
-## Fase 1 — Normalização compatível (key canónica) ✅
-> Fundida na Fase 0: a mudança de taxonomia ripple-a já na validação dos
-> endpoints, logo tem de aterrar no mesmo commit para a suite ficar verde.
-- [x] UserBase: `member_category`, `orgao`, `rights_suspended_until`, `rights_suspension_reason`, `residence_island`; cargo default → `socio` key
-- [x] CargoMandate: campos novos (label, orgao, posse, mandato, suplente, seat_index, eleicao/assembleia ids, transition_id)
-- [x] promote/demote/transfer: aceitam key/label/alias, gravam key, setam orgao
-- [x] `/cargos`, `/cargos/candidates`, invite, approve_registration, admin_update_user adaptados a keys
-- [x] Actualizar test_cargos_routes.py + test_identidade_cargos_models.py + test_auto_registo.py p/ keys
-- [x] Commit (Fase 0+1)
-- NOTA: 2 falhas pré-existentes em test_users_routes (get_users $or search) — NÃO regressão, fora de âmbito.
+## Fase 2 — Frontend gestão + detalhe
+- [x] `api.js`: `getOne`/`update`/`remove` + `getAll(params)` compatível com `getAll('publico')`.
+- [x] `queryClient.js`: chaves `posts.all/list/detail` + teste de shape.
+- [x] `AdminNoticiasPage.js` (tabela, criar/editar/eliminar, upload capa via `covers`, filtros).
+- [x] `App.js`: rota `/admin/noticias` (admin/moderador) + `/noticias/:slug`.
+- [x] `PrivateLayout.js`: item de menu "Notícias" + título.
+- [x] `NoticiaDetailPage.js` + rota pública `/noticias/:slug` (texto simples, sem HTML).
+- [x] `NoticiasPage.js`: cards ligam ao detalhe, excerpt/capa, TanStack Query.
+- [x] `HomePage.js`: 3 últimas via `limit=3`, cards ligam ao detalhe.
 
-## Fase 2 — RBAC e elegibilidade ✅
-- [x] `backend/permissions.py`: user_can, is_mesa_ag, is_direcao, is_conselho_fiscal, is_tesoureiro, can_convene_assembleia
-- [x] is_voting_member / is_eligible_for_office wired (status, categoria, suspensão)
-- [x] Testes RBAC/elegibilidade (test_permissions.py, 17)
-- [x] Commit
+## Fase 3 — Melhorias (parcial)
+- [x] Toggle "notificar sócios" ao publicar `visibility=socios` (D5).
+- [x] Backfill no `seed_data.py`: `slug`/`status`/`published_at`.
+- [ ] (Adiado) Paginação visual refinada — não justificada pelo volume atual.
 
-## Fase 3 — Assembleia Geral ✅
-- [x] Modelos: Assembleia, AssembleiaPresenca, AssembleiaDeliberacao (+ Create)
-- [x] Colecções + índices (assembleias, assembleia_presencas, assembleia_deliberacoes)
-- [x] `routes/assembleias.py`: convocar, presenças, deliberações (+ list), encerrar, quórum
-- [x] Testes (quórum 1ª/2ª, representação max 3, Mesa não representa, maiorias, RBAC) — 15
-- [x] Commit
-
-## Fase 4 — Eleições + proclamação ✅
-- [x] Modelos: Eleicao, EleicaoLista, EleicaoVoterReceipt, EleicaoBallot (+ Create/Votar)
-- [x] Colecções + índices (voto secreto: receipt/ballot separados; ux_eleicao_receipt único)
-- [x] `database.py`: `cast_ballot` transaccional (receipt + ballot atómico) + voter_hash HMAC
-- [x] `routes/eleicoes.py`: ciclo completo (criar→listas→validar→abrir→votar→correspondência→apurar→proclamar); proclamação cria mandatos (serviço comum `_proclaim_list`)
-- [x] Testes (lista incompleta/duplicada/comissão, inelegível, boletim anónimo, voto duplo, apuramento, empate, proclamação) — 14
-- [x] Commit
-
-## Fase 5 — Disciplina ✅
-- [x] Modelo Sancao (+ Create/Comissao/Decidir/Recurso) + colecção sancoes + índices
-- [x] `routes/sancoes.py`: propor, comissão, decidir, recurso, aplicar, get/list; `/users/{id}/sancoes` (users.py)
-- [x] Regras: multa ≤ 3x quota, expulsão exige deliberação AG aprovada, perda de direitos seta rights_suspended_until (mantém ativo), expulsão inactiva+encerra mandato, redacção de dados sensíveis
-- [x] Testes (12)
-- [x] Commit
-
-## Fase 6 — Quotas e jóias ✅
-- [x] FinanceSettings estendido (joia_multiplier/amount, quota_fixed_by_*, effective_from) + finance_settings_history
-- [x] Alteração de quota/jóia exige deliberação AG aprovada por 3/4; regista versão anterior; jóia = mult × quota; quota_description não exige deliberação
-- [x] GET /finances/settings/history (view-finances)
-- [x] Testes (6) + finances existentes verdes (29)
-- [x] Commit
-
-## Fase 7 — Frontend (em curso)
-- [x] Transversal: `governanceAPI`/`assembleiasAPI`/`eleicoesAPI`/`sancoesAPI` em api.js; `lib/governanceLabels.js` (labels + cargoLabelFrom, fallback leve); queryKeys (governance/assembleias/eleicoes/sancoes)
-- [x] `AuthContext`: `can(p)`, `isMesaAG`, `isDirecao`, `isConselhoFiscal`, `isTesoureiro`, `isVotingMember`
-- [x] `PrivateLayout`: secção "Órgãos Sociais" (Assembleias, Eleições; Disciplina gated Direcção/admin) + títulos
-- [x] `App.js`: rotas + lazy imports das novas páginas
-- [x] `/admin/cargos`: keys + órgão (label, não key)
-- [x] `/perfil`: "Os Meus Cargos e Mandatos" (labels + suplente), categoria, banner de suspensão de direitos
-- [x] `/admin/assembleias`: convocar, presenças/representação, quórum, deliberações, encerrar (subagent)
-- [x] `/admin/eleicoes`: ciclo + listas/slots + votar (membro) + apuramento/proclamação; resultados só agregados (subagent)
-- [x] `/admin/disciplinar`: processos, comissão, decidir, recurso, aplicar; access-gate Direcção/admin (subagent)
-- [x] eslint limpo (0 erros; 2 warnings pré-existentes, < threshold 60)
-- [x] `craco build` verde — "Compiled successfully" (corrigido: AdminAssembleiasPage importava framer-motion, que não é dependência → trocado por CSS `animate-fade-up`)
-- [x] Commit
-
-## Fase 8 — Migração de dados (script criado; --apply NÃO corrido)
-- [x] `scripts/migrate_governance_cargos.py`: `plan_user_changes` (pura, idempotente) — cargo→key, orgao denormalizado, account_type/member_category default, cargo_history (key+label+orgao); contas técnicas fora do catálogo
-- [x] `--dry-run` (default, só leitura) + `--apply --confirm` (duplo guard; AVISO STOP condition); UTF-8 stdout p/ Windows
-- [x] test_migrate_governance.py (7) — transform verificado sem DB
-- [ ] **`--apply` por correr** — STOP condition (§20): exige confirmação do utilizador + DB acessível + backup. Não há `DATABASE_URL` neste ambiente (dry-run live não corre aqui).
-- [x] Commit
-
-## Verificação final
-- [x] `cd backend && ruff check .` — All checks passed
-- [x] `ruff format` aplicado aos ficheiros tocados (commit style)
-- [x] Suite unitária completa (29 ficheiros, sem integração): **579 passed, 2 failed**
-  (as 2 falhas — test_users_routes get_users `$or` search — são PRÉ-EXISTENTES na
-  branch base, confirmado por `git stash`; fora de âmbito)
-- [x] Revisão de critérios de aceitação §19 — ver abaixo
+## Fase 4 — Testes & verificação
+- [x] `backend/tests/test_posts.py` — 31 casos (list/detalhe/CRUD/RBAC/slug/published_at/cleanup/covers).
+- [x] `ruff check` ✓ + `ruff format` ✓.
+- [x] `pytest -m unit` → 589 passed (2 falhas pré-existentes em `test_users_routes` — regex search, não relacionadas).
+- [x] `eslint` → 0 erros (1 warning pré-existente em HomePage:257, < budget 60).
+- [x] `jest` queryClient → 11/11 (inclui shape das chaves `posts`).
+- [ ] `craco build` — a confirmar (em execução).
+- [ ] Verificação manual no browser (golden path) — pendente do dono.
 
 ## Review
-
-Branch `feature/governanca-estatutaria` (off `develop`). 7 commits:
-0+1 núcleo/taxonomia · 2 RBAC · 3 Assembleia · 4 Eleições · 5 Disciplina ·
-6 Quotas/jóias · style (ruff format).
-
-Entregue (Fases 0-6, backend): `governance.py` (fonte única) + `permissions.py`,
-4 grupos de rotas novos (`/api/governance`, `/api/assembleias`, `/api/eleicoes`,
-`/api/sancoes`) = 28 endpoints de governança, 9 colecções novas + índices,
-`database.cast_ballot` (voto atómico), FinanceSettings estendido. ~120 testes
-unitários novos de governança.
-
-Critérios §19: ✅ governance.py fonte única · ✅ models.py só re-exporta · ✅ 3
-órgãos + Relator + Secretário (sem -Geral) · ✅ sem Coordenações/Comissões · ✅
-cargo/cargo_history em keys canónicas · ✅ honorário/técnico/inactivo/suspenso não
-votam · ✅ quórum/maiorias por helpers testados · ✅ boletim sem user_id/voter_hash
-· ✅ proclamação cria mandatos (posse/cessantes) · ✅ expulsão exige deliberação AG
-· ✅ quota/jóia exigem 3/4.
-
-FORA DE ÂMBITO (não pedido nesta sessão): Fase 7 (frontend) e Fase 8 (migração
-destrutiva `scripts/migrate_governance_cargos.py --apply` — STOP condition).
-
-Notas de seguimento para o owner (não bloqueantes):
-- Docs com contagens agora desactualizadas: `.claude/rules/database.md` ("27
-  tables" → +9 colecções de governança) e CLAUDE.md menciona spec-identidade-cargos
-  (a taxonomia foi superada por spec-governanca). Não editei (políticas de doc
-  canónica) — sinalizo para revisão.
-- 2 falhas pré-existentes em `test_users_routes` (get_users `$or` search) merecem
-  fix à parte.
-- Decisões em aberto §21 que afectam fases futuras: voto digital vinculativo?,
-  Direcção 5 vs 7 (default 5), representação de honorário, residência no Sal.
+- **Diagnóstico da spec confirmado 1:1** antes de implementar (posts.py só listava/criava;
+  sem detalhe/edição/eliminação; sem UI de gestão; `type`/`visibility` strings livres).
+- **Decisões**: seguidas as recomendações D1–D11. Conteúdo em texto simples (sem
+  `dangerouslySetInnerHTML`) → anti-XSS. Slug estável após publicação (só regenera
+  em rascunho a pedido). `covers` como categoria dedicada evita 403 no `moderador`.
+- **Compat. dados**: enums `Literal` validados contra o seed (todos os valores já
+  conformes); `slug` Optional + `published_at` com fallback para `created_at` →
+  posts antigos não partem nem desaparecem. Sem migração destrutiva (só campos
+  jsonb + índices idempotentes).
+- **Ficheiros tocados**: 16 (7 backend, 9 frontend) — conforme tabela §9 da spec.

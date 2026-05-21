@@ -17,6 +17,7 @@ ALLOWED_EXTENSIONS = {
     "avatars": [".jpg", ".jpeg", ".png"],
     "banners": [".jpg", ".jpeg", ".png", ".webp"],  # hero wide (spec-padronizacao-banners)
     "brand": [".png", ".jpg", ".jpeg", ".webp"],  # logo da marca (spec-gestao-logo-marca); SVG bloqueado (XSS)
+    "covers": [".png", ".jpg", ".jpeg"],  # capa de notícia (spec-blog-noticias); SVG bloqueado (XSS)
 }
 
 MAX_FILE_SIZES = {
@@ -26,19 +27,20 @@ MAX_FILE_SIZES = {
     "avatars": 2 * 1024 * 1024,  # 2 MB
     "banners": 4 * 1024 * 1024,  # 4 MB (hero wide)
     "brand": 2 * 1024 * 1024,  # 2 MB (logo)
+    "covers": 2 * 1024 * 1024,  # 2 MB (capa de notícia)
 }
 
 
 @router.post("/upload/{category}")
 async def upload_file(category: str, file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
-    if category not in ["documents", "proofs", "logos", "avatars", "banners", "brand"]:
+    if category not in ["documents", "proofs", "logos", "avatars", "banners", "brand", "covers"]:
         raise HTTPException(status_code=400, detail="Categoria inválida")
 
     if category in ["documents", "logos"] and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Sem permissão")
 
-    # Banners e marca: gestão de conteúdo institucional (admin+moderador).
-    if category in ("banners", "brand") and current_user.role not in ("admin", "moderador"):
+    # Banners, marca e capas de notícia: gestão de conteúdo (admin+moderador).
+    if category in ("banners", "brand", "covers") and current_user.role not in ("admin", "moderador"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     # Le tudo em memoria (limite por categoria, max 10MB) — necessario para

@@ -126,6 +126,11 @@ export const queryKeys = {
   documents: {
     list: () => ['documents'],
   },
+  posts: {
+    all: () => ['posts'], // prefixo p/ invalidação abrangente (prefix match)
+    list: (params) => ['posts', params ?? {}], // { visibility, type, status, q, limit }
+    detail: (idOrSlug) => ['posts', 'detail', idOrSlug],
+  },
   gallery: {
     albums: () => ['gallery', 'albums'],
     photos: (albumId) => ['gallery', 'photos', albumId],

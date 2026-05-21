@@ -174,8 +174,15 @@ export const pollsAPI = {
 
 // Posts API
 export const postsAPI = {
-  getAll: (visibility) => api.get('/posts', { params: { visibility } }),
+  // Compat: chamadas antigas passam string `getAll('publico')`; novas passam
+  // objeto de params `{ visibility, type, status, q, skip, limit }`.
+  getAll: (params) => api.get('/posts', {
+    params: typeof params === 'string' ? { visibility: params } : (params || {}),
+  }),
+  getOne: (idOrSlug) => api.get(`/posts/${idOrSlug}`),
   create: (data) => api.post('/posts', data),
+  update: (id, data) => api.patch(`/posts/${id}`, data),
+  remove: (id) => api.delete(`/posts/${id}`),
 };
 
 // Documents API

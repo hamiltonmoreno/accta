@@ -32,6 +32,7 @@ import {
   ListChecks,
   Gavel,
   Palette,
+  Newspaper,
 } from 'lucide-react';
 
 const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
@@ -69,6 +70,7 @@ const menuSections = [
     items: [
       { label: 'Mural', path: '/mural', icon: MessageSquare, roles: ['all'] },
       { label: 'Galeria', path: '/galeria-admin', icon: Camera, roles: ['all'] },
+      { label: 'Notícias', path: '/admin/noticias', icon: Newspaper, roles: ['admin', 'moderador'] },
       { label: 'Aparência', path: '/admin/aparencia', icon: Palette, roles: ['admin', 'moderador'] },
       { label: 'Benefícios', path: '/beneficios', icon: Gift, roles: ['all'] },
     ],
@@ -149,6 +151,7 @@ export const PrivateLayout = ({ children }) => {
     if (pathname.startsWith('/admin/eleicoes/')) return 'Eleição';
     if (pathname === '/admin/disciplinar') return 'Disciplina';
     if (pathname === '/admin/aparencia') return 'Aparência do Site';
+    if (pathname === '/admin/noticias') return 'Notícias / Blog';
     if (pathname === '/admin/usuarios') return 'Utilizadores';
     if (pathname === '/admin/logs') return 'Audit Logs';
     return 'Portal';
