@@ -103,7 +103,7 @@ Conventional Commits with a scope (`feat(escopo): …`, `fix(escopo): …`).
 
 - **Frontend**: React 19 + Tailwind CSS 3 + shadcn/ui + Framer Motion + Recharts + Craco
 - **Backend**: FastAPI (Python 3.11) + asyncpg (PostgreSQL/Supabase via a Mongo-compatible async DAO in `database.py`)
-- **Database**: PostgreSQL (Supabase) — 27 tables `(pk bigserial, doc jsonb)`, one per logical collection: `users`, `transactions`, `projects`, `events`, `wall_posts`, `notifications`, `polls`, `invoices`, `documents`, `gallery_albums`, `gallery_photos`, `audit_logs`, `password_resets`, `finance_settings`, …
+- **Database**: PostgreSQL (Supabase) — 36 tables `(pk bigserial, doc jsonb)`, one per logical collection: `users`, `transactions`, `projects`, `events`, `wall_posts`, `notifications`, `polls`, `invoices`, `documents`, `gallery_albums`, `gallery_photos`, `audit_logs`, `password_resets`, `finance_settings`, plus governança: `assembleias`, `assembleia_presencas`, `assembleia_deliberacoes`, `eleicoes`, `eleicao_listas`, `eleicao_voter_receipts`, `eleicao_ballots`, `sancoes`, `finance_settings_history`, …
 - **Auth**: JWT (HS256, 24h expiry) + RBAC (admin, socio, financeiro, moderador)
 - **Email**: Resend API
 - **Deploy**: GitHub Actions CI/CD → SSH → Nginx + Supervisord
@@ -142,18 +142,29 @@ python scripts/seed_gallery.py  # Seed gallery data
 - **Styling**: Tailwind CSS only — no inline styles. **Neutral-led**: white/`#F5F5F5` surfaces, Grafite `#3A3A3A` text; **Carmesim `#C7202F` is the single restrained accent** (≤1 primary button per view, active nav, links-on-white, destructive, focus ring) — neutral everywhere else, **never red text on dark/colored backgrounds**. The **`/frontend-design` skill** (`.claude/skills/frontend-design/SKILL.md`) is the single source of truth for the full design system (color/contrast rules, button taxonomy, typography, spacing, animation) — follow it, don't hardcode tokens from elsewhere
 - **Backend**: Async/await everywhere; Pydantic models for all request/response validation
 - **Auth**: Role-based access check on every protected endpoint; audit log on every admin action
-- **Identity & cargos** (spec-identidade-cargos) — one person = one account for life.
-  `account_type` is `member` (real sócio; missing ⇒ treated as member) or
-  `technical` (system account like `admin@controlador.cv`: `member_id=None`,
-  excluded from member listings/scoring/AGAs by default). `member_id` is
-  **immutable** (not editable via `UserAdminUpdate`/API). `role` (admin/
-  financeiro/moderador/socio) is the coarse access level; `privileges` are
+- **Identity, cargos & governança** (spec-identidade-cargos, **superada na
+  taxonomia de cargos por `spec-governanca-estatutaria`**) — one person = one
+  account for life. `account_type` is `member` (real sócio; missing ⇒ treated as
+  member) or `technical` (system account like `admin@controlador.cv`:
+  `member_id=None`, excluded from member listings/scoring/AGAs by default).
+  `member_id` is **immutable** (not editable via `UserAdminUpdate`/API). `role`
+  (admin/financeiro/moderador/socio) is the coarse access level; `privileges` are
   **additive overlays** (`role OR privilege`, e.g. `view_finances_readonly` for
-  Conselho Fiscal). Institutional cargos (`CARGOS`, by órgão social) are assigned
-  only via `/admin/cargos` (promote/demote/transfer), which records `cargo_history`
-  mandates; never hand-edit a mandate. Constants live in `models.py`
-  (`CARGOS_ORGAOS_SOCIAIS`, `CARGO_DEFAULTS`, `CARGO_SEATS`); the frontend reads
-  them from `GET /users/meta/cargos`, never hard-codes them
+  Conselho Fiscal). **The single source of truth for órgãos sociais, cargos,
+  categorias de membro and privileges is `backend/governance.py`** (3 órgãos:
+  Assembleia Geral / Direcção / Conselho Fiscal — with Relator, Secretário sem
+  "-Geral", no Coordenações/Comissões). `cargo` is persisted as the **canonical
+  key** (`dir_tesoureiro`, never the label `Tesoureiro`); `models.py` only
+  re-exports `CARGOS`/`CARGO_KEYS`/`CARGO_DEFAULTS`/`CARGO_SEATS`/`CARGOS_ORGAOS_SOCIAIS`
+  from governance. Institutional cargos are assigned only via `/admin/cargos`
+  (promote/demote/transfer) and election proclamation, which record `cargo_history`
+  mandates; never hand-edit a mandate. Frontend reads
+  `GET /api/governance/structure` (canonical; `/users/meta/cargos` is a
+  deprecated alias), never hard-codes them. RBAC/eligibility helpers live in
+  `backend/permissions.py` (`is_mesa_ag`/`is_direcao`/`is_conselho_fiscal`/
+  `is_voting_member`). Assembleias, eleições (voto secreto), disciplina and
+  quota/jóia-by-deliberation are in `routes/{assembleias,eleicoes,sancoes}.py`
+  and `governance.py`
 - **No dark mode** — disabled by design decision, do not add
 - **No inadimplente status** — quotas are payroll-deducted; statuses are
   `ativo` / `inativo` / `pendente_convite` / `pendente_aprovacao` / `rejeitado`

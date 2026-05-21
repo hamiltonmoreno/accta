@@ -3,6 +3,29 @@ from typing import List, Literal, Optional
 from datetime import datetime, timezone
 import uuid
 
+# Governança estatutária (spec-governanca-estatutaria): a fonte ÚNICA de
+# cargos/órgãos/categorias/privilégios é `governance.py`. models.py apenas
+# re-exporta estas constantes para preservar imports e testes existentes
+# (re-export intencional → noqa F401).
+from governance import (  # noqa: F401
+    CARGOS,
+    CARGO_KEYS,
+    CARGOS_ORGAOS_SOCIAIS,
+    CARGO_DEFAULTS,
+    CARGO_SEATS,
+    PRIVILEGES,
+    ROLES,
+    MEMBER_CATEGORIES,
+    MEMBER_CATEGORY_LABELS,
+    VOTING_CATEGORIES,
+    DEFAULT_MEMBER_CATEGORY,
+    MANDATO_ANOS,
+    normalize_cargo,
+    cargo_label,
+    orgao_of_cargo,
+    is_estatutary_cargo,
+)
+
 
 # ===== USER MODELS =====
 # Modelo de identidade e cargos (spec-identidade-cargos):
@@ -13,104 +36,8 @@ import uuid
 
 ACCOUNT_TYPES = ["member", "technical"]
 
-ROLES_VALID = ["admin", "financeiro", "moderador", "socio"]
-
-# Cargos agrupados por órgão social (CV/PT típico). A lista plana `CARGOS` é
-# derivada daqui e usada para validação em endpoints e auto-registo.
-CARGOS_ORGAOS_SOCIAIS = {
-    "Direcção": [
-        "Presidente",
-        "Vice-Presidente",
-        "Secretário-Geral",
-        "Tesoureiro",
-        "Vogal da Direcção",
-    ],
-    "Conselho Fiscal": [
-        "Presidente do Conselho Fiscal",
-        "Vogal do Conselho Fiscal",
-    ],
-    "Mesa da Assembleia Geral": [
-        "Presidente da Mesa",
-        "Vice-Presidente da Mesa",
-        "Secretário da Mesa",
-    ],
-    "Coordenações": [
-        "Coordenador de Comunicação",
-        "Coordenador de Eventos",
-        "Coordenador de Projectos",
-    ],
-    "Comissões": [
-        "Membro da Comissão de Ética",
-    ],
-    "Base": [
-        "Sócio",  # default, sem mandato institucional
-    ],
-}
-
-# Lista plana (15 cargos institucionais + Sócio) para validação.
-CARGOS = [c for grupo in CARGOS_ORGAOS_SOCIAIS.values() for c in grupo]
-
-PRIVILEGES = [
-    "manage_users",
-    "manage_finances",
-    "manage_events",
-    "manage_documents",
-    "moderate_content",
-    "manage_benefits",
-    "view_audit_logs",
-    "view_finances_readonly",  # leitura do módulo financeiro sem poder editar (Conselho Fiscal)
-]
-
-# Defaults pré-carregados no modal de aprovação/promoção. O admin pode sobrepor.
-# role é o nível grosso; privileges são overlays granulares (ver spec).
-CARGO_DEFAULTS = {
-    "Presidente": {"role": "admin", "privileges": list(PRIVILEGES)},
-    "Vice-Presidente": {"role": "admin", "privileges": list(PRIVILEGES)},
-    "Secretário-Geral": {
-        "role": "admin",
-        "privileges": ["manage_users", "manage_events", "manage_documents", "moderate_content"],
-    },
-    "Tesoureiro": {"role": "financeiro", "privileges": ["manage_finances", "view_audit_logs"]},
-    "Vogal da Direcção": {"role": "moderador", "privileges": ["moderate_content", "manage_events"]},
-    "Presidente do Conselho Fiscal": {
-        "role": "socio",
-        "privileges": ["view_finances_readonly", "view_audit_logs"],
-    },
-    "Vogal do Conselho Fiscal": {
-        "role": "socio",
-        "privileges": ["view_finances_readonly", "view_audit_logs"],
-    },
-    "Presidente da Mesa": {"role": "socio", "privileges": ["manage_events"]},
-    "Vice-Presidente da Mesa": {"role": "socio", "privileges": []},
-    "Secretário da Mesa": {"role": "socio", "privileges": ["manage_documents"]},
-    "Coordenador de Comunicação": {
-        "role": "moderador",
-        "privileges": ["moderate_content", "manage_events"],
-    },
-    "Coordenador de Eventos": {"role": "socio", "privileges": ["manage_events"]},
-    "Coordenador de Projectos": {"role": "socio", "privileges": ["manage_events", "manage_documents"]},
-    "Membro da Comissão de Ética": {"role": "socio", "privileges": ["view_audit_logs"]},
-    "Sócio": {"role": "socio", "privileges": []},
-}
-
-# Número de vagas por cargo. 0 = sem limite (Sócio é o estado base de todos).
-CARGO_SEATS = {
-    "Presidente": 1,
-    "Vice-Presidente": 1,
-    "Secretário-Geral": 1,
-    "Tesoureiro": 1,
-    "Vogal da Direcção": 3,
-    "Presidente do Conselho Fiscal": 1,
-    "Vogal do Conselho Fiscal": 2,
-    "Presidente da Mesa": 1,
-    "Vice-Presidente da Mesa": 1,
-    "Secretário da Mesa": 1,
-    "Coordenador de Comunicação": 1,
-    "Coordenador de Eventos": 1,
-    "Coordenador de Projectos": 1,
-    "Membro da Comissão de Ética": 3,
-    "Sócio": 0,
-}
+# Nome legado mantido para compat de imports (admin.py/users.py importam isto).
+ROLES_VALID = ROLES
 
 
 class UserBase(BaseModel):
@@ -124,9 +51,20 @@ class UserBase(BaseModel):
     phone_number: Optional[str] = None
     consent_data: bool = False
     account_type: Literal["member", "technical"] = "member"
-    cargo: str = "Sócio"
+    # Categoria estatutária de membro (spec-governanca §3.3): fundador / ordinario
+    # / honorario. Define o voto base; sanções suspendem direitos sem alterar.
+    member_category: str = "ordinario"
+    # Órgão social derivado do cargo e denormalizado para filtros/relatórios.
+    orgao: Optional[str] = None
+    cargo: str = "socio"  # key canónica (governance.py); nunca o label.
     privileges: List[str] = []
     cargo_history: List[dict] = []
+    # Perda de direitos disciplinar (spec §13): afecta voto/elegibilidade sem
+    # tornar a conta inactiva. ISO-8601 string.
+    rights_suspended_until: Optional[str] = None
+    rights_suspension_reason: Optional[str] = None
+    # Necessário para validar representação em AG (regra do Sal — spec §11).
+    residence_island: Optional[str] = None
     bio: Optional[str] = None
     department: Optional[str] = None
     photo_url: Optional[str] = None
@@ -239,12 +177,22 @@ class RegistrationReject(BaseModel):
 # dict no doc.cargo_history; este modelo valida/serializa as escritas.
 class CargoMandate(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    cargo: str
+    cargo: str  # key canónica (governance.py)
+    label: Optional[str] = None  # snapshot do label p/ auditoria/display
     role: str
+    orgao: Optional[str] = None  # órgão social derivado do cargo
     inicio: str  # ISO 8601, obrigatório
     fim: Optional[str] = None  # ISO 8601; None = mandato activo
+    posse_em: Optional[str] = None  # data de posse (eleições)
+    mandato_inicio: Optional[str] = None  # início formal do mandato eleitoral
+    mandato_fim: Optional[str] = None  # fim formal do mandato eleitoral
+    suplente: bool = False
+    seat_index: Optional[int] = None
     elected_by: Optional[str] = None  # "AGA 2026", "Direcção", texto livre
+    eleicao_id: Optional[str] = None
+    assembleia_id: Optional[str] = None
     transitioned_by: str  # id do admin que efectuou a alteração
+    transition_id: Optional[str] = None  # liga as 2 pontas de um transfer
     notes: Optional[str] = None
 
 
@@ -643,6 +591,14 @@ class FinanceSettings(BaseModel):
     id: str = "finance_settings"
     quota_amount: float = 2000.0
     quota_description: str = "Quota Mensal"
+    # Jóia de admissão (spec-governanca §14): default = 2x quota, salvo
+    # deliberação em contrário. joia_amount resolvido pelo backend.
+    joia_multiplier: float = 2.0
+    joia_amount: Optional[float] = None
+    # Alterar quota/jóia exige deliberação de AG por maioria 3/4.
+    quota_fixed_by_assembleia_id: Optional[str] = None
+    quota_fixed_by_deliberacao_id: Optional[str] = None
+    effective_from: Optional[str] = None
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_by: Optional[str] = None
 
@@ -650,6 +606,12 @@ class FinanceSettings(BaseModel):
 class FinanceSettingsUpdate(BaseModel):
     quota_amount: Optional[float] = None
     quota_description: Optional[str] = None
+    joia_multiplier: Optional[float] = None
+    joia_amount: Optional[float] = None
+    # Referência à deliberação de AG (obrigatória para alterar quota/jóia).
+    assembleia_id: Optional[str] = None
+    deliberacao_id: Optional[str] = None
+    effective_from: Optional[str] = None
 
 
 # Estados válidos de conta. NÃO existe "inadimplente" (quotas são descontadas
@@ -809,3 +771,268 @@ class PasswordResetRequest(BaseModel):
 class PasswordResetConfirm(BaseModel):
     token: str
     new_password: str = Field(min_length=6, max_length=72)
+
+
+# ===== GOVERNANÇA: ASSEMBLEIA GERAL (spec-governanca §11) =====
+
+ASSEMBLEIA_TIPOS = ["ordinaria", "extraordinaria", "eleitoral"]
+ASSEMBLEIA_STATUS = ["rascunho", "convocada", "em_curso", "encerrada", "anulada"]
+MAIORIA_TIPOS = ["absoluta", "qualificada_3_4_presentes", "qualificada_3_4_universo"]
+MAX_REPRESENTADOS = 3  # um membro representa no máximo 3 outros (Estatutos)
+
+
+class Assembleia(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tipo: Literal["ordinaria", "extraordinaria", "eleitoral"]
+    titulo: str
+    data: str  # ISO 8601 (data/hora da sessão)
+    local: str
+    convocada_por: str
+    convocatoria_em: str  # ISO 8601 (momento da convocação)
+    antecedencia_dias: int
+    requerente_tipo: Optional[str] = None  # mesa | direcao | conselho_fiscal | membros
+    requerentes: List[str] = []
+    ordem_trabalhos: List[dict] = []
+    status: Literal["rascunho", "convocada", "em_curso", "encerrada", "anulada"] = "convocada"
+    eligible_voters_count: int = 0
+    chamada_actual: Literal[1, 2] = 1
+    quorum_required: int = 0
+    quorum_met: bool = False
+    acta_document_id: Optional[str] = None
+    encerrada_em: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class AssembleiaCreate(BaseModel):
+    tipo: Literal["ordinaria", "extraordinaria", "eleitoral"]
+    titulo: str = Field(min_length=3, max_length=200)
+    data: str  # ISO 8601
+    local: str = Field(min_length=2, max_length=200)
+    antecedencia_dias: Optional[int] = None  # se None, calculado de (data - agora)
+    requerente_tipo: Optional[str] = None
+    requerentes: List[str] = []
+    ordem_trabalhos: List[dict] = []
+
+
+class AssembleiaPresenca(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    assembleia_id: str
+    user_id: str  # membro presente
+    tipo: Literal["propria", "representacao"] = "propria"
+    representados: List[str] = []  # ids de membros representados
+    voting_power: int = 1  # 1 (se votante) + nº de representados votantes
+    documento_id: Optional[str] = None  # procuração/representação
+    registado_por: str
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class AssembleiaPresencaCreate(BaseModel):
+    user_id: str
+    representados: List[str] = Field(default_factory=list, max_length=MAX_REPRESENTADOS)
+    documento_id: Optional[str] = None
+
+
+class AssembleiaDeliberacao(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    assembleia_id: str
+    ponto: str  # ponto da ordem de trabalhos
+    descricao: str
+    tipo_maioria: Literal["absoluta", "qualificada_3_4_presentes", "qualificada_3_4_universo"]
+    base_calculo: int  # poder de voto presente OU universo (computado pelo servidor)
+    votos_favor: int
+    votos_contra: int
+    abstencoes: int
+    threshold: int  # nº de votos necessário (computado)
+    aprovado: bool
+    source_article: Optional[str] = None
+    registado_por: str
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class AssembleiaDeliberacaoCreate(BaseModel):
+    ponto: str = Field(min_length=1, max_length=200)
+    descricao: str = Field(min_length=1, max_length=2000)
+    tipo_maioria: Literal["absoluta", "qualificada_3_4_presentes", "qualificada_3_4_universo"]
+    votos_favor: int = Field(ge=0)
+    votos_contra: int = Field(ge=0)
+    abstencoes: int = Field(ge=0)
+    source_article: Optional[str] = Field(default=None, max_length=50)
+
+
+# ===== GOVERNANÇA: ELEIÇÕES (spec-governanca §12) =====
+
+ELEICAO_STATUS = [
+    "preparacao",
+    "candidaturas",
+    "campanha",
+    "votacao",
+    "apurada",
+    "recurso",
+    "proclamada",
+    "anulada",
+]
+MODO_VOTACAO = ["presencial", "correspondencia", "digital", "hibrido"]
+# Marcadores de boletim que NÃO contam para os votos válidos.
+VOTO_BRANCO = "branco"
+VOTO_NULO = "nulo"
+
+
+class Eleicao(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    ano: int
+    mandato_inicio: str  # ISO 8601
+    mandato_fim: str  # ISO 8601
+    status: Literal[
+        "preparacao",
+        "candidaturas",
+        "campanha",
+        "votacao",
+        "apurada",
+        "recurso",
+        "proclamada",
+        "anulada",
+    ] = "preparacao"
+    calendario: dict = {}  # convocatoria, candidaturas_fim, votacao, etc. (ISO strings)
+    assembleia_id: Optional[str] = None
+    comissao_eleitoral: List[str] = []  # ids; não podem ser candidatos
+    mesa_voto: List[str] = []  # ids; não podem ser candidatos
+    modo_votacao: Literal["presencial", "correspondencia", "digital", "hibrido"] = "presencial"
+    direcao_titulares: int = 5  # 5 ou 7 (spec decisão #3)
+    resultado: Optional[dict] = None
+    created_by: str = ""
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class EleicaoCreate(BaseModel):
+    ano: int = Field(ge=2024, le=2100)
+    mandato_inicio: str
+    mandato_fim: str
+    calendario: dict = {}
+    assembleia_id: Optional[str] = None
+    comissao_eleitoral: List[str] = []
+    mesa_voto: List[str] = []
+    modo_votacao: Literal["presencial", "correspondencia", "digital", "hibrido"] = "presencial"
+    direcao_titulares: Literal[5, 7] = 5
+
+
+class EleicaoLista(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    eleicao_id: str
+    letra: str
+    nome: Optional[str] = None
+    candidatos: List[dict]  # {slot_key, cargo, user_id, suplente, seat_index}
+    programa_document_id: Optional[str] = None
+    estado: Literal["submetida", "aceite", "rejeitada"] = "submetida"
+    rejeicao_motivo: Optional[str] = None
+    submetida_por: str = ""
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class EleicaoListaCreate(BaseModel):
+    letra: str = Field(min_length=1, max_length=2)
+    nome: Optional[str] = Field(default=None, max_length=120)
+    candidatos: List[dict]  # cada item: slot_key, cargo, user_id, suplente, seat_index
+    programa_document_id: Optional[str] = None
+
+
+class EleicaoListaValidar(BaseModel):
+    aceite: bool
+    motivo: Optional[str] = Field(default=None, max_length=500)
+
+
+class VotarRequest(BaseModel):
+    # lista_id da escolha, ou "branco"/"nulo".
+    voto: str
+
+
+class VotoCorrespondenciaRequest(BaseModel):
+    user_id: str
+    voto: str  # lista_id, "branco" ou "nulo"
+    justificacao: str = Field(min_length=3, max_length=500)
+
+
+# Boletim secreto: NUNCA contém user_id nem voter_hash (spec §7).
+class EleicaoBallot(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    eleicao_id: str
+    voto: str  # lista_id, "branco" ou "nulo"
+    ballot_box_id: Optional[str] = None
+    modo: str = "digital"
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+# Recibo de eleitor: prova (anónima por HMAC) que um eleitor votou uma vez.
+# NUNCA contém o sentido de voto (spec §7).
+class EleicaoVoterReceipt(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    eleicao_id: str
+    voter_hash: str  # HMAC(secret, f"{eleicao_id}:{user_id}")
+    modo: str = "digital"
+    justificacao: Optional[str] = None  # só para voto por correspondência
+    registado_por: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+# ===== GOVERNANÇA: REGIME DISCIPLINAR (spec-governanca §13) =====
+
+SANCAO_TIPOS = ["advertencia", "multa", "perda_direitos", "expulsao"]
+SANCAO_STATUS = ["proposta", "inquerito", "decidida", "recurso", "aplicada", "arquivada", "anulada"]
+COMISSAO_INQUERITO_MEMBROS = 3
+INQUERITO_PRAZO_DIAS = 30
+RECURSO_PRAZO_DIAS = 15
+MULTA_MAX_QUOTAS = 3  # multa <= 3x quota mensal
+
+
+class Sancao(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    tipo: Literal["advertencia", "multa", "perda_direitos", "expulsao"]
+    motivo: str
+    artigo_violado: Optional[str] = None
+    status: Literal["proposta", "inquerito", "decidida", "recurso", "aplicada", "arquivada", "anulada"] = "proposta"
+    proposta_por: str
+    comissao_inquerito: List[dict] = []
+    inquerito_prazo: Optional[str] = None
+    conclusoes_document_id: Optional[str] = None
+    decisao: Optional[dict] = None
+    multa_valor: Optional[float] = None
+    perda_direitos_ate: Optional[str] = None
+    assembleia_id: Optional[str] = None
+    deliberacao_id: Optional[str] = None
+    recurso: Optional[dict] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class SancaoCreate(BaseModel):
+    user_id: str
+    tipo: Literal["advertencia", "multa", "perda_direitos", "expulsao"]
+    motivo: str = Field(min_length=3, max_length=2000)
+    artigo_violado: Optional[str] = Field(default=None, max_length=50)
+    multa_valor: Optional[float] = Field(default=None, ge=0)  # obrigatório se tipo=multa
+    perda_direitos_ate: Optional[str] = None  # obrigatório se tipo=perda_direitos
+
+
+class SancaoComissao(BaseModel):
+    membros: List[str] = Field(min_length=COMISSAO_INQUERITO_MEMBROS, max_length=COMISSAO_INQUERITO_MEMBROS)
+    prazo_dias: int = INQUERITO_PRAZO_DIAS
+    conclusoes_document_id: Optional[str] = None
+
+
+class SancaoDecidir(BaseModel):
+    aprovado: bool
+    fundamentacao: Optional[str] = Field(default=None, max_length=2000)
+    # Obrigatórios para expulsão (decisão da AG):
+    assembleia_id: Optional[str] = None
+    deliberacao_id: Optional[str] = None
+
+
+class SancaoRecurso(BaseModel):
+    fundamentacao: str = Field(min_length=3, max_length=2000)

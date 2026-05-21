@@ -77,22 +77,51 @@ export const AuthProvider = ({ children }) => {
     // RBAC granular aditivo (spec-identidade-cargos): privilégios concedem
     // acesso EXTRA além do role. Espelha auth.can_view/manage_finances do backend.
     const privileges = user?.privileges || [];
+    const isAdmin = user?.role === 'admin';
     const canManageFinances =
-      user?.role === 'admin' || user?.role === 'financeiro' || privileges.includes('manage_finances');
+      isAdmin || user?.role === 'financeiro' || privileges.includes('manage_finances');
     const canViewFinances = canManageFinances || privileges.includes('view_finances_readonly');
+
+    // Governança (spec-governanca §15): órgão derivado da KEY canónica do cargo.
+    const cargo = user?.cargo || '';
+    const isMesaAG = cargo.startsWith('ag_');
+    const isDirecao = cargo.startsWith('dir_');
+    const isConselhoFiscal = cargo.startsWith('cf_');
+    const isTesoureiro = cargo === 'dir_tesoureiro';
+
+    // Eleitor: sócio real, activo, categoria votante, sem direitos suspensos.
+    const suspendedUntil = user?.rights_suspended_until;
+    const suspended = !!suspendedUntil && new Date(suspendedUntil) > new Date();
+    const accountType = user?.account_type || 'member';
+    const category = user?.member_category || 'ordinario';
+    const isVotingMember =
+      accountType === 'member' &&
+      user?.status === 'ativo' &&
+      (category === 'fundador' || category === 'ordinario') &&
+      !suspended;
+
+    // can(privilege): RBAC aditivo — admin OU detentor do privilégio.
+    const can = (p) => isAdmin || privileges.includes(p);
+
     return {
       user,
       loading,
       login,
       logout,
       isAuthenticated: !!user,
-      isAdmin: user?.role === 'admin',
+      isAdmin,
       isFinanceiro: user?.role === 'financeiro',
       isModerador: user?.role === 'moderador',
       isAtivo: user?.status === 'ativo',
       hasPrivilege: (p) => privileges.includes(p),
+      can,
       canViewFinances,
       canManageFinances,
+      isMesaAG,
+      isDirecao,
+      isConselhoFiscal,
+      isTesoureiro,
+      isVotingMember,
       refreshUser,
     };
   }, [user, loading, login, logout, refreshUser]);
