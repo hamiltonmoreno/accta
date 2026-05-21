@@ -76,6 +76,24 @@ export const peticoesAPI = {
   encaminhar: (id, assembleiaId) => api.post(`/peticoes/${id}/encaminhar`, { assembleia_id: assembleiaId }),
 };
 
+// Pedidos de esclarecimento (spec-voz-participacao §8, Art. 9.j)
+export const esclarecimentosAPI = {
+  list: () => api.get('/esclarecimentos'),
+  get: (id) => api.get(`/esclarecimentos/${id}`),
+  create: (data) => api.post('/esclarecimentos', data),
+  responder: (id, texto) => api.post(`/esclarecimentos/${id}/responder`, { texto }),
+};
+
+// Reclamações e recursos (spec-voz-participacao §7, Art. 9.i)
+export const reclamacoesAPI = {
+  list: () => api.get('/reclamacoes'),
+  get: (id) => api.get(`/reclamacoes/${id}`),
+  create: (data) => api.post('/reclamacoes', data),
+  responder: (id, data) => api.post(`/reclamacoes/${id}/responder`, data),
+  recurso: (id) => api.post(`/reclamacoes/${id}/recurso`),
+  decidirRecurso: (id, data) => api.post(`/reclamacoes/${id}/decidir-recurso`, data),
+};
+
 // Cargos / mandatos (spec-identidade-cargos / spec-governanca)
 export const cargosAPI = {
   getMeta: () => api.get('/users/meta/cargos'),  // [DEPRECATED] usar governanceAPI.structure
