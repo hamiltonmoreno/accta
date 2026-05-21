@@ -949,3 +949,63 @@ class EleicaoVoterReceipt(BaseModel):
     justificacao: Optional[str] = None  # só para voto por correspondência
     registado_por: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+# ===== GOVERNANÇA: REGIME DISCIPLINAR (spec-governanca §13) =====
+
+SANCAO_TIPOS = ["advertencia", "multa", "perda_direitos", "expulsao"]
+SANCAO_STATUS = ["proposta", "inquerito", "decidida", "recurso", "aplicada", "arquivada", "anulada"]
+COMISSAO_INQUERITO_MEMBROS = 3
+INQUERITO_PRAZO_DIAS = 30
+RECURSO_PRAZO_DIAS = 15
+MULTA_MAX_QUOTAS = 3  # multa <= 3x quota mensal
+
+
+class Sancao(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    tipo: Literal["advertencia", "multa", "perda_direitos", "expulsao"]
+    motivo: str
+    artigo_violado: Optional[str] = None
+    status: Literal[
+        "proposta", "inquerito", "decidida", "recurso", "aplicada", "arquivada", "anulada"
+    ] = "proposta"
+    proposta_por: str
+    comissao_inquerito: List[dict] = []
+    inquerito_prazo: Optional[str] = None
+    conclusoes_document_id: Optional[str] = None
+    decisao: Optional[dict] = None
+    multa_valor: Optional[float] = None
+    perda_direitos_ate: Optional[str] = None
+    assembleia_id: Optional[str] = None
+    deliberacao_id: Optional[str] = None
+    recurso: Optional[dict] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class SancaoCreate(BaseModel):
+    user_id: str
+    tipo: Literal["advertencia", "multa", "perda_direitos", "expulsao"]
+    motivo: str = Field(min_length=3, max_length=2000)
+    artigo_violado: Optional[str] = Field(default=None, max_length=50)
+    multa_valor: Optional[float] = Field(default=None, ge=0)  # obrigatório se tipo=multa
+    perda_direitos_ate: Optional[str] = None  # obrigatório se tipo=perda_direitos
+
+
+class SancaoComissao(BaseModel):
+    membros: List[str] = Field(min_length=COMISSAO_INQUERITO_MEMBROS, max_length=COMISSAO_INQUERITO_MEMBROS)
+    prazo_dias: int = INQUERITO_PRAZO_DIAS
+    conclusoes_document_id: Optional[str] = None
+
+
+class SancaoDecidir(BaseModel):
+    aprovado: bool
+    fundamentacao: Optional[str] = Field(default=None, max_length=2000)
+    # Obrigatórios para expulsão (decisão da AG):
+    assembleia_id: Optional[str] = None
+    deliberacao_id: Optional[str] = None
+
+
+class SancaoRecurso(BaseModel):
+    fundamentacao: str = Field(min_length=3, max_length=2000)

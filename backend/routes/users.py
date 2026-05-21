@@ -247,6 +247,24 @@ async def get_cargo_history(user_id: str, current_user: User = Depends(get_curre
     return {"cargo_history": history}
 
 
+# ===== SANÇÕES DO MEMBRO (spec-governanca §13) =====
+@router.get("/users/{user_id}/sancoes")
+async def get_user_sancoes(user_id: str, current_user: User = Depends(get_current_user)):
+    """Sanções de um membro. O próprio vê (forma redigida); Direcção/admin tudo.
+    Dados disciplinares são sensíveis — ocultados a quem não tem permissão."""
+    from permissions import is_direcao
+    from routes.sancoes import _redact
+
+    is_self = current_user.id == user_id
+    privileged = current_user.role == "admin" or is_direcao(current_user)
+    if not (is_self or privileged):
+        raise HTTPException(status_code=403, detail="Sem permissão")
+    rows = await db.sancoes.find({"user_id": user_id}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    if not privileged:
+        rows = [_redact(r) for r in rows]
+    return {"sancoes": rows}
+
+
 # ===== METADATA ENDPOINTS (DEPRECATED — usar GET /api/governance/structure) =====
 @router.get("/users/meta/cargos")
 async def get_cargos():

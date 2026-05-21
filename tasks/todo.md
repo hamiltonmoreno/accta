@@ -45,12 +45,12 @@ e migração destrutiva de dados (Fase 8). Commit por fase.
 - [x] Testes (lista incompleta/duplicada/comissão, inelegível, boletim anónimo, voto duplo, apuramento, empate, proclamação) — 14
 - [x] Commit
 
-## Fase 5 — Disciplina
-- [ ] Modelo Sancao + colecção sancoes
-- [ ] `routes/sancoes.py`: propor, comissão, decidir, recurso, aplicar
-- [ ] Regras: multa ≤ 3x quota, expulsão exige deliberação AG, perda de direitos seta rights_suspended_until
-- [ ] Testes
-- [ ] Commit
+## Fase 5 — Disciplina ✅
+- [x] Modelo Sancao (+ Create/Comissao/Decidir/Recurso) + colecção sancoes + índices
+- [x] `routes/sancoes.py`: propor, comissão, decidir, recurso, aplicar, get/list; `/users/{id}/sancoes` (users.py)
+- [x] Regras: multa ≤ 3x quota, expulsão exige deliberação AG aprovada, perda de direitos seta rights_suspended_until (mantém ativo), expulsão inactiva+encerra mandato, redacção de dados sensíveis
+- [x] Testes (12)
+- [x] Commit
 
 ## Fase 6 — Quotas e jóias
 - [ ] FinanceSettings estendido (joia_multiplier/amount, deliberação 3/4, effective_from) + finance_settings_history

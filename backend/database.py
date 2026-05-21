@@ -82,6 +82,7 @@ COLLECTIONS: tuple[str, ...] = (
     "eleicao_listas",
     "eleicao_voter_receipts",
     "eleicao_ballots",
+    "sancoes",
     # no Pydantic model — schema derived from usage:
     "password_resets",
     "tokens_revoked",
@@ -819,6 +820,9 @@ _INDEX_DDL: tuple[str, ...] = (
     "((doc->>'eleicao_id'), (doc->>'voter_hash'))",
     "CREATE INDEX IF NOT EXISTS ix_eleicao_ballots_eleicao ON \"eleicao_ballots\" "
     "((doc->>'eleicao_id'), (doc->>'ballot_box_id'))",
+    # governança — disciplina
+    "CREATE INDEX IF NOT EXISTS ix_sancoes_user ON \"sancoes\" ((doc->>'user_id'), (doc->>'status'))",
+    "CREATE INDEX IF NOT EXISTS ix_sancoes_status_tipo ON \"sancoes\" ((doc->>'status'), (doc->>'tipo'))",
 )
 
 REQUIRED_INDEX_NAMES = {
