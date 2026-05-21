@@ -1,7 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { postsAPI, eventsAPI } from '../../utils/api';
+import { postsAPI, eventsAPI, bannersAPI } from '../../utils/api';
 import { unsplashSrcSet } from '../../utils/unsplash';
+import { queryKeys } from '../../lib/queryClient';
+import { bannerDefault } from '../../lib/bannerDefaults';
 import {
   Plane,
   Shield,
@@ -56,6 +59,16 @@ const CAMINHO_RESUMO = {
 };
 
 export const HomePage = () => {
+  // Imagem do hero editável via config (chave "home"), com fallback embebido
+  // (spec-padronizacao-banners §4.2). A Home mantém o seu tamanho próprio.
+  const { data: bannerCfg } = useQuery({
+    queryKey: queryKeys.banners.public(),
+    queryFn: async () => (await bannersAPI.getPublic()).data,
+    staleTime: 30 * 60 * 1000,
+  });
+  const heroImg = bannerCfg?.home?.image_url || bannerDefault('home');
+  const heroIsUnsplash = heroImg.includes('images.unsplash.com');
+
   const [news, setNews] = useState([]);
   const [loadingNews, setLoadingNews] = useState(true);
   const [featuredEvent, setFeaturedEvent] = useState(null);
@@ -111,13 +124,14 @@ export const HomePage = () => {
       <section className="relative min-h-[600px] sm:min-h-[85vh] lg:min-h-[90vh] flex items-center overflow-hidden">
         <div className="absolute inset-0">
           <img
-            src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1280&auto=format&fit=crop"
-            srcSet={unsplashSrcSet('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&auto=format&fit=crop')}
+            src={heroImg}
+            srcSet={heroIsUnsplash ? unsplashSrcSet(heroImg) : undefined}
             sizes="100vw"
-            alt=""
-            aria-hidden="true"
+            alt={bannerCfg?.home?.alt || ''}
+            aria-hidden={bannerCfg?.home?.alt ? undefined : 'true'}
             className="absolute inset-0 w-full h-full object-cover"
             loading="eager"
+            fetchpriority="high"
             decoding="async"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/90 to-grafite/50 sm:from-grafite sm:via-grafite/85 sm:to-grafite/50" />

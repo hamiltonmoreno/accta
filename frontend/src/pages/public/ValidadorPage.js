@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { QrCode, Search } from 'lucide-react';
 import { validatorAPI } from '../../utils/api';
+import { PageBanner } from '../../components/PageBanner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -36,21 +37,16 @@ export const ValidadorPage = () => {
   };
 
   return (
-    <div className="py-16 min-h-[70vh]">
+    <>
+      <PageBanner
+        pageKey="validador"
+        badge="Validação"
+        icon={QrCode}
+        title="Validador de Carteira"
+        subtitle="Insira o código QR para validar a carteira de sócio ACCTA"
+      />
+      <div className="py-16 min-h-[70vh]">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-12 animate-fade-up">
-          <div className="w-20 h-20 bg-grafite rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <QrCode className="w-10 h-10 text-white" />
-          </div>
-          <h1 className="font-sans font-bold text-4xl md:text-5xl text-grafite mb-4" data-testid="validator-title">
-            Validador de Carteira
-          </h1>
-          <p className="text-lg text-gray-600">
-            Insira o código QR para validar a carteira de sócio ACCTA
-          </p>
-        </div>
-
         {/* Form */}
         <div className="card-technical rounded-2xl p-8 mb-8 animate-fade-up">
           <form onSubmit={handleValidate} className="space-y-6">
@@ -166,5 +162,6 @@ export const ValidadorPage = () => {
         )}
       </div>
     </div>
+    </>
   );
 };

@@ -12,9 +12,9 @@ import {
   CheckCircle,
   Scale
 } from 'lucide-react';
-import { unsplashSrcSet } from '../../utils/unsplash';
 import { legislacao } from '../../content/cta';
 import { EmptyState } from '../../components/EmptyState';
+import { PageBanner } from '../../components/PageBanner';
 
 export const TransparenciaPage = () => {
   const [documents, setDocuments] = useState([]);
@@ -48,33 +48,12 @@ export const TransparenciaPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative py-20 sm:py-28 overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1618506060789-b63788b0cecd?q=80&w=1280&auto=format&fit=crop"
-          srcSet={unsplashSrcSet('https://images.unsplash.com/photo-1618506060789-b63788b0cecd?q=80&auto=format&fit=crop')}
-          sizes="100vw"
-          alt=""
-          aria-hidden="true"
-          loading="lazy"
-          decoding="async"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
-        <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6">
-          <div className="max-w-2xl animate-fade-up">
-            <span className="inline-block px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-white rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
-              Governança
-            </span>
-            <h1 className="font-bold text-3xl sm:text-5xl lg:text-6xl text-white mb-4" data-testid="transparency-title">
-              Transparência e{' '}
-              <span className="text-white">Prestação de Contas</span>
-            </h1>
-            <p className="text-base sm:text-xl text-white/80 max-w-xl leading-relaxed">
-              A credibilidade da ACCTA baseia-se na transparência com os seus associados e com a sociedade
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageBanner
+        pageKey="transparencia"
+        badge="Governança"
+        title="Transparência e Prestação de Contas"
+        subtitle="A credibilidade da ACCTA baseia-se na transparência com os seus associados e com a sociedade"
+      />
 
       {/* Intro */}
       <section className="py-16">

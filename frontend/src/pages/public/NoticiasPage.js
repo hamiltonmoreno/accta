@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Calendar, Tag, Newspaper } from 'lucide-react';
 import { postsAPI } from '../../utils/api';
 import { EmptyState } from '../../components/EmptyState';
+import { PageBanner } from '../../components/PageBanner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -28,18 +29,16 @@ export const NoticiasPage = () => {
   const filteredPosts = filter === 'all' ? posts : posts.filter(p => p.type === filter);
 
   return (
-    <div className="py-16">
+    <>
+      <PageBanner
+        pageKey="noticias"
+        badge="Notícias"
+        icon={Newspaper}
+        title="Notícias e Atualizações"
+        subtitle="Acompanhe as últimas novidades da ACCTA e da aviação em Cabo Verde"
+      />
+      <div className="py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-12 animate-fade-up">
-          <h1 className="font-sans font-bold text-5xl md:text-6xl text-grafite mb-6" data-testid="news-title">
-            Notícias e Atualizações
-          </h1>
-          <p className="text-xl text-gray-600">
-            Acompanhe as últimas novidades da ACCTA e da aviação em Cabo Verde
-          </p>
-        </div>
-
         {/* Filters */}
         <div className="flex flex-wrap gap-3 mb-12 justify-center">
           <button
@@ -141,5 +140,6 @@ export const NoticiasPage = () => {
         )}
       </div>
     </div>
+    </>
   );
 };
