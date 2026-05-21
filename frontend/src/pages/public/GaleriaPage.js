@@ -3,9 +3,9 @@ import { galleryAPI } from '../../utils/api';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { Camera, X, ChevronLeft, ChevronRight, Images, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { unsplashSrcSet } from '../../utils/unsplash';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
+import { PageBanner } from '../../components/PageBanner';
 
 const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
   useBodyScrollLock(true);
@@ -196,31 +196,13 @@ export const GaleriaPage = () => {
   return (
     <div>
       {/* Hero Banner */}
-      <section className="relative h-64 sm:h-80 md:h-96 flex items-center overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1280&auto=format&fit=crop"
-          srcSet={unsplashSrcSet('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&auto=format&fit=crop')}
-          sizes="100vw"
-          alt="Galeria ACCTA"
-          decoding="async"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/80 to-grafite/40" />
-        <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6 w-full">
-          <div className="animate-fade-up">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 border border-white/20 rounded-full mb-4">
-              <Camera className="w-3.5 h-3.5 text-white" />
-              <span className="text-white text-xs uppercase tracking-wider font-semibold">Galeria</span>
-            </div>
-            <h1 className="font-bold text-3xl sm:text-4xl md:text-5xl text-white mb-3" data-testid="gallery-title">
-              Galeria de Fotos
-            </h1>
-            <p className="text-white/70 text-sm sm:text-lg max-w-xl">
-              Imagens dos aeroportos, torre de controlo, equipa e paisagens de Cabo Verde
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageBanner
+        pageKey="galeria"
+        badge="Galeria"
+        icon={Camera}
+        title="Galeria de Fotos"
+        subtitle="Imagens dos aeroportos, torre de controlo, equipa e paisagens de Cabo Verde"
+      />
 
       {/* Content */}
       <section className="max-w-7xl mx-auto px-5 sm:px-6 py-10 sm:py-16">

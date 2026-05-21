@@ -1036,3 +1036,22 @@ class SancaoDecidir(BaseModel):
 
 class SancaoRecurso(BaseModel):
     fundamentacao: str = Field(min_length=3, max_length=2000)
+
+
+# ===== BANNERS DE PÁGINA (spec-padronizacao-banners) =====
+# Molde single-doc por chave (como FinanceSettings). 1 doc por banner em
+# `page_banners`. Datas serializadas como ISO-8601 string no doc.
+
+
+class PageBanner(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    key: str  # "home" | "sobre" | … (ver BANNER_KEYS em routes/banners.py)
+    image_url: str  # /uploads/banners/<uuid>.jpg (ou URL de fallback)
+    alt: Optional[str] = None  # texto alternativo (acessibilidade/SEO)
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_by: Optional[str] = None
+
+
+class PageBannerUpdate(BaseModel):
+    image_url: Optional[str] = None
+    alt: Optional[str] = Field(default=None, max_length=300)

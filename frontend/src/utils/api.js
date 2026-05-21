@@ -75,6 +75,13 @@ export const governanceAPI = {
   structure: () => api.get('/governance/structure'),
 };
 
+// Banners de página (spec-padronizacao-banners)
+export const bannersAPI = {
+  getPublic: () => api.get('/banners/public'),
+  getAll: () => api.get('/banners'),
+  update: (key, data) => api.put(`/banners/${key}`, data),
+};
+
 // Assembleia Geral (spec-governanca §11)
 export const assembleiasAPI = {
   list: (params) => api.get('/assembleias', { params }),

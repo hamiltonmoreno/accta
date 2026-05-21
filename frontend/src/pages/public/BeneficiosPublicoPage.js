@@ -17,7 +17,7 @@ import {
   Mail
 } from 'lucide-react';
 import { benefitsAPI } from '../../utils/api';
-import { unsplashSrcSet } from '../../utils/unsplash';
+import { PageBanner } from '../../components/PageBanner';
 
 export const BeneficiosPublicoPage = () => {
   // Sprint 12 — fetch real partners. Antes: 8 cards genericos placeholder.
@@ -62,34 +62,7 @@ export const BeneficiosPublicoPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <section className="relative py-20 sm:py-28 overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?q=80&w=1280&auto=format&fit=crop"
-          srcSet={unsplashSrcSet('https://images.unsplash.com/photo-1600880292203-757bb62b4baf?q=80&auto=format&fit=crop')}
-          sizes="100vw"
-          alt=""
-          aria-hidden="true"
-          loading="lazy"
-          decoding="async"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
-        <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6">
-          <div className="max-w-2xl animate-fade-up">
-            <span className="inline-block px-3 py-1.5 bg-white/10 text-white rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
-              Parcerias
-            </span>
-            <h1 className="font-bold text-3xl sm:text-5xl lg:text-6xl text-white mb-4" data-testid="benefits-title">
-              Clube de{' '}
-              <span className="text-white">Benefícios</span>
-            </h1>
-            <p className="text-base sm:text-xl text-white/80 max-w-xl leading-relaxed">
-              Vantagens exclusivas para os membros da ACCTA
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageBanner pageKey="beneficios" badge="Parcerias" title="Clube de Benefícios" subtitle="Vantagens exclusivas para os membros da ACCTA" />
 
       {/* Introduction for Partners */}
       <section className="py-12 sm:py-20 lg:py-24">

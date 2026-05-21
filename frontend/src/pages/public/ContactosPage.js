@@ -14,7 +14,7 @@ import {
   ExternalLink,
   ChevronDown,
 } from 'lucide-react';
-import { unsplashSrcSet } from '../../utils/unsplash';
+import { PageBanner } from '../../components/PageBanner';
 import { faq, contactosUteis, notaContactos } from '../../content/cta';
 
 export const ContactosPage = () => {
@@ -64,34 +64,7 @@ export const ContactosPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <section className="relative py-20 sm:py-28 overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1672856181212-b5b5a0065a08?q=80&w=1280&auto=format&fit=crop"
-          srcSet={unsplashSrcSet('https://images.unsplash.com/photo-1672856181212-b5b5a0065a08?q=80&auto=format&fit=crop')}
-          sizes="100vw"
-          alt=""
-          aria-hidden="true"
-          loading="lazy"
-          decoding="async"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
-        <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6">
-          <div className="max-w-2xl animate-fade-up">
-            <span className="inline-block px-3 py-1.5 bg-white/10 text-white rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
-              Contactos
-            </span>
-            <h1 className="font-bold text-3xl sm:text-5xl lg:text-6xl text-white mb-4" data-testid="contact-title">
-              Fale{' '}
-              <span className="text-white">Conosco</span>
-            </h1>
-            <p className="text-base sm:text-xl text-white/80 max-w-xl leading-relaxed">
-              Tem dúvidas sobre a associação, a profissão ou deseja propor uma parceria? Utilize os canais oficiais.
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageBanner pageKey="contactos" badge="Contactos" title="Fale Conosco" subtitle="Tem dúvidas sobre a associação, a profissão ou deseja propor uma parceria? Utilize os canais oficiais." />
 
       {/* Contact Info & Form */}
       <section className="py-12 sm:py-20 lg:py-24">

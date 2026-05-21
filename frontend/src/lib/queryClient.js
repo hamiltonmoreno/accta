@@ -79,6 +79,10 @@ export const queryKeys = {
   governance: {
     structure: () => ['governance', 'structure'],
   },
+  banners: {
+    public: () => ['banners', 'public'],
+    all: () => ['banners', 'all'],
+  },
   assembleias: {
     list: (filters) => ['assembleias', filters || {}],
     byId: (id) => ['assembleias', id],
