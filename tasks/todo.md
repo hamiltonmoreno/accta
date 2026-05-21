@@ -73,6 +73,13 @@ e migração destrutiva de dados (Fase 8). Commit por fase.
 - [x] `craco build` verde — "Compiled successfully" (corrigido: AdminAssembleiasPage importava framer-motion, que não é dependência → trocado por CSS `animate-fade-up`)
 - [x] Commit
 
+## Fase 8 — Migração de dados (script criado; --apply NÃO corrido)
+- [x] `scripts/migrate_governance_cargos.py`: `plan_user_changes` (pura, idempotente) — cargo→key, orgao denormalizado, account_type/member_category default, cargo_history (key+label+orgao); contas técnicas fora do catálogo
+- [x] `--dry-run` (default, só leitura) + `--apply --confirm` (duplo guard; AVISO STOP condition); UTF-8 stdout p/ Windows
+- [x] test_migrate_governance.py (7) — transform verificado sem DB
+- [ ] **`--apply` por correr** — STOP condition (§20): exige confirmação do utilizador + DB acessível + backup. Não há `DATABASE_URL` neste ambiente (dry-run live não corre aqui).
+- [x] Commit
+
 ## Verificação final
 - [x] `cd backend && ruff check .` — All checks passed
 - [x] `ruff format` aplicado aos ficheiros tocados (commit style)
