@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { registrationAPI } from '../utils/api';
 import { queryKeys } from '../lib/queryClient';
 import { NotificationBell } from '../components/NotificationBell';
-import { ACCTALogoHorizontal } from '../components/ACCTALogo';
+import { BrandLogo } from '../components/BrandLogo';
 import {
   LayoutDashboard,
   CreditCard,
@@ -32,6 +32,7 @@ import {
   ListChecks,
   Gavel,
   Image as ImageIcon,
+  Palette,
 } from 'lucide-react';
 
 const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
@@ -70,6 +71,7 @@ const menuSections = [
       { label: 'Mural', path: '/mural', icon: MessageSquare, roles: ['all'] },
       { label: 'Galeria', path: '/galeria-admin', icon: Camera, roles: ['all'] },
       { label: 'Banners', path: '/admin/banners', icon: ImageIcon, roles: ['admin', 'moderador'] },
+      { label: 'Marca', path: '/admin/marca', icon: Palette, roles: ['admin', 'moderador'] },
       { label: 'Benefícios', path: '/beneficios', icon: Gift, roles: ['all'] },
     ],
   },
@@ -149,6 +151,7 @@ export const PrivateLayout = ({ children }) => {
     if (pathname.startsWith('/admin/eleicoes/')) return 'Eleição';
     if (pathname === '/admin/disciplinar') return 'Disciplina';
     if (pathname === '/admin/banners') return 'Banners das Páginas';
+    if (pathname === '/admin/marca') return 'Marca / Logótipo';
     if (pathname === '/admin/usuarios') return 'Utilizadores';
     if (pathname === '/admin/logs') return 'Audit Logs';
     return 'Portal';
@@ -185,18 +188,17 @@ export const PrivateLayout = ({ children }) => {
     <div className="flex flex-col h-full">
       {/* ---- Logo row ---- */}
       <div className="flex items-center gap-2 px-3 py-4 min-h-[64px]" style={{ borderBottom: '1px solid var(--surface-border)' }}>
-        <span className="flex items-center justify-center min-w-[48px]">
-          <div className="w-9 h-9 bg-carmesim rounded-lg flex items-center justify-center">
-            <span className="text-white font-extrabold text-sm tracking-tight">AC</span>
-          </div>
-        </span>
-        <span
-          className={`font-bold text-[15px] whitespace-nowrap transition-opacity duration-300 ${
-            collapsed && !isMobile ? 'opacity-0 pointer-events-none w-0' : 'opacity-100'
-          } text-grafite-auto`}
-        >
-          ACCTA
-        </span>
+        {/* Recolhida: mark compacto "AC". Expandida: marca gerida (BrandLogo /
+            SVG fallback) — spec-gestao-logo-marca §4.2. */}
+        {collapsed && !isMobile ? (
+          <span className="flex items-center justify-center min-w-[48px]">
+            <div className="w-9 h-9 bg-carmesim rounded-lg flex items-center justify-center">
+              <span className="text-white font-extrabold text-sm tracking-tight">AC</span>
+            </div>
+          </span>
+        ) : (
+          <BrandLogo className="h-9" />
+        )}
 
         {/* Toggle expand/collapse — only on desktop */}
         {!isMobile && (

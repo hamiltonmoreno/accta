@@ -83,6 +83,10 @@ export const queryKeys = {
     public: () => ['banners', 'public'],
     all: () => ['banners', 'all'],
   },
+  brand: {
+    public: () => ['brand', 'public'],
+    all: () => ['brand', 'all'],
+  },
   assembleias: {
     list: (filters) => ['assembleias', filters || {}],
     byId: (id) => ['assembleias', id],

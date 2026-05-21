@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Shield, Lock, Eye, EyeOff, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { authAPI } from '../../utils/api';
 import { toast } from 'sonner';
-import { ACCTALogoHorizontal } from '../../components/ACCTALogo';
+import { BrandLogo } from '../../components/BrandLogo';
 import { setupAccountSchema } from '../../utils/authSchemas';
 
 export const SetupAccountPage = () => {
@@ -104,7 +104,7 @@ export const SetupAccountPage = () => {
         data-testid="setup-account-form"
       >
         <div className="flex justify-center mb-6">
-          <ACCTALogoHorizontal className="h-8" />
+          <BrandLogo className="h-8" />
         </div>
 
         <div className="text-center mb-6">

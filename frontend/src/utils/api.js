@@ -82,6 +82,13 @@ export const bannersAPI = {
   update: (key, data) => api.put(`/banners/${key}`, data),
 };
 
+// Marca / logo (spec-gestao-logo-marca)
+export const brandAPI = {
+  getPublic: () => api.get('/brand/public'),
+  getAll: () => api.get('/brand'),
+  update: (data) => api.patch('/brand', data),
+};
+
 // Assembleia Geral (spec-governanca §11)
 export const assembleiasAPI = {
   list: (params) => api.get('/assembleias', { params }),

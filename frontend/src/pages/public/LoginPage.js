@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { LogIn, Shield, Plane, ArrowLeft, Lock } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
-import { ACCTALogoHorizontal } from '../../components/ACCTALogo';
+import { BrandLogo } from '../../components/BrandLogo';
 import { unsplashSrcSet } from '../../utils/unsplash';
 import { loginSchema } from '../../utils/authSchemas';
 
@@ -87,7 +87,7 @@ export const LoginPage = () => {
 
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           <Link to="/" className="inline-flex">
-            <ACCTALogoHorizontal dark />
+            <BrandLogo dark />
           </Link>
 
           <div>
@@ -120,7 +120,7 @@ export const LoginPage = () => {
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
             <Link to="/" className="inline-flex justify-center mb-5">
-              <ACCTALogoHorizontal />
+              <BrandLogo />
             </Link>
           </div>
 
