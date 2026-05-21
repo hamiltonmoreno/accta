@@ -134,3 +134,18 @@ acceptance) para verificação cruzada. Casos exóticos (ex.: ternários
 sinalizados como resíduos para owner — não tentar inferi-los.
 **Context**: `tasks/frontend-consistency-spec.md` Fase 7.1 (4 subagents,
 97/97 substituições, 6 resíduos ternários documentados).
+
+### L11 — Confirmar "Decisões a confirmar" da spec antes de implementar
+**Mistake**: Em `spec-correcoes`, comecei a implementar o item B15 (subir o
+mínimo de password de 6 → 8) sem confirmar as "Decisões a confirmar" do topo
+da spec. O dono já tinha decidido que o mínimo fica em **6** — a mudança teve
+de ser revertida (backend `models.py` + zod `authSchemas.js` + test +
+placeholders dos 2 forms).
+**Rule**: Blocos "Decisões a confirmar antes da Fase 1" são **gates**.
+Confirmar com o dono antes de mexer nos itens afetados, mesmo que pareçam
+higiene trivial — sobretudo quando alteram um valor/política já decidido. Não
+assumir que a "Proposta/Recomendação" da spec está aprovada. (Memória:
+`password-min-6-owner-decision`, `confirm-spec-decisoes-before-implementing`.)
+**Context**: utilizador: "já tínhamos decidido que a password poderia ser
+mínimo 6". spec-correcoes está, de resto, ~toda implementada (Fases 1-3 feitas
+em código; B17 adiado por design; Fase 5 = épico separado).
