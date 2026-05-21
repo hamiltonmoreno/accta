@@ -13,7 +13,16 @@ from fastapi import HTTPException
 from starlette.requests import Request
 
 from routes import participacao as p
-from models import PatrocinioRespond, PeticaoCreate, PeticaoEncaminhar
+from models import (
+    EsclarecimentoCreate,
+    PatrocinioRespond,
+    PeticaoCreate,
+    PeticaoEncaminhar,
+    ReclamacaoCreate,
+    ReclamacaoResponder,
+    RecursoDecisao,
+    RespostaTexto,
+)
 
 pytestmark = [pytest.mark.unit, pytest.mark.asyncio]
 
@@ -170,4 +179,108 @@ class TestPeticao:
     async def test_encaminhar_requires_mesa_403(self, pet_env, socio_user):
         with pytest.raises(HTTPException) as exc:
             await p.encaminhar_peticao("p1", PeticaoEncaminhar(), _req(), current_user=socio_user)
+        assert exc.value.status_code == 403
+
+
+# --------------------------------------------------------------------------- #
+# 1.6 esclarecimentos / 1.5 reclamações
+# --------------------------------------------------------------------------- #
+
+
+def _wire(mock_db, *names):
+    for name in names:
+        coll = MagicMock(name=name)
+        coll.find_one = AsyncMock(return_value=None)
+        coll.insert_one = AsyncMock(return_value=MagicMock(inserted_id="x"))
+        coll.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
+        cur = MagicMock()
+        cur.sort.return_value = cur
+        cur.to_list = AsyncMock(return_value=[])
+        coll.find = MagicMock(return_value=cur)
+        setattr(mock_db, name, coll)
+
+
+@pytest.fixture
+def f3_env(mock_db, monkeypatch):
+    monkeypatch.setattr(p, "create_audit_log", AsyncMock())
+    monkeypatch.setattr(p, "notify_users", AsyncMock())
+    monkeypatch.setattr(p, "members_of_orgao", AsyncMock(return_value=["o1"]))
+    _wire(mock_db, "esclarecimentos", "reclamacoes")
+    return mock_db
+
+
+class TestEsclarecimento:
+    async def test_criar_notifica_orgao(self, f3_env, socio_user):
+        res = await p.criar_esclarecimento(
+            EsclarecimentoCreate(orgao_destino="direcao", assunto="Dúvida", pergunta="Qual o prazo?"),
+            _req(),
+            current_user=socio_user,
+        )
+        assert res.orgao_destino == "direcao"
+        p.notify_users.assert_awaited_once()
+
+    async def test_responder_terceiro_403(self, f3_env, socio_user):
+        f3_env.esclarecimentos.find_one = AsyncMock(
+            return_value={"id": "e1", "orgao_destino": "direcao", "created_by": "outro", "assunto": "X"}
+        )
+        with pytest.raises(HTTPException) as exc:
+            await p.responder_esclarecimento("e1", RespostaTexto(texto="resp"), _req(), current_user=socio_user)
+        assert exc.value.status_code == 403
+
+    async def test_responder_admin_ok(self, f3_env, admin_user):
+        f3_env.esclarecimentos.find_one = AsyncMock(
+            return_value={"id": "e1", "orgao_destino": "direcao", "created_by": "c", "assunto": "X"}
+        )
+        await p.responder_esclarecimento("e1", RespostaTexto(texto="resposta"), _req(), current_user=admin_user)
+        f3_env.esclarecimentos.update_one.assert_awaited()
+        p.notify_users.assert_awaited()
+
+    async def test_obter_terceiro_403(self, f3_env, socio_user):
+        f3_env.esclarecimentos.find_one = AsyncMock(
+            return_value={"id": "e1", "orgao_destino": "mesa_ag", "created_by": "outro"}
+        )
+        with pytest.raises(HTTPException) as exc:
+            await p.obter_esclarecimento("e1", current_user=socio_user)
+        assert exc.value.status_code == 403
+
+
+class TestReclamacao:
+    async def test_criar_define_prazo_e_notifica(self, f3_env, socio_user):
+        res = await p.criar_reclamacao(
+            ReclamacaoCreate(assunto="Acto lesivo", descricao="detalhe"), _req(), current_user=socio_user
+        )
+        assert res.prazo_resposta is not None
+        p.notify_users.assert_awaited_once()
+
+    async def test_obter_terceiro_403(self, f3_env, socio_user):
+        f3_env.reclamacoes.find_one = AsyncMock(return_value={"id": "r1", "created_by": "outro"})
+        with pytest.raises(HTTPException) as exc:
+            await p.obter_reclamacao("r1", current_user=socio_user)
+        assert exc.value.status_code == 403
+
+    async def test_responder_requires_direcao_403(self, f3_env, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await p.responder_reclamacao("r1", ReclamacaoResponder(texto="x"), _req(), current_user=socio_user)
+        assert exc.value.status_code == 403
+
+    async def test_recurso_before_response_409(self, f3_env, socio_user):
+        # sem resposta e prazo no futuro → não pode recorrer ainda.
+        future = "2999-01-01T00:00:00+00:00"
+        f3_env.reclamacoes.find_one = AsyncMock(
+            return_value={"id": "r1", "created_by": socio_user.id, "prazo_resposta": future, "direcao_resposta": None}
+        )
+        with pytest.raises(HTTPException) as exc:
+            await p.abrir_recurso("r1", _req(), current_user=socio_user)
+        assert exc.value.status_code == 409
+
+    async def test_recurso_after_response_ok(self, f3_env, socio_user):
+        f3_env.reclamacoes.find_one = AsyncMock(
+            return_value={"id": "r1", "created_by": socio_user.id, "direcao_resposta": {"text": "r"}}
+        )
+        await p.abrir_recurso("r1", _req(), current_user=socio_user)
+        f3_env.reclamacoes.update_one.assert_awaited()
+
+    async def test_decidir_recurso_requires_mesa_403(self, f3_env, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await p.decidir_recurso("r1", RecursoDecisao(decisao="negado"), _req(), current_user=socio_user)
         assert exc.value.status_code == 403

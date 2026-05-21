@@ -10,7 +10,7 @@ A criação dos pedidos de patrocínio vive no fluxo de registo (routes/auth_rou
 
 import math
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from asyncpg.exceptions import UniqueViolationError
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -18,8 +18,21 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from auth import get_current_user
 from database import db
 from helpers import count_voting_members, create_audit_log, members_of_orgao, notify_admins, notify_users
-from models import Peticao, PeticaoCreate, PeticaoEncaminhar, PatrocinioRespond, User
-from permissions import is_mesa_ag, is_voting_member
+from models import (
+    Esclarecimento,
+    EsclarecimentoCreate,
+    PatrocinioRespond,
+    Peticao,
+    PeticaoCreate,
+    PeticaoEncaminhar,
+    Reclamacao,
+    ReclamacaoCreate,
+    ReclamacaoResponder,
+    RecursoDecisao,
+    RespostaTexto,
+    User,
+)
+from permissions import is_conselho_fiscal, is_direcao, is_mesa_ag, is_voting_member
 
 router = APIRouter(tags=["participacao"])
 
@@ -210,3 +223,224 @@ async def encaminhar_peticao(
     await db.peticoes.update_one({"id": peticao_id}, {"$set": upd})
     await create_audit_log(current_user.id, "peticao_encaminhada", peticao_id, request=request)
     return {"peticao_id": peticao_id, "status": "encaminhada"}
+
+
+# --------------------------------------------------------------------------- #
+# 1.6 — Pedidos de esclarecimento (Art. 9.j)
+# --------------------------------------------------------------------------- #
+
+_ORGAO_CHECK = {"direcao": is_direcao, "mesa_ag": is_mesa_ag, "conselho_fiscal": is_conselho_fiscal}
+
+
+def _can_answer_orgao(user, orgao: str) -> bool:
+    if getattr(user, "role", None) == "admin":
+        return True
+    check = _ORGAO_CHECK.get(orgao)
+    return bool(check and check(user))
+
+
+@router.post("/esclarecimentos", response_model=Esclarecimento)
+async def criar_esclarecimento(
+    data: EsclarecimentoCreate, request: Request, current_user: User = Depends(get_current_user)
+):
+    e = Esclarecimento(
+        orgao_destino=data.orgao_destino,
+        assunto=data.assunto,
+        pergunta=data.pergunta,
+        created_by=current_user.id,
+        created_at=_now(),
+    )
+    await db.esclarecimentos.insert_one(e.model_dump())
+    await create_audit_log(current_user.id, "esclarecimento_submetido", e.id, request=request)
+    dest = await members_of_orgao(data.orgao_destino)
+    await notify_users(
+        dest,
+        "system",
+        "Novo pedido de esclarecimento",
+        f"{current_user.name} fez uma pergunta ao órgão (Art. 9.j).",
+        link="/participacao/esclarecimentos",
+    )
+    return e
+
+
+@router.get("/esclarecimentos")
+async def listar_esclarecimentos(current_user: User = Depends(get_current_user)):
+    rows = await db.esclarecimentos.find({}, {"_id": 0}).sort("created_at", -1).to_list(300)
+    # Autor vê os próprios; membro do órgão vê os endereçados ao seu órgão; admin tudo.
+    return [
+        e
+        for e in rows
+        if e.get("created_by") == current_user.id or _can_answer_orgao(current_user, e.get("orgao_destino", ""))
+    ]
+
+
+@router.get("/esclarecimentos/{esc_id}")
+async def obter_esclarecimento(esc_id: str, current_user: User = Depends(get_current_user)):
+    e = await db.esclarecimentos.find_one({"id": esc_id}, {"_id": 0})
+    if not e:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+    if e.get("created_by") != current_user.id and not _can_answer_orgao(current_user, e.get("orgao_destino", "")):
+        raise HTTPException(status_code=403, detail="Sem permissão")
+    return e
+
+
+@router.post("/esclarecimentos/{esc_id}/responder", response_model=Esclarecimento)
+async def responder_esclarecimento(
+    esc_id: str, data: RespostaTexto, request: Request, current_user: User = Depends(get_current_user)
+):
+    e = await db.esclarecimentos.find_one({"id": esc_id}, {"_id": 0})
+    if not e:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+    if not _can_answer_orgao(current_user, e.get("orgao_destino", "")):
+        raise HTTPException(status_code=403, detail="Apenas o órgão destinatário (ou admin) pode responder")
+    resposta = {"by": current_user.id, "at": _now(), "text": data.texto}
+    await db.esclarecimentos.update_one({"id": esc_id}, {"$set": {"resposta": resposta, "status": "respondido"}})
+    await create_audit_log(current_user.id, "esclarecimento_respondido", esc_id, request=request)
+    if e.get("created_by"):
+        await notify_users(
+            [e["created_by"]],
+            "system",
+            "Esclarecimento respondido",
+            f"O órgão respondeu ao seu pedido «{e.get('assunto')}».",
+            link="/participacao/esclarecimentos",
+        )
+    return await db.esclarecimentos.find_one({"id": esc_id}, {"_id": 0})
+
+
+# --------------------------------------------------------------------------- #
+# 1.5 — Reclamações e recursos (Art. 9.i) — genérico, NÃO disciplinar
+# --------------------------------------------------------------------------- #
+
+_RECLAMACAO_SLA_DAYS = 15  # decisão do dono
+
+
+def _can_see_reclamacao(user, r: dict) -> bool:
+    return (
+        r.get("created_by") == getattr(user, "id", None) or getattr(user, "role", None) == "admin" or is_direcao(user)
+    )
+
+
+@router.post("/reclamacoes", response_model=Reclamacao)
+async def criar_reclamacao(data: ReclamacaoCreate, request: Request, current_user: User = Depends(get_current_user)):
+    prazo = (datetime.now(timezone.utc) + timedelta(days=_RECLAMACAO_SLA_DAYS)).isoformat()
+    r = Reclamacao(
+        assunto=data.assunto,
+        descricao=data.descricao,
+        created_by=current_user.id,
+        created_at=_now(),
+        prazo_resposta=prazo,
+    )
+    await db.reclamacoes.insert_one(r.model_dump())
+    await create_audit_log(current_user.id, "reclamacao_submetida", r.id, request=request)
+    direcao = await members_of_orgao("direcao")
+    await notify_users(
+        direcao,
+        "system",
+        "Nova reclamação",
+        f"{current_user.name} submeteu uma reclamação (Art. 9.i).",
+        link="/participacao/reclamacoes",
+    )
+    return r
+
+
+@router.get("/reclamacoes")
+async def listar_reclamacoes(current_user: User = Depends(get_current_user)):
+    rows = await db.reclamacoes.find({}, {"_id": 0}).sort("created_at", -1).to_list(300)
+    return [r for r in rows if _can_see_reclamacao(current_user, r)]
+
+
+@router.get("/reclamacoes/{rec_id}")
+async def obter_reclamacao(rec_id: str, current_user: User = Depends(get_current_user)):
+    r = await db.reclamacoes.find_one({"id": rec_id}, {"_id": 0})
+    if not r:
+        raise HTTPException(status_code=404, detail="Reclamação não encontrada")
+    if not _can_see_reclamacao(current_user, r):
+        raise HTTPException(status_code=403, detail="Sem permissão")
+    return r
+
+
+@router.post("/reclamacoes/{rec_id}/responder", response_model=Reclamacao)
+async def responder_reclamacao(
+    rec_id: str, data: ReclamacaoResponder, request: Request, current_user: User = Depends(get_current_user)
+):
+    if not (current_user.role == "admin" or is_direcao(current_user)):
+        raise HTTPException(status_code=403, detail="Apenas a Direcção (ou admin) pode responder")
+    r = await db.reclamacoes.find_one({"id": rec_id}, {"_id": 0})
+    if not r:
+        raise HTTPException(status_code=404, detail="Reclamação não encontrada")
+    resposta = {"by": current_user.id, "at": _now(), "text": data.texto}
+    new_status = "resolvida" if data.resolvida else "respondida"
+    await db.reclamacoes.update_one(
+        {"id": rec_id}, {"$set": {"direcao_resposta": resposta, "resolvida": data.resolvida, "status": new_status}}
+    )
+    await create_audit_log(current_user.id, "reclamacao_respondida", rec_id, request=request)
+    if r.get("created_by"):
+        await notify_users(
+            [r["created_by"]],
+            "system",
+            "Reclamação respondida",
+            f"A Direcção respondeu à sua reclamação «{r.get('assunto')}».",
+            link="/participacao/reclamacoes",
+        )
+    return await db.reclamacoes.find_one({"id": rec_id}, {"_id": 0})
+
+
+@router.post("/reclamacoes/{rec_id}/recurso", response_model=Reclamacao)
+async def abrir_recurso(rec_id: str, request: Request, current_user: User = Depends(get_current_user)):
+    r = await db.reclamacoes.find_one({"id": rec_id}, {"_id": 0})
+    if not r:
+        raise HTTPException(status_code=404, detail="Reclamação não encontrada")
+    if r.get("created_by") != current_user.id:
+        raise HTTPException(status_code=403, detail="Apenas o autor pode recorrer")
+    # Só após resposta da Direcção OU após o prazo expirar.
+    answered = r.get("direcao_resposta") is not None
+    expired = bool(r.get("prazo_resposta") and r["prazo_resposta"] < _now())
+    if not (answered or expired):
+        raise HTTPException(
+            status_code=409, detail="Só pode recorrer após resposta da Direcção ou após o prazo expirar"
+        )
+    recurso = {"opened_at": _now(), "by": current_user.id, "status": "aberto"}
+    await db.reclamacoes.update_one({"id": rec_id}, {"$set": {"status": "recurso", "recurso": recurso}})
+    await create_audit_log(current_user.id, "reclamacao_recurso", rec_id, request=request)
+    mesa = await members_of_orgao("mesa_ag")
+    await notify_users(
+        mesa,
+        "system",
+        "Recurso de reclamação",
+        "Foi aberto recurso à AG sobre uma reclamação (Art. 9.i).",
+        link="/participacao/reclamacoes",
+    )
+    return await db.reclamacoes.find_one({"id": rec_id}, {"_id": 0})
+
+
+@router.post("/reclamacoes/{rec_id}/decidir-recurso", response_model=Reclamacao)
+async def decidir_recurso(
+    rec_id: str, data: RecursoDecisao, request: Request, current_user: User = Depends(get_current_user)
+):
+    if not (current_user.role == "admin" or is_mesa_ag(current_user)):
+        raise HTTPException(status_code=403, detail="Apenas a Mesa da AG (ou admin) pode decidir o recurso")
+    r = await db.reclamacoes.find_one({"id": rec_id}, {"_id": 0})
+    if not r:
+        raise HTTPException(status_code=404, detail="Reclamação não encontrada")
+    if r.get("status") != "recurso":
+        raise HTTPException(status_code=409, detail="Esta reclamação não está em recurso")
+    recurso = {
+        **(r.get("recurso") or {}),
+        "status": "decidido",
+        "decisao": data.decisao,
+        "assembleia_id": data.assembleia_id,
+        "deliberacao_id": data.deliberacao_id,
+        "decided_at": _now(),
+        "decided_by": current_user.id,
+    }
+    await db.reclamacoes.update_one({"id": rec_id}, {"$set": {"recurso": recurso, "status": "encerrada"}})
+    await create_audit_log(current_user.id, "reclamacao_decidida", rec_id, request=request)
+    if r.get("created_by"):
+        await notify_users(
+            [r["created_by"]],
+            "system",
+            "Recurso decidido",
+            "A AG decidiu o seu recurso.",
+            link="/participacao/reclamacoes",
+        )
+    return await db.reclamacoes.find_one({"id": rec_id}, {"_id": 0})

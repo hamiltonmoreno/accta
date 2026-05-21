@@ -222,6 +222,67 @@ class PeticaoEncaminhar(BaseModel):
     assembleia_id: Optional[str] = None
 
 
+# 1.6 — Pedidos de esclarecimento (Art. 9.j)
+
+
+class Esclarecimento(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    orgao_destino: Literal["direcao", "mesa_ag", "conselho_fiscal"]
+    assunto: str = Field(min_length=3, max_length=180)
+    pergunta: str = Field(min_length=1, max_length=4000)
+    status: Literal["submetido", "respondido", "encerrado"] = "submetido"
+    created_by: Optional[str] = None
+    created_at: Optional[str] = None
+    prazo_resposta: Optional[str] = None
+    resposta: Optional[dict] = None  # {by, at, text}
+    source_article: str = "9.j"
+
+
+class EsclarecimentoCreate(BaseModel):
+    orgao_destino: Literal["direcao", "mesa_ag", "conselho_fiscal"]
+    assunto: str = Field(min_length=3, max_length=180)
+    pergunta: str = Field(min_length=1, max_length=4000)
+
+
+class RespostaTexto(BaseModel):
+    texto: str = Field(min_length=1, max_length=4000)
+
+
+# 1.5 — Reclamações e recursos (Art. 9.i) — genérico, NÃO disciplinar
+
+
+class Reclamacao(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    assunto: str = Field(min_length=3, max_length=180)
+    descricao: str = Field(min_length=1, max_length=5000)
+    status: Literal["submetida", "em_analise", "respondida", "resolvida", "recurso", "encerrada"] = "submetida"
+    created_by: Optional[str] = None
+    created_at: Optional[str] = None
+    prazo_resposta: Optional[str] = None  # SLA +15 dias (decisão do dono)
+    direcao_resposta: Optional[dict] = None  # {by, at, text}
+    resolvida: Optional[bool] = None
+    recurso: Optional[dict] = None  # {opened_at, by, decisao, assembleia_id, deliberacao_id}
+    source_article: str = "9.i"
+
+
+class ReclamacaoCreate(BaseModel):
+    assunto: str = Field(min_length=3, max_length=180)
+    descricao: str = Field(min_length=1, max_length=5000)
+
+
+class ReclamacaoResponder(BaseModel):
+    texto: str = Field(min_length=1, max_length=4000)
+    resolvida: bool = False
+
+
+class RecursoDecisao(BaseModel):
+    decisao: str = Field(min_length=1, max_length=2000)
+    assembleia_id: Optional[str] = None
+    deliberacao_id: Optional[str] = None
+
+
 class RegistrationReject(BaseModel):
     reason: Optional[str] = Field(default=None, max_length=500)
 

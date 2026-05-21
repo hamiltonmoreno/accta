@@ -56,6 +56,8 @@ const AdminAparenciaPage = lazy(() => import('./pages/private/AdminAparenciaPage
 const AdminNoticiasPage = lazy(() => import('./pages/private/AdminNoticiasPage').then((m) => ({ default: m.AdminNoticiasPage })));
 const PatrociniosPage = lazy(() => import('./pages/private/PatrociniosPage').then((m) => ({ default: m.PatrociniosPage })));
 const PeticoesPage = lazy(() => import('./pages/private/PeticoesPage').then((m) => ({ default: m.PeticoesPage })));
+const EsclarecimentosPage = lazy(() => import('./pages/private/EsclarecimentosPage').then((m) => ({ default: m.EsclarecimentosPage })));
+const ReclamacoesPage = lazy(() => import('./pages/private/ReclamacoesPage').then((m) => ({ default: m.ReclamacoesPage })));
 const NoticiaDetailPage = lazy(() => import('./pages/public/NoticiaDetailPage').then((m) => ({ default: m.NoticiaDetailPage })));
 
 const RouteSpinner = () => (
@@ -308,6 +310,22 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <PrivateLayout><PeticoesPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participacao/esclarecimentos"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><EsclarecimentosPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participacao/reclamacoes"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><ReclamacoesPage /></PrivateLayout>
             </ProtectedRoute>
           }
         />
