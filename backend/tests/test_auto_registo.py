@@ -89,9 +89,7 @@ class TestRegister:
         assert exc.value.status_code == 400
 
     async def test_invalid_cargo_422(self, reg_env):
-        data = RegistrationRequest(
-            name="Ana", email="ana@x.cv", consent_data=True, cargo_declarado="Imperador"
-        )
+        data = RegistrationRequest(name="Ana", email="ana@x.cv", consent_data=True, cargo_declarado="Imperador")
         with pytest.raises(HTTPException) as exc:
             await auth_routes.register(request=_request(), data=data)
         assert exc.value.status_code == 422
@@ -234,7 +232,11 @@ class TestApproveRegistration:
         )
         assert captured["status"] == "pendente_convite"
         assert captured["role"] == "financeiro"  # admin escala no approve
-        assert captured["cargo"] == "Tesoureiro"  # herda o cargo_declarado
+        # herda o cargo_declarado ("Tesoureiro"), normalizado p/ key canónica
+        assert captured["cargo"] == "dir_tesoureiro"
+        assert captured["orgao"] == "direcao"
+        # cargo estatutário cria a 1ª entrada de mandato
+        assert captured["cargo_history"][-1]["cargo"] == "dir_tesoureiro"
         assert captured["invite_token"]
         assert "invite_token_expires_at" in captured
         assert captured["registration_reviewer_id"] == admin_user.id
