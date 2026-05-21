@@ -55,6 +55,7 @@ const AdminDisciplinarPage = lazy(() => import('./pages/private/AdminDisciplinar
 const AdminAparenciaPage = lazy(() => import('./pages/private/AdminAparenciaPage').then((m) => ({ default: m.AdminAparenciaPage })));
 const AdminNoticiasPage = lazy(() => import('./pages/private/AdminNoticiasPage').then((m) => ({ default: m.AdminNoticiasPage })));
 const PatrociniosPage = lazy(() => import('./pages/private/PatrociniosPage').then((m) => ({ default: m.PatrociniosPage })));
+const PeticoesPage = lazy(() => import('./pages/private/PeticoesPage').then((m) => ({ default: m.PeticoesPage })));
 const NoticiaDetailPage = lazy(() => import('./pages/public/NoticiaDetailPage').then((m) => ({ default: m.NoticiaDetailPage })));
 
 const RouteSpinner = () => (
@@ -299,6 +300,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <PrivateLayout><PatrociniosPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participacao/peticoes"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><PeticoesPage /></PrivateLayout>
             </ProtectedRoute>
           }
         />

@@ -34,6 +34,7 @@ import {
   Palette,
   Newspaper,
   Handshake,
+  FileSignature,
 } from 'lucide-react';
 
 const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
@@ -70,6 +71,7 @@ const menuSections = [
     title: 'Participação',
     items: [
       { label: 'Patrocínios', path: '/participacao/patrocinios', icon: Handshake, roles: ['all'] },
+      { label: 'Petições', path: '/participacao/peticoes', icon: FileSignature, roles: ['all'] },
     ],
   },
   {
@@ -160,6 +162,7 @@ export const PrivateLayout = ({ children }) => {
     if (pathname === '/admin/aparencia') return 'Aparência do Site';
     if (pathname === '/admin/noticias') return 'Notícias / Blog';
     if (pathname === '/participacao/patrocinios') return 'Patrocínios';
+    if (pathname === '/participacao/peticoes') return 'Petições';
     if (pathname === '/admin/usuarios') return 'Utilizadores';
     if (pathname === '/admin/logs') return 'Audit Logs';
     return 'Portal';
