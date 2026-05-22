@@ -3,6 +3,7 @@
 Tests directly invoke route functions (no TestClient) so they're fast +
 no real DB. mock_db fixture provides AsyncMock collections.
 """
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
@@ -142,6 +143,59 @@ class TestGetUser:
 
 
 # --------------------------------------------------------------------------- #
+# PII sensível do perfil — minimização de dados (feature/perfil)
+# --------------------------------------------------------------------------- #
+
+
+class TestProfilePIIProjection:
+    """Tipo sanguíneo, NIF, morada e contacto de emergência não saem em
+    listagens nem para terceiros (staff) — só o próprio os recebe."""
+
+    async def test_list_excludes_sensitive_fields(self, mock_db, admin_user):
+        captured = {}
+
+        def capture_find(query, proj):
+            captured["proj"] = proj
+            cursor = MagicMock()
+            cursor.skip = MagicMock(return_value=cursor)
+            cursor.limit = MagicMock(return_value=cursor)
+            cursor.to_list = AsyncMock(return_value=[])
+            return cursor
+
+        mock_db.users.find = capture_find
+        await users_route.get_users(current_user=admin_user)
+        assert captured["proj"]["password"] == 0
+        for f in users_route.SENSITIVE_PROFILE_FIELDS:
+            assert captured["proj"].get(f) == 0
+
+    async def test_self_detail_includes_sensitive_fields(self, mock_db, socio_user, socio_user_dict):
+        captured = {}
+
+        async def capture_find_one(q, proj):
+            captured["proj"] = proj
+            return socio_user_dict
+
+        mock_db.users.find_one = capture_find_one
+        await users_route.get_user(user_id=socio_user.id, current_user=socio_user)
+        # O próprio vê tudo — sem exclusões de PII.
+        for f in users_route.SENSITIVE_PROFILE_FIELDS:
+            assert f not in captured["proj"]
+
+    async def test_staff_detail_excludes_sensitive_fields(self, mock_db, admin_user, socio_user_dict):
+        captured = {}
+
+        async def capture_find_one(q, proj):
+            captured["proj"] = proj
+            return socio_user_dict
+
+        mock_db.users.find_one = capture_find_one
+        await users_route.get_user(user_id="outro-id", current_user=admin_user)
+        # Staff a ver terceiro recebe a vista reduzida (PII oculta).
+        for f in users_route.SENSITIVE_PROFILE_FIELDS:
+            assert captured["proj"].get(f) == 0
+
+
+# --------------------------------------------------------------------------- #
 # PATCH /users/me/profile — self update
 # --------------------------------------------------------------------------- #
 
@@ -244,7 +298,7 @@ class TestProfileFieldValidation:
             UserProfileUpdate(name="   ")
 
     def test_empty_string_clears_field(self):
-        """"" é permitido (= limpar); o route grava-o (só filtra None)."""
+        """ "" é permitido (= limpar); o route grava-o (só filtra None)."""
         from models import UserProfileUpdate
 
         m = UserProfileUpdate(blood_type="", date_of_birth="")
@@ -408,9 +462,7 @@ class TestDeleteUser:
 
     async def test_admin_deletes_other(self, mock_db, admin_user, socio_user_dict):
         mock_db.users.find_one = AsyncMock(return_value=socio_user_dict)
-        result = await users_route.delete_user(
-            user_id=socio_user_dict["id"], current_user=admin_user
-        )
+        result = await users_route.delete_user(user_id=socio_user_dict["id"], current_user=admin_user)
         assert "removido" in result["message"].lower()
         mock_db.users.delete_one.assert_awaited_once_with({"id": socio_user_dict["id"]})
 
@@ -423,40 +475,28 @@ class TestDeleteUser:
 class TestUpdateUserStatus:
     async def test_socio_403(self, mock_db, socio_user):
         with pytest.raises(HTTPException) as exc:
-            await users_route.update_user_status(
-                user_id="any", status="inativo", current_user=socio_user
-            )
+            await users_route.update_user_status(user_id="any", status="inativo", current_user=socio_user)
         assert exc.value.status_code == 403
 
     async def test_admin_updates_status(self, mock_db, admin_user):
-        result = await users_route.update_user_status(
-            user_id="some-id", status="inativo", current_user=admin_user
-        )
+        result = await users_route.update_user_status(user_id="some-id", status="inativo", current_user=admin_user)
         assert "atualizado" in result["message"].lower()
-        mock_db.users.update_one.assert_awaited_with(
-            {"id": "some-id"}, {"$set": {"status": "inativo"}}
-        )
+        mock_db.users.update_one.assert_awaited_with({"id": "some-id"}, {"$set": {"status": "inativo"}})
 
     @pytest.mark.parametrize("status", ["ativo", "inativo", "pendente_convite"])
     async def test_admin_accepts_every_valid_status(self, mock_db, admin_user, status):
         from models import USER_STATUSES
 
         assert status in USER_STATUSES
-        await users_route.update_user_status(
-            user_id="some-id", status=status, current_user=admin_user
-        )
-        mock_db.users.update_one.assert_awaited_with(
-            {"id": "some-id"}, {"$set": {"status": status}}
-        )
+        await users_route.update_user_status(user_id="some-id", status=status, current_user=admin_user)
+        mock_db.users.update_one.assert_awaited_with({"id": "some-id"}, {"$set": {"status": status}})
 
     @pytest.mark.parametrize("bad_status", ["inadimplente", "banido", "", "ATIVO"])
     async def test_admin_rejects_invalid_status(self, mock_db, admin_user, bad_status):
         """Spec-2: update_user_status valida o status. 'inadimplente' nunca
         e aceite — quotas sao descontadas em folha (invariante do projeto)."""
         with pytest.raises(HTTPException) as exc:
-            await users_route.update_user_status(
-                user_id="some-id", status=bad_status, current_user=admin_user
-            )
+            await users_route.update_user_status(user_id="some-id", status=bad_status, current_user=admin_user)
         assert exc.value.status_code == 400
         mock_db.users.update_one.assert_not_awaited()
 

@@ -32,6 +32,31 @@ def parse_user_dates(u: dict):
             u[field] = datetime.fromisoformat(u[field])
 
 
+# PII sensível do perfil (feature/perfil): dados pessoais/saúde/morada/contacto
+# de emergência que NÃO devem sair em listagens nem para terceiros (staff).
+# Só o próprio (via /auth/me ou GET /users/{self}) os recebe — minimização de
+# dados. Excluídos da listagem em massa e das leituras por terceiros.
+SENSITIVE_PROFILE_FIELDS = [
+    "blood_type",
+    "nif",
+    "date_of_birth",
+    "address",
+    "postal_code",
+    "city",
+    "emergency_contact_name",
+    "emergency_contact_phone",
+    "emergency_contact_relationship",
+]
+
+
+def _user_projection(include_sensitive: bool) -> dict:
+    """Projeção base (sem _id/password); oculta a PII sensível salvo para o próprio."""
+    proj = {"_id": 0, "password": 0}
+    if not include_sensitive:
+        proj.update({f: 0 for f in SENSITIVE_PROFILE_FIELDS})
+    return proj
+
+
 # ===== LIST USERS =====
 @router.get("/users", response_model=List[User])
 async def get_users(
@@ -79,7 +104,8 @@ async def get_users(
         query["$and"] = and_clauses
 
     limit = min(limit, 100)
-    users = await db.users.find(query, {"_id": 0, "password": 0}).skip(skip).limit(limit).to_list(limit)
+    # Listagem em massa nunca expõe PII sensível (saúde/morada/contacto de emergência).
+    users = await db.users.find(query, _user_projection(include_sensitive=False)).skip(skip).limit(limit).to_list(limit)
     for u in users:
         parse_user_dates(u)
     return users
@@ -94,7 +120,8 @@ async def get_user(user_id: str, current_user: User = Depends(get_current_user))
     if not (is_self or is_staff):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
-    user_doc = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+    # Só o próprio vê a PII sensível; staff a ver terceiros recebe a vista reduzida.
+    user_doc = await db.users.find_one({"id": user_id}, _user_projection(include_sensitive=is_self))
     if not user_doc:
         raise HTTPException(status_code=404, detail="Utilizador não encontrado")
     parse_user_dates(user_doc)
