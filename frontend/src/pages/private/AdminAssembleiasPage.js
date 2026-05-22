@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { assembleiasAPI, cargosAPI } from '../../utils/api';
+import { assembleiasAPI } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
 import {
   ASSEMBLEIA_TIPO_LABELS,
@@ -12,13 +12,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import {
   Landmark, Calendar, MapPin, Users, Gavel, CheckCircle2, XCircle,
-  Search, PlusCircle, UserPlus, Lock, ChevronRight, ShieldCheck, X, FileText,
+  PlusCircle, UserPlus, Lock, ChevronRight, ShieldCheck, X, FileText,
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '../../components/ui/dialog';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
+import { MemberPicker } from '../../components/MemberPicker';
 
 const TIPO_OPTIONS = ['ordinaria', 'extraordinaria', 'eleitoral'];
 const MAIORIA_OPTIONS = ['absoluta', 'qualificada_3_4_presentes', 'qualificada_3_4_universo'];
@@ -60,76 +61,7 @@ const TipoBadge = ({ tipo }) => (
   </span>
 );
 
-// Procura de sócios (debounced) — reutilizada para presença e representados.
-const MemberPicker = ({ value, onSelect, testId, placeholder = 'Procurar por nome, email ou nº associado...' }) => {
-  const [search, setSearch] = useState('');
-  const [debounced, setDebounced] = useState('');
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(search), 300);
-    return () => clearTimeout(t);
-  }, [search]);
-
-  const { data: candidates = [], isFetching } = useQuery({
-    queryKey: queryKeys.cargos.candidates({ q: debounced }),
-    queryFn: async () => (await cargosAPI.candidates({ q: debounced || undefined })).data.candidates,
-    staleTime: 30 * 1000,
-  });
-
-  if (value) {
-    return (
-      <div className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-[#D1D5DB] bg-[#F5F5F5]">
-        <span className="text-sm text-grafite">
-          {value.name} <span className="font-mono text-xs text-[#6B7280]">{value.member_id || ''}</span>
-        </span>
-        <button
-          onClick={() => onSelect(null)}
-          className="text-xs text-carmesim font-semibold hover:underline cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 rounded"
-        >
-          Alterar
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={placeholder}
-          className="w-full pl-9 pr-3 py-2.5 border border-[#E5E7EB] rounded-md text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none"
-          data-testid={testId}
-        />
-      </div>
-      <div className="mt-1.5 max-h-44 overflow-y-auto rounded-lg border border-gray-100 divide-y divide-gray-50">
-        {isFetching && candidates.length === 0 ? (
-          <div className="px-3 py-3"><Skeleton className="h-4 w-40" /></div>
-        ) : candidates.length === 0 ? (
-          <p className="px-3 py-3 text-xs text-[#6B7280]">Nenhum sócio encontrado.</p>
-        ) : (
-          candidates.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => onSelect(c)}
-              className="w-full text-left px-3 py-2 hover:bg-[#F5F5F5] transition-colors cursor-pointer"
-              data-testid={`candidate-${c.id}`}
-            >
-              <span className="text-sm text-grafite">{c.name}</span>
-              <span className="ml-2 font-mono text-xs text-[#6B7280]">{c.member_id || ''}</span>
-              <span className="block text-xs text-[#6B7280]">{c.email} · {c.cargo}</span>
-            </button>
-          ))
-        )}
-      </div>
-    </>
-  );
-};
-
-const fieldCls = 'w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none';
+const fieldCls ='w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none';
 const labelCls = 'block text-xs font-medium text-[#6B7280] mb-1.5';
 const secondaryBtn = 'inline-flex items-center gap-1.5 bg-white border border-[#D1D5DB] text-[#3A3A3A] hover:bg-[#F5F5F5] rounded-md px-4 py-2 text-sm font-medium transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50';
 const primaryBtn = 'inline-flex items-center gap-1.5 bg-carmesim text-white hover:bg-carmesim-dark rounded-md px-4 py-2 text-sm font-semibold transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50';

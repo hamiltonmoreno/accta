@@ -165,6 +165,7 @@ class TestConfirmInvoice:
         assert exc.value.status_code == 403
 
     async def test_admin_confirms_sets_pago_status(self, mock_db, admin_user):
+        mock_db.invoices.find_one = AsyncMock(return_value={"id": "inv1"})
         captured = {}
 
         async def update_one(filter_q, update_op):
@@ -184,8 +185,15 @@ class TestConfirmInvoice:
         assert "confirmed_at" in set_data
 
     async def test_financeiro_confirms(self, mock_db, financeiro_user):
+        mock_db.invoices.find_one = AsyncMock(return_value={"id": "inv1"})
         mock_db.invoices.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
         result = await invoices_route.confirm_invoice(
             invoice_id="inv1", current_user=financeiro_user
         )
         assert "confirmado" in result["message"].lower()
+
+    async def test_404_when_invoice_missing(self, mock_db, admin_user):
+        mock_db.invoices.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await invoices_route.confirm_invoice(invoice_id="ghost", current_user=admin_user)
+        assert exc.value.status_code == 404

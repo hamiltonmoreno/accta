@@ -99,8 +99,7 @@ const BroadcastPanel = ({ onSent }) => {
     <div className="card-technical overflow-hidden" data-testid="broadcast-panel">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-4 hover:opacity-90 transition-colors"
-        style={{ backgroundColor: 'var(--surface-card)' }}
+        className="w-full flex items-center justify-between p-4 hover:opacity-90 transition-colors bg-[var(--surface-card)]"
       >
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-carmesim rounded-lg flex items-center justify-center">
@@ -116,12 +115,12 @@ const BroadcastPanel = ({ onSent }) => {
 
       {expanded && (
           <div className="overflow-hidden animate-fade-up">
-            <form onSubmit={handleSend} className="p-4 space-y-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
+            <form onSubmit={handleSend} className="p-4 space-y-3 border-t border-[var(--surface-border)]">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-wider mb-1 block text-muted-auto">Tipo</label>
                   <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
                     data-testid="broadcast-type-select">
                     <option value="geral">Geral</option>
                     <option value="financeiro">Financeiro</option>
@@ -134,7 +133,7 @@ const BroadcastPanel = ({ onSent }) => {
                   <label className="text-xs font-semibold uppercase tracking-wider mb-1 block text-muted-auto">Link (opcional)</label>
                   <input type="text" value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })}
                     placeholder="/financeiro, /eventos..."
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
                     data-testid="broadcast-link-input" />
                 </div>
               </div>
@@ -142,7 +141,7 @@ const BroadcastPanel = ({ onSent }) => {
                 <label className="text-xs font-semibold uppercase tracking-wider mb-1 block text-muted-auto">Titulo *</label>
                 <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
                   placeholder="Ex: Assembleia Geral Extraordinaria"
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
                   data-testid="broadcast-title-input" />
               </div>
               <div>
@@ -150,7 +149,7 @@ const BroadcastPanel = ({ onSent }) => {
                 <textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })}
                   placeholder="Detalhes da notificacao..."
                   rows={3}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none resize-none"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none resize-none"
                   data-testid="broadcast-message-input" />
               </div>
               <div className="flex items-center justify-between">
@@ -194,10 +193,9 @@ export const NotificacoesPage = () => {
     }
   };
 
-  const handleDelete = async (e, notificationId) => {
+  const handleDelete = (e, notificationId) => {
     e.stopPropagation();
-    await deleteNotification(notificationId);
-    toast.success('Notificacao removida');
+    deleteNotification(notificationId);
   };
 
   const getIcon = (type) => {

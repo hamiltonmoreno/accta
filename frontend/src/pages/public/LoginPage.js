@@ -174,7 +174,7 @@ export const LoginPage = () => {
                   autoComplete="email"
                   aria-invalid={errors.email ? 'true' : 'false'}
                   {...register('email')}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
                   placeholder="seu@email.cv"
                   data-testid="login-email"
                 />
@@ -202,7 +202,7 @@ export const LoginPage = () => {
                   autoComplete="current-password"
                   aria-invalid={errors.password ? 'true' : 'false'}
                   {...register('password')}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
                   placeholder="********"
                   data-testid="login-password"
                 />

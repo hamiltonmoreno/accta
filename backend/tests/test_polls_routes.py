@@ -247,7 +247,7 @@ class TestGetResults:
         assert exc.value.status_code == 404
 
     async def test_aggregates_votes_per_option(self, mock_db, socio_user):
-        mock_db.polls.find_one = AsyncMock(return_value={"id": "p1"})
+        mock_db.polls.find_one = AsyncMock(return_value={"id": "p1", "status": "encerrada"})
         votes = [
             {"vote_option": 1},
             {"vote_option": 1},
@@ -261,11 +261,23 @@ class TestGetResults:
         assert result["results"][2] == 1
 
     async def test_empty_returns_empty_results(self, mock_db, socio_user):
-        mock_db.polls.find_one = AsyncMock(return_value={"id": "p1"})
+        mock_db.polls.find_one = AsyncMock(return_value={"id": "p1", "status": "encerrada"})
         mock_db.user_votes.find = MagicMock(return_value=_cursor([]))
         result = await polls_route.get_poll_results(poll_id="p1", current_user=socio_user)
         assert result["total_votes"] == 0
         assert result["results"] == {}
+
+    async def test_socio_403_while_poll_open(self, mock_db, socio_user):
+        mock_db.polls.find_one = AsyncMock(return_value={"id": "p1", "status": "aberta"})
+        with pytest.raises(HTTPException) as exc:
+            await polls_route.get_poll_results(poll_id="p1", current_user=socio_user)
+        assert exc.value.status_code == 403
+
+    async def test_admin_sees_results_while_poll_open(self, mock_db, admin_user):
+        mock_db.polls.find_one = AsyncMock(return_value={"id": "p1", "status": "aberta"})
+        mock_db.user_votes.find = MagicMock(return_value=_cursor([{"vote_option": 1}]))
+        result = await polls_route.get_poll_results(poll_id="p1", current_user=admin_user)
+        assert result["total_votes"] == 1
 
 
 # --------------------------------------------------------------------------- #

@@ -21,7 +21,7 @@ from governance import (
     privileges_for_cargo,
     is_estatutary_cargo,
 )
-from database import db, transfer_cargo
+from database import db, transfer_cargo, next_member_id
 from auth import get_current_user, generate_qr_hash, has_role_or_privilege
 from helpers import create_audit_log, resolve_link_base, notify_users
 from email_service import send_invite_email, send_registration_rejected_email
@@ -49,6 +49,7 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
     invite_token = secrets.token_urlsafe(32)
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(days=INVITE_TOKEN_TTL_DAYS)
+    member_id = data.member_id or await next_member_id()
 
     user_doc = {
         "id": user_id,
@@ -57,9 +58,10 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
         "password": "",
         "role": data.role if data.role in ["socio", "financeiro", "moderador"] else "socio",
         "status": "pendente_convite",
+        "account_type": "member",
         "cargo": normalize_cargo(data.cargo) if data.cargo else "socio",
         "orgao": orgao_of_cargo(normalize_cargo(data.cargo)) if data.cargo else None,
-        "member_id": data.member_id or f"ACCTA-{str(uuid.uuid4())[:4].upper()}",
+        "member_id": member_id,
         "license_number": data.license_number or "",
         "department": data.department or "",
         "phone_number": data.phone_number or "",

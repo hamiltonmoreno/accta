@@ -283,12 +283,13 @@ async def delete_gallery_photo(photo_id: str, current_user: User = Depends(get_c
     if not photo:
         raise HTTPException(status_code=404, detail="Foto nao encontrada")
 
-    is_admin = current_user.role == "admin"
+    is_staff = has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content")
     is_owner = photo.get("uploaded_by") == current_user.id
-    if not is_admin and not is_owner:
+    if not is_staff and not is_owner:
         raise HTTPException(status_code=403, detail="Sem permissao")
 
     delete_upload_file(photo.get("url", ""))
 
     await db.gallery_photos.delete_one({"id": photo_id})
+    await create_audit_log(current_user.id, "gallery_photo_deleted", photo_id)
     return {"message": "Foto removida"}

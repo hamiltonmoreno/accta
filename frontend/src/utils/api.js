@@ -298,7 +298,7 @@ export const validatorAPI = {
 
 // Audit Logs API
 export const auditAPI = {
-  getLogs: () => api.get('/audit-logs'),
+  getLogs: (params = {}) => api.get('/audit-logs', { params }),
 };
 
 // Statistics API

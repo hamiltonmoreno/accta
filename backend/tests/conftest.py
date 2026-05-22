@@ -126,6 +126,8 @@ def moderador_user(moderador_user_dict):
 @pytest.fixture
 def make_token():
     """Return a callable that produces a JWT for a given user_id with custom expiry."""
+    import uuid
+
     from jose import jwt
 
     secret = os.environ["SECRET_KEY"]
@@ -133,7 +135,8 @@ def make_token():
     def _make(user_id: str, expires_delta: timedelta | None = None, extra_claims: dict | None = None) -> str:
         now = datetime.now(timezone.utc)
         exp = now + (expires_delta if expires_delta is not None else timedelta(minutes=60))
-        payload = {"sub": user_id, "exp": exp}
+        # jti por defeito: tokens reais (create_access_token) sempre o incluem.
+        payload = {"sub": user_id, "exp": exp, "jti": str(uuid.uuid4())}
         if extra_claims:
             payload.update(extra_claims)
         return jwt.encode(payload, secret, algorithm="HS256")

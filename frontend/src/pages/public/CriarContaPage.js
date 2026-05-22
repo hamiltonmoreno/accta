@@ -108,7 +108,7 @@ export const CriarContaPage = () => {
                 aria-invalid={errors.name ? 'true' : 'false'}
                 {...register('name')}
                 placeholder="O seu nome"
-                className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none aria-[invalid=true]:border-carmesim/60"
+                className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none aria-[invalid=true]:border-carmesim/60"
                 data-testid="reg-name"
               />
             </div>
@@ -125,7 +125,7 @@ export const CriarContaPage = () => {
                 aria-invalid={errors.email ? 'true' : 'false'}
                 {...register('email')}
                 placeholder="email@exemplo.cv"
-                className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none aria-[invalid=true]:border-carmesim/60"
+                className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none aria-[invalid=true]:border-carmesim/60"
                 data-testid="reg-email"
               />
             </div>
@@ -142,7 +142,7 @@ export const CriarContaPage = () => {
                   type="tel"
                   {...register('phone_number')}
                   placeholder="(opcional)"
-                  className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none"
+                  className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none"
                   data-testid="reg-phone"
                 />
               </div>
@@ -156,7 +156,7 @@ export const CriarContaPage = () => {
                   type="text"
                   {...register('department')}
                   placeholder="(opcional)"
-                  className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none"
+                  className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none"
                   data-testid="reg-dept"
                 />
               </div>
@@ -168,7 +168,7 @@ export const CriarContaPage = () => {
             <select
               id="reg-cargo"
               {...register('cargo_declarado')}
-              className="w-full px-3 py-3 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none"
+              className="w-full px-3 py-3 border border-gray-200 rounded-lg text-sm bg-white focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none"
               data-testid="reg-cargo"
             >
               {cargos.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -192,7 +192,7 @@ export const CriarContaPage = () => {
                 aria-invalid={errors.sponsor1 ? 'true' : 'false'}
                 {...register('sponsor1')}
                 placeholder="ACCTA-0001 ou email"
-                className="w-full px-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none aria-[invalid=true]:border-carmesim/60"
+                className="w-full px-3 py-3 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none aria-[invalid=true]:border-carmesim/60"
                 data-testid="reg-sponsor1"
               />
               {errors.sponsor1 && <p className="text-xs text-[#B91C1C] mt-1" role="alert">{errors.sponsor1.message}</p>}
@@ -205,7 +205,7 @@ export const CriarContaPage = () => {
                 aria-invalid={errors.sponsor2 ? 'true' : 'false'}
                 {...register('sponsor2')}
                 placeholder="ACCTA-0002 ou email"
-                className="w-full px-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none aria-[invalid=true]:border-carmesim/60"
+                className="w-full px-3 py-3 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none aria-[invalid=true]:border-carmesim/60"
                 data-testid="reg-sponsor2"
               />
               {errors.sponsor2 && <p className="text-xs text-[#B91C1C] mt-1" role="alert">{errors.sponsor2.message}</p>}
@@ -216,7 +216,7 @@ export const CriarContaPage = () => {
             <input
               type="checkbox"
               {...register('consent_data')}
-              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-carmesim focus:ring-2 focus:ring-carmesim/40"
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-carmesim focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
               data-testid="reg-consent"
             />
             <span className="text-xs text-[#6B7280] leading-relaxed">

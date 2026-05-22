@@ -13,6 +13,10 @@ import { TransactionModal } from './TransactionModal';
 import { CATEGORY_LABELS, PAGE_SIZE } from './constants';
 import { EmptyState } from '../../../components/EmptyState';
 import { Skeleton } from '../../../components/ui/skeleton';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '../../../components/ui/alert-dialog';
 
 // `delay` removido — stagger entre 4 cards era cosmetico (0-0.2s).
 const StatBlock = ({ label, value, icon: Icon, color }) => (
@@ -27,6 +31,7 @@ const StatBlock = ({ label, value, icon: Icon, color }) => (
 
 export const CashFlowTab = ({ canManage = true }) => {
   const qc = useQueryClient();
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [filterType, setFilterType] = useState('');
   const [searchText, setSearchText] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
@@ -112,9 +117,11 @@ export const CashFlowTab = ({ canManage = true }) => {
 
   const csvExporting = exportMutation.isPending;
 
-  const handleDelete = (id) => {
-    if (!window.confirm('Tem certeza que deseja remover esta transacao?')) return;
-    deleteMutation.mutate(id);
+  const handleDelete = (id) => setConfirmDeleteId(id);
+
+  const confirmDelete = () => {
+    if (confirmDeleteId) deleteMutation.mutate(confirmDeleteId);
+    setConfirmDeleteId(null);
   };
 
   const handleExportCSV = () => exportMutation.mutate();
@@ -157,16 +164,16 @@ export const CashFlowTab = ({ canManage = true }) => {
               placeholder="Pesquisar descricao..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="search-input"
             />
           </div>
           <div className="flex items-center gap-1.5">
             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-              className="px-2.5 py-2.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none" data-testid="start-date-filter" />
+              className="px-2.5 py-2.5 border border-gray-200 rounded-lg text-xs focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none" data-testid="start-date-filter" />
             <span className="text-[#6B7280] text-xs">a</span>
             <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-              className="px-2.5 py-2.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none" data-testid="end-date-filter" />
+              className="px-2.5 py-2.5 border border-gray-200 rounded-lg text-xs focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none" data-testid="end-date-filter" />
           </div>
           <div className="flex items-center gap-1.5 ml-auto">
             <Filter className="w-4 h-4 text-gray-400 hidden sm:block" />
@@ -183,7 +190,7 @@ export const CashFlowTab = ({ canManage = true }) => {
         </div>
 
         {(searchDebounced || startDate || endDate) && (
-          <div className="flex items-center gap-2 mt-2 pt-2" style={{ borderTop: '1px solid var(--surface-border)' }}>
+          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[var(--surface-border)]">
             <span className="text-xs text-[#6B7280] uppercase tracking-wider">Filtros ativos:</span>
             {searchDebounced && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-xs text-gray-600">
@@ -303,7 +310,7 @@ export const CashFlowTab = ({ canManage = true }) => {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
+              <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--surface-border)]">
                 <span className="text-xs text-[#6B7280]">{page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, total)} de {total}</span>
                 <div className="flex items-center gap-1">
                   <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}
@@ -341,6 +348,21 @@ export const CashFlowTab = ({ canManage = true }) => {
           onSaved={invalidateAll}
         />
       )}
+
+      <AlertDialog open={confirmDeleteId !== null} onOpenChange={(open) => !open && setConfirmDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover transação?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="bg-[#C7202F] hover:bg-[#A51B27]" onClick={confirmDelete}>
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

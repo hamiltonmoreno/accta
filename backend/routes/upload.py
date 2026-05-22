@@ -6,7 +6,10 @@ from auth import get_current_user
 from helpers import create_audit_log
 from file_validation import validate_file_content
 import asyncio
+import logging
 import uuid
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["upload"])
 
@@ -43,6 +46,11 @@ async def upload_file(category: str, file: UploadFile = File(...), current_user:
     if category in ("banners", "brand", "covers") and current_user.role not in ("admin", "moderador"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
+    # Comprovativos e avatares: qualquer membro, mas só se estiver ativo
+    # (suspenso/inativo/pendente não deve poder carregar ficheiros).
+    if category in ("proofs", "avatars") and current_user.status != "ativo":
+        raise HTTPException(status_code=403, detail="Sem permissão")
+
     # Le tudo em memoria (limite por categoria, max 10MB) — necessario para
     # validacao de magic bytes / Pillow.verify().
     max_size = MAX_FILE_SIZES.get(category, 5 * 1024 * 1024)
@@ -69,8 +77,9 @@ async def upload_file(category: str, file: UploadFile = File(...), current_user:
         await create_audit_log(current_user.id, f"Upload de arquivo: {file.filename}", unique_filename)
 
         return {"filename": file.filename, "file_url": file_url, "size": len(contents), "category": category}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao salvar arquivo: {str(e)}")
+    except Exception:
+        logger.exception("Falha ao guardar upload (categoria=%s)", category)
+        raise HTTPException(status_code=500, detail="Erro interno ao processar o ficheiro")
 
 
 @router.delete("/upload/{category}/{filename}")
@@ -94,5 +103,6 @@ async def delete_file(category: str, filename: str, current_user: User = Depends
         file_path.unlink()
         await create_audit_log(current_user.id, f"Deletou arquivo: {filename}", filename)
         return {"message": "Arquivo deletado com sucesso"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao deletar arquivo: {str(e)}")
+    except Exception:
+        logger.exception("Falha ao apagar ficheiro %s/%s", category, filename)
+        raise HTTPException(status_code=500, detail="Erro interno ao processar o ficheiro")

@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { eleicoesAPI, cargosAPI, governanceAPI } from '../../utils/api';
+import { eleicoesAPI, governanceAPI } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
 import { ELEICAO_STATUS_LABELS, cargoLabelFrom, orgaoLabel } from '../../lib/governanceLabels';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import {
-  Vote, ListChecks, Search, Plus, Trophy, AlertTriangle, CheckCircle2, XCircle,
+  Vote, ListChecks, Plus, Trophy, AlertTriangle, CheckCircle2, XCircle,
   Clock, FileSignature, Layers, CalendarRange, Hash,
 } from 'lucide-react';
 import {
@@ -14,6 +14,7 @@ import {
 } from '../../components/ui/dialog';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
+import { MemberPicker as CandidatePicker } from '../../components/MemberPicker';
 
 const MODO_LABELS = {
   presencial: 'Presencial',
@@ -63,80 +64,7 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-// Procura de sócios elegíveis (debounced) para preencher um slot de candidatura.
-const CandidatePicker = ({ value, onSelect, testId }) => {
-  const [search, setSearch] = useState('');
-  const [debounced, setDebounced] = useState('');
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(search), 300);
-    return () => clearTimeout(t);
-  }, [search]);
-
-  const { data: candidates = [], isFetching } = useQuery({
-    queryKey: queryKeys.cargos.candidates({ q: debounced }),
-    queryFn: async () => (await cargosAPI.candidates({ q: debounced || undefined })).data.candidates,
-    staleTime: 30 * 1000,
-  });
-
-  if (value) {
-    return (
-      <div className="flex items-center justify-between px-3 py-2 rounded-md border border-[#D1D5DB] bg-[#F5F5F5]">
-        <span className="text-sm text-grafite truncate">
-          {value.name} <span className="font-mono text-xs text-[#6B7280]">{value.member_id || ''}</span>
-        </span>
-        <button
-          type="button"
-          onClick={() => onSelect(null)}
-          className="text-xs text-carmesim font-semibold hover:underline cursor-pointer ml-2 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 rounded"
-        >
-          Alterar
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Procurar sócio por nome, email ou nº..."
-          className="w-full pl-9 pr-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none"
-          data-testid={testId}
-        />
-      </div>
-      {debounced && (
-        <div className="mt-1.5 max-h-40 overflow-y-auto rounded-md border border-gray-100 divide-y divide-gray-50">
-          {isFetching && candidates.length === 0 ? (
-            <div className="px-3 py-2.5"><Skeleton className="h-4 w-40" /></div>
-          ) : candidates.length === 0 ? (
-            <p className="px-3 py-2.5 text-xs text-[#6B7280]">Nenhum sócio encontrado.</p>
-          ) : (
-            candidates.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => onSelect(c)}
-                className="w-full text-left px-3 py-2 hover:bg-[#F5F5F5] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40"
-                data-testid={`candidate-${c.id}`}
-              >
-                <span className="text-sm text-grafite">{c.name}</span>
-                <span className="ml-2 font-mono text-xs text-[#6B7280]">{c.member_id || ''}</span>
-                <span className="block text-xs text-[#6B7280]">{c.email}</span>
-              </button>
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const fieldClass = 'w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none';
+const fieldClass ='w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none';
 const labelClass = 'block text-xs font-medium text-[#6B7280] mb-1.5';
 const secondaryBtn = 'px-4 py-2 rounded-md bg-white border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 disabled:opacity-50';
 const primaryBtn = 'px-4 py-2 rounded-md bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 ring-offset-2 disabled:opacity-50';
@@ -307,6 +235,9 @@ const SubmeterListaModal = ({ open, onClose, onSubmit, pending, slots, structure
                     value={picks[s.slot_key] || null}
                     onSelect={(u) => setPicks((prev) => ({ ...prev, [s.slot_key]: u }))}
                     testId={`slot-picker-${s.slot_key}`}
+                    placeholder="Procurar sócio por nome, email ou nº..."
+                    showCargo={false}
+                    gateOnQuery
                   />
                 </div>
               ))}

@@ -1,23 +1,35 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { auditAPI } from '../../utils/api';
-import { ClipboardList, Activity } from 'lucide-react';
+import { ClipboardList, Activity, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { queryKeys } from '../../lib/queryClient';
 import { EmptyState } from '../../components/EmptyState';
 
+const PAGE_SIZE = 50;
+
 export const AdminLogsPage = () => {
-  const { data: logs = [], isLoading: loading } = useQuery({
-    queryKey: queryKeys.audit.logs(),
+  const [page, setPage] = useState(0);
+  const skip = page * PAGE_SIZE;
+
+  const { data: logs = [], isLoading: loading, isFetching } = useQuery({
+    queryKey: queryKeys.audit.logs({ skip, limit: PAGE_SIZE }),
     queryFn: async () => {
-      const res = await auditAPI.getLogs();
+      const res = await auditAPI.getLogs({ skip, limit: PAGE_SIZE });
       return res.data;
     },
     // Audit logs sao apenas leitura. 60s staleTime razoavel — o staff nao
     // espera ver entries inseridos por outros admins ao segundo.
     staleTime: 60 * 1000,
+    // Mantém a página anterior visível enquanto a próxima carrega (sem flash).
+    placeholderData: keepPreviousData,
   });
+
+  // O backend devolve no máximo PAGE_SIZE entries — uma página cheia indica que
+  // pode haver mais. Não há endpoint de contagem global, por isso paginamos por
+  // tamanho de página.
+  const hasNext = logs.length === PAGE_SIZE;
 
   return (
     <div className="space-y-6">
@@ -38,7 +50,7 @@ export const AdminLogsPage = () => {
             </div>
           </div>
           <div className="font-mono text-3xl font-bold text-grafite mb-1">{logs.length}</div>
-          <div className="text-sm text-gray-500 uppercase tracking-wider">Total de Registros</div>
+          <div className="text-sm text-gray-500 uppercase tracking-wider">Registros nesta página</div>
         </div>
 
         <div className="card-technical rounded-xl p-6 animate-fade-up">
@@ -63,7 +75,7 @@ export const AdminLogsPage = () => {
         <div className="card-technical rounded-xl p-6 text-center py-12">
           <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : logs.length === 0 ? (
+      ) : logs.length === 0 && page === 0 ? (
         <EmptyState icon={ClipboardList} title="Nenhum registro de auditoria" testId="no-logs" />
       ) : (
         <div className="card-technical rounded-xl p-6">
@@ -88,6 +100,37 @@ export const AdminLogsPage = () => {
               </div>
             ))}
           </div>
+
+          {/* Paginação por página (skip/limit) */}
+          {(page > 0 || hasNext) && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-[var(--surface-border)]">
+              <span className="text-xs text-gray-500">
+                Registros {skip + 1}–{skip + logs.length}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0 || isFetching}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-white border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                  data-testid="logs-prev-page"
+                >
+                  <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+                  Anterior
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={!hasNext || isFetching}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-white border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                  data-testid="logs-next-page"
+                >
+                  Próxima
+                  <ChevronRight className="w-4 h-4" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

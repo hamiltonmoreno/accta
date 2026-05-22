@@ -45,15 +45,14 @@ async def get_unread_count(current_user: User = Depends(get_current_user)):
 
 
 @router.get("/notifications/stream")
-async def notification_stream(request: Request, token: Optional[str] = Query(None)):
+async def notification_stream(request: Request):
     """Server-Sent Events stream para count de nao-lidas em tempo-real.
 
-    Auth: cookie httpOnly (Sprint 10) ou Authorization header (clientes
-    browser usam EventSource com {withCredentials: true}); fallback para
-    `?token=` query param para clientes legados — sera removido em v2.
+    Auth: cookie httpOnly (Sprint 10) ou Authorization header — o browser usa
+    EventSource com {withCredentials: true}. O fallback `?token=` foi removido
+    (o token aparecia em logs de Nginx/proxy); clientes usam cookie/header.
     """
-    extracted = _extract_token(request)
-    final_token = extracted or token
+    final_token = _extract_token(request)
     if not final_token:
         raise HTTPException(status_code=401, detail="Nao autenticado")
     user = await get_user_from_token(final_token)
@@ -159,11 +158,15 @@ async def get_notification_types(current_user: User = Depends(get_current_user))
 
 # AUDIT LOGS
 @router.get("/audit-logs", response_model=List[AuditLog])
-async def get_audit_logs(current_user: User = Depends(get_current_user)):
+async def get_audit_logs(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=500),
+    current_user: User = Depends(get_current_user),
+):
     if not has_role_or_privilege(current_user, ("admin",), "view_audit_logs"):
         raise HTTPException(status_code=403, detail="Sem permissao")
 
-    logs = await db.audit_logs.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    logs = await db.audit_logs.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     for log in logs:
         if isinstance(log.get("created_at"), str):
             log["created_at"] = datetime.fromisoformat(log["created_at"])
