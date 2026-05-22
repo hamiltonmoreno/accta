@@ -4,6 +4,10 @@ import { financesAPI } from '../../../utils/api';
 import { toast } from 'sonner';
 import { DollarSign, Settings, RefreshCw, CheckCircle, Users } from 'lucide-react';
 import { MONTH_NAMES } from './constants';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '../../../components/ui/alert-dialog';
 
 export const SettingsTab = () => {
   const qc = useQueryClient();
@@ -12,6 +16,7 @@ export const SettingsTab = () => {
   const [genMonth, setGenMonth] = useState(new Date().getMonth() + 1);
   const [genYear, setGenYear] = useState(new Date().getFullYear());
   const [genResult, setGenResult] = useState(null);
+  const [confirmGen, setConfirmGen] = useState(false);
 
   const { data: settings, isLoading: loading } = useQuery({
     queryKey: ['finance', 'settings'],
@@ -54,8 +59,10 @@ export const SettingsTab = () => {
     updateMutation.mutate({ quota_amount: parseFloat(quotaAmount), quota_description: quotaDesc });
   };
 
-  const handleGenerate = () => {
-    if (!window.confirm(`Gerar quotas de ${MONTH_NAMES[genMonth - 1]}/${genYear} para todos os socios ativos?`)) return;
+  const handleGenerate = () => setConfirmGen(true);
+
+  const confirmGenerate = () => {
+    setConfirmGen(false);
     setGenResult(null);
     generateMutation.mutate({ month: genMonth, year: genYear });
   };
@@ -154,6 +161,21 @@ export const SettingsTab = () => {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={confirmGen} onOpenChange={setConfirmGen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Gerar quotas mensais?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Serão geradas as quotas de {MONTH_NAMES[genMonth - 1]}/{genYear} para todos os sócios ativos. Sócios que já tenham quota neste mês serão ignorados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmGenerate}>Gerar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
