@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { honorariosAPI } from '../../utils/api';
+import { honorariosAPI, assembleiasAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { Medal, Plus, Vote, Gavel, Loader2, ArrowRight } from 'lucide-react';
+import { Medal, Plus, Vote, Gavel, Loader2, ArrowRight, Link2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -28,6 +28,7 @@ export const HonorariosPage = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ nominee_name: '', justificacao: '', nominee_email: '' });
   const [statusFilter, setStatusFilter] = useState('');
+  const [ligar, setLigar] = useState({}); // { [honorarioId]: { assembleia_id, deliberacao_id } }
 
   const KEY = ['honorarios', statusFilter];
   const { data: itens = [], isLoading } = useQuery({
@@ -35,6 +36,13 @@ export const HonorariosPage = () => {
     queryFn: async () => (await honorariosAPI.list(statusFilter || undefined)).data,
     enabled: canSee,
   });
+  // Assembleias para o seletor de ligação e para resolver o título (§2.4).
+  const { data: assembleias = [] } = useQuery({
+    queryKey: ['assembleias', 'para-ligar'],
+    queryFn: async () => (await assembleiasAPI.list()).data,
+    enabled: canSee,
+  });
+  const assembleiaLabel = (id) => assembleias.find((a) => a.id === id)?.titulo || id;
   const invalidate = () => qc.invalidateQueries({ queryKey: ['honorarios'] });
 
   const createMut = useMutation({
@@ -65,6 +73,11 @@ export const HonorariosPage = () => {
       invalidate();
     },
     onError: (e) => toast.error(e.response?.data?.detail || 'Erro ao apurar'),
+  });
+  const ligarMut = useMutation({
+    mutationFn: ({ id, data }) => honorariosAPI.ligar(id, data),
+    onSuccess: () => { toast.success('Nomeação ligada à deliberação da AG.'); invalidate(); },
+    onError: (e) => toast.error(e.response?.data?.detail || 'Erro ao ligar à assembleia'),
   });
 
   if (!canSee) {
@@ -128,6 +141,26 @@ export const HonorariosPage = () => {
                     <p className="text-xs font-medium text-[#6B7280] mb-1">Resultado da votação (2/3 dos votos válidos)</p>
                     <p className="text-sm text-grafite">{h.votos_favor} a favor em {h.votos_total_base} válidos {h.status === 'eleito' ? '— eleito.' : '— não atingiu os 2/3.'}</p>
                   </div>
+                )}
+
+                {decidido && (
+                  h.assembleia_id ? (
+                    <p className="text-xs text-[#6B7280] inline-flex items-center gap-1.5 pt-1" data-testid={`ligado-${h.id}`}>
+                      <Link2 className="w-3.5 h-3.5" aria-hidden="true" />
+                      Ligada à AG: {assembleiaLabel(h.assembleia_id)}{h.deliberacao_id ? ` · deliberação ${h.deliberacao_id}` : ''}
+                    </p>
+                  ) : canManageVote ? (
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <select value={ligar[h.id]?.assembleia_id || ''} onChange={(e) => setLigar({ ...ligar, [h.id]: { ...ligar[h.id], assembleia_id: e.target.value } })} className="px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`ligar-assembleia-${h.id}`}>
+                        <option value="">Ligar à deliberação de uma AG…</option>
+                        {assembleias.map((a) => <option key={a.id} value={a.id}>{a.titulo}</option>)}
+                      </select>
+                      <input type="text" value={ligar[h.id]?.deliberacao_id || ''} onChange={(e) => setLigar({ ...ligar, [h.id]: { ...ligar[h.id], deliberacao_id: e.target.value } })} placeholder="ID deliberação (opcional)" className="px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`ligar-delib-${h.id}`} />
+                      <button onClick={() => ligarMut.mutate({ id: h.id, data: { assembleia_id: ligar[h.id].assembleia_id, deliberacao_id: ligar[h.id]?.deliberacao_id?.trim() || null } })} disabled={ligarMut.isPending || !ligar[h.id]?.assembleia_id} className="inline-flex items-center gap-1.5 border border-[#D1D5DB] text-grafite px-3 py-2 rounded-md text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`ligar-btn-${h.id}`}>
+                        <Link2 className="w-4 h-4" aria-hidden="true" /> Ligar
+                      </button>
+                    </div>
+                  ) : null
                 )}
 
                 {(h.status === 'proposta' || h.status === 'em_votacao') && (

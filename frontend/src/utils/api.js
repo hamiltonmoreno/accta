@@ -110,6 +110,8 @@ export const honorariosAPI = {
   create: (data) => api.post('/honorarios', data),
   abrirVotacao: (id) => api.post(`/honorarios/${id}/abrir-votacao`),
   apurar: (id) => api.post(`/honorarios/${id}/apurar`),
+  // F6 — reconciliação §2.4: ligar nomeação apurada à deliberação da AG.
+  ligar: (id, data) => api.post(`/honorarios/${id}/ligar-assembleia`, data),
 };
 
 // Cargos / mandatos (spec-identidade-cargos / spec-governanca)
