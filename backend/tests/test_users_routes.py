@@ -167,6 +167,99 @@ class TestUpdateOwnProfile:
             await users_route.update_own_profile(data=update, current_user=socio_user)
         assert exc.value.status_code == 400
 
+    async def test_persists_extended_profile_fields(self, mock_db, socio_user, socio_user_dict):
+        """feature/perfil — campos pessoais estendidos chegam ao $set."""
+        from models import UserProfileUpdate
+
+        mock_db.users.find_one = AsyncMock(return_value=socio_user_dict)
+        update = UserProfileUpdate(
+            date_of_birth="1990-05-22",
+            blood_type="o+",  # normalizado para O+
+            address="Rua Direita, 12",
+            city="Praia",
+            residence_island="Santiago",
+            emergency_contact_name="Maria",
+            emergency_contact_phone="+238 991 0000",
+            emergency_contact_relationship="Cônjuge",
+            profession="Contabilista",
+            license_number="ACCTA-CC-001",
+            license_expiry_date="2027-01-31",
+        )
+        await users_route.update_own_profile(data=update, current_user=socio_user)
+        set_data = mock_db.users.update_one.call_args[0][1]["$set"]
+        assert set_data["date_of_birth"] == "1990-05-22"
+        assert set_data["blood_type"] == "O+"  # validator normaliza
+        assert set_data["address"] == "Rua Direita, 12"
+        assert set_data["emergency_contact_name"] == "Maria"
+        assert set_data["license_expiry_date"] == "2027-01-31"
+        # Campos não enviados não entram no $set (route filtra None).
+        assert "gender" not in set_data
+
+
+# --------------------------------------------------------------------------- #
+# Validação dos modelos de escrita de perfil (_EditableProfileFields)
+# --------------------------------------------------------------------------- #
+
+
+class TestProfileFieldValidation:
+    """field_validators vivem nos modelos de escrita; entradas inválidas dão
+    ValidationError (→ 422 via FastAPI) antes de chegar ao route."""
+
+    def test_invalid_blood_type_rejected(self):
+        from pydantic import ValidationError
+        from models import UserProfileUpdate
+
+        with pytest.raises(ValidationError):
+            UserProfileUpdate(blood_type="Z+")
+
+    def test_blood_type_normalized_uppercase(self):
+        from models import UserProfileUpdate
+
+        assert UserProfileUpdate(blood_type="ab-").blood_type == "AB-"
+
+    def test_invalid_date_format_rejected(self):
+        from pydantic import ValidationError
+        from models import UserProfileUpdate
+
+        with pytest.raises(ValidationError):
+            UserProfileUpdate(date_of_birth="22/05/1990")
+
+    def test_future_date_of_birth_rejected(self):
+        from pydantic import ValidationError
+        from models import UserProfileUpdate
+
+        with pytest.raises(ValidationError):
+            UserProfileUpdate(date_of_birth="3000-01-01")
+
+    def test_future_license_expiry_allowed(self):
+        from models import UserProfileUpdate
+
+        assert UserProfileUpdate(license_expiry_date="3000-01-01").license_expiry_date == "3000-01-01"
+
+    def test_blank_name_rejected(self):
+        from pydantic import ValidationError
+        from models import UserProfileUpdate
+
+        with pytest.raises(ValidationError):
+            UserProfileUpdate(name="   ")
+
+    def test_empty_string_clears_field(self):
+        """"" é permitido (= limpar); o route grava-o (só filtra None)."""
+        from models import UserProfileUpdate
+
+        m = UserProfileUpdate(blood_type="", date_of_birth="")
+        assert m.blood_type == "" and m.date_of_birth == ""
+
+    def test_admin_update_inherits_personal_fields(self):
+        """UserAdminUpdate herda os campos pessoais + valida-os."""
+        from pydantic import ValidationError
+        from models import UserAdminUpdate
+
+        ok = UserAdminUpdate(blood_type="a+", role="admin")
+        assert ok.blood_type == "A+" and ok.role == "admin"
+        with pytest.raises(ValidationError):
+            UserAdminUpdate(date_of_birth="not-a-date")
+
 
 # --------------------------------------------------------------------------- #
 # PATCH /users/{id} — admin only
