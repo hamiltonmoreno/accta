@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { assembleiasAPI, cargosAPI } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
@@ -11,7 +12,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import {
   Landmark, Calendar, MapPin, Users, Gavel, CheckCircle2, XCircle,
-  Search, PlusCircle, UserPlus, Lock, ChevronRight, ShieldCheck, X,
+  Search, PlusCircle, UserPlus, Lock, ChevronRight, ShieldCheck, X, FileText,
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
@@ -388,6 +389,19 @@ export const AdminAssembleiasPage = () => {
                         <li key={i}>{typeof p === 'string' ? p : (p?.titulo || p?.ponto || '—')}</li>
                       ))}
                     </ol>
+                  </div>
+                )}
+
+                {detail.acta_document_id && (
+                  <div className="mt-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#6B7280] mb-1.5">Acta</p>
+                    <Link
+                      to="/documentos"
+                      className="inline-flex items-center gap-1.5 text-sm text-carmesim font-medium hover:underline focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 rounded"
+                      data-testid="acta-link"
+                    >
+                      <FileText className="w-4 h-4" aria-hidden="true" /> Acta registada — ver na biblioteca de documentos
+                    </Link>
                   </div>
                 )}
 

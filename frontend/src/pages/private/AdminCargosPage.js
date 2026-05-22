@@ -66,7 +66,7 @@ const CandidatePicker = ({ excludeCargo, value, onSelect, testId }) => {
             {isFetching && candidates.length === 0 ? (
               <div className="px-3 py-3"><Skeleton className="h-4 w-40" /></div>
             ) : isError ? (
-              <p className="px-3 py-3 text-xs text-carmesim font-medium">Não foi possível carregar os sócios. Tente novamente.</p>
+              <p className="px-3 py-3 text-xs text-[#B91C1C] font-medium">Não foi possível carregar os sócios. Tente novamente.</p>
             ) : candidates.length === 0 ? (
               <p className="px-3 py-3 text-xs text-[#6B7280]">Nenhum sócio encontrado.</p>
             ) : (
