@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field, ConfigDict, EmailStr
+from pydantic import BaseModel, Field, ConfigDict, EmailStr, field_validator
 from typing import List, Literal, Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 import uuid
 
 # Governança estatutária (spec-governanca-estatutaria): a fonte ÚNICA de
@@ -68,6 +68,29 @@ class UserBase(BaseModel):
     bio: Optional[str] = None
     department: Optional[str] = None
     photo_url: Optional[str] = None
+    # ===== Perfil pessoal estendido (feature/perfil) =====
+    # Campos opcionais geridos pelo próprio sócio (PATCH /users/me/profile) ou
+    # por admin. Datas como string ISO "AAAA-MM-DD" (regra do projeto: nunca
+    # datetime nos modelos). UserBase fica LENIENTE (sem validação) para nunca
+    # falhar a serialização de documentos legados; a validação vive nos modelos
+    # de escrita (_EditableProfileFields).
+    date_of_birth: Optional[str] = None  # aniversário (AAAA-MM-DD)
+    blood_type: Optional[str] = None  # tipo sanguíneo (A+, O-, …)
+    gender: Optional[str] = None
+    nationality: Optional[str] = None
+    nif: Optional[str] = None  # número de identificação fiscal
+    address: Optional[str] = None  # morada (rua/linha)
+    postal_code: Optional[str] = None  # código postal
+    city: Optional[str] = None  # cidade / concelho
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_phone: Optional[str] = None
+    emergency_contact_relationship: Optional[str] = None  # parentesco
+    profession: Optional[str] = None
+    employer: Optional[str] = None  # entidade empregadora
+    license_category: Optional[str] = None  # título/categoria profissional
+    # Validade da licença profissional (AAAA-MM-DD). Usada no frontend para
+    # avisar o sócio antes do prazo e ajudá-lo a renovar sem multa.
+    license_expiry_date: Optional[str] = None
 
 
 class UserCreate(UserBase):
@@ -82,29 +105,119 @@ class User(UserBase):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-class UserProfileUpdate(BaseModel):
-    name: Optional[str] = None
-    phone_number: Optional[str] = None
-    bio: Optional[str] = None
-    photo_url: Optional[str] = None
+# Tipos sanguíneos aceites (sistema ABO/Rh). Usado na validação de escrita.
+BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 
 
-class UserAdminUpdate(BaseModel):
+def _validate_blood_type(v: Optional[str]) -> Optional[str]:
+    # None/"" passam (None = não alterar; "" = limpar — o route filtra só None).
+    if v is None or v == "":
+        return v
+    norm = v.strip().upper()
+    if norm not in BLOOD_TYPES:
+        raise ValueError(f"Tipo sanguíneo inválido. Opções: {', '.join(BLOOD_TYPES)}")
+    return norm
+
+
+def _validate_date_str(v: Optional[str], *, allow_future: bool = True, label: str = "Data") -> Optional[str]:
+    """Valida string de data ISO; devolve sempre 'AAAA-MM-DD' normalizado."""
+    if v is None or v == "":
+        return v
+    try:
+        parsed = date.fromisoformat(v.strip()[:10])
+    except (ValueError, TypeError):
+        raise ValueError(f"{label} deve estar no formato AAAA-MM-DD")
+    if not allow_future and parsed > date.today():
+        raise ValueError(f"{label} não pode estar no futuro")
+    return parsed.isoformat()
+
+
+def _validate_name(v: Optional[str]) -> Optional[str]:
+    if v is None:
+        return v
+    if not v.strip():
+        raise ValueError("O nome não pode ficar vazio")
+    return v.strip()
+
+
+class _EditableProfileFields(BaseModel):
+    """Campos de perfil editáveis pelo próprio sócio e por admin.
+
+    A validação (formato de datas, tipo sanguíneo, nome não-vazio, limites de
+    tamanho) vive aqui — modelos de ESCRITA. `UserBase` permanece leniente na
+    leitura. Enviar "" limpa o campo; omitir mantém o valor atual (o route só
+    filtra valores None de `model_dump()`).
+    """
+
+    name: Optional[str] = Field(default=None, max_length=120)
+    phone_number: Optional[str] = Field(default=None, max_length=30)
+    bio: Optional[str] = Field(default=None, max_length=1000)
+    photo_url: Optional[str] = Field(default=None, max_length=500)
+    # Dados pessoais
+    date_of_birth: Optional[str] = None  # AAAA-MM-DD
+    blood_type: Optional[str] = None
+    gender: Optional[str] = Field(default=None, max_length=40)
+    nationality: Optional[str] = Field(default=None, max_length=60)
+    nif: Optional[str] = Field(default=None, max_length=40)
+    # Morada
+    address: Optional[str] = Field(default=None, max_length=200)
+    postal_code: Optional[str] = Field(default=None, max_length=20)
+    city: Optional[str] = Field(default=None, max_length=80)
+    residence_island: Optional[str] = Field(default=None, max_length=60)
+    # Contacto de emergência
+    emergency_contact_name: Optional[str] = Field(default=None, max_length=120)
+    emergency_contact_phone: Optional[str] = Field(default=None, max_length=30)
+    emergency_contact_relationship: Optional[str] = Field(default=None, max_length=60)
+    # Profissional / licença
+    profession: Optional[str] = Field(default=None, max_length=120)
+    employer: Optional[str] = Field(default=None, max_length=120)
+    license_number: Optional[str] = Field(default=None, max_length=60)
+    license_category: Optional[str] = Field(default=None, max_length=80)
+    license_expiry_date: Optional[str] = None  # AAAA-MM-DD
+
+    @field_validator("name")
+    @classmethod
+    def _v_name(cls, v):
+        return _validate_name(v)
+
+    @field_validator("blood_type")
+    @classmethod
+    def _v_blood(cls, v):
+        return _validate_blood_type(v)
+
+    @field_validator("date_of_birth")
+    @classmethod
+    def _v_dob(cls, v):
+        return _validate_date_str(v, allow_future=False, label="Data de nascimento")
+
+    @field_validator("license_expiry_date")
+    @classmethod
+    def _v_license_expiry(cls, v):
+        return _validate_date_str(v, label="Validade da licença")
+
+
+class UserProfileUpdate(_EditableProfileFields):
+    """Auto-serviço (PATCH /users/me/profile): o sócio gere os seus próprios
+    dados pessoais, de contacto, de emergência e profissionais/licença.
+    NÃO inclui campos de acesso (role/status/privileges) nem identidade
+    (email/member_id/cargo)."""
+
+    pass
+
+
+class UserAdminUpdate(_EditableProfileFields):
     # NOTA: member_id e cargo NÃO são editáveis aqui (spec-identidade-cargos).
     # - member_id é imutável depois de atribuído (alterações só via script de
     #   migração, fora da API comum).
     # - cargo institucional é atribuído EXCLUSIVAMENTE via /admin/cargos
     #   (promote/demote/transfer), que regista o mandato em cargo_history e
     #   valida as vagas (CARGO_SEATS). Editá-lo aqui contornaria esse histórico.
-    name: Optional[str] = None
+    # Além dos campos pessoais herdados, o admin pode editar acesso/identidade:
     email: Optional[EmailStr] = None
     role: Optional[str] = None
     status: Optional[str] = None
     privileges: Optional[List[str]] = None
-    license_number: Optional[str] = None
-    phone_number: Optional[str] = None
-    department: Optional[str] = None
-    bio: Optional[str] = None
+    department: Optional[str] = Field(default=None, max_length=80)
 
 
 class UserLogin(BaseModel):

@@ -6,14 +6,16 @@ import { queryKeys } from '../../lib/queryClient';
 import { PRIVILEGE_LABELS, cargoLabelFrom, memberCategoryLabel } from '../../lib/governanceLabels';
 import { toast } from 'sonner';
 import {
-  Mail, Phone, Shield, Award, FileText,
-  Calendar, Save, Briefcase, Hash, Pencil, X, History, AlertTriangle, Users as UsersIcon
+  Mail, Phone, Shield, Award, FileText, Calendar, Save, Briefcase, Hash,
+  Pencil, X, History, AlertTriangle, Users as UsersIcon, Cake, Droplet,
+  MapPin, Home, Globe, HeartPulse, Building2, BadgeCheck, Clock,
+  CheckCircle2, Fingerprint, User as UserIcon,
 } from 'lucide-react';
 import {
   USER_STATUS_CONFIG, USER_STATUS_FALLBACK, getStatusConfig,
 } from '../../lib/statusConfig';
 
-const formatHistoryDate = (iso) => {
+const formatDate = (iso) => {
   if (!iso) return null;
   try {
     return new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -21,6 +23,62 @@ const formatHistoryDate = (iso) => {
     return null;
   }
 };
+
+// Idade a partir da data de nascimento (AAAA-MM-DD). Devolve null se inválida.
+const calcAge = (dob) => {
+  if (!dob) return null;
+  const d = new Date(dob);
+  if (Number.isNaN(d.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age -= 1;
+  return age >= 0 && age < 130 ? age : null;
+};
+
+const BLOOD_TYPE_OPTIONS = [
+  { value: '', label: '—' },
+  ...['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((t) => ({ value: t, label: t })),
+];
+
+const GENDER_OPTIONS = [
+  { value: '', label: '—' },
+  { value: 'Feminino', label: 'Feminino' },
+  { value: 'Masculino', label: 'Masculino' },
+  { value: 'Outro', label: 'Outro' },
+  { value: 'Prefiro não indicar', label: 'Prefiro não indicar' },
+];
+
+const labelCls = 'block text-xs uppercase tracking-widest text-gray-500 font-semibold mb-1';
+const inputCls =
+  'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none';
+
+const FormInput = ({ id, testId, label, value, onChange, type = 'text', placeholder, max }) => (
+  <div>
+    <label htmlFor={id} className={labelCls}>{label}</label>
+    <input
+      id={id}
+      type={type}
+      value={value}
+      maxLength={max}
+      placeholder={placeholder}
+      onChange={(e) => onChange(e.target.value)}
+      className={inputCls}
+      data-testid={testId || id}
+    />
+  </div>
+);
+
+const FormSelect = ({ id, label, value, onChange, options }) => (
+  <div>
+    <label htmlFor={id} className={labelCls}>{label}</label>
+    <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={inputCls} data-testid={id}>
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>{o.label}</option>
+      ))}
+    </select>
+  </div>
+);
 
 // Timeline só-leitura do percurso do próprio sócio na associação. Mostra o
 // label do cargo (a key canónica é interna), com marcação de suplente.
@@ -44,7 +102,7 @@ const MeusCargosSection = ({ userId, structure }) => {
               {m.suplente && <span className="ml-1.5 text-xs text-[#6B7280]">(suplente)</span>}
             </span>
             <span className="font-mono text-xs text-[#6B7280]">
-              {formatHistoryDate(m.inicio) || '—'} → {m.fim ? formatHistoryDate(m.fim) : 'presente'}
+              {formatDate(m.inicio) || '—'} → {m.fim ? formatDate(m.fim) : 'presente'}
             </span>
           </li>
         ))}
@@ -55,7 +113,7 @@ const MeusCargosSection = ({ userId, structure }) => {
 
 const PrivilegesSection = ({ privileges }) => {
   if (!privileges || privileges.length === 0) return null;
-  
+
   return (
     <div className="card-technical p-5 animate-fade-up">
       <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280] mb-3">Privilégios Atribuídos</h3>
@@ -76,29 +134,80 @@ const InfoRow = ({ icon: Icon, label, value }) => (
     <Icon className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
     <div className="min-w-0">
       <span className="text-xs uppercase tracking-widest text-gray-500 font-semibold block">{label}</span>
-      <span className="text-sm text-grafite font-medium" data-testid={`profile-${label.toLowerCase().replace(/\s/g, '-')}`}>{value || '—'}</span>
+      <span className="text-sm text-grafite font-medium break-words" data-testid={`profile-${label.toLowerCase().replace(/\s/g, '-')}`}>{value || '—'}</span>
     </div>
   </div>
 );
 
+// Aviso de validade da licença — ajuda o sócio a renovar a tempo (sem multa).
+// Verde (>60 dias) → âmbar (≤60) → carmesim (expirada/urgente).
+const LicenseExpiryNotice = ({ expiry }) => {
+  if (!expiry) return null;
+  const exp = new Date(expiry);
+  if (Number.isNaN(exp.getTime())) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  exp.setHours(0, 0, 0, 0);
+  const days = Math.round((exp - today) / 86400000);
+
+  let cfg;
+  if (days < 0) {
+    cfg = {
+      cls: 'border-carmesim/30 bg-carmesim/5 text-carmesim',
+      Icon: AlertTriangle,
+      msg: `Licença expirada há ${Math.abs(days)} dia(s). Renove com urgência para evitar multa.`,
+    };
+  } else if (days === 0) {
+    cfg = {
+      cls: 'border-carmesim/30 bg-carmesim/5 text-carmesim',
+      Icon: AlertTriangle,
+      msg: 'A sua licença expira hoje. Renove para evitar multa.',
+    };
+  } else if (days <= 60) {
+    cfg = {
+      cls: 'border-[#FDE68A] bg-[#FFFBEB] text-[#B45309]',
+      Icon: Clock,
+      msg: `A sua licença expira em ${days} dia(s) (${formatDate(expiry)}). Renove a tempo para evitar multa.`,
+    };
+  } else {
+    cfg = {
+      cls: 'border-[#BBF7D0] bg-[#F0FDF4] text-[#15803D]',
+      Icon: CheckCircle2,
+      msg: `Licença válida até ${formatDate(expiry)}.`,
+    };
+  }
+  const { Icon } = cfg;
+  return (
+    <div className={`flex items-start gap-2 rounded-lg border p-3 mt-3 ${cfg.cls}`} role="status" data-testid="license-expiry-notice">
+      <Icon className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
+      <p className="text-xs font-medium">{cfg.msg}</p>
+    </div>
+  );
+};
+
+const EMPTY_FORM = {
+  name: '', phone_number: '', bio: '',
+  date_of_birth: '', blood_type: '', gender: '', nationality: '', nif: '',
+  address: '', postal_code: '', city: '', residence_island: '',
+  emergency_contact_name: '', emergency_contact_phone: '', emergency_contact_relationship: '',
+  profession: '', employer: '', license_number: '', license_category: '', license_expiry_date: '',
+};
+
 export const PerfilPage = () => {
   const { user, refreshUser } = useAuth();
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({
-    name: '',
-    phone_number: '',
-    bio: '',
-  });
+  const [form, setForm] = useState(EMPTY_FORM);
 
   useEffect(() => {
     if (user) {
       setForm({
-        name: user.name || '',
-        phone_number: user.phone_number || '',
-        bio: user.bio || '',
+        ...EMPTY_FORM,
+        ...Object.fromEntries(Object.keys(EMPTY_FORM).map((k) => [k, user[k] || ''])),
       });
     }
   }, [user]);
+
+  const set = (key) => (val) => setForm((f) => ({ ...f, [key]: val }));
 
   const updateMutation = useMutation({
     mutationFn: (data) => usersAPI.updateProfile(data),
@@ -120,7 +229,22 @@ export const PerfilPage = () => {
   });
 
   const loading = updateMutation.isPending;
-  const handleSave = () => updateMutation.mutate(form);
+  const handleSave = () => {
+    if (!form.name.trim()) {
+      toast.error('O nome não pode ficar vazio.');
+      return;
+    }
+    updateMutation.mutate(form);
+  };
+  const handleCancel = () => {
+    if (user) {
+      setForm({
+        ...EMPTY_FORM,
+        ...Object.fromEntries(Object.keys(EMPTY_FORM).map((k) => [k, user[k] || ''])),
+      });
+    }
+    setEditing(false);
+  };
 
   if (!user) return null;
 
@@ -132,6 +256,10 @@ export const PerfilPage = () => {
   const suspendedUntil = user.rights_suspended_until;
   const rightsSuspended = !!suspendedUntil && new Date(suspendedUntil) > new Date();
   const StatusIcon = statusCfg.icon;
+  const age = calcAge(user.date_of_birth);
+  const dobLabel = user.date_of_birth
+    ? `${formatDate(user.date_of_birth)}${age != null ? ` (${age} anos)` : ''}`
+    : null;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6" data-testid="profile-page">
@@ -149,7 +277,7 @@ export const PerfilPage = () => {
           </button>
         ) : (
           <button
-            onClick={() => setEditing(false)}
+            onClick={handleCancel}
             className="inline-flex items-center gap-2 text-sm font-semibold text-[#6B7280] hover:text-grafite transition-colors"
             data-testid="cancel-edit-btn"
           >
@@ -198,7 +326,7 @@ export const PerfilPage = () => {
             <p className="font-semibold text-[#B45309]">Direitos suspensos</p>
             <p className="text-[#6B7280]">
               Os seus direitos de voto e elegibilidade estão suspensos até{' '}
-              {formatHistoryDate(suspendedUntil) || suspendedUntil}.
+              {formatDate(suspendedUntil) || suspendedUntil}.
               {user.rights_suspension_reason ? ` Motivo: ${user.rights_suspension_reason}.` : ''}
             </p>
           </div>
@@ -207,45 +335,66 @@ export const PerfilPage = () => {
 
       {/* Edit Form */}
       {editing && (
-        <div className="card-technical p-6 space-y-4 animate-fade-up">
-          <h3 className="font-semibold text-sm text-grafite">Editar Informações</h3>
-
-          <div>
-            <label htmlFor="profile-name" className="block text-xs uppercase tracking-widest text-gray-500 font-semibold mb-1">Nome</label>
-            <input
-              id="profile-name"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none"
-              data-testid="profile-edit-name"
-            />
+        <div className="card-technical p-6 space-y-6 animate-fade-up" data-testid="profile-edit-form">
+          {/* Dados pessoais */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280]">Dados Pessoais</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormInput id="profile-name" testId="profile-edit-name" label="Nome" value={form.name} onChange={set('name')} max={120} />
+              <FormInput id="profile-phone" testId="profile-edit-phone" label="Telefone" value={form.phone_number} onChange={set('phone_number')} type="tel" placeholder="+238 9XX XXXX" max={30} />
+              <FormInput id="profile-dob" label="Data de Nascimento" value={form.date_of_birth} onChange={set('date_of_birth')} type="date" />
+              <FormSelect id="profile-blood" label="Tipo Sanguíneo" value={form.blood_type} onChange={set('blood_type')} options={BLOOD_TYPE_OPTIONS} />
+              <FormSelect id="profile-gender" label="Género" value={form.gender} onChange={set('gender')} options={GENDER_OPTIONS} />
+              <FormInput id="profile-nationality" label="Nacionalidade" value={form.nationality} onChange={set('nationality')} placeholder="Cabo-verdiana" max={60} />
+              <FormInput id="profile-nif" label="NIF" value={form.nif} onChange={set('nif')} max={40} />
+            </div>
+            <div>
+              <label htmlFor="profile-bio" className={labelCls}>Biografia</label>
+              <textarea
+                id="profile-bio"
+                value={form.bio}
+                onChange={(e) => set('bio')(e.target.value)}
+                rows={3}
+                maxLength={1000}
+                placeholder="Fale um pouco sobre si..."
+                className={`${inputCls} resize-none`}
+                data-testid="profile-edit-bio"
+              />
+            </div>
           </div>
 
-          <div>
-            <label htmlFor="profile-phone" className="block text-xs uppercase tracking-widest text-gray-500 font-semibold mb-1">Telefone</label>
-            <input
-              id="profile-phone"
-              type="tel"
-              inputMode="tel"
-              value={form.phone_number}
-              onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
-              placeholder="+238 9XX XXXX"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none"
-              data-testid="profile-edit-phone"
-            />
+          {/* Morada */}
+          <div className="space-y-4 pt-2 border-t border-gray-100">
+            <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280]">Morada</h3>
+            <FormInput id="profile-address" label="Endereço" value={form.address} onChange={set('address')} placeholder="Rua, n.º, andar" max={200} />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <FormInput id="profile-postal" label="Código Postal" value={form.postal_code} onChange={set('postal_code')} max={20} />
+              <FormInput id="profile-city" label="Cidade / Concelho" value={form.city} onChange={set('city')} max={80} />
+              <FormInput id="profile-island" label="Ilha de Residência" value={form.residence_island} onChange={set('residence_island')} placeholder="Santiago" max={60} />
+            </div>
           </div>
 
-          <div>
-            <label htmlFor="profile-bio" className="block text-xs uppercase tracking-widest text-gray-500 font-semibold mb-1">Biografia</label>
-            <textarea
-              id="profile-bio"
-              value={form.bio}
-              onChange={(e) => setForm({ ...form, bio: e.target.value })}
-              rows={3}
-              placeholder="Fale um pouco sobre si..."
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none resize-none"
-              data-testid="profile-edit-bio"
-            />
+          {/* Contacto de emergência */}
+          <div className="space-y-4 pt-2 border-t border-gray-100">
+            <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280]">Contacto de Emergência</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <FormInput id="profile-ec-name" label="Nome" value={form.emergency_contact_name} onChange={set('emergency_contact_name')} max={120} />
+              <FormInput id="profile-ec-phone" label="Telefone" value={form.emergency_contact_phone} onChange={set('emergency_contact_phone')} type="tel" placeholder="+238 9XX XXXX" max={30} />
+              <FormInput id="profile-ec-rel" label="Parentesco" value={form.emergency_contact_relationship} onChange={set('emergency_contact_relationship')} placeholder="Cônjuge, filho/a..." max={60} />
+            </div>
+          </div>
+
+          {/* Profissional e licença */}
+          <div className="space-y-4 pt-2 border-t border-gray-100">
+            <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280]">Dados Profissionais e Licença</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormInput id="profile-profession" label="Profissão" value={form.profession} onChange={set('profession')} max={120} />
+              <FormInput id="profile-employer" label="Entidade Empregadora" value={form.employer} onChange={set('employer')} max={120} />
+              <FormInput id="profile-license-number" label="N.º de Licença" value={form.license_number} onChange={set('license_number')} max={60} />
+              <FormInput id="profile-license-category" label="Categoria / Título" value={form.license_category} onChange={set('license_category')} max={80} />
+              <FormInput id="profile-license-expiry" label="Validade da Licença" value={form.license_expiry_date} onChange={set('license_expiry_date')} type="date" />
+            </div>
+            <LicenseExpiryNotice expiry={form.license_expiry_date} />
           </div>
 
           <button
@@ -266,17 +415,48 @@ export const PerfilPage = () => {
           <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280] mb-3">Dados Pessoais</h3>
           <InfoRow icon={Mail} label="Email" value={user.email} />
           <InfoRow icon={Phone} label="Telefone" value={user.phone_number} />
+          <InfoRow icon={Cake} label="Nascimento" value={dobLabel} />
+          <InfoRow icon={Droplet} label="Tipo Sanguíneo" value={user.blood_type} />
+          <InfoRow icon={UserIcon} label="Género" value={user.gender} />
+          <InfoRow icon={Globe} label="Nacionalidade" value={user.nationality} />
+          <InfoRow icon={Fingerprint} label="NIF" value={user.nif} />
           <InfoRow icon={FileText} label="Biografia" value={user.bio} />
           <InfoRow icon={Hash} label="N.º Sócio" value={user.member_id} />
         </div>
 
         <div className="card-technical p-5 animate-fade-up">
+          <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280] mb-3">Morada</h3>
+          <InfoRow icon={MapPin} label="Endereço" value={user.address} />
+          <InfoRow icon={Home} label="Código Postal" value={user.postal_code} />
+          <InfoRow icon={Building2} label="Cidade" value={user.city} />
+          <InfoRow icon={MapPin} label="Ilha" value={user.residence_island} />
+        </div>
+
+        <div className="card-technical p-5 animate-fade-up">
+          <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280] mb-3">Contacto de Emergência</h3>
+          <InfoRow icon={HeartPulse} label="Nome" value={user.emergency_contact_name} />
+          <InfoRow icon={Phone} label="Telefone" value={user.emergency_contact_phone} />
+          <InfoRow icon={UsersIcon} label="Parentesco" value={user.emergency_contact_relationship} />
+        </div>
+
+        <div className="card-technical p-5 animate-fade-up">
+          <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280] mb-3">Profissional e Licença</h3>
+          <InfoRow icon={Briefcase} label="Profissão" value={user.profession} />
+          <InfoRow icon={Building2} label="Entidade" value={user.employer} />
+          <InfoRow icon={Award} label="N.º Licença" value={user.license_number} />
+          <InfoRow icon={BadgeCheck} label="Categoria" value={user.license_category} />
+          <InfoRow icon={Clock} label="Validade" value={formatDate(user.license_expiry_date)} />
+          <LicenseExpiryNotice expiry={user.license_expiry_date} />
+        </div>
+
+        <div className="card-technical p-5 animate-fade-up md:col-span-2">
           <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280] mb-3">Associação</h3>
-          <InfoRow icon={Shield} label="Função" value={roleLabel[user.role]} />
-          <InfoRow icon={Briefcase} label="Cargo" value={cargoNome} />
-          <InfoRow icon={UsersIcon} label="Categoria" value={memberCategoryLabel(user.member_category)} />
-          <InfoRow icon={Award} label="Licença" value={user.license_number} />
-          <InfoRow icon={Calendar} label="Admissão" value={user.admission_date ? new Date(user.admission_date).toLocaleDateString('pt-PT') : '—'} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 sm:gap-x-8">
+            <InfoRow icon={Shield} label="Função" value={roleLabel[user.role]} />
+            <InfoRow icon={Briefcase} label="Cargo" value={cargoNome} />
+            <InfoRow icon={UsersIcon} label="Categoria" value={memberCategoryLabel(user.member_category)} />
+            <InfoRow icon={Calendar} label="Admissão" value={user.admission_date ? new Date(user.admission_date).toLocaleDateString('pt-PT') : '—'} />
+          </div>
         </div>
       </div>
 
