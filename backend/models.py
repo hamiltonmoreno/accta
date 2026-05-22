@@ -136,8 +136,10 @@ def _validate_datetime_str(v, *, label: str = "Data"):
     """Valida string de data-hora ISO-8601 (input do cliente) e devolve-a
     normalizada. As datas guardam-se como string ISO (regra models.md); este
     validador preserva a validação que o tipo `datetime` dava de borla nos
-    modelos de escrita. Aceita o sufixo 'Z' e None/"" (campos opcionais)."""
-    if v is None or v == "":
+    modelos de escrita. None passa (campos Optional); "" é rejeitado — uma
+    string vazia num campo de data dava 422 com o tipo `datetime` e, sem isto,
+    seria guardada como data inválida (parte sorts/$gte e crasha _parse_dt)."""
+    if v is None:
         return v
     if isinstance(v, datetime):
         return v.isoformat()

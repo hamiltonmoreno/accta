@@ -19,10 +19,14 @@ _ALLOWED_TRANSITIONS: dict[str, set[str]] = {
 
 
 def _parse_dt(value) -> Optional[datetime]:
-    """ISO string (ou datetime) -> datetime tz-aware (assume UTC se naive)."""
-    if value is None:
+    """ISO string (ou datetime) -> datetime tz-aware (assume UTC se naive).
+    Vazio/ilegível -> None (tratado como "sem limite") em vez de crashar o voto."""
+    if not value:
         return None
-    dt = value if isinstance(value, datetime) else datetime.fromisoformat(value)
+    try:
+        dt = value if isinstance(value, datetime) else datetime.fromisoformat(value)
+    except (ValueError, TypeError):
+        return None
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt

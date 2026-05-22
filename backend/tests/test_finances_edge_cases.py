@@ -160,6 +160,34 @@ class TestInvoice:
 
 
 # --------------------------------------------------------------------------- #
+# Empty-string date rejection (regressão Lote 6)
+# --------------------------------------------------------------------------- #
+
+
+class TestEmptyStringDateRejected:
+    """Uma string vazia num campo de data tem de falhar a validação, não ser
+    guardada. Antes do Lote 6 o tipo `datetime` rejeitava ""; ao migrar para
+    `str` o validador tem de continuar a rejeitar — caso contrário a data vazia
+    é persistida, parte `.sort("date")`/`$gte` e crasha `_parse_dt("")`."""
+
+    def test_transaction_create_rejects_empty_date(self):
+        with pytest.raises(ValidationError):
+            TransactionCreate(type="receita", category="quotas", description="x", amount=1.0, date="")
+
+    def test_transaction_update_rejects_empty_date(self):
+        # Optional no update: limpar é via None; "" continua inválido.
+        with pytest.raises(ValidationError):
+            TransactionUpdate(date="")
+
+    def test_transaction_update_allows_none_date(self):
+        assert TransactionUpdate(date=None).date is None
+
+    def test_invoice_create_rejects_empty_due_date(self):
+        with pytest.raises(ValidationError):
+            InvoiceCreate(user_id="u1", type="quota_mensal", amount=1.0, due_date="")
+
+
+# --------------------------------------------------------------------------- #
 # FinanceSettings — quota amount sanity
 # --------------------------------------------------------------------------- #
 
