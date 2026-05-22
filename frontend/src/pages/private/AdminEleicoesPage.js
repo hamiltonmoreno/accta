@@ -323,19 +323,34 @@ const VotarModal = ({ open, onClose, onSubmit, pending, listas }) => {
 };
 
 // ── Modal: validar / rejeitar lista ───────────────────────────────────────────
-const ValidarListaModal = ({ lista, onClose, onSubmit, pending }) => {
+const ValidarListaModal = ({ lista, structure, onClose, onSubmit, pending }) => {
   const [motivo, setMotivo] = useState('');
 
   useEffect(() => { setMotivo(''); }, [lista]);
+
+  const candidatos = lista?.candidatos || [];
 
   return (
     <Dialog open={!!lista} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Validar lista {lista?.letra}</DialogTitle>
-          <DialogDescription>Aceite a lista ou rejeite-a indicando o motivo.</DialogDescription>
+          <DialogDescription>Confira os cargos cobertos e aceite a lista, ou rejeite-a indicando o motivo.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
+          {candidatos.length > 0 && (
+            <div>
+              <p className={labelClass}>Cargos na lista ({candidatos.length})</p>
+              <ul className="max-h-44 overflow-y-auto rounded-md border border-[#E5E7EB] divide-y divide-[#F5F5F5] text-sm" data-testid="validar-candidatos">
+                {candidatos.map((c, i) => (
+                  <li key={c.user_id || c.slot_key || i} className="px-3 py-1.5 flex items-center justify-between gap-2">
+                    <span className="text-grafite truncate">{cargoLabelFrom(structure, c.cargo)}</span>
+                    {c.suplente && <span className="text-xs text-[#6B7280] shrink-0">suplente</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div>
             <label className={labelClass} htmlFor="rejeicao-motivo">Motivo (em caso de rejeição)</label>
             <textarea
@@ -367,6 +382,74 @@ const ValidarListaModal = ({ lista, onClose, onSubmit, pending }) => {
               data-testid="aceitar-lista-confirm"
             >
               {pending ? 'A validar...' : 'Aceitar lista'}
+            </button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// ── Modal: voto por correspondência (Comissão/Mesa/admin) ─────────────────────
+// Registo administrativo de um boletim recebido por correspondência. SEGREDO: o
+// sentido do voto nunca é confirmado associado ao eleitor após submissão.
+const VotoCorrespondenciaModal = ({ open, onClose, onSubmit, pending, listas }) => {
+  const [voter, setVoter] = useState(null);
+  const [voto, setVoto] = useState(null);
+  const [justificacao, setJustificacao] = useState('');
+
+  useEffect(() => { if (open) { setVoter(null); setVoto(null); setJustificacao(''); } }, [open]);
+
+  const aceites = listas.filter((l) => l.estado === 'aceite');
+  const Option = ({ id, children }) => (
+    <label className={`flex items-center gap-3 px-3 py-2.5 rounded-md border cursor-pointer transition-colors ${voto === id ? 'border-carmesim bg-carmesim/5' : 'border-[#E5E7EB] hover:bg-[#F5F5F5]'}`}>
+      <input type="radio" name="voto-corr" checked={voto === id} onChange={() => setVoto(id)} className="text-carmesim focus:ring-carmesim/40" />
+      <span className="text-sm text-grafite">{children}</span>
+    </label>
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Voto por correspondência</DialogTitle>
+          <DialogDescription>Registo administrativo de um boletim recebido por correspondência. O sentido do voto não fica associado ao eleitor.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <label className={labelClass}>Eleitor</label>
+            <CandidatePicker value={voter} onSelect={setVoter} testId="corr-voter" />
+          </div>
+          <div className="space-y-2">
+            {aceites.map((l) => (
+              <Option key={l.id} id={l.id}><span className="font-semibold mr-1">Lista {l.letra}</span>{l.nome || ''}</Option>
+            ))}
+            <Option id="branco">Voto em branco</Option>
+            <Option id="nulo">Voto nulo</Option>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="corr-just">Justificação</label>
+            <textarea
+              id="corr-just"
+              value={justificacao}
+              onChange={(e) => setJustificacao(e.target.value)}
+              rows={2}
+              maxLength={500}
+              placeholder="Ex.: boletim recebido por correio em DD/MM/AAAA"
+              className={`${fieldClass} resize-none`}
+              data-testid="corr-justificacao"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={onClose} className={secondaryBtn}>Cancelar</button>
+            <button
+              type="button"
+              onClick={() => onSubmit({ user_id: voter.id, voto, justificacao: justificacao.trim() })}
+              disabled={!voter || !voto || justificacao.trim().length < 3 || pending}
+              className={primaryBtn}
+              data-testid="corr-confirm"
+            >
+              {pending ? 'A registar...' : 'Registar voto'}
             </button>
           </div>
         </div>
@@ -449,6 +532,7 @@ const ResultadoPanel = ({ resultado, listas }) => {
 const EleicaoDetail = ({ eleicaoId, structure, canManage, isVotingMember, qc }) => {
   const [submeterOpen, setSubmeterOpen] = useState(false);
   const [votarOpen, setVotarOpen] = useState(false);
+  const [corrOpen, setCorrOpen] = useState(false);
   const [validarLista, setValidarLista] = useState(null);
 
   const { data: detail, isLoading } = useQuery({
@@ -493,6 +577,12 @@ const EleicaoDetail = ({ eleicaoId, structure, canManage, isVotingMember, qc }) 
   const votarMutation = useMutation({
     mutationFn: (data) => eleicoesAPI.votar(eleicaoId, data),
     onSuccess: () => { toast.success('Voto registado.'); setVotarOpen(false); invalidate(); },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao registar o voto'),
+  });
+
+  const corrMutation = useMutation({
+    mutationFn: (data) => eleicoesAPI.votoCorrespondencia(eleicaoId, data),
+    onSuccess: () => { toast.success('Voto por correspondência registado.'); setCorrOpen(false); invalidate(); },
     onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao registar o voto'),
   });
 
@@ -553,12 +643,17 @@ const EleicaoDetail = ({ eleicaoId, structure, canManage, isVotingMember, qc }) 
                 </button>
               </>
             )}
+            {canManage && status === 'votacao' && (detail.modo_votacao === 'correspondencia' || detail.modo_votacao === 'hibrido') && (
+              <button type="button" onClick={() => setCorrOpen(true)} className={secondaryBtn} data-testid="voto-corr-btn">
+                Voto por correspondência
+              </button>
+            )}
             {canManage && status === 'votacao' && (
               <button
                 type="button"
                 onClick={() => apurarMutation.mutate()}
                 disabled={apurarMutation.isPending}
-                className={primaryBtn}
+                className={secondaryBtn}
                 data-testid="apurar-btn"
               >
                 {apurarMutation.isPending ? 'A apurar...' : 'Apurar'}
@@ -669,8 +764,16 @@ const EleicaoDetail = ({ eleicaoId, structure, canManage, isVotingMember, qc }) 
         pending={votarMutation.isPending}
         listas={listas}
       />
+      <VotoCorrespondenciaModal
+        open={corrOpen}
+        onClose={() => setCorrOpen(false)}
+        onSubmit={(data) => corrMutation.mutate(data)}
+        pending={corrMutation.isPending}
+        listas={listas}
+      />
       <ValidarListaModal
         lista={validarLista}
+        structure={structure}
         onClose={() => setValidarLista(null)}
         onSubmit={(data) => validarMutation.mutate({ listaId: validarLista.id, data })}
         pending={validarMutation.isPending}
