@@ -432,6 +432,37 @@ class PropostaIncluir(BaseModel):
     ordem_index: Optional[int] = None
 
 
+# 1.2 — Membros honorários (Art. 8.4): Direcção nomeia → AG vota → 2/3 elege.
+
+
+class HonorarioNomination(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    nominee_name: str = Field(min_length=2, max_length=120)
+    nominee_user_id: Optional[str] = None  # se elevar membro existente
+    nominee_email: Optional[EmailStr] = None  # se pessoa nova → convite se eleito
+    justificacao: str = Field(min_length=1, max_length=4000)  # serviços relevantes
+    status: Literal["proposta", "em_votacao", "eleito", "rejeitado"] = "proposta"
+    proposta_por: Optional[str] = None  # Direcção
+    poll_id: Optional[str] = None  # votação 2/3 associada (reusa polls/user_votes)
+    # Base do 2/3 (decisão do dono): votos válidos emitidos (favor+contra). Mantém
+    # "presentes" no Literal só para forward-compat quando o módulo Assembleia existir.
+    base_apuramento: Literal["validos", "presentes"] = "validos"
+    votos_favor: Optional[int] = None
+    votos_total_base: Optional[int] = None
+    assembleia_id: Optional[str] = None
+    deliberacao_id: Optional[str] = None
+    created_at: Optional[str] = None
+    source_article: str = "8.4"
+
+
+class HonorarioCreate(BaseModel):
+    nominee_name: str = Field(min_length=2, max_length=120)
+    nominee_user_id: Optional[str] = None
+    nominee_email: Optional[EmailStr] = None
+    justificacao: str = Field(min_length=1, max_length=4000)
+
+
 class RegistrationReject(BaseModel):
     reason: Optional[str] = Field(default=None, max_length=500)
 
