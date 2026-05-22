@@ -223,7 +223,7 @@ async def get_financial_summary(
         if month:
             start = f"{year}-{month:02d}-01T00:00:00"
             if month == 12:
-                end = f"{year}-12-31T23:59:59"
+                end = f"{year + 1}-01-01T00:00:00"
             else:
                 end = f"{year}-{month + 1:02d}-01T00:00:00"
         query["date"] = {"$gte": start, "$lt": end} if month else {"$gte": start, "$lte": end}
@@ -487,7 +487,7 @@ async def generate_monthly_quotas(
             category="quotas",
             description=f"{quota_desc} - {month:02d}/{year} - {user.get('name', 'Socio')}",
             amount=quota_amount,
-            date=datetime.fromisoformat(f"{year}-{month:02d}-15T00:00:00"),
+            date=datetime(year, month, 15, tzinfo=timezone.utc),
             reference=f"FOLHA-{year}{month:02d}",
             user_id=user["id"],
             created_by=current_user.id,
@@ -870,6 +870,7 @@ async def export_dre_pdf(
 
 @router.get("/meta/categories")
 async def get_finance_categories(current_user: User = Depends(get_current_user)):
+    require_view_finances(current_user)
     return {
         "income": INCOME_CATEGORIES,
         "expense": EXPENSE_CATEGORIES,

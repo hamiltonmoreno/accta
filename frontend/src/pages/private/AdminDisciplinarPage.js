@@ -56,7 +56,8 @@ const formatEscudo = (v) => {
   return `${n.toLocaleString('pt-PT')} CVE`;
 };
 
-const isoOrNull = (dateStr) => (dateStr ? `${dateStr}T00:00:00.000Z` : null);
+// Meio-dia UTC evita o desvio de dia em fusos negativos (campo só-data).
+const isoOrNull = (dateStr) => (dateStr ? `${dateStr}T12:00:00.000Z` : null);
 
 const TipoBadge = ({ tipo }) => {
   const meta = TIPO_META[tipo] || TIPO_META.advertencia;

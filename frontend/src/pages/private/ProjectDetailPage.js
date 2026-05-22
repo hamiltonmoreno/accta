@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -502,15 +502,15 @@ const ProjectDetailPage = () => {
 
   const projectQuery = useQuery({
     queryKey: queryKeys.projects.byId(id),
-    queryFn: async () => {
-      try {
-        return (await projectsAPI.getOne(id)).data;
-      } catch (err) {
-        if (err.response?.status === 404) navigate('/projetos');
-        throw err;
-      }
-    },
+    queryFn: async () => (await projectsAPI.getOne(id)).data,
+    retry: (count, err) => err?.response?.status !== 404 && count < 3,
   });
+
+  // 404 → projeto inexistente: redireciona como efeito, não dentro do queryFn
+  // (chamar navigate durante o fetch faz setState num componente a desmontar).
+  useEffect(() => {
+    if (projectQuery.error?.response?.status === 404) navigate('/projetos');
+  }, [projectQuery.error, navigate]);
 
   const membersQuery = useQuery({
     queryKey: ['users', 'members'],

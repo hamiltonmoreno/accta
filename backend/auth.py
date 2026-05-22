@@ -104,10 +104,12 @@ def create_access_token(data: dict) -> str:
 
 
 async def is_token_revoked(jti: Optional[str]) -> bool:
-    """True se o jti foi adicionado ao blocklist (logout). False se jti=None
-    (tokens legados sem jti — backward-compat: consideram-se validos)."""
+    """True se o jti foi adicionado ao blocklist (logout) OU se o token não tem
+    jti. Sem jti não há forma de o verificar contra a blocklist, por isso é
+    tratado como revogado (tokens legados pré-jti expiram em <=24h; todos os
+    tokens emitidos agora incluem jti)."""
     if not jti:
-        return False
+        return True
     found = await db.tokens_revoked.find_one({"jti": jti}, {"_id": 1})
     return found is not None
 

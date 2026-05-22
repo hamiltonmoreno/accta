@@ -162,7 +162,8 @@ const MandateFields = ({ form, setForm, privileges }) => (
   </>
 );
 
-const isoOrNull = (dateStr) => (dateStr ? `${dateStr}T00:00:00.000Z` : null);
+// Meio-dia UTC evita o desvio de dia em fusos negativos (campo só-data).
+const isoOrNull = (dateStr) => (dateStr ? `${dateStr}T12:00:00.000Z` : null);
 
 export const AdminCargosPage = () => {
   const qc = useQueryClient();

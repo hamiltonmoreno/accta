@@ -45,15 +45,14 @@ async def get_unread_count(current_user: User = Depends(get_current_user)):
 
 
 @router.get("/notifications/stream")
-async def notification_stream(request: Request, token: Optional[str] = Query(None)):
+async def notification_stream(request: Request):
     """Server-Sent Events stream para count de nao-lidas em tempo-real.
 
-    Auth: cookie httpOnly (Sprint 10) ou Authorization header (clientes
-    browser usam EventSource com {withCredentials: true}); fallback para
-    `?token=` query param para clientes legados — sera removido em v2.
+    Auth: cookie httpOnly (Sprint 10) ou Authorization header — o browser usa
+    EventSource com {withCredentials: true}. O fallback `?token=` foi removido
+    (o token aparecia em logs de Nginx/proxy); clientes usam cookie/header.
     """
-    extracted = _extract_token(request)
-    final_token = extracted or token
+    final_token = _extract_token(request)
     if not final_token:
         raise HTTPException(status_code=401, detail="Nao autenticado")
     user = await get_user_from_token(final_token)

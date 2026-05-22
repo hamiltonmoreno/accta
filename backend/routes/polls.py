@@ -95,7 +95,7 @@ async def update_poll_status(
 
     if data.status == "aberta":
         await notify_all_active_users(
-            "poll_opened", "Nova Votação Aberta",
+            "poll", "Nova Votação Aberta",
             f"{poll.get('title', 'Votação')} - Participe agora!", "/votacoes",
         )
 
@@ -150,6 +150,11 @@ async def get_poll_results(poll_id: str, current_user: User = Depends(get_curren
     poll = await db.polls.find_one({"id": poll_id}, {"_id": 0})
     if not poll:
         raise HTTPException(status_code=404, detail="Votação não encontrada")
+
+    # Sigilo: totais parciais só após o encerramento (ou para admin). Ver
+    # resultados durante a votação aberta permitiria voto estratégico informado.
+    if poll.get("status") != "encerrada" and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Resultados disponíveis após o encerramento da votação")
 
     votes = await db.user_votes.find({"poll_id": poll_id}, {"_id": 0}).to_list(1000)
     results = {}

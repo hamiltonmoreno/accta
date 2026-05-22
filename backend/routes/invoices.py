@@ -49,6 +49,10 @@ async def confirm_invoice(invoice_id: str, current_user: User = Depends(get_curr
     if current_user.role not in ["admin", "financeiro"]:
         raise HTTPException(status_code=403, detail="Sem permissão")
 
+    existing = await db.invoices.find_one({"id": invoice_id}, {"_id": 0, "id": 1})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Invoice não encontrado")
+
     await db.invoices.update_one(
         {"id": invoice_id},
         {"$set": {

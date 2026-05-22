@@ -75,6 +75,7 @@ class TestInviteUser:
             return {"status": "sent"}
 
         monkeypatch.setattr(admin_route, "send_invite_email", fake_send)
+        monkeypatch.setattr(admin_route, "next_member_id", AsyncMock(return_value="ACCTA-0042"))
 
         data = InviteCreate(name="João Silva", email="joao@x.cv", role="socio", cargo="Sócio")
         result = await admin_route.invite_user(
@@ -109,6 +110,7 @@ class TestInviteUser:
             return {"status": "sent"}
 
         monkeypatch.setattr(admin_route, "send_invite_email", fake_send)
+        monkeypatch.setattr(admin_route, "next_member_id", AsyncMock(return_value="ACCTA-0042"))
 
         data = InviteCreate(name="X", email="x@y.com", role="admin")
         await admin_route.invite_user(request=_mock_request(), data=data, current_user=admin_user)
@@ -133,6 +135,7 @@ class TestInviteUser:
             return {"status": "sent"}
 
         monkeypatch.setattr(admin_route, "send_invite_email", fake_send)
+        monkeypatch.setattr(admin_route, "next_member_id", AsyncMock(return_value="ACCTA-0042"))
 
         data = InviteCreate(name="X", email="x@y.com")
         await admin_route.invite_user(request=_mock_request(), data=data, current_user=admin_user)

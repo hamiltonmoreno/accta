@@ -194,10 +194,9 @@ export const NotificacoesPage = () => {
     }
   };
 
-  const handleDelete = async (e, notificationId) => {
+  const handleDelete = (e, notificationId) => {
     e.stopPropagation();
-    await deleteNotification(notificationId);
-    toast.success('Notificacao removida');
+    deleteNotification(notificationId);
   };
 
   const getIcon = (type) => {

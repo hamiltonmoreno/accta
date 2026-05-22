@@ -13,6 +13,10 @@ import { TransactionModal } from './TransactionModal';
 import { CATEGORY_LABELS, PAGE_SIZE } from './constants';
 import { EmptyState } from '../../../components/EmptyState';
 import { Skeleton } from '../../../components/ui/skeleton';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '../../../components/ui/alert-dialog';
 
 // `delay` removido — stagger entre 4 cards era cosmetico (0-0.2s).
 const StatBlock = ({ label, value, icon: Icon, color }) => (
@@ -27,6 +31,7 @@ const StatBlock = ({ label, value, icon: Icon, color }) => (
 
 export const CashFlowTab = ({ canManage = true }) => {
   const qc = useQueryClient();
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [filterType, setFilterType] = useState('');
   const [searchText, setSearchText] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
@@ -112,9 +117,11 @@ export const CashFlowTab = ({ canManage = true }) => {
 
   const csvExporting = exportMutation.isPending;
 
-  const handleDelete = (id) => {
-    if (!window.confirm('Tem certeza que deseja remover esta transacao?')) return;
-    deleteMutation.mutate(id);
+  const handleDelete = (id) => setConfirmDeleteId(id);
+
+  const confirmDelete = () => {
+    if (confirmDeleteId) deleteMutation.mutate(confirmDeleteId);
+    setConfirmDeleteId(null);
   };
 
   const handleExportCSV = () => exportMutation.mutate();
@@ -341,6 +348,21 @@ export const CashFlowTab = ({ canManage = true }) => {
           onSaved={invalidateAll}
         />
       )}
+
+      <AlertDialog open={confirmDeleteId !== null} onOpenChange={(open) => !open && setConfirmDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover transação?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="bg-[#C7202F] hover:bg-[#A51B27]" onClick={confirmDelete}>
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
