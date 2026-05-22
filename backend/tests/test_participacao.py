@@ -18,6 +18,9 @@ from models import (
     PatrocinioRespond,
     PeticaoCreate,
     PeticaoEncaminhar,
+    PropostaAGCreate,
+    PropostaIncluir,
+    PropostaTriagem,
     ReclamacaoCreate,
     ReclamacaoResponder,
     RecursoDecisao,
@@ -284,3 +287,103 @@ class TestReclamacao:
         with pytest.raises(HTTPException) as exc:
             await p.decidir_recurso("r1", RecursoDecisao(decisao="negado"), _req(), current_user=socio_user)
         assert exc.value.status_code == 403
+
+
+# --------------------------------------------------------------------------- #
+# 1.4 — Propostas e temas para a ordem de trabalhos
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture
+def f4_env(mock_db, monkeypatch):
+    monkeypatch.setattr(p, "create_audit_log", AsyncMock())
+    monkeypatch.setattr(p, "notify_users", AsyncMock())
+    monkeypatch.setattr(p, "members_of_orgao", AsyncMock(return_value=["o1"]))
+    _wire(mock_db, "propostas_ag")
+    return mock_db
+
+
+def _propostas(env, rows):
+    cur = MagicMock()
+    cur.sort.return_value = cur
+    cur.to_list = AsyncMock(return_value=rows)
+    env.propostas_ag.find = MagicMock(return_value=cur)
+
+
+class TestProposta:
+    async def test_criar_notifica_orgaos(self, f4_env, socio_user):
+        res = await p.criar_proposta(
+            PropostaAGCreate(titulo="Rever quotas", descricao="proposta de medida", tipo="medida"),
+            _req(),
+            current_user=socio_user,
+        )
+        assert res.status == "submetida"
+        f4_env.propostas_ag.insert_one.assert_awaited()
+        p.notify_users.assert_awaited_once()
+        # Triagem cabe à Mesa AG + Direcção → members_of_orgao chamado para ambos.
+        assert {c.args[0] for c in p.members_of_orgao.await_args_list} == {"mesa_ag", "direcao"}
+
+    async def test_listar_membro_ve_proprias_e_publicas(self, f4_env, socio_user):
+        _propostas(
+            f4_env,
+            [
+                {"id": "a", "created_by": socio_user.id, "status": "submetida"},
+                {"id": "b", "created_by": "outro", "status": "submetida"},  # escondida
+                {"id": "c", "created_by": "outro", "status": "aceite"},  # pública
+            ],
+        )
+        out = await p.listar_propostas(current_user=socio_user)
+        assert {r["id"] for r in out} == {"a", "c"}
+
+    async def test_listar_triage_ve_todas(self, f4_env, socio_user):
+        socio_user.cargo = "ag_presidente"  # Mesa da AG
+        _propostas(
+            f4_env,
+            [
+                {"id": "a", "created_by": "x", "status": "submetida"},
+                {"id": "b", "created_by": "y", "status": "recusada"},
+            ],
+        )
+        out = await p.listar_propostas(current_user=socio_user)
+        assert {r["id"] for r in out} == {"a", "b"}
+
+    async def test_obter_terceiro_403(self, f4_env, socio_user):
+        f4_env.propostas_ag.find_one = AsyncMock(
+            return_value={"id": "p1", "created_by": "outro", "status": "submetida"}
+        )
+        with pytest.raises(HTTPException) as exc:
+            await p.obter_proposta("p1", current_user=socio_user)
+        assert exc.value.status_code == 403
+
+    async def test_triar_requires_role_403(self, f4_env, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await p.triar_proposta("p1", PropostaTriagem(decisao="aceite"), _req(), current_user=socio_user)
+        assert exc.value.status_code == 403
+
+    async def test_triar_aceite_notifica_autor(self, f4_env, socio_user):
+        socio_user.cargo = "dir_presidente"  # Direcção pode triar
+        f4_env.propostas_ag.find_one = AsyncMock(
+            return_value={"id": "p1", "created_by": "autor", "titulo": "X", "status": "submetida"}
+        )
+        await p.triar_proposta(
+            "p1", PropostaTriagem(decisao="aceite", decisao_motivo="relevante"), _req(), current_user=socio_user
+        )
+        f4_env.propostas_ag.update_one.assert_awaited()
+        assert any(c.args[1] == "proposta_triada" for c in p.create_audit_log.await_args_list)
+        p.notify_users.assert_awaited()
+
+    async def test_incluir_requires_mesa_403(self, f4_env, socio_user):
+        socio_user.cargo = "dir_presidente"  # Direcção tria mas NÃO inclui (só Mesa/admin)
+        with pytest.raises(HTTPException) as exc:
+            await p.incluir_proposta("p1", PropostaIncluir(), _req(), current_user=socio_user)
+        assert exc.value.status_code == 403
+
+    async def test_incluir_ok(self, f4_env, admin_user):
+        f4_env.propostas_ag.find_one = AsyncMock(
+            return_value={"id": "p1", "created_by": "autor", "titulo": "X", "status": "aceite"}
+        )
+        await p.incluir_proposta(
+            "p1", PropostaIncluir(assembleia_id="ag1", ordem_index=2), _req(), current_user=admin_user
+        )
+        f4_env.propostas_ag.update_one.assert_awaited()
+        assert any(c.args[1] == "proposta_incluida" for c in p.create_audit_log.await_args_list)

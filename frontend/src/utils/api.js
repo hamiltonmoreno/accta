@@ -94,6 +94,15 @@ export const reclamacoesAPI = {
   decidirRecurso: (id, data) => api.post(`/reclamacoes/${id}/decidir-recurso`, data),
 };
 
+// Propostas e temas para a ordem de trabalhos (spec-voz-participacao §6, Art. 9.g/9.h)
+export const propostasAgAPI = {
+  list: (status) => api.get('/propostas-ag', { params: status ? { status } : {} }),
+  get: (id) => api.get(`/propostas-ag/${id}`),
+  create: (data) => api.post('/propostas-ag', data),
+  triar: (id, data) => api.post(`/propostas-ag/${id}/triagem`, data),
+  incluir: (id, data) => api.post(`/propostas-ag/${id}/incluir`, data),
+};
+
 // Cargos / mandatos (spec-identidade-cargos / spec-governanca)
 export const cargosAPI = {
   getMeta: () => api.get('/users/meta/cargos'),  // [DEPRECATED] usar governanceAPI.structure

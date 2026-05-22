@@ -396,6 +396,42 @@ class RecursoDecisao(BaseModel):
     deliberacao_id: Optional[str] = None
 
 
+# 1.4 — Propostas e temas para a ordem de trabalhos (Art. 9.g, 9.h)
+
+
+class PropostaAG(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    titulo: str = Field(min_length=3, max_length=180)
+    descricao: str = Field(min_length=1, max_length=5000)
+    tipo: Literal["medida", "ponto", "tema"] = "ponto"
+    status: Literal["submetida", "em_triagem", "aceite", "recusada", "incluida", "arquivada"] = "submetida"
+    created_by: Optional[str] = None
+    created_at: Optional[str] = None
+    reviewer_id: Optional[str] = None  # quem triou
+    reviewed_at: Optional[str] = None
+    decisao_motivo: Optional[str] = None
+    assembleia_id: Optional[str] = None  # preenchido na inclusão (integração governança)
+    ordem_index: Optional[int] = None  # posição na ordem de trabalhos
+    source_article: str = "9.g"
+
+
+class PropostaAGCreate(BaseModel):
+    titulo: str = Field(min_length=3, max_length=180)
+    descricao: str = Field(min_length=1, max_length=5000)
+    tipo: Literal["medida", "ponto", "tema"] = "ponto"
+
+
+class PropostaTriagem(BaseModel):
+    decisao: Literal["aceite", "recusada"]
+    decisao_motivo: Optional[str] = Field(default=None, max_length=2000)
+
+
+class PropostaIncluir(BaseModel):
+    assembleia_id: Optional[str] = None
+    ordem_index: Optional[int] = None
+
+
 class RegistrationReject(BaseModel):
     reason: Optional[str] = Field(default=None, max_length=500)
 

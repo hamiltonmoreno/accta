@@ -37,6 +37,7 @@ import {
   FileSignature,
   HelpCircle,
   ShieldAlert,
+  Lightbulb,
 } from 'lucide-react';
 
 const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
@@ -74,6 +75,7 @@ const menuSections = [
     items: [
       { label: 'Patrocínios', path: '/participacao/patrocinios', icon: Handshake, roles: ['all'] },
       { label: 'Petições', path: '/participacao/peticoes', icon: FileSignature, roles: ['all'] },
+      { label: 'Propostas', path: '/participacao/propostas', icon: Lightbulb, roles: ['all'] },
       { label: 'Esclarecimentos', path: '/participacao/esclarecimentos', icon: HelpCircle, roles: ['all'] },
       { label: 'Reclamações', path: '/participacao/reclamacoes', icon: ShieldAlert, roles: ['all'] },
     ],
@@ -167,6 +169,7 @@ export const PrivateLayout = ({ children }) => {
     if (pathname === '/admin/noticias') return 'Notícias / Blog';
     if (pathname === '/participacao/patrocinios') return 'Patrocínios';
     if (pathname === '/participacao/peticoes') return 'Petições';
+    if (pathname === '/participacao/propostas') return 'Propostas para a ordem de trabalhos';
     if (pathname === '/participacao/esclarecimentos') return 'Pedidos de esclarecimento';
     if (pathname === '/participacao/reclamacoes') return 'Reclamações e recursos';
     if (pathname === '/admin/usuarios') return 'Utilizadores';

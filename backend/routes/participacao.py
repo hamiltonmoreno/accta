@@ -11,6 +11,7 @@ A criação dos pedidos de patrocínio vive no fluxo de registo (routes/auth_rou
 import math
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 from asyncpg.exceptions import UniqueViolationError
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -25,6 +26,10 @@ from models import (
     Peticao,
     PeticaoCreate,
     PeticaoEncaminhar,
+    PropostaAG,
+    PropostaAGCreate,
+    PropostaIncluir,
+    PropostaTriagem,
     Reclamacao,
     ReclamacaoCreate,
     ReclamacaoResponder,
@@ -444,3 +449,120 @@ async def decidir_recurso(
             link="/participacao/reclamacoes",
         )
     return await db.reclamacoes.find_one({"id": rec_id}, {"_id": 0})
+
+
+# --------------------------------------------------------------------------- #
+# 1.4 — Propostas e temas para a ordem de trabalhos (Art. 9.g, 9.h)
+# --------------------------------------------------------------------------- #
+
+# Estados que qualquer membro pode ver mesmo não sendo o autor (transparência da
+# ordem de trabalhos); os restantes (submetida/em_triagem/recusada/arquivada) só
+# para o autor e para quem tria.
+_PROPOSTA_PUBLICAS = {"aceite", "incluida"}
+
+
+def _can_triage_propostas(user) -> bool:
+    return getattr(user, "role", None) == "admin" or is_mesa_ag(user) or is_direcao(user)
+
+
+@router.post("/propostas-ag", response_model=PropostaAG)
+async def criar_proposta(data: PropostaAGCreate, request: Request, current_user: User = Depends(get_current_user)):
+    pr = PropostaAG(
+        titulo=data.titulo,
+        descricao=data.descricao,
+        tipo=data.tipo,
+        created_by=current_user.id,
+        created_at=_now(),
+    )
+    await db.propostas_ag.insert_one(pr.model_dump())
+    await create_audit_log(current_user.id, "proposta_submetida", pr.id, request=request)
+    # Triagem cabe à Mesa da AG e à Direcção (Art. 9.g/9.h).
+    dest = list({*(await members_of_orgao("mesa_ag")), *(await members_of_orgao("direcao"))})
+    await notify_users(
+        dest,
+        "system",
+        "Nova proposta para a ordem de trabalhos",
+        f"{current_user.name} submeteu uma proposta «{pr.titulo}» (Art. 9.g).",
+        link="/participacao/propostas",
+    )
+    return pr
+
+
+@router.get("/propostas-ag")
+async def listar_propostas(status: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    query = {"status": status} if status else {}
+    rows = await db.propostas_ag.find(query, {"_id": 0}).sort("created_at", -1).to_list(300)
+    if _can_triage_propostas(current_user):
+        return rows
+    # Membro comum: as próprias + as aceites/incluídas.
+    return [r for r in rows if r.get("created_by") == current_user.id or r.get("status") in _PROPOSTA_PUBLICAS]
+
+
+@router.get("/propostas-ag/{proposta_id}")
+async def obter_proposta(proposta_id: str, current_user: User = Depends(get_current_user)):
+    pr = await db.propostas_ag.find_one({"id": proposta_id}, {"_id": 0})
+    if not pr:
+        raise HTTPException(status_code=404, detail="Proposta não encontrada")
+    if not (
+        _can_triage_propostas(current_user)
+        or pr.get("created_by") == current_user.id
+        or pr.get("status") in _PROPOSTA_PUBLICAS
+    ):
+        raise HTTPException(status_code=403, detail="Sem permissão")
+    return pr
+
+
+@router.post("/propostas-ag/{proposta_id}/triagem", response_model=PropostaAG)
+async def triar_proposta(
+    proposta_id: str, data: PropostaTriagem, request: Request, current_user: User = Depends(get_current_user)
+):
+    if not _can_triage_propostas(current_user):
+        raise HTTPException(status_code=403, detail="Apenas a Mesa da AG, a Direcção (ou admin) podem triar propostas")
+    pr = await db.propostas_ag.find_one({"id": proposta_id}, {"_id": 0})
+    if not pr:
+        raise HTTPException(status_code=404, detail="Proposta não encontrada")
+    upd = {
+        "status": data.decisao,
+        "reviewer_id": current_user.id,
+        "reviewed_at": _now(),
+        "decisao_motivo": data.decisao_motivo,
+    }
+    await db.propostas_ag.update_one({"id": proposta_id}, {"$set": upd})
+    await create_audit_log(current_user.id, "proposta_triada", proposta_id, request=request)
+    if pr.get("created_by"):
+        verbo = "aceite" if data.decisao == "aceite" else "recusada"
+        await notify_users(
+            [pr["created_by"]],
+            "system",
+            "Proposta triada",
+            f"A sua proposta «{pr.get('titulo')}» foi {verbo}.",
+            link="/participacao/propostas",
+        )
+    return await db.propostas_ag.find_one({"id": proposta_id}, {"_id": 0})
+
+
+@router.post("/propostas-ag/{proposta_id}/incluir", response_model=PropostaAG)
+async def incluir_proposta(
+    proposta_id: str, data: PropostaIncluir, request: Request, current_user: User = Depends(get_current_user)
+):
+    if not (current_user.role == "admin" or is_mesa_ag(current_user)):
+        raise HTTPException(status_code=403, detail="Apenas a Mesa da AG (ou admin) podem incluir na ordem de trabalhos")
+    pr = await db.propostas_ag.find_one({"id": proposta_id}, {"_id": 0})
+    if not pr:
+        raise HTTPException(status_code=404, detail="Proposta não encontrada")
+    upd = {"status": "incluida"}
+    if data.assembleia_id is not None:
+        upd["assembleia_id"] = data.assembleia_id
+    if data.ordem_index is not None:
+        upd["ordem_index"] = data.ordem_index
+    await db.propostas_ag.update_one({"id": proposta_id}, {"$set": upd})
+    await create_audit_log(current_user.id, "proposta_incluida", proposta_id, request=request)
+    if pr.get("created_by"):
+        await notify_users(
+            [pr["created_by"]],
+            "system",
+            "Proposta incluída na ordem de trabalhos",
+            f"A sua proposta «{pr.get('titulo')}» foi incluída na ordem de trabalhos.",
+            link="/participacao/propostas",
+        )
+    return await db.propostas_ag.find_one({"id": proposta_id}, {"_id": 0})
