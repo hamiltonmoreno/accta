@@ -59,9 +59,7 @@ async def get_brand(current_user: User = Depends(get_current_user)):
 
 
 @router.patch("")
-async def update_brand(
-    request: Request, data: BrandSettingsUpdate, current_user: User = Depends(get_current_user)
-):
+async def update_brand(request: Request, data: BrandSettingsUpdate, current_user: User = Depends(get_current_user)):
     _require_manager(current_user)
     provided = data.model_dump(exclude_unset=True)
     if not provided:
@@ -94,13 +92,15 @@ async def update_brand(
     else:
         default = BrandSettings()
         d = default.model_dump()
-        d["updated_at"] = d["updated_at"].isoformat() if hasattr(d["updated_at"], "isoformat") else d["updated_at"]
         d.update(set_fields)
         d["id"] = _DOC_ID
         await db.brand_settings.insert_one(d)
 
     await create_audit_log(
-        current_user.id, "brand_updated", _DOC_ID, request=request,
+        current_user.id,
+        "brand_updated",
+        _DOC_ID,
+        request=request,
         details={k: set_fields.get(k) for k in ("logo_light_url", "logo_dark_url", "alt") if k in set_fields},
     )
     return _public_view(await _get_doc())

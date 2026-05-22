@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException
-from datetime import datetime
 from typing import Optional
 from models import User, WallPost, WallPostCreate, WallComment, WallCommentCreate
 from database import db
@@ -20,8 +19,6 @@ async def get_wall_posts(category: Optional[str] = None, current_user: User = De
 
     posts = await db.wall_posts.find(query, {"_id": 0}).sort([("pinned", -1), ("created_at", -1)]).to_list(100)
     for p in posts:
-        if isinstance(p.get("created_at"), str):
-            p["created_at"] = datetime.fromisoformat(p["created_at"])
         p.setdefault("likes", [])
         p.setdefault("comment_count", 0)
         p.setdefault("category", "geral")
@@ -37,8 +34,6 @@ async def get_pending_wall_posts(current_user: User = Depends(get_current_user))
 
     posts = await db.wall_posts.find({"approved": False}, {"_id": 0}).sort("created_at", -1).to_list(100)
     for p in posts:
-        if isinstance(p.get("created_at"), str):
-            p["created_at"] = datetime.fromisoformat(p["created_at"])
         p.setdefault("likes", [])
         p.setdefault("comment_count", 0)
         p.setdefault("category", "geral")
@@ -56,7 +51,6 @@ async def create_wall_post(post_data: WallPostCreate, current_user: User = Depen
         user_id=current_user.id, user_name=current_user.name, approved=auto_approve, **post_data.model_dump()
     )
     post_dict = post.model_dump()
-    post_dict["created_at"] = post_dict["created_at"].isoformat()
 
     await db.wall_posts.insert_one(post_dict)
 
@@ -166,9 +160,6 @@ async def get_wall_comments(post_id: str, current_user: User = Depends(get_curre
     if not post.get("approved") and not is_staff:
         raise HTTPException(status_code=403, detail="Sem permissão")
     comments = await db.wall_comments.find({"post_id": post_id}, {"_id": 0}).sort("created_at", 1).to_list(100)
-    for c in comments:
-        if isinstance(c.get("created_at"), str):
-            c["created_at"] = datetime.fromisoformat(c["created_at"])
     return comments
 
 
@@ -187,7 +178,6 @@ async def create_wall_comment(
         post_id=post_id, user_id=current_user.id, user_name=current_user.name, **comment_data.model_dump()
     )
     comment_dict = comment.model_dump()
-    comment_dict["created_at"] = comment_dict["created_at"].isoformat()
 
     await db.wall_comments.insert_one(comment_dict)
     await db.wall_posts.update_one({"id": post_id}, {"$inc": {"comment_count": 1}})

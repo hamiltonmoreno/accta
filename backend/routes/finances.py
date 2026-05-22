@@ -50,13 +50,6 @@ def require_manage_finances(user: User):
         raise HTTPException(status_code=403, detail="Sem permissao para gerir financas")
 
 
-def serialize_transaction(t: dict) -> dict:
-    for key in ["date", "created_at"]:
-        if isinstance(t.get(key), str):
-            t[key] = datetime.fromisoformat(t[key])
-    return t
-
-
 # ===== TRANSACTION ENDPOINTS =====
 
 
@@ -90,8 +83,6 @@ async def list_transactions(
 
     total = await db.transactions.count_documents(query)
     transactions = await db.transactions.find(query, {"_id": 0}).sort("date", -1).skip(skip).limit(limit).to_list(None)
-    for t in transactions:
-        serialize_transaction(t)
     return {"items": transactions, "total": total, "skip": skip, "limit": limit}
 
 
@@ -130,8 +121,6 @@ async def create_transaction(
 
     transaction = Transaction(**data.model_dump(), created_by=current_user.id)
     t_dict = transaction.model_dump()
-    t_dict["date"] = t_dict["date"].isoformat()
-    t_dict["created_at"] = t_dict["created_at"].isoformat()
 
     await db.transactions.insert_one(t_dict)
     await create_audit_log(
@@ -177,15 +166,11 @@ async def update_transaction(
     if "amount" in updates and updates["amount"] <= 0:
         raise HTTPException(status_code=400, detail="O valor deve ser positivo")
 
-    if "date" in updates:
-        updates["date"] = updates["date"].isoformat()
-
     if updates:
         await db.transactions.update_one({"id": transaction_id}, {"$set": updates})
         await create_audit_log(current_user.id, f"Atualizou transacao {transaction_id}", transaction_id)
 
     updated = await db.transactions.find_one({"id": transaction_id}, {"_id": 0})
-    serialize_transaction(updated)
     return updated
 
 
@@ -328,11 +313,8 @@ async def get_finance_settings(
     if not settings:
         default = FinanceSettings()
         d = default.model_dump()
-        d["updated_at"] = d["updated_at"].isoformat()
         await db.finance_settings.insert_one(d)
         return default
-    if isinstance(settings.get("updated_at"), str):
-        settings["updated_at"] = datetime.fromisoformat(settings["updated_at"])
     return FinanceSettings(**settings)
 
 
@@ -419,7 +401,6 @@ async def update_finance_settings(
         default = FinanceSettings()
         d = default.model_dump()
         d.update(updates)
-        d["updated_at"] = d["updated_at"] if isinstance(d["updated_at"], str) else d["updated_at"].isoformat()
         await db.finance_settings.insert_one(d)
     else:
         await db.finance_settings.update_one({"id": "finance_settings"}, {"$set": updates})
@@ -487,14 +468,12 @@ async def generate_monthly_quotas(
             category="quotas",
             description=f"{quota_desc} - {month:02d}/{year} - {user.get('name', 'Socio')}",
             amount=quota_amount,
-            date=datetime(year, month, 15, tzinfo=timezone.utc),
+            date=datetime(year, month, 15, tzinfo=timezone.utc).isoformat(),
             reference=f"FOLHA-{year}{month:02d}",
             user_id=user["id"],
             created_by=current_user.id,
         )
         t_dict = t.model_dump()
-        t_dict["date"] = t_dict["date"].isoformat()
-        t_dict["created_at"] = t_dict["created_at"].isoformat()
         await db.transactions.insert_one(t_dict)
         created_count += 1
 

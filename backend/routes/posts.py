@@ -40,10 +40,7 @@ async def _unique_slug(base: str, exclude_id: Optional[str] = None) -> str:
 def _effective_date(post: dict) -> str:
     """Chave de ordenação pública: published_at, com fallback para created_at
     (D9 — um rascunho antigo publicado hoje aparece como recente)."""
-    created = post.get("created_at")
-    if not isinstance(created, str):
-        created = created.isoformat() if created else ""
-    return post.get("published_at") or created
+    return post.get("published_at") or post.get("created_at") or ""
 
 
 # --------------------------------------------------------------------------- #
@@ -140,7 +137,6 @@ async def create_post(post_data: PostCreate, current_user: User = Depends(get_cu
         post.published_at = datetime.now(timezone.utc).isoformat()
 
     post_dict = post.model_dump()
-    post_dict["created_at"] = post_dict["created_at"].isoformat()
 
     await db.posts.insert_one(post_dict)
     await create_audit_log(current_user.id, f"Criou post {post.id}", post.id)
