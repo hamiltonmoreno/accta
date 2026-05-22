@@ -9,6 +9,7 @@ A criação dos pedidos de patrocínio vive no fluxo de registo (routes/auth_rou
 """
 
 import math
+import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -16,12 +17,23 @@ from typing import Optional
 from asyncpg.exceptions import UniqueViolationError
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from auth import get_current_user
-from database import db
-from helpers import count_voting_members, create_audit_log, members_of_orgao, notify_admins, notify_users
+from auth import generate_qr_hash, get_current_user
+from database import db, next_member_id
+from email_service import send_invite_email
+from helpers import (
+    count_voting_members,
+    create_audit_log,
+    members_of_orgao,
+    notify_admins,
+    notify_users,
+    resolve_link_base,
+    voting_member_ids,
+)
 from models import (
     Esclarecimento,
     EsclarecimentoCreate,
+    HonorarioCreate,
+    HonorarioNomination,
     PatrocinioRespond,
     Peticao,
     PeticaoCreate,
@@ -546,7 +558,9 @@ async def incluir_proposta(
     proposta_id: str, data: PropostaIncluir, request: Request, current_user: User = Depends(get_current_user)
 ):
     if not (current_user.role == "admin" or is_mesa_ag(current_user)):
-        raise HTTPException(status_code=403, detail="Apenas a Mesa da AG (ou admin) podem incluir na ordem de trabalhos")
+        raise HTTPException(
+            status_code=403, detail="Apenas a Mesa da AG (ou admin) podem incluir na ordem de trabalhos"
+        )
     pr = await db.propostas_ag.find_one({"id": proposta_id}, {"_id": 0})
     if not pr:
         raise HTTPException(status_code=404, detail="Proposta não encontrada")
@@ -566,3 +580,231 @@ async def incluir_proposta(
             link="/participacao/propostas",
         )
     return await db.propostas_ag.find_one({"id": proposta_id}, {"_id": 0})
+
+
+# --------------------------------------------------------------------------- #
+# 1.2 — Membros honorários (Art. 8.4): Direcção nomeia → AG vota → 2/3 elege.
+# A votação reusa polls/user_votes (sem colecção nova). Interim em participacao.py
+# (spec §2.1/§14.8); migra para governança quando o módulo Assembleia existir.
+# --------------------------------------------------------------------------- #
+
+# Voto de honorário: opções fixas (apuramento sobre votos válidos = favor+contra).
+_HONORARIO_POLL_OPTIONS = [
+    {"id": 1, "text": "A favor"},
+    {"id": 2, "text": "Contra"},
+    {"id": 3, "text": "Abstenção"},
+]
+# Janela ampla: o fecho autoritativo é o /apurar manual da Mesa, não o end_date.
+_HONORARIO_VOTE_WINDOW_DAYS = 30
+_INVITE_TTL_DAYS = 7  # alinhado com routes/admin.py
+
+
+def _can_nominate_honorario(user) -> bool:
+    """Nomear: Direcção ou admin (spec §4.5)."""
+    return getattr(user, "role", None) == "admin" or is_direcao(user)
+
+
+def _can_manage_honorarios(user) -> bool:
+    """Abrir/apurar votação: Mesa da AG ou admin (spec §4.5)."""
+    return getattr(user, "role", None) == "admin" or is_mesa_ag(user)
+
+
+def _can_see_honorarios(user) -> bool:
+    return _can_nominate_honorario(user) or _can_manage_honorarios(user)
+
+
+@router.post("/honorarios", response_model=HonorarioNomination)
+async def nomear_honorario(data: HonorarioCreate, request: Request, current_user: User = Depends(get_current_user)):
+    if not _can_nominate_honorario(current_user):
+        raise HTTPException(status_code=403, detail="Apenas a Direcção (ou admin) pode nomear membros honorários")
+    # Eleva membro existente → validar que é um sócio real.
+    if data.nominee_user_id:
+        u = await db.users.find_one({"id": data.nominee_user_id}, {"_id": 0, "id": 1, "account_type": 1})
+        if not u or (u.get("account_type") or "member") != "member":
+            raise HTTPException(status_code=422, detail="O nomeado interno não é um sócio válido")
+    nom = HonorarioNomination(
+        nominee_name=data.nominee_name,
+        nominee_user_id=data.nominee_user_id,
+        nominee_email=data.nominee_email,
+        justificacao=data.justificacao,
+        proposta_por=current_user.id,
+        created_at=_now(),
+    )
+    await db.honorarios_nominations.insert_one(nom.model_dump())
+    await create_audit_log(current_user.id, "honorario_nomeado", nom.id, request=request)
+    # A Mesa da AG é quem abre a votação → notificá-la.
+    mesa = await members_of_orgao("mesa_ag")
+    await notify_users(
+        mesa,
+        "system",
+        "Nova nomeação de membro honorário",
+        f"A Direcção nomeou «{nom.nominee_name}» como membro honorário (Art. 8.4).",
+        link="/governanca/honorarios",
+    )
+    return nom
+
+
+@router.get("/honorarios")
+async def listar_honorarios(status: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    if not _can_see_honorarios(current_user):
+        raise HTTPException(status_code=403, detail="Sem permissão")
+    query = {"status": status} if status else {}
+    return await db.honorarios_nominations.find(query, {"_id": 0}).sort("created_at", -1).to_list(300)
+
+
+@router.get("/honorarios/{nom_id}", response_model=HonorarioNomination)
+async def obter_honorario(nom_id: str, current_user: User = Depends(get_current_user)):
+    if not _can_see_honorarios(current_user):
+        raise HTTPException(status_code=403, detail="Sem permissão")
+    nom = await db.honorarios_nominations.find_one({"id": nom_id}, {"_id": 0})
+    if not nom:
+        raise HTTPException(status_code=404, detail="Nomeação não encontrada")
+    return nom
+
+
+@router.post("/honorarios/{nom_id}/abrir-votacao", response_model=HonorarioNomination)
+async def abrir_votacao_honorario(nom_id: str, request: Request, current_user: User = Depends(get_current_user)):
+    if not _can_manage_honorarios(current_user):
+        raise HTTPException(status_code=403, detail="Apenas a Mesa da AG (ou admin) pode abrir a votação")
+    nom = await db.honorarios_nominations.find_one({"id": nom_id}, {"_id": 0})
+    if not nom:
+        raise HTTPException(status_code=404, detail="Nomeação não encontrada")
+    if nom["status"] != "proposta":
+        raise HTTPException(status_code=409, detail="Só nomeações em «proposta» podem ir a votação")
+    now = datetime.now(timezone.utc)
+    poll_id = str(uuid.uuid4())
+    poll_doc = {
+        "id": poll_id,
+        "title": f"Membro honorário: {nom['nominee_name']}",
+        "description": (f"Votação de membro honorário (Art. 8.4) — maioria de 2/3. {nom['justificacao']}")[:2000],
+        "options": _HONORARIO_POLL_OPTIONS,
+        "start_date": now.isoformat(),
+        "end_date": (now + timedelta(days=_HONORARIO_VOTE_WINDOW_DAYS)).isoformat(),
+        "status": "aberta",
+        "result_visibility": "socios",
+        "created_at": now.isoformat(),
+    }
+    await db.polls.insert_one(poll_doc)
+    await db.honorarios_nominations.update_one({"id": nom_id}, {"$set": {"status": "em_votacao", "poll_id": poll_id}})
+    await create_audit_log(current_user.id, "honorario_votacao_aberta", nom_id, request=request)
+    # Notifica os votantes (honorários/técnicos/inactivos/suspensos não votam — §2.2).
+    voters = await voting_member_ids()
+    await notify_users(
+        voters,
+        "poll",
+        "Votação de membro honorário",
+        f"Está aberta a votação para eleger «{nom['nominee_name']}» como membro honorário (2/3).",
+        link="/votacoes",
+    )
+    return await db.honorarios_nominations.find_one({"id": nom_id}, {"_id": 0})
+
+
+@router.post("/honorarios/{nom_id}/apurar", response_model=HonorarioNomination)
+async def apurar_honorario(nom_id: str, request: Request, current_user: User = Depends(get_current_user)):
+    if not _can_manage_honorarios(current_user):
+        raise HTTPException(status_code=403, detail="Apenas a Mesa da AG (ou admin) pode apurar a votação")
+    nom = await db.honorarios_nominations.find_one({"id": nom_id}, {"_id": 0})
+    if not nom:
+        raise HTTPException(status_code=404, detail="Nomeação não encontrada")
+    if nom["status"] != "em_votacao":
+        raise HTTPException(status_code=409, detail="Esta nomeação não está em votação")
+    poll_id = nom.get("poll_id")
+    # Fecha o poll (idempotente — não falha se já encerrado/inexistente).
+    if poll_id:
+        await db.polls.update_one({"id": poll_id}, {"$set": {"status": "encerrada"}})
+    votes = await db.user_votes.find({"poll_id": poll_id}, {"_id": 0, "vote_option": 1}).to_list(None)
+    favor = sum(1 for v in votes if v.get("vote_option") == 1)
+    contra = sum(1 for v in votes if v.get("vote_option") == 2)
+    base = favor + contra  # decisão do dono: votos válidos (abstenções fora)
+    aprovado = base > 0 and favor >= math.ceil(2 / 3 * base)
+    new_status = "eleito" if aprovado else "rejeitado"
+    await db.honorarios_nominations.update_one(
+        {"id": nom_id}, {"$set": {"status": new_status, "votos_favor": favor, "votos_total_base": base}}
+    )
+    await create_audit_log(
+        current_user.id,
+        "honorario_apurado",
+        nom_id,
+        request=request,
+        details={"favor": favor, "contra": contra, "base": base, "aprovado": aprovado},
+    )
+    if aprovado:
+        await _aplicar_honorario_eleito(nom, request)
+        await notify_admins(
+            "system",
+            "Membro honorário eleito",
+            f"«{nom['nominee_name']}» foi eleito membro honorário (2/3 — Art. 8.4).",
+            link="/governanca/honorarios",
+        )
+    else:
+        mesa = await members_of_orgao("mesa_ag")
+        await notify_users(
+            mesa,
+            "system",
+            "Votação de honorário apurada",
+            f"A nomeação de «{nom['nominee_name']}» não atingiu os 2/3 ({favor}/{base}).",
+            link="/governanca/honorarios",
+        )
+    return await db.honorarios_nominations.find_one({"id": nom_id}, {"_id": 0})
+
+
+async def _aplicar_honorario_eleito(nom: dict, request: Request) -> None:
+    """Efeitos da eleição. O email é identificador universal:
+    - nomeado interno (`nominee_user_id`) OU email de um sócio já existente →
+      eleva (`member_category=honorario`);
+    - email de pessoa nova → cria utilizador `pendente_convite` + convite
+      (reusa send_invite_email). STOP: email real — spec §13 (validar inbox dev);
+    - sem identificador → fica registado como eleito, sem conta."""
+    user_id = nom.get("nominee_user_id")
+    if not user_id and nom.get("nominee_email"):
+        existing = await db.users.find_one({"email": nom["nominee_email"]}, {"_id": 0, "id": 1})
+        if existing:
+            user_id = existing["id"]
+    if user_id:
+        await db.users.update_one({"id": user_id}, {"$set": {"member_category": "honorario"}})
+        if not nom.get("nominee_user_id"):
+            # Resolvido por email → liga a nomeação ao sócio elevado.
+            await db.honorarios_nominations.update_one({"id": nom["id"]}, {"$set": {"nominee_user_id": user_id}})
+        await notify_users(
+            [user_id],
+            "system",
+            "Foi eleito membro honorário",
+            "A Assembleia Geral elegeu-o membro honorário da ACCTA (Art. 8.4).",
+            link="/dashboard",
+        )
+        return
+    if not nom.get("nominee_email"):
+        return  # sem identificador: fica registado como eleito, sem conta
+    now = datetime.now(timezone.utc)
+    new_user_id = str(uuid.uuid4())
+    invite_token = secrets.token_urlsafe(32)
+    user_doc = {
+        "id": new_user_id,
+        "name": nom["nominee_name"],
+        "email": nom["nominee_email"],
+        "password": "",
+        "role": "socio",
+        "status": "pendente_convite",
+        "cargo": "socio",
+        "orgao": None,
+        "account_type": "member",
+        "member_category": "honorario",
+        "member_id": await next_member_id(),
+        "license_number": "",
+        "department": "",
+        "phone_number": "",
+        "admission_date": now.isoformat(),
+        "privileges": [],
+        "consent_data": False,
+        "qr_code_hash": generate_qr_hash(new_user_id),
+        "last_login_at": None,
+        "created_at": now.isoformat(),
+        "invite_token": invite_token,
+        "invite_token_expires_at": (now + timedelta(days=_INVITE_TTL_DAYS)).isoformat(),
+    }
+    await db.users.insert_one(user_doc)
+    # Liga a nomeação ao utilizador recém-criado.
+    await db.honorarios_nominations.update_one({"id": nom["id"]}, {"$set": {"nominee_user_id": new_user_id}})
+    origin = resolve_link_base(request)
+    setup_url = f"{origin}/setup-account?token={invite_token}" if origin else ""
+    await send_invite_email(nom["nominee_name"], nom["nominee_email"], setup_url)
