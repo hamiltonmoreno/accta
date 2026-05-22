@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financesAPI } from '../../../utils/api';
 import { toast } from 'sonner';
@@ -23,9 +23,13 @@ export const SettingsTab = () => {
     queryFn: async () => (await financesAPI.getSettings()).data,
   });
 
-  // Sync form fields quando settings chegam (so na 1a vez ou apos invalidate).
+  // Inicializa os campos do formulário só na 1ª vez que settings chegam. Após
+  // isso o utilizador é dono do form: um refetch (ex.: invalidate pós-save) não
+  // sobrescreve o que ele estiver a editar.
+  const initializedRef = useRef(false);
   useEffect(() => {
-    if (settings) {
+    if (settings && !initializedRef.current) {
+      initializedRef.current = true;
       setQuotaAmount(settings.quota_amount);
       setQuotaDesc(settings.quota_description);
     }
@@ -81,13 +85,13 @@ export const SettingsTab = () => {
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Valor da Quota Mensal (CVE)</label>
             <input type="number" inputMode="decimal" min="0" value={quotaAmount} onChange={(e) => setQuotaAmount(e.target.value)}
-              className="w-full max-w-xs px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="w-full max-w-xs px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="quota-amount-input" />
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Descricao da Quota</label>
             <input type="text" value={quotaDesc} onChange={(e) => setQuotaDesc(e.target.value)}
-              className="w-full max-w-sm px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="w-full max-w-sm px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="quota-desc-input" />
           </div>
           <button onClick={handleSave} disabled={saving} className="btn-primary text-sm px-6" data-testid="save-settings-btn">
@@ -107,7 +111,7 @@ export const SettingsTab = () => {
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Mes</label>
             <select value={genMonth} onChange={(e) => setGenMonth(parseInt(e.target.value))}
-              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="gen-month-select">
               {MONTH_NAMES.map((name, i) => <option key={i} value={i + 1}>{name}</option>)}
             </select>
@@ -115,7 +119,7 @@ export const SettingsTab = () => {
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Ano</label>
             <select value={genYear} onChange={(e) => setGenYear(parseInt(e.target.value))}
-              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="gen-year-select">
               {[2024, 2025, 2026, 2027].map((y) => <option key={y} value={y}>{y}</option>)}
             </select>

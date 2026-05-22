@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
@@ -179,19 +179,23 @@ export const DashboardPage = () => {
     recentActivityQuery.isLoading ||
     (hasFinance && (statsQuery.isLoading || financeSummaryQuery.isLoading || dreQuery.isLoading));
 
-  // Prepare chart data
-  const monthlyChartData = dreData ? Object.entries(dreData.monthly).map(([month, d]) => ({
-    name: MONTH_LABELS[parseInt(month) - 1],
-    Receitas: d.receitas,
-    Despesas: d.despesas,
-  })) : [];
+  // Prepare chart data — memoizado por dreData (evita recriar arrays a cada render).
+  const monthlyChartData = useMemo(() => (
+    dreData ? Object.entries(dreData.monthly).map(([month, d]) => ({
+      name: MONTH_LABELS[parseInt(month) - 1],
+      Receitas: d.receitas,
+      Despesas: d.despesas,
+    })) : []
+  ), [dreData]);
 
-  const expensePieData = dreData ? Object.entries(dreData.despesas_por_categoria)
-    .filter(([, v]) => v > 0)
-    .map(([cat, val]) => ({
-      name: CATEGORY_LABELS[cat] || cat,
-      value: val,
-    })) : [];
+  const expensePieData = useMemo(() => (
+    dreData ? Object.entries(dreData.despesas_por_categoria)
+      .filter(([, v]) => v > 0)
+      .map(([cat, val]) => ({
+        name: CATEGORY_LABELS[cat] || cat,
+        value: val,
+      })) : []
+  ), [dreData]);
 
   if (loading) {
     return (

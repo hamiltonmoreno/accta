@@ -220,7 +220,7 @@ export const AdminPedidosInscricaoPage = () => {
               <select
                 value={approveForm.role}
                 onChange={(e) => setApproveForm({ ...approveForm, role: e.target.value })}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none"
                 data-testid="approve-role"
               >
                 {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
@@ -232,7 +232,7 @@ export const AdminPedidosInscricaoPage = () => {
                 type="text"
                 value={approveForm.cargo}
                 onChange={(e) => setApproveForm({ ...approveForm, cargo: e.target.value })}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none"
                 data-testid="approve-cargo"
               />
             </div>
@@ -246,7 +246,7 @@ export const AdminPedidosInscricaoPage = () => {
                   type="checkbox"
                   checked={approveForm.waive}
                   onChange={(e) => setApproveForm({ ...approveForm, waive: e.target.checked })}
-                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-carmesim focus:ring-2 focus:ring-carmesim/40"
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-carmesim focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
                   data-testid="approve-waive"
                 />
                 <span>Dispensar patrocínio (Art. 8.3). A dispensa fica registada no audit log.</span>
@@ -288,7 +288,7 @@ export const AdminPedidosInscricaoPage = () => {
               rows={3}
               maxLength={500}
               placeholder="Motivo (opcional)"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none resize-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none resize-none"
               data-testid="reject-reason"
             />
             <div className="flex justify-end gap-2">

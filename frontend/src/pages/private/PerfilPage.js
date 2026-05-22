@@ -60,7 +60,7 @@ const GENDER_OPTIONS = [
 
 const labelCls = 'block text-xs uppercase tracking-widest text-gray-500 font-semibold mb-1';
 const inputCls =
-  'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none';
+  'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/30 outline-none';
 
 const FormInput = ({ id, testId, label, value, onChange, type = 'text', placeholder, max }) => (
   <div>
@@ -205,14 +205,17 @@ export const PerfilPage = () => {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
 
+  // Sincroniza o form a partir do user — mas nunca enquanto o form está aberto
+  // (editing), para um refetch/refreshUser não sobrescrever edições em curso.
+  // Fora de edição (mount inicial, pós-save, pós-cancel) reflecte o user actual.
   useEffect(() => {
-    if (user) {
+    if (user && !editing) {
       setForm({
         ...EMPTY_FORM,
         ...Object.fromEntries(Object.keys(EMPTY_FORM).map((k) => [k, user[k] || ''])),
       });
     }
-  }, [user]);
+  }, [user, editing]);
 
   const set = (key) => (val) => setForm((f) => ({ ...f, [key]: val }));
 

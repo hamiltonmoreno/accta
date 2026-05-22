@@ -104,6 +104,51 @@ const menuSections = [
   },
 ];
 
+// Título do cabeçalho por rota. Match exacto via lookup; rotas com :id usam o
+// fallback por prefixo (PAGE_TITLE_PREFIXES); default 'Portal'.
+const PAGE_TITLES = {
+  '/dashboard': 'Dashboard',
+  '/perfil': 'Meu Perfil',
+  '/carteira': 'Carteira Digital',
+  '/financeiro': 'Financeiro',
+  '/projetos': 'Projetos',
+  '/votacoes': 'Votações',
+  '/eventos': 'Eventos',
+  '/documentos': 'Documentos',
+  '/mural': 'Mural',
+  '/galeria-admin': 'Galeria',
+  '/beneficios': 'Benefícios',
+  '/notificacoes': 'Notificações',
+  '/admin/pedidos-inscricao': 'Pedidos de Inscrição',
+  '/admin/cargos': 'Cargos & Mandatos',
+  '/admin/assembleias': 'Assembleias',
+  '/admin/eleicoes': 'Eleições',
+  '/admin/disciplinar': 'Disciplina',
+  '/admin/aparencia': 'Aparência do Site',
+  '/admin/noticias': 'Notícias / Blog',
+  '/participacao/patrocinios': 'Patrocínios',
+  '/participacao/peticoes': 'Petições',
+  '/participacao/propostas': 'Propostas para a ordem de trabalhos',
+  '/participacao/esclarecimentos': 'Pedidos de esclarecimento',
+  '/participacao/reclamacoes': 'Reclamações e recursos',
+  '/governanca/honorarios': 'Membros Honorários',
+  '/admin/usuarios': 'Utilizadores',
+  '/admin/logs': 'Audit Logs',
+};
+
+// Rotas dinâmicas (com :id) — verificadas por prefixo só depois do match exacto.
+const PAGE_TITLE_PREFIXES = [
+  ['/projetos/', 'Detalhe do Projeto'],
+  ['/admin/assembleias/', 'Assembleia'],
+  ['/admin/eleicoes/', 'Eleição'],
+];
+
+const getPageTitle = (pathname) => {
+  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
+  const prefixMatch = PAGE_TITLE_PREFIXES.find(([prefix]) => pathname.startsWith(prefix));
+  return prefixMatch ? prefixMatch[1] : 'Portal';
+};
+
 export const PrivateLayout = ({ children }) => {
   const { user, logout, isAdmin, isFinanceiro, isModerador, isDirecao, isMesaAG } = useAuth();
   const navigate = useNavigate();
@@ -146,39 +191,7 @@ export const PrivateLayout = ({ children }) => {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
-  const currentPageTitle = (() => {
-    if (pathname === '/dashboard') return 'Dashboard';
-    if (pathname === '/perfil') return 'Meu Perfil';
-    if (pathname === '/carteira') return 'Carteira Digital';
-    if (pathname === '/financeiro') return 'Financeiro';
-    if (pathname === '/projetos') return 'Projetos';
-    if (pathname.startsWith('/projetos/')) return 'Detalhe do Projeto';
-    if (pathname === '/votacoes') return 'Votações';
-    if (pathname === '/eventos') return 'Eventos';
-    if (pathname === '/documentos') return 'Documentos';
-    if (pathname === '/mural') return 'Mural';
-    if (pathname === '/galeria-admin') return 'Galeria';
-    if (pathname === '/beneficios') return 'Benefícios';
-    if (pathname === '/notificacoes') return 'Notificações';
-    if (pathname === '/admin/pedidos-inscricao') return 'Pedidos de Inscrição';
-    if (pathname === '/admin/cargos') return 'Cargos & Mandatos';
-    if (pathname === '/admin/assembleias') return 'Assembleias';
-    if (pathname.startsWith('/admin/assembleias/')) return 'Assembleia';
-    if (pathname === '/admin/eleicoes') return 'Eleições';
-    if (pathname.startsWith('/admin/eleicoes/')) return 'Eleição';
-    if (pathname === '/admin/disciplinar') return 'Disciplina';
-    if (pathname === '/admin/aparencia') return 'Aparência do Site';
-    if (pathname === '/admin/noticias') return 'Notícias / Blog';
-    if (pathname === '/participacao/patrocinios') return 'Patrocínios';
-    if (pathname === '/participacao/peticoes') return 'Petições';
-    if (pathname === '/participacao/propostas') return 'Propostas para a ordem de trabalhos';
-    if (pathname === '/participacao/esclarecimentos') return 'Pedidos de esclarecimento';
-    if (pathname === '/participacao/reclamacoes') return 'Reclamações e recursos';
-    if (pathname === '/governanca/honorarios') return 'Membros Honorários';
-    if (pathname === '/admin/usuarios') return 'Utilizadores';
-    if (pathname === '/admin/logs') return 'Audit Logs';
-    return 'Portal';
-  })();
+  const currentPageTitle = getPageTitle(pathname);
 
   const handleLogout = () => {
     logout();
@@ -211,7 +224,7 @@ export const PrivateLayout = ({ children }) => {
   const sidebarInner = ({ isMobile = false }) => (
     <div className="flex flex-col h-full">
       {/* ---- Logo row ---- */}
-      <div className="flex items-center gap-2 px-3 py-4 min-h-[64px]" style={{ borderBottom: '1px solid var(--surface-border)' }}>
+      <div className="flex items-center gap-2 px-3 py-4 min-h-[64px] border-b border-[var(--surface-border)]">
         {/* Recolhida: mark compacto "AC". Expandida: marca gerida (BrandLogo /
             SVG fallback) — spec-gestao-logo-marca §4.2. */}
         {collapsed && !isMobile ? (
@@ -326,7 +339,7 @@ export const PrivateLayout = ({ children }) => {
       </nav>
 
       {/* ---- Profile & Logout ---- */}
-      <div className="px-2 py-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
+      <div className="px-2 py-3 border-t border-[var(--surface-border)]">
         {/* User profile */}
         <div className="flex items-center gap-3 px-1 mb-2">
           <div className="w-9 h-9 bg-carmesim rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
@@ -371,11 +384,11 @@ export const PrivateLayout = ({ children }) => {
   );
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: 'var(--surface-bg)' }}>
+    <div className="min-h-screen flex bg-[var(--surface-bg)]">
       {/* ======= Desktop Sidebar ======= */}
       <aside
-        className="hidden md:flex md:flex-col fixed h-screen z-30 transition-all duration-300 ease-in-out"
-        style={{ width: sidebarWidth, backgroundColor: 'var(--surface-sidebar)', boxShadow: '0 0 6px rgba(0,0,0,0.06)' }}
+        className="hidden md:flex md:flex-col fixed h-screen z-30 transition-all duration-300 ease-in-out bg-[var(--surface-sidebar)] shadow-[0_0_6px_rgba(0,0,0,0.06)]"
+        style={{ width: sidebarWidth }}
         data-testid="desktop-sidebar"
       >
         {sidebarInner({ isMobile: false })}
@@ -392,10 +405,10 @@ export const PrivateLayout = ({ children }) => {
         aria-hidden={!mobileOpen}
       />
       <aside
-        className={`fixed left-0 top-0 bottom-0 z-50 md:hidden flex flex-col shadow-xl transition-transform duration-[280ms] ease-spring will-change-transform ${
+        className={`fixed left-0 top-0 bottom-0 z-50 md:hidden flex flex-col shadow-xl transition-transform duration-[280ms] ease-spring will-change-transform bg-[var(--surface-sidebar)] ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
-        style={{ width: SIDEBAR_W, backgroundColor: 'var(--surface-sidebar)' }}
+        style={{ width: SIDEBAR_W }}
         aria-hidden={!mobileOpen}
       >
         {sidebarInner({ isMobile: true })}
@@ -404,7 +417,7 @@ export const PrivateLayout = ({ children }) => {
       {/* ======= Main Content ======= */}
       <div className="flex-1 min-w-0">
         {/* Mobile Header */}
-        <header className="md:hidden sticky top-0 z-30 backdrop-blur-md px-4 py-3" style={{ backgroundColor: 'var(--surface-header)', borderBottom: '1px solid var(--surface-border)' }}>
+        <header className="md:hidden sticky top-0 z-30 backdrop-blur-md px-4 py-3 bg-[var(--surface-header)] border-b border-[var(--surface-border)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
@@ -428,14 +441,14 @@ export const PrivateLayout = ({ children }) => {
 
         {/* Desktop Top Bar */}
         <header
-          className="hidden md:block sticky top-0 z-20 backdrop-blur-md py-3 transition-all duration-300"
-          style={{ paddingLeft: isDesktop ? `calc(${sidebarWidth}px + 1.5rem)` : undefined, paddingRight: '1.5rem', backgroundColor: 'var(--surface-header)', borderBottom: '1px solid var(--surface-border)' }}
+          className="hidden md:block sticky top-0 z-20 backdrop-blur-md py-3 pr-6 transition-all duration-300 bg-[var(--surface-header)] border-b border-[var(--surface-border)]"
+          style={{ paddingLeft: isDesktop ? `calc(${sidebarWidth}px + 1.5rem)` : undefined }}
         >
           <div className="flex items-center justify-between">
             <h1 className="font-semibold text-base text-grafite-auto">{currentPageTitle}</h1>
             <div className="flex items-center gap-3">
               <NotificationBell />
-              <div className="flex items-center gap-2 pl-3" style={{ borderLeft: '1px solid var(--surface-border)' }}>
+              <div className="flex items-center gap-2 pl-3 border-l border-[var(--surface-border)]">
                 <div className="w-8 h-8 bg-carmesim rounded-full flex items-center justify-center text-white text-xs font-bold">
                   {user?.name?.charAt(0).toUpperCase()}
                 </div>

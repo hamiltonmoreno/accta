@@ -91,25 +91,25 @@ const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
         <div className="bg-white border border-gray-200/80 rounded-xl p-4 space-y-3 animate-fade-up">
           <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
             placeholder="Titulo da tarefa" data-testid="task-title-input"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none" />
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none" />
           <textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
             placeholder="Descricao (opcional)"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none resize-none" />
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none resize-none" />
           <div className="flex flex-wrap gap-2">
             <select value={form.assignee_id} onChange={(e) => setForm({ ...form, assignee_id: e.target.value })}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm flex-1 min-w-[140px] focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm flex-1 min-w-[140px] focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="task-assignee-select">
               <option value="">Sem responsavel</option>
               {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
             <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none">
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none">
               <option value="baixa">Baixa</option>
               <option value="media">Media</option>
               <option value="alta">Alta</option>
             </select>
             <input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none" />
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none" />
             <button onClick={handleAdd} disabled={saving} className="btn-primary text-sm px-5" data-testid="save-task-btn">
               {saving ? '...' : 'Adicionar'}
             </button>
@@ -204,7 +204,7 @@ const CommentsTab = ({ project, comments, onReload }) => {
         <div className="flex-1">
           <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)}
             placeholder="Partilhe uma ideia ou comentario..."
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none resize-none"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none resize-none"
             data-testid="comment-input" />
           <div className="flex justify-end mt-2">
             <button onClick={handleSend} disabled={sending || !text.trim()}
@@ -330,19 +330,19 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
           <div className="flex-1 min-w-[180px]">
             <label className="text-xs text-[#6B7280] uppercase tracking-wider block mb-1">Descricao</label>
             <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="expense-desc-input" />
           </div>
           <div className="w-28">
             <label className="text-xs text-[#6B7280] uppercase tracking-wider block mb-1">Valor (CVE)</label>
             <input type="number" inputMode="decimal" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="expense-amount-input" />
           </div>
           <div className="w-36">
             <label className="text-xs text-[#6B7280] uppercase tracking-wider block mb-1">Data</label>
             <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none" />
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none" />
           </div>
           <button onClick={handleAdd} disabled={saving} className="btn-primary text-sm px-5" data-testid="save-expense-btn">
             {saving ? '...' : 'Adicionar'}
@@ -439,13 +439,13 @@ const TimelineTab = ({ project, milestones, canManage, onReload }) => {
             <label className="text-xs text-[#6B7280] uppercase tracking-wider block mb-1">Titulo</label>
             <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="Ex: Reservar local do evento"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="milestone-title-input" />
           </div>
           <div className="w-40">
             <label className="text-xs text-[#6B7280] uppercase tracking-wider block mb-1">Data</label>
             <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="milestone-date-input" />
           </div>
           <button onClick={handleAdd} disabled={saving} className="btn-primary text-sm px-5" data-testid="save-milestone-btn">
