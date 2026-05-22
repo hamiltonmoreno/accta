@@ -94,12 +94,6 @@ async def login(request: Request, response: Response, credentials: UserLogin):
 
     user_doc.pop("password", None)
     user_doc.pop("invite_token", None)
-    if isinstance(user_doc.get("created_at"), str):
-        user_doc["created_at"] = datetime.fromisoformat(user_doc["created_at"])
-    if user_doc.get("admission_date") and isinstance(user_doc["admission_date"], str):
-        user_doc["admission_date"] = datetime.fromisoformat(user_doc["admission_date"])
-    if user_doc.get("last_login_at") and isinstance(user_doc["last_login_at"], str):
-        user_doc["last_login_at"] = datetime.fromisoformat(user_doc["last_login_at"])
 
     user = User(**user_doc)
     token = create_access_token({"sub": user.id})
@@ -292,14 +286,10 @@ async def setup_account(request: Request, response: Response, background_tasks: 
         },
     )
 
-    # Parse dates for Token response
     user_doc["password"] = ""
     user_doc["status"] = "ativo"
     user_doc.pop("invite_token", None)
-    for field in ["created_at", "admission_date", "last_login_at"]:
-        if user_doc.get(field) and isinstance(user_doc[field], str):
-            user_doc[field] = datetime.fromisoformat(user_doc[field])
-    user_doc["last_login_at"] = datetime.now(timezone.utc)
+    user_doc["last_login_at"] = datetime.now(timezone.utc).isoformat()
 
     user = User(**user_doc)
     token = create_access_token({"sub": user.id})

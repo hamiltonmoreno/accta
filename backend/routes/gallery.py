@@ -91,7 +91,6 @@ async def create_gallery_album(album_data: GalleryAlbumCreate, current_user: Use
         raise HTTPException(status_code=403, detail="Sem permissão para moderar conteúdo")
     album = GalleryAlbum(**album_data.model_dump())
     album_dict = album.model_dump()
-    album_dict["created_at"] = album_dict["created_at"].isoformat()
     await db.gallery_albums.insert_one(album_dict)
     await create_audit_log(current_user.id, f"Criou álbum de galeria {album.id}", album.id)
     return album_dict
@@ -206,7 +205,6 @@ async def upload_gallery_photo(
         uploaded_by_name=current_user.name,
     )
     photo_dict = photo.model_dump()
-    photo_dict["created_at"] = photo_dict["created_at"].isoformat()
     await db.gallery_photos.insert_one(photo_dict)
 
     if is_admin:

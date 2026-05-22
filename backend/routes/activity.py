@@ -171,9 +171,4 @@ async def get_recent_activity(limit: int = Query(15, ge=1, le=50), current_user:
 
     activities.sort(key=parse_date, reverse=True)
 
-    # Convert datetime objects to ISO strings for JSON serialization
-    for a in activities:
-        if isinstance(a.get("created_at"), datetime):
-            a["created_at"] = a["created_at"].isoformat()
-
     return activities[:limit]

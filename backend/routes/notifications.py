@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
-from datetime import datetime
 from typing import List, Optional
 from models import User, Notification, NotificationCreate, AuditLog
 from database import db
@@ -30,10 +29,6 @@ async def get_notifications(
     notifications = (
         await db.notifications.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     )
-
-    for notif in notifications:
-        if isinstance(notif.get("created_at"), str):
-            notif["created_at"] = datetime.fromisoformat(notif["created_at"])
 
     return {"items": notifications, "total": total}
 
@@ -129,7 +124,6 @@ async def create_notification_route(notif_data: NotificationCreate, current_user
 
     notification = Notification(**notif_data.model_dump())
     notif_dict = notification.model_dump()
-    notif_dict["created_at"] = notif_dict["created_at"].isoformat()
 
     await db.notifications.insert_one(notif_dict)
     await create_audit_log(
@@ -167,7 +161,4 @@ async def get_audit_logs(
         raise HTTPException(status_code=403, detail="Sem permissao")
 
     logs = await db.audit_logs.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
-    for log in logs:
-        if isinstance(log.get("created_at"), str):
-            log["created_at"] = datetime.fromisoformat(log["created_at"])
     return logs

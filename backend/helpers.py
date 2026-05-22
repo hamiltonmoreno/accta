@@ -158,14 +158,12 @@ async def create_audit_log(
         details=details,
     )
     log_dict = log.model_dump()
-    log_dict["created_at"] = log_dict["created_at"].isoformat()
     await db.audit_logs.insert_one(log_dict)
 
 
 async def create_notification(user_id: str, type: str, title: str, message: str, link: Optional[str] = None):
     notification = Notification(user_id=user_id, type=type, title=title, message=message, link=link)
     notif_dict = notification.model_dump()
-    notif_dict["created_at"] = notif_dict["created_at"].isoformat()
     await db.notifications.insert_one(notif_dict)
 
 
@@ -186,7 +184,6 @@ async def notify_users(
     for uid in unique_ids:
         notification = Notification(user_id=uid, type=type, title=title, message=message, link=link)
         notif_dict = notification.model_dump()
-        notif_dict["created_at"] = notif_dict["created_at"].isoformat()
         notifications.append(notif_dict)
     await db.notifications.insert_many(notifications)
 
@@ -201,7 +198,6 @@ async def notify_all_active_users(type: str, title: str, message: str, link: Opt
     for user in users:
         notification = Notification(user_id=user["id"], type=type, title=title, message=message, link=link)
         notif_dict = notification.model_dump()
-        notif_dict["created_at"] = notif_dict["created_at"].isoformat()
         notifications.append(notif_dict)
     if notifications:
         await db.notifications.insert_many(notifications)
