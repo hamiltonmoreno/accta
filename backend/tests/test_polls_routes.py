@@ -41,6 +41,27 @@ def _open_poll(poll_id: str = "p1") -> dict:
 
 
 # --------------------------------------------------------------------------- #
+# Datas vazias/ilegíveis (regressão Lote 6)
+# --------------------------------------------------------------------------- #
+
+
+class TestEmptyDateSafety:
+    async def test_parse_dt_empty_or_garbage_is_none_not_crash(self):
+        # "" outrora -> datetime.fromisoformat("") -> ValueError -> 500 no voto.
+        assert polls_route._parse_dt("") is None
+        assert polls_route._parse_dt(None) is None
+        assert polls_route._parse_dt("not-a-date") is None
+
+    async def test_poll_create_rejects_empty_start_date(self):
+        from models import PollCreate
+        from pydantic import ValidationError
+
+        now = datetime.now(timezone.utc).isoformat()
+        with pytest.raises(ValidationError):
+            PollCreate(title="t", description="d", options=[{"id": 1, "text": "A"}], start_date="", end_date=now)
+
+
+# --------------------------------------------------------------------------- #
 # GET /polls
 # --------------------------------------------------------------------------- #
 
