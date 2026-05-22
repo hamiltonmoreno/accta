@@ -15,20 +15,29 @@ import {
   USER_STATUS_CONFIG, USER_STATUS_FALLBACK, getStatusConfig,
 } from '../../lib/statusConfig';
 
+// Datas só-com-dia ("AAAA-MM-DD") têm de ser interpretadas no fuso LOCAL:
+// `new Date("2027-01-31")` é meia-noite UTC e, num fuso a oeste (Cabo Verde =
+// UTC-1), recua para o dia anterior. Construímos a partir dos componentes para
+// evitar o desvio de um dia em datas/contagens. Datas-hora completas (ISO com
+// 'T') também passam pela porção de data, o que é o pretendido para exibição.
+const toLocalDate = (value) => {
+  if (!value) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value));
+  const d = m
+    ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+    : new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
 const formatDate = (iso) => {
-  if (!iso) return null;
-  try {
-    return new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  } catch {
-    return null;
-  }
+  const d = toLocalDate(iso);
+  return d ? d.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : null;
 };
 
 // Idade a partir da data de nascimento (AAAA-MM-DD). Devolve null se inválida.
 const calcAge = (dob) => {
-  if (!dob) return null;
-  const d = new Date(dob);
-  if (Number.isNaN(d.getTime())) return null;
+  const d = toLocalDate(dob);
+  if (!d) return null;
   const now = new Date();
   let age = now.getFullYear() - d.getFullYear();
   const m = now.getMonth() - d.getMonth();
@@ -142,12 +151,10 @@ const InfoRow = ({ icon: Icon, label, value }) => (
 // Aviso de validade da licença — ajuda o sócio a renovar a tempo (sem multa).
 // Verde (>60 dias) → âmbar (≤60) → carmesim (expirada/urgente).
 const LicenseExpiryNotice = ({ expiry }) => {
-  if (!expiry) return null;
-  const exp = new Date(expiry);
-  if (Number.isNaN(exp.getTime())) return null;
+  const exp = toLocalDate(expiry);
+  if (!exp) return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  exp.setHours(0, 0, 0, 0);
   const days = Math.round((exp - today) / 86400000);
 
   let cfg;
@@ -455,7 +462,7 @@ export const PerfilPage = () => {
             <InfoRow icon={Shield} label="Função" value={roleLabel[user.role]} />
             <InfoRow icon={Briefcase} label="Cargo" value={cargoNome} />
             <InfoRow icon={UsersIcon} label="Categoria" value={memberCategoryLabel(user.member_category)} />
-            <InfoRow icon={Calendar} label="Admissão" value={user.admission_date ? new Date(user.admission_date).toLocaleDateString('pt-PT') : '—'} />
+            <InfoRow icon={Calendar} label="Admissão" value={formatDate(user.admission_date) || '—'} />
           </div>
         </div>
       </div>
