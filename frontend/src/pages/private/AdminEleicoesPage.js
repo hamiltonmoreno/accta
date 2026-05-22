@@ -323,7 +323,7 @@ const VotarModal = ({ open, onClose, onSubmit, pending, listas }) => {
 };
 
 // ── Modal: validar / rejeitar lista ───────────────────────────────────────────
-const ValidarListaModal = ({ lista, structure, onClose, onSubmit, pending }) => {
+export const ValidarListaModal = ({ lista, structure, onClose, onSubmit, pending }) => {
   const [motivo, setMotivo] = useState('');
 
   useEffect(() => { setMotivo(''); }, [lista]);
@@ -393,7 +393,7 @@ const ValidarListaModal = ({ lista, structure, onClose, onSubmit, pending }) => 
 // ── Modal: voto por correspondência (Comissão/Mesa/admin) ─────────────────────
 // Registo administrativo de um boletim recebido por correspondência. SEGREDO: o
 // sentido do voto nunca é confirmado associado ao eleitor após submissão.
-const VotoCorrespondenciaModal = ({ open, onClose, onSubmit, pending, listas }) => {
+export const VotoCorrespondenciaModal = ({ open, onClose, onSubmit, pending, listas }) => {
   const [voter, setVoter] = useState(null);
   const [voto, setVoto] = useState(null);
   const [justificacao, setJustificacao] = useState('');
