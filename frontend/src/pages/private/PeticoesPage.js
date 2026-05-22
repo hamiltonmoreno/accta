@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { peticoesAPI } from '../../utils/api';
+import { peticoesAPI, assembleiasAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { FileSignature, Plus, Check, Loader2, Megaphone } from 'lucide-react';
+import { FileSignature, Plus, Check, Loader2, Megaphone, Link2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -24,11 +24,20 @@ export const PeticoesPage = () => {
   const { isMesaAG, isAdmin } = useAuth();
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ titulo: '', fundamentacao: '' });
+  const [fwdAssembleia, setFwdAssembleia] = useState({}); // { [peticaoId]: assembleia_id }
+  const canForward = isMesaAG || isAdmin;
 
   const { data: peticoes = [], isLoading } = useQuery({
     queryKey: PETICOES_KEY,
     queryFn: async () => (await peticoesAPI.list()).data,
   });
+  // Assembleias para ligar a petição ao encaminhar e para resolver o título (§2.4).
+  const { data: assembleias = [] } = useQuery({
+    queryKey: ['assembleias', 'para-ligar'],
+    queryFn: async () => (await assembleiasAPI.list()).data,
+    enabled: canForward,
+  });
+  const assembleiaLabel = (id) => assembleias.find((a) => a.id === id)?.titulo || id;
 
   const invalidate = () => qc.invalidateQueries({ queryKey: PETICOES_KEY });
 
@@ -45,12 +54,10 @@ export const PeticoesPage = () => {
   });
 
   const fwdMut = useMutation({
-    mutationFn: (id) => peticoesAPI.encaminhar(id),
+    mutationFn: ({ id, assembleiaId }) => peticoesAPI.encaminhar(id, assembleiaId || undefined),
     onSuccess: () => { toast.success('Petição encaminhada à Mesa da AG.'); invalidate(); },
     onError: (e) => toast.error(e.response?.data?.detail || 'Erro ao encaminhar'),
   });
-
-  const canForward = isMesaAG || isAdmin;
 
   return (
     <div className="space-y-6">
@@ -114,16 +121,33 @@ export const PeticoesPage = () => {
                     </button>
                   )}
                   {canForward && p.status === 'atingida' && (
-                    <button
-                      onClick={() => fwdMut.mutate(p.id)}
-                      disabled={fwdMut.isPending}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-white border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer disabled:opacity-50"
-                      data-testid={`encaminhar-${p.id}`}
-                    >
-                      <Megaphone className="w-4 h-4" aria-hidden="true" /> Encaminhar à Mesa
-                    </button>
+                    <>
+                      <select
+                        value={fwdAssembleia[p.id] || ''}
+                        onChange={(e) => setFwdAssembleia({ ...fwdAssembleia, [p.id]: e.target.value })}
+                        className="px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40"
+                        data-testid={`encaminhar-assembleia-${p.id}`}
+                      >
+                        <option value="">Ligar a uma AG (opcional)…</option>
+                        {assembleias.map((a) => <option key={a.id} value={a.id}>{a.titulo}</option>)}
+                      </select>
+                      <button
+                        onClick={() => fwdMut.mutate({ id: p.id, assembleiaId: fwdAssembleia[p.id] })}
+                        disabled={fwdMut.isPending}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-white border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer disabled:opacity-50"
+                        data-testid={`encaminhar-${p.id}`}
+                      >
+                        <Megaphone className="w-4 h-4" aria-hidden="true" /> Encaminhar à Mesa
+                      </button>
+                    </>
                   )}
                 </div>
+
+                {p.status === 'encaminhada' && p.assembleia_id && (
+                  <p className="text-xs text-[#6B7280] inline-flex items-center gap-1.5" data-testid={`peticao-ligada-${p.id}`}>
+                    <Link2 className="w-3.5 h-3.5" aria-hidden="true" /> Ligada à AG: {assembleiaLabel(p.assembleia_id)}
+                  </p>
+                )}
               </div>
             );
           })}

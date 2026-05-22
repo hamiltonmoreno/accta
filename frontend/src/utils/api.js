@@ -103,6 +103,17 @@ export const propostasAgAPI = {
   incluir: (id, data) => api.post(`/propostas-ag/${id}/incluir`, data),
 };
 
+// Membros honorários (spec-voz-participacao §4, Art. 8.4): nomeação + votação 2/3
+export const honorariosAPI = {
+  list: (status) => api.get('/honorarios', { params: status ? { status } : {} }),
+  get: (id) => api.get(`/honorarios/${id}`),
+  create: (data) => api.post('/honorarios', data),
+  abrirVotacao: (id) => api.post(`/honorarios/${id}/abrir-votacao`),
+  apurar: (id) => api.post(`/honorarios/${id}/apurar`),
+  // F6 — reconciliação §2.4: ligar nomeação apurada à deliberação da AG.
+  ligar: (id, data) => api.post(`/honorarios/${id}/ligar-assembleia`, data),
+};
+
 // Cargos / mandatos (spec-identidade-cargos / spec-governanca)
 export const cargosAPI = {
   getMeta: () => api.get('/users/meta/cargos'),  // [DEPRECATED] usar governanceAPI.structure

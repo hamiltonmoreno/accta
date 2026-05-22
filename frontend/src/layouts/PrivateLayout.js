@@ -38,6 +38,7 @@ import {
   HelpCircle,
   ShieldAlert,
   Lightbulb,
+  Medal,
 } from 'lucide-react';
 
 const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
@@ -67,6 +68,7 @@ const menuSections = [
     items: [
       { label: 'Assembleias', path: '/admin/assembleias', icon: Landmark, roles: ['all'] },
       { label: 'Eleições', path: '/admin/eleicoes', icon: ListChecks, roles: ['all'] },
+      { label: 'Honorários', path: '/governanca/honorarios', icon: Medal, roles: ['admin'], match: 'governanca' },
       { label: 'Disciplina', path: '/admin/disciplinar', icon: Gavel, roles: ['admin'], match: 'direcao' },
     ],
   },
@@ -129,6 +131,7 @@ const PAGE_TITLES = {
   '/participacao/propostas': 'Propostas para a ordem de trabalhos',
   '/participacao/esclarecimentos': 'Pedidos de esclarecimento',
   '/participacao/reclamacoes': 'Reclamações e recursos',
+  '/governanca/honorarios': 'Membros Honorários',
   '/admin/usuarios': 'Utilizadores',
   '/admin/logs': 'Audit Logs',
 };
@@ -147,7 +150,7 @@ const getPageTitle = (pathname) => {
 };
 
 export const PrivateLayout = ({ children }) => {
-  const { user, logout, isAdmin, isFinanceiro, isModerador, isDirecao } = useAuth();
+  const { user, logout, isAdmin, isFinanceiro, isModerador, isDirecao, isMesaAG } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const pathname = location.pathname;
@@ -204,6 +207,7 @@ export const PrivateLayout = ({ children }) => {
   const filterItem = (item) => {
     // Gating por cargo/órgão (extensão ao RBAC por role/privilégio).
     if (item.match === 'direcao' && (isAdmin || isDirecao)) return true;
+    if (item.match === 'governanca' && (isAdmin || isDirecao || isMesaAG)) return true;
     if (item.roles.includes('all')) return true;
     if (item.roles.includes('admin') && isAdmin) return true;
     if (item.roles.includes('financeiro') && (isFinanceiro || isAdmin)) return true;

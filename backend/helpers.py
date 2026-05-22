@@ -231,17 +231,31 @@ def get_project_stakeholder_ids(project: dict) -> List[str]:
 # --------------------------------------------------------------------------- #
 
 
-async def count_voting_members() -> int:
-    """Nº de sócios com direito a voto (fundador/ordinário, activo, sem direitos
-    suspensos). Base de limiares (petição 1/4) e maiorias. Conta em Python via
-    `is_voting_member` para respeitar a regra time-based de suspensão."""
+async def voting_member_ids() -> List[str]:
+    """IDs dos sócios com direito a voto (fundador/ordinário, activo, sem direitos
+    suspensos). Avalia em Python via `is_voting_member` para respeitar a regra
+    time-based de suspensão. Base para notificar votantes (ex.: abertura de
+    votação de honorário) e para a contagem de elegíveis."""
     from permissions import is_voting_member
 
     users = await db.users.find(
         {"status": "ativo"},
-        {"_id": 0, "account_type": 1, "status": 1, "member_category": 1, "rights_suspended_until": 1, "cargo": 1},
+        {
+            "_id": 0,
+            "id": 1,
+            "account_type": 1,
+            "status": 1,
+            "member_category": 1,
+            "rights_suspended_until": 1,
+            "cargo": 1,
+        },
     ).to_list(None)
-    return sum(1 for u in users if is_voting_member(u))
+    return [u["id"] for u in users if is_voting_member(u)]
+
+
+async def count_voting_members() -> int:
+    """Nº de sócios com direito a voto. Base de limiares (petição 1/4) e maiorias."""
+    return len(await voting_member_ids())
 
 
 async def members_of_orgao(orgao: str) -> List[str]:
