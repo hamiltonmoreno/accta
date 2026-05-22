@@ -159,6 +159,12 @@ async def toggle_like_wall_post(post_id: str, current_user: User = Depends(get_c
 
 @router.get("/wall/{post_id}/comments")
 async def get_wall_comments(post_id: str, current_user: User = Depends(get_current_user)):
+    post = await db.wall_posts.find_one({"id": post_id}, {"_id": 0, "approved": 1})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post não encontrado")
+    is_staff = has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content")
+    if not post.get("approved") and not is_staff:
+        raise HTTPException(status_code=403, detail="Sem permissão")
     comments = await db.wall_comments.find({"post_id": post_id}, {"_id": 0}).sort("created_at", 1).to_list(100)
     for c in comments:
         if isinstance(c.get("created_at"), str):
@@ -213,4 +219,5 @@ async def delete_wall_comment(post_id: str, comment_id: str, current_user: User 
 
     await db.wall_comments.delete_one({"id": comment_id})
     await db.wall_posts.update_one({"id": post_id}, {"$inc": {"comment_count": -1}})
+    await create_audit_log(current_user.id, "wall_comment_deleted", comment_id, details={"post_id": post_id})
     return {"message": "Comentário removido"}

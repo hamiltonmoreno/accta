@@ -58,10 +58,10 @@ async def test_is_token_revoked_returns_true_for_known_jti(mock_db):
 
 
 @pytest.mark.asyncio
-async def test_is_token_revoked_returns_false_for_legacy_token_without_jti(mock_db):
-    """Tokens emitidos antes de Sprint 4 nao tem jti — devem continuar validos
-    (backward-compat) ate ao exp natural."""
-    assert await auth.is_token_revoked(None) is False
+async def test_is_token_revoked_treats_missing_jti_as_revoked(mock_db):
+    """Sem jti não há como verificar a blocklist: tratado como revogado.
+    Todos os tokens emitidos agora incluem jti; os legados pré-jti expiram em <=24h."""
+    assert await auth.is_token_revoked(None) is True
 
 
 @pytest.mark.asyncio

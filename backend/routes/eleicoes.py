@@ -413,10 +413,11 @@ async def apurar(eleicao_id: str, request: Request, current_user: User = Depends
     return resultado
 
 
-async def _proclaim_list(eleicao: dict, lista: dict, by_id: str) -> list[dict]:
+async def _proclaim_list(eleicao: dict, lista: dict, by_id: str) -> tuple[str, list[dict]]:
     """Serviço comum de criação de mandatos na posse. Cessantes (titulares dos
     cargos eleitos que não foram reeleitos) são encerrados aqui — na posse, não
-    no apuramento. Suplentes ficam registados sem alterar o cargo activo."""
+    no apuramento. Suplentes ficam registados sem alterar o cargo activo.
+    Devolve (posse_iso, proclaimed) para o chamador reutilizar o mesmo instante."""
     posse = _now_iso()
     titulares = [c for c in lista.get("candidatos", []) if not c.get("suplente")]
     suplentes = [c for c in lista.get("candidatos", []) if c.get("suplente")]
@@ -503,7 +504,7 @@ async def _proclaim_list(eleicao: dict, lista: dict, by_id: str) -> list[dict]:
         await db.users.update_one({"id": c["user_id"]}, {"$set": {"cargo_history": hist}})
         proclaimed.append({"user_id": c["user_id"], "cargo": cargo_key, "suplente": True})
 
-    return proclaimed
+    return posse, proclaimed
 
 
 @router.post("/{eleicao_id}/proclamar")
@@ -522,8 +523,7 @@ async def proclamar(eleicao_id: str, request: Request, current_user: User = Depe
     if not lista:
         raise HTTPException(status_code=404, detail="Lista vencedora não encontrada")
 
-    proclaimed = await _proclaim_list(eleicao, lista, current_user.id)
-    posse = _now_iso()
+    posse, proclaimed = await _proclaim_list(eleicao, lista, current_user.id)
     await db.eleicoes.update_one(
         {"id": eleicao_id},
         {"$set": {"status": "proclamada", "resultado": {**resultado, "posse_em": posse, "proclaimed": proclaimed}}},
