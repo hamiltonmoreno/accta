@@ -45,7 +45,7 @@ export const DRETab = () => {
       <div className="flex items-center gap-3">
         <label className="text-sm font-semibold text-secondary-auto">Ano:</label>
         <select value={year} onChange={(e) => setYear(parseInt(e.target.value))}
-          className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+          className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
           data-testid="dre-year-select">
           {[2024, 2025, 2026, 2027].map((y) => <option key={y} value={y}>{y}</option>)}
         </select>
@@ -94,7 +94,7 @@ export const DRETab = () => {
             </div>
           ))}
         </div>
-        <div className="flex items-center gap-4 mt-4 pt-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
+        <div className="flex items-center gap-4 mt-4 pt-3 border-t border-[var(--surface-border)]">
           <span className="flex items-center gap-1.5 text-xs text-muted-auto">
             <span className="w-3 h-3 bg-[#16A34A] rounded-sm" /> Receitas
           </span>

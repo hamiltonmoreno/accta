@@ -108,14 +108,14 @@ const UploadModal = ({ albums, onClose }) => {
           <div>
             <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Album *</label>
             <select value={albumId} onChange={(e) => setAlbumId(e.target.value)} data-testid="upload-album-select"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none">
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none">
               {albums.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
             </select>
           </div>
           <div>
             <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Legenda</label>
             <input type="text" value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Descricao da foto..."
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="upload-caption-input" />
           </div>
           <div>
@@ -188,14 +188,14 @@ const AlbumModal = ({ album, onClose }) => {
             <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Titulo *</label>
             <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="Ex: Aeroportos de Cabo Verde"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="album-title-input" />
           </div>
           <div>
             <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Descricao</label>
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Descricao do album..." rows={2}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none resize-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none resize-none"
               data-testid="album-desc-input" />
           </div>
           <div>
@@ -257,7 +257,7 @@ const PendingPanel = () => {
 
   return (
     <div className="card-technical overflow-hidden" data-testid="pending-photos-panel">
-      <div className="flex items-center gap-3 p-4" style={{ borderBottom: '1px solid var(--surface-border)' }}>
+      <div className="flex items-center gap-3 p-4 border-b border-[var(--surface-border)]">
         <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center">
           <Clock className="w-4 h-4 text-white" />
         </div>
@@ -473,7 +473,7 @@ export const GaleriaAdminPage = () => {
                   {album.cover_url ? (
                     <img src={album.cover_url} alt={album.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: 'var(--surface-card-hover)' }}>
+                    <div className="w-full h-full flex items-center justify-center bg-[var(--surface-card-hover)]">
                       <Images className="w-12 h-12 text-muted-auto" />
                     </div>
                   )}
@@ -525,7 +525,7 @@ export const GaleriaAdminPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-[#C7202F] hover:bg-[#B91C1C]"
+              className="bg-[#C7202F] hover:bg-[#A51B27]"
               onClick={() => { handleDeleteAlbum(confirmDeleteAlbum); setConfirmDeleteAlbum(null); }}
             >
               Remover álbum
@@ -545,7 +545,7 @@ export const GaleriaAdminPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-[#C7202F] hover:bg-[#B91C1C]"
+              className="bg-[#C7202F] hover:bg-[#A51B27]"
               onClick={() => { handleDeletePhoto(confirmDeletePhoto); setConfirmDeletePhoto(null); }}
             >
               Remover foto

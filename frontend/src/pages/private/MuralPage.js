@@ -76,7 +76,7 @@ const CommentSection = ({ postId, commentCount, user }) => {
   };
 
   return (
-    <div className="mt-4 pt-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
+    <div className="mt-4 pt-3 border-t border-[var(--surface-border)]">
       <button
         onClick={() => setExpanded((p) => !p)}
         className="flex items-center gap-2 text-sm transition-colors text-muted-auto"
@@ -99,11 +99,10 @@ const CommentSection = ({ postId, commentCount, user }) => {
               ) : (
                 comments.map((comment) => (
                   <div key={comment.id} className="flex gap-3 group" data-testid={`comment-${comment.id}`}>
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 text-grafite-auto"
-                      style={{ backgroundColor: 'var(--surface-border)' }}>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 text-grafite-auto bg-[var(--surface-border)]">
                       {comment.user_name?.charAt(0).toUpperCase()}
                     </div>
-                    <div className="flex-1 rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--surface-card-hover)' }}>
+                    <div className="flex-1 rounded-lg px-3 py-2 bg-[var(--surface-card-hover)]">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-semibold text-grafite-auto">{comment.user_name}</span>
                         <div className="flex items-center gap-2">
@@ -133,7 +132,7 @@ const CommentSection = ({ postId, commentCount, user }) => {
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="Escreva um comentario..."
-                  className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-carmesim/50 focus:border-carmesim/50 transition-all"
+                  className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/50 transition-all"
                   data-testid={`comment-input-${postId}`}
                 />
                 <button
@@ -380,7 +379,7 @@ export const MuralPage = () => {
                 onChange={(e) => setNewPost(e.target.value)}
                 placeholder="Compartilhe as suas ideias, sugestoes ou mensagens com a comunidade..."
                 rows={4}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-carmesim/50 focus:border-carmesim/50 transition-all resize-none"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/50 transition-all resize-none"
                 data-testid="post-textarea"
               />
             </div>
@@ -391,7 +390,7 @@ export const MuralPage = () => {
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-carmesim/50"
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
                   data-testid="post-category-select"
                 >
                   {CATEGORIES.filter(c => c.value !== 'todos').map(c => (
@@ -434,7 +433,7 @@ export const MuralPage = () => {
             placeholder="Pesquisar no mural..."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+            className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
             data-testid="mural-search-input"
           />
         </div>
@@ -565,7 +564,7 @@ export const MuralPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-[#C7202F] hover:bg-[#B91C1C]"
+              className="bg-[#C7202F] hover:bg-[#A51B27]"
               onClick={() => { deleteMutation.mutate(confirmDeletePost); setConfirmDeletePost(null); }}
             >
               Remover

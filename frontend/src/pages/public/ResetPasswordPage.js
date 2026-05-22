@@ -90,7 +90,7 @@ export const ResetPasswordPage = () => {
                       autoComplete="new-password"
                       aria-invalid={errors.password ? 'true' : 'false'}
                       {...register('password')}
-                      className="w-full px-4 py-3 pr-11 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
+                      className="w-full px-4 py-3 pr-11 border border-gray-200 rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
                       placeholder="Mínimo 6 caracteres"
                       data-testid="reset-password-input"
                     />
@@ -119,7 +119,7 @@ export const ResetPasswordPage = () => {
                     autoComplete="new-password"
                     aria-invalid={errors.confirmPassword ? 'true' : 'false'}
                     {...register('confirmPassword')}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
                     placeholder="Repita a senha"
                     data-testid="reset-confirm-password-input"
                   />

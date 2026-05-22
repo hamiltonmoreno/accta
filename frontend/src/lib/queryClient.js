@@ -52,7 +52,7 @@ export const queryClient = new QueryClient({
  */
 export const queryKeys = {
   audit: {
-    logs: () => ['audit', 'logs'],
+    logs: (params) => (params ? ['audit', 'logs', params] : ['audit', 'logs']),
   },
   benefits: {
     list: () => ['benefits'],
