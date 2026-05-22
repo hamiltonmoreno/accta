@@ -33,6 +33,7 @@ from models import (
     Esclarecimento,
     EsclarecimentoCreate,
     HonorarioCreate,
+    HonorarioLigar,
     HonorarioNomination,
     PatrocinioRespond,
     Peticao,
@@ -745,6 +746,36 @@ async def apurar_honorario(nom_id: str, request: Request, current_user: User = D
             f"A nomeação de «{nom['nominee_name']}» não atingiu os 2/3 ({favor}/{base}).",
             link="/governanca/honorarios",
         )
+    return await db.honorarios_nominations.find_one({"id": nom_id}, {"_id": 0})
+
+
+@router.post("/honorarios/{nom_id}/ligar-assembleia", response_model=HonorarioNomination)
+async def ligar_honorario_assembleia(
+    nom_id: str, data: HonorarioLigar, request: Request, current_user: User = Depends(get_current_user)
+):
+    """Reconciliação manual com a Assembleia (spec-voz §2.4, F6): a Mesa liga uma
+    nomeação apurada à deliberação da AG que a ratificou. Apenas referência — não
+    recria nem altera a votação 2/3 por poll (F5)."""
+    if not _can_manage_honorarios(current_user):
+        raise HTTPException(status_code=403, detail="Apenas a Mesa da AG (ou admin) pode ligar a deliberação")
+    nom = await db.honorarios_nominations.find_one({"id": nom_id}, {"_id": 0})
+    if not nom:
+        raise HTTPException(status_code=404, detail="Nomeação não encontrada")
+    if nom["status"] not in ("eleito", "rejeitado"):
+        raise HTTPException(status_code=409, detail="Só nomeações já apuradas podem ser ligadas a uma deliberação")
+    # A assembleia tem de existir (evita ligar a um id inválido).
+    if not await db.assembleias.find_one({"id": data.assembleia_id}, {"_id": 0, "id": 1}):
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    await db.honorarios_nominations.update_one(
+        {"id": nom_id}, {"$set": {"assembleia_id": data.assembleia_id, "deliberacao_id": data.deliberacao_id}}
+    )
+    await create_audit_log(
+        current_user.id,
+        "honorario_ligado_assembleia",
+        nom_id,
+        request=request,
+        details={"assembleia_id": data.assembleia_id, "deliberacao_id": data.deliberacao_id},
+    )
     return await db.honorarios_nominations.find_one({"id": nom_id}, {"_id": 0})
 
 

@@ -463,6 +463,13 @@ class HonorarioCreate(BaseModel):
     justificacao: str = Field(min_length=1, max_length=4000)
 
 
+class HonorarioLigar(BaseModel):
+    # Reconciliação manual com Assembleia (spec-voz §2.4, F6): a Mesa liga uma
+    # nomeação apurada à deliberação da AG que a ratificou. Referência, não recria.
+    assembleia_id: str = Field(min_length=1)
+    deliberacao_id: Optional[str] = None
+
+
 class RegistrationReject(BaseModel):
     reason: Optional[str] = Field(default=None, max_length=500)
 

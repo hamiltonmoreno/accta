@@ -9,8 +9,39 @@ Plano faseado da §11. PRs pequenos `feature/* → develop` (GitFlow).
 | F2 | 1.3 Petição para AG extraordinária (Art. 9.f/19.2.d) | ✅ #88 |
 | F3 | 1.6 Esclarecimentos + 1.5 Reclamações (Art. 9.j/9.i) | ✅ #89 |
 | F4 | 1.4 Propostas/temas para a ordem de trabalhos (Art. 9.g/9.h) | ✅ #91 (merged em develop) |
-| **F5** | **1.2 Honorários (nomeação + votação 2/3 via poll; categoria)** | 🔄 **branch `feature/participacao-f5-honorarios`** |
-| F6 | Reconciliação com `Assembleia` (encaixes §2.4) | ⬜ depende da governança |
+| F5 | 1.2 Honorários (nomeação + votação 2/3 via poll; categoria) | ✅ PR #93 → develop |
+| **F6** | **Reconciliação com `Assembleia` (encaixes §2.4) — versão mínima** | 🔄 **branch `feature/participacao-f6-reconciliacao` (stacked em F5)** |
+
+## F6 — Reconciliação com Assembleia (§2.4) — versão mínima
+
+Decisão do dono (2026-05-22): **mínima, sem tocar na governança** (não adiciona `qualificada_2_3` aos modelos da governança; honorário mantém 2/3 por poll da F5). Como criar uma Assembleia usa helpers da governança, **não se duplica** — a Mesa cria a AG normalmente e **liga** os itens de participação a uma assembleia existente (reutiliza `assembleiasAPI.list`, leitura).
+
+Estado dos links (backend): petição (`encaminhar` → `assembleia_id`), proposta (`incluir` → `assembleia_id`/`ordem_index`) e recurso (`decidir-recurso` → `assembleia_id`/`deliberacao_id`) **já existiam** desde F2/F4/F3. O gap era o **honorário** (F5 não tinha como registar a referência).
+
+### Backend
+- [x] `models.py`: `HonorarioLigar` (`assembleia_id` obrigatório, `deliberacao_id` opcional).
+- [x] `routes/participacao.py`: `POST /honorarios/{id}/ligar-assembleia` (Mesa/admin) — só nomeações apuradas (`eleito`/`rejeitado`); valida que a assembleia existe; regista referência. Audit `honorario_ligado_assembleia`.
+
+### Frontend
+- [x] `api.js`: `honorariosAPI.ligar(id, data)`.
+- [x] `HonorariosPage`: em nomeações apuradas, a Mesa liga a uma AG (seletor via `assembleiasAPI.list`) + id de deliberação opcional; mostra "Ligada à AG: <título>" quando ligada.
+- [x] `PeticoesPage`: ao encaminhar uma petição atingida, seletor opcional de AG (passa `assembleia_id` ao `encaminhar`); mostra "Ligada à AG" quando encaminhada.
+
+### Testes & verificação
+- [x] `tests/test_participacao.py` — `TestHonorario` (+4 do `ligar`): exige Mesa/admin (403); só apurado (409); assembleia inexistente (404); ok regista referência + audit.
+- [x] `pytest tests/test_participacao.py` → 49 passed.
+- [x] `ruff check`/`format` ✓ backend; `eslint` ✓; `craco build` ✓ (compiled successfully).
+- [ ] Verificação manual no browser — pendente do dono.
+
+### Diferido (backend já suporta; UI a expor mais tarde, se desejado)
+- Seletor de AG na inclusão de proposta (`incluir` → `ordem_index`/`assembleia_id`) e na decisão de recurso (`decidir-recurso`). Os campos já passam pela API; falta só a UI dedicada.
+- Reconciliação "completa" (criar `AssembleiaDeliberacao` `qualificada_2_3` para o honorário) fica para quando/se o módulo de governança ganhar a maioria de 2/3 — fora do âmbito mínimo escolhido.
+
+## Review (F6)
+- Âmbito **link, não recria**: respeita "sem tocar na governança" (zero alterações a modelos/rotas da governança) e evita duplicar a lógica de convocação (antecedência/quórum/elegíveis vivem só em `routes/assembleias.py`).
+- Reutiliza leituras existentes (`assembleiasAPI.list`) e os campos de ligação já presentes nos modelos (`assembleia_id`/`deliberacao_id`/`ordem_index`).
+- Honorário: novo `ligar-assembleia` valida estado (apurado) + existência da assembleia; é referência, não altera a votação 2/3 por poll.
+- Stacked em F5 (toca em ficheiros de honorários); o PR rebaseia para develop quando a F5 mergear.
 
 ## F5 — Membros honorários (Art. 8.4) — esta entrega
 

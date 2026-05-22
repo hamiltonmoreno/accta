@@ -16,6 +16,7 @@ from routes import participacao as p
 from models import (
     EsclarecimentoCreate,
     HonorarioCreate,
+    HonorarioLigar,
     PatrocinioRespond,
     PeticaoCreate,
     PeticaoEncaminhar,
@@ -406,7 +407,7 @@ def hon_env(mock_db, monkeypatch):
     monkeypatch.setattr(p, "next_member_id", AsyncMock(return_value="ACCTA-0042"))
     monkeypatch.setattr(p, "generate_qr_hash", lambda uid: "qr")
     monkeypatch.setattr(p, "resolve_link_base", lambda req: "https://portal.test")
-    _wire(mock_db, "honorarios_nominations", "polls", "user_votes")
+    _wire(mock_db, "honorarios_nominations", "polls", "user_votes", "assembleias")
     return mock_db
 
 
@@ -591,3 +592,38 @@ class TestHonorario:
         hon_env.users.insert_one.assert_not_awaited()
         p.send_invite_email.assert_not_awaited()
         assert hon_env.users.update_one.await_args.args[1]["$set"]["member_category"] == "honorario"
+
+    # F6 — reconciliação com Assembleia (§2.4): ligar honorário apurado a uma deliberação.
+    async def test_ligar_requires_mesa_403(self, hon_env, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await p.ligar_honorario_assembleia(
+                "h1", HonorarioLigar(assembleia_id="ag1"), _req(), current_user=socio_user
+            )
+        assert exc.value.status_code == 403
+
+    async def test_ligar_so_apurado_409(self, hon_env, admin_user):
+        hon_env.honorarios_nominations.find_one = AsyncMock(return_value={"id": "h1", "status": "em_votacao"})
+        with pytest.raises(HTTPException) as exc:
+            await p.ligar_honorario_assembleia(
+                "h1", HonorarioLigar(assembleia_id="ag1"), _req(), current_user=admin_user
+            )
+        assert exc.value.status_code == 409
+
+    async def test_ligar_assembleia_inexistente_404(self, hon_env, admin_user):
+        hon_env.honorarios_nominations.find_one = AsyncMock(return_value={"id": "h1", "status": "eleito"})
+        hon_env.assembleias.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await p.ligar_honorario_assembleia(
+                "h1", HonorarioLigar(assembleia_id="ag-x"), _req(), current_user=admin_user
+            )
+        assert exc.value.status_code == 404
+
+    async def test_ligar_ok_regista_referencia(self, hon_env, admin_user):
+        hon_env.honorarios_nominations.find_one = AsyncMock(return_value={"id": "h1", "status": "eleito"})
+        hon_env.assembleias.find_one = AsyncMock(return_value={"id": "ag1"})
+        await p.ligar_honorario_assembleia(
+            "h1", HonorarioLigar(assembleia_id="ag1", deliberacao_id="del9"), _req(), current_user=admin_user
+        )
+        upd = hon_env.honorarios_nominations.update_one.await_args.args[1]["$set"]
+        assert upd["assembleia_id"] == "ag1" and upd["deliberacao_id"] == "del9"
+        assert any(c.args[1] == "honorario_ligado_assembleia" for c in p.create_audit_log.await_args_list)
