@@ -91,6 +91,14 @@ class UserBase(BaseModel):
     # Validade da licença profissional (AAAA-MM-DD). Usada no frontend para
     # avisar o sócio antes do prazo e ajudá-lo a renovar sem multa.
     license_expiry_date: Optional[str] = None
+    # Jóia de admissão (spec-controlos §6, Art. 6) — aditivos/opcionais:
+    # - cta_qualified_since: ISO date em que se qualificou como CTA (a jóia é
+    #   2× a quota se >4 meses, salvo isenção/fundador).
+    # - joia_devida: valor assinalado na admissão (assinalar, não cobrar).
+    # - joia_isento: fundador/honorário/decisão manual.
+    cta_qualified_since: Optional[str] = None
+    joia_devida: Optional[float] = None
+    joia_isento: Optional[bool] = None
 
 
 class UserCreate(UserBase):
@@ -924,9 +932,56 @@ class NotificationCreate(BaseModel):
 
 TRANSACTION_TYPES = ["receita", "despesa"]
 
-INCOME_CATEGORIES = ["quotas", "patrocinios", "doacoes", "eventos", "outros_receita"]
+# Categorias de receita estatutárias (Art. 5; spec-controlos-financeiros §5.1).
+INCOME_CATEGORIES = [
+    "quotas",
+    "joias",
+    "subvencoes",
+    "donativos",
+    "venda_publicacoes",
+    "juros",
+    "extraordinarias",
+]
 
 EXPENSE_CATEGORIES = ["operacional", "eventos", "juridico", "comunicacao", "viagens", "outros_despesa"]
+
+# Labels para o endpoint meta (frontend) — PT com acentos. O CSV/DRE-PDF usa um
+# conjunto ASCII-safe próprio em routes/finances.py (CATEGORY_LABELS).
+INCOME_CATEGORY_LABELS = {
+    "quotas": "Quotas",
+    "joias": "Jóias",
+    "subvencoes": "Subvenções",
+    "donativos": "Donativos",
+    "venda_publicacoes": "Venda de Publicações",
+    "juros": "Juros",
+    "extraordinarias": "Receitas Extraordinárias",
+}
+EXPENSE_CATEGORY_LABELS = {
+    "operacional": "Operacional",
+    "eventos": "Eventos",
+    "juridico": "Jurídico",
+    "comunicacao": "Comunicação",
+    "viagens": "Viagens",
+    "outros_despesa": "Outras Despesas",
+}
+
+# Mapa de alias legado → key estatutária (decisões do dono, 2026-05-21:
+# patrocinios → extraordinarias). Aplica-se SÓ a receitas — a categoria de
+# DESPESA "eventos" mantém-se válida e não é renomeada. Fonte única partilhada
+# pelo script scripts/migrate_income_categories.py e pelos testes.
+LEGACY_INCOME_ALIASES = {
+    "patrocinios": "extraordinarias",
+    "doacoes": "donativos",
+    "eventos": "extraordinarias",
+    "outros_receita": "extraordinarias",
+}
+
+
+def canonical_income_category(category: str) -> str:
+    """Mapeia um alias legado de receita para a key estatutária; já-canónica
+    fica inalterada (idempotente). Semântica income-only: chamar apenas para
+    transacções type=="receita" (ver migrate_income_categories.py)."""
+    return LEGACY_INCOME_ALIASES.get(category, category)
 
 
 class Transaction(BaseModel):
@@ -941,6 +996,13 @@ class Transaction(BaseModel):
     user_id: Optional[str] = None
     created_by: str
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    # Controlos financeiros estatutários — aditivos/opcionais (não quebram docs):
+    # - ato_id: liga a despesa a um Ato de co-aprovação (spec-controlos §4.1).
+    # - proof_url: comprovativo de despesa anexado pelo Tesoureiro (spec-ciclo §5.2).
+    # - conferido: marca de conferência do Conselho Fiscal por transacção (§5.2).
+    ato_id: Optional[str] = None
+    proof_url: Optional[str] = None
+    conferido: Optional[bool] = None
 
 
 class TransactionCreate(BaseModel):
@@ -981,6 +1043,9 @@ class FinanceSettings(BaseModel):
     # deliberação em contrário. joia_amount resolvido pelo backend.
     joia_multiplier: float = 2.0
     joia_amount: Optional[float] = None
+    # Pagamentos acima deste limiar exigem um Ato de co-aprovação aprovado
+    # (spec-controlos §4.1, Art. 54). 0.0 = regra ainda não activada.
+    coaprovacao_limiar: float = 0.0
     # Alterar quota/jóia exige deliberação de AG por maioria 3/4.
     quota_fixed_by_assembleia_id: Optional[str] = None
     quota_fixed_by_deliberacao_id: Optional[str] = None

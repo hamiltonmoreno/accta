@@ -88,6 +88,7 @@ export const AuthProvider = ({ children }) => {
     const isDirecao = cargo.startsWith('dir_');
     const isConselhoFiscal = cargo.startsWith('cf_');
     const isTesoureiro = cargo === 'dir_tesoureiro';
+    const isPresidente = cargo === 'dir_presidente';
 
     // Eleitor: sócio real, activo, categoria votante, sem direitos suspensos.
     const suspendedUntil = user?.rights_suspended_until;
@@ -121,6 +122,7 @@ export const AuthProvider = ({ children }) => {
       isDirecao,
       isConselhoFiscal,
       isTesoureiro,
+      isPresidente,
       isVotingMember,
       refreshUser,
     };

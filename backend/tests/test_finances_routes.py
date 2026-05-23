@@ -226,7 +226,7 @@ class TestSummary:
     async def test_calculates_totals_correctly(self, mock_db, admin_user):
         txs = [
             {"type": "receita", "amount": 1000, "category": "quotas", "date": "2026-01-15T00:00:00"},
-            {"type": "receita", "amount": 500, "category": "doacoes", "date": "2026-02-01T00:00:00"},
+            {"type": "receita", "amount": 500, "category": "donativos", "date": "2026-02-01T00:00:00"},
             {"type": "despesa", "amount": 300, "category": "operacional", "date": "2026-01-20T00:00:00"},
         ]
         mock_db.transactions.find = MagicMock(return_value=_cursor(txs))
@@ -235,7 +235,7 @@ class TestSummary:
         assert result["total_despesas"] == 300
         assert result["resultado_liquido"] == 1200
         assert result["receitas_por_categoria"]["quotas"] == 1000
-        assert result["receitas_por_categoria"]["doacoes"] == 500
+        assert result["receitas_por_categoria"]["donativos"] == 500
         assert result["despesas_por_categoria"]["operacional"] == 300
         assert result["total_transacoes"] == 3
 
