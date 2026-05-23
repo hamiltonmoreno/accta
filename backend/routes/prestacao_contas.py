@@ -21,14 +21,31 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from auth import can_manage_finances, can_view_finances, get_current_user
 from database import db
-from helpers import create_audit_log, members_of_orgao, notify_users
-from models import Balancete, BalanceteAuditar, BalanceteCreate, User
-from permissions import can_emit_parecer_cf
-from routes.finances import compute_financial_summary
+from helpers import create_audit_log, members_of_orgao, notify_all_active_users, notify_users
+from models import (
+    EXPENSE_CATEGORIES,
+    INCOME_CATEGORIES,
+    Balancete,
+    BalanceteAuditar,
+    BalanceteCreate,
+    Exercicio,
+    ExercicioAprovar,
+    ExercicioCreate,
+    ExercicioSubmeterAG,
+    OrcamentoSubmit,
+    ParecerCF,
+    ParecerSubmit,
+    PlanoSubmit,
+    RelatorioContasSubmit,
+    User,
+)
+from permissions import can_emit_parecer_cf, is_direcao, is_mesa_ag
+from routes.finances import compute_dre_report, compute_financial_summary
 
 router = APIRouter(tags=["prestacao-contas"])
 
 _LINK_BAL = "/financeiro/balancetes"
+_LINK_EX = "/financeiro/prestacao-contas"
 
 
 def _now() -> str:
@@ -161,3 +178,289 @@ async def auditar_balancete(
             exclude_id=current_user.id,
         )
     return {"id": balancete_id, "cf_audit": cf_audit}
+
+
+# --------------------------------------------------------------------------- #
+# Exercícios — ciclo guiado (F3 — Art. 19.1, 31.k, 37; integra a AG na F4)
+# --------------------------------------------------------------------------- #
+
+# Estados em que o Orçamento/Plano ainda são editáveis (antes de ir à AG).
+_EDITAVEL = ("aberto", "relatorio_submetido", "parecer_emitido", "reaberto")
+
+
+def _require_direcao(user: User):
+    if not (user.role == "admin" or is_direcao(user)):
+        raise HTTPException(status_code=403, detail="Apenas a Direccao ou admin")
+
+
+def _require_mesa_ag(user: User):
+    if not (user.role == "admin" or is_mesa_ag(user)):
+        raise HTTPException(status_code=403, detail="Apenas a Mesa da AG ou admin")
+
+
+async def _get_exercicio(ano: int) -> dict:
+    ex = await db.exercicios.find_one({"ano": ano}, {"_id": 0})
+    if not ex:
+        raise HTTPException(status_code=404, detail="Exercicio nao encontrado")
+    return ex
+
+
+async def _validate_deliberacao_aprovada(deliberacao_id: str) -> dict:
+    delib = await db.assembleia_deliberacoes.find_one({"id": deliberacao_id}, {"_id": 0})
+    if not delib:
+        raise HTTPException(status_code=400, detail="Deliberacao da AG nao encontrada")
+    if not delib.get("aprovado"):
+        raise HTTPException(status_code=400, detail="A deliberacao da AG nao foi aprovada")
+    return delib
+
+
+def _aviso_prazo_1t(ano: int) -> Optional[str]:
+    """Art. 19.1 — a AG ordinária que aprova o exercício N realiza-se no 1.º
+    trimestre de N+1. Avisa (NÃO bloqueia) se já passou o prazo."""
+    prazo = f"{ano + 1}-03-31T23:59:59"
+    if _now() > prazo:
+        return f"Submissao/aprovacao fora do 1.o trimestre de {ano + 1} (Art. 19.1)."
+    return None
+
+
+@router.post("/exercicios")
+async def abrir_exercicio(data: ExercicioCreate, current_user: User = Depends(get_current_user)):
+    _require_direcao(current_user)
+    existing = await db.exercicios.find_one({"ano": data.ano}, {"_id": 0, "id": 1})
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Ja existe um exercicio para {data.ano}")
+    ex = Exercicio(ano=data.ano, created_by=current_user.id)
+    await db.exercicios.insert_one(ex.model_dump())
+    await create_audit_log(current_user.id, f"Abriu exercicio {data.ano}", ex.id, details={"ano": data.ano})
+    return ex
+
+
+@router.get("/exercicios")
+async def list_exercicios(current_user: User = Depends(get_current_user)):
+    _require_view_finances(current_user)
+    items = await db.exercicios.find({}, {"_id": 0}).sort("ano", -1).to_list(None)
+    return {"items": items, "total": len(items)}
+
+
+@router.get("/exercicios/{ano}")
+async def get_exercicio(ano: int, current_user: User = Depends(get_current_user)):
+    _require_view_finances(current_user)
+    return await _get_exercicio(ano)
+
+
+@router.post("/exercicios/{ano}/relatorio")
+async def submeter_relatorio(
+    ano: int, data: RelatorioContasSubmit, current_user: User = Depends(get_current_user)
+):
+    _require_direcao(current_user)
+    ex = await _get_exercicio(ano)
+    if ex["status"] not in ("aberto", "reaberto"):
+        raise HTTPException(status_code=400, detail="O relatorio so pode ser submetido com o exercicio aberto")
+    await _validate_document(data.document_id)
+
+    # Congela o DRE do ano no momento da submissão (auditabilidade).
+    dre_snapshot = await compute_dre_report(ano)
+    relatorio = {
+        "document_id": data.document_id,
+        "dre_snapshot": dre_snapshot,
+        "submitted_by": current_user.id,
+        "submitted_at": _now(),
+    }
+    await db.exercicios.update_one(
+        {"ano": ano}, {"$set": {"relatorio_contas": relatorio, "status": "relatorio_submetido"}}
+    )
+    await create_audit_log(current_user.id, f"Submeteu relatorio e contas do exercicio {ano}", ex["id"])
+
+    cf_ids = await members_of_orgao("conselho_fiscal")
+    await notify_users(
+        cf_ids,
+        "finance",
+        "Relatorio e Contas submetido",
+        f"O Relatorio e Contas do exercicio {ano} aguarda o parecer do Conselho Fiscal.",
+        _LINK_EX,
+        exclude_id=current_user.id,
+    )
+    return {"ano": ano, "status": "relatorio_submetido", "aviso": _aviso_prazo_1t(ano)}
+
+
+@router.post("/exercicios/{ano}/orcamento")
+async def submeter_orcamento(
+    ano: int, data: OrcamentoSubmit, current_user: User = Depends(get_current_user)
+):
+    _require_direcao(current_user)
+    ex = await _get_exercicio(ano)
+    if ex["status"] not in _EDITAVEL:
+        raise HTTPException(status_code=400, detail="O exercicio ja foi a AG; orcamento nao editavel")
+    if data.document_id:
+        await _validate_document(data.document_id)
+
+    # Categorias têm de bater com as estatutárias (para comparar orçado/realizado).
+    for linha in data.linhas:
+        validas = INCOME_CATEGORIES if linha.tipo == "receita" else EXPENSE_CATEGORIES
+        if linha.categoria not in validas:
+            raise HTTPException(
+                status_code=400, detail=f"Categoria invalida para {linha.tipo}: {linha.categoria}"
+            )
+
+    orcamento = {
+        "linhas": [linha.model_dump() for linha in data.linhas],
+        "document_id": data.document_id,
+        "ano_orcamento": data.ano_orcamento or (ano + 1),
+        "submitted_by": current_user.id,
+        "submitted_at": _now(),
+    }
+    await db.exercicios.update_one({"ano": ano}, {"$set": {"orcamento": orcamento}})
+    await create_audit_log(current_user.id, f"Submeteu orcamento do exercicio {ano}", ex["id"])
+    return {"ano": ano, "orcamento": orcamento}
+
+
+@router.post("/exercicios/{ano}/plano")
+async def submeter_plano(ano: int, data: PlanoSubmit, current_user: User = Depends(get_current_user)):
+    _require_direcao(current_user)
+    ex = await _get_exercicio(ano)
+    if ex["status"] not in _EDITAVEL:
+        raise HTTPException(status_code=400, detail="O exercicio ja foi a AG; plano nao editavel")
+    if data.document_id:
+        await _validate_document(data.document_id)
+
+    plano = {
+        "atividades": [a.model_dump() for a in data.atividades],
+        "document_id": data.document_id,
+        "submitted_by": current_user.id,
+        "submitted_at": _now(),
+    }
+    await db.exercicios.update_one({"ano": ano}, {"$set": {"plano_atividades": plano}})
+    await create_audit_log(current_user.id, f"Submeteu plano de atividades do exercicio {ano}", ex["id"])
+    return {"ano": ano, "plano_atividades": plano}
+
+
+@router.post("/exercicios/{ano}/parecer")
+async def emitir_parecer(ano: int, data: ParecerSubmit, current_user: User = Depends(get_current_user)):
+    _require_cf(current_user)  # CF (ou emit_cf_parecer) — separado de manage_finances
+    ex = await _get_exercicio(ano)
+    if ex["status"] != "relatorio_submetido":
+        raise HTTPException(
+            status_code=400, detail="O parecer so pode ser emitido apos o relatorio submetido"
+        )
+    if data.document_id:
+        await _validate_document(data.document_id)
+
+    parecer = ParecerCF(
+        document_id=data.document_id,
+        sentido=data.sentido,
+        texto=data.texto,
+        emitted_by=current_user.id,
+        emitted_at=_now(),
+    ).model_dump()
+    await db.exercicios.update_one(
+        {"ano": ano}, {"$set": {"parecer_cf": parecer, "status": "parecer_emitido"}}
+    )
+    await create_audit_log(
+        current_user.id, f"Emitiu parecer do CF do exercicio {ano} ({data.sentido})", ex["id"]
+    )
+    mesa_ids = await members_of_orgao("mesa_ag")
+    await notify_users(
+        mesa_ids,
+        "finance",
+        "Parecer do Conselho Fiscal emitido",
+        f"O parecer do CF do exercicio {ano} esta pronto para ir a AG ordinaria.",
+        _LINK_EX,
+        exclude_id=current_user.id,
+    )
+    return {"ano": ano, "status": "parecer_emitido"}
+
+
+@router.post("/exercicios/{ano}/submeter-ag")
+async def submeter_ag(
+    ano: int, data: ExercicioSubmeterAG, current_user: User = Depends(get_current_user)
+):
+    _require_mesa_ag(current_user)
+    ex = await _get_exercicio(ano)
+    if ex["status"] != "parecer_emitido":
+        raise HTTPException(status_code=400, detail="So vai a AG apos o parecer do CF emitido")
+    assemb = await db.assembleias.find_one({"id": data.assembleia_id}, {"_id": 0, "id": 1})
+    if not assemb:
+        raise HTTPException(status_code=400, detail="Assembleia nao encontrada")
+
+    await db.exercicios.update_one(
+        {"ano": ano}, {"$set": {"assembleia_id": data.assembleia_id, "status": "em_aprovacao_ag"}}
+    )
+    await create_audit_log(current_user.id, f"Submeteu exercicio {ano} a AG ordinaria", ex["id"])
+    return {"ano": ano, "status": "em_aprovacao_ag", "aviso": _aviso_prazo_1t(ano)}
+
+
+@router.post("/exercicios/{ano}/aprovar")
+async def aprovar_exercicio(
+    ano: int, data: ExercicioAprovar, current_user: User = Depends(get_current_user)
+):
+    _require_mesa_ag(current_user)
+    ex = await _get_exercicio(ano)
+    if ex["status"] != "em_aprovacao_ag":
+        raise HTTPException(status_code=400, detail="O exercicio tem de estar em aprovacao na AG")
+
+    # A aprovação É da AG (Art. 19.1/37): exige uma deliberação. Se aprovar, a
+    # deliberação tem de estar aprovada.
+    delib = await _validate_deliberacao_aprovada(data.deliberacao_id) if data.aprovado else (
+        await db.assembleia_deliberacoes.find_one({"id": data.deliberacao_id}, {"_id": 0})
+    )
+    if not data.aprovado and not delib:
+        raise HTTPException(status_code=400, detail="Deliberacao da AG nao encontrada")
+
+    novo_status = "aprovado" if data.aprovado else "rejeitado"
+    updates = {
+        "status": novo_status,
+        "deliberacao_id": data.deliberacao_id,
+        "aprovado_em": _now() if data.aprovado else None,
+    }
+    await db.exercicios.update_one({"ano": ano}, {"$set": updates})
+    await create_audit_log(current_user.id, f"Exercicio {ano} {novo_status} pela AG", ex["id"])
+
+    if data.aprovado:
+        await notify_all_active_users(
+            "finance",
+            "Contas aprovadas",
+            f"A Assembleia Geral aprovou o Relatorio e Contas do exercicio {ano}.",
+            _LINK_EX,
+        )
+    return {"ano": ano, "status": novo_status, "aviso": _aviso_prazo_1t(ano)}
+
+
+@router.post("/exercicios/{ano}/reabrir")
+async def reabrir_exercicio(ano: int, current_user: User = Depends(get_current_user)):
+    _require_mesa_ag(current_user)
+    ex = await _get_exercicio(ano)
+    if ex["status"] not in ("rejeitado", "aprovado"):
+        raise HTTPException(status_code=400, detail="So um exercicio fechado pode ser reaberto")
+    await db.exercicios.update_one({"ano": ano}, {"$set": {"status": "reaberto"}})
+    await create_audit_log(current_user.id, f"Reabriu exercicio {ano}", ex["id"])
+    return {"ano": ano, "status": "reaberto"}
+
+
+@router.get("/exercicios/{ano}/orcamento/execucao")
+async def orcamento_execucao(ano: int, current_user: User = Depends(get_current_user)):
+    """Orçado (linhas do orçamento) vs. realizado (de /finances) por categoria."""
+    _require_view_finances(current_user)
+    ex = await _get_exercicio(ano)
+    orc = ex.get("orcamento")
+    if not orc or not orc.get("linhas"):
+        raise HTTPException(status_code=400, detail="Exercicio sem orcamento submetido")
+
+    ano_alvo = orc.get("ano_orcamento") or (ano + 1)
+    realizado = await compute_financial_summary(year=ano_alvo)
+    rec_real = realizado.get("receitas_por_categoria", {})
+    desp_real = realizado.get("despesas_por_categoria", {})
+
+    linhas = []
+    for linha in orc["linhas"]:
+        real = (rec_real if linha["tipo"] == "receita" else desp_real).get(linha["categoria"], 0)
+        previsto = linha.get("valor_previsto", 0)
+        linhas.append(
+            {
+                "categoria": linha["categoria"],
+                "tipo": linha["tipo"],
+                "orcado": previsto,
+                "realizado": real,
+                "desvio": real - previsto,
+            }
+        )
+    return {"ano": ano, "ano_orcamento": ano_alvo, "linhas": linhas}

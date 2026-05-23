@@ -38,17 +38,18 @@ Spec: `tasks/spec-ciclo-prestacao-contas.md`. Branch `feature/ciclo-prestacao-co
 - [x] Testes: 13/13 — snapshot congelado; só Tesoureiro publica; CF readonly não publica; só CF audita; `proof_url` aceite. Sem regressões nos testes de finanças unit (50✓)
 - ℹ️ Exposição pública inline do balancete: adiada (§12.6) — público vê só o PDF via fluxo de documentos
 
-## F3 — 3.1 Ciclo do exercício + orçamento/plano estruturados (Art. 19.1, 31.k, 37)
-- [ ] `models.py`: `Exercicio` (+ máquina de estados), `ParecerCF`, `OrcamentoLinha`, `PlanoAtividade`
-- [ ] `routes/prestacao_contas.py`: abrir · relatório (congela `dre_snapshot`) · orçamento (linhas estruturadas) · plano (atividades) · parecer (CF) · submeter-AG · aprovar
-- [ ] `GET /exercicios/{ano}/orcamento/execucao` — orçado vs. realizado (de `/finances/dre`) por categoria + desvio
-- [ ] Estados avançam por ordem; aviso fora do 1.º trimestre (não bloqueia)
-- [ ] RBAC (Direção/CF/Mesa) + audit + notif
-- [ ] Testes: ordem dos estados; `dre_snapshot` congelado; só CF emite parecer; CF não escreve transação (403); aprovar exige deliberação; aviso 1.º trimestre
+## F3 — 3.1 Ciclo do exercício + orçamento/plano estruturados (Art. 19.1, 31.k, 37) ✅
+- [x] `models.py`: `Exercicio` (máquina de estados), `ParecerCF`, `OrcamentoLinha`, `PlanoAtividade` (+ `*Submit`/`Create`/`Aprovar`)
+- [x] `finances.py`: extraído `compute_dre_report` (fonte única do `dre_snapshot`)
+- [x] `routes/prestacao_contas.py`: abrir · relatório (congela `dre_snapshot`) · orçamento (linhas estruturadas, categorias validadas) · plano (atividades) · parecer (CF) · submeter-AG · aprovar · reabrir
+- [x] `GET /exercicios/{ano}/orcamento/execucao` — orçado vs. realizado por categoria + desvio
+- [x] Estados avançam por ordem; aviso fora do 1.º trimestre (não bloqueia)
+- [x] RBAC (Direção/CF/Mesa) + audit + notif (`finance`)
+- [x] Testes: 29/29 — ordem dos estados; `dre_snapshot` congelado; só CF emite parecer; CF não escreve transação (403); aprovar exige deliberação aprovada; aviso 1.º trimestre; execução orçado/realizado
 
-## F4 — Integração aprovação na AG ordinária
-- [ ] Ligar `assembleia_id`/`deliberacao_id` (governança já em `develop`); aprovar exige deliberação aprovada
-- [ ] Testes de integração da deliberação
+## F4 — Integração aprovação na AG ordinária ✅ (integrada na F3)
+- [x] `aprovar`/`submeter-ag` ligam `assembleia_id`/`deliberacao_id`; aprovar exige deliberação **aprovada** (`assembleia_deliberacoes`, governança em `develop`)
+- [x] Testes da deliberação: aprovada→aprovado; não aprovada→400; inexistente→400; rejeição com deliberação existente
 
 ## F5 — Frontend
 - [ ] `utils/api.js`: `exerciciosAPI`, `balancetesAPI`, `regulamentosAPI`

@@ -1717,3 +1717,105 @@ class BalanceteCreate(BaseModel):
 class BalanceteAuditar(BaseModel):
     conferido: bool
     observacoes: Optional[str] = Field(default=None, max_length=2000)
+
+
+# ===== EXERCÍCIO / CICLO DE PRESTAÇÃO DE CONTAS (spec-ciclo §4, Art. 19.1/31.k/37) =====
+# Máquina de estados que guia o ciclo anual: a Direcção submete Relatório e
+# Contas (+ Orçamento e Plano do ano seguinte, em DADOS ESTRUTURADOS — decisão
+# §12.8), o CF emite Parecer, a Mesa liga à AG ordinária e a deliberação aprova.
+#   aberto → relatorio_submetido → parecer_emitido → em_aprovacao_ag → aprovado
+#                                                                    ↘ rejeitado → reaberto
+
+EXERCICIO_STATUSES = [
+    "aberto",
+    "relatorio_submetido",
+    "parecer_emitido",
+    "em_aprovacao_ag",
+    "aprovado",
+    "rejeitado",
+    "reaberto",
+]
+PARECER_SENTIDOS = ["favoravel", "favoravel_com_reservas", "desfavoravel"]
+PLANO_ATIVIDADE_ESTADOS = ["planeada", "em_curso", "concluida"]
+
+
+class OrcamentoLinha(BaseModel):
+    categoria: str
+    tipo: Literal["receita", "despesa"]
+    valor_previsto: float = Field(ge=0)
+    nota: Optional[str] = Field(default=None, max_length=500)
+
+
+class PlanoAtividade(BaseModel):
+    titulo: str = Field(min_length=2, max_length=200)
+    descricao: Optional[str] = Field(default=None, max_length=2000)
+    trimestre: Optional[int] = Field(default=None, ge=1, le=4)
+    responsavel: Optional[str] = Field(default=None, max_length=200)
+    estado: Literal["planeada", "em_curso", "concluida"] = "planeada"
+
+
+class Exercicio(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    ano: int  # exercício económico
+    status: Literal[
+        "aberto",
+        "relatorio_submetido",
+        "parecer_emitido",
+        "em_aprovacao_ag",
+        "aprovado",
+        "rejeitado",
+        "reaberto",
+    ] = "aberto"
+    relatorio_contas: Optional[dict] = None  # {document_id, dre_snapshot, submitted_by, submitted_at}
+    orcamento: Optional[dict] = None  # {linhas[], document_id?, ano_orcamento, submitted_by, submitted_at}
+    plano_atividades: Optional[dict] = None  # {atividades[], document_id?, submitted_by, submitted_at}
+    parecer_cf: Optional[dict] = None  # ver ParecerCF
+    assembleia_id: Optional[str] = None  # AG ordinária do 1.º trimestre
+    deliberacao_id: Optional[str] = None  # deliberação que aprova
+    aprovado_em: Optional[str] = None
+    created_by: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    source_article: str = "37"
+
+
+class ParecerCF(BaseModel):
+    document_id: Optional[str] = None
+    sentido: Literal["favoravel", "favoravel_com_reservas", "desfavoravel"]
+    texto: str
+    emitted_by: str  # membro do CF
+    emitted_at: str
+
+
+class ExercicioCreate(BaseModel):
+    ano: int = Field(ge=2000, le=2100)
+
+
+class RelatorioContasSubmit(BaseModel):
+    document_id: str
+
+
+class OrcamentoSubmit(BaseModel):
+    linhas: List[OrcamentoLinha] = Field(min_length=1)
+    document_id: Optional[str] = None
+    ano_orcamento: Optional[int] = Field(default=None, ge=2000, le=2100)  # default = exercicio.ano + 1
+
+
+class PlanoSubmit(BaseModel):
+    atividades: List[PlanoAtividade] = Field(min_length=1)
+    document_id: Optional[str] = None
+
+
+class ParecerSubmit(BaseModel):
+    sentido: Literal["favoravel", "favoravel_com_reservas", "desfavoravel"]
+    texto: str = Field(min_length=1, max_length=10000)
+    document_id: Optional[str] = None
+
+
+class ExercicioSubmeterAG(BaseModel):
+    assembleia_id: str
+
+
+class ExercicioAprovar(BaseModel):
+    deliberacao_id: str
+    aprovado: bool = True
