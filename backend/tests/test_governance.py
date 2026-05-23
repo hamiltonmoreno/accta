@@ -158,6 +158,13 @@ class TestQuorumMajorities:
         assert g.required_three_quarters(8) == 6
         assert g.required_three_quarters(4) == 3
 
+    def test_dois_tercos(self):
+        # Maioria de 2/3 (eleição de membro honorário — Art. 8.4).
+        assert g.required_two_thirds(9) == 6
+        assert g.required_two_thirds(10) == 7  # ceil(6.67)
+        assert g.required_two_thirds(3) == 2
+        assert g.required_two_thirds(4) == 3  # ceil(2.67)
+
 
 # --------------------------------------------------------------------------- #
 # slots eleitorais (spec §12)

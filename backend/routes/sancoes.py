@@ -260,7 +260,7 @@ async def aplicar_sancao(sancao_id: str, request: Request, current_user: User = 
     ativo); expulsão encerra mandato e inactiva a conta (exige deliberação)."""
     _require_disciplina(current_user)
     s = await _get_sancao(sancao_id)
-    if s["status"] not in ("decidida", "recurso"):
+    if s["status"] != "decidida":
         raise HTTPException(status_code=400, detail="A sanção só se aplica após a decisão")
     if not (s.get("decisao") or {}).get("aprovado"):
         raise HTTPException(status_code=400, detail="A decisão não foi aprovada")

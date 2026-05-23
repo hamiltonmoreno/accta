@@ -22,6 +22,11 @@ pytestmark = [pytest.mark.unit, pytest.mark.asyncio]
 # --------------------------------------------------------------------------- #
 
 
+def _search_regex(query: dict) -> str:
+    search_clause = next(clause for clause in query["$and"] if "name" in clause.get("$or", [{}])[0])
+    return search_clause["$or"][0]["name"]["$regex"]
+
+
 class TestListUsers:
     async def test_admin_can_list(self, mock_db, admin_user):
         mock_db.users.find().skip().limit().to_list = AsyncMock(return_value=[])
@@ -58,7 +63,7 @@ class TestListUsers:
         mock_db.users.find = capture_find
         await users_route.get_users(search=".*+?[]{}()", current_user=admin_user)
         # Cada metachar deve aparecer escapado (\\) no regex.
-        regex = captured_query["$or"][0]["name"]["$regex"]
+        regex = _search_regex(captured_query)
         assert "\\.\\*\\+\\?\\[\\]\\{\\}\\(\\)" == regex
 
     async def test_search_truncated_to_100_chars(self, mock_db, admin_user):
@@ -75,7 +80,7 @@ class TestListUsers:
         mock_db.users.find = capture_find
         long_input = "a" * 500
         await users_route.get_users(search=long_input, current_user=admin_user)
-        regex = captured_query["$or"][0]["name"]["$regex"]
+        regex = _search_regex(captured_query)
         # 100 'a' chars (re.escape de 'a' = 'a').
         assert len(regex) == 100
 

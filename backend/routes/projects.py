@@ -55,7 +55,7 @@ def can_manage_project(user: User, project: dict) -> bool:
 
 
 def can_view_project(user: User, project: dict) -> bool:
-    if project.get("visibility") == "publico":
+    if project.get("visibility") == "publico" and project.get("status") != "proposta":
         return True
     return user.role == "admin" or project.get("created_by") == user.id or project.get("responsible_id") == user.id
 
@@ -78,10 +78,10 @@ async def list_projects(
     if visibility:
         query["visibility"] = visibility
 
-    # Non-admin: only see public + own private projects
+    # Non-admin: only see published public projects + own/responsible projects.
     if current_user.role != "admin":
         query["$or"] = [
-            {"visibility": "publico"},
+            {"visibility": "publico", "status": {"$ne": "proposta"}},
             {"created_by": current_user.id},
             {"responsible_id": current_user.id},
         ]

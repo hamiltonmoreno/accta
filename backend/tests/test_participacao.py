@@ -186,6 +186,13 @@ class TestPeticao:
             await p.encaminhar_peticao("p1", PeticaoEncaminhar(), _req(), current_user=socio_user)
         assert exc.value.status_code == 403
 
+    async def test_encaminhar_requires_threshold_409(self, pet_env, admin_user):
+        pet_env.peticoes.find_one = AsyncMock(return_value={"id": "p1", "status": "aberta"})
+        with pytest.raises(HTTPException) as exc:
+            await p.encaminhar_peticao("p1", PeticaoEncaminhar(), _req(), current_user=admin_user)
+        assert exc.value.status_code == 409
+        pet_env.peticoes.update_one.assert_not_awaited()
+
 
 # --------------------------------------------------------------------------- #
 # 1.6 esclarecimentos / 1.5 reclamações
@@ -268,6 +275,13 @@ class TestReclamacao:
             await p.responder_reclamacao("r1", ReclamacaoResponder(texto="x"), _req(), current_user=socio_user)
         assert exc.value.status_code == 403
 
+    async def test_responder_recurso_409(self, f3_env, admin_user):
+        f3_env.reclamacoes.find_one = AsyncMock(return_value={"id": "r1", "status": "recurso"})
+        with pytest.raises(HTTPException) as exc:
+            await p.responder_reclamacao("r1", ReclamacaoResponder(texto="x"), _req(), current_user=admin_user)
+        assert exc.value.status_code == 409
+        f3_env.reclamacoes.update_one.assert_not_awaited()
+
     async def test_recurso_before_response_409(self, f3_env, socio_user):
         # sem resposta e prazo no futuro → não pode recorrer ainda.
         future = "2999-01-01T00:00:00+00:00"
@@ -284,6 +298,20 @@ class TestReclamacao:
         )
         await p.abrir_recurso("r1", _req(), current_user=socio_user)
         f3_env.reclamacoes.update_one.assert_awaited()
+
+    async def test_recurso_encerrada_409(self, f3_env, socio_user):
+        f3_env.reclamacoes.find_one = AsyncMock(
+            return_value={
+                "id": "r1",
+                "created_by": socio_user.id,
+                "direcao_resposta": {"text": "r"},
+                "status": "encerrada",
+            }
+        )
+        with pytest.raises(HTTPException) as exc:
+            await p.abrir_recurso("r1", _req(), current_user=socio_user)
+        assert exc.value.status_code == 409
+        f3_env.reclamacoes.update_one.assert_not_awaited()
 
     async def test_decidir_recurso_requires_mesa_403(self, f3_env, socio_user):
         with pytest.raises(HTTPException) as exc:
@@ -374,6 +402,13 @@ class TestProposta:
         assert any(c.args[1] == "proposta_triada" for c in p.create_audit_log.await_args_list)
         p.notify_users.assert_awaited()
 
+    async def test_triar_requires_pending_status_409(self, f4_env, admin_user):
+        f4_env.propostas_ag.find_one = AsyncMock(return_value={"id": "p1", "status": "aceite"})
+        with pytest.raises(HTTPException) as exc:
+            await p.triar_proposta("p1", PropostaTriagem(decisao="recusada"), _req(), current_user=admin_user)
+        assert exc.value.status_code == 409
+        f4_env.propostas_ag.update_one.assert_not_awaited()
+
     async def test_incluir_requires_mesa_403(self, f4_env, socio_user):
         socio_user.cargo = "dir_presidente"  # Direcção tria mas NÃO inclui (só Mesa/admin)
         with pytest.raises(HTTPException) as exc:
@@ -389,6 +424,13 @@ class TestProposta:
         )
         f4_env.propostas_ag.update_one.assert_awaited()
         assert any(c.args[1] == "proposta_incluida" for c in p.create_audit_log.await_args_list)
+
+    async def test_incluir_requires_accepted_status_409(self, f4_env, admin_user):
+        f4_env.propostas_ag.find_one = AsyncMock(return_value={"id": "p1", "status": "submetida"})
+        with pytest.raises(HTTPException) as exc:
+            await p.incluir_proposta("p1", PropostaIncluir(), _req(), current_user=admin_user)
+        assert exc.value.status_code == 409
+        f4_env.propostas_ag.update_one.assert_not_awaited()
 
 
 # --------------------------------------------------------------------------- #

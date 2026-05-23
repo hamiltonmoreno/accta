@@ -399,6 +399,11 @@ def required_three_quarters(base: int) -> int:
     return math.ceil(base * 3 / 4)
 
 
+def required_two_thirds(base: int) -> int:
+    """2/3 de uma base (eleição de membro honorário — Art. 8.4)."""
+    return math.ceil(base * 2 / 3)
+
+
 # --------------------------------------------------------------------------- #
 # Slots eleitorais (spec §12)
 # --------------------------------------------------------------------------- #

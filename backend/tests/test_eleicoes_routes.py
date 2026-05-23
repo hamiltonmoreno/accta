@@ -17,6 +17,7 @@ from governance import election_slots
 from models import (
     EleicaoCreate,
     EleicaoListaCreate,
+    EleicaoListaValidar,
     VotarRequest,
     User,
 )
@@ -204,6 +205,19 @@ class TestListas:
         assert result["estado"] == "submetida"
         # cada candidato tem cargo derivado do slot
         assert all("cargo" in c and "suplente" in c for c in captured["candidatos"])
+
+    async def test_validar_lista_fora_de_candidaturas_400(self, gov_env):
+        gov_env.eleicoes.find_one = AsyncMock(return_value=_eleicao(status="votacao"))
+        with pytest.raises(HTTPException) as exc:
+            await e_route.validar_lista(
+                eleicao_id="el1",
+                lista_id="l1",
+                request=_request(),
+                data=EleicaoListaValidar(aceite=True),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 400
+        gov_env.eleicao_listas.find_one.assert_not_awaited()
 
 
 # --------------------------------------------------------------------------- #

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { reclamacoesAPI } from '../../utils/api';
+import { reclamacoesAPI, assembleiasAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { ShieldAlert, Plus, Send, Loader2, Gavel } from 'lucide-react';
+import { ShieldAlert, Plus, Send, Loader2, Gavel, Link2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -29,6 +29,13 @@ export const ReclamacoesPage = () => {
   const [dec, setDec] = useState({});
 
   const { data: itens = [], isLoading } = useQuery({ queryKey: KEY, queryFn: async () => (await reclamacoesAPI.list()).data });
+  // Assembleias para ligar a decisão do recurso a uma deliberação da AG (§2.4, F6).
+  const { data: assembleias = [] } = useQuery({
+    queryKey: ['assembleias', 'para-ligar'],
+    queryFn: async () => (await assembleiasAPI.list()).data.assembleias || [],
+    enabled: isAdmin || isMesaAG,
+  });
+  const assembleiaLabel = (id) => assembleias.find((a) => a.id === id)?.titulo || id;
   const invalidate = () => qc.invalidateQueries({ queryKey: KEY });
 
   const createMut = useMutation({
@@ -47,7 +54,7 @@ export const ReclamacoesPage = () => {
     onError: (e) => toast.error(e.response?.data?.detail || 'Erro ao recorrer'),
   });
   const decMut = useMutation({
-    mutationFn: ({ id, decisao }) => reclamacoesAPI.decidirRecurso(id, { decisao }),
+    mutationFn: ({ id, data }) => reclamacoesAPI.decidirRecurso(id, data),
     onSuccess: () => { toast.success('Recurso decidido.'); invalidate(); },
     onError: (e) => toast.error(e.response?.data?.detail || 'Erro ao decidir'),
   });
@@ -93,7 +100,15 @@ export const ReclamacoesPage = () => {
                   <div className="rounded-md bg-[#F5F5F5] p-3"><p className="text-xs font-medium text-[#6B7280] mb-1">Resposta da Direcção</p><p className="text-sm text-grafite whitespace-pre-wrap">{r.direcao_resposta.text}</p></div>
                 )}
                 {r.recurso?.decisao && (
-                  <div className="rounded-md bg-[#FBEAEC] p-3"><p className="text-xs font-medium text-carmesim mb-1">Decisão do recurso (AG)</p><p className="text-sm text-grafite whitespace-pre-wrap">{r.recurso.decisao}</p></div>
+                  <div className="rounded-md bg-[#FBEAEC] p-3">
+                    <p className="text-xs font-medium text-carmesim mb-1">Decisão do recurso (AG)</p>
+                    <p className="text-sm text-grafite whitespace-pre-wrap">{r.recurso.decisao}</p>
+                    {r.recurso.assembleia_id && (
+                      <p className="text-xs text-[#6B7280] mt-1 inline-flex items-center gap-1.5">
+                        <Link2 className="w-3.5 h-3.5" aria-hidden="true" /> {assembleiaLabel(r.recurso.assembleia_id)}{r.recurso.deliberacao_id ? ` · deliberação ${r.recurso.deliberacao_id}` : ''}
+                      </p>
+                    )}
+                  </div>
                 )}
 
                 {canRespond && !['resolvida', 'recurso', 'encerrada'].includes(r.status) && (
@@ -113,11 +128,18 @@ export const ReclamacoesPage = () => {
                 )}
 
                 {canDecide && r.status === 'recurso' && (
-                  <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                    <input type="text" value={dec[r.id] || ''} onChange={(e) => setDec({ ...dec, [r.id]: e.target.value })} placeholder="Decisão da AG sobre o recurso…" className="flex-1 px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`rec-dec-${r.id}`} />
-                    <button onClick={() => decMut.mutate({ id: r.id, decisao: dec[r.id] })} disabled={decMut.isPending || !(dec[r.id] || '').trim()} className="inline-flex items-center gap-1.5 bg-carmesim text-white px-3 py-2 rounded-md text-sm font-semibold hover:bg-carmesim-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`rec-dec-btn-${r.id}`}>
-                      <Gavel className="w-4 h-4" aria-hidden="true" /> Decidir
-                    </button>
+                  <div className="space-y-2 pt-1">
+                    <input type="text" value={dec[r.id]?.decisao || ''} onChange={(e) => setDec({ ...dec, [r.id]: { ...dec[r.id], decisao: e.target.value } })} placeholder="Decisão da AG sobre o recurso…" className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`rec-dec-${r.id}`} />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select value={dec[r.id]?.assembleia_id || ''} onChange={(e) => setDec({ ...dec, [r.id]: { ...dec[r.id], assembleia_id: e.target.value } })} className="px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`rec-dec-assembleia-${r.id}`}>
+                        <option value="">Assembleia (opcional)…</option>
+                        {assembleias.map((a) => <option key={a.id} value={a.id}>{a.titulo}</option>)}
+                      </select>
+                      <input type="text" value={dec[r.id]?.deliberacao_id || ''} onChange={(e) => setDec({ ...dec, [r.id]: { ...dec[r.id], deliberacao_id: e.target.value } })} placeholder="ID deliberação (opcional)" className="px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`rec-dec-delib-${r.id}`} />
+                      <button onClick={() => decMut.mutate({ id: r.id, data: { decisao: dec[r.id]?.decisao, assembleia_id: dec[r.id]?.assembleia_id || null, deliberacao_id: dec[r.id]?.deliberacao_id || null } })} disabled={decMut.isPending || !(dec[r.id]?.decisao || '').trim()} className="inline-flex items-center gap-1.5 bg-carmesim text-white px-3 py-2 rounded-md text-sm font-semibold hover:bg-carmesim-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`rec-dec-btn-${r.id}`}>
+                        <Gavel className="w-4 h-4" aria-hidden="true" /> Decidir
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

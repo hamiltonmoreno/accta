@@ -933,6 +933,42 @@ async def next_member_id() -> str:
     return f"ACCTA-{int(n):04d}"
 
 
+async def register_event_attendee(event_id: str, user_id: str) -> str:
+    """Append one attendee while the event document is locked.
+
+    Returns one of: registered, missing, already_registered, full.
+    """
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            wb = _WhereBuilder()
+            where = wb.build({"id": event_id})
+            row = await conn.fetchrow(
+                f"SELECT pk, doc FROM {_quote_ident('events')} WHERE {where} ORDER BY pk LIMIT 1 FOR UPDATE",
+                *wb.params,
+            )
+            if row is None:
+                return "missing"
+
+            event = dict(row["doc"])
+            attendees = list(event.get("attendees") or [])
+            if user_id in attendees:
+                return "already_registered"
+
+            max_attendees = event.get("max_attendees")
+            if max_attendees and len(attendees) >= max_attendees:
+                return "full"
+
+            attendees.append(user_id)
+            event["attendees"] = attendees
+            await conn.execute(
+                f"UPDATE {_quote_ident('events')} SET doc=$1 WHERE pk=$2",
+                event,
+                row["pk"],
+            )
+    return "registered"
+
+
 async def transfer_cargo(from_user_id: str, to_user_id: str, from_update: dict, to_update: dict) -> None:
     """Aplica dois updates de utilizador numa ÚNICA transação atómica
     (transferência de mandato: despromove `from_user`, promove `to_user`).

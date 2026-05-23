@@ -1,4 +1,5 @@
 """Unit tests for routes/polls.py — RBAC, vote dedup, results aggregation."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone, timedelta
@@ -24,6 +25,7 @@ def _cursor(items):
 
 def _make_inactive(user_dict):
     from models import User
+
     return User(**{**user_dict, "status": "inativo"})
 
 
@@ -71,6 +73,12 @@ class TestGetPolls:
         mock_db.polls.find = MagicMock(return_value=_cursor([]))
         result = await polls_route.get_polls(current_user=socio_user)
         assert result == []
+        mock_db.polls.find.assert_called_once_with({"status": {"$ne": "rascunho"}}, {"_id": 0})
+
+    async def test_admin_can_list_drafts(self, mock_db, admin_user):
+        mock_db.polls.find = MagicMock(return_value=_cursor([]))
+        await polls_route.get_polls(current_user=admin_user)
+        mock_db.polls.find.assert_called_once_with({}, {"_id": 0})
 
     async def test_limit_capped_at_100(self, mock_db, socio_user):
         captured = {}
@@ -201,9 +209,7 @@ class TestVote:
     async def test_poll_not_open_400(self, mock_db, socio_user):
         from models import VoteCreate
 
-        mock_db.polls.find_one = AsyncMock(
-            return_value={**_open_poll(), "status": "rascunho"}
-        )
+        mock_db.polls.find_one = AsyncMock(return_value={**_open_poll(), "status": "rascunho"})
         with pytest.raises(HTTPException) as exc:
             await polls_route.vote(
                 vote_data=VoteCreate(poll_id="p1", vote_option=1),
@@ -333,9 +339,7 @@ class TestUpdatePollStatus:
     async def test_admin_opens_draft_and_broadcasts(self, mock_db, admin_user):
         from models import PollStatusUpdate
 
-        mock_db.polls.find_one = AsyncMock(
-            return_value={**_open_poll(), "status": "rascunho"}
-        )
+        mock_db.polls.find_one = AsyncMock(return_value={**_open_poll(), "status": "rascunho"})
         mock_db.users.find = MagicMock(return_value=_cursor([]))
         result = await polls_route.update_poll_status(
             poll_id="p1",
@@ -350,9 +354,7 @@ class TestUpdatePollStatus:
         """encerrada -> aberta não é permitido."""
         from models import PollStatusUpdate
 
-        mock_db.polls.find_one = AsyncMock(
-            return_value={**_open_poll(), "status": "encerrada"}
-        )
+        mock_db.polls.find_one = AsyncMock(return_value={**_open_poll(), "status": "encerrada"})
         with pytest.raises(HTTPException) as exc:
             await polls_route.update_poll_status(
                 poll_id="p1",

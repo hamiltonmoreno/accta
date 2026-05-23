@@ -9,6 +9,7 @@ Covers the behaviour changes flagged on the fix/health-audit branch:
 Tests invoke the route functions directly with `mock_db` (no TestClient,
 no real DB) — mesmo padrao de test_users_routes.py / test_polls_routes.py.
 """
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
@@ -65,6 +66,14 @@ def _project(owner_id: str, *, visibility="publico", **extra) -> dict:
     return base
 
 
+def _async_rows(items):
+    async def rows():
+        for item in items:
+            yield item
+
+    return rows()
+
+
 # --------------------------------------------------------------------------- #
 # Pydantic request models — payload invalido = 422 (ValidationError), nao 500
 # --------------------------------------------------------------------------- #
@@ -106,6 +115,31 @@ class TestRequestModelsValidation:
 # --------------------------------------------------------------------------- #
 
 
+class TestProjectVisibility:
+    async def test_non_owner_cannot_view_public_proposal(self, mock_db, socio_user):
+        mock_db.projects.find_one = AsyncMock(return_value=_project("outro", visibility="publico", status="proposta"))
+        with pytest.raises(HTTPException) as exc:
+            await projects_route.get_project(project_id="proj-1", current_user=socio_user)
+        assert exc.value.status_code == 403
+
+    async def test_non_admin_list_excludes_public_proposals(self, mock_db, socio_user):
+        captured = {}
+        cursor = mock_db.projects.find.return_value
+
+        def find(query, _projection):
+            captured["query"] = query
+            return cursor
+
+        mock_db.projects.find = MagicMock(side_effect=find)
+        mock_db.project_tasks = MagicMock()
+        mock_db.project_tasks.aggregate = MagicMock(return_value=_async_rows([]))
+
+        result = await projects_route.list_projects(current_user=socio_user)
+
+        assert result["items"] == []
+        assert {"visibility": "publico", "status": {"$ne": "proposta"}} in captured["query"]["$or"]
+
+
 class TestUpdateProjectAllowlist:
     async def test_404_when_project_missing(self, mock_db, admin_user):
         from models import ProjectUpdate
@@ -139,15 +173,11 @@ class TestUpdateProjectAllowlist:
             ProjectUpdate(visibility="privado"),
         ):
             with pytest.raises(HTTPException) as exc:
-                await projects_route.update_project(
-                    project_id="proj-1", data=payload, current_user=socio_user
-                )
+                await projects_route.update_project(project_id="proj-1", data=payload, current_user=socio_user)
             assert exc.value.status_code == 403
         mock_db.projects.update_one.assert_not_awaited()
 
-    async def test_manager_can_change_operational_fields(
-        self, mock_db, socio_user, quiet_notifications
-    ):
+    async def test_manager_can_change_operational_fields(self, mock_db, socio_user, quiet_notifications):
         from models import ProjectUpdate
 
         proj = _project(socio_user.id)
@@ -160,9 +190,7 @@ class TestUpdateProjectAllowlist:
         set_data = mock_db.projects.update_one.call_args[0][1]["$set"]
         assert set_data["title"] == "Novo" and set_data["progress"] == 40
 
-    async def test_admin_can_change_strategic_fields(
-        self, mock_db, admin_user, quiet_notifications
-    ):
+    async def test_admin_can_change_strategic_fields(self, mock_db, admin_user, quiet_notifications):
         from models import ProjectUpdate
 
         mock_db.projects.find_one = AsyncMock(return_value=_project("someone"))
@@ -177,10 +205,10 @@ class TestUpdateProjectAllowlist:
     @pytest.mark.parametrize(
         "payload_kwargs",
         [
-            {"status": "arquivado"},      # nao em PROJECT_STATUSES
-            {"visibility": "secreto"},    # nao em PROJECT_VISIBILITIES
-            {"progress": 150},            # fora de 0..100
-            {"budget": -1.0},             # negativo
+            {"status": "arquivado"},  # nao em PROJECT_STATUSES
+            {"visibility": "secreto"},  # nao em PROJECT_VISIBILITIES
+            {"progress": 150},  # fora de 0..100
+            {"budget": -1.0},  # negativo
         ],
     )
     async def test_admin_value_validation_400(self, mock_db, admin_user, payload_kwargs):
@@ -220,9 +248,7 @@ class TestUpdateTaskAllowlist:
         assert exc.value.status_code == 403
         mock_db.project_tasks.update_one.assert_not_awaited()
 
-    async def test_assignee_status_update_passes(
-        self, mock_db, socio_user, quiet_notifications
-    ):
+    async def test_assignee_status_update_passes(self, mock_db, socio_user, quiet_notifications):
         from models import ProjectTaskUpdate
 
         mock_db.projects.find_one = AsyncMock(return_value=_project("admin-x"))
@@ -271,9 +297,7 @@ class TestUpdateTaskAllowlist:
 
 
 class TestAddCommentExpense:
-    async def test_add_comment_returns_clean_dict(
-        self, mock_db, admin_user, quiet_notifications
-    ):
+    async def test_add_comment_returns_clean_dict(self, mock_db, admin_user, quiet_notifications):
         from models import ProjectCommentCreate
 
         mock_db.projects.find_one = AsyncMock(return_value=_project("admin-x"))
@@ -290,9 +314,7 @@ class TestAddCommentExpense:
     async def test_add_comment_no_view_access_403(self, mock_db, socio_user):
         from models import ProjectCommentCreate
 
-        mock_db.projects.find_one = AsyncMock(
-            return_value=_project("outro", visibility="privado")
-        )
+        mock_db.projects.find_one = AsyncMock(return_value=_project("outro", visibility="privado"))
         with pytest.raises(HTTPException) as exc:
             await projects_route.add_comment(
                 project_id="proj-1",

@@ -19,6 +19,7 @@ from governance import (
     required_absolute_majority,
     required_quorum,
     required_three_quarters,
+    required_two_thirds,
 )
 from helpers import create_audit_log, notify_all_active_users
 from models import (
@@ -267,7 +268,7 @@ async def register_deliberacao(
     current_user: User = Depends(get_current_user),
 ):
     """Regista uma deliberação e calcula a aprovação pela maioria aplicável:
-    absoluta / 3-4 dos presentes / 3-4 do universo de membros."""
+    absoluta / 2-3 dos presentes / 3-4 dos presentes / 3-4 do universo de membros."""
     _require_convene(current_user)
     a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0})
     if not a:
@@ -280,6 +281,9 @@ async def register_deliberacao(
     # Mínimo legal para deliberar = quórum de 2.ª chamada (1/3 do universo).
     if present_power < required_quorum(eligible, 2):
         raise HTTPException(status_code=400, detail="Sem quórum para deliberar")
+    total_votes = data.votos_favor + data.votos_contra + data.abstencoes
+    if total_votes > present_power:
+        raise HTTPException(status_code=400, detail="Contagem de votos excede o poder de voto presente")
 
     if data.tipo_maioria == "qualificada_3_4_universo":
         base = eligible
@@ -287,6 +291,10 @@ async def register_deliberacao(
     elif data.tipo_maioria == "qualificada_3_4_presentes":
         base = present_power
         threshold = required_three_quarters(base)
+    elif data.tipo_maioria == "qualificada_2_3":
+        # 2/3 dos presentes (eleição de membro honorário — Art. 8.4).
+        base = present_power
+        threshold = required_two_thirds(base)
     else:  # absoluta
         base = present_power
         threshold = required_absolute_majority(base)

@@ -120,8 +120,8 @@ class TestRegister:
         reg_env.users.find_one = AsyncMock(
             side_effect=[
                 None,
-                {"id": "s1", "member_id": "ACCTA-0002", "account_type": "member"},
-                {"id": "s2", "member_id": "ACCTA-0003", "account_type": "member"},
+                {"id": "s1", "member_id": "ACCTA-0002", "account_type": "member", "status": "ativo"},
+                {"id": "s2", "member_id": "ACCTA-0003", "account_type": "member", "status": "ativo"},
             ]
         )
         captured = {}
@@ -162,6 +162,30 @@ class TestRegister:
         with pytest.raises(HTTPException) as exc:
             await auth_routes.register(request=_request(), data=data)
         assert exc.value.status_code == 422
+
+    async def test_register_rejects_non_voting_sponsor_422(self, reg_env):
+        reg_env.users.find_one = AsyncMock(
+            side_effect=[
+                None,
+                {
+                    "id": "h1",
+                    "member_id": "ACCTA-0002",
+                    "account_type": "member",
+                    "status": "ativo",
+                    "member_category": "honorario",
+                },
+            ]
+        )
+        data = RegistrationRequest(
+            name="Com Honorario",
+            email="honorario@x.cv",
+            consent_data=True,
+            sponsors=["ACCTA-0002", "ACCTA-0003"],
+        )
+        with pytest.raises(HTTPException) as exc:
+            await auth_routes.register(request=_request(), data=data)
+        assert exc.value.status_code == 422
+        reg_env.users.insert_one.assert_not_awaited()
 
 
 # --------------------------------------------------------------------------- #
@@ -286,6 +310,39 @@ class TestApproveRegistration:
                 user_id="r1", request=_admin_request(), data=RegistrationApprove(), current_user=admin_user
             )
         assert exc.value.status_code == 409
+
+    async def test_approve_rejects_invalid_cargo_422(self, mock_db, admin_user):
+        mock_db.users.find_one = AsyncMock(
+            return_value={"id": "r1", "name": "Ana", "email": "ana@x.cv", "status": "pendente_aprovacao"}
+        )
+        mock_db.patrocinios = MagicMock(name="patrocinios")
+        mock_db.patrocinios.count_documents = AsyncMock(return_value=2)
+        with pytest.raises(HTTPException) as exc:
+            await admin_route.approve_registration(
+                user_id="r1",
+                request=_admin_request(),
+                data=RegistrationApprove(cargo="Imperador"),
+                current_user=admin_user,
+            )
+        assert exc.value.status_code == 422
+        mock_db.users.update_one.assert_not_awaited()
+
+    async def test_approve_rejects_full_cargo_409(self, mock_db, admin_user):
+        mock_db.users.find_one = AsyncMock(
+            return_value={"id": "r1", "name": "Ana", "email": "ana@x.cv", "status": "pendente_aprovacao"}
+        )
+        mock_db.users.find = MagicMock(return_value=_cursor([{"id": "holder"}]))
+        mock_db.patrocinios = MagicMock(name="patrocinios")
+        mock_db.patrocinios.count_documents = AsyncMock(return_value=2)
+        with pytest.raises(HTTPException) as exc:
+            await admin_route.approve_registration(
+                user_id="r1",
+                request=_admin_request(),
+                data=RegistrationApprove(cargo="Tesoureiro"),
+                current_user=admin_user,
+            )
+        assert exc.value.status_code == 409
+        mock_db.users.update_one.assert_not_awaited()
 
     async def test_approve_waived_bypasses_gate(self, mock_db, admin_user, monkeypatch):
         mock_db.users.find_one = AsyncMock(

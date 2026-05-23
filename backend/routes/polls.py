@@ -41,7 +41,8 @@ def _poll_option_ids(poll: dict) -> set[int]:
 @router.get("/polls", response_model=List[Poll])
 async def get_polls(skip: int = 0, limit: int = 100, current_user: User = Depends(get_current_user)):
     limit = min(limit, 100)
-    polls = await db.polls.find({}, {"_id": 0}).skip(skip).limit(limit).to_list(None)
+    query = {} if current_user.role == "admin" else {"status": {"$ne": "rascunho"}}
+    polls = await db.polls.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(None)
     return polls
 
 

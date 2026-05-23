@@ -62,6 +62,7 @@ export const ELEICAO_STATUS_LABELS = {
 
 export const MAIORIA_LABELS = {
   absoluta: 'Maioria absoluta dos presentes',
+  qualificada_2_3: 'Qualificada (2/3 dos presentes)',
   qualificada_3_4_presentes: 'Qualificada (3/4 dos presentes)',
   qualificada_3_4_universo: 'Qualificada (3/4 do universo)',
 };

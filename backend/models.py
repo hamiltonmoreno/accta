@@ -1163,7 +1163,7 @@ class PasswordResetConfirm(BaseModel):
 
 ASSEMBLEIA_TIPOS = ["ordinaria", "extraordinaria", "eleitoral"]
 ASSEMBLEIA_STATUS = ["rascunho", "convocada", "em_curso", "encerrada", "anulada"]
-MAIORIA_TIPOS = ["absoluta", "qualificada_3_4_presentes", "qualificada_3_4_universo"]
+MAIORIA_TIPOS = ["absoluta", "qualificada_2_3", "qualificada_3_4_presentes", "qualificada_3_4_universo"]
 MAX_REPRESENTADOS = 3  # um membro representa no máximo 3 outros (Estatutos)
 
 
@@ -1226,7 +1226,7 @@ class AssembleiaDeliberacao(BaseModel):
     assembleia_id: str
     ponto: str  # ponto da ordem de trabalhos
     descricao: str
-    tipo_maioria: Literal["absoluta", "qualificada_3_4_presentes", "qualificada_3_4_universo"]
+    tipo_maioria: Literal["absoluta", "qualificada_2_3", "qualificada_3_4_presentes", "qualificada_3_4_universo"]
     base_calculo: int  # poder de voto presente OU universo (computado pelo servidor)
     votos_favor: int
     votos_contra: int
@@ -1241,7 +1241,7 @@ class AssembleiaDeliberacao(BaseModel):
 class AssembleiaDeliberacaoCreate(BaseModel):
     ponto: str = Field(min_length=1, max_length=200)
     descricao: str = Field(min_length=1, max_length=2000)
-    tipo_maioria: Literal["absoluta", "qualificada_3_4_presentes", "qualificada_3_4_universo"]
+    tipo_maioria: Literal["absoluta", "qualificada_2_3", "qualificada_3_4_presentes", "qualificada_3_4_universo"]
     votos_favor: int = Field(ge=0)
     votos_contra: int = Field(ge=0)
     abstencoes: int = Field(ge=0)

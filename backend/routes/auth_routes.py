@@ -37,6 +37,7 @@ from helpers import (
     reset_failed_logins,
     resolve_link_base,
 )
+from permissions import is_voting_member
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 import uuid
@@ -181,8 +182,19 @@ async def register(request: Request, data: RegistrationRequest):
     for ident in sponsors:
         ident = (ident or "").strip()
         q = {"email": ident} if "@" in ident else {"member_id": ident}
-        s = await db.users.find_one({**q, "status": "ativo"}, {"_id": 0, "id": 1, "member_id": 1, "account_type": 1})
-        if not s or (s.get("account_type") or "member") != "member":
+        s = await db.users.find_one(
+            {**q, "status": "ativo"},
+            {
+                "_id": 0,
+                "id": 1,
+                "member_id": 1,
+                "account_type": 1,
+                "status": 1,
+                "member_category": 1,
+                "rights_suspended_until": 1,
+            },
+        )
+        if not s or not is_voting_member(s):
             raise HTTPException(status_code=422, detail="Padrinho inválido. Indique 2 sócios activos.")
         resolved_sponsors.append(s)
     if resolved_sponsors[0]["id"] == resolved_sponsors[1]["id"]:

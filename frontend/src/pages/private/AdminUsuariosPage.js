@@ -48,7 +48,7 @@ export const AdminUsuariosPage = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [inviteData, setInviteData] = useState({ name: '', email: '', role: 'socio', cargo: 'Socio', member_id: '', license_number: '', department: '', phone_number: '' });
+  const [inviteData, setInviteData] = useState({ name: '', email: '', role: 'socio', member_id: '', license_number: '', department: '', phone_number: '' });
   const [inviteResult, setInviteResult] = useState(null);
 
   // Debounce search 300ms — evita re-fetch a cada tecla.
@@ -76,7 +76,6 @@ export const AdminUsuariosPage = () => {
     queryFn: async () => (await cargosAPI.getMeta()).data,
     staleTime: 60 * 60 * 1000,
   });
-  const CARGOS = meta?.cargos || [];
   const PRIVILEGES = meta?.privileges || Object.keys(PRIVILEGE_LABELS);
 
   // Histórico de mandatos do utilizador em edição (timeline só-leitura).
@@ -160,7 +159,7 @@ export const AdminUsuariosPage = () => {
   const resetInviteModal = () => {
     setShowInviteModal(false);
     setInviteResult(null);
-    setInviteData({ name: '', email: '', role: 'socio', cargo: 'Socio', member_id: '', license_number: '', department: '', phone_number: '' });
+    setInviteData({ name: '', email: '', role: 'socio', member_id: '', license_number: '', department: '', phone_number: '' });
   };
 
   return (
@@ -661,17 +660,6 @@ export const AdminUsuariosPage = () => {
                         <option value="socio">Socio</option>
                         <option value="financeiro">Financeiro</option>
                         <option value="moderador">Moderador</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Cargo</label>
-                      <select
-                        value={inviteData.cargo}
-                        onChange={(e) => setInviteData({ ...inviteData, cargo: e.target.value })}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 outline-none"
-                        data-testid="invite-cargo"
-                      >
-                        {CARGOS.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
                     <div>
