@@ -39,6 +39,7 @@ import {
   ShieldAlert,
   Lightbulb,
   Medal,
+  FileCheck,
 } from 'lucide-react';
 
 const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
@@ -57,6 +58,7 @@ const menuSections = [
     title: 'Gestão',
     items: [
       { label: 'Financeiro', path: '/financeiro', icon: DollarSign, roles: ['admin', 'financeiro'], privileges: ['view_finances_readonly', 'manage_finances'] },
+      { label: 'Co-aprovações', path: '/financeiro/co-aprovacoes', icon: FileCheck, roles: ['admin', 'financeiro'], privileges: ['view_finances_readonly', 'manage_finances'], match: 'direcao' },
       { label: 'Projetos', path: '/projetos', icon: FolderKanban, roles: ['all'] },
       { label: 'Votações', path: '/votacoes', icon: Vote, roles: ['all'] },
       { label: 'Eventos', path: '/eventos', icon: Calendar, roles: ['all'] },
@@ -111,6 +113,7 @@ const PAGE_TITLES = {
   '/perfil': 'Meu Perfil',
   '/carteira': 'Carteira Digital',
   '/financeiro': 'Financeiro',
+  '/financeiro/co-aprovacoes': 'Co-aprovações',
   '/projetos': 'Projetos',
   '/votacoes': 'Votações',
   '/eventos': 'Eventos',

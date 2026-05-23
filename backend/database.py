@@ -84,6 +84,8 @@ COLLECTIONS: tuple[str, ...] = (
     "eleicao_ballots",
     "sancoes",
     "finance_settings_history",
+    # controlos financeiros estatutários (spec-controlos §4.1): co-aprovação
+    "atos",
     "page_banners",
     "brand_settings",
     # voz e participação do sócio (spec-voz-participacao-socio):
@@ -841,6 +843,9 @@ _INDEX_DDL: tuple[str, ...] = (
     # governança — histórico de quota/jóia
     "CREATE INDEX IF NOT EXISTS ix_finsetthist_eff ON \"finance_settings_history\" ((doc->>'effective_from') DESC)",
     "CREATE INDEX IF NOT EXISTS ix_finsetthist_assemb ON \"finance_settings_history\" ((doc->>'assembleia_id'))",
+    # controlos financeiros — actos de co-aprovação (spec-controlos §7)
+    "CREATE INDEX IF NOT EXISTS ix_atos_status_created ON \"atos\" ((doc->>'status'), (doc->>'created_at') DESC)",
+    "CREATE INDEX IF NOT EXISTS ix_atos_tipo ON \"atos\" ((doc->>'tipo'))",
     # voz e participação do sócio (spec-voz-participacao-socio §9)
     'CREATE UNIQUE INDEX IF NOT EXISTS ux_patrocinio_cand_sponsor ON "patrocinios" '
     "((doc->>'candidate_id'), (doc->>'sponsor_user_id'))",

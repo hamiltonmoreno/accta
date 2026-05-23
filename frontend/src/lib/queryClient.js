@@ -108,6 +108,10 @@ export const queryKeys = {
     list: (filters) => ['transactions', filters || {}],
     summary: (year, month) => ['transactions', 'summary', year, month],
   },
+  atos: {
+    list: (filters) => ['atos', filters || {}],
+    byId: (id) => ['atos', id],
+  },
   invoices: {
     list: () => ['invoices'],
   },

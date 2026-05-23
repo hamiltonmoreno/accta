@@ -36,6 +36,7 @@ const NotificacoesPage = lazy(() => import('./pages/private/NotificacoesPage').t
 const DashboardPage = lazy(() => import('./pages/private/DashboardPage').then((m) => ({ default: m.DashboardPage })));
 const CarteiraPage = lazy(() => import('./pages/private/CarteiraPage').then((m) => ({ default: m.CarteiraPage })));
 const FinanceiroPage = lazy(() => import('./pages/private/FinanceiroPage').then((m) => ({ default: m.FinanceiroPage })));
+const CoAprovacoesPage = lazy(() => import('./pages/private/CoAprovacoesPage').then((m) => ({ default: m.CoAprovacoesPage })));
 const ProjectsPage = lazy(() => import('./pages/private/ProjectsPage'));
 const ProjectDetailPage = lazy(() => import('./pages/private/ProjectDetailPage'));
 const VotacoesPage = lazy(() => import('./pages/private/VotacoesPage').then((m) => ({ default: m.VotacoesPage })));
@@ -142,6 +143,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={['admin', 'financeiro']} allowedPrivileges={['view_finances_readonly', 'manage_finances']}>
               <PrivateLayout><FinanceiroPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/financeiro/co-aprovacoes"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><CoAprovacoesPage /></PrivateLayout>
             </ProtectedRoute>
           }
         />

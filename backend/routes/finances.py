@@ -53,6 +53,20 @@ def require_manage_finances(user: User):
         raise HTTPException(status_code=403, detail="Sem permissao para gerir financas")
 
 
+async def _coaprovacao_limiar() -> float:
+    """Limiar de co-aprovação em vigor (spec-controlos §4.1). 0.0 (default) = gate
+    desligado: o lançamento directo de despesas mantém-se. Acima de um limiar
+    positivo, despesas exigem um Ato de pagamento aprovado (via /atos/executar).
+    Leitura defensiva — tolera ausência de settings / mock_db (find_one→None)."""
+    s = await db.finance_settings.find_one({"id": "finance_settings"}, {"_id": 0})
+    if not isinstance(s, dict):
+        return 0.0
+    try:
+        return float(s.get("coaprovacao_limiar") or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 # ===== TRANSACTION ENDPOINTS =====
 
 
@@ -121,6 +135,20 @@ async def create_transaction(
 
     if data.amount <= 0:
         raise HTTPException(status_code=400, detail="O valor deve ser positivo")
+
+    # Gate de co-aprovação (Art. 54): despesas acima do limiar só entram via um
+    # Ato de pagamento aprovado e executado (que cria a despesa com `ato_id`),
+    # não pelo lançamento directo. Limiar 0 = desligado (não-quebra).
+    if data.type == "despesa":
+        limiar = await _coaprovacao_limiar()
+        if limiar > 0 and data.amount > limiar:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Despesa de {data.amount:,.0f} CVE excede o limiar de co-aprovacao "
+                    f"({limiar:,.0f} CVE). Crie um Acto de pagamento e execute-o apos aprovacao."
+                ),
+            )
 
     transaction = Transaction(**data.model_dump(), created_by=current_user.id)
     t_dict = transaction.model_dump()
