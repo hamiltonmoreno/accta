@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { registrationAPI } from '../../utils/api';
+import { registrationAPI, financesAPI } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
 import { UserPlus, Check, X, Mail, Phone, Building2, BadgeCheck, Clock } from 'lucide-react';
@@ -36,7 +36,7 @@ export const AdminPedidosInscricaoPage = () => {
   const qc = useQueryClient();
   const [tab, setTab] = useState('pendente_aprovacao');
   const [approving, setApproving] = useState(null); // request a aprovar
-  const [approveForm, setApproveForm] = useState({ role: 'socio', cargo: '', waive: false });
+  const [approveForm, setApproveForm] = useState({ role: 'socio', cargo: '', waive: false, cta_qualified_since: '' });
   const [rejecting, setRejecting] = useState(null); // request a rejeitar
   const [rejectReason, setRejectReason] = useState('');
 
@@ -68,8 +68,22 @@ export const AdminPedidosInscricaoPage = () => {
     onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao rejeitar o pedido'),
   });
 
+  // Jóia (Art. 6): pré-visualiza sem gravar; reage à data de qualificação CTA.
+  const { data: joiaPreview } = useQuery({
+    queryKey: queryKeys.registration.joiaPreview(approving?.id, approveForm.cta_qualified_since),
+    queryFn: async () =>
+      (await financesAPI.getJoiaPreview(approving.id, approveForm.cta_qualified_since || undefined)).data,
+    enabled: !!approving,
+    staleTime: 0,
+  });
+
   const openApprove = (req) => {
-    setApproveForm({ role: 'socio', cargo: req.cargo_declarado || req.cargo || 'Sócio', waive: false });
+    setApproveForm({
+      role: 'socio',
+      cargo: req.cargo_declarado || req.cargo || 'Sócio',
+      waive: false,
+      cta_qualified_since: req.cta_qualified_since || '',
+    });
     setApproving(req);
   };
 
@@ -236,6 +250,27 @@ export const AdminPedidosInscricaoPage = () => {
                 data-testid="approve-cargo"
               />
             </div>
+            {/* Jóia de admissão (Art. 6): data de qualificação CTA + pré-visualização. */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1.5">Qualificado como CTA desde (Art. 6 — jóia)</label>
+              <input
+                type="date"
+                value={approveForm.cta_qualified_since}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => setApproveForm({ ...approveForm, cta_qualified_since: e.target.value })}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none"
+                data-testid="approve-cta-since"
+              />
+              {joiaPreview && (
+                <p className="mt-1.5 text-xs text-grafite bg-[#F5F5F5] rounded-md px-2.5 py-1.5" data-testid="joia-preview">
+                  {joiaPreview.joia_devida != null ? (
+                    <>Jóia devida: <strong>{joiaPreview.joia_devida.toLocaleString('pt-PT')} CVE</strong> (2× quota). Cobrança manual pelo Tesoureiro.</>
+                  ) : (
+                    <>Sem jóia — {joiaPreview.motivo}.</>
+                  )}
+                </p>
+              )}
+            </div>
             {/* Gate de patrocínio (Art. 8.3): aprovar exige 2 confirmados, salvo dispensa. */}
             <div className={`rounded-lg px-3 py-2.5 text-xs ${(approving?.confirmed_count || 0) >= 2 ? 'bg-[#F0FDF4] text-[#15803D]' : 'bg-[#FFFBEB] text-[#B45309]'}`}>
               Patrocínio (Art. 8.3): <strong>{approving?.confirmed_count || 0}/2</strong> confirmados.
@@ -260,7 +295,7 @@ export const AdminPedidosInscricaoPage = () => {
                 Cancelar
               </button>
               <button
-                onClick={() => approveMutation.mutate({ id: approving.id, data: { role: approveForm.role, cargo: approveForm.cargo || null, waive_sponsorship: approveForm.waive } })}
+                onClick={() => approveMutation.mutate({ id: approving.id, data: { role: approveForm.role, cargo: approveForm.cargo || null, waive_sponsorship: approveForm.waive, cta_qualified_since: approveForm.cta_qualified_since || null } })}
                 disabled={approveMutation.isPending || (!approveForm.waive && (approving?.confirmed_count || 0) < 2)}
                 className="px-4 py-2 rounded-lg bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 data-testid="approve-confirm"

@@ -266,6 +266,13 @@ class InviteCreate(BaseModel):
     license_number: Optional[str] = None
     department: Optional[str] = None
     phone_number: Optional[str] = None
+    # Data de qualificação como CTA (AAAA-MM-DD) — assinala a jóia (Art. 6).
+    cta_qualified_since: Optional[str] = None
+
+    @field_validator("cta_qualified_since", mode="before")
+    @classmethod
+    def _v_cta(cls, v):
+        return _validate_date_str(v, allow_future=False, label="Data de qualificação CTA")
 
 
 class SetupAccount(BaseModel):
@@ -308,6 +315,14 @@ class RegistrationApprove(BaseModel):
     role: str = "socio"  # validado contra ["socio","financeiro","moderador","admin"] na rota
     cargo: Optional[str] = None  # se None, mantém o cargo_declarado
     waive_sponsorship: bool = False  # dispensa Art. 8.3 (bootstrap/excepção, auditável)
+    # Data de qualificação como CTA (AAAA-MM-DD) — assinala a jóia (Art. 6) na
+    # admissão. Se None, mantém o valor já no documento (ou fica por decidir).
+    cta_qualified_since: Optional[str] = None
+
+    @field_validator("cta_qualified_since", mode="before")
+    @classmethod
+    def _v_cta(cls, v):
+        return _validate_date_str(v, allow_future=False, label="Data de qualificação CTA")
 
 
 # ===== PARTICIPAÇÃO DO SÓCIO (spec-voz-participacao-socio) =====

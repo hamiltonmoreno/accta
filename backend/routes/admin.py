@@ -12,7 +12,9 @@ from models import (
     ROLES_VALID,
     PRIVILEGES,
     CARGO_SEATS,
+    FinanceSettings,
 )
+from finance_joia import compute_joia
 from governance import (
     CARGO_KEYS,
     normalize_cargo,
@@ -83,6 +85,14 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
         "invite_token_expires_at": expires_at.isoformat(),
     }
 
+    # Jóia de admissão (Art. 6): assinalar joia_devida no convite directo
+    # (cobrança manual pelo Tesoureiro). cta_qualified_since é opcional.
+    if data.cta_qualified_since:
+        user_doc["cta_qualified_since"] = data.cta_qualified_since
+    fs_doc = await db.finance_settings.find_one({"id": "finance_settings"}, {"_id": 0})
+    fs = fs_doc if isinstance(fs_doc, dict) else FinanceSettings().model_dump()
+    user_doc["joia_devida"] = compute_joia(user_doc, fs)
+
     await db.users.insert_one(user_doc)
 
     await create_audit_log(
@@ -90,7 +100,13 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
         "user_invited",
         user_id,
         request=request,
-        details={"name": data.name, "email": data.email, "role": data.role, "cargo": data.cargo},
+        details={
+            "name": data.name,
+            "email": data.email,
+            "role": data.role,
+            "cargo": data.cargo,
+            "joia_devida": user_doc["joia_devida"],
+        },
     )
 
     # Base segura: FRONTEND_URL ou Origin/Referer só se na allowlist CORS
@@ -258,6 +274,16 @@ async def approve_registration(
         )
         set_fields["cargo_history"] = [*(user.get("cargo_history") or []), mandate]
 
+    # Jóia de admissão (Art. 6): ASSINALAR joia_devida (não cobrar — cobrança
+    # manual pelo Tesoureiro). cta_qualified_since vem no payload ou já no doc.
+    if data.cta_qualified_since:
+        set_fields["cta_qualified_since"] = data.cta_qualified_since
+    fs_doc = await db.finance_settings.find_one({"id": "finance_settings"}, {"_id": 0})
+    fs = fs_doc if isinstance(fs_doc, dict) else FinanceSettings().model_dump()
+    joia_user = {**user, **set_fields}
+    joia = compute_joia(joia_user, fs)
+    set_fields["joia_devida"] = joia
+
     await db.users.update_one({"id": user_id}, {"$set": set_fields})
 
     await create_audit_log(
@@ -267,6 +293,15 @@ async def approve_registration(
         request=request,
         details={"role": data.role, "cargo": cargo_key, "member_id": user.get("member_id")},
     )
+
+    if joia is not None:
+        await create_audit_log(
+            current_user.id,
+            "joia_calculada",
+            user_id,
+            request=request,
+            details={"joia_devida": joia, "cta_qualified_since": joia_user.get("cta_qualified_since")},
+        )
 
     # Base segura: FRONTEND_URL ou Origin/Referer só se na allowlist CORS.
     origin = resolve_link_base(request)
