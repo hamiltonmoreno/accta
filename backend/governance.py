@@ -195,6 +195,9 @@ PRIVILEGES = [
     "manage_benefits",
     "view_audit_logs",
     "view_finances_readonly",
+    # parecer do CF / auditoria de balancetes (spec-ciclo §3.3) — separado de
+    # manage_finances: o CF audita mas NÃO escreve transacções.
+    "emit_cf_parecer",
 ]
 
 ROLES = ["admin", "financeiro", "moderador", "socio"]

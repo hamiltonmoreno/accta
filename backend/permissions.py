@@ -88,6 +88,14 @@ def can_convene_assembleia(user) -> bool:
     return _attr(user, "role") == "admin" or is_mesa_ag(user)
 
 
+def can_emit_parecer_cf(user) -> bool:
+    """Emitir parecer do CF / auditar balancetes: Conselho Fiscal (por cargo)
+    OU detentor do privilégio `emit_cf_parecer` (spec-ciclo §3.3). Distinto de
+    `manage_finances` — o CF audita mas NÃO escreve transacções (separação de
+    poderes). `user_can` já inclui o admin."""
+    return is_conselho_fiscal(user) or user_can(user, "emit_cf_parecer")
+
+
 # --------------------------------------------------------------------------- #
 # Elegibilidade / voto (delegam para governance, aceitando User Pydantic)
 # --------------------------------------------------------------------------- #

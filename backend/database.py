@@ -96,6 +96,11 @@ COLLECTIONS: tuple[str, ...] = (
     "propostas_ag",
     "reclamacoes",
     "esclarecimentos",
+    # ciclo anual de prestação de contas (spec-ciclo-prestacao-contas):
+    "exercicios",
+    "balancetes",
+    "regulamentos",
+    "regulamento_versoes",
     # no Pydantic model — schema derived from usage:
     "password_resets",
     "tokens_revoked",
@@ -865,6 +870,18 @@ _INDEX_DDL: tuple[str, ...] = (
     'CREATE INDEX IF NOT EXISTS ix_esclarecimentos_orgao ON "esclarecimentos" '
     "((doc->>'orgao_destino'), (doc->>'status'))",
     "CREATE INDEX IF NOT EXISTS ix_esclarecimentos_autor ON \"esclarecimentos\" ((doc->>'created_by'))",
+    # ciclo anual de prestação de contas (spec-ciclo §7)
+    "CREATE UNIQUE INDEX IF NOT EXISTS ux_exercicios_ano ON \"exercicios\" ((doc->>'ano'))",
+    "CREATE INDEX IF NOT EXISTS ix_exercicios_status ON \"exercicios\" ((doc->>'status'))",
+    "CREATE INDEX IF NOT EXISTS ix_balancetes_exercicio ON \"balancetes\" ((doc->>'exercicio_ano'))",
+    'CREATE INDEX IF NOT EXISTS ix_balancetes_tipo_periodo ON "balancetes" '
+    "((doc->>'tipo'), (doc->>'periodo'))",
+    "CREATE INDEX IF NOT EXISTS ix_balancetes_published ON \"balancetes\" ((doc->>'published'))",
+    "CREATE UNIQUE INDEX IF NOT EXISTS ux_regulamentos_slug ON \"regulamentos\" ((doc->>'slug'))",
+    "CREATE INDEX IF NOT EXISTS ix_regversoes_reg ON \"regulamento_versoes\" ((doc->>'regulamento_id'))",
+    'CREATE INDEX IF NOT EXISTS ix_regversoes_reg_versao ON "regulamento_versoes" '
+    "((doc->>'regulamento_id'), (doc->>'versao'))",
+    "CREATE INDEX IF NOT EXISTS ix_regversoes_status ON \"regulamento_versoes\" ((doc->>'status'))",
 )
 
 REQUIRED_INDEX_NAMES = {
