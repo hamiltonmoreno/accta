@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, ConfigDict, EmailStr, field_validator
 from typing import List, Literal, Optional
 from datetime import datetime, timezone, date
+import re
 import uuid
 
 # Governança estatutária (spec-governanca-estatutaria): a fonte ÚNICA de
@@ -1593,3 +1594,73 @@ class BrandSettingsUpdate(BaseModel):
     logo_light_url: Optional[str] = None  # "" = repor default; None = manter
     logo_dark_url: Optional[str] = None
     alt: Optional[str] = Field(default=None, max_length=200)
+
+
+# ===== REGULAMENTOS INTERNOS VERSIONADOS (spec-ciclo §6, Art. 31.j/56) =====
+# Repositório versionado: cada `Regulamento` tem N `RegulamentoVersao` (1,2,3…);
+# aprovar uma versão torna-a `current_version_id` e revoga a anterior (histórico
+# preservado). Competência "assembleia_geral" (ex.: Regimento da AG) exige uma
+# deliberação da AG para aprovar; "direcao" aprova internamente (Art. 31.j).
+
+REGULAMENTO_COMPETENCIAS = ["direcao", "assembleia_geral"]
+REGULAMENTO_VERSAO_STATUSES = ["rascunho", "em_aprovacao", "aprovado", "revogado"]
+
+
+class Regulamento(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    slug: str
+    titulo: str
+    descricao: Optional[str] = None
+    competencia_aprovacao: Literal["direcao", "assembleia_geral"] = "direcao"
+    current_version_id: Optional[str] = None
+    created_by: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    source_article: str = "56"
+
+
+class RegulamentoVersao(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    regulamento_id: str
+    versao: int
+    document_id: str
+    status: Literal["rascunho", "em_aprovacao", "aprovado", "revogado"] = "rascunho"
+    changelog: Optional[str] = None
+    created_by: str
+    approved_by: Optional[str] = None
+    assembleia_id: Optional[str] = None  # se competência = AG
+    deliberacao_id: Optional[str] = None
+    effective_from: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class RegulamentoCreate(BaseModel):
+    slug: str = Field(min_length=2, max_length=80)
+    titulo: str = Field(min_length=2, max_length=200)
+    descricao: Optional[str] = Field(default=None, max_length=2000)
+    competencia_aprovacao: Literal["direcao", "assembleia_geral"] = "direcao"
+
+    @field_validator("slug")
+    @classmethod
+    def _v_slug(cls, v: str) -> str:
+        v = (v or "").strip().lower()
+        if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", v):
+            raise ValueError("slug deve ser kebab-case (a-z, 0-9, hifens)")
+        return v
+
+
+class RegulamentoVersaoCreate(BaseModel):
+    document_id: str
+    changelog: Optional[str] = Field(default=None, max_length=2000)
+
+
+class RegulamentoVersaoAprovar(BaseModel):
+    # obrigatórios apenas se competência = assembleia_geral (validado na rota)
+    assembleia_id: Optional[str] = None
+    deliberacao_id: Optional[str] = None
+    effective_from: Optional[str] = None  # default: agora, definido na rota
+
+
+class RegulamentoVersaoRevogar(BaseModel):
+    motivo: Optional[str] = Field(default=None, max_length=1000)

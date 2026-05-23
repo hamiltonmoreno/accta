@@ -26,6 +26,7 @@ from routes.banners import router as banners_router
 from routes.brand import router as brand_router
 from routes.participacao import router as participacao_router
 from routes.atos import router as atos_router
+from routes.regulamentos import router as regulamentos_router
 
 api_router = APIRouter(prefix="/api")
 
@@ -56,3 +57,4 @@ api_router.include_router(banners_router)
 api_router.include_router(brand_router)
 api_router.include_router(participacao_router)
 api_router.include_router(atos_router)
+api_router.include_router(regulamentos_router)

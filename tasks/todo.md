@@ -15,19 +15,19 @@ Spec: `tasks/spec-ciclo-prestacao-contas.md`. Branch `feature/ciclo-prestacao-co
 - **§12.2/§12.6**: `periodo` mensal/trimestral/anual; Transparência via PDF
   (snapshot inline público fica opcional/futuro).
 
-## F0 — Fundação
-- [ ] `database.py`: + colecções `exercicios`, `balancetes`, `regulamentos`, `regulamento_versoes` em `COLLECTIONS`
-- [ ] `database.py`: + índices (§7) em `_INDEX_DDL` (ano unique; status; exercicio_ano; tipo+periodo; published; slug unique; regulamento_id; regulamento_id+versao)
-- [ ] `governance.py`: + privilégio `emit_cf_parecer` em `PRIVILEGES`
-- [ ] `permissions.py`: helper `can_emit_parecer_cf` (= `is_conselho_fiscal` OR privilégio)
-- [ ] `routes/prestacao_contas.py` + `routes/regulamentos.py` (esqueletos) registados em `routes/__init__.py`
+## F0 — Fundação ✅ (commit 7c6eef7)
+- [x] `database.py`: + colecções `exercicios`, `balancetes`, `regulamentos`, `regulamento_versoes` em `COLLECTIONS`
+- [x] `database.py`: + índices (§7) em `_INDEX_DDL` (ano unique; status; exercicio_ano; tipo+periodo; published; slug unique; regulamento_id; regulamento_id+versao)
+- [x] `governance.py`: + privilégio `emit_cf_parecer` em `PRIVILEGES`
+- [x] `permissions.py`: helper `can_emit_parecer_cf` (= `is_conselho_fiscal` OR privilégio)
+- [x] route modules registados (regulamentos na F1; `prestacao_contas` na F2 — criados com conteúdo, sem esqueletos mortos)
 
-## F1 — 3.3 Regulamentos versionados (Art. 31.j, 56) — independente das finanças
-- [ ] `models.py`: `Regulamento` + `RegulamentoVersao` (+ literais de status/competência)
-- [ ] `routes/regulamentos.py`: criar regulamento · listar/detalhe (+ histórico) · nova versão (rascunho) · submeter · aprovar (Direção ou Mesa-AG c/ deliberação) · revogar
-- [ ] RBAC (manage_documents/Direção; competência-AG exige `deliberacao_id`) + audit + notif
-- [ ] Seed do **Regimento da AG** (`slug=regimento-ag`, competência `assembleia_geral`)
-- [ ] Testes: aprovar troca `current_version` e revoga anterior; Regimento exige deliberação; histórico preservado; `slug` único
+## F1 — 3.3 Regulamentos versionados (Art. 31.j, 56) — independente das finanças ✅
+- [x] `models.py`: `Regulamento` + `RegulamentoVersao` (+ `*Create`/`Aprovar`/`Revogar`, literais)
+- [x] `routes/regulamentos.py`: criar · listar/detalhe (+ histórico) · nova versão (rascunho) · submeter · aprovar (Direção ou Mesa-AG c/ deliberação) · revogar
+- [x] RBAC (manage_documents/Direção; competência-AG exige `deliberacao_id` aprovada) + audit + notif (`system`)
+- [x] Seed do **Regimento da AG** (`slug=regimento-ag`, competência `assembleia_geral`) no arranque
+- [x] Testes: 22/22 — aprovar troca `current_version` e revoga anterior; Regimento exige deliberação; `slug` único + validador kebab-case
 
 ## F2 — 3.2 Balancetes (Art. 34, 37)
 - [ ] `models.py`: `Balancete` (tipo, periodo, exercicio_ano, snapshot, cf_audit, visibility)
