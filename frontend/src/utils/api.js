@@ -223,6 +223,16 @@ export const financesAPI = {
     }),
 };
 
+// Atos (co-aprovação / dupla assinatura — Art. 54). Módulo próprio (/atos).
+export const atosAPI = {
+  list: (params) => api.get('/atos', { params }),
+  get: (id) => api.get(`/atos/${id}`),
+  create: (data) => api.post('/atos', data),
+  assinar: (id, decisao) => api.post(`/atos/${id}/assinar`, { decisao }),
+  executar: (id, data) => api.post(`/atos/${id}/executar`, data || {}),
+  cancelar: (id) => api.post(`/atos/${id}/cancelar`),
+};
+
 // Polls API
 export const pollsAPI = {
   getAll: () => api.get('/polls'),

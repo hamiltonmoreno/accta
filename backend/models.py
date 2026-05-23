@@ -1080,6 +1080,57 @@ class FinanceSettingsUpdate(BaseModel):
     effective_from: Optional[str] = None
 
 
+# ===== ATOS — Co-aprovação / dupla assinatura (Art. 54; spec-controlos §4.1) =====
+# Actos que vinculam a ACCTA exigem 2 da Direcção (um deles o Presidente); os
+# pagamentos exigem também o Tesoureiro. A regra (requisitos + apuramento de
+# estado) vive em `atos_rules.py` (puro, testável sem DB) — fonte única.
+ATO_TIPOS = ["vinculativo", "pagamento"]
+ATO_STATUSES = ["pendente", "aprovado", "rejeitado", "executado", "cancelado"]
+ATO_DECISOES = ["aprovado", "rejeitado"]
+
+
+class AtoCreate(BaseModel):
+    tipo: str
+    descricao: str
+    valor: Optional[float] = None
+    beneficiario: Optional[str] = None
+
+
+class AtoSign(BaseModel):
+    decisao: str
+
+
+class AtoExecute(BaseModel):
+    # Categoria/data/referência da despesa criada ao executar um pagamento.
+    # `category` default resolvido na rota ("operacional") se omisso.
+    category: Optional[str] = None
+    date: Optional[str] = None
+    reference: Optional[str] = None
+
+    @field_validator("date", mode="before")
+    @classmethod
+    def _v_date(cls, v):
+        return _validate_datetime_str(v)
+
+
+class Ato(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tipo: str
+    descricao: str
+    valor: Optional[float] = None
+    beneficiario: Optional[str] = None
+    # Snapshot dos requisitos no momento da criação (congela a regra estatutária).
+    requisitos: dict
+    # {user_id, cargo (key canónica), decisao: "aprovado"|"rejeitado", signed_at}
+    assinaturas: List[dict] = Field(default_factory=list)
+    status: str = "pendente"
+    transaction_id: Optional[str] = None  # despesa criada ao executar (pagamento)
+    created_by: str
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    source_article: str = "54"
+
+
 # Estados válidos de conta. NÃO existe "inadimplente" (quotas são descontadas
 # em folha) — invariante de negócio do projeto.
 # - pendente_aprovacao / rejeitado: fluxo de auto-registo (spec-auto-registo).
