@@ -52,7 +52,11 @@ Decisões do dono (gates §12 confirmados 2026-05-23):
 - **RBAC**: criar=admin/Direção; assinar=Direção (Presidente/Tesoureiro incluídos); executar=Tesoureiro/admin;
   cancelar=proponente/admin; ver=finanças(admin/financeiro/CF)/Direção. Backend impõe; frontend espelha.
 
-## Fora de escopo / STOP (spec fica completa salvo isto)
-- **F5** migração real `--apply` das categorias (STOP — confirmar com o dono; inócuo com DB vazia)
+## F5 — migração `--apply` (CONCLUÍDA)
+- [x] `scripts/migrate_income_categories.py` dry-run → **0 transacções, 0 alterações** (DB sem dados legados)
+- [x] `--apply --confirm` corrido com **autorização explícita do dono** (2026-05-23) → **0 actualizadas** (no-op
+      comprovado). STOP §11 satisfeita por confirmação do utilizador; dry-run provou impacto nulo antes de aplicar.
+
+## Fora de escopo (fases futuras)
 - Alterar `quota_amount`/`joia_multiplier` (exige deliberação AG §14)
 - Anexo de documento ao ato (fase futura, aditivo)
