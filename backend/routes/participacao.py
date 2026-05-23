@@ -235,6 +235,8 @@ async def encaminhar_peticao(
     p = await db.peticoes.find_one({"id": peticao_id}, {"_id": 0})
     if not p:
         raise HTTPException(status_code=404, detail="Petição não encontrada")
+    if p.get("status") != "atingida":
+        raise HTTPException(status_code=409, detail="Só petições que atingiram o limiar podem ser encaminhadas")
     upd = {"status": "encaminhada"}
     if data.assembleia_id:
         upd["assembleia_id"] = data.assembleia_id
@@ -386,6 +388,8 @@ async def responder_reclamacao(
     r = await db.reclamacoes.find_one({"id": rec_id}, {"_id": 0})
     if not r:
         raise HTTPException(status_code=404, detail="Reclamação não encontrada")
+    if r.get("status") in ("resolvida", "recurso", "encerrada"):
+        raise HTTPException(status_code=409, detail="Esta reclamação já não pode ser respondida")
     resposta = {"by": current_user.id, "at": _now(), "text": data.texto}
     new_status = "resolvida" if data.resolvida else "respondida"
     await db.reclamacoes.update_one(
@@ -410,6 +414,8 @@ async def abrir_recurso(rec_id: str, request: Request, current_user: User = Depe
         raise HTTPException(status_code=404, detail="Reclamação não encontrada")
     if r.get("created_by") != current_user.id:
         raise HTTPException(status_code=403, detail="Apenas o autor pode recorrer")
+    if r.get("status") in ("recurso", "encerrada"):
+        raise HTTPException(status_code=409, detail="Esta reclamação já não aceita novo recurso")
     # Só após resposta da Direcção OU após o prazo expirar.
     answered = r.get("direcao_resposta") is not None
     expired = bool(r.get("prazo_resposta") and r["prazo_resposta"] < _now())
@@ -534,6 +540,8 @@ async def triar_proposta(
     pr = await db.propostas_ag.find_one({"id": proposta_id}, {"_id": 0})
     if not pr:
         raise HTTPException(status_code=404, detail="Proposta não encontrada")
+    if pr.get("status") not in ("submetida", "em_triagem"):
+        raise HTTPException(status_code=409, detail="Esta proposta já não está em triagem")
     upd = {
         "status": data.decisao,
         "reviewer_id": current_user.id,
@@ -565,6 +573,8 @@ async def incluir_proposta(
     pr = await db.propostas_ag.find_one({"id": proposta_id}, {"_id": 0})
     if not pr:
         raise HTTPException(status_code=404, detail="Proposta não encontrada")
+    if pr.get("status") != "aceite":
+        raise HTTPException(status_code=409, detail="Só propostas aceites podem ser incluídas na ordem de trabalhos")
     upd = {"status": "incluida"}
     if data.assembleia_id is not None:
         upd["assembleia_id"] = data.assembleia_id

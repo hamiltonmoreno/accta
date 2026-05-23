@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timezone
 from typing import List, Optional
 from models import User, Event, EventCreate, EventUpdate
-from database import db
+from database import db, register_event_attendee
 from auth import get_current_user, has_role_or_privilege
 from helpers import create_audit_log, create_notification, notify_all_active_users
 
@@ -30,6 +30,20 @@ def ensure_can_view_event(user: User, event: dict):
     ensure_valid_event_visibility(visibility)
     if visibility not in get_allowed_event_visibilities(user):
         raise HTTPException(status_code=403, detail="Sem permissao para aceder a este evento")
+
+
+def _event_datetime(value) -> Optional[datetime]:
+    if value is None:
+        return None
+    dt = value if isinstance(value, datetime) else datetime.fromisoformat(value)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+def event_registration_has_ended(event: dict) -> bool:
+    event_end = _event_datetime(event.get("end_date") or event.get("date"))
+    return event_end is not None and event_end <= datetime.now(timezone.utc)
 
 
 def build_event_visibility_filter(user: User, requested_visibility: Optional[str] = None):
@@ -210,13 +224,23 @@ async def register_for_event(event_id: str, current_user: User = Depends(get_cur
         raise HTTPException(status_code=404, detail="Evento não encontrado")
     ensure_can_view_event(current_user, event)
 
+    if event_registration_has_ended(event):
+        raise HTTPException(status_code=400, detail="Evento ja terminou")
+
     if current_user.id in event.get("attendees", []):
         raise HTTPException(status_code=400, detail="Já está inscrito neste evento")
 
     if event.get("max_attendees") and len(event.get("attendees", [])) >= event["max_attendees"]:
         raise HTTPException(status_code=400, detail="Evento já está lotado")
 
-    await db.events.update_one({"id": event_id}, {"$push": {"attendees": current_user.id}})
+    registration = await register_event_attendee(event_id, current_user.id)
+    if registration == "missing":
+        raise HTTPException(status_code=404, detail="Evento não encontrado")
+    if registration == "already_registered":
+        raise HTTPException(status_code=400, detail="Já está inscrito neste evento")
+    if registration == "full":
+        raise HTTPException(status_code=400, detail="Evento já está lotado")
+
     await create_notification(
         current_user.id,
         "event_registered",

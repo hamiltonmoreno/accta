@@ -243,6 +243,8 @@ async def validar_lista(
 ):
     eleicao = await _get_eleicao(eleicao_id)
     _require_manage(current_user, eleicao)
+    if eleicao["status"] != "candidaturas":
+        raise HTTPException(status_code=400, detail="As candidaturas não estão abertas")
     lista = await db.eleicao_listas.find_one({"id": lista_id, "eleicao_id": eleicao_id}, {"_id": 0})
     if not lista:
         raise HTTPException(status_code=404, detail="Lista não encontrada")

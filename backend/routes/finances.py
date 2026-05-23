@@ -464,8 +464,11 @@ async def generate_monthly_quotas(
     quota_amount = settings["quota_amount"] if settings else 2000.0
     quota_desc = settings.get("quota_description", "Quota Mensal") if settings else "Quota Mensal"
 
-    # Get all active members
-    active_users = await db.users.find({"status": "ativo"}, {"_id": 0, "id": 1, "name": 1}).to_list(1000)
+    # Get all active members. Legacy member documents may not have account_type.
+    active_users = await db.users.find(
+        {"status": "ativo", "$or": [{"account_type": "member"}, {"account_type": {"$exists": False}}]},
+        {"_id": 0, "id": 1, "name": 1},
+    ).to_list(1000)
 
     # Check which users already have quota for this month — usar range query
     # ($gte/$lt) em vez de $regex, melhor para o indice composto (category, date).

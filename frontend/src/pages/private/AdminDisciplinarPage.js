@@ -213,7 +213,7 @@ export const AdminDisciplinarPage = () => {
   const canComissao = (s) => ['proposta', 'inquerito'].includes(s.status);
   const canDecidir = (s) => ['proposta', 'inquerito', 'recurso'].includes(s.status);
   const canRecurso = (s) => s.status === 'decidida' && ['multa', 'perda_direitos'].includes(s.tipo);
-  const canAplicar = (s) => ['decidida', 'recurso'].includes(s.status);
+  const canAplicar = (s) => s.status === 'decidida';
 
   const openDecidir = (s) => {
     setDecidirForm({ aprovado: true, fundamentacao: '', assembleia_id: '', deliberacao_id: '' });

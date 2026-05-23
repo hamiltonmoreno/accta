@@ -34,7 +34,7 @@ export const PeticoesPage = () => {
   // Assembleias para ligar a petição ao encaminhar e para resolver o título (§2.4).
   const { data: assembleias = [] } = useQuery({
     queryKey: ['assembleias', 'para-ligar'],
-    queryFn: async () => (await assembleiasAPI.list()).data,
+    queryFn: async () => (await assembleiasAPI.list()).data.assembleias || [],
     enabled: canForward,
   });
   const assembleiaLabel = (id) => assembleias.find((a) => a.id === id)?.titulo || id;

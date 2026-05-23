@@ -22,7 +22,7 @@ import { Skeleton } from '../../components/ui/skeleton';
 import { MemberPicker } from '../../components/MemberPicker';
 
 const TIPO_OPTIONS = ['ordinaria', 'extraordinaria', 'eleitoral'];
-const MAIORIA_OPTIONS = ['absoluta', 'qualificada_3_4_presentes', 'qualificada_3_4_universo'];
+const MAIORIA_OPTIONS = ['absoluta', 'qualificada_2_3', 'qualificada_3_4_presentes', 'qualificada_3_4_universo'];
 
 const formatDateTime = (iso) => {
   if (!iso) return '—';

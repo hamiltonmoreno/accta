@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { propostasAgAPI } from '../../utils/api';
+import { propostasAgAPI, assembleiasAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { Lightbulb, Plus, Check, X, ListPlus, Loader2 } from 'lucide-react';
+import { Lightbulb, Plus, Check, X, ListPlus, Loader2, Link2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -30,12 +30,20 @@ export const PropostasPage = () => {
   const [form, setForm] = useState({ titulo: '', descricao: '', tipo: 'ponto' });
   const [statusFilter, setStatusFilter] = useState('');
   const [motivo, setMotivo] = useState({});
+  const [incluir, setIncluir] = useState({}); // { [propostaId]: { assembleia_id, ordem_index } }
 
   const KEY = ['propostas-ag', statusFilter];
   const { data: itens = [], isLoading } = useQuery({
     queryKey: KEY,
     queryFn: async () => (await propostasAgAPI.list(statusFilter || undefined)).data,
   });
+  // Assembleias para ligar a proposta à ordem de trabalhos (§2.4, F6).
+  const { data: assembleias = [] } = useQuery({
+    queryKey: ['assembleias', 'para-ligar'],
+    queryFn: async () => (await assembleiasAPI.list()).data.assembleias || [],
+    enabled: canInclude,
+  });
+  const assembleiaLabel = (id) => assembleias.find((a) => a.id === id)?.titulo || id;
   const invalidate = () => qc.invalidateQueries({ queryKey: ['propostas-ag'] });
 
   const createMut = useMutation({
@@ -54,7 +62,7 @@ export const PropostasPage = () => {
     onError: (e) => toast.error(e.response?.data?.detail || 'Erro ao triar'),
   });
   const incluirMut = useMutation({
-    mutationFn: (id) => propostasAgAPI.incluir(id, {}),
+    mutationFn: ({ id, data }) => propostasAgAPI.incluir(id, data),
     onSuccess: () => { toast.success('Proposta incluída na ordem de trabalhos.'); invalidate(); },
     onError: (e) => toast.error(e.response?.data?.detail || 'Erro ao incluir'),
   });
@@ -118,11 +126,21 @@ export const PropostasPage = () => {
                   </div>
                 )}
                 {canInclude && pr.status === 'aceite' && (
-                  <div className="pt-1">
-                    <button onClick={() => incluirMut.mutate(pr.id)} disabled={incluirMut.isPending} className="inline-flex items-center gap-1.5 border border-[#D1D5DB] text-grafite px-3 py-2 rounded-md text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`incluir-${pr.id}`}>
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <select value={incluir[pr.id]?.assembleia_id || ''} onChange={(e) => setIncluir({ ...incluir, [pr.id]: { ...incluir[pr.id], assembleia_id: e.target.value } })} className="px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`incluir-assembleia-${pr.id}`}>
+                      <option value="">Assembleia (opcional)…</option>
+                      {assembleias.map((a) => <option key={a.id} value={a.id}>{a.titulo}</option>)}
+                    </select>
+                    <input type="number" min="1" value={incluir[pr.id]?.ordem_index || ''} onChange={(e) => setIncluir({ ...incluir, [pr.id]: { ...incluir[pr.id], ordem_index: e.target.value } })} placeholder="Ponto nº" className="w-24 px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`incluir-ordem-${pr.id}`} />
+                    <button onClick={() => incluirMut.mutate({ id: pr.id, data: { assembleia_id: incluir[pr.id]?.assembleia_id || null, ordem_index: incluir[pr.id]?.ordem_index ? Number(incluir[pr.id].ordem_index) : null } })} disabled={incluirMut.isPending} className="inline-flex items-center gap-1.5 border border-[#D1D5DB] text-grafite px-3 py-2 rounded-md text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`incluir-${pr.id}`}>
                       <ListPlus className="w-4 h-4" aria-hidden="true" /> Incluir na ordem de trabalhos
                     </button>
                   </div>
+                )}
+                {pr.status === 'incluida' && pr.assembleia_id && (
+                  <p className="text-xs text-[#6B7280] inline-flex items-center gap-1.5 pt-1" data-testid={`incluida-${pr.id}`}>
+                    <Link2 className="w-3.5 h-3.5" aria-hidden="true" /> Incluída na AG: {assembleiaLabel(pr.assembleia_id)}{pr.ordem_index ? ` · ponto ${pr.ordem_index}` : ''}
+                  </p>
                 )}
               </div>
             );

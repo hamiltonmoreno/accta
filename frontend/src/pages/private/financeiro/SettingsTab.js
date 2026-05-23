@@ -9,10 +9,26 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '../../../components/ui/alert-dialog';
 
+export const buildSettingsUpdate = ({ settings, quotaAmount, quotaDesc, assembleiaId, deliberacaoId }) => {
+  const nextAmount = parseFloat(quotaAmount);
+  const quotaChanged = Number.isFinite(nextAmount) && nextAmount !== Number(settings?.quota_amount);
+  const payload = { quota_description: quotaDesc };
+
+  if (quotaChanged) {
+    payload.quota_amount = nextAmount;
+    payload.assembleia_id = assembleiaId.trim();
+    payload.deliberacao_id = deliberacaoId.trim();
+  }
+
+  return payload;
+};
+
 export const SettingsTab = () => {
   const qc = useQueryClient();
   const [quotaAmount, setQuotaAmount] = useState('');
   const [quotaDesc, setQuotaDesc] = useState('');
+  const [assembleiaId, setAssembleiaId] = useState('');
+  const [deliberacaoId, setDeliberacaoId] = useState('');
   const [genMonth, setGenMonth] = useState(new Date().getMonth() + 1);
   const [genYear, setGenYear] = useState(new Date().getFullYear());
   const [genResult, setGenResult] = useState(null);
@@ -58,9 +74,19 @@ export const SettingsTab = () => {
 
   const saving = updateMutation.isPending;
   const generating = generateMutation.isPending;
+  const parsedQuotaAmount = parseFloat(quotaAmount);
+  const quotaChanged = Number.isFinite(parsedQuotaAmount) && parsedQuotaAmount !== Number(settings?.quota_amount);
+  const validQuotaAmount = Number.isFinite(parsedQuotaAmount) && parsedQuotaAmount > 0;
+  const hasQuotaDeliberacao = !!assembleiaId.trim() && !!deliberacaoId.trim();
 
   const handleSave = () => {
-    updateMutation.mutate({ quota_amount: parseFloat(quotaAmount), quota_description: quotaDesc });
+    updateMutation.mutate(buildSettingsUpdate({
+      settings,
+      quotaAmount,
+      quotaDesc,
+      assembleiaId,
+      deliberacaoId,
+    }));
   };
 
   const handleGenerate = () => setConfirmGen(true);
@@ -94,7 +120,23 @@ export const SettingsTab = () => {
               className="w-full max-w-sm px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="quota-desc-input" />
           </div>
-          <button onClick={handleSave} disabled={saving} className="btn-primary text-sm px-6" data-testid="save-settings-btn">
+          {quotaChanged && (
+            <div className="grid gap-3 sm:grid-cols-2 max-w-xl">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">ID Assembleia</label>
+                <input type="text" value={assembleiaId} onChange={(e) => setAssembleiaId(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
+                  data-testid="quota-assembleia-id" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">ID Deliberacao 3/4</label>
+                <input type="text" value={deliberacaoId} onChange={(e) => setDeliberacaoId(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
+                  data-testid="quota-deliberacao-id" />
+              </div>
+            </div>
+          )}
+          <button onClick={handleSave} disabled={saving || !validQuotaAmount || (quotaChanged && !hasQuotaDeliberacao)} className="btn-primary text-sm px-6" data-testid="save-settings-btn">
             {saving ? 'A guardar...' : 'Guardar Configuracoes'}
           </button>
         </div>

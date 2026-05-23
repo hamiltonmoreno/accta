@@ -216,6 +216,21 @@ class TestAplicar:
             await s_route.aplicar_sancao(sancao_id="s1", request=_request(), current_user=_direcao())
         assert exc.value.status_code == 400
 
+    async def test_recurso_pendente_nao_aplica_400(self, gov_env):
+        gov_env.sancoes.find_one = AsyncMock(
+            return_value={
+                "id": "s1",
+                "user_id": "u1",
+                "tipo": "perda_direitos",
+                "status": "recurso",
+                "decisao": {"aprovado": True},
+            }
+        )
+        with pytest.raises(HTTPException) as exc:
+            await s_route.aplicar_sancao(sancao_id="s1", request=_request(), current_user=_direcao())
+        assert exc.value.status_code == 400
+        gov_env.users.update_one.assert_not_awaited()
+
     async def test_expulsao_inactiva_e_encerra_mandato(self, gov_env):
         gov_env.sancoes.find_one = AsyncMock(
             return_value={

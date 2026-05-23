@@ -317,6 +317,26 @@ class TestDeliberacoes:
             )
         assert exc.value.status_code == 400
 
+    async def test_contagem_acima_do_poder_presente_400(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=self._assembleia())
+        gov_env.assembleia_presencas.find = MagicMock(return_value=_cursor([{"voting_power": 8}]))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.register_deliberacao(
+                assembleia_id="a1",
+                request=_request(),
+                data=AssembleiaDeliberacaoCreate(
+                    ponto="1",
+                    descricao="Aprovar contas",
+                    tipo_maioria="absoluta",
+                    votos_favor=8,
+                    votos_contra=1,
+                    abstencoes=0,
+                ),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 400
+        gov_env.assembleia_deliberacoes.insert_one.assert_not_awaited()
+
     async def test_maioria_absoluta_aprovada(self, gov_env):
         gov_env.assembleias.find_one = AsyncMock(return_value=self._assembleia())
         # poder presente = 8 → absoluta = floor(8/2)+1 = 5
@@ -362,3 +382,28 @@ class TestDeliberacoes:
         assert result["base_calculo"] == 10
         assert result["threshold"] == 8
         assert result["aprovado"] is False
+
+    async def test_dois_tercos_presentes_honorario(self, gov_env):
+        # Eleição de membro honorário (Art. 8.4): 2/3 dos presentes — F6.
+        gov_env.assembleias.find_one = AsyncMock(return_value=self._assembleia())
+        gov_env.assembleia_presencas.find = MagicMock(return_value=_cursor([{"voting_power": 9}]))
+        captured = {}
+        gov_env.assembleia_deliberacoes.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        result = await a_route.register_deliberacao(
+            assembleia_id="a1",
+            request=_request(),
+            data=AssembleiaDeliberacaoCreate(
+                ponto="3",
+                descricao="Eleição de membro honorário",
+                tipo_maioria="qualificada_2_3",
+                votos_favor=6,
+                votos_contra=3,
+                abstencoes=0,
+                source_article="8.4",
+            ),
+            current_user=_mesa_ag(),
+        )
+        # base = presentes (9) → 2/3 = ceil(6.0) = 6; 6 >= 6 → aprovada
+        assert result["base_calculo"] == 9
+        assert result["threshold"] == 6
+        assert result["aprovado"] is True

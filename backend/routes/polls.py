@@ -36,13 +36,16 @@ def _hydrate_poll_dates(p: dict) -> dict:
 
 
 def _poll_option_ids(poll: dict) -> set[int]:
-    return {option["id"] for option in poll.get("options", []) if isinstance(option, dict) and option.get("id") is not None}
+    return {
+        option["id"] for option in poll.get("options", []) if isinstance(option, dict) and option.get("id") is not None
+    }
 
 
 @router.get("/polls", response_model=List[Poll])
 async def get_polls(skip: int = 0, limit: int = 100, current_user: User = Depends(get_current_user)):
     limit = min(limit, 100)
-    polls = await db.polls.find({}, {"_id": 0}).skip(skip).limit(limit).to_list(None)
+    query = {} if current_user.role == "admin" else {"status": {"$ne": "rascunho"}}
+    polls = await db.polls.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(None)
     for p in polls:
         _hydrate_poll_dates(p)
     return polls
@@ -55,9 +58,9 @@ async def create_poll(poll_data: PollCreate, current_user: User = Depends(get_cu
 
     poll = Poll(**poll_data.model_dump())
     poll_dict = poll.model_dump()
-    poll_dict['start_date'] = poll_dict['start_date'].isoformat()
-    poll_dict['end_date'] = poll_dict['end_date'].isoformat()
-    poll_dict['created_at'] = poll_dict['created_at'].isoformat()
+    poll_dict["start_date"] = poll_dict["start_date"].isoformat()
+    poll_dict["end_date"] = poll_dict["end_date"].isoformat()
+    poll_dict["created_at"] = poll_dict["created_at"].isoformat()
 
     await db.polls.insert_one(poll_dict)
     await create_audit_log(current_user.id, f"Criou votação {poll.id}", poll.id)
@@ -95,8 +98,10 @@ async def update_poll_status(
 
     if data.status == "aberta":
         await notify_all_active_users(
-            "poll", "Nova Votação Aberta",
-            f"{poll.get('title', 'Votação')} - Participe agora!", "/votacoes",
+            "poll",
+            "Nova Votação Aberta",
+            f"{poll.get('title', 'Votação')} - Participe agora!",
+            "/votacoes",
         )
 
     poll["status"] = data.status
@@ -126,15 +131,13 @@ async def vote(vote_data: VoteCreate, current_user: User = Depends(get_current_u
     if not option_ids or vote_data.vote_option not in option_ids:
         raise HTTPException(status_code=400, detail="Opcao de voto invalida")
 
-    existing_vote = await db.user_votes.find_one(
-        {"user_id": current_user.id, "poll_id": vote_data.poll_id}
-    )
+    existing_vote = await db.user_votes.find_one({"user_id": current_user.id, "poll_id": vote_data.poll_id})
     if existing_vote:
         raise HTTPException(status_code=400, detail="Você já votou nesta votação")
 
     user_vote = UserVote(user_id=current_user.id, **vote_data.model_dump())
     vote_dict = user_vote.model_dump()
-    vote_dict['created_at'] = vote_dict['created_at'].isoformat()
+    vote_dict["created_at"] = vote_dict["created_at"].isoformat()
 
     try:
         await db.user_votes.insert_one(vote_dict)
@@ -159,7 +162,7 @@ async def get_poll_results(poll_id: str, current_user: User = Depends(get_curren
     votes = await db.user_votes.find({"poll_id": poll_id}, {"_id": 0}).to_list(1000)
     results = {}
     for v in votes:
-        option = v['vote_option']
+        option = v["vote_option"]
         results[option] = results.get(option, 0) + 1
 
     return {"poll_id": poll_id, "total_votes": len(votes), "results": results}

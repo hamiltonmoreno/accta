@@ -49,6 +49,14 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
     invite_token = secrets.token_urlsafe(32)
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(days=INVITE_TOKEN_TTL_DAYS)
+    cargo_key = normalize_cargo(data.cargo) if data.cargo else "socio"
+    if cargo_key not in CARGO_KEYS:
+        raise HTTPException(status_code=422, detail=f"Cargo inválido: {cargo_key}")
+    if is_estatutary_cargo(cargo_key):
+        raise HTTPException(
+            status_code=400,
+            detail="Convites directos criam sócios base; atribua cargos em Cargos & Mandatos após activação",
+        )
     member_id = data.member_id or await next_member_id()
 
     user_doc = {
@@ -59,8 +67,8 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
         "role": data.role if data.role in ["socio", "financeiro", "moderador"] else "socio",
         "status": "pendente_convite",
         "account_type": "member",
-        "cargo": normalize_cargo(data.cargo) if data.cargo else "socio",
-        "orgao": orgao_of_cargo(normalize_cargo(data.cargo)) if data.cargo else None,
+        "cargo": cargo_key,
+        "orgao": orgao_of_cargo(cargo_key),
         "member_id": member_id,
         "license_number": data.license_number or "",
         "department": data.department or "",
@@ -227,6 +235,11 @@ async def approve_registration(
     expires_at = now + timedelta(days=INVITE_TOKEN_TTL_DAYS)
     raw_cargo = data.cargo or user.get("cargo_declarado") or user.get("cargo") or "socio"
     cargo_key = normalize_cargo(raw_cargo) or "socio"
+    _validate_cargo_role_privs(cargo_key, data.role, None)
+
+    seats = CARGO_SEATS.get(cargo_key, 0)
+    if seats > 0 and await _count_cargo_holders(cargo_key, exclude_ids={user_id}) >= seats:
+        raise HTTPException(status_code=409, detail=f"Cargo '{cargo_label(cargo_key)}' já não tem vagas")
 
     set_fields = {
         "status": "pendente_convite",

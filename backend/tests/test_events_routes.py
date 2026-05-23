@@ -1,4 +1,5 @@
 """Unit tests for routes/events.py — RBAC, registration logic, attendees."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone, timedelta
@@ -24,6 +25,7 @@ def _cursor(items):
 
 def _make_inactive(user_dict):
     from models import User
+
     return User(**{**user_dict, "status": "inativo"})
 
 
@@ -193,9 +195,7 @@ class TestDeleteEvent:
 class TestRegisterForEvent:
     async def test_inactive_403(self, mock_db, socio_user_dict):
         with pytest.raises(HTTPException) as exc:
-            await events_route.register_for_event(
-                event_id="e1", current_user=_make_inactive(socio_user_dict)
-            )
+            await events_route.register_for_event(event_id="e1", current_user=_make_inactive(socio_user_dict))
         assert exc.value.status_code == 403
 
     async def test_404_when_event_missing(self, mock_db, socio_user):
@@ -205,9 +205,7 @@ class TestRegisterForEvent:
         assert exc.value.status_code == 404
 
     async def test_already_registered_400(self, mock_db, socio_user):
-        mock_db.events.find_one = AsyncMock(
-            return_value={"id": "e1", "title": "X", "attendees": [socio_user.id]}
-        )
+        mock_db.events.find_one = AsyncMock(return_value={"id": "e1", "title": "X", "attendees": [socio_user.id]})
         with pytest.raises(HTTPException) as exc:
             await events_route.register_for_event(event_id="e1", current_user=socio_user)
         assert exc.value.status_code == 400
@@ -227,15 +225,37 @@ class TestRegisterForEvent:
         assert exc.value.status_code == 400
         assert "lotado" in exc.value.detail.lower()
 
-    async def test_successful_registration(self, mock_db, socio_user):
+    async def test_past_event_400(self, mock_db, socio_user):
         mock_db.events.find_one = AsyncMock(
-            return_value={"id": "e1", "title": "X", "attendees": []}
+            return_value={
+                "id": "e1",
+                "title": "X",
+                "date": (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(),
+                "attendees": [],
+            }
         )
+        with pytest.raises(HTTPException) as exc:
+            await events_route.register_for_event(event_id="e1", current_user=socio_user)
+        assert exc.value.status_code == 400
+        assert "terminou" in exc.value.detail.lower()
+
+    async def test_successful_registration(self, mock_db, socio_user, monkeypatch):
+        register = AsyncMock(return_value="registered")
+        monkeypatch.setattr(events_route, "register_event_attendee", register)
+        mock_db.events.find_one = AsyncMock(return_value={"id": "e1", "title": "X", "attendees": []})
         result = await events_route.register_for_event(event_id="e1", current_user=socio_user)
         assert "sucesso" in result["message"].lower()
-        mock_db.events.update_one.assert_awaited_with(
-            {"id": "e1"}, {"$push": {"attendees": socio_user.id}}
+        register.assert_awaited_once_with("e1", socio_user.id)
+
+    async def test_atomic_registration_rechecks_capacity(self, mock_db, socio_user, monkeypatch):
+        monkeypatch.setattr(events_route, "register_event_attendee", AsyncMock(return_value="full"))
+        mock_db.events.find_one = AsyncMock(
+            return_value={"id": "e1", "title": "X", "max_attendees": 2, "attendees": ["u1"]}
         )
+        with pytest.raises(HTTPException) as exc:
+            await events_route.register_for_event(event_id="e1", current_user=socio_user)
+        assert exc.value.status_code == 400
+        assert "lotado" in exc.value.detail.lower()
 
 
 # --------------------------------------------------------------------------- #
@@ -257,9 +277,7 @@ class TestUnregister:
         assert exc.value.status_code == 400
 
     async def test_successful_unregister(self, mock_db, socio_user):
-        mock_db.events.find_one = AsyncMock(
-            return_value={"id": "e1", "attendees": [socio_user.id]}
-        )
+        mock_db.events.find_one = AsyncMock(return_value={"id": "e1", "attendees": [socio_user.id]})
         result = await events_route.unregister_from_event(event_id="e1", current_user=socio_user)
         assert "cancelada" in result["message"].lower()
 
@@ -287,23 +305,15 @@ class TestGetAttendees:
         assert result["attendees"] == []  # PII vazia para socio
 
     async def test_admin_sees_full_list(self, mock_db, admin_user):
-        mock_db.events.find_one = AsyncMock(
-            return_value={"id": "e1", "attendees": ["u1"], "created_by": "outro"}
-        )
-        mock_db.users.find = MagicMock(
-            return_value=_cursor([{"id": "u1", "name": "User", "email": "u@x.com"}])
-        )
+        mock_db.events.find_one = AsyncMock(return_value={"id": "e1", "attendees": ["u1"], "created_by": "outro"})
+        mock_db.users.find = MagicMock(return_value=_cursor([{"id": "u1", "name": "User", "email": "u@x.com"}]))
         result = await events_route.get_event_attendees(event_id="e1", current_user=admin_user)
         assert result["count"] == 1
         assert len(result["attendees"]) == 1
 
     async def test_creator_sees_full_list(self, mock_db, socio_user):
         """Creator do evento (mesmo nao-admin) ve lista completa."""
-        mock_db.events.find_one = AsyncMock(
-            return_value={"id": "e1", "attendees": ["u1"], "created_by": socio_user.id}
-        )
-        mock_db.users.find = MagicMock(
-            return_value=_cursor([{"id": "u1", "name": "User", "email": "u@x.com"}])
-        )
+        mock_db.events.find_one = AsyncMock(return_value={"id": "e1", "attendees": ["u1"], "created_by": socio_user.id})
+        mock_db.users.find = MagicMock(return_value=_cursor([{"id": "u1", "name": "User", "email": "u@x.com"}]))
         result = await events_route.get_event_attendees(event_id="e1", current_user=socio_user)
         assert len(result["attendees"]) == 1
