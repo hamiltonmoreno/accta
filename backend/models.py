@@ -1043,6 +1043,9 @@ class TransactionUpdate(BaseModel):
     amount: Optional[float] = None
     date: Optional[str] = None
     reference: Optional[str] = None
+    # comprovativo de despesa anexado pelo Tesoureiro (spec-ciclo §5.3) — o CF
+    # confere a partir daqui. Aditivo/opcional.
+    proof_url: Optional[str] = None
 
     @field_validator("date", mode="before")
     @classmethod
@@ -1664,3 +1667,53 @@ class RegulamentoVersaoAprovar(BaseModel):
 
 class RegulamentoVersaoRevogar(BaseModel):
     motivo: Optional[str] = Field(default=None, max_length=1000)
+
+
+# ===== BALANCETES E BALANÇO ANUAL (spec-ciclo §5, Art. 34/37) =====
+# O Tesoureiro publica um balancete congelando o snapshot de /finances/summary
+# no momento (auditabilidade — os números não mudam depois). O Conselho Fiscal
+# audita ao nível do período (cf_audit: conferido + observações; decisão §12.3).
+
+BALANCETE_TIPOS = ["periodico", "balanco_anual"]
+BALANCETE_VISIBILITIES = ["socios", "publico", "direcao"]
+
+
+class Balancete(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tipo: Literal["periodico", "balanco_anual"] = "periodico"
+    periodo: str  # rótulo: "2026-03" | "2026-Q1" | "2026"
+    exercicio_ano: int
+    snapshot: dict  # congelado de /finances/summary (totais + por categoria)
+    document_id: Optional[str] = None  # PDF opcional
+    published: bool = False
+    published_by: Optional[str] = None  # Tesoureiro
+    published_at: Optional[str] = None
+    # {audited_by, audited_at, conferido: bool, observacoes}
+    cf_audit: Optional[dict] = None
+    visibility: Literal["socios", "publico", "direcao"] = "socios"
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    source_article: str = "34"
+
+
+class BalanceteCreate(BaseModel):
+    tipo: Literal["periodico", "balanco_anual"] = "periodico"
+    periodo: str = Field(min_length=4, max_length=12)
+    exercicio_ano: int = Field(ge=2000, le=2100)
+    # Janela do snapshot. Sem month/datas → ano inteiro (balanço anual). month →
+    # mensal. date_inicio/date_fim → trimestral ou janela custom.
+    month: Optional[int] = Field(default=None, ge=1, le=12)
+    date_inicio: Optional[str] = None
+    date_fim: Optional[str] = None
+    document_id: Optional[str] = None
+    visibility: Literal["socios", "publico", "direcao"] = "socios"
+
+    @field_validator("date_inicio", "date_fim", mode="before")
+    @classmethod
+    def _v_dt(cls, v):
+        return _validate_datetime_str(v) if v else v
+
+
+class BalanceteAuditar(BaseModel):
+    conferido: bool
+    observacoes: Optional[str] = Field(default=None, max_length=2000)

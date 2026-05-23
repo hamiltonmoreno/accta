@@ -29,12 +29,14 @@ Spec: `tasks/spec-ciclo-prestacao-contas.md`. Branch `feature/ciclo-prestacao-co
 - [x] Seed do **Regimento da AG** (`slug=regimento-ag`, competência `assembleia_geral`) no arranque
 - [x] Testes: 22/22 — aprovar troca `current_version` e revoga anterior; Regimento exige deliberação; `slug` único + validador kebab-case
 
-## F2 — 3.2 Balancetes (Art. 34, 37)
-- [ ] `models.py`: `Balancete` (tipo, periodo, exercicio_ano, snapshot, cf_audit, visibility)
-- [ ] `routes/prestacao_contas.py`: publicar (Tesoureiro — congela snapshot de `/finances/summary`) · listar/detalhe · auditar (CF)
-- [ ] confirmar `proof_url` aceite no `PATCH /finances/transactions/{id}`
-- [ ] RBAC (publicar=manage_finances; auditar=CF; ver=can_view_finances; publicados→Transparência) + audit + notif
-- [ ] Testes: snapshot congelado; só Tesoureiro publica; só CF audita; readonly lê não publica; `proof_url` aceite
+## F2 — 3.2 Balancetes (Art. 34, 37) ✅
+- [x] `models.py`: `Balancete` (+ `BalanceteCreate`/`BalanceteAuditar`); `proof_url` adicionado ao `TransactionUpdate`
+- [x] `finances.py`: extraído `compute_financial_summary` (fonte única — endpoint + snapshot)
+- [x] `routes/prestacao_contas.py`: publicar (Tesoureiro — congela snapshot; janela mensal/anual/trimestral) · listar/detalhe · auditar (CF)
+- [x] `proof_url` aceite no `PATCH /finances/transactions/{id}` (testado)
+- [x] RBAC (publicar=manage_finances; auditar=`can_emit_parecer_cf`; ver=can_view_finances) + audit + notif (`finance`)
+- [x] Testes: 13/13 — snapshot congelado; só Tesoureiro publica; CF readonly não publica; só CF audita; `proof_url` aceite. Sem regressões nos testes de finanças unit (50✓)
+- ℹ️ Exposição pública inline do balancete: adiada (§12.6) — público vê só o PDF via fluxo de documentos
 
 ## F3 — 3.1 Ciclo do exercício + orçamento/plano estruturados (Art. 19.1, 31.k, 37)
 - [ ] `models.py`: `Exercicio` (+ máquina de estados), `ParecerCF`, `OrcamentoLinha`, `PlanoAtividade`
