@@ -10,7 +10,7 @@ Plano faseado da §11. PRs pequenos `feature/* → develop` (GitFlow).
 | F3 | 1.6 Esclarecimentos + 1.5 Reclamações (Art. 9.j/9.i) | ✅ #89 |
 | F4 | 1.4 Propostas/temas para a ordem de trabalhos (Art. 9.g/9.h) | ✅ #91 (merged em develop) |
 | F5 | 1.2 Honorários (nomeação + votação 2/3 via poll; categoria) | ✅ PR #93 → develop |
-| **F6** | **Reconciliação com `Assembleia` (encaixes §2.4) — versão mínima** | 🔄 **branch `feature/participacao-f6-reconciliacao` (stacked em F5)** |
+| F6 | Reconciliação com `Assembleia` (encaixes §2.4) | ✅ mínima #95 + **completa** (qualificada_2_3 + seletores AG) |
 
 ## F6 — Reconciliação com Assembleia (§2.4) — versão mínima
 
@@ -33,9 +33,22 @@ Estado dos links (backend): petição (`encaminhar` → `assembleia_id`), propos
 - [x] `ruff check`/`format` ✓ backend; `eslint` ✓; `craco build` ✓ (compiled successfully).
 - [ ] Verificação manual no browser — pendente do dono.
 
-### Diferido (backend já suporta; UI a expor mais tarde, se desejado)
-- Seletor de AG na inclusão de proposta (`incluir` → `ordem_index`/`assembleia_id`) e na decisão de recurso (`decidir-recurso`). Os campos já passam pela API; falta só a UI dedicada.
-- Reconciliação "completa" (criar `AssembleiaDeliberacao` `qualificada_2_3` para o honorário) fica para quando/se o módulo de governança ganhar a maioria de 2/3 — fora do âmbito mínimo escolhido.
+### F6 — versão COMPLETA (2026-05-22, após F7 da governança merged)
+Decisão do dono: terminar a F6 tocando na governança (aditivo). Âmbito A+B, base do 2/3 = **presentes**.
+
+**A. Governança — maioria de 2/3 (aditivo, não quebra docs existentes):**
+- [x] `governance.py`: `required_two_thirds(base) = ceil(2/3·base)`.
+- [x] `models.py`: `qualificada_2_3` em `MAIORIA_TIPOS` + nos 2 Literals (`AssembleiaDeliberacao`/`Create`).
+- [x] `routes/assembleias.py`: threshold `qualificada_2_3` = 2/3 dos presentes (espelha `qualificada_3_4_presentes`).
+- [x] frontend: `MAIORIA_LABELS` + `MAIORIA_OPTIONS` (opção no form de deliberação).
+- [x] testes: `test_dois_tercos` (helper) + `test_dois_tercos_presentes_honorario` (rota). Resultado: a Mesa regista a eleição do honorário (Art. 8.4) como `AssembleiaDeliberacao` real `qualificada_2_3` e liga via `ligar-assembleia` (registo administrativo — respeita STOP §13).
+
+**B. UI — seletores de AG nos encaixes que faltavam:**
+- [x] `PropostasPage`: seletor de AG + nº de ponto no `incluir` (passa `assembleia_id`/`ordem_index`); mostra "Incluída na AG" quando incluída.
+- [x] `ReclamacoesPage`: seletor de AG + id de deliberação na decisão de recurso; mostra a AG ligada na decisão.
+
+Verificação: `pytest` governança+assembleias → 62 passed; `ruff`/`eslint`/`craco build` ✓.
+**F6 fica completa.** (Os 4 encaixes §2.4 — petição, proposta, recurso, honorário — ligáveis na UI.)
 
 ## Review (F6)
 - Âmbito **link, não recria**: respeita "sem tocar na governança" (zero alterações a modelos/rotas da governança) e evita duplicar a lógica de convocação (antecedência/quórum/elegíveis vivem só em `routes/assembleias.py`).
