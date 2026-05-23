@@ -13,6 +13,8 @@ from models import (
     TRANSACTION_TYPES,
     INCOME_CATEGORIES,
     EXPENSE_CATEGORIES,
+    INCOME_CATEGORY_LABELS,
+    EXPENSE_CATEGORY_LABELS,
 )
 from database import db
 from auth import get_current_user, can_view_finances, can_manage_finances
@@ -503,12 +505,24 @@ async def generate_monthly_quotas(
     }
 
 
+# Labels ASCII-safe para CSV/DRE-PDF (FPDF/latin-1 rebenta com acentos). As
+# receitas estatutárias (Art. 5) + as legadas (mantidas até a migração correr,
+# para docs ainda não migrados renderizarem com nome em vez da key crua).
 CATEGORY_LABELS = {
+    # Receitas estatutárias (Art. 5).
     "quotas": "Quotas de Socios",
+    "joias": "Joias",
+    "subvencoes": "Subvencoes",
+    "donativos": "Donativos",
+    "venda_publicacoes": "Venda de Publicacoes",
+    "juros": "Juros",
+    "extraordinarias": "Receitas Extraordinarias",
+    # Legadas (até migrate_income_categories.py --apply correr).
     "patrocinios": "Patrocinios",
     "doacoes": "Doacoes",
-    "eventos": "Eventos",
     "outros_receita": "Outras Receitas",
+    # Despesas ("eventos" continua válida como despesa).
+    "eventos": "Eventos",
     "operacional": "Operacional",
     "juridico": "Juridico",
     "comunicacao": "Comunicacao",
@@ -857,4 +871,5 @@ async def get_finance_categories(current_user: User = Depends(get_current_user))
         "income": INCOME_CATEGORIES,
         "expense": EXPENSE_CATEGORIES,
         "types": TRANSACTION_TYPES,
+        "labels": {**INCOME_CATEGORY_LABELS, **EXPENSE_CATEGORY_LABELS},
     }

@@ -1,104 +1,52 @@
-# TODO — Voz e Participação do Sócio (spec-voz-participacao-socio.md)
+# TODO — Finanças: Fundação F0 + Categorias estatutárias
 
-Plano faseado da §11. PRs pequenos `feature/* → develop` (GitFlow).
+Specs: `spec-controlos-financeiros` (§4.2 categorias, §6.1 campos aditivos, §9 F0/F1)
++ `spec-ciclo-prestacao-contas` (F0: `proof_url`/`conferido`). Decisões com efeito
+estatutário **alinhadas com o dono** em `memory/finance-specs-alignment` (2026-05-21):
+categorias canónicas, mapa de migração (`patrocinios → extraordinarias`), e
+**estender** o `GET /finances/meta/categories` existente (não criar `/categorias`).
 
-| Fase | Funcionalidade | Estado |
-|------|----------------|--------|
-| F0 | Transversais (`member_category`, helpers de órgão, `is_voting_member`, `count_voting_members`, schema das 7 colecções, router registado) | ✅ #87 |
-| F1 | 1.1 Patrocínio de admissão (Art. 8.3) | ✅ #87 |
-| F2 | 1.3 Petição para AG extraordinária (Art. 9.f/19.2.d) | ✅ #88 |
-| F3 | 1.6 Esclarecimentos + 1.5 Reclamações (Art. 9.j/9.i) | ✅ #89 |
-| F4 | 1.4 Propostas/temas para a ordem de trabalhos (Art. 9.g/9.h) | ✅ #91 (merged em develop) |
-| F5 | 1.2 Honorários (nomeação + votação 2/3 via poll; categoria) | ✅ PR #93 → develop |
-| F6 | Reconciliação com `Assembleia` (encaixes §2.4) | ✅ mínima #95 + **completa** (qualificada_2_3 + seletores AG) |
+Branch: `feature/financas-fundacao-categorias → develop` (GitFlow). PR aditivo,
+sem alteração de schema/DDL, sem colecções novas. Migração `--apply` é STOP — não corre.
 
-## F6 — Reconciliação com Assembleia (§2.4) — versão mínima
+## F0 — Campos aditivos + helper de órgão (aditivo, zero mudança de comportamento)
+- [x] `models.py` `Transaction`: + `ato_id`, `proof_url`, `conferido` (Optional)
+- [x] `models.py` `FinanceSettings`: + `coaprovacao_limiar: float = 0.0`
+- [x] `models.py` `UserBase`: + `cta_qualified_since`, `joia_devida`, `joia_isento` (Optional)
+- [x] `permissions.py`: + `is_presidente(user)` → cargo key `dir_presidente`
+- [x] `AuthContext.js`: + `isPresidente` (`cargo === 'dir_presidente'`)
 
-Decisão do dono (2026-05-22): **mínima, sem tocar na governança** (não adiciona `qualificada_2_3` aos modelos da governança; honorário mantém 2/3 por poll da F5). Como criar uma Assembleia usa helpers da governança, **não se duplica** — a Mesa cria a AG normalmente e **liga** os itens de participação a uma assembleia existente (reutiliza `assembleiasAPI.list`, leitura).
+## Categorias estatutárias (Art. 5) — backend + frontend em lockstep
+- [x] `models.py` `INCOME_CATEGORIES` → canónicas: quotas, joias, subvencoes,
+      donativos, venda_publicacoes, juros, extraordinarias
+- [x] `models.py` + `INCOME_CATEGORY_LABELS` / `EXPENSE_CATEGORY_LABELS` (PT c/ acentos, p/ meta)
+- [x] `models.py` + `LEGACY_INCOME_ALIASES` + `canonical_income_category()` (mapa partilhado script/testes)
+- [x] `finances.py` `CATEGORY_LABELS`: + keys de receita novas (ASCII p/ CSV/DRE); manter legadas
+- [x] `finances.py` `GET /finances/meta/categories`: + `labels` (NÃO criar `/categorias`)
+- [x] `frontend/.../financeiro/constants.js`: `INCOME_CATEGORIES`+`CATEGORY_LABELS` → canónicas
+      (refactor p/ consumir meta fica F4)
+- [x] `scripts/migrate_income_categories.py`: plano puro + dry-run default + `--apply --confirm` (NÃO correr)
 
-Estado dos links (backend): petição (`encaminhar` → `assembleia_id`), proposta (`incluir` → `assembleia_id`/`ordem_index`) e recurso (`decidir-recurso` → `assembleia_id`/`deliberacao_id`) **já existiam** desde F2/F4/F3. O gap era o **honorário** (F5 não tinha como registar a referência).
+## Testes & gates
+- [x] Atualizar `test_finances.py` / `test_finances_routes.py` (categorias legadas → canónicas)
+- [x] Novos testes: campos aditivos aceites; meta devolve `labels`; create receita só aceita
+      canónicas (legada → 400); `canonical_income_category` mapeia aliases (idempotente)
+- [x] `pytest -m unit` (709 passed) · `ruff check`/`format` ✓ · `eslint` (meus ficheiros) ✓ · `craco build` ✓
 
-### Backend
-- [x] `models.py`: `HonorarioLigar` (`assembleia_id` obrigatório, `deliberacao_id` opcional).
-- [x] `routes/participacao.py`: `POST /honorarios/{id}/ligar-assembleia` (Mesa/admin) — só nomeações apuradas (`eleito`/`rejeitado`); valida que a assembleia existe; regista referência. Audit `honorario_ligado_assembleia`.
+## Review
+- **Âmbito aditivo verificado**: todos os campos novos são `Optional`/com default em `doc jsonb`
+  → zero DDL, zero colecções novas, zero migração de schema. Não dispara nenhum STOP.
+- **Categorias em lockstep**: backend (validação + meta + CSV/DRE) e frontend (`constants.js`)
+  mudaram juntos — não fica um dropdown a oferecer categorias que o backend rejeita.
+- **Decisão do dono respeitada**: `patrocinios → extraordinarias` (a spec hesitava → donativos;
+  `memory/finance-specs-alignment` anula). Meta estende `/categories` (sem `/categorias` paralela).
+- **Migração não corrida**: `migrate_income_categories.py` fica em dry-run; `--apply` exige
+  `--confirm` (STOP §11). DB dev quase vazia; sem dados reais a migrar.
+- **Testes**: `test_finances_foundation.py` (25 casos) cobre campos aditivos, categorias,
+  `canonical_income_category`, plano de migração (despesa "eventos" NÃO renomeada) e `is_presidente`.
+- **Pendente do dono**: verificação manual no browser; correr a migração quando houver dados reais.
 
-### Frontend
-- [x] `api.js`: `honorariosAPI.ligar(id, data)`.
-- [x] `HonorariosPage`: em nomeações apuradas, a Mesa liga a uma AG (seletor via `assembleiasAPI.list`) + id de deliberação opcional; mostra "Ligada à AG: <título>" quando ligada.
-- [x] `PeticoesPage`: ao encaminhar uma petição atingida, seletor opcional de AG (passa `assembleia_id` ao `encaminhar`); mostra "Ligada à AG" quando encaminhada.
-
-### Testes & verificação
-- [x] `tests/test_participacao.py` — `TestHonorario` (+4 do `ligar`): exige Mesa/admin (403); só apurado (409); assembleia inexistente (404); ok regista referência + audit.
-- [x] `pytest tests/test_participacao.py` → 49 passed.
-- [x] `ruff check`/`format` ✓ backend; `eslint` ✓; `craco build` ✓ (compiled successfully).
-- [ ] Verificação manual no browser — pendente do dono.
-
-### F6 — versão COMPLETA (2026-05-22, após F7 da governança merged)
-Decisão do dono: terminar a F6 tocando na governança (aditivo). Âmbito A+B, base do 2/3 = **presentes**.
-
-**A. Governança — maioria de 2/3 (aditivo, não quebra docs existentes):**
-- [x] `governance.py`: `required_two_thirds(base) = ceil(2/3·base)`.
-- [x] `models.py`: `qualificada_2_3` em `MAIORIA_TIPOS` + nos 2 Literals (`AssembleiaDeliberacao`/`Create`).
-- [x] `routes/assembleias.py`: threshold `qualificada_2_3` = 2/3 dos presentes (espelha `qualificada_3_4_presentes`).
-- [x] frontend: `MAIORIA_LABELS` + `MAIORIA_OPTIONS` (opção no form de deliberação).
-- [x] testes: `test_dois_tercos` (helper) + `test_dois_tercos_presentes_honorario` (rota). Resultado: a Mesa regista a eleição do honorário (Art. 8.4) como `AssembleiaDeliberacao` real `qualificada_2_3` e liga via `ligar-assembleia` (registo administrativo — respeita STOP §13).
-
-**B. UI — seletores de AG nos encaixes que faltavam:**
-- [x] `PropostasPage`: seletor de AG + nº de ponto no `incluir` (passa `assembleia_id`/`ordem_index`); mostra "Incluída na AG" quando incluída.
-- [x] `ReclamacoesPage`: seletor de AG + id de deliberação na decisão de recurso; mostra a AG ligada na decisão.
-
-Verificação: `pytest` governança+assembleias → 62 passed; `ruff`/`eslint`/`craco build` ✓.
-**F6 fica completa.** (Os 4 encaixes §2.4 — petição, proposta, recurso, honorário — ligáveis na UI.)
-
-## Review (F6)
-- Âmbito **link, não recria**: respeita "sem tocar na governança" (zero alterações a modelos/rotas da governança) e evita duplicar a lógica de convocação (antecedência/quórum/elegíveis vivem só em `routes/assembleias.py`).
-- Reutiliza leituras existentes (`assembleiasAPI.list`) e os campos de ligação já presentes nos modelos (`assembleia_id`/`deliberacao_id`/`ordem_index`).
-- Honorário: novo `ligar-assembleia` valida estado (apurado) + existência da assembleia; é referência, não altera a votação 2/3 por poll.
-- Stacked em F5 (toca em ficheiros de honorários); o PR rebaseia para develop quando a F5 mergear.
-
-## F5 — Membros honorários (Art. 8.4) — esta entrega
-
-Decisões do dono (gates §14 confirmados 2026-05-22):
-- **Base 2/3** = votos válidos emitidos (`favor + contra`, abstenções fora). `aprovado = favor >= ceil(2/3 * base)`.
-- **Honorário externo** = permitido (`nominee_email` → cria `pendente_convite` + convite se eleito).
-- **Módulo** = `routes/participacao.py` (interim; migra p/ governança quando o `Assembleia` existir).
-
-Schema (`honorarios_nominations` + índices `status`/`nominee_user_id`) já existia desde F0. A votação reusa `polls`/`user_votes` (sem colecção nova).
-
-### Backend
-- [x] `models.py`: `HonorarioNomination` (proposta/em_votacao/eleito/rejeitado) + `HonorarioCreate`.
-- [x] `helpers.py`: `voting_member_ids()` (ids dos votantes; `count_voting_members` passa a reusá-lo) — para notificar só votantes na abertura.
-- [x] `routes/participacao.py`:
-  - `POST /honorarios` (Direcção/admin → cria `proposta`; notifica Mesa).
-  - `GET /honorarios` / `GET /honorarios/{id}` (Direcção/Mesa/admin).
-  - `POST /honorarios/{id}/abrir-votacao` (Mesa/admin → cria poll `[A favor, Contra, Abstenção]`, `em_votacao`, notifica votantes tipo `poll`).
-  - `POST /honorarios/{id}/apurar` (Mesa/admin → fecha poll, 2/3 sobre válidos, `eleito`/`rejeitado`).
-  - **Email = identificador universal** em `_aplicar_honorario_eleito`: `nominee_user_id` ou email de sócio existente → eleva (`member_category=honorario`); email de pessoa nova → `pendente_convite` + convite; sem identificador → fica eleito sem conta.
-- [x] Audit: `honorario_nomeado`, `honorario_votacao_aberta`, `honorario_apurado`.
-
-### Frontend
-- [x] `api.js`: `honorariosAPI = { list, get, create, abrirVotacao, apurar }`.
-- [x] `App.js`: lazy `HonorariosPage` + rota `/governanca/honorarios`.
-- [x] `PrivateLayout.js`: item de sidebar "Honorários" (ícone Medal) em "Órgãos Sociais", gating `match: 'governanca'` (admin/Direcção/Mesa) + `isMesaAG` no destructure + título da página.
-- [x] `HonorariosPage.js`: listar + nomear (dialog: nome + email opcional + justificação) + abrir votação + apurar/ver resultado 2/3; sem permissão → empty state; design neutral-led (único primário = "Nomear honorário"). Sócio vota na página `Votações` existente.
-
-### Testes & verificação
-- [x] `tests/test_participacao.py` — `TestHonorario` (15 casos): nomear exige Direcção; nomeado interno inválido 422; abrir/apurar exige Mesa/admin; abrir só de `proposta` (409); abrir cria poll + notifica só votantes (tipo poll); apuramento 2/3 com `ceil` (exacto, just-below, base 0); eleito interno seta categoria; externo cria convite; email de membro existente eleva sem convite.
-- [x] `pytest tests/test_participacao.py` → 45 passed.
-- [x] `pytest -m unit` → 655 passed, 2 failed (pré-existentes em `test_users_routes` — regex search, não relacionadas).
-- [x] `ruff check` + `ruff format` ✓ backend.
-- [x] `eslint` ✓ (HonorariosPage, App, PrivateLayout, api) — 0 erros; `craco build` ✓.
-- [ ] Verificação manual no browser (golden path) — pendente do dono.
-
-### STOP conditions a respeitar (§13)
-- Envio de email real (convite de honorário externo eleito): código implementado, mas o envio dispara só no `apurar` de um nominee externo eleito — validar com inbox de dev (sem sócios reais em produção).
-- Nada destrutivo em `users` (categoria é aditiva).
-
-## Review (F5)
-- Padrão 1:1 com F1–F4: módulo único `participacao.py`, RBAC explícito, audit em toda a escrita, notificação ao destinatário. Votação reusa `polls`/`user_votes` (sem colecção nova).
-- RBAC: nomear = Direcção/admin; abrir/apurar = Mesa AG/admin; votar = `is_voting_member` (já enforced em `routes/polls.py`, exclui honorário/técnico/inactivo/suspenso).
-- 2/3 sobre votos válidos (favor+contra), `favor >= ceil(2/3*base)`, `base==0` → rejeitado (decisão do dono).
-- Refactor mínimo: `count_voting_members = len(voting_member_ids())` (sem duplicar a query/regra de elegibilidade).
-- Elegância: o email como identificador universal evita um seletor de membro (GET /users é admin/financeiro-only, logo inacessível à Direcção role=socio) e cobre interno+externo num só campo.
-- Integração futura (§2.4): `assembleia_id`/`deliberacao_id` ficam `None`; migra para `AssembleiaDeliberacao` (`tipo_maioria=qualificada_2_3`) quando o módulo Assembleia existir (F6).
-- STOP respeitado: o único email real (convite de honorário externo eleito) dispara só no `apurar` de um nominee externo; sem sócios reais em produção. Nada destrutivo em `users` (categoria aditiva).
+## STOP / fora de escopo (fases seguintes)
+- `migrate_income_categories.py --apply` em `transactions` (STOP §11) — não corrido (DB dev quase vazia)
+- 4.1 `atos`/dupla-assinatura · 4.3 `compute_joia`+hook de admissão · ciclo F1–F5 — PRs seguintes
+- `TransactionUpdate.proof_url`/`conferido` + wiring da rota PATCH — ciclo F2

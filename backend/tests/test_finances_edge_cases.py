@@ -44,14 +44,16 @@ class TestFinanceConstants:
     def test_income_categories_include_quotas(self):
         assert "quotas" in INCOME_CATEGORIES
 
-    def test_income_and_expense_categories_have_distinct_terminal_suffixes(self):
-        # "eventos" deliberately appears in both lists (an event can produce
-        # both revenue and expense). Ensure the *_receita / _despesa terminals
-        # remain separated so reporting code can distinguish them.
-        assert any(c.endswith("_receita") for c in INCOME_CATEGORIES)
+    def test_income_and_expense_categories_are_disjoint(self):
+        # Categorias estatutárias (Art. 5): a receita deixa de partilhar
+        # "eventos" com a despesa — passam a ser conjuntos disjuntos.
+        assert set(INCOME_CATEGORIES).isdisjoint(EXPENSE_CATEGORIES)
+        # As receitas seguem a nomenclatura estatutária (sem terminal _receita).
+        assert "joias" in INCOME_CATEGORIES
+        assert "extraordinarias" in INCOME_CATEGORIES
+        # A despesa mantém o terminal _despesa.
         assert any(c.endswith("_despesa") for c in EXPENSE_CATEGORIES)
         assert not any(c.endswith("_despesa") for c in INCOME_CATEGORIES)
-        assert not any(c.endswith("_receita") for c in EXPENSE_CATEGORIES)
 
 
 # --------------------------------------------------------------------------- #

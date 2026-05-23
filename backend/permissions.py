@@ -70,6 +70,10 @@ def is_conselho_fiscal(user) -> bool:
     return orgao_of_cargo(_cargo_key(user)) == CONSELHO_FISCAL
 
 
+def is_presidente(user) -> bool:
+    return _cargo_key(user) == "dir_presidente"
+
+
 def is_tesoureiro(user) -> bool:
     return _cargo_key(user) == "dir_tesoureiro"
 
