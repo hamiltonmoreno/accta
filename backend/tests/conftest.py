@@ -64,7 +64,7 @@ def _make_user_dict(role: str, **overrides) -> dict:
         "cargo": "Sócio",
         "privileges": [],
         "consent_data": True,
-        "created_at": datetime.now(timezone.utc),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
     base.update(overrides)
     return base

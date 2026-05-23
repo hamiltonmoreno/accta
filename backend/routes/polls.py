@@ -19,20 +19,17 @@ _ALLOWED_TRANSITIONS: dict[str, set[str]] = {
 
 
 def _parse_dt(value) -> Optional[datetime]:
-    """ISO string (ou datetime) -> datetime tz-aware (assume UTC se naive)."""
-    if value is None:
+    """ISO string (ou datetime) -> datetime tz-aware (assume UTC se naive).
+    Vazio/ilegível -> None (tratado como "sem limite") em vez de crashar o voto."""
+    if not value:
         return None
-    dt = value if isinstance(value, datetime) else datetime.fromisoformat(value)
+    try:
+        dt = value if isinstance(value, datetime) else datetime.fromisoformat(value)
+    except (ValueError, TypeError):
+        return None
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt
-
-
-def _hydrate_poll_dates(p: dict) -> dict:
-    for field in ("start_date", "end_date", "created_at"):
-        if isinstance(p.get(field), str):
-            p[field] = datetime.fromisoformat(p[field])
-    return p
 
 
 def _poll_option_ids(poll: dict) -> set[int]:
@@ -46,8 +43,6 @@ async def get_polls(skip: int = 0, limit: int = 100, current_user: User = Depend
     limit = min(limit, 100)
     query = {} if current_user.role == "admin" else {"status": {"$ne": "rascunho"}}
     polls = await db.polls.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(None)
-    for p in polls:
-        _hydrate_poll_dates(p)
     return polls
 
 
@@ -58,9 +53,6 @@ async def create_poll(poll_data: PollCreate, current_user: User = Depends(get_cu
 
     poll = Poll(**poll_data.model_dump())
     poll_dict = poll.model_dump()
-    poll_dict["start_date"] = poll_dict["start_date"].isoformat()
-    poll_dict["end_date"] = poll_dict["end_date"].isoformat()
-    poll_dict["created_at"] = poll_dict["created_at"].isoformat()
 
     await db.polls.insert_one(poll_dict)
     await create_audit_log(current_user.id, f"Criou votação {poll.id}", poll.id)
@@ -105,7 +97,7 @@ async def update_poll_status(
         )
 
     poll["status"] = data.status
-    return _hydrate_poll_dates(poll)
+    return poll
 
 
 @router.post("/polls/vote", response_model=UserVote)
@@ -137,7 +129,6 @@ async def vote(vote_data: VoteCreate, current_user: User = Depends(get_current_u
 
     user_vote = UserVote(user_id=current_user.id, **vote_data.model_dump())
     vote_dict = user_vote.model_dump()
-    vote_dict["created_at"] = vote_dict["created_at"].isoformat()
 
     try:
         await db.user_votes.insert_one(vote_dict)

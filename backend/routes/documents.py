@@ -79,9 +79,6 @@ def file_download_name(doc: dict, file_path: Path) -> str:
 async def get_public_documents():
     """Endpoint público — sem autenticação. Retorna apenas documentos com visibility='publico'."""
     docs = await db.documents.find({"visibility": "publico"}, {"_id": 0}).sort("created_at", -1).to_list(100)
-    for d in docs:
-        if isinstance(d.get("created_at"), datetime):
-            d["created_at"] = d["created_at"].isoformat()
     return docs
 
 
@@ -104,10 +101,6 @@ async def get_documents(current_user: User = Depends(get_current_user)):
         query["visibility"] = {"$in": sorted(get_allowed_document_visibilities(current_user))}
 
     docs = await db.documents.find(query, {"_id": 0}).to_list(1000)
-
-    for d in docs:
-        if isinstance(d.get("created_at"), str):
-            d["created_at"] = datetime.fromisoformat(d["created_at"])
     return docs
 
 
@@ -119,7 +112,6 @@ async def create_document(doc_data: DocumentCreate, current_user: User = Depends
 
     doc = Document(**doc_data.model_dump())
     doc_dict = doc.model_dump()
-    doc_dict["created_at"] = doc_dict["created_at"].isoformat()
 
     await db.documents.insert_one(doc_dict)
     await create_audit_log(current_user.id, f"Criou documento {doc.id}", doc.id)

@@ -15,15 +15,10 @@ async def get_invoices(skip: int = 0, limit: int = 100, current_user: User = Dep
     if current_user.role in ["admin", "financeiro"]:
         invoices = await db.invoices.find({}, {"_id": 0}).skip(skip).limit(limit).to_list(None)
     else:
-        invoices = await db.invoices.find({"user_id": current_user.id}, {"_id": 0}).skip(skip).limit(limit).to_list(None)
+        invoices = (
+            await db.invoices.find({"user_id": current_user.id}, {"_id": 0}).skip(skip).limit(limit).to_list(None)
+        )
 
-    for inv in invoices:
-        if isinstance(inv.get('due_date'), str):
-            inv['due_date'] = datetime.fromisoformat(inv['due_date'])
-        if isinstance(inv.get('created_at'), str):
-            inv['created_at'] = datetime.fromisoformat(inv['created_at'])
-        if inv.get('confirmed_at') and isinstance(inv['confirmed_at'], str):
-            inv['confirmed_at'] = datetime.fromisoformat(inv['confirmed_at'])
     return invoices
 
 
@@ -34,10 +29,6 @@ async def create_invoice(invoice_data: InvoiceCreate, current_user: User = Depen
 
     invoice = Invoice(**invoice_data.model_dump())
     invoice_dict = invoice.model_dump()
-    invoice_dict['due_date'] = invoice_dict['due_date'].isoformat()
-    invoice_dict['created_at'] = invoice_dict['created_at'].isoformat()
-    if invoice_dict.get('confirmed_at'):
-        invoice_dict['confirmed_at'] = invoice_dict['confirmed_at'].isoformat()
 
     await db.invoices.insert_one(invoice_dict)
     await create_audit_log(current_user.id, f"Criou invoice {invoice.id}", invoice.id)
@@ -55,11 +46,13 @@ async def confirm_invoice(invoice_id: str, current_user: User = Depends(get_curr
 
     await db.invoices.update_one(
         {"id": invoice_id},
-        {"$set": {
-            "status": "pago",
-            "confirmed_by_admin": True,
-            "confirmed_at": datetime.now(timezone.utc).isoformat()
-        }}
+        {
+            "$set": {
+                "status": "pago",
+                "confirmed_by_admin": True,
+                "confirmed_at": datetime.now(timezone.utc).isoformat(),
+            }
+        },
     )
     await create_audit_log(current_user.id, f"Confirmou pagamento do invoice {invoice_id}", invoice_id)
     return {"message": "Invoice confirmado"}

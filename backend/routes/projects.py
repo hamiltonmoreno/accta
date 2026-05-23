@@ -60,14 +60,6 @@ def can_view_project(user: User, project: dict) -> bool:
     return user.role == "admin" or project.get("created_by") == user.id or project.get("responsible_id") == user.id
 
 
-def serialize_doc(d: dict) -> dict:
-    for k in ["created_at", "updated_at", "completed_at"]:
-        v = d.get(k)
-        if isinstance(v, datetime):
-            d[k] = v.isoformat()
-    return d
-
-
 # ===== PROJECT CRUD =====
 
 
@@ -136,8 +128,6 @@ async def create_project(
         created_by_name=current_user.name,
     )
     p_dict = project.model_dump()
-    p_dict["created_at"] = p_dict["created_at"].isoformat()
-    p_dict["updated_at"] = p_dict["updated_at"].isoformat()
 
     await db.projects.insert_one(p_dict)
     await create_audit_log(current_user.id, f"Criou projeto '{project.title}'", project.id)
@@ -340,7 +330,6 @@ async def create_task(
         assignee_name=assignee_name,
     )
     t_dict = task.model_dump()
-    t_dict["created_at"] = t_dict["created_at"].isoformat()
     await db.project_tasks.insert_one(t_dict)
 
     # Notify assignee
@@ -457,7 +446,6 @@ async def add_comment(
         content=content,
     )
     c_dict = comment.model_dump()
-    c_dict["created_at"] = c_dict["created_at"].isoformat()
     await db.project_comments.insert_one(c_dict)
 
     # Notify project stakeholders about the new comment
@@ -521,7 +509,6 @@ async def add_expense(
         created_by_name=current_user.name,
     )
     e_dict = expense.model_dump()
-    e_dict["created_at"] = e_dict["created_at"].isoformat()
     await db.project_expenses.insert_one(e_dict)
 
     # Update project spent — usa aggregation em vez de carregar todas as despesas para memoria
@@ -610,7 +597,6 @@ async def add_milestone(
         date=date,
     )
     m_dict = milestone.model_dump()
-    m_dict["created_at"] = m_dict["created_at"].isoformat()
     await db.project_milestones.insert_one(m_dict)
     return m_dict
 

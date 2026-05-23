@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from datetime import datetime
 from typing import List, Optional
 import re
 from models import (
@@ -23,13 +22,6 @@ from auth import get_current_user, has_role_or_privilege
 from helpers import create_audit_log, create_notification, delete_upload_file
 
 router = APIRouter(tags=["users"])
-
-
-def parse_user_dates(u: dict):
-    """Parse ISO date strings to datetime objects."""
-    for field in ["created_at", "admission_date", "last_login_at"]:
-        if u.get(field) and isinstance(u[field], str):
-            u[field] = datetime.fromisoformat(u[field])
 
 
 # PII sensível do perfil (feature/perfil): dados pessoais/saúde/morada/contacto
@@ -106,8 +98,6 @@ async def get_users(
     limit = min(limit, 100)
     # Listagem em massa nunca expõe PII sensível (saúde/morada/contacto de emergência).
     users = await db.users.find(query, _user_projection(include_sensitive=False)).skip(skip).limit(limit).to_list(limit)
-    for u in users:
-        parse_user_dates(u)
     return users
 
 
@@ -124,7 +114,6 @@ async def get_user(user_id: str, current_user: User = Depends(get_current_user))
     user_doc = await db.users.find_one({"id": user_id}, _user_projection(include_sensitive=is_self))
     if not user_doc:
         raise HTTPException(status_code=404, detail="Utilizador não encontrado")
-    parse_user_dates(user_doc)
     return user_doc
 
 
@@ -139,7 +128,6 @@ async def update_own_profile(data: UserProfileUpdate, current_user: User = Depen
 
     # Return updated user
     updated = await db.users.find_one({"id": current_user.id}, {"_id": 0, "password": 0})
-    parse_user_dates(updated)
     await create_audit_log(current_user.id, "Atualizou o próprio perfil")
     return updated
 
@@ -218,7 +206,6 @@ async def admin_update_user(
         )
 
     updated = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
-    parse_user_dates(updated)
     return updated
 
 

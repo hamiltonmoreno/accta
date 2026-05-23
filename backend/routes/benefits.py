@@ -9,18 +9,10 @@ from helpers import create_audit_log, delete_upload_file
 router = APIRouter(tags=["benefits"])
 
 
-def _serialize_benefit(b: dict) -> dict:
-    if isinstance(b.get("created_at"), str):
-        b["created_at"] = datetime.fromisoformat(b["created_at"])
-    return b
-
-
 @router.get("/benefits/public", response_model=List[Benefit])
 async def get_public_benefits():
     """Public preview of active benefits — no auth required."""
     benefits = await db.benefits.find({"active": True}, {"_id": 0}).to_list(200)
-    for b in benefits:
-        _serialize_benefit(b)
     return benefits
 
 
@@ -30,8 +22,6 @@ async def get_benefits(current_user: User = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Benefícios disponíveis apenas para sócios ativos")
 
     benefits = await db.benefits.find({"active": True}, {"_id": 0}).to_list(1000)
-    for b in benefits:
-        _serialize_benefit(b)
     return benefits
 
 
@@ -42,7 +32,6 @@ async def create_benefit(benefit_data: BenefitCreate, current_user: User = Depen
 
     benefit = Benefit(**benefit_data.model_dump())
     benefit_dict = benefit.model_dump()
-    benefit_dict["created_at"] = benefit_dict["created_at"].isoformat()
 
     await db.benefits.insert_one(benefit_dict)
     await create_audit_log(current_user.id, f"Criou benefício {benefit.id}", benefit.id)
@@ -78,7 +67,6 @@ async def update_benefit(
     )
 
     updated = await db.benefits.find_one({"id": benefit_id}, {"_id": 0})
-    _serialize_benefit(updated)
     return updated
 
 

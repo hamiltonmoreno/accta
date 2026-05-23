@@ -123,11 +123,6 @@ async def get_pending_invites(current_user: User = Depends(get_current_user)):
         100
     )
 
-    for u in users:
-        for field in ["created_at", "admission_date", "last_login_at"]:
-            if u.get(field) and isinstance(u[field], str):
-                u[field] = datetime.fromisoformat(u[field])
-
     return users
 
 

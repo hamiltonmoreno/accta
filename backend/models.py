@@ -47,7 +47,7 @@ class UserBase(BaseModel):
     status: str = "ativo"
     member_id: Optional[str] = None
     license_number: Optional[str] = None
-    admission_date: Optional[datetime] = None
+    admission_date: Optional[str] = None
     phone_number: Optional[str] = None
     consent_data: bool = False
     account_type: Literal["member", "technical"] = "member"
@@ -101,8 +101,8 @@ class User(UserBase):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     qr_code_hash: Optional[str] = None
-    last_login_at: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_login_at: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 # Tipos sanguíneos aceites (sistema ABO/Rh). Usado na validação de escrita.
@@ -129,6 +129,24 @@ def _validate_date_str(v: Optional[str], *, allow_future: bool = True, label: st
         raise ValueError(f"{label} deve estar no formato AAAA-MM-DD")
     if not allow_future and parsed > date.today():
         raise ValueError(f"{label} não pode estar no futuro")
+    return parsed.isoformat()
+
+
+def _validate_datetime_str(v, *, label: str = "Data"):
+    """Valida string de data-hora ISO-8601 (input do cliente) e devolve-a
+    normalizada. As datas guardam-se como string ISO (regra models.md); este
+    validador preserva a validação que o tipo `datetime` dava de borla nos
+    modelos de escrita. None passa (campos Optional); "" é rejeitado — uma
+    string vazia num campo de data dava 422 com o tipo `datetime` e, sem isto,
+    seria guardada como data inválida (parte sorts/$gte e crasha _parse_dt)."""
+    if v is None:
+        return v
+    if isinstance(v, datetime):
+        return v.isoformat()
+    try:
+        parsed = datetime.fromisoformat(str(v).replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        raise ValueError(f"{label} deve ser uma data-hora ISO-8601 válida")
     return parsed.isoformat()
 
 
@@ -534,24 +552,29 @@ class Invoice(BaseModel):
     user_id: str
     type: str
     amount: float
-    due_date: datetime
+    due_date: str
     status: str = "pendente"
     source: str = "folha_salarial"
     payroll_reference: Optional[str] = None
     confirmed_by_admin: bool = False
-    confirmed_at: Optional[datetime] = None
+    confirmed_at: Optional[str] = None
     notes: Optional[str] = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class InvoiceCreate(BaseModel):
     user_id: str
     type: str
     amount: float
-    due_date: datetime
+    due_date: str
     source: str = "folha_salarial"
     payroll_reference: Optional[str] = None
     notes: Optional[str] = None
+
+    @field_validator("due_date", mode="before")
+    @classmethod
+    def _v_due_date(cls, v):
+        return _validate_datetime_str(v, label="Data de vencimento")
 
 
 # ===== POLL MODELS =====
@@ -563,20 +586,25 @@ class Poll(BaseModel):
     title: str
     description: str
     options: List[dict]
-    start_date: datetime
-    end_date: datetime
+    start_date: str
+    end_date: str
     status: str = "rascunho"
     result_visibility: str = "socios"
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class PollCreate(BaseModel):
     title: str
     description: str
     options: List[dict]
-    start_date: datetime
-    end_date: datetime
+    start_date: str
+    end_date: str
     result_visibility: str = "socios"
+
+    @field_validator("start_date", "end_date", mode="before")
+    @classmethod
+    def _v_dates(cls, v):
+        return _validate_datetime_str(v)
 
 
 class UserVote(BaseModel):
@@ -585,7 +613,7 @@ class UserVote(BaseModel):
     user_id: str
     poll_id: str
     vote_option: int
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class VoteCreate(BaseModel):
@@ -623,7 +651,7 @@ class Post(BaseModel):
     tags: List[str] = Field(default_factory=list, max_length=10)
     author_id: Optional[str] = None
     author_name: Optional[str] = None  # desnormalizado p/ render simples
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: Optional[str] = None  # ISO string (regra: datas como str)
     published_at: Optional[str] = None
 
@@ -666,7 +694,7 @@ class Document(BaseModel):
     type: str
     visibility: str = "socios"
     tags: List[str] = []
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class DocumentCreate(BaseModel):
@@ -704,7 +732,7 @@ class Benefit(BaseModel):
     locations: List[BenefitPartnerLocation] = []
     active: bool = True
     validation_count: int = 0
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class BenefitCreate(BaseModel):
@@ -742,7 +770,7 @@ class WallPost(BaseModel):
     pinned: bool = False
     likes: List[str] = []
     comment_count: int = 0
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class WallPostCreate(BaseModel):
@@ -757,7 +785,7 @@ class WallComment(BaseModel):
     user_id: str
     user_name: str
     content: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class WallCommentCreate(BaseModel):
@@ -776,7 +804,7 @@ class GalleryAlbum(BaseModel):
     photo_count: int = 0
     order: int = 0
     visibility: str = "public"  # public, private
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class GalleryAlbumCreate(BaseModel):
@@ -797,7 +825,7 @@ class GalleryPhoto(BaseModel):
     status: str = "pending"  # pending, approved, rejected
     uploaded_by: Optional[str] = None
     uploaded_by_name: Optional[str] = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class GalleryPhotoCreate(BaseModel):
@@ -815,36 +843,46 @@ class Event(BaseModel):
     title: str
     description: str
     type: str
-    date: datetime
-    end_date: Optional[datetime] = None
+    date: str
+    end_date: Optional[str] = None
     location: str
     visibility: str = "socios"
     max_attendees: Optional[int] = None
     attendees: List[str] = []
     created_by: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class EventCreate(BaseModel):
     title: str
     description: str
     type: str
-    date: datetime
-    end_date: Optional[datetime] = None
+    date: str
+    end_date: Optional[str] = None
     location: str
     visibility: str = "socios"
     max_attendees: Optional[int] = None
+
+    @field_validator("date", "end_date", mode="before")
+    @classmethod
+    def _v_dates(cls, v):
+        return _validate_datetime_str(v)
 
 
 class EventUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     type: Optional[str] = None
-    date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
+    date: Optional[str] = None
+    end_date: Optional[str] = None
     location: Optional[str] = None
     visibility: Optional[str] = None
     max_attendees: Optional[int] = None
+
+    @field_validator("date", "end_date", mode="before")
+    @classmethod
+    def _v_dates(cls, v):
+        return _validate_datetime_str(v)
 
 
 # ===== COMMON MODELS =====
@@ -859,7 +897,7 @@ class AuditLog(BaseModel):
     ip: Optional[str] = None
     user_agent: Optional[str] = None
     details: Optional[dict] = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class Notification(BaseModel):
@@ -871,7 +909,7 @@ class Notification(BaseModel):
     message: str
     link: Optional[str] = None
     read: bool = False
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class NotificationCreate(BaseModel):
@@ -898,11 +936,11 @@ class Transaction(BaseModel):
     category: str
     description: str
     amount: float
-    date: datetime
+    date: str
     reference: Optional[str] = None
     user_id: Optional[str] = None
     created_by: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class TransactionCreate(BaseModel):
@@ -910,9 +948,14 @@ class TransactionCreate(BaseModel):
     category: str
     description: str
     amount: float
-    date: datetime
+    date: str
     reference: Optional[str] = None
     user_id: Optional[str] = None
+
+    @field_validator("date", mode="before")
+    @classmethod
+    def _v_date(cls, v):
+        return _validate_datetime_str(v)
 
 
 class TransactionUpdate(BaseModel):
@@ -920,8 +963,13 @@ class TransactionUpdate(BaseModel):
     category: Optional[str] = None
     description: Optional[str] = None
     amount: Optional[float] = None
-    date: Optional[datetime] = None
+    date: Optional[str] = None
     reference: Optional[str] = None
+
+    @field_validator("date", mode="before")
+    @classmethod
+    def _v_date(cls, v):
+        return _validate_datetime_str(v)
 
 
 class FinanceSettings(BaseModel):
@@ -937,7 +985,7 @@ class FinanceSettings(BaseModel):
     quota_fixed_by_assembleia_id: Optional[str] = None
     quota_fixed_by_deliberacao_id: Optional[str] = None
     effective_from: Optional[str] = None
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_by: Optional[str] = None
 
 
@@ -984,8 +1032,8 @@ class Project(BaseModel):
     start_date: Optional[str] = None
     end_date: Optional[str] = None
     progress: int = 0
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class ProjectCreate(BaseModel):
@@ -1023,7 +1071,7 @@ class ProjectTask(BaseModel):
     priority: str = "media"
     due_date: Optional[str] = None
     completed_at: Optional[str] = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class ProjectTaskCreate(BaseModel):
@@ -1051,7 +1099,7 @@ class ProjectComment(BaseModel):
     user_id: str
     user_name: str = ""
     content: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class ProjectExpense(BaseModel):
@@ -1063,7 +1111,7 @@ class ProjectExpense(BaseModel):
     date: str
     created_by: str
     created_by_name: str = ""
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class ProjectMilestone(BaseModel):
@@ -1073,7 +1121,7 @@ class ProjectMilestone(BaseModel):
     title: str
     date: str
     completed: bool = False
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 # Request models — validação Pydantic em vez de `data: dict` cru
@@ -1386,7 +1434,7 @@ class PageBanner(BaseModel):
     key: str  # "home" | "sobre" | … (ver BANNER_KEYS em routes/banners.py)
     image_url: str  # /uploads/banners/<uuid>.jpg (ou URL de fallback)
     alt: Optional[str] = None  # texto alternativo (acessibilidade/SEO)
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_by: Optional[str] = None
 
 
@@ -1406,7 +1454,7 @@ class BrandSettings(BaseModel):
     logo_light_url: Optional[str] = None  # fundo claro; None → SVG fallback
     logo_dark_url: Optional[str] = None  # fundo escuro; None → SVG fallback
     alt: str = "ACCTA Cabo Verde"
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_by: Optional[str] = None
 
 

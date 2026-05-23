@@ -17,36 +17,29 @@ async def get_statistics(current_user: User = Depends(get_current_user)):
     # Event não tem campo "status" — "ativo" = evento ainda por acontecer.
     now_iso = datetime.now(timezone.utc).isoformat()
     active_events = await db.events.count_documents({"date": {"$gte": now_iso}})
-    total_revenue = await db.invoices.aggregate([
-        {"$match": {"status": "pago"}},
-        {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
-    ]).to_list(1)
+    total_revenue = await db.invoices.aggregate(
+        [{"$match": {"status": "pago"}}, {"$group": {"_id": None, "total": {"$sum": "$amount"}}}]
+    ).to_list(1)
 
     return {
         "total_users": total_users,
         "active_users": active_users,
         "active_events": active_events,
-        "total_revenue": total_revenue[0]['total'] if total_revenue else 0
+        "total_revenue": total_revenue[0]["total"] if total_revenue else 0,
     }
 
 
 # VALIDATOR (PUBLIC)
 @router.get("/validate/{qr_hash}")
 async def validate_wallet(qr_hash: str):
-    from datetime import datetime
     user = await db.users.find_one({"qr_code_hash": qr_hash}, {"_id": 0, "password": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Carteira não encontrada")
 
-    if isinstance(user.get('created_at'), str):
-        user['created_at'] = datetime.fromisoformat(user['created_at'])
-    if user.get('admission_date') and isinstance(user['admission_date'], str):
-        user['admission_date'] = datetime.fromisoformat(user['admission_date'])
-
     return {
         "valid": True,
-        "name": user['name'],
-        "member_id": user.get('member_id'),
-        "status": user['status'],
-        "admission_date": user.get('admission_date')
+        "name": user["name"],
+        "member_id": user.get("member_id"),
+        "status": user["status"],
+        "admission_date": user.get("admission_date"),
     }
