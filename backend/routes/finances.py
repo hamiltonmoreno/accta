@@ -16,6 +16,7 @@ from models import (
     INCOME_CATEGORY_LABELS,
     EXPENSE_CATEGORY_LABELS,
 )
+from finance_joia import joia_status
 from database import db
 from auth import get_current_user, can_view_finances, can_manage_finances
 from helpers import create_audit_log, notify_admins, notify_all_active_users
@@ -873,3 +874,24 @@ async def get_finance_categories(current_user: User = Depends(get_current_user))
         "types": TRANSACTION_TYPES,
         "labels": {**INCOME_CATEGORY_LABELS, **EXPENSE_CATEGORY_LABELS},
     }
+
+
+@router.get("/joia/preview")
+async def preview_joia(
+    user_id: str,
+    cta_qualified_since: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+):
+    """Pré-visualiza a jóia (Art. 6) de um membro/candidato SEM gravar — para o
+    modal de aprovação. `cta_qualified_since` (opcional) sobrepõe o valor do doc,
+    para o admin ver o efeito da data que vai introduzir."""
+    require_view_finances(current_user)
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilizador nao encontrado")
+    if cta_qualified_since is not None:
+        user = {**user, "cta_qualified_since": cta_qualified_since}
+    settings = await db.finance_settings.find_one({"id": "finance_settings"}, {"_id": 0})
+    if not isinstance(settings, dict):
+        settings = FinanceSettings().model_dump()
+    return joia_status(user, settings)

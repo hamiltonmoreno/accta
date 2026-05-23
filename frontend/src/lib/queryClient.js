@@ -69,6 +69,7 @@ export const queryKeys = {
   },
   registration: {
     requests: (status) => ['registration', 'requests', status || 'pendente_aprovacao'],
+    joiaPreview: (userId, since) => ['registration', 'joia-preview', userId || null, since || null],
   },
   cargos: {
     meta: () => ['cargos', 'meta'],

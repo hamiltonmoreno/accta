@@ -217,6 +217,10 @@ export const financesAPI = {
   updateSettings: (data) => api.patch('/finances/settings', data),
   generateQuotas: (month, year) => api.post(`/finances/generate-quotas?month=${month}&year=${year}`),
   getCategories: () => api.get('/finances/meta/categories'),
+  getJoiaPreview: (userId, ctaQualifiedSince) =>
+    api.get('/finances/joia/preview', {
+      params: { user_id: userId, ...(ctaQualifiedSince ? { cta_qualified_since: ctaQualifiedSince } : {}) },
+    }),
 };
 
 // Polls API
