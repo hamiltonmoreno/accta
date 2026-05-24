@@ -92,7 +92,7 @@ function MemberSelector({ selectedIds, onToggle }) {
   const { data: members = [], isLoading } = useQuery({
     queryKey: queryKeys.users.list({ search: debouncedSearch, scope: 'comunicados' }),
     queryFn: async () => {
-      const params = { status: 'ativo' };
+      const params = { status: 'ativo', limit: 50 };
       if (debouncedSearch) params.search = debouncedSearch;
       return (await usersAPI.getAll(params)).data;
     },
@@ -350,7 +350,7 @@ export function AdminComunicadosPage() {
   const debouncedCountKey = useDebounced(countKey, 400);
 
   const { data: recipients, isFetching: countingRecipients } = useQuery({
-    queryKey: ['comunicados', 'recipients-count', debouncedCountKey],
+    queryKey: queryKeys.comunicados.recipientsCount(debouncedCountKey),
     queryFn: async () => {
       const { tipo: t, channels: ch, segment: seg } = JSON.parse(debouncedCountKey);
       return (await comunicadosAPI.recipientsCount({ tipo: t, channels: ch, segment: seg })).data;
@@ -418,7 +418,7 @@ export function AdminComunicadosPage() {
 
   const inApp = recipients?.in_app ?? 0;
   const emailCount = recipients?.email ?? 0;
-  const recipientsTotal = Math.max(inApp, emailCount);
+  const recipientsTotal = recipients?.total ?? Math.max(inApp, emailCount);
 
   // Opções para o picker de valor do segmento.
   const valueOptions = useMemo(() => {

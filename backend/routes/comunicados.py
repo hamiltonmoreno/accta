@@ -35,7 +35,8 @@ async def count_recipients(payload: RecipientsCountRequest,
              if "in_app" in payload.channels else [])
     email = (await comunicados_service.resolve_recipients(seg, channel="email", tipo=payload.tipo)
              if "email" in payload.channels else [])
-    return {"in_app": len(inapp), "email": len(email)}
+    total = len({u["id"] for u in inapp} | {u["id"] for u in email})
+    return {"in_app": len(inapp), "email": len(email), "total": total}
 
 
 @router.get("/comunicados/segments")

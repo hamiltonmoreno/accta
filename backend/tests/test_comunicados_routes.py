@@ -69,3 +69,17 @@ async def test_list_requires_guard(mock_db, socio_user):
     with pytest.raises(Exception) as ei:
         await cmod.list_comunicados(current_user=socio_user)
     assert getattr(ei.value, "status_code", None) == 403
+
+
+@pytest.mark.asyncio
+async def test_recipients_count_returns_dedup_total(mock_db, admin_user):
+    from models import RecipientsCountRequest
+    mock_db.users.find.return_value.to_list.return_value = [
+        {"id": "u1", "email": "u1@x.cv", "role": "socio", "account_type": "member", "member_category": "ordinario"},
+        {"id": "u2", "email": "u2@x.cv", "role": "socio", "account_type": "member", "member_category": "ordinario"},
+    ]
+    res = await cmod.count_recipients(
+        RecipientsCountRequest(tipo="oficial", channels=["in_app", "email"], segment={"kind": "all_active"}),
+        current_user=admin_user)
+    assert res["in_app"] == 2 and res["email"] == 2
+    assert res["total"] == 2     # união deduplicada, não 2+2
