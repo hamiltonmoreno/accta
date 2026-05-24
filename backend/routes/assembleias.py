@@ -10,8 +10,9 @@ das presenças (1 por votante próprio + 1 por cada representado votante).
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 
+import comunicados_service
 from auth import get_current_user
 from database import db
 from governance import (
@@ -80,7 +81,12 @@ async def _present_voting_power(assembleia_id: str) -> tuple[int, int]:
 
 
 @router.post("")
-async def create_assembleia(request: Request, data: AssembleiaCreate, current_user: User = Depends(get_current_user)):
+async def create_assembleia(
+    request: Request,
+    data: AssembleiaCreate,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+):
     """Convoca uma assembleia. Convocatória: >=10 dias (geral) ou >=20 dias
     (eleitoral). Extraordinária exige requerente_tipo."""
     _require_convene(current_user)
@@ -132,6 +138,20 @@ async def create_assembleia(request: Request, data: AssembleiaCreate, current_us
         "Assembleia convocada",
         f"{data.titulo} — {data.data} ({data.local}).",
         f"/assembleias/{doc['id']}",
+    )
+    # Comunicado OFICIAL (in-app + email a todos os activos), fire-and-forget.
+    background_tasks.add_task(
+        comunicados_service.dispatch_oficial_auto,
+        subject=f"Convocatória — {doc['titulo']}",
+        body=(
+            f"Fica convocada a {doc['titulo']}.\n\n"
+            f"Data: {doc.get('data', '')}\n"
+            "Consulte a convocatória e a ordem de trabalhos no Portal ACCTA."
+        ),
+        cta_label="Ver convocatória",
+        cta_url=f"/assembleias/{doc['id']}",
+        source_kind="assembleia_convocatoria",
+        ref_id=doc["id"],
     )
     return doc
 
@@ -265,6 +285,7 @@ async def register_deliberacao(
     assembleia_id: str,
     request: Request,
     data: AssembleiaDeliberacaoCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
 ):
     """Regista uma deliberação e calcula a aprovação pela maioria aplicável:
@@ -324,6 +345,19 @@ async def register_deliberacao(
         assembleia_id,
         request=request,
         details={"ponto": data.ponto, "tipo_maioria": data.tipo_maioria, "aprovado": aprovado},
+    )
+    # Comunicado OFICIAL (in-app + email a todos os activos), fire-and-forget.
+    background_tasks.add_task(
+        comunicados_service.dispatch_oficial_auto,
+        subject=f"Deliberações — {a.get('titulo', 'Assembleia Geral')}",
+        body=(
+            "Foram publicadas novas deliberações da Assembleia Geral.\n\n"
+            "Consulte o detalhe e a ata no Portal ACCTA."
+        ),
+        cta_label="Ver deliberações",
+        cta_url=f"/assembleias/{assembleia_id}",
+        source_kind="assembleia_deliberacao",
+        ref_id=doc["id"],
     )
     return doc
 
