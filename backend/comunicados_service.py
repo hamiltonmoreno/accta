@@ -6,14 +6,14 @@ Usado pelo endpoint manual (routes/comunicados.py) e pelos gatilhos automáticos
 de governança.
 """
 import logging
-import uuid  # noqa: F401
+import uuid
 from collections import Counter
-from datetime import datetime, timezone  # noqa: F401
-from typing import Optional  # noqa: F401
+from datetime import datetime, timezone
+from typing import Optional
 
 from database import db
 from email_service import comunicado_email_html, send_comunicado_batch
-from helpers import notify_users, members_of_orgao  # noqa: F401
+from helpers import notify_users, members_of_orgao
 
 logger = logging.getLogger(__name__)
 

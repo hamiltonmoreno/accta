@@ -69,6 +69,9 @@ class UserBase(BaseModel):
     bio: Optional[str] = None
     department: Optional[str] = None
     photo_url: Optional[str] = None
+    # Opt-out de comunicados informativos por email (spec-comunicados-email).
+    # Round-trips por /auth/me para o toggle do perfil refletir o valor guardado.
+    email_opt_out_informativos: bool = False
     # ===== Perfil pessoal estendido (feature/perfil) =====
     # Campos opcionais geridos pelo próprio sócio (PATCH /users/me/profile) ou
     # por admin. Datas como string ISO "AAAA-MM-DD" (regra do projeto: nunca

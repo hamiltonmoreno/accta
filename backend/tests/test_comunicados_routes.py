@@ -83,3 +83,12 @@ async def test_recipients_count_returns_dedup_total(mock_db, admin_user):
         current_user=admin_user)
     assert res["in_app"] == 2 and res["email"] == 2
     assert res["total"] == 2     # união deduplicada, não 2+2
+
+
+def test_user_model_roundtrips_email_optout():
+    from models import User
+    u = User(**{"id": "x", "name": "N", "email": "n@x.cv", "role": "socio",
+                "status": "ativo", "email_opt_out_informativos": True})
+    assert u.email_opt_out_informativos is True
+    assert User(**{"id": "y", "name": "N", "email": "y@x.cv", "role": "socio",
+                   "status": "ativo"}).email_opt_out_informativos is False

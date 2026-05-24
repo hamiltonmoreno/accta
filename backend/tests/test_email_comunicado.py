@@ -55,3 +55,15 @@ async def test_batch_chunks_and_sends_all(monkeypatch):
         ["a@x.cv", "b@x.cv", "c@x.cv", "d@x.cv", "e@x.cv"], "S", "<p>x</p>")
     assert res["sent"] == 5 and res["failed"] == 0
     assert calls == [2, 2, 1]   # 3 chunks (2,2,1), um `to` por destinatário
+
+
+def test_render_relative_cta_resolved_with_frontend_url(monkeypatch):
+    monkeypatch.setenv("FRONTEND_URL", "https://portal.accta.cv")
+    html = comunicado_email_html("S", "corpo longo o suficiente", cta_label="Ver", cta_url="/assembleias/a1")
+    assert 'href="https://portal.accta.cv/assembleias/a1"' in html and ">Ver<" in html
+
+
+def test_render_relative_cta_dropped_without_frontend_url(monkeypatch):
+    monkeypatch.delenv("FRONTEND_URL", raising=False)
+    html = comunicado_email_html("S", "corpo longo o suficiente", cta_label="Ver", cta_url="/assembleias/a1")
+    assert "href=" not in html

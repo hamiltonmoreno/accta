@@ -198,9 +198,20 @@ def comunicado_email_html(subject: str, body: str, cta_label: str = None,
             f'line-height:1.7;">{inner}</p>'
         )
     cta_block = ""
-    if cta_label and cta_url and (cta_url.startswith("http://") or cta_url.startswith("https://")):
+    resolved_cta = None
+    if cta_label and cta_url:
+        if cta_url.startswith("http://") or cta_url.startswith("https://"):
+            resolved_cta = cta_url
+        elif cta_url.startswith("/"):
+            # CTA relativo (gatilhos F3, ex. /assembleias/{id}): no email tem de
+            # ser absoluto. Resolve via FRONTEND_URL; sem base → sem botão.
+            base = os.environ.get("FRONTEND_URL", "").rstrip("/")
+            if base:
+                resolved_cta = f"{base}{cta_url}"
+        # caso contrário (ex.: javascript:) → resolved_cta None → sem botão
+    if resolved_cta:
         safe_label = escape(cta_label, quote=True)
-        safe_cta_url = escape(cta_url, quote=True)
+        safe_cta_url = escape(resolved_cta, quote=True)
         cta_block = (
             f'\n    <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">'
             f'\n      <a href="{safe_cta_url}" style="display:inline-block;padding:12px 32px;'
