@@ -69,3 +69,13 @@ def test_comunicado_body_is_stripped():
 def test_comunicado_segment_kind_invalid_directly():
     with pytest.raises(ValidationError):
         ComunicadoSegment(kind="galaxia")
+
+
+def test_recipients_count_request_rejects_empty_channels():
+    with pytest.raises(ValidationError):
+        RecipientsCountRequest(tipo="informativo", channels=[], segment={"kind": "all_active"})
+
+
+def test_recipients_count_request_dedupes_channels():
+    r = RecipientsCountRequest(tipo="informativo", channels=["email", "email"], segment={"kind": "all_active"})
+    assert r.channels == ["email"]

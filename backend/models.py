@@ -958,6 +958,12 @@ class ComunicadoSegment(BaseModel):
     user_ids: Optional[List[str]] = None
 
 
+def _dedupe_nonempty_channels(v):
+    if not v:
+        raise ValueError("Selecione pelo menos um canal")
+    return list(dict.fromkeys(v))  # dedupe preservando ordem
+
+
 class ComunicadoCreate(BaseModel):
     subject: str
     body: str
@@ -989,9 +995,7 @@ class ComunicadoCreate(BaseModel):
     @field_validator("channels")
     @classmethod
     def _v_channels(cls, v):
-        if not v:
-            raise ValueError("Selecione pelo menos um canal")
-        return list(dict.fromkeys(v))  # dedupe preservando ordem
+        return _dedupe_nonempty_channels(v)
 
     @field_validator("cta_url")
     @classmethod
@@ -1017,6 +1021,11 @@ class RecipientsCountRequest(BaseModel):
     tipo: Literal["oficial", "informativo"] = "informativo"
     channels: List[Literal["in_app", "email"]]
     segment: ComunicadoSegment
+
+    @field_validator("channels")
+    @classmethod
+    def _v_channels(cls, v):
+        return _dedupe_nonempty_channels(v)
 
 
 class EmailPreferencesUpdate(BaseModel):
