@@ -84,14 +84,21 @@ async def _validate_document(document_id: str):
         raise HTTPException(status_code=400, detail="Documento associado nao encontrado")
 
 
-def can_upload_prestacao_document(user: User) -> bool:
-    """Atores que podem anexar documentos no ciclo: Direção, Tesoureiro
-    (manage_finances) e Conselho Fiscal. O admin passa sempre via
-    `can_manage_finances` (que dobra role admin); `is_direcao`/`can_emit_parecer_cf`
-    são por cargo/privilégio."""
-    return can_manage_finances(user) or is_direcao(user) or can_emit_parecer_cf(user)
+def _can_upload_kind(kind: str, user: User) -> bool:
+    """O upload de cada `kind` exige a MESMA permissão da ação correspondente —
+    impede falsificação cruzada de órgão (ex.: manage_finances a criar 'Parecer
+    do CF', ou CF a criar 'Relatório e Contas')."""
+    if kind in ("relatorio", "orcamento", "plano"):
+        return user.role == "admin" or is_direcao(user)
+    if kind == "balancete":
+        return can_manage_finances(user)
+    if kind == "parecer":
+        return can_emit_parecer_cf(user)
+    return False
 
 
+# kind → (visibilidade FINAL aplicada pela ação, título por defeito). O upload
+# cria SEMPRE um rascunho "direcao" (não-público); só a ação promove ao final.
 _PRESTACAO_DOC_POLICY = {
     "relatorio": ("publico", "Relatório e Contas"),
     "balancete": ("publico", "Balancete"),
@@ -101,6 +108,13 @@ _PRESTACAO_DOC_POLICY = {
 }
 
 
+async def _publish_document(document_id: Optional[str], visibility: str) -> None:
+    """Promove a visibilidade do documento (rascunho 'direcao' → final) quando a
+    ação correspondente é publicada com sucesso. No-op se não houver document_id."""
+    if document_id:
+        await db.documents.update_one({"id": document_id}, {"$set": {"visibility": visibility}})
+
+
 @router.post("/prestacao-contas/documentos")
 async def upload_prestacao_documento(
     file: UploadFile = File(...),
@@ -108,42 +122,51 @@ async def upload_prestacao_documento(
     title: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user),
 ):
-    """Upload + criação atómica de um documento de prestação de contas.
+    """Upload + criação atómica de um documento de prestação de contas (RASCUNHO).
 
     Alarga deliberadamente a escrita na categoria `documents` (caso contrário
-    admin-only) aos atores de prestação (Direção/Tesoureiro/CF), criando o
-    registo `documents` em nome deles — o módulo de Documentos permanece
-    admin-only. Visibilidade/título seguem a política por `kind` (server-side)."""
-    if not can_upload_prestacao_document(current_user):
-        raise HTTPException(status_code=403, detail="Sem permissao para anexar documentos de prestacao de contas")
+    admin-only) aos atores de prestação, mas com RBAC POR `kind` (espelha a
+    permissão da ação correspondente — não a UNIÃO dos órgãos) e cria SEMPRE um
+    rascunho não-público (`visibility="direcao"`). A publicação (visibilidade
+    final) só acontece na ação respetiva, via `_publish_document` — o documento
+    nunca fica acessível por `GET /documents/public` antes da ação do órgão certo."""
     if kind not in _PRESTACAO_DOC_POLICY:
         raise HTTPException(status_code=400, detail="Tipo de documento invalido")
-    visibility, default_title = _PRESTACAO_DOC_POLICY[kind]
+    if not _can_upload_kind(kind, current_user):
+        raise HTTPException(status_code=403, detail="Sem permissao para anexar este tipo de documento")
+    _final_visibility, default_title = _PRESTACAO_DOC_POLICY[kind]
     final_title = (title or "").strip() or default_title
 
     contents = await file.read()
     file_url = await save_validated_upload("documents", contents, file.filename)
-    try:
-        doc = Document(
-            title=final_title,
-            file_url=file_url,
-            type="prestacao_contas",
-            visibility=visibility,
-            tags=[],
-        )
-        await db.documents.insert_one(doc.model_dump())
-    except Exception:
-        delete_upload_file(file_url)  # rollback: sem ficheiros órfãos
-        logger.exception("Falha ao registar documento de prestacao (kind=%s)", kind)
-        raise HTTPException(status_code=500, detail="Erro ao registar o documento")
-
-    await create_audit_log(
-        current_user.id,
-        "upload_documento_prestacao",
-        doc.id,
-        details={"kind": kind, "visibility": visibility, "title": final_title},
+    # Rascunho NÃO-público: a publicação só acontece na ação correspondente.
+    doc = Document(
+        title=final_title,
+        file_url=file_url,
+        type="prestacao_contas",
+        visibility="direcao",
+        tags=[],
     )
-    return {"document_id": doc.id, "file_url": file_url, "title": final_title, "visibility": visibility}
+    try:
+        await db.documents.insert_one(doc.model_dump())
+        await create_audit_log(
+            current_user.id,
+            "upload_documento_prestacao",
+            doc.id,
+            details={"kind": kind, "title": final_title, "draft": True},
+        )
+    except Exception:
+        delete_upload_file(file_url)
+        await db.documents.delete_one({"id": doc.id})  # rollback completo: sem órfãos
+        logger.exception("Falha ao registar/auditar documento de prestacao (kind=%s)", kind)
+        raise HTTPException(status_code=500, detail="Erro ao registar o documento")
+    return {
+        "document_id": doc.id,
+        "file_url": file_url,
+        "title": final_title,
+        "visibility": "direcao",
+        "kind": kind,
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -156,6 +179,7 @@ async def publish_balancete(data: BalanceteCreate, current_user: User = Depends(
     _require_manage_finances(current_user)
     if data.document_id:
         await _validate_document(data.document_id)
+        await _publish_document(data.document_id, "publico")  # promove o rascunho a público
 
     # Congela o snapshot no momento da publicação (não recalcular depois).
     if data.date_inicio or data.date_fim:
@@ -325,6 +349,7 @@ async def submeter_relatorio(ano: int, data: RelatorioContasSubmit, current_user
     if ex["status"] not in ("aberto", "reaberto"):
         raise HTTPException(status_code=400, detail="O relatorio so pode ser submetido com o exercicio aberto")
     await _validate_document(data.document_id)
+    await _publish_document(data.document_id, "publico")  # promove o rascunho a público
 
     # Congela o DRE do ano no momento da submissão (auditabilidade).
     dre_snapshot = await compute_dre_report(ano)
@@ -359,6 +384,7 @@ async def submeter_orcamento(ano: int, data: OrcamentoSubmit, current_user: User
         raise HTTPException(status_code=400, detail="O exercicio ja foi a AG; orcamento nao editavel")
     if data.document_id:
         await _validate_document(data.document_id)
+        await _publish_document(data.document_id, "socios")  # promove o rascunho a sócios
 
     # Categorias têm de bater com as estatutárias (para comparar orçado/realizado).
     for linha in data.linhas:
@@ -386,6 +412,7 @@ async def submeter_plano(ano: int, data: PlanoSubmit, current_user: User = Depen
         raise HTTPException(status_code=400, detail="O exercicio ja foi a AG; plano nao editavel")
     if data.document_id:
         await _validate_document(data.document_id)
+        await _publish_document(data.document_id, "socios")  # promove o rascunho a sócios
 
     plano = {
         "atividades": [a.model_dump() for a in data.atividades],
@@ -406,6 +433,7 @@ async def emitir_parecer(ano: int, data: ParecerSubmit, current_user: User = Dep
         raise HTTPException(status_code=400, detail="O parecer so pode ser emitido apos o relatorio submetido")
     if data.document_id:
         await _validate_document(data.document_id)
+        await _publish_document(data.document_id, "publico")  # promove o rascunho a público
 
     parecer = ParecerCF(
         document_id=data.document_id,

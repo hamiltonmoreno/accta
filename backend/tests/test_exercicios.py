@@ -124,6 +124,10 @@ class TestRelatorio:
         assert out["status"] == "relatorio_submetido"
         set_ = mock_db.exercicios.update_one.call_args.args[1]["$set"]
         assert set_["relatorio_contas"]["dre_snapshot"] == snap
+        # A ação promove o rascunho do documento associado a público (SEC).
+        mock_db.documents.update_one.assert_awaited_with(
+            {"id": "doc1"}, {"$set": {"visibility": "publico"}}
+        )
 
     async def test_estado_errado_400(self, mock_db):
         _wire(mock_db, ex=_ex(status="parecer_emitido"))
@@ -302,15 +306,20 @@ class TestOrcamento:
         out = await pc.submeter_orcamento(
             2026,
             OrcamentoSubmit(
+                document_id="doc1",
                 linhas=[
                     OrcamentoLinha(categoria="quotas", tipo="receita", valor_previsto=1000),
                     OrcamentoLinha(categoria="operacional", tipo="despesa", valor_previsto=500),
-                ]
+                ],
             ),
             current_user=_DIRECAO(),
         )
         assert out["orcamento"]["ano_orcamento"] == 2027  # default = ano + 1
         assert len(out["orcamento"]["linhas"]) == 2
+        # A ação promove o rascunho do documento associado a 'socios' (SEC).
+        mock_db.documents.update_one.assert_awaited_with(
+            {"id": "doc1"}, {"$set": {"visibility": "socios"}}
+        )
 
     async def test_categoria_invalida_400(self, mock_db):
         _wire(mock_db, ex=_ex(status="relatorio_submetido"))
