@@ -1,5 +1,10 @@
 import io
+import io as _io
+
 import pytest
+from starlette.datastructures import Headers, UploadFile
+
+import routes.prestacao_contas as pmod
 import routes.upload as upmod
 
 
@@ -23,11 +28,6 @@ async def test_save_validated_upload_writes_and_returns_url(monkeypatch, tmp_pat
     assert url.startswith("/uploads/documents/") and url.endswith(".pdf")
 
 
-import io as _io
-from starlette.datastructures import UploadFile, Headers
-import routes.prestacao_contas as pmod
-
-
 def _upload(filename="relatorio.pdf", data=b"%PDF-1.4 conteudo"):
     return UploadFile(filename=filename, file=_io.BytesIO(data),
                       headers=Headers({"content-type": "application/pdf"}))
@@ -47,6 +47,32 @@ async def test_upload_doc_forbidden_for_socio(mock_db, socio_user):
         await pmod.upload_prestacao_documento(file=_upload(), kind="relatorio",
                                               title=None, current_user=socio_user)
     assert getattr(ei.value, "status_code", None) == 403
+
+
+@pytest.mark.asyncio
+async def test_upload_doc_allowed_for_cf_privilege(mock_db, socio_user):
+    # CF por overlay de privilégio: socio (não admin, não financeiro) com
+    # `emit_cf_parecer` passa `can_emit_parecer_cf` → o gate alargado autoriza.
+    cf_user = socio_user.model_copy(update={"privileges": ["emit_cf_parecer"]})
+    res = await pmod.upload_prestacao_documento(
+        file=_upload(), kind="parecer", title=None, current_user=cf_user
+    )
+    assert res["document_id"]
+    assert res["visibility"] == "publico"
+    mock_db.documents.insert_one.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_upload_doc_allowed_for_direcao_cargo(mock_db, socio_user):
+    # Direção por cargo: socio (não admin, não financeiro) com a key canónica
+    # `dir_presidente` passa `is_direcao` → o gate alargado autoriza.
+    dir_user = socio_user.model_copy(update={"cargo": "dir_presidente"})
+    res = await pmod.upload_prestacao_documento(
+        file=_upload(), kind="relatorio", title=None, current_user=dir_user
+    )
+    assert res["document_id"]
+    assert res["visibility"] == "publico"
+    mock_db.documents.insert_one.assert_awaited()
 
 
 @pytest.mark.asyncio
