@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict, EmailStr, field_validator
+from pydantic import BaseModel, Field, ConfigDict, EmailStr, field_validator, model_validator
 from typing import List, Literal, Optional
 from datetime import datetime, timezone, date
 import re
@@ -942,6 +942,95 @@ class NotificationCreate(BaseModel):
     title: str
     message: str
     link: Optional[str] = None
+
+
+# ===== COMUNICADOS (spec-comunicados-email) =====
+
+COMUNICADO_TIPOS = ["oficial", "informativo"]
+COMUNICADO_CHANNELS = ["in_app", "email"]
+COMUNICADO_SEGMENT_KINDS = ["all_active", "role", "orgao", "member_category", "manual"]
+COMUNICADO_STATUSES = ["a_enviar", "enviando", "enviado", "parcial", "falhado"]
+
+
+class ComunicadoSegment(BaseModel):
+    kind: str
+    value: Optional[str] = None
+    user_ids: Optional[List[str]] = None
+
+
+class ComunicadoCreate(BaseModel):
+    subject: str
+    body: str
+    tipo: str = "informativo"
+    channels: List[str]
+    segment: ComunicadoSegment
+    notification_type: str = "comunicado"
+    cta_label: Optional[str] = None
+    cta_url: Optional[str] = None
+
+    @field_validator("subject")
+    @classmethod
+    def _v_subject(cls, v):
+        v = (v or "").strip()
+        if not v:
+            raise ValueError("Assunto obrigatório")
+        if len(v) > 200:
+            raise ValueError("Assunto demasiado longo (máx. 200)")
+        return v
+
+    @field_validator("body")
+    @classmethod
+    def _v_body(cls, v):
+        if len((v or "").strip()) < 10:
+            raise ValueError("Corpo demasiado curto")
+        return v
+
+    @field_validator("tipo")
+    @classmethod
+    def _v_tipo(cls, v):
+        if v not in COMUNICADO_TIPOS:
+            raise ValueError("Tipo inválido")
+        return v
+
+    @field_validator("channels")
+    @classmethod
+    def _v_channels(cls, v):
+        if not v:
+            raise ValueError("Selecione pelo menos um canal")
+        bad = [c for c in v if c not in COMUNICADO_CHANNELS]
+        if bad:
+            raise ValueError(f"Canal inválido: {bad}")
+        return list(dict.fromkeys(v))  # dedupe preservando ordem
+
+    @field_validator("cta_url")
+    @classmethod
+    def _v_cta_url(cls, v):
+        if v is None:
+            return v
+        if not (v.startswith("http://") or v.startswith("https://")):
+            raise ValueError("URL do CTA deve começar por http:// ou https://")
+        return v
+
+    @model_validator(mode="after")
+    def _v_segment(self):
+        seg = self.segment
+        if seg.kind not in COMUNICADO_SEGMENT_KINDS:
+            raise ValueError("Segmento inválido")
+        if seg.kind in ("role", "orgao", "member_category") and not seg.value:
+            raise ValueError("Este segmento requer 'value'")
+        if seg.kind == "manual" and not seg.user_ids:
+            raise ValueError("Selecione pelo menos um sócio")
+        return self
+
+
+class RecipientsCountRequest(BaseModel):
+    tipo: str = "informativo"
+    channels: List[str]
+    segment: ComunicadoSegment
+
+
+class EmailPreferencesUpdate(BaseModel):
+    email_opt_out_informativos: bool
 
 
 # ===== FINANCE MODELS =====
