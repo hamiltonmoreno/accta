@@ -15,6 +15,7 @@ Aprovados ficam públicos pelo fluxo de documentos existente (o `document_id`).
 
 from datetime import datetime, timezone
 
+from asyncpg.exceptions import UniqueViolationError
 from fastapi import APIRouter, Depends, HTTPException
 
 from auth import get_current_user
@@ -141,20 +142,29 @@ async def create_versao(
     await _validate_document(data.document_id)
 
     # Próxima versão = max + 1 (calculado em Python — não depende da ordenação
-    # lexical/numérica do jsonb).
-    existentes = await db.regulamento_versoes.find(
-        {"regulamento_id": regulamento_id}, {"_id": 0, "versao": 1}
-    ).to_list(None)
-    next_versao = max((v.get("versao", 0) for v in existentes), default=0) + 1
-
-    versao = RegulamentoVersao(
-        regulamento_id=regulamento_id,
-        versao=next_versao,
-        document_id=data.document_id,
-        changelog=(data.changelog.strip() if data.changelog else None),
-        created_by=current_user.id,
-    )
-    await db.regulamento_versoes.insert_one(versao.model_dump())
+    # lexical/numérica do jsonb). O índice único (regulamento_id, versao) fecha a
+    # corrida entre duas criações concorrentes: em conflito, recalcula e reinsere.
+    for _ in range(5):
+        existentes = await db.regulamento_versoes.find(
+            {"regulamento_id": regulamento_id}, {"_id": 0, "versao": 1}
+        ).to_list(None)
+        next_versao = max((v.get("versao", 0) for v in existentes), default=0) + 1
+        versao = RegulamentoVersao(
+            regulamento_id=regulamento_id,
+            versao=next_versao,
+            document_id=data.document_id,
+            changelog=(data.changelog.strip() if data.changelog else None),
+            created_by=current_user.id,
+        )
+        try:
+            await db.regulamento_versoes.insert_one(versao.model_dump())
+            break
+        except UniqueViolationError:
+            continue
+    else:
+        raise HTTPException(
+            status_code=409, detail="Conflito ao numerar a versao; tente novamente"
+        )
     await create_audit_log(
         current_user.id,
         f"Criou versao {next_versao} do regulamento {reg['slug']}",

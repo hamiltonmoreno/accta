@@ -44,9 +44,9 @@ const Stepper = ({ status }) => {
 
 export const PrestacaoContasTab = () => {
   const qc = useQueryClient();
-  const { isAdmin, isDirecao, isConselhoFiscal, isMesaAG } = useAuth();
+  const { isAdmin, isDirecao, isConselhoFiscal, isMesaAG, can } = useAuth();
   const podeDirecao = isAdmin || isDirecao;
-  const podeCF = isAdmin || isConselhoFiscal;
+  const podeCF = isAdmin || isConselhoFiscal || can('emit_cf_parecer');
   const podeMesa = isAdmin || isMesaAG;
 
   const [selectedAno, setSelectedAno] = useState(null);

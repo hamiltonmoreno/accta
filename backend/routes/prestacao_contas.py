@@ -405,6 +405,14 @@ async def aprovar_exercicio(
     )
     if not data.aprovado and not delib:
         raise HTTPException(status_code=400, detail="Deliberacao da AG nao encontrada")
+    # A deliberação tem de pertencer à AG onde o exercício foi submetido
+    # (submeter_ag fixou ex["assembleia_id"]) — senão aprovava-se/rejeitava-se
+    # com o voto de outra assembleia (Art. 19.1/37).
+    if delib.get("assembleia_id") != ex.get("assembleia_id"):
+        raise HTTPException(
+            status_code=400,
+            detail="A deliberacao tem de pertencer a assembleia onde o exercicio foi submetido a AG",
+        )
 
     novo_status = "aprovado" if data.aprovado else "rejeitado"
     updates = {

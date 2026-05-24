@@ -879,7 +879,7 @@ _INDEX_DDL: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS ix_balancetes_published ON \"balancetes\" ((doc->>'published'))",
     "CREATE UNIQUE INDEX IF NOT EXISTS ux_regulamentos_slug ON \"regulamentos\" ((doc->>'slug'))",
     "CREATE INDEX IF NOT EXISTS ix_regversoes_reg ON \"regulamento_versoes\" ((doc->>'regulamento_id'))",
-    'CREATE INDEX IF NOT EXISTS ix_regversoes_reg_versao ON "regulamento_versoes" '
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_regversoes_reg_versao ON "regulamento_versoes" '
     "((doc->>'regulamento_id'), (doc->>'versao'))",
     "CREATE INDEX IF NOT EXISTS ix_regversoes_status ON \"regulamento_versoes\" ((doc->>'status'))",
 )

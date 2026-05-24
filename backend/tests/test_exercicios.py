@@ -256,6 +256,31 @@ class TestAprovar:
         )
         assert out["status"] == "rejeitado"
 
+    async def test_aprova_deliberacao_mesma_assembleia_ok(self, mock_db):
+        _wire(
+            mock_db,
+            ex=_ex(status="em_aprovacao_ag", assembleia_id="a1"),
+            delib={"id": "d1", "aprovado": True, "assembleia_id": "a1"},
+        )
+        out = await pc.aprovar_exercicio(
+            2026, ExercicioAprovar(deliberacao_id="d1", aprovado=True), current_user=_MESA()
+        )
+        assert out["status"] == "aprovado"
+
+    async def test_deliberacao_de_outra_assembleia_400(self, mock_db):
+        # Deliberação aprovada da AG "a2", mas o exercício foi submetido à AG
+        # "a1" — não se aprova com o voto de outra assembleia (Art. 19.1/37).
+        _wire(
+            mock_db,
+            ex=_ex(status="em_aprovacao_ag", assembleia_id="a1"),
+            delib={"id": "d1", "aprovado": True, "assembleia_id": "a2"},
+        )
+        with pytest.raises(HTTPException) as e:
+            await pc.aprovar_exercicio(
+                2026, ExercicioAprovar(deliberacao_id="d1", aprovado=True), current_user=_MESA()
+            )
+        assert e.value.status_code == 400
+
     async def test_estado_errado_400(self, mock_db):
         _wire(mock_db, ex=_ex(status="parecer_emitido"), delib={"id": "d1", "aprovado": True})
         with pytest.raises(HTTPException) as e:
