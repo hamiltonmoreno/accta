@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'noreply@controlador.cv')
 APP_NAME = "Portal ACCTA"
+_BATCH_CHUNK_SIZE = 100  # Resend Batch aceita até 100 por chamada
 
 if RESEND_API_KEY:
     resend.api_key = RESEND_API_KEY
@@ -197,7 +198,7 @@ def comunicado_email_html(subject: str, body: str, cta_label: str = None,
             f'line-height:1.7;">{inner}</p>'
         )
     cta_block = ""
-    if cta_label and cta_url:
+    if cta_label and cta_url and (cta_url.startswith("http://") or cta_url.startswith("https://")):
         safe_label = escape(cta_label, quote=True)
         safe_cta_url = escape(cta_url, quote=True)
         cta_block = (
@@ -210,7 +211,7 @@ def comunicado_email_html(subject: str, body: str, cta_label: str = None,
     optout_note = ""
     if tipo == "informativo":
         optout_note = (
-            '<p style="margin:20px 0 0;font-size:12px;color:#9ca3af;line-height:1.5;">'
+            '<p style="margin:20px 0 0;font-size:12px;color:#6b7280;line-height:1.5;">'
             'Pode desactivar estes avisos informativos no seu perfil no Portal ACCTA.</p>'
         )
     content = f"""
@@ -219,7 +220,7 @@ def comunicado_email_html(subject: str, body: str, cta_label: str = None,
     return _base_template(content)
 
 
-async def send_comunicado_batch(recipients: list, subject: str, html: str) -> dict:
+async def send_comunicado_batch(recipients: list[str], subject: str, html: str) -> dict:
     """Envia o mesmo email a N destinatários — individualmente (sem To/CC
     partilhado). Usa Resend Batch quando disponível (chunks de 100), com
     fallback para envios individuais. Devolve {sent, failed, errors}."""
@@ -230,10 +231,9 @@ async def send_comunicado_batch(recipients: list, subject: str, html: str) -> di
     sent = 0
     failed = 0
     errors: list = []
-    CHUNK = 100
     use_batch = hasattr(resend, "Batch")
-    for i in range(0, len(recipients), CHUNK):
-        chunk = recipients[i:i + CHUNK]
+    for i in range(0, len(recipients), _BATCH_CHUNK_SIZE):
+        chunk = recipients[i:i + _BATCH_CHUNK_SIZE]
         if use_batch:
             params = [
                 {"from": f"{APP_NAME} <{SENDER_EMAIL}>", "to": [r], "subject": subject, "html": html}
