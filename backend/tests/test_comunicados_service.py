@@ -159,3 +159,51 @@ async def test_resolve_orgao(mock_db, monkeypatch):
     res = await comunicados_service.resolve_recipients(
         {"kind": "orgao", "value": "direcao"}, channel="in_app", tipo="oficial")
     assert {u["id"] for u in res} == {"u2"}   # intersecção com a base; "naoexiste" fora
+
+
+# ---------------------------------------------------------------------------
+# dispatch_comunicado tests (Task 6)
+# ---------------------------------------------------------------------------
+
+
+def _doc(**over):
+    d = dict(
+        id="c1", subject="S", body="corpo longo o suficiente",
+        cta_label=None, cta_url=None, tipo="informativo",
+        channels=["in_app", "email"], segment={"kind": "all_active"},
+        notification_type="comunicado", status="a_enviar",
+    )
+    d.update(over)
+    return d
+
+
+@pytest.mark.asyncio
+async def test_dispatch_skips_if_not_a_enviar(mock_db):
+    mock_db.comunicados.find_one.return_value = _doc(status="enviado")
+    res = await comunicados_service.dispatch_comunicado("c1")
+    assert res == {"skipped": True}
+
+
+@pytest.mark.asyncio
+async def test_dispatch_both_channels_counts(mock_db, monkeypatch):
+    mock_db.comunicados.find_one.return_value = _doc()
+    _set_users(mock_db, MEMBROS)
+    async def fake_batch(emails, subject, html):
+        return {"sent": len(emails), "failed": 0, "errors": []}
+    monkeypatch.setattr(comunicados_service, "send_comunicado_batch", fake_batch)
+    res = await comunicados_service.dispatch_comunicado("c1")
+    assert res["status"] == "enviado"
+    assert res["inapp_created"] == 3      # u1,u2,u3 (technical fora)
+    assert res["email_sent"] == 1         # só u1 (informativo: u2 opt-out, u3 sem email)
+    mock_db.comunicados.update_one.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_dispatch_partial_when_some_email_fail(mock_db, monkeypatch):
+    mock_db.comunicados.find_one.return_value = _doc(tipo="oficial")
+    _set_users(mock_db, MEMBROS)
+    async def fake_batch(emails, subject, html):
+        return {"sent": 1, "failed": 1, "errors": ["x"]}
+    monkeypatch.setattr(comunicados_service, "send_comunicado_batch", fake_batch)
+    res = await comunicados_service.dispatch_comunicado("c1")
+    assert res["status"] == "parcial"
