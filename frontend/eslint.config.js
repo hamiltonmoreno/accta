@@ -91,6 +91,19 @@ module.exports = [
     },
   },
   {
+    // Dev-only CommonJS file carregado pelo dev server (CRA/craco) — usa require/module.
+    files: ['src/setupProxy.js'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: {
+        require: 'readonly',
+        module: 'readonly',
+        process: 'readonly',
+        __dirname: 'readonly',
+      },
+    },
+  },
+  {
     ignores: ['build/**', 'node_modules/**', 'public/**', '*.config.js'],
   },
 ];
