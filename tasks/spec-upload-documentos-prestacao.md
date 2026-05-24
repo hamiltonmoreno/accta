@@ -1,6 +1,9 @@
 # Spec — Upload de documentos integrado nos diálogos de Prestação de Contas
 
-> **Status**: rascunho técnico (2026-05-24). Spec de produto/engenharia.
+> **Status**: **F0–F1 IMPLEMENTADAS** (2026-05-24) no ramo
+> `feature/upload-documentos-prestacao` (endpoint dedicado + componente
+> `DocumentUploadField` ligado a 5 diálogos; testes backend verdes, eslint limpo).
+> Falta só: PR para `develop` + validação manual em staging.
 > **Objetivo**: eliminar o atrito de ter de **colar um `document_id` à mão** nos
 > diálogos do ciclo de prestação de contas. O admin/ator passa a **escolher o
 > ficheiro no próprio diálogo**; o sistema faz upload + cria o registo `documents`
