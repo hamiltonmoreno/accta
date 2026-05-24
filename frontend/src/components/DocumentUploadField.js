@@ -43,7 +43,7 @@ export function DocumentUploadField({ kind, value, onChange, required = false, l
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-[#D1D5DB] rounded-md text-grafite hover:bg-[#F5F5F5] focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 disabled:opacity-60"
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-[#D1D5DB] rounded-md text-grafite hover:bg-[#F5F5F5] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-60"
         >
           {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
           {uploading ? 'A carregar…' : (value ? 'Substituir ficheiro' : 'Escolher ficheiro')}
