@@ -79,6 +79,10 @@ def _scheduled(bt: BackgroundTasks) -> bool:
     return any(t.func is comunicados_service.dispatch_oficial_auto for t in bt.tasks)
 
 
+def _dispatch_task(bt: BackgroundTasks):
+    return next(t for t in bt.tasks if t.func is comunicados_service.dispatch_oficial_auto)
+
+
 # --------------------------------------------------------------------------- #
 # Task 13 — convocatória de AG
 # --------------------------------------------------------------------------- #
@@ -99,6 +103,11 @@ async def test_create_assembleia_schedules_oficial_comunicado(mock_db, monkeypat
     )
     assert _scheduled(bt)
 
+    task = _dispatch_task(bt)
+    inserted = mock_db.assembleias.insert_one.call_args.args[0]
+    assert task.kwargs["source_kind"] == "assembleia_convocatoria"
+    assert task.kwargs["ref_id"] == inserted["id"]
+
 
 # --------------------------------------------------------------------------- #
 # Task 14 — abertura de votação (eleição)
@@ -115,6 +124,10 @@ async def test_abrir_votacao_schedules_oficial_comunicado(mock_db, monkeypatch):
     bt = BackgroundTasks()
     await e_route.abrir_votacao("e1", _request(), bt, current_user=_mesa_ag())
     assert _scheduled(bt)
+
+    task = _dispatch_task(bt)
+    assert task.kwargs["source_kind"] == "eleicao_abertura"
+    assert task.kwargs["ref_id"] == "e1"
 
 
 # --------------------------------------------------------------------------- #
@@ -149,3 +162,10 @@ async def test_register_deliberacao_schedules_oficial_comunicado(mock_db, monkey
         current_user=_mesa_ag(),
     )
     assert _scheduled(bt)
+
+    task = _dispatch_task(bt)
+    delib = mock_db.assembleia_deliberacoes.insert_one.call_args.args[0]
+    assert task.kwargs["source_kind"] == "assembleia_deliberacao"
+    # ref_id tem de ser o id da DELIBERAÇÃO, nunca o da assembleia-pai.
+    assert task.kwargs["ref_id"] == delib["id"]
+    assert task.kwargs["ref_id"] != "a1"
