@@ -40,6 +40,7 @@ import {
   Lightbulb,
   Medal,
   FileCheck,
+  ScrollText,
 } from 'lucide-react';
 
 const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
@@ -71,6 +72,7 @@ const menuSections = [
       { label: 'Assembleias', path: '/admin/assembleias', icon: Landmark, roles: ['all'] },
       { label: 'Eleições', path: '/admin/eleicoes', icon: ListChecks, roles: ['all'] },
       { label: 'Honorários', path: '/governanca/honorarios', icon: Medal, roles: ['admin'], match: 'governanca' },
+      { label: 'Regulamentos', path: '/regulamentos', icon: ScrollText, roles: ['all'] },
       { label: 'Disciplina', path: '/admin/disciplinar', icon: Gavel, roles: ['admin'], match: 'direcao' },
     ],
   },
@@ -114,6 +116,7 @@ const PAGE_TITLES = {
   '/carteira': 'Carteira Digital',
   '/financeiro': 'Financeiro',
   '/financeiro/co-aprovacoes': 'Co-aprovações',
+  '/regulamentos': 'Regulamentos',
   '/projetos': 'Projetos',
   '/votacoes': 'Votações',
   '/eventos': 'Eventos',

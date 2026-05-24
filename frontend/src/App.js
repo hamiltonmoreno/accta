@@ -37,6 +37,7 @@ const DashboardPage = lazy(() => import('./pages/private/DashboardPage').then((m
 const CarteiraPage = lazy(() => import('./pages/private/CarteiraPage').then((m) => ({ default: m.CarteiraPage })));
 const FinanceiroPage = lazy(() => import('./pages/private/FinanceiroPage').then((m) => ({ default: m.FinanceiroPage })));
 const CoAprovacoesPage = lazy(() => import('./pages/private/CoAprovacoesPage').then((m) => ({ default: m.CoAprovacoesPage })));
+const RegulamentosPage = lazy(() => import('./pages/private/RegulamentosPage').then((m) => ({ default: m.RegulamentosPage })));
 const ProjectsPage = lazy(() => import('./pages/private/ProjectsPage'));
 const ProjectDetailPage = lazy(() => import('./pages/private/ProjectDetailPage'));
 const VotacoesPage = lazy(() => import('./pages/private/VotacoesPage').then((m) => ({ default: m.VotacoesPage })));
@@ -151,6 +152,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <PrivateLayout><CoAprovacoesPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/regulamentos"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><RegulamentosPage /></PrivateLayout>
             </ProtectedRoute>
           }
         />

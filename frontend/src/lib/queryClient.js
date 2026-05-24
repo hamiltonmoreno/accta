@@ -112,6 +112,19 @@ export const queryKeys = {
     list: (filters) => ['atos', filters || {}],
     byId: (id) => ['atos', id],
   },
+  exercicios: {
+    list: () => ['exercicios'],
+    byAno: (ano) => ['exercicios', ano],
+    execucao: (ano) => ['exercicios', ano, 'execucao'],
+  },
+  balancetes: {
+    list: (filters) => ['balancetes', filters || {}],
+    byId: (id) => ['balancetes', id],
+  },
+  regulamentos: {
+    list: () => ['regulamentos'],
+    byId: (id) => ['regulamentos', id],
+  },
   invoices: {
     list: () => ['invoices'],
   },

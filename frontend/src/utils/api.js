@@ -233,6 +233,40 @@ export const atosAPI = {
   cancelar: (id) => api.post(`/atos/${id}/cancelar`),
 };
 
+// Ciclo de prestação de contas — exercícios (spec-ciclo §4). Módulo /exercicios.
+export const exerciciosAPI = {
+  list: () => api.get('/exercicios'),
+  get: (ano) => api.get(`/exercicios/${ano}`),
+  abrir: (data) => api.post('/exercicios', data),
+  submeterRelatorio: (ano, data) => api.post(`/exercicios/${ano}/relatorio`, data),
+  submeterOrcamento: (ano, data) => api.post(`/exercicios/${ano}/orcamento`, data),
+  submeterPlano: (ano, data) => api.post(`/exercicios/${ano}/plano`, data),
+  emitirParecer: (ano, data) => api.post(`/exercicios/${ano}/parecer`, data),
+  submeterAG: (ano, data) => api.post(`/exercicios/${ano}/submeter-ag`, data),
+  aprovar: (ano, data) => api.post(`/exercicios/${ano}/aprovar`, data),
+  reabrir: (ano) => api.post(`/exercicios/${ano}/reabrir`),
+  execucaoOrcamento: (ano) => api.get(`/exercicios/${ano}/orcamento/execucao`),
+};
+
+// Balancetes periódicos / balanço anual (spec-ciclo §5). Módulo /balancetes.
+export const balancetesAPI = {
+  list: (params) => api.get('/balancetes', { params }),
+  get: (id) => api.get(`/balancetes/${id}`),
+  publicar: (data) => api.post('/balancetes', data),
+  auditar: (id, data) => api.post(`/balancetes/${id}/auditar`, data),
+};
+
+// Regulamentos internos versionados (spec-ciclo §6). Módulo /regulamentos.
+export const regulamentosAPI = {
+  list: () => api.get('/regulamentos'),
+  get: (id) => api.get(`/regulamentos/${id}`),
+  create: (data) => api.post('/regulamentos', data),
+  criarVersao: (id, data) => api.post(`/regulamentos/${id}/versoes`, data),
+  submeterVersao: (id, vid) => api.post(`/regulamentos/${id}/versoes/${vid}/submeter`),
+  aprovarVersao: (id, vid, data) => api.post(`/regulamentos/${id}/versoes/${vid}/aprovar`, data || {}),
+  revogarVersao: (id, vid, data) => api.post(`/regulamentos/${id}/versoes/${vid}/revogar`, data || {}),
+};
+
 // Polls API
 export const pollsAPI = {
   getAll: () => api.get('/polls'),

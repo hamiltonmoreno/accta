@@ -51,12 +51,12 @@ Spec: `tasks/spec-ciclo-prestacao-contas.md`. Branch `feature/ciclo-prestacao-co
 - [x] `aprovar`/`submeter-ag` ligam `assembleia_id`/`deliberacao_id`; aprovar exige deliberação **aprovada** (`assembleia_deliberacoes`, governança em `develop`)
 - [x] Testes da deliberação: aprovada→aprovado; não aprovada→400; inexistente→400; rejeição com deliberação existente
 
-## F5 — Frontend
-- [ ] `utils/api.js`: `exerciciosAPI`, `balancetesAPI`, `regulamentosAPI`
-- [ ] `FinanceiroPage`: abas "Prestação de Contas" (dashboard do ciclo) e "Balancetes"
-- [ ] Página `/regulamentos` + rota + item de menu (gating por `isConselhoFiscal`/`isTesoureiro`/`isDirecao`/`isMesaAG`)
-- [ ] Vista orçado-vs-realizado (Recharts); badges de auditoria/estado; histórico de versões
-- [ ] Design `frontend-design` (neutral-led + Carmesim, sem dark mode); eslint + build
+## F5 — Frontend ✅
+- [x] `utils/api.js`: `exerciciosAPI`, `balancetesAPI`, `regulamentosAPI`; `lib/queryClient.js`: query keys
+- [x] `FinanceiroPage`: abas "Prestação de Contas" (dashboard do ciclo: stepper + ações por papel + dialogs) e "Balancetes" (cards + auditoria CF)
+- [x] Página `/regulamentos` + rota (`App.js`) + item de menu (Órgãos Sociais) + título; histórico de versões + ações
+- [x] Vista orçado-vs-realizado (tabela com desvio); badges de auditoria/estado; gating por `isDirecao`/`isConselhoFiscal`/`isMesaAG`/`canManageFinances`
+- [x] Design `frontend-design` (neutral-led + Carmesim, ≤1 botão primário/vista, focus rings, sem dark mode); eslint 0 erros/0 avisos
 
 ## Verificação por fase
 models → schema/índices (`ensure_schema`) → endpoints+RBAC+audit → testes backend (`pytest -m unit`)
