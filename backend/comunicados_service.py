@@ -49,7 +49,7 @@ async def resolve_recipients(segment: dict, *, channel: str, tipo: str) -> list[
         sel = [u for u in members if u.get("member_category") == value]
     elif kind == "orgao":
         ids = set(await members_of_orgao(value))
-        sel = [u for u in members if u["id"] in ids]
+        sel = [u for u in members if u.get("id") in ids]
     elif kind == "manual":
         wanted = set(segment.get("user_ids") or [])
         sel = [u for u in members if u["id"] in wanted]

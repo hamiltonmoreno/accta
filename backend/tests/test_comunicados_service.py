@@ -148,3 +148,14 @@ async def test_resolve_manual(mock_db):
     res = await comunicados_service.resolve_recipients(
         {"kind": "manual", "user_ids": ["u2", "naoexiste"]}, channel="in_app", tipo="oficial")
     assert {u["id"] for u in res} == {"u2"}
+
+
+@pytest.mark.asyncio
+async def test_resolve_orgao(mock_db, monkeypatch):
+    from unittest.mock import AsyncMock
+    _set_users(mock_db, MEMBROS)
+    monkeypatch.setattr(comunicados_service, "members_of_orgao",
+                        AsyncMock(return_value=["u2", "naoexiste"]))
+    res = await comunicados_service.resolve_recipients(
+        {"kind": "orgao", "value": "direcao"}, channel="in_app", tipo="oficial")
+    assert {u["id"] for u in res} == {"u2"}   # intersecção com a base; "naoexiste" fora
