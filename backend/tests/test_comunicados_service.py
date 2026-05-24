@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 from models import ComunicadoCreate, ComunicadoSegment, RecipientsCountRequest
+import comunicados_service
 
 
 def _valid_payload(**over):
@@ -79,3 +80,71 @@ def test_recipients_count_request_rejects_empty_channels():
 def test_recipients_count_request_dedupes_channels():
     r = RecipientsCountRequest(tipo="informativo", channels=["email", "email"], segment={"kind": "all_active"})
     assert r.channels == ["email"]
+
+
+# ---------------------------------------------------------------------------
+# resolve_recipients tests (Task 4)
+# ---------------------------------------------------------------------------
+
+
+def _set_users(mock_db, users):
+    mock_db.users.find.return_value.to_list.return_value = users
+
+
+MEMBROS = [
+    {"id": "u1", "name": "A", "email": "a@x.cv", "role": "socio",
+     "member_category": "ordinario", "account_type": "member"},
+    {"id": "u2", "name": "B", "email": "b@x.cv", "role": "socio",
+     "member_category": "fundador", "account_type": "member",
+     "email_opt_out_informativos": True},
+    {"id": "u3", "name": "C", "email": None, "role": "financeiro",
+     "member_category": "ordinario", "account_type": "member"},
+    {"id": "sys", "name": "Sys", "email": "sys@x.cv", "role": "admin",
+     "account_type": "technical"},
+]
+
+
+@pytest.mark.asyncio
+async def test_resolve_all_active_excludes_technical(mock_db):
+    _set_users(mock_db, MEMBROS)
+    res = await comunicados_service.resolve_recipients(
+        {"kind": "all_active"}, channel="in_app", tipo="informativo")
+    ids = {u["id"] for u in res}
+    assert ids == {"u1", "u2", "u3"}
+
+
+@pytest.mark.asyncio
+async def test_resolve_email_informativo_drops_optout_and_no_email(mock_db):
+    _set_users(mock_db, MEMBROS)
+    res = await comunicados_service.resolve_recipients(
+        {"kind": "all_active"}, channel="email", tipo="informativo")
+    ids = {u["id"] for u in res}
+    assert ids == {"u1"}
+
+
+@pytest.mark.asyncio
+async def test_resolve_email_oficial_ignores_optout(mock_db):
+    _set_users(mock_db, MEMBROS)
+    res = await comunicados_service.resolve_recipients(
+        {"kind": "all_active"}, channel="email", tipo="oficial")
+    ids = {u["id"] for u in res}
+    assert ids == {"u1", "u2"}
+
+
+@pytest.mark.asyncio
+async def test_resolve_role_and_category(mock_db):
+    _set_users(mock_db, MEMBROS)
+    by_role = await comunicados_service.resolve_recipients(
+        {"kind": "role", "value": "financeiro"}, channel="in_app", tipo="oficial")
+    assert {u["id"] for u in by_role} == {"u3"}
+    by_cat = await comunicados_service.resolve_recipients(
+        {"kind": "member_category", "value": "fundador"}, channel="in_app", tipo="oficial")
+    assert {u["id"] for u in by_cat} == {"u2"}
+
+
+@pytest.mark.asyncio
+async def test_resolve_manual(mock_db):
+    _set_users(mock_db, MEMBROS)
+    res = await comunicados_service.resolve_recipients(
+        {"kind": "manual", "user_ids": ["u2", "naoexiste"]}, channel="in_app", tipo="oficial")
+    assert {u["id"] for u in res} == {"u2"}
