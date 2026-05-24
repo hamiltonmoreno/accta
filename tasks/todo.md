@@ -66,3 +66,34 @@ models → schema/índices (`ensure_schema`) → endpoints+RBAC+audit → testes
 Confirmar antes de: mudar `Transaction` para além de aditivos/opcionais; migrar dados
 financeiros; emails reais; remover rotas usadas; tratar aprovação como vinculativa sem
 deliberação da AG. Push para `main` nunca.
+
+---
+
+## Review (2026-05-24)
+
+**Estado: F0–F5 FEITAS** no branch `feature/ciclo-prestacao-contas` (de `develop`,
+após merge da pilha Cat 4 #105/#106/#108). 5 commits:
+`7c6eef7` F0 · `7b47253` F1 · `35ec7f9` F2 · `297582d` F3+F4 · `1de8cc9` F5.
+
+- **Testes backend**: suite unit completa **826 passed** (762 baseline Cat 4 + 64
+  novos: 22 regulamentos + 13 balancetes + 29 exercícios), 0 regressões. O único
+  erro (`test_activity_feed.py`) é pré-existente/ambiental (teste de integração
+  que lê `REACT_APP_BACKEND_URL` no import). `ruff` limpo.
+- **Frontend**: `eslint` 0 erros/0 avisos; `craco build` de produção OK.
+- **Fonte única dos números**: `compute_financial_summary`/`compute_dre_report`
+  extraídos em `finances.py` e reutilizados pelos snapshots (sem drift).
+- **Separação de poderes**: parecer/auditoria do CF gated por `can_emit_parecer_cf`
+  (cargo CF ou privilégio `emit_cf_parecer`), distinto de `manage_finances` — o CF
+  audita mas **não** escreve transacções (testado: 403).
+- **Aprovação via AG**: aprovar exige `deliberacao_id` **aprovada** em
+  `assembleia_deliberacoes` (integração F4); estados avançam só pela ordem.
+- **Decisão §12.8 (estruturado)**: orçamento em linhas por categoria estatutária +
+  endpoint orçado-vs-realizado; plano em atividades.
+- **Aditivo**: `proof_url` (já em `develop`) + `conferido`; novas colecções e
+  índices; `TransactionUpdate` ganhou `proof_url` (request model, aditivo). Sem
+  migração destrutiva, sem emails, sem mexer em `main`.
+
+**Aberto/futuro**: exposição pública inline do balancete (§12.6, adiada — público
+vê o PDF); lista estatutária completa de competência dos regulamentos (semeado só
+o Regimento da AG); upload de documentos integrado nos diálogos (hoje recebem
+`document_id`). Falta **push do branch + PR para `develop`** (decisão do dono).
