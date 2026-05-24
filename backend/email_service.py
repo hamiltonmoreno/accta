@@ -5,6 +5,7 @@ Supports: invite, password reset, welcome, broadcast notifications.
 import os
 import asyncio
 import logging
+from html import escape
 import resend
 
 logger = logging.getLogger(__name__)
@@ -177,3 +178,78 @@ async def send_welcome_email(name: str, email: str) -> dict:
 async def send_registration_rejected_email(name: str, email: str, reason: str = None) -> dict:
     html = registration_rejected_email_html(name, reason)
     return await send_email(email, f"Pedido de inscricao — {APP_NAME}", html)
+
+
+def comunicado_email_html(subject: str, body: str, cta_label: str = None,
+                          cta_url: str = None, *, tipo: str = "informativo") -> str:
+    """Renderiza um comunicado no template ACCTA. Conteúdo escapado; \n\n →
+    parágrafos, \n → <br>. CTA (Carmesim) só com label+url. Nota de opt-out
+    apenas em comunicados informativos."""
+    safe_subject = escape(subject, quote=True)
+    paragraphs = ""
+    for block in (body or "").split("\n\n"):
+        block = block.strip()
+        if not block:
+            continue
+        inner = escape(block, quote=True).replace("\n", "<br>")
+        paragraphs += (
+            f'<p style="margin:0 0 14px;font-size:14px;color:#6b7280;'
+            f'line-height:1.7;">{inner}</p>'
+        )
+    cta_block = ""
+    if cta_label and cta_url:
+        safe_label = escape(cta_label, quote=True)
+        safe_cta_url = escape(cta_url, quote=True)
+        cta_block = (
+            f'\n    <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">'
+            f'\n      <a href="{safe_cta_url}" style="display:inline-block;padding:12px 32px;'
+            f'background-color:#C7202F;color:#ffffff;font-size:14px;font-weight:600;'
+            f'text-decoration:none;border-radius:8px;">{safe_label}</a>'
+            f'\n    </td></tr></table>'
+        )
+    optout_note = ""
+    if tipo == "informativo":
+        optout_note = (
+            '<p style="margin:20px 0 0;font-size:12px;color:#9ca3af;line-height:1.5;">'
+            'Pode desactivar estes avisos informativos no seu perfil no Portal ACCTA.</p>'
+        )
+    content = f"""
+    <h2 style="margin:0 0 16px;font-size:20px;color:#3A3A3A;">{safe_subject}</h2>
+    {paragraphs}{cta_block}{optout_note}"""
+    return _base_template(content)
+
+
+async def send_comunicado_batch(recipients: list, subject: str, html: str) -> dict:
+    """Envia o mesmo email a N destinatários — individualmente (sem To/CC
+    partilhado). Usa Resend Batch quando disponível (chunks de 100), com
+    fallback para envios individuais. Devolve {sent, failed, errors}."""
+    if not RESEND_API_KEY:
+        logger.warning("RESEND_API_KEY not set. Comunicado a %d destinatarios nao enviado.", len(recipients))
+        return {"sent": 0, "failed": len(recipients), "errors": ["resend_not_configured"]}
+
+    sent = 0
+    failed = 0
+    errors: list = []
+    CHUNK = 100
+    use_batch = hasattr(resend, "Batch")
+    for i in range(0, len(recipients), CHUNK):
+        chunk = recipients[i:i + CHUNK]
+        if use_batch:
+            params = [
+                {"from": f"{APP_NAME} <{SENDER_EMAIL}>", "to": [r], "subject": subject, "html": html}
+                for r in chunk
+            ]
+            try:
+                await asyncio.to_thread(resend.Batch.send, params)
+                sent += len(chunk)
+                continue
+            except Exception as e:  # noqa: BLE001 — fallback per-recipient
+                logger.error("Resend Batch falhou, fallback individual: %s", e)
+        for r in chunk:
+            res = await send_email(r, subject, html)
+            if res.get("status") == "sent":
+                sent += 1
+            else:
+                failed += 1
+                errors.append(res.get("error", res.get("reason", "unknown")))
+    return {"sent": sent, "failed": failed, "errors": errors[:20]}
