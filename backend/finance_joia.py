@@ -46,7 +46,10 @@ def _joia_valor(settings: dict) -> float:
     amount = settings.get("joia_amount")
     if amount is not None:
         return float(amount)
-    return float(settings.get("joia_multiplier") or 2.0) * quota
+    multiplier = settings.get("joia_multiplier")
+    if multiplier is None:
+        multiplier = 2.0
+    return float(multiplier) * quota
 
 
 def joia_status(user_doc: dict, settings: dict, today: Optional[date] = None) -> dict:

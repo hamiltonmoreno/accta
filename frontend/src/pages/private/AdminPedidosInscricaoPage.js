@@ -264,7 +264,7 @@ export const AdminPedidosInscricaoPage = () => {
               {joiaPreview && (
                 <p className="mt-1.5 text-xs text-grafite bg-[#F5F5F5] rounded-md px-2.5 py-1.5" data-testid="joia-preview">
                   {joiaPreview.joia_devida != null ? (
-                    <>Jóia devida: <strong>{joiaPreview.joia_devida.toLocaleString('pt-PT')} CVE</strong> (2× quota). Cobrança manual pelo Tesoureiro.</>
+                    <>Jóia devida: <strong>{joiaPreview.joia_devida.toLocaleString('pt-PT')} CVE</strong>. Cobrança manual pelo Tesoureiro.</>
                   ) : (
                     <>Sem jóia — {joiaPreview.motivo}.</>
                   )}

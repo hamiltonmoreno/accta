@@ -56,6 +56,13 @@ class TestComputeJoia:
         s = {**_SETTINGS, "joia_amount": 0.0}
         assert compute_joia(u, s, _TODAY) == 0.0
 
+    def test_joia_multiplier_zero_e_respeitado(self):
+        # joia_multiplier=0.0 também tem de dispensar a jóia (0.0), não cair no
+        # default 2.0 — complementa a919e09, que só tratou joia_amount=0.
+        u = {"member_category": "ordinario", "cta_qualified_since": "2026-01-01"}
+        s = {**_SETTINGS, "joia_multiplier": 0.0}
+        assert compute_joia(u, s, _TODAY) == 0.0
+
     def test_sem_cta_qualified_since_isento(self):
         assert compute_joia({"member_category": "ordinario"}, _SETTINGS, _TODAY) is None
 
