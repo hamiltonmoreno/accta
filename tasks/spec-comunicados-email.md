@@ -121,7 +121,7 @@ canais. Cobre dois casos de uso:
 
 ## 4. Modelo de dados
 
-### 4.1 Coleção nova `comunicados` (+1 → 37 tabelas; atualizar CLAUDE.md)
+### 4.1 Coleção nova `comunicados` (+1; esquema integrado atual: 51 tabelas)
 
 ```jsonc
 {
@@ -356,8 +356,8 @@ Unit/in-process (sem servidor/DB), com `mock_db` e fixtures de role/token:
 
 - **F0 — Fundações**: `models.py` (modelos de comunicado/segmento/prefs); tabela
   `comunicados` + índices em `ensure_schema`; campo `email_opt_out_informativos`
-  (aditivo); privilégio `send_comunicados` em `governance.py`. Atualizar contagem
-  de tabelas no CLAUDE.md (36→37).
+  (aditivo); privilégio `send_comunicados` em `governance.py`. Atualizar a
+  contagem integrada de tabelas no CLAUDE.md.
 - **F1 — Backend manual**: `resolve_recipients`, `comunicado_email_html` +
   `send_comunicado_batch` no `email_service.py`, `dispatch_comunicado` (core),
   `routes/comunicados.py` (POST/GET/count/segments) + `PATCH /me/email-preferences`,
