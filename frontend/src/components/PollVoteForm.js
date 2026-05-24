@@ -16,7 +16,7 @@ export const PollVoteForm = ({ poll, isAtivo, onVoteSuccess }) => {
         poll_id: poll.id,
         vote_option: selectedOption,
       });
-      toast.success('Voto registrado com sucesso!');
+      toast.success('Voto registado com sucesso!');
       setSelectedOption(null);
       if (onVoteSuccess) onVoteSuccess();
     } catch (error) {
@@ -45,7 +45,7 @@ export const PollVoteForm = ({ poll, isAtivo, onVoteSuccess }) => {
               className="w-5 h-5 text-carmesim focus:ring-carmesim"
               data-testid={`option-${option.id}`}
             />
-            <span className="font-manrope font-medium text-primary">{option.label}</span>
+            <span className="font-medium text-grafite">{option.label}</span>
           </label>
         ))}
       </div>

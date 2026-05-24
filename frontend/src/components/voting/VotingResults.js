@@ -13,7 +13,7 @@ export const VotingResults = ({ poll, results }) => {
     const percentage = totalVotes > 0 ? (voteCount / totalVotes) * 100 : 0;
     
     return {
-      name: option.label || option.text || `Opcao ${option.id}`,
+      name: option.label || option.text || `Opção ${option.id}`,
       votes: voteCount,
       percentage: percentage,
     };

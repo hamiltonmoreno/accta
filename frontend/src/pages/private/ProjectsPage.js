@@ -216,7 +216,7 @@ const ProjectsPage = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="page-title" data-testid="projects-title">Projetos</h1>
-          <p className="page-subtitle">Gestao e acompanhamento de projetos da associacao</p>
+          <p className="page-subtitle">Gestão e acompanhamento de projetos da associação</p>
         </div>
         <button onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-2 text-sm w-fit" data-testid="new-project-btn">
           <Plus className="w-4 h-4" /> Novo Projeto

@@ -86,7 +86,7 @@ export const CashFlowTab = ({ canManage = true }) => {
   const deleteMutation = useMutation({
     mutationFn: (id) => financesAPI.deleteTransaction(id),
     onSuccess: () => {
-      toast.success('Transacao removida');
+      toast.success('Transação removida');
       invalidateAll();
     },
     onError: () => toast.error('Erro ao remover'),
@@ -145,7 +145,7 @@ export const CashFlowTab = ({ canManage = true }) => {
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         {canManage && (
           <button onClick={openNew} className="btn-primary flex items-center gap-2 text-sm" data-testid="add-transaction-btn">
-            <Plus className="w-4 h-4" /> Nova Transacao
+            <Plus className="w-4 h-4" /> Nova Transação
           </button>
         )}
         <button onClick={handleExportCSV} disabled={csvExporting} className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all btn-outline" data-testid="export-csv-btn">

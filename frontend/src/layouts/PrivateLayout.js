@@ -393,7 +393,7 @@ export const PrivateLayout = ({ children }) => {
 
         {/* Status badge */}
         {user?.status !== 'ativo' && !collapsed && (
-          <div className="mx-1 mb-2 px-2 py-1 bg-carmesim/10 border border-carmesim/30 rounded-md text-xs text-carmesim uppercase tracking-wider font-semibold text-center">
+          <div className="mx-1 mb-2 px-2 py-1 bg-[#FFFBEB] border border-[#D97706]/30 rounded-md text-xs text-[#B45309] uppercase tracking-wider font-semibold text-center">
             {user?.status}
           </div>
         )}

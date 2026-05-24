@@ -88,7 +88,7 @@ export const EventosPage = () => {
           <h1 className="page-title" data-testid="events-title">
             Eventos & Agenda
           </h1>
-          <p className="page-subtitle">Assembleias, formacoes e encontros da associacao</p>
+          <p className="page-subtitle">Assembleias, formações e encontros da associação</p>
         </div>
         
         {isAdmin && (

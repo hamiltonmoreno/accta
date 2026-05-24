@@ -166,7 +166,7 @@ export const AdminUsuariosPage = () => {
     <div className="space-y-6" data-testid="admin-users-page">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="page-title" data-testid="admin-users-title">Gestao de Membros</h1>
+          <h1 className="page-title" data-testid="admin-users-title">Gestão de Membros</h1>
           <p className="page-subtitle">{users.length} membro{users.length !== 1 ? 's' : ''} registado{users.length !== 1 ? 's' : ''}</p>
         </div>
         <button

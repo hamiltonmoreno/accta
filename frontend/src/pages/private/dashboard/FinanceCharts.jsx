@@ -110,7 +110,7 @@ const FinanceCharts = ({ monthlyChartData, expensePieData, currentYear, onViewAl
               <div className="h-full flex items-center justify-center">
                 <div className="text-center">
                   <BarChart3 className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-                  <p className="text-sm text-[#6B7280]">Sem despesas registradas</p>
+                  <p className="text-sm text-[#6B7280]">Sem despesas registadas</p>
                 </div>
               </div>
             ) : (

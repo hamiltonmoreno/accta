@@ -19,7 +19,7 @@ export const PollResults = ({ poll, results }) => {
           return (
             <div key={option.id}>
               <div className="flex items-center justify-between text-sm mb-1">
-                <span className="font-manrope">{option.label}</span>
+                <span>{option.label}</span>
                 <span className="font-mono text-[#6B7280]">
                   {voteCount} votos ({percent.toFixed(1)}%)
                 </span>

@@ -36,7 +36,7 @@ export const PROJECT_STATUS_CONFIG = {
   proposta: { label: 'Proposta', icon: Clock, ...TONE.warning },
   aprovado: { label: 'Aprovado', icon: Info, ...TONE.info },
   em_curso: { label: 'Em Curso', icon: Info, ...TONE.info },
-  concluido: { label: 'Concluido', icon: CheckCircle, ...TONE.success },
+  concluido: { label: 'Concluído', icon: CheckCircle, ...TONE.success },
   cancelado: { label: 'Cancelado', icon: XCircle, ...TONE.error },
 };
 export const PROJECT_STATUS_FALLBACK = 'proposta';
@@ -46,7 +46,7 @@ export const PROJECT_STATUS_FALLBACK = 'proposta';
 // media -> info · baixa -> neutro
 export const TASK_PRIORITY_CONFIG = {
   baixa: { label: 'Baixa', icon: Flag, ...TONE.neutro },
-  media: { label: 'Media', icon: Flag, ...TONE.info },
+  media: { label: 'Média', icon: Flag, ...TONE.info },
   alta: { label: 'Alta', icon: AlertTriangle, ...TONE.warning },
 };
 export const TASK_PRIORITY_FALLBACK = 'media';
@@ -54,7 +54,7 @@ export const TASK_PRIORITY_FALLBACK = 'media';
 // ---- Estado de tarefa (icone de toggle) ------------------------------------
 // concluido -> success · em_curso -> info · pendente -> neutro
 export const TASK_STATUS_CONFIG = {
-  concluido: { label: 'Concluido', icon: CheckCircle, ...TONE.success },
+  concluido: { label: 'Concluído', icon: CheckCircle, ...TONE.success },
   em_curso: { label: 'Em Curso', icon: Clock, ...TONE.info },
   pendente: { label: 'Pendente', icon: Clock, ...TONE.neutro },
 };
