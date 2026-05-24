@@ -10,7 +10,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from fastapi import HTTPException
+from fastapi import BackgroundTasks, HTTPException
 from pydantic import ValidationError
 
 from routes import assembleias as a_route
@@ -96,6 +96,7 @@ class TestConvocar:
             await a_route.create_assembleia(
                 request=_request(),
                 data=AssembleiaCreate(tipo="ordinaria", titulo="AGO 2030", data=FUTURE, local="Sede"),
+                background_tasks=BackgroundTasks(),
                 current_user=socio_user,
             )
         assert exc.value.status_code == 403
@@ -107,6 +108,7 @@ class TestConvocar:
         result = await a_route.create_assembleia(
             request=_request(),
             data=AssembleiaCreate(tipo="ordinaria", titulo="AGO 2030", data=FUTURE, local="Sede"),
+            background_tasks=BackgroundTasks(),
             current_user=_mesa_ag(),
         )
         assert result["status"] == "convocada"
@@ -119,6 +121,7 @@ class TestConvocar:
         result = await a_route.create_assembleia(
             request=_request(),
             data=AssembleiaCreate(tipo="ordinaria", titulo="Reunião", data=FUTURE, local="Sede"),
+            background_tasks=BackgroundTasks(),
             current_user=admin_user,
         )
         assert result["eligible_voters_count"] == 3
@@ -130,6 +133,7 @@ class TestConvocar:
                 data=AssembleiaCreate(
                     tipo="ordinaria", titulo="Reunião", data=FUTURE, local="Sede", antecedencia_dias=5
                 ),
+                background_tasks=BackgroundTasks(),
                 current_user=_mesa_ag(),
             )
         assert exc.value.status_code == 400
@@ -142,6 +146,7 @@ class TestConvocar:
                 data=AssembleiaCreate(
                     tipo="eleitoral", titulo="Eleições", data=FUTURE, local="Sede", antecedencia_dias=15
                 ),
+                background_tasks=BackgroundTasks(),
                 current_user=_mesa_ag(),
             )
         assert exc.value.status_code == 400
@@ -152,6 +157,7 @@ class TestConvocar:
             await a_route.create_assembleia(
                 request=_request(),
                 data=AssembleiaCreate(tipo="extraordinaria", titulo="AGE", data=FUTURE, local="Sede"),
+                background_tasks=BackgroundTasks(),
                 current_user=_mesa_ag(),
             )
         assert exc.value.status_code == 400
@@ -313,6 +319,7 @@ class TestDeliberacoes:
                     votos_contra=0,
                     abstencoes=0,
                 ),
+                background_tasks=BackgroundTasks(),
                 current_user=_mesa_ag(),
             )
         assert exc.value.status_code == 400
@@ -332,6 +339,7 @@ class TestDeliberacoes:
                     votos_contra=1,
                     abstencoes=0,
                 ),
+                background_tasks=BackgroundTasks(),
                 current_user=_mesa_ag(),
             )
         assert exc.value.status_code == 400
@@ -354,6 +362,7 @@ class TestDeliberacoes:
                 votos_contra=2,
                 abstencoes=0,
             ),
+            background_tasks=BackgroundTasks(),
             current_user=_mesa_ag(),
         )
         assert result["base_calculo"] == 8
@@ -376,6 +385,7 @@ class TestDeliberacoes:
                 votos_contra=0,
                 abstencoes=0,
             ),
+            background_tasks=BackgroundTasks(),
             current_user=_mesa_ag(),
         )
         # base = universo (10) → 3/4 = ceil(7.5) = 8; 6 < 8 → reprovada
@@ -401,6 +411,7 @@ class TestDeliberacoes:
                 abstencoes=0,
                 source_article="8.4",
             ),
+            background_tasks=BackgroundTasks(),
             current_user=_mesa_ag(),
         )
         # base = presentes (9) → 2/3 = ceil(6.0) = 6; 6 >= 6 → aprovada

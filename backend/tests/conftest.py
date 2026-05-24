@@ -181,6 +181,7 @@ def mock_db(monkeypatch):
         "benefit_partners",
         "tokens_revoked",
         "failed_logins",
+        "comunicados",
     ):
         coll = MagicMock(name=collection)
         coll.find_one = AsyncMock(return_value=None)
@@ -208,6 +209,10 @@ def mock_db(monkeypatch):
     monkeypatch.setattr(database, "db", fake_db)
     monkeypatch.setattr(auth, "db", fake_db)
     monkeypatch.setattr(helpers, "db", fake_db)
+
+    # comunicados_service faz `from database import db` no topo — patch explícito
+    if "comunicados_service" in sys.modules:
+        monkeypatch.setattr(sys.modules["comunicados_service"], "db", fake_db)
 
     # routes/*.py fazem `from database import db` no top-level — referencia
     # ja foi capturada antes do monkeypatch. Patch cada module ja importado

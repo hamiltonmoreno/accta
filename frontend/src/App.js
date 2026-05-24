@@ -56,6 +56,7 @@ const AdminEleicoesPage = lazy(() => import('./pages/private/AdminEleicoesPage')
 const AdminDisciplinarPage = lazy(() => import('./pages/private/AdminDisciplinarPage').then((m) => ({ default: m.AdminDisciplinarPage })));
 const AdminAparenciaPage = lazy(() => import('./pages/private/AdminAparenciaPage').then((m) => ({ default: m.AdminAparenciaPage })));
 const AdminNoticiasPage = lazy(() => import('./pages/private/AdminNoticiasPage').then((m) => ({ default: m.AdminNoticiasPage })));
+const AdminComunicadosPage = lazy(() => import('./pages/private/AdminComunicadosPage').then((m) => ({ default: m.AdminComunicadosPage })));
 const PatrociniosPage = lazy(() => import('./pages/private/PatrociniosPage').then((m) => ({ default: m.PatrociniosPage })));
 const PeticoesPage = lazy(() => import('./pages/private/PeticoesPage').then((m) => ({ default: m.PeticoesPage })));
 const EsclarecimentosPage = lazy(() => import('./pages/private/EsclarecimentosPage').then((m) => ({ default: m.EsclarecimentosPage })));
@@ -314,6 +315,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={['admin', 'moderador']}>
               <PrivateLayout><AdminNoticiasPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/comunicados"
+          element={
+            <ProtectedRoute allowedRoles={['admin']} allowedPrivileges={['send_comunicados']}>
+              <PrivateLayout><AdminComunicadosPage /></PrivateLayout>
             </ProtectedRoute>
           }
         />

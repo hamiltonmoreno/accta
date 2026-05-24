@@ -14,8 +14,9 @@ import hmac
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 
+import comunicados_service
 from auth import SECRET_KEY, get_current_user
 from database import cast_ballot, db
 from governance import (
@@ -268,7 +269,12 @@ async def validar_lista(
 
 
 @router.post("/{eleicao_id}/abrir-votacao")
-async def abrir_votacao(eleicao_id: str, request: Request, current_user: User = Depends(get_current_user)):
+async def abrir_votacao(
+    eleicao_id: str,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+):
     eleicao = await _get_eleicao(eleicao_id)
     _require_manage(current_user, eleicao)
     if eleicao["status"] not in ("candidaturas", "campanha"):
@@ -278,6 +284,21 @@ async def abrir_votacao(eleicao_id: str, request: Request, current_user: User = 
         raise HTTPException(status_code=400, detail="Não há listas aceites para votar")
     await db.eleicoes.update_one({"id": eleicao_id}, {"$set": {"status": "votacao"}})
     await create_audit_log(current_user.id, "eleicao_votacao_aberta", eleicao_id, request=request, details={})
+    # Comunicado OFICIAL (in-app + email a todos os activos), fire-and-forget.
+    ano = eleicao.get("ano")
+    titulo = f"Eleições {ano}" if ano else "Eleições"
+    background_tasks.add_task(
+        comunicados_service.dispatch_oficial_auto,
+        subject=f"Abertura de votação — {titulo}",
+        body=(
+            "A votação está aberta. A sua participação é importante.\n\n"
+            "Aceda ao Portal ACCTA para votar dentro do prazo."
+        ),
+        cta_label="Votar agora",
+        cta_url=f"/eleicoes/{eleicao_id}",
+        source_kind="eleicao_abertura",
+        ref_id=eleicao_id,
+    )
     return {"message": "Votação aberta.", "status": "votacao"}
 
 

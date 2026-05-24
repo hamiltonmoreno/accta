@@ -139,6 +139,7 @@ async def get_notification_types(current_user: User = Depends(get_current_user))
     return {
         "types": [
             {"value": "geral", "label": "Geral"},
+            {"value": "comunicado", "label": "Comunicado"},
             {"value": "financeiro", "label": "Financeiro"},
             {"value": "evento", "label": "Evento"},
             {"value": "projeto", "label": "Projeto"},

@@ -84,6 +84,16 @@ export const esclarecimentosAPI = {
   responder: (id, texto) => api.post(`/esclarecimentos/${id}/responder`, { texto }),
 };
 
+// Comunicados e preferências de email (spec-comunicados-email)
+export const comunicadosAPI = {
+  list: (params) => api.get('/comunicados', { params }),
+  get: (id) => api.get(`/comunicados/${id}`),
+  create: (data) => api.post('/comunicados', data),
+  recipientsCount: (data) => api.post('/comunicados/recipients/count', data),
+  segments: () => api.get('/comunicados/segments'),
+  updateEmailPreferences: (data) => api.patch('/me/email-preferences', data),
+};
+
 // Reclamações e recursos (spec-voz-participacao §7, Art. 9.i)
 export const reclamacoesAPI = {
   list: () => api.get('/reclamacoes'),

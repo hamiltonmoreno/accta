@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict, EmailStr, field_validator
+from pydantic import BaseModel, Field, ConfigDict, EmailStr, field_validator, model_validator
 from typing import List, Literal, Optional
 from datetime import datetime, timezone, date
 import re
@@ -69,6 +69,9 @@ class UserBase(BaseModel):
     bio: Optional[str] = None
     department: Optional[str] = None
     photo_url: Optional[str] = None
+    # Opt-out de comunicados informativos por email (spec-comunicados-email).
+    # Round-trips por /auth/me para o toggle do perfil refletir o valor guardado.
+    email_opt_out_informativos: bool = False
     # ===== Perfil pessoal estendido (feature/perfil) =====
     # Campos opcionais geridos pelo próprio sócio (PATCH /users/me/profile) ou
     # por admin. Datas como string ISO "AAAA-MM-DD" (regra do projeto: nunca
@@ -942,6 +945,94 @@ class NotificationCreate(BaseModel):
     title: str
     message: str
     link: Optional[str] = None
+
+
+# ===== COMUNICADOS (spec-comunicados-email) =====
+
+COMUNICADO_TIPOS = ["oficial", "informativo"]
+COMUNICADO_CHANNELS = ["in_app", "email"]
+COMUNICADO_SEGMENT_KINDS = ["all_active", "role", "orgao", "member_category", "manual"]
+COMUNICADO_STATUSES = ["a_enviar", "enviando", "enviado", "parcial", "falhado"]
+
+
+class ComunicadoSegment(BaseModel):
+    kind: Literal["all_active", "role", "orgao", "member_category", "manual"]
+    value: Optional[str] = None
+    user_ids: Optional[List[str]] = None
+
+
+def _dedupe_nonempty_channels(v):
+    if not v:
+        raise ValueError("Selecione pelo menos um canal")
+    return list(dict.fromkeys(v))  # dedupe preservando ordem
+
+
+class ComunicadoCreate(BaseModel):
+    subject: str
+    body: str
+    tipo: Literal["oficial", "informativo"] = "informativo"
+    channels: List[Literal["in_app", "email"]]
+    segment: ComunicadoSegment
+    notification_type: str = "comunicado"
+    cta_label: Optional[str] = None
+    cta_url: Optional[str] = None
+
+    @field_validator("subject")
+    @classmethod
+    def _v_subject(cls, v):
+        v = (v or "").strip()
+        if not v:
+            raise ValueError("Assunto obrigatório")
+        if len(v) > 200:
+            raise ValueError("Assunto demasiado longo (máx. 200)")
+        return v
+
+    @field_validator("body")
+    @classmethod
+    def _v_body(cls, v):
+        v = (v or "").strip()
+        if len(v) < 10:
+            raise ValueError("Corpo demasiado curto")
+        return v
+
+    @field_validator("channels")
+    @classmethod
+    def _v_channels(cls, v):
+        return _dedupe_nonempty_channels(v)
+
+    @field_validator("cta_url")
+    @classmethod
+    def _v_cta_url(cls, v):
+        if v is None:
+            return v
+        v = v.strip()
+        if not (v.startswith("http://") or v.startswith("https://")):
+            raise ValueError("URL do CTA deve começar por http:// ou https://")
+        return v
+
+    @model_validator(mode="after")
+    def _v_segment(self):
+        seg = self.segment
+        if seg.kind in ("role", "orgao", "member_category") and not seg.value:
+            raise ValueError("Este segmento requer 'value'")
+        if seg.kind == "manual" and not seg.user_ids:
+            raise ValueError("Selecione pelo menos um sócio")
+        return self
+
+
+class RecipientsCountRequest(BaseModel):
+    tipo: Literal["oficial", "informativo"] = "informativo"
+    channels: List[Literal["in_app", "email"]]
+    segment: ComunicadoSegment
+
+    @field_validator("channels")
+    @classmethod
+    def _v_channels(cls, v):
+        return _dedupe_nonempty_channels(v)
+
+
+class EmailPreferencesUpdate(BaseModel):
+    email_opt_out_informativos: bool
 
 
 # ===== FINANCE MODELS =====
