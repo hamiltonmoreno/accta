@@ -1,5 +1,6 @@
 import pytest
 from pydantic import ValidationError
+from unittest.mock import AsyncMock
 from models import ComunicadoCreate, ComunicadoSegment, RecipientsCountRequest
 import comunicados_service
 
@@ -152,7 +153,6 @@ async def test_resolve_manual(mock_db):
 
 @pytest.mark.asyncio
 async def test_resolve_orgao(mock_db, monkeypatch):
-    from unittest.mock import AsyncMock
     _set_users(mock_db, MEMBROS)
     monkeypatch.setattr(comunicados_service, "members_of_orgao",
                         AsyncMock(return_value=["u2", "naoexiste"]))
@@ -228,3 +228,34 @@ async def test_dispatch_exception_becomes_falhado_and_does_not_raise(mock_db, mo
     monkeypatch.setattr(comunicados_service, "send_comunicado_batch", boom)
     res = await comunicados_service.dispatch_comunicado("c1")   # must NOT raise
     assert res["status"] == "falhado"
+
+
+# ---------------------------------------------------------------------------
+# dispatch_oficial_auto tests (Task 7)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_oficial_auto_creates_when_absent(mock_db, monkeypatch):
+    mock_db.comunicados.find_one.return_value = None
+    captured = {}
+    async def fake_dispatch(cid):
+        captured["cid"] = cid
+        return {"status": "enviado"}
+    monkeypatch.setattr(comunicados_service, "dispatch_comunicado", fake_dispatch)
+    cid = await comunicados_service.dispatch_oficial_auto(
+        subject="Convocatória", body="corpo longo", source_kind="assembleia_convocatoria", ref_id="a1")
+    assert cid is not None
+    mock_db.comunicados.insert_one.assert_awaited()
+    assert captured["cid"] == cid
+
+
+@pytest.mark.asyncio
+async def test_oficial_auto_skips_when_duplicate(mock_db, monkeypatch):
+    mock_db.comunicados.find_one.return_value = {"id": "existente"}
+    monkeypatch.setattr(comunicados_service, "dispatch_comunicado",
+                        AsyncMock(side_effect=AssertionError("não deve disparar")))
+    cid = await comunicados_service.dispatch_oficial_auto(
+        subject="X", body="corpo longo", source_kind="assembleia_convocatoria", ref_id="a1")
+    assert cid is None
+    mock_db.comunicados.insert_one.assert_not_awaited()

@@ -134,3 +134,31 @@ async def dispatch_comunicado(comunicado_id: str) -> dict:
     )
     return {"status": status, "inapp_created": inapp_created,
             "email_sent": email_sent, "email_failed": email_failed}
+
+
+async def dispatch_oficial_auto(*, subject: str, body: str, cta_label: str = None,
+                                cta_url: str = None, source_kind: str,
+                                ref_id: str) -> Optional[str]:
+    """Cria e dispara um comunicado OFICIAL (in-app + email, todos os activos),
+    a partir de um gatilho de governança. Anti-duplicado por (source_kind,
+    source_ref_id). Devolve o id criado, ou None se já existia."""
+    existing = await db.comunicados.find_one(
+        {"source_kind": source_kind, "source_ref_id": ref_id}, {"_id": 0, "id": 1})
+    if existing:
+        return None
+    cid = str(uuid.uuid4())
+    doc = {
+        "id": cid, "subject": subject, "body": body,
+        "cta_label": cta_label, "cta_url": cta_url,
+        "tipo": "oficial", "channels": ["in_app", "email"],
+        "segment": {"kind": "all_active", "value": None, "user_ids": None},
+        "notification_type": "comunicado", "status": "a_enviar",
+        "recipients_total": 0, "inapp_created": 0, "email_sent": 0, "email_failed": 0,
+        "source_kind": source_kind, "source_ref_id": ref_id,
+        "created_by": "system",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "sent_at": None, "error": None,
+    }
+    await db.comunicados.insert_one(doc)
+    await dispatch_comunicado(cid)
+    return cid
