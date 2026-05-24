@@ -258,7 +258,7 @@ const PendingPanel = () => {
   return (
     <div className="card-technical overflow-hidden" data-testid="pending-photos-panel">
       <div className="flex items-center gap-3 p-4 border-b border-[var(--surface-border)]">
-        <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center">
+        <div className="w-9 h-9 bg-[#D97706] rounded-lg flex items-center justify-center">
           <Clock className="w-4 h-4 text-white" />
         </div>
         <div>
@@ -277,7 +277,7 @@ const PendingPanel = () => {
                 <p className="text-white text-xs text-center px-2 truncate w-full">{photo.uploaded_by_name}</p>
                 <p className="text-white/70 text-xs truncate w-full text-center">{photo.album_title}</p>
                 <div className="flex gap-2 mt-1">
-                  <button onClick={() => handleApprove(photo.id)} className="p-2 bg-green-600 rounded-full text-white hover:bg-green-700" aria-label="Aprovar foto" data-testid={`approve-photo-${photo.id}`}>
+                  <button onClick={() => handleApprove(photo.id)} className="p-2 bg-[#16A34A] rounded-full text-white hover:bg-[#15803D]" aria-label="Aprovar foto" data-testid={`approve-photo-${photo.id}`}>
                     <CheckCircle className="w-4 h-4" aria-hidden="true" />
                   </button>
                   <button onClick={() => handleReject(photo.id)} className="p-2 bg-white border border-[#D1D5DB] rounded-full text-[#3A3A3A] hover:bg-[#F5F5F5]" aria-label="Rejeitar foto" data-testid={`reject-photo-${photo.id}`}>
