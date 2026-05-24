@@ -78,7 +78,9 @@ class TestConstantes:
 
     def test_privileges_inclui_view_finances_readonly(self):
         assert "view_finances_readonly" in PRIVILEGES
-        assert len(PRIVILEGES) == 8
+        # emit_cf_parecer foi acrescentado no ciclo de prestação de contas (Art. 34/37).
+        assert "emit_cf_parecer" in PRIVILEGES
+        assert len(PRIVILEGES) == 9
         assert len(PRIVILEGES) == len(set(PRIVILEGES))
 
     def test_cargo_defaults_e_seats_keyed_by_key(self):

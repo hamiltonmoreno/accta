@@ -197,6 +197,24 @@ async def update_transaction(
     if "amount" in updates and updates["amount"] <= 0:
         raise HTTPException(status_code=400, detail="O valor deve ser positivo")
 
+    # Gate de co-aprovação (Art. 54) — espelha create_transaction. Sem isto,
+    # lançava-se uma despesa abaixo do limiar e inflava-se por PATCH, contornando
+    # a dupla assinatura. Só barra quando o valor/tipo muda (edições de metadados
+    # ficam livres) e isenta despesas já co-aprovadas por um Acto (ato_id).
+    if ("amount" in updates or "type" in updates) and not existing.get("ato_id"):
+        eff_type = updates.get("type", existing["type"])
+        eff_amount = updates.get("amount", existing.get("amount") or 0)
+        if eff_type == "despesa":
+            limiar = await _coaprovacao_limiar()
+            if limiar > 0 and eff_amount > limiar:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Despesa de {eff_amount:,.0f} CVE excede o limiar de co-aprovacao "
+                        f"({limiar:,.0f} CVE). Crie um Acto de pagamento e execute-o apos aprovacao."
+                    ),
+                )
+
     if updates:
         await db.transactions.update_one({"id": transaction_id}, {"$set": updates})
         await create_audit_log(current_user.id, f"Atualizou transacao {transaction_id}", transaction_id)
