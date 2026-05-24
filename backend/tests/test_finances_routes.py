@@ -187,6 +187,88 @@ class TestCreateTransaction:
 
 
 # --------------------------------------------------------------------------- #
+# PATCH /transactions/{id} — update + co-approval gate (Art. 54)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.asyncio
+class TestUpdateTransaction:
+    async def test_socio_403(self, mock_db, socio_user):
+        from models import TransactionUpdate
+
+        with pytest.raises(HTTPException) as exc:
+            await finances_route.update_transaction(
+                transaction_id="tx1", data=TransactionUpdate(description="x"), current_user=socio_user
+            )
+        assert exc.value.status_code == 403
+
+    async def test_404_not_found(self, mock_db, admin_user):
+        from models import TransactionUpdate
+
+        mock_db.transactions.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await finances_route.update_transaction(
+                transaction_id="missing", data=TransactionUpdate(description="x"), current_user=admin_user
+            )
+        assert exc.value.status_code == 404
+
+    async def test_coaprovacao_gate_blocks_raising_despesa_above_limiar(self, mock_db, admin_user):
+        """Regressão: criava-se uma despesa abaixo do limiar e inflava-se por PATCH,
+        contornando a co-aprovação (Art. 54)."""
+        from models import TransactionUpdate
+
+        existing = {"id": "tx1", "type": "despesa", "amount": 100, "category": "operacional"}
+        mock_db.transactions.find_one = AsyncMock(return_value=existing)
+        mock_db.finance_settings.find_one = AsyncMock(return_value={"coaprovacao_limiar": 10000})
+        with pytest.raises(HTTPException) as exc:
+            await finances_route.update_transaction(
+                transaction_id="tx1", data=TransactionUpdate(amount=500000), current_user=admin_user
+            )
+        assert exc.value.status_code == 400
+        assert "limiar" in exc.value.detail.lower()
+        mock_db.transactions.update_one.assert_not_awaited()
+
+    async def test_metadata_edit_allowed_on_above_limiar_despesa(self, mock_db, admin_user):
+        """Editar só metadados (sem mexer no valor/tipo) de uma despesa acima do
+        limiar continua livre — o gate não dispara."""
+        from models import TransactionUpdate
+
+        existing = {"id": "tx1", "type": "despesa", "amount": 500000, "category": "operacional"}
+        mock_db.transactions.find_one = AsyncMock(side_effect=[existing, {**existing, "description": "nova"}])
+        mock_db.finance_settings.find_one = AsyncMock(return_value={"coaprovacao_limiar": 10000})
+        result = await finances_route.update_transaction(
+            transaction_id="tx1", data=TransactionUpdate(description="nova"), current_user=admin_user
+        )
+        assert result["description"] == "nova"
+        mock_db.transactions.update_one.assert_awaited_once()
+
+    async def test_ato_linked_despesa_exempt(self, mock_db, admin_user):
+        """Despesa já co-aprovada por um Acto (ato_id) está isenta do gate."""
+        from models import TransactionUpdate
+
+        existing = {"id": "tx1", "type": "despesa", "amount": 100, "category": "operacional", "ato_id": "a1"}
+        mock_db.transactions.find_one = AsyncMock(side_effect=[existing, {**existing, "amount": 500000}])
+        mock_db.finance_settings.find_one = AsyncMock(return_value={"coaprovacao_limiar": 10000})
+        result = await finances_route.update_transaction(
+            transaction_id="tx1", data=TransactionUpdate(amount=500000), current_user=admin_user
+        )
+        assert result["amount"] == 500000
+        mock_db.transactions.update_one.assert_awaited_once()
+
+    async def test_below_limiar_update_passes(self, mock_db, admin_user):
+        from models import TransactionUpdate
+
+        existing = {"id": "tx1", "type": "despesa", "amount": 100, "category": "operacional"}
+        mock_db.transactions.find_one = AsyncMock(side_effect=[existing, {**existing, "amount": 5000}])
+        mock_db.finance_settings.find_one = AsyncMock(return_value={"coaprovacao_limiar": 10000})
+        result = await finances_route.update_transaction(
+            transaction_id="tx1", data=TransactionUpdate(amount=5000), current_user=admin_user
+        )
+        assert result["amount"] == 5000
+        mock_db.transactions.update_one.assert_awaited_once()
+
+
+# --------------------------------------------------------------------------- #
 # DELETE /transactions/{id}
 # --------------------------------------------------------------------------- #
 

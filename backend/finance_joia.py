@@ -44,7 +44,7 @@ def _joia_valor(settings: dict) -> float:
     """Valor de referência da jóia: `joia_amount` fixo sobrepõe o múltiplo."""
     quota = float(settings.get("quota_amount") or 0.0)
     amount = settings.get("joia_amount")
-    if amount:
+    if amount is not None:
         return float(amount)
     return float(settings.get("joia_multiplier") or 2.0) * quota
 

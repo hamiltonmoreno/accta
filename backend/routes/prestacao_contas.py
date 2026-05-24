@@ -113,7 +113,7 @@ async def publish_balancete(data: BalanceteCreate, current_user: User = Depends(
     cf_ids = await members_of_orgao("conselho_fiscal")
     await notify_users(
         cf_ids,
-        "finance",
+        "financeiro",
         "Balancete publicado",
         f"Foi publicado o balancete {data.periodo} para auditoria do Conselho Fiscal.",
         _LINK_BAL,
@@ -145,9 +145,7 @@ async def get_balancete(balancete_id: str, current_user: User = Depends(get_curr
 
 
 @router.post("/balancetes/{balancete_id}/auditar")
-async def auditar_balancete(
-    balancete_id: str, data: BalanceteAuditar, current_user: User = Depends(get_current_user)
-):
+async def auditar_balancete(balancete_id: str, data: BalanceteAuditar, current_user: User = Depends(get_current_user)):
     _require_cf(current_user)
     bal = await db.balancetes.find_one({"id": balancete_id}, {"_id": 0})
     if not bal:
@@ -162,8 +160,7 @@ async def auditar_balancete(
     await db.balancetes.update_one({"id": balancete_id}, {"$set": {"cf_audit": cf_audit}})
     await create_audit_log(
         current_user.id,
-        f"Auditou balancete {bal.get('periodo')} "
-        f"({'conferido' if data.conferido else 'com observacoes'})",
+        f"Auditou balancete {bal.get('periodo')} ({'conferido' if data.conferido else 'com observacoes'})",
         balancete_id,
         details={"conferido": data.conferido},
     )
@@ -171,7 +168,7 @@ async def auditar_balancete(
     if publisher:
         await notify_users(
             [publisher],
-            "finance",
+            "financeiro",
             "Balancete auditado",
             f"O Conselho Fiscal auditou o balancete {bal.get('periodo')}.",
             _LINK_BAL,
@@ -249,9 +246,7 @@ async def get_exercicio(ano: int, current_user: User = Depends(get_current_user)
 
 
 @router.post("/exercicios/{ano}/relatorio")
-async def submeter_relatorio(
-    ano: int, data: RelatorioContasSubmit, current_user: User = Depends(get_current_user)
-):
+async def submeter_relatorio(ano: int, data: RelatorioContasSubmit, current_user: User = Depends(get_current_user)):
     _require_direcao(current_user)
     ex = await _get_exercicio(ano)
     if ex["status"] not in ("aberto", "reaberto"):
@@ -274,7 +269,7 @@ async def submeter_relatorio(
     cf_ids = await members_of_orgao("conselho_fiscal")
     await notify_users(
         cf_ids,
-        "finance",
+        "financeiro",
         "Relatorio e Contas submetido",
         f"O Relatorio e Contas do exercicio {ano} aguarda o parecer do Conselho Fiscal.",
         _LINK_EX,
@@ -284,9 +279,7 @@ async def submeter_relatorio(
 
 
 @router.post("/exercicios/{ano}/orcamento")
-async def submeter_orcamento(
-    ano: int, data: OrcamentoSubmit, current_user: User = Depends(get_current_user)
-):
+async def submeter_orcamento(ano: int, data: OrcamentoSubmit, current_user: User = Depends(get_current_user)):
     _require_direcao(current_user)
     ex = await _get_exercicio(ano)
     if ex["status"] not in _EDITAVEL:
@@ -298,9 +291,7 @@ async def submeter_orcamento(
     for linha in data.linhas:
         validas = INCOME_CATEGORIES if linha.tipo == "receita" else EXPENSE_CATEGORIES
         if linha.categoria not in validas:
-            raise HTTPException(
-                status_code=400, detail=f"Categoria invalida para {linha.tipo}: {linha.categoria}"
-            )
+            raise HTTPException(status_code=400, detail=f"Categoria invalida para {linha.tipo}: {linha.categoria}")
 
     orcamento = {
         "linhas": [linha.model_dump() for linha in data.linhas],
@@ -339,9 +330,7 @@ async def emitir_parecer(ano: int, data: ParecerSubmit, current_user: User = Dep
     _require_cf(current_user)  # CF (ou emit_cf_parecer) — separado de manage_finances
     ex = await _get_exercicio(ano)
     if ex["status"] != "relatorio_submetido":
-        raise HTTPException(
-            status_code=400, detail="O parecer so pode ser emitido apos o relatorio submetido"
-        )
+        raise HTTPException(status_code=400, detail="O parecer so pode ser emitido apos o relatorio submetido")
     if data.document_id:
         await _validate_document(data.document_id)
 
@@ -352,16 +341,12 @@ async def emitir_parecer(ano: int, data: ParecerSubmit, current_user: User = Dep
         emitted_by=current_user.id,
         emitted_at=_now(),
     ).model_dump()
-    await db.exercicios.update_one(
-        {"ano": ano}, {"$set": {"parecer_cf": parecer, "status": "parecer_emitido"}}
-    )
-    await create_audit_log(
-        current_user.id, f"Emitiu parecer do CF do exercicio {ano} ({data.sentido})", ex["id"]
-    )
+    await db.exercicios.update_one({"ano": ano}, {"$set": {"parecer_cf": parecer, "status": "parecer_emitido"}})
+    await create_audit_log(current_user.id, f"Emitiu parecer do CF do exercicio {ano} ({data.sentido})", ex["id"])
     mesa_ids = await members_of_orgao("mesa_ag")
     await notify_users(
         mesa_ids,
-        "finance",
+        "financeiro",
         "Parecer do Conselho Fiscal emitido",
         f"O parecer do CF do exercicio {ano} esta pronto para ir a AG ordinaria.",
         _LINK_EX,
@@ -371,9 +356,7 @@ async def emitir_parecer(ano: int, data: ParecerSubmit, current_user: User = Dep
 
 
 @router.post("/exercicios/{ano}/submeter-ag")
-async def submeter_ag(
-    ano: int, data: ExercicioSubmeterAG, current_user: User = Depends(get_current_user)
-):
+async def submeter_ag(ano: int, data: ExercicioSubmeterAG, current_user: User = Depends(get_current_user)):
     _require_mesa_ag(current_user)
     ex = await _get_exercicio(ano)
     if ex["status"] != "parecer_emitido":
@@ -390,9 +373,7 @@ async def submeter_ag(
 
 
 @router.post("/exercicios/{ano}/aprovar")
-async def aprovar_exercicio(
-    ano: int, data: ExercicioAprovar, current_user: User = Depends(get_current_user)
-):
+async def aprovar_exercicio(ano: int, data: ExercicioAprovar, current_user: User = Depends(get_current_user)):
     _require_mesa_ag(current_user)
     ex = await _get_exercicio(ano)
     if ex["status"] != "em_aprovacao_ag":
@@ -400,8 +381,10 @@ async def aprovar_exercicio(
 
     # A aprovação É da AG (Art. 19.1/37): exige uma deliberação. Se aprovar, a
     # deliberação tem de estar aprovada.
-    delib = await _validate_deliberacao_aprovada(data.deliberacao_id) if data.aprovado else (
-        await db.assembleia_deliberacoes.find_one({"id": data.deliberacao_id}, {"_id": 0})
+    delib = (
+        await _validate_deliberacao_aprovada(data.deliberacao_id)
+        if data.aprovado
+        else (await db.assembleia_deliberacoes.find_one({"id": data.deliberacao_id}, {"_id": 0}))
     )
     if not data.aprovado and not delib:
         raise HTTPException(status_code=400, detail="Deliberacao da AG nao encontrada")
@@ -425,7 +408,7 @@ async def aprovar_exercicio(
 
     if data.aprovado:
         await notify_all_active_users(
-            "finance",
+            "financeiro",
             "Contas aprovadas",
             f"A Assembleia Geral aprovou o Relatorio e Contas do exercicio {ano}.",
             _LINK_EX,
