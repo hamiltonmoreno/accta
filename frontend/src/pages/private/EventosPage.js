@@ -4,6 +4,7 @@ import { eventsAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { queryKeys } from '../../lib/queryClient';
+import { Skeleton } from '../../components/ui/skeleton';
 import { toast } from 'sonner';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -117,8 +118,8 @@ export const EventosPage = () => {
       </div>
 
       {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-56 rounded-xl" />)}
         </div>
       ) : filteredEvents.length === 0 ? (
         <EmptyState

@@ -22,6 +22,10 @@ jest.mock('../../../components/ui/alert-dialog', () => ({
   AlertDialogTitle: ({ children }) => <h2>{children}</h2>,
 }));
 
+jest.mock('../../../components/ui/skeleton', () => ({
+  Skeleton: () => null,
+}));
+
 const { buildSettingsUpdate } = require('../financeiro/SettingsTab');
 
 describe('buildSettingsUpdate', () => {

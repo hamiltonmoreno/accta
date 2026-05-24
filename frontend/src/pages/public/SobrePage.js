@@ -45,7 +45,7 @@ export const SobrePage = () => {
             </div>
 
             <div className="relative animate-fade-up">
-              <div className="bg-gradient-to-br from-primary to-primary/80 rounded-2xl p-8 text-white">
+              <div className="bg-gradient-to-br from-grafite to-grafite/80 rounded-2xl p-8 text-white">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-16 h-16 bg-carmesim rounded-xl flex items-center justify-center">
                     <Globe className="w-8 h-8 text-white" />
@@ -96,7 +96,7 @@ export const SobrePage = () => {
             </div>
 
             {/* Vision */}
-            <div className="card-technical rounded-2xl p-8 border-l-4 border-primary animate-fade-up">
+            <div className="card-technical rounded-2xl p-8 border-l-4 border-grafite animate-fade-up">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-14 h-14 bg-grafite rounded-xl flex items-center justify-center">
                   <Eye className="w-7 h-7 text-white" />

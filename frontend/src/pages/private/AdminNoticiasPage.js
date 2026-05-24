@@ -167,7 +167,7 @@ export const AdminNoticiasPage = () => {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => setEditing(post)}
-                          className="p-2 rounded-md text-grafite hover:bg-[#F5F5F5] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40"
+                          className="rounded-md text-grafite hover:bg-[#F5F5F5] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
                           title="Editar"
                           data-testid={`edit-post-${post.id}`}
                         >
@@ -176,7 +176,7 @@ export const AdminNoticiasPage = () => {
                         </button>
                         <button
                           onClick={() => setToDelete(post)}
-                          className="p-2 rounded-md text-[#B91C1C] hover:bg-[#FEF2F2] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40"
+                          className="rounded-md text-[#B91C1C] hover:bg-[#FEF2F2] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 min-w-[44px] min-h-[44px] inline-flex items-center justify-center"
                           title="Eliminar"
                           data-testid={`delete-post-${post.id}`}
                         >

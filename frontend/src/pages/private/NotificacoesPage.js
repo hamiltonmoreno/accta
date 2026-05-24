@@ -299,7 +299,10 @@ export const NotificacoesPage = () => {
             return (
               <div key={notification.id}
                 onClick={() => handleNotificationClick(notification)}
-                className={`card-technical rounded-xl p-4 sm:p-5 cursor-pointer hover:shadow-md transition-all group ${
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNotificationClick(notification); } }}
+                className={`card-technical rounded-xl p-4 sm:p-5 cursor-pointer hover:shadow-md transition-all group outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 ${
                   !notification.read ? 'border-l-4 border-l-carmesim' : ''
                 } animate-fade-up`}
                 data-testid={`notification-item-${notification.id}`}>
@@ -312,14 +315,18 @@ export const NotificacoesPage = () => {
                       <h3 className="font-semibold text-sm sm:text-base text-grafite-auto">{notification.title}</h3>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         {!notification.read && (
-                          <span className="w-2 h-2 bg-carmesim rounded-full" />
+                          <>
+                            <span className="w-2 h-2 bg-carmesim rounded-full" aria-hidden="true" />
+                            <span className="sr-only">Não lida</span>
+                          </>
                         )}
                         <button
                           onClick={(e) => handleDelete(e, notification.id)}
-                          className="p-1 rounded-md opacity-0 group-hover:opacity-100 text-gray-400 hover:text-carmesim hover:bg-carmesim/10 transition-all"
+                          aria-label="Apagar notificação"
+                          className="rounded-md opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-gray-400 hover:text-carmesim hover:bg-carmesim/10 transition-all min-w-[44px] min-h-[44px] inline-flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40"
                           data-testid={`delete-notif-${notification.id}`}
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>

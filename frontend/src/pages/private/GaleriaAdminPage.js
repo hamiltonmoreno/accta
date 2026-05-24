@@ -106,27 +106,27 @@ const UploadModal = ({ albums, onClose }) => {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Album *</label>
-            <select value={albumId} onChange={(e) => setAlbumId(e.target.value)} data-testid="upload-album-select"
+            <label htmlFor="upload-album" className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Album *</label>
+            <select id="upload-album" value={albumId} onChange={(e) => setAlbumId(e.target.value)} data-testid="upload-album-select"
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none">
               {albums.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Legenda</label>
-            <input type="text" value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Descricao da foto..."
+            <label htmlFor="upload-caption" className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Legenda</label>
+            <input id="upload-caption" type="text" value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Descricao da foto..."
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="upload-caption-input" />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Fotos * (JPG, PNG, WEBP)</label>
+            <label htmlFor="upload-files" className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Fotos * (JPG, PNG, WEBP)</label>
             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-carmesim/50 transition-colors"
               data-testid="upload-file-input">
               <Upload className="w-8 h-8 text-gray-300 mb-2" />
               <span className="text-sm text-muted-auto">
                 {files.length > 0 ? `${files.length} foto${files.length > 1 ? 's' : ''} selecionada${files.length > 1 ? 's' : ''}` : 'Clique para selecionar'}
               </span>
-              <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
+              <input id="upload-files" type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
                 onChange={(e) => setFiles(Array.from(e.target.files))} />
             </label>
           </div>

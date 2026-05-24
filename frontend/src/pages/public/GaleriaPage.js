@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { galleryAPI } from '../../utils/api';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { Camera, X, ChevronLeft, ChevronRight, Images, ArrowLeft } from 'lucide-react';
@@ -29,10 +30,11 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
       {/* Close */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 z-50 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+        aria-label="Fechar"
+        className="absolute top-4 right-4 z-50 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/70"
         data-testid="lightbox-close"
       >
-        <X className="w-6 h-6 text-white" />
+        <X className="w-6 h-6 text-white" aria-hidden="true" />
       </button>
 
       {/* Counter */}
@@ -44,10 +46,11 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
       {currentIndex > 0 && (
         <button
           onClick={(e) => { e.stopPropagation(); onPrev(); }}
-          className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-50 p-2 sm:p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+          aria-label="Foto anterior"
+          className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-50 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           data-testid="lightbox-prev"
         >
-          <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" aria-hidden="true" />
         </button>
       )}
 
@@ -55,10 +58,11 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
       {currentIndex < photos.length - 1 && (
         <button
           onClick={(e) => { e.stopPropagation(); onNext(); }}
-          className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-50 p-2 sm:p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+          aria-label="Próxima foto"
+          className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-50 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           data-testid="lightbox-next"
         >
-          <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-white" aria-hidden="true" />
         </button>
       )}
 
@@ -66,7 +70,7 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
       <div className="max-w-5xl max-h-[85vh] mx-4" onClick={(e) => e.stopPropagation()}>
         <img key={photo.id}
           src={photo.url}
-          alt={photo.caption}
+          alt={photo.caption || ''}
           className="max-w-full max-h-[80vh] object-contain rounded-lg animate-fade-up" />
         {photo.caption && (
           <p className="text-white/80 text-center mt-4 text-sm sm:text-base">{photo.caption}</p>
@@ -138,7 +142,7 @@ const AlbumView = ({ album, photos, onBack, onOpenLightbox }) => (
           data-testid={`photo-${photo.id}`}>
           <img
             src={photo.url}
-            alt={photo.caption}
+            alt={photo.caption || ''}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
             loading="lazy"
           />
@@ -156,42 +160,22 @@ const AlbumView = ({ album, photos, onBack, onOpenLightbox }) => (
 );
 
 export const GaleriaPage = () => {
-  const [albums, setAlbums] = useState([]);
   const [selectedAlbum, setSelectedAlbum] = useState(null);
-  const [photos, setPhotos] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [lightboxIndex, setLightboxIndex] = useState(-1);
 
-  const loadAlbums = useCallback(async () => {
-    try {
-      const res = await galleryAPI.getPublicAlbums();
-      setAlbums(res.data);
-    } catch (err) {
-      console.error('Erro ao carregar albuns:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data: albums = [], isLoading: loadingAlbums } = useQuery({
+    queryKey: ['publicAlbums'],
+    queryFn: async () => (await galleryAPI.getPublicAlbums()).data,
+  });
 
-  useEffect(() => { loadAlbums(); }, [loadAlbums]);
+  const { data: photos = [] } = useQuery({
+    queryKey: ['publicPhotos', selectedAlbum?.id],
+    queryFn: async () => (await galleryAPI.getPublicPhotos(selectedAlbum.id)).data,
+    enabled: !!selectedAlbum,
+  });
 
-  const openAlbum = async (album) => {
-    setSelectedAlbum(album);
-    setLoading(true);
-    try {
-      const res = await galleryAPI.getPublicPhotos(album.id);
-      setPhotos(res.data);
-    } catch (err) {
-      console.error('Erro ao carregar fotos:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const closeAlbum = () => {
-    setSelectedAlbum(null);
-    setPhotos([]);
-  };
+  const openAlbum = (album) => setSelectedAlbum(album);
+  const closeAlbum = () => setSelectedAlbum(null);
 
   return (
     <div>
@@ -206,7 +190,7 @@ export const GaleriaPage = () => {
 
       {/* Content */}
       <section className="max-w-7xl mx-auto px-5 sm:px-6 py-10 sm:py-16">
-        {loading && !selectedAlbum ? (
+        {loadingAlbums && !selectedAlbum ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6" data-testid="albums-loading">
             {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="aspect-[4/3] rounded-xl" />

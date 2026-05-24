@@ -97,7 +97,7 @@ export const BeneficiosPublicoPage = () => {
             </div>
 
             <div className="animate-fade-up">
-              <div className="bg-gradient-to-br from-primary to-[#1e3a5f] rounded-2xl p-8 text-white">
+              <div className="bg-gradient-to-br from-grafite to-[#1e3a5f] rounded-2xl p-8 text-white">
                 <Gift className="w-12 h-12 text-white mb-6" />
                 <h3 className="font-sans font-bold text-2xl mb-4">Benefícios Exclusivos</h3>
                 <ul className="space-y-4">

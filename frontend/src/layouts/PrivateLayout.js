@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
@@ -197,6 +197,36 @@ export const PrivateLayout = ({ children }) => {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
+  const mobileNavRef = useRef(null);
+  const menuBtnRef = useRef(null);
+
+  // Drawer mobile: prende o foco, fecha com Escape e devolve o foco ao botão
+  // que o abriu — sem isto o teclado escapava para o conteúdo por trás (a11y).
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const node = mobileNavRef.current;
+    if (!node) return;
+    const getItems = () =>
+      node.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])');
+    getItems()[0]?.focus();
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') { setMobileOpen(false); return; }
+      if (e.key !== 'Tab') return;
+      const items = getItems();
+      if (!items.length) return;
+      const firstEl = items[0];
+      const lastEl = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === firstEl) { e.preventDefault(); lastEl.focus(); }
+      else if (!e.shiftKey && document.activeElement === lastEl) { e.preventDefault(); firstEl.focus(); }
+    };
+    const trigger = menuBtnRef.current;
+    node.addEventListener('keydown', onKeyDown);
+    return () => {
+      node.removeEventListener('keydown', onKeyDown);
+      trigger?.focus();
+    };
+  }, [mobileOpen]);
+
   const currentPageTitle = getPageTitle(pathname);
 
   const handleLogout = () => {
@@ -371,6 +401,7 @@ export const PrivateLayout = ({ children }) => {
         {/* Logout button */}
         <button
           onClick={handleLogout}
+          aria-label="Sair"
           className="w-full flex items-center rounded-lg transition-colors text-secondary-auto"
           data-testid="logout-button"
         >
@@ -411,11 +442,13 @@ export const PrivateLayout = ({ children }) => {
         aria-hidden={!mobileOpen}
       />
       <aside
+        ref={mobileNavRef}
         className={`fixed left-0 top-0 bottom-0 z-50 md:hidden flex flex-col shadow-xl transition-transform duration-[280ms] ease-spring will-change-transform bg-[var(--surface-sidebar)] ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{ width: SIDEBAR_W }}
         aria-hidden={!mobileOpen}
+        aria-label="Menu de navegação"
       >
         {sidebarInner({ isMobile: true })}
       </aside>
@@ -427,6 +460,7 @@ export const PrivateLayout = ({ children }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
+                ref={menuBtnRef}
                 onClick={() => setMobileOpen(true)}
                 className="p-2 -ml-2 rounded-lg transition-colors touch-target text-grafite-auto"
                 aria-label="Abrir menu"
@@ -447,7 +481,7 @@ export const PrivateLayout = ({ children }) => {
 
         {/* Desktop Top Bar */}
         <header
-          className="hidden md:block sticky top-0 z-20 backdrop-blur-md py-3 pr-6 transition-all duration-300 bg-[var(--surface-header)] border-b border-[var(--surface-border)]"
+          className="hidden md:block sticky top-0 z-30 backdrop-blur-md py-3 pr-6 transition-all duration-300 bg-[var(--surface-header)] border-b border-[var(--surface-border)]"
           style={{ paddingLeft: isDesktop ? `calc(${sidebarWidth}px + 1.5rem)` : undefined }}
         >
           <div className="flex items-center justify-between">

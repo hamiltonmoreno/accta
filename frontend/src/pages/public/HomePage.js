@@ -190,7 +190,7 @@ export const HomePage = () => {
                 className="text-center animate-fade-up">
                 <stat.icon className="w-6 sm:w-8 h-6 sm:h-8 text-white mx-auto mb-2 sm:mb-3" />
                 <div className="font-bold text-2xl sm:text-3xl lg:text-4xl text-white mb-0.5">{stat.value}</div>
-                <div className="text-xs text-white/60 tracking-wider">{stat.label}</div>
+                <div className="text-xs text-white/80 tracking-wider">{stat.label}</div>
               </div>
             ))}
           </div>

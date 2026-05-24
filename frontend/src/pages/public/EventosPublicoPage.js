@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { eventsAPI } from '../../utils/api';
 import { 
@@ -28,24 +29,12 @@ const eventTypeConfig = {
 };
 
 export const EventosPublicoPage = () => {
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('upcoming'); // upcoming, past, all
 
-  useEffect(() => {
-    loadEvents();
-  }, []);
-
-  const loadEvents = async () => {
-    try {
-      const response = await eventsAPI.getPublic();
-      setEvents(response.data);
-    } catch (error) {
-      console.error('Erro ao carregar eventos:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: events = [], isLoading: loading } = useQuery({
+    queryKey: ['publicEvents'],
+    queryFn: async () => (await eventsAPI.getPublic()).data,
+  });
 
   const filteredEvents = events.filter(event => {
     const eventDate = new Date(event.date);

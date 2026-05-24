@@ -9,6 +9,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { EmptyState } from '../../components/EmptyState';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
+import { Skeleton } from '../../components/ui/skeleton';
 
 export const DocumentosPage = () => {
   const { isAdmin } = useAuth();
@@ -80,8 +81,8 @@ export const DocumentosPage = () => {
 
       {/* Documents List */}
       {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
         </div>
       ) : filteredDocuments.length === 0 ? (
         <EmptyState

@@ -78,6 +78,7 @@ const BannerCard = ({ bkey, info, onUpload, onSaveAlt, uploading, savingAlt }) =
               type="button"
               onClick={() => onSaveAlt(bkey, alt)}
               disabled={savingAlt || alt === (info.alt || '')}
+              aria-label="Guardar texto alternativo"
               className="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50"
               data-testid={`banner-alt-save-${bkey}`}
             >

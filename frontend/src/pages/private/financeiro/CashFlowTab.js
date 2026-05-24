@@ -290,7 +290,7 @@ export const CashFlowTab = ({ canManage = true }) => {
                       {tx.type === 'receita' ? <ArrowUpCircle className="w-3 h-3" /> : <ArrowDownCircle className="w-3 h-3" />}
                       {CATEGORY_LABELS[tx.category] || tx.category}
                     </span>
-                    <span className={`font-mono font-bold text-sm ${tx.type === 'receita' ? 'text-[#15803D]' : 'text-[#B91C1C]'}`}>
+                    <span className={`font-mono font-bold text-sm tabular-nums ${tx.type === 'receita' ? 'text-[#15803D]' : 'text-[#B91C1C]'}`}>
                       {tx.type === 'receita' ? '+' : '-'}{tx.amount.toLocaleString('pt')} CVE
                     </span>
                   </div>

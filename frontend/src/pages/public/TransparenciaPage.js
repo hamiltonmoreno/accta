@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { documentsAPI } from '../../utils/api';
 import {
@@ -17,24 +18,12 @@ import { EmptyState } from '../../components/EmptyState';
 import { PageBanner } from '../../components/PageBanner';
 
 export const TransparenciaPage = () => {
-  const [documents, setDocuments] = useState([]);
-  const [reports, setReports] = useState([]);
-
-  useEffect(() => {
-    loadPublicDocuments();
-  }, []);
-
-  const loadPublicDocuments = async () => {
-    try {
-      const res = await documentsAPI.getPublic();
-      const all = res.data || [];
-      setDocuments(all.filter(d => d.type !== 'balancete' && d.type !== 'plano'));
-      setReports(all.filter(d => d.type === 'balancete' || d.type === 'plano'));
-    } catch {
-      setDocuments([]);
-      setReports([]);
-    }
-  };
+  const { data: allDocs = [] } = useQuery({
+    queryKey: ['publicDocuments'],
+    queryFn: async () => (await documentsAPI.getPublic()).data || [],
+  });
+  const documents = allDocs.filter((d) => d.type !== 'balancete' && d.type !== 'plano');
+  const reports = allDocs.filter((d) => d.type === 'balancete' || d.type === 'plano');
 
   const getDocIcon = (type) => {
     switch (type) {
@@ -134,7 +123,7 @@ export const TransparenciaPage = () => {
                 return (
                   <div key={report.id}
                     className="card-technical rounded-xl overflow-hidden animate-fade-up">
-                    <div className="h-24 bg-gradient-to-r from-primary to-[#1e3a5f] flex items-center px-6">
+                    <div className="h-24 bg-gradient-to-r from-grafite to-[#1e3a5f] flex items-center px-6">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-carmesim rounded-lg flex items-center justify-center">
                           <IconComponent className="w-6 h-6 text-white" />
