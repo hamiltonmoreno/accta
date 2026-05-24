@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { EmptyState } from '../../../components/EmptyState';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../../components/ui/dialog';
+import { DocumentUploadField } from '../../../components/DocumentUploadField';
 
 const TIPO_LABEL = { periodico: 'Balancete periódico', balanco_anual: 'Balanço anual' };
 const fmtCve = (v) => `${Number(v || 0).toLocaleString('pt-PT')} CVE`;
@@ -43,6 +44,7 @@ export const BalancetesTab = () => {
         periodo: form.periodo.trim(),
         exercicio_ano: Number(form.exercicio_ano),
         month: form.month === '' ? null : Number(form.month),
+        document_id: form.document_id || undefined,
       }),
     onSuccess: () => {
       toast.success('Balancete publicado.');
@@ -174,6 +176,12 @@ export const BalancetesTab = () => {
                 </select>
               </div>
             </div>
+            <DocumentUploadField
+              kind="balancete"
+              value={form.document_id}
+              onChange={(id) => setForm({ ...form, document_id: id })}
+              label="Balancete (PDF, opcional)"
+            />
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowPublish(false)} className="px-4 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer">Cancelar</button>
               <button onClick={() => publishMut.mutate()} disabled={publishMut.isPending || form.periodo.trim().length < 4} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="balancete-submit">

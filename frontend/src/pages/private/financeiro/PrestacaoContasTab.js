@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { EmptyState } from '../../../components/EmptyState';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../../components/ui/dialog';
+import { DocumentUploadField } from '../../../components/DocumentUploadField';
 
 const STEPS = [
   { key: 'aberto', label: 'Aberto' },
@@ -87,9 +88,9 @@ export const PrestacaoContasTab = () => {
       switch (kind) {
         case 'abrir': return exerciciosAPI.abrir({ ano: Number(payload.ano) });
         case 'relatorio': return exerciciosAPI.submeterRelatorio(ano, { document_id: payload.document_id.trim() });
-        case 'orcamento': return exerciciosAPI.submeterOrcamento(ano, { linhas: payload.linhas });
-        case 'plano': return exerciciosAPI.submeterPlano(ano, { atividades: payload.atividades });
-        case 'parecer': return exerciciosAPI.emitirParecer(ano, { sentido: payload.sentido, texto: payload.texto.trim() });
+        case 'orcamento': return exerciciosAPI.submeterOrcamento(ano, { linhas: payload.linhas, document_id: payload.document_id });
+        case 'plano': return exerciciosAPI.submeterPlano(ano, { atividades: payload.atividades, document_id: payload.document_id });
+        case 'parecer': return exerciciosAPI.emitirParecer(ano, { sentido: payload.sentido, texto: payload.texto.trim(), document_id: payload.document_id || undefined });
         case 'ag': return exerciciosAPI.submeterAG(ano, { assembleia_id: payload.assembleia_id.trim() });
         case 'aprovar': return exerciciosAPI.aprovar(ano, { deliberacao_id: payload.deliberacao_id.trim(), aprovado: payload.aprovado });
         case 'reabrir': return exerciciosAPI.reabrir(ano);
@@ -240,10 +241,13 @@ export const PrestacaoContasTab = () => {
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Submeter Relatório e Contas</DialogTitle><DialogDescription>O DRE do ano é congelado no momento da submissão.</DialogDescription></DialogHeader>
           <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-[#6B7280] mb-1">ID do documento (PDF carregado) *</label>
-              <input type="text" value={form.document_id || ''} onChange={(e) => setForm({ ...form, document_id: e.target.value })} className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid="relatorio-doc" />
-            </div>
+            <DocumentUploadField
+              kind="relatorio"
+              required
+              value={form.document_id}
+              onChange={(id) => setForm({ ...form, document_id: id })}
+              label="Relatório e Contas (PDF)"
+            />
             <DialogActions onCancel={closeDialog} onConfirm={() => runMut.mutate({ kind: 'relatorio', payload: form })} pending={runMut.isPending} disabled={!form.document_id?.trim()} label="Submeter" testId="relatorio-submit" />
           </div>
         </DialogContent>
@@ -268,9 +272,15 @@ export const PrestacaoContasTab = () => {
               </div>
             ))}
             <button onClick={() => setLinhas([...linhas, { tipo: 'receita', categoria: '', valor_previsto: '' }])} className="text-sm text-[#C7202F] underline cursor-pointer">+ Adicionar linha</button>
+            <DocumentUploadField
+              kind="orcamento"
+              value={form.document_id}
+              onChange={(id) => setForm({ ...form, document_id: id })}
+              label="Orçamento (PDF, opcional)"
+            />
             <DialogActions
               onCancel={closeDialog}
-              onConfirm={() => runMut.mutate({ kind: 'orcamento', payload: { linhas: linhas.filter((l) => l.categoria).map((l) => ({ categoria: l.categoria, tipo: l.tipo, valor_previsto: Number(l.valor_previsto || 0) })) } })}
+              onConfirm={() => runMut.mutate({ kind: 'orcamento', payload: { linhas: linhas.filter((l) => l.categoria).map((l) => ({ categoria: l.categoria, tipo: l.tipo, valor_previsto: Number(l.valor_previsto || 0) })), document_id: form.document_id || undefined } })}
               pending={runMut.isPending}
               disabled={linhas.filter((l) => l.categoria).length === 0}
               label="Submeter orçamento"
@@ -294,9 +304,15 @@ export const PrestacaoContasTab = () => {
               </div>
             ))}
             <button onClick={() => setAtividades([...atividades, { titulo: '', trimestre: '' }])} className="text-sm text-[#C7202F] underline cursor-pointer">+ Adicionar atividade</button>
+            <DocumentUploadField
+              kind="plano"
+              value={form.document_id}
+              onChange={(id) => setForm({ ...form, document_id: id })}
+              label="Plano de Atividades (PDF, opcional)"
+            />
             <DialogActions
               onCancel={closeDialog}
-              onConfirm={() => runMut.mutate({ kind: 'plano', payload: { atividades: atividades.filter((a) => a.titulo.trim().length >= 2).map((a) => ({ titulo: a.titulo.trim(), trimestre: a.trimestre ? Number(a.trimestre) : null })) } })}
+              onConfirm={() => runMut.mutate({ kind: 'plano', payload: { atividades: atividades.filter((a) => a.titulo.trim().length >= 2).map((a) => ({ titulo: a.titulo.trim(), trimestre: a.trimestre ? Number(a.trimestre) : null })), document_id: form.document_id || undefined } })}
               pending={runMut.isPending}
               disabled={atividades.filter((a) => a.titulo.trim().length >= 2).length === 0}
               label="Submeter plano"
@@ -320,6 +336,12 @@ export const PrestacaoContasTab = () => {
               <label className="block text-xs font-medium text-[#6B7280] mb-1">Texto do parecer *</label>
               <textarea value={form.texto || ''} maxLength={10000} rows={4} onChange={(e) => setForm({ ...form, texto: e.target.value })} className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid="parecer-texto" />
             </div>
+            <DocumentUploadField
+              kind="parecer"
+              value={form.document_id}
+              onChange={(id) => setForm({ ...form, document_id: id })}
+              label="Parecer do CF (PDF, opcional)"
+            />
             <DialogActions onCancel={closeDialog} onConfirm={() => runMut.mutate({ kind: 'parecer', payload: form })} pending={runMut.isPending} disabled={!form.texto?.trim()} label="Emitir parecer" testId="parecer-submit" />
           </div>
         </DialogContent>
