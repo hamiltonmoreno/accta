@@ -198,6 +198,9 @@ PRIVILEGES = [
     # parecer do CF / auditoria de balancetes (spec-ciclo §3.3) — separado de
     # manage_finances: o CF audita mas NÃO escreve transacções.
     "emit_cf_parecer",
+    # disparo de comunicados (spec-comunicados-email) — overlay aditivo:
+    # admin OU este privilégio podem compor/enviar comunicados.
+    "send_comunicados",
 ]
 
 ROLES = ["admin", "financeiro", "moderador", "socio"]

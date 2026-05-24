@@ -51,7 +51,7 @@ if not DATABASE_URL:
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
-# All logical collections -> tables. 29 with Pydantic models + 7 without.
+# All logical collections -> tables. 30 with Pydantic models + 7 without.
 COLLECTIONS: tuple[str, ...] = (
     "users",
     "invoices",
@@ -101,6 +101,8 @@ COLLECTIONS: tuple[str, ...] = (
     "balancetes",
     "regulamentos",
     "regulamento_versoes",
+    # comunicados (spec-comunicados-email):
+    "comunicados",
     # no Pydantic model — schema derived from usage:
     "password_resets",
     "tokens_revoked",
@@ -882,6 +884,12 @@ _INDEX_DDL: tuple[str, ...] = (
     'CREATE UNIQUE INDEX IF NOT EXISTS ux_regversoes_reg_versao ON "regulamento_versoes" '
     "((doc->>'regulamento_id'), (doc->>'versao'))",
     "CREATE INDEX IF NOT EXISTS ix_regversoes_status ON \"regulamento_versoes\" ((doc->>'status'))",
+    # comunicados (spec-comunicados-email)
+    "CREATE INDEX IF NOT EXISTS ix_comunicados_created ON \"comunicados\" ((doc->>'created_at') DESC)",
+    "CREATE INDEX IF NOT EXISTS ix_comunicados_status ON \"comunicados\" ((doc->>'status'))",
+    "CREATE INDEX IF NOT EXISTS ix_comunicados_created_by ON \"comunicados\" ((doc->>'created_by'))",
+    'CREATE INDEX IF NOT EXISTS ix_comunicados_source ON "comunicados" '
+    "((doc->>'source_kind'), (doc->>'source_ref_id'))",
 )
 
 REQUIRED_INDEX_NAMES = {

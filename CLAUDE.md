@@ -103,7 +103,7 @@ Conventional Commits with a scope (`feat(escopo): …`, `fix(escopo): …`).
 
 - **Frontend**: React 19 + Tailwind CSS 3 + shadcn/ui + Framer Motion + Recharts + Craco
 - **Backend**: FastAPI (Python 3.11) + asyncpg (PostgreSQL/Supabase via a Mongo-compatible async DAO in `database.py`)
-- **Database**: PostgreSQL (Supabase) — 36 tables `(pk bigserial, doc jsonb)`, one per logical collection: `users`, `transactions`, `projects`, `events`, `wall_posts`, `notifications`, `polls`, `invoices`, `documents`, `gallery_albums`, `gallery_photos`, `audit_logs`, `password_resets`, `finance_settings`, plus governança: `assembleias`, `assembleia_presencas`, `assembleia_deliberacoes`, `eleicoes`, `eleicao_listas`, `eleicao_voter_receipts`, `eleicao_ballots`, `sancoes`, `finance_settings_history`, …
+- **Database**: PostgreSQL (Supabase) — 37 tables `(pk bigserial, doc jsonb)`, one per logical collection: `users`, `transactions`, `projects`, `events`, `wall_posts`, `notifications`, `polls`, `invoices`, `documents`, `gallery_albums`, `gallery_photos`, `audit_logs`, `password_resets`, `finance_settings`, plus governança: `assembleias`, `assembleia_presencas`, `assembleia_deliberacoes`, `eleicoes`, `eleicao_listas`, `eleicao_voter_receipts`, `eleicao_ballots`, `sancoes`, `finance_settings_history`, `comunicados`, …
 - **Auth**: JWT (HS256, 24h expiry) + RBAC (admin, socio, financeiro, moderador)
 - **Email**: Resend API
 - **Deploy**: GitHub Actions CI/CD → SSH → Nginx + Supervisord
