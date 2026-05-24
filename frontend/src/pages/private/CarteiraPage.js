@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import QRCode from 'react-qr-code';
-import { CreditCard, Download, Shield, Wifi, WifiOff, Smartphone, Share2 } from 'lucide-react';
+import { CreditCard, Download, Shield, Wifi, WifiOff, Smartphone, Share2, CheckCircle2, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -257,11 +257,14 @@ export const CarteiraPage = () => {
                     <div>
                       <div className="font-mono text-xs uppercase tracking-widest opacity-80 mb-1">Status</div>
                       <div
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-mono uppercase tracking-wide ${
+                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-mono uppercase tracking-wide ${
                           isActive ? 'bg-carmesim text-white' : 'bg-white/20 text-white'
                         }`}
                         data-testid="wallet-status"
                       >
+                        {isActive
+                          ? <CheckCircle2 className="w-3 h-3" aria-hidden="true" />
+                          : <Clock className="w-3 h-3" aria-hidden="true" />}
                         {displayUser?.status}
                       </div>
                     </div>

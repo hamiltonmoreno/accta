@@ -125,7 +125,7 @@ export const PublicLayout = ({ children }) => {
       </header>
 
       {/* Page Content */}
-      <main id="main-content" tabIndex={-1} className="flex-grow pt-16 lg:pt-[60px] outline-none">
+      <main id="main-content" tabIndex={-1} className="flex-grow pt-16 lg:pt-navbar outline-none">
         {children}
       </main>
 

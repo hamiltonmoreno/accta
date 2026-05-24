@@ -82,6 +82,10 @@ module.exports = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      spacing: {
+        // Altura da navbar pública fixa — usada no padding-top do <main>.
+        navbar: '60px',
+      },
       fontFamily: {
         sans: ['Open Sans', 'sans-serif'],
         heading: ['Open Sans', 'sans-serif'],
