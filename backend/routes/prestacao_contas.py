@@ -86,7 +86,9 @@ async def _validate_document(document_id: str):
 
 def can_upload_prestacao_document(user: User) -> bool:
     """Atores que podem anexar documentos no ciclo: Direção, Tesoureiro
-    (manage_finances) e Conselho Fiscal — admin já incluído em cada helper."""
+    (manage_finances) e Conselho Fiscal. O admin passa sempre via
+    `can_manage_finances` (que dobra role admin); `is_direcao`/`can_emit_parecer_cf`
+    são por cargo/privilégio."""
     return can_manage_finances(user) or is_direcao(user) or can_emit_parecer_cf(user)
 
 
@@ -106,6 +108,12 @@ async def upload_prestacao_documento(
     title: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user),
 ):
+    """Upload + criação atómica de um documento de prestação de contas.
+
+    Alarga deliberadamente a escrita na categoria `documents` (caso contrário
+    admin-only) aos atores de prestação (Direção/Tesoureiro/CF), criando o
+    registo `documents` em nome deles — o módulo de Documentos permanece
+    admin-only. Visibilidade/título seguem a política por `kind` (server-side)."""
     if not can_upload_prestacao_document(current_user):
         raise HTTPException(status_code=403, detail="Sem permissao para anexar documentos de prestacao de contas")
     if kind not in _PRESTACAO_DOC_POLICY:
