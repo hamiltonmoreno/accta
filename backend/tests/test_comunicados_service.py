@@ -207,3 +207,24 @@ async def test_dispatch_partial_when_some_email_fail(mock_db, monkeypatch):
     monkeypatch.setattr(comunicados_service, "send_comunicado_batch", fake_batch)
     res = await comunicados_service.dispatch_comunicado("c1")
     assert res["status"] == "parcial"
+
+
+@pytest.mark.asyncio
+async def test_dispatch_inapp_only_is_enviado(mock_db):
+    mock_db.comunicados.find_one.return_value = _doc(channels=["in_app"])
+    _set_users(mock_db, MEMBROS)
+    res = await comunicados_service.dispatch_comunicado("c1")
+    assert res["status"] == "enviado"
+    assert res["email_sent"] == 0 and res["email_failed"] == 0
+    assert res["inapp_created"] == 3
+
+
+@pytest.mark.asyncio
+async def test_dispatch_exception_becomes_falhado_and_does_not_raise(mock_db, monkeypatch):
+    mock_db.comunicados.find_one.return_value = _doc(tipo="oficial")
+    _set_users(mock_db, MEMBROS)
+    async def boom(*a, **k):
+        raise RuntimeError("resend down")
+    monkeypatch.setattr(comunicados_service, "send_comunicado_batch", boom)
+    res = await comunicados_service.dispatch_comunicado("c1")   # must NOT raise
+    assert res["status"] == "falhado"

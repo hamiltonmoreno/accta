@@ -61,6 +61,27 @@ async def resolve_recipients(segment: dict, *, channel: str, tipo: str) -> list[
     return sel
 
 
+async def _persist_result(comunicado_id: str, *, status: str, inapp_created: int,
+                          email_sent: int, email_failed: int, error: Optional[str]) -> None:
+    """Grava o resultado final do dispatch. Tolerante a falhas: se a escrita
+    falhar, regista mas não propaga (o dispatch nunca rebenta)."""
+    # recipients_total: aproximação deliberada — em dual-canal um sócio pode
+    # contar nos dois; usamos o maior fan-out, não a união exacta (spec §6).
+    total = max(inapp_created, email_sent + email_failed)
+    try:
+        await db.comunicados.update_one({"id": comunicado_id}, {"$set": {
+            "status": status,
+            "inapp_created": inapp_created,
+            "email_sent": email_sent,
+            "email_failed": email_failed,
+            "recipients_total": total,
+            "sent_at": datetime.now(timezone.utc).isoformat(),
+            "error": error,
+        }})
+    except Exception:  # noqa: BLE001 — persistência best-effort
+        logger.exception("Falha ao persistir resultado do comunicado %s", comunicado_id)
+
+
 async def dispatch_comunicado(comunicado_id: str) -> dict:
     """Fan-out de um comunicado em `a_enviar`. Idempotente: só corre uma vez
     (transição a_enviar→enviando). Nunca rebenta — falhas viram estado."""
@@ -107,15 +128,9 @@ async def dispatch_comunicado(comunicado_id: str) -> dict:
         status = "falhado"
         error = str(e)
 
-    total = max(inapp_created, email_sent + email_failed)
-    await db.comunicados.update_one({"id": comunicado_id}, {"$set": {
-        "status": status,
-        "inapp_created": inapp_created,
-        "email_sent": email_sent,
-        "email_failed": email_failed,
-        "recipients_total": total,
-        "sent_at": datetime.now(timezone.utc).isoformat(),
-        "error": error,
-    }})
+    await _persist_result(
+        comunicado_id, status=status, inapp_created=inapp_created,
+        email_sent=email_sent, email_failed=email_failed, error=error,
+    )
     return {"status": status, "inapp_created": inapp_created,
             "email_sent": email_sent, "email_failed": email_failed}
