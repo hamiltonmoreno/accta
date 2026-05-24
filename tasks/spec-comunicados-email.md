@@ -1,6 +1,10 @@
 # Spec — Comunicados (disparo de email + in-app)
 
-> **Status**: rascunho técnico (2026-05-24). Spec de produto/engenharia.
+> **Status**: **F0–F3 IMPLEMENTADAS** (2026-05-24) no ramo `feature/comunicados-email`
+> (backend manual + frontend + gatilhos automáticos de governança; suite verde, TDD).
+> Falta apenas integrar: PR para `develop` após rebase (o ramo foi criado a partir
+> de uma `develop` local 21 commits atrás de `origin/develop`). Fora de âmbito (futuro):
+> webhooks Resend, editor rich-text, anexos, agendamento — ver §14.
 > **Objetivo**: dar ao portal um canal de **comunicados** para a ACCTA comunicar
 > com os sócios — um compositor único onde admins (e órgãos autorizados) escrevem
 > uma mensagem, escolhem os destinatários e os canais (in-app e/ou email), e
