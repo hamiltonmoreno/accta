@@ -14,20 +14,28 @@ RBAC:
 - ver balancetes:     `can_view_finances`; o PDF público segue o fluxo de documentos
 """
 
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from auth import can_manage_finances, can_view_finances, get_current_user
 from database import db
-from helpers import create_audit_log, members_of_orgao, notify_all_active_users, notify_users
+from helpers import (
+    create_audit_log,
+    delete_upload_file,
+    members_of_orgao,
+    notify_all_active_users,
+    notify_users,
+)
 from models import (
     EXPENSE_CATEGORIES,
     INCOME_CATEGORIES,
     Balancete,
     BalanceteAuditar,
     BalanceteCreate,
+    Document,
     Exercicio,
     ExercicioAprovar,
     ExercicioCreate,
@@ -41,8 +49,11 @@ from models import (
 )
 from permissions import can_emit_parecer_cf, is_direcao, is_mesa_ag
 from routes.finances import compute_dre_report, compute_financial_summary
+from routes.upload import save_validated_upload
 
 router = APIRouter(tags=["prestacao-contas"])
+
+logger = logging.getLogger(__name__)
 
 _LINK_BAL = "/financeiro/balancetes"
 _LINK_EX = "/financeiro/prestacao-contas"
@@ -71,6 +82,60 @@ async def _validate_document(document_id: str):
     doc = await db.documents.find_one({"id": document_id}, {"_id": 0, "id": 1})
     if not doc:
         raise HTTPException(status_code=400, detail="Documento associado nao encontrado")
+
+
+def can_upload_prestacao_document(user: User) -> bool:
+    """Atores que podem anexar documentos no ciclo: Direção, Tesoureiro
+    (manage_finances) e Conselho Fiscal — admin já incluído em cada helper."""
+    return can_manage_finances(user) or is_direcao(user) or can_emit_parecer_cf(user)
+
+
+_PRESTACAO_DOC_POLICY = {
+    "relatorio": ("publico", "Relatório e Contas"),
+    "balancete": ("publico", "Balancete"),
+    "parecer": ("publico", "Parecer do Conselho Fiscal"),
+    "orcamento": ("socios", "Orçamento"),
+    "plano": ("socios", "Plano de Atividades"),
+}
+
+
+@router.post("/prestacao-contas/documentos")
+async def upload_prestacao_documento(
+    file: UploadFile = File(...),
+    kind: str = Form(...),
+    title: Optional[str] = Form(None),
+    current_user: User = Depends(get_current_user),
+):
+    if not can_upload_prestacao_document(current_user):
+        raise HTTPException(status_code=403, detail="Sem permissao para anexar documentos de prestacao de contas")
+    if kind not in _PRESTACAO_DOC_POLICY:
+        raise HTTPException(status_code=400, detail="Tipo de documento invalido")
+    visibility, default_title = _PRESTACAO_DOC_POLICY[kind]
+    final_title = (title or "").strip() or default_title
+
+    contents = await file.read()
+    file_url = await save_validated_upload("documents", contents, file.filename)
+    try:
+        doc = Document(
+            title=final_title,
+            file_url=file_url,
+            type="prestacao_contas",
+            visibility=visibility,
+            tags=[],
+        )
+        await db.documents.insert_one(doc.model_dump())
+    except Exception:
+        delete_upload_file(file_url)  # rollback: sem ficheiros órfãos
+        logger.exception("Falha ao registar documento de prestacao (kind=%s)", kind)
+        raise HTTPException(status_code=500, detail="Erro ao registar o documento")
+
+    await create_audit_log(
+        current_user.id,
+        "upload_documento_prestacao",
+        doc.id,
+        details={"kind": kind, "visibility": visibility, "title": final_title},
+    )
+    return {"document_id": doc.id, "file_url": file_url, "title": final_title, "visibility": visibility}
 
 
 # --------------------------------------------------------------------------- #
