@@ -41,6 +41,7 @@ import {
   Medal,
   FileCheck,
   ScrollText,
+  Megaphone,
 } from 'lucide-react';
 
 const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
@@ -104,6 +105,7 @@ const menuSections = [
       { label: 'Utilizadores', path: '/admin/usuarios', icon: Users, roles: ['admin'], privileges: ['manage_users'] },
       { label: 'Cargos & Mandatos', path: '/admin/cargos', icon: Award, roles: ['admin'], privileges: ['manage_users'] },
       { label: 'Audit Logs', path: '/admin/logs', icon: ClipboardList, roles: ['admin'], privileges: ['view_audit_logs'] },
+      { label: 'Comunicados', path: '/admin/comunicados', icon: Megaphone, roles: ['admin'], privileges: ['send_comunicados'] },
     ],
   },
 ];
@@ -131,6 +133,7 @@ const PAGE_TITLES = {
   '/admin/eleicoes': 'Eleições',
   '/admin/disciplinar': 'Disciplina',
   '/admin/aparencia': 'Aparência do Site',
+  '/admin/comunicados': 'Comunicados',
   '/admin/noticias': 'Notícias / Blog',
   '/participacao/patrocinios': 'Patrocínios',
   '/participacao/peticoes': 'Petições',
