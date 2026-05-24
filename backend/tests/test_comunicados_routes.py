@@ -54,3 +54,18 @@ async def test_email_preferences_updates_self(mock_db, socio_user):
         EmailPreferencesUpdate(email_opt_out_informativos=True), current_user=socio_user)
     assert res["email_opt_out_informativos"] is True
     mock_db.users.update_one.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_get_comunicado_not_found(mock_db, admin_user):
+    mock_db.comunicados.find_one.return_value = None
+    with pytest.raises(Exception) as ei:
+        await cmod.get_comunicado("nope", current_user=admin_user)
+    assert getattr(ei.value, "status_code", None) == 404
+
+
+@pytest.mark.asyncio
+async def test_list_requires_guard(mock_db, socio_user):
+    with pytest.raises(Exception) as ei:
+        await cmod.list_comunicados(current_user=socio_user)
+    assert getattr(ei.value, "status_code", None) == 403

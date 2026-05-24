@@ -7,6 +7,7 @@ de governança.
 """
 import logging
 import uuid  # noqa: F401
+from collections import Counter
 from datetime import datetime, timezone  # noqa: F401
 from typing import Optional  # noqa: F401
 
@@ -59,6 +60,22 @@ async def resolve_recipients(segment: dict, *, channel: str, tipo: str) -> list[
             sel = [u for u in sel if not u.get("email_opt_out_informativos")]
         sel = [u for u in sel if u.get("email")]
     return sel
+
+
+async def get_segment_counts() -> dict:
+    """Contagens por segmento para o compositor — reusa a mesma base que
+    resolve_recipients, para a rota não depender de _base_members (privado)."""
+    members = await _base_members()
+    roles = Counter(u.get("role") for u in members)
+    cats = Counter(u.get("member_category") for u in members)
+    orgaos = {o: len(await members_of_orgao(o))
+              for o in ("mesa_ag", "direcao", "conselho_fiscal")}
+    return {
+        "all_active": len(members),
+        "roles": dict(roles),
+        "member_categories": dict(cats),
+        "orgaos": orgaos,
+    }
 
 
 async def _persist_result(comunicado_id: str, *, status: str, inapp_created: int,

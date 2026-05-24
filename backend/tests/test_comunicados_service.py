@@ -259,3 +259,13 @@ async def test_oficial_auto_skips_when_duplicate(mock_db, monkeypatch):
         subject="X", body="corpo longo", source_kind="assembleia_convocatoria", ref_id="a1")
     assert cid is None
     mock_db.comunicados.insert_one.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_get_segment_counts(mock_db, monkeypatch):
+    _set_users(mock_db, MEMBROS)
+    monkeypatch.setattr(comunicados_service, "members_of_orgao", AsyncMock(return_value=[]))
+    res = await comunicados_service.get_segment_counts()
+    assert res["all_active"] == 3            # u1,u2,u3 (sys technical fora)
+    assert res["roles"]["socio"] == 2
+    assert res["roles"]["financeiro"] == 1

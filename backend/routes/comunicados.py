@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime, timezone
-from collections import Counter
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from slowapi import Limiter
@@ -9,7 +8,7 @@ from slowapi.util import get_remote_address
 from models import User, ComunicadoCreate, RecipientsCountRequest, EmailPreferencesUpdate
 from database import db
 from auth import get_current_user, has_role_or_privilege
-from helpers import create_audit_log, members_of_orgao
+from helpers import create_audit_log
 import comunicados_service
 
 router = APIRouter(tags=["comunicados"])
@@ -42,18 +41,7 @@ async def count_recipients(payload: RecipientsCountRequest,
 @router.get("/comunicados/segments")
 async def comunicado_segments(current_user: User = Depends(get_current_user)):
     _guard(current_user)
-    members = await comunicados_service._base_members()
-    roles = Counter(u.get("role") for u in members)
-    cats = Counter(u.get("member_category") for u in members)
-    orgaos = {}
-    for o in ("mesa_ag", "direcao", "conselho_fiscal"):
-        orgaos[o] = len(await members_of_orgao(o))
-    return {
-        "all_active": len(members),
-        "roles": dict(roles),
-        "member_categories": dict(cats),
-        "orgaos": orgaos,
-    }
+    return await comunicados_service.get_segment_counts()
 
 
 @router.patch("/me/email-preferences")
