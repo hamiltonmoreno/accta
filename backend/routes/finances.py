@@ -224,16 +224,28 @@ async def delete_transaction(
 # ===== SUMMARY & DRE ENDPOINTS =====
 
 
-@router.get("/summary")
-async def get_financial_summary(
+async def compute_financial_summary(
     year: Optional[int] = None,
     month: Optional[int] = None,
-    current_user: User = Depends(get_current_user),
-):
-    require_view_finances(current_user)
+    date_gte: Optional[str] = None,
+    date_lt: Optional[str] = None,
+) -> dict:
+    """Computa o resumo financeiro (totais + por categoria) para uma janela.
 
+    Fonte única reutilizada pelo endpoint `/finances/summary` e pelo snapshot
+    dos balancetes (spec-ciclo §5 — "reusar os números existentes, não
+    recalcular noutro sítio"). Janela: `date_gte`/`date_lt` (range explícito,
+    p/ trimestres) tem precedência; senão `year` (+ `month`); senão tudo.
+    """
     query = {}
-    if year:
+    if date_gte or date_lt:
+        rng = {}
+        if date_gte:
+            rng["$gte"] = date_gte
+        if date_lt:
+            rng["$lt"] = date_lt
+        query["date"] = rng
+    elif year:
         start = f"{year}-01-01T00:00:00"
         end = f"{year}-12-31T23:59:59"
         if month:
@@ -277,13 +289,20 @@ async def get_financial_summary(
     }
 
 
-@router.get("/dre")
-async def get_dre_report(
-    year: int = Query(..., description="Ano do relatorio"),
+@router.get("/summary")
+async def get_financial_summary(
+    year: Optional[int] = None,
+    month: Optional[int] = None,
     current_user: User = Depends(get_current_user),
 ):
     require_view_finances(current_user)
+    return await compute_financial_summary(year=year, month=month)
 
+
+async def compute_dre_report(year: int) -> dict:
+    """Computa o DRE anual (mensal + por categoria). Fonte única reutilizada pelo
+    endpoint `/finances/dre` e pelo `dre_snapshot` congelado no Relatório e Contas
+    (spec-ciclo §4.1) — os números não mudam depois da submissão."""
     start = f"{year}-01-01T00:00:00"
     end = f"{year}-12-31T23:59:59"
     transactions = (
@@ -330,6 +349,15 @@ async def get_dre_report(
         "total_despesas": total_despesas,
         "resultado_liquido": total_receitas - total_despesas,
     }
+
+
+@router.get("/dre")
+async def get_dre_report(
+    year: int = Query(..., description="Ano do relatorio"),
+    current_user: User = Depends(get_current_user),
+):
+    require_view_finances(current_user)
+    return await compute_dre_report(year)
 
 
 # ===== SETTINGS ENDPOINTS =====

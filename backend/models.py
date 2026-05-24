@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, ConfigDict, EmailStr, field_validator
 from typing import List, Literal, Optional
 from datetime import datetime, timezone, date
+import re
 import uuid
 
 # Governança estatutária (spec-governanca-estatutaria): a fonte ÚNICA de
@@ -1042,6 +1043,9 @@ class TransactionUpdate(BaseModel):
     amount: Optional[float] = None
     date: Optional[str] = None
     reference: Optional[str] = None
+    # comprovativo de despesa anexado pelo Tesoureiro (spec-ciclo §5.3) — o CF
+    # confere a partir daqui. Aditivo/opcional.
+    proof_url: Optional[str] = None
 
     @field_validator("date", mode="before")
     @classmethod
@@ -1593,3 +1597,225 @@ class BrandSettingsUpdate(BaseModel):
     logo_light_url: Optional[str] = None  # "" = repor default; None = manter
     logo_dark_url: Optional[str] = None
     alt: Optional[str] = Field(default=None, max_length=200)
+
+
+# ===== REGULAMENTOS INTERNOS VERSIONADOS (spec-ciclo §6, Art. 31.j/56) =====
+# Repositório versionado: cada `Regulamento` tem N `RegulamentoVersao` (1,2,3…);
+# aprovar uma versão torna-a `current_version_id` e revoga a anterior (histórico
+# preservado). Competência "assembleia_geral" (ex.: Regimento da AG) exige uma
+# deliberação da AG para aprovar; "direcao" aprova internamente (Art. 31.j).
+
+REGULAMENTO_COMPETENCIAS = ["direcao", "assembleia_geral"]
+REGULAMENTO_VERSAO_STATUSES = ["rascunho", "em_aprovacao", "aprovado", "revogado"]
+
+
+class Regulamento(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    slug: str
+    titulo: str
+    descricao: Optional[str] = None
+    competencia_aprovacao: Literal["direcao", "assembleia_geral"] = "direcao"
+    current_version_id: Optional[str] = None
+    created_by: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    source_article: str = "56"
+
+
+class RegulamentoVersao(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    regulamento_id: str
+    versao: int
+    document_id: str
+    status: Literal["rascunho", "em_aprovacao", "aprovado", "revogado"] = "rascunho"
+    changelog: Optional[str] = None
+    created_by: str
+    approved_by: Optional[str] = None
+    assembleia_id: Optional[str] = None  # se competência = AG
+    deliberacao_id: Optional[str] = None
+    effective_from: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class RegulamentoCreate(BaseModel):
+    slug: str = Field(min_length=2, max_length=80)
+    titulo: str = Field(min_length=2, max_length=200)
+    descricao: Optional[str] = Field(default=None, max_length=2000)
+    competencia_aprovacao: Literal["direcao", "assembleia_geral"] = "direcao"
+
+    @field_validator("slug")
+    @classmethod
+    def _v_slug(cls, v: str) -> str:
+        v = (v or "").strip().lower()
+        if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", v):
+            raise ValueError("slug deve ser kebab-case (a-z, 0-9, hifens)")
+        return v
+
+
+class RegulamentoVersaoCreate(BaseModel):
+    document_id: str
+    changelog: Optional[str] = Field(default=None, max_length=2000)
+
+
+class RegulamentoVersaoAprovar(BaseModel):
+    # obrigatórios apenas se competência = assembleia_geral (validado na rota)
+    assembleia_id: Optional[str] = None
+    deliberacao_id: Optional[str] = None
+    effective_from: Optional[str] = None  # default: agora, definido na rota
+
+
+class RegulamentoVersaoRevogar(BaseModel):
+    motivo: Optional[str] = Field(default=None, max_length=1000)
+
+
+# ===== BALANCETES E BALANÇO ANUAL (spec-ciclo §5, Art. 34/37) =====
+# O Tesoureiro publica um balancete congelando o snapshot de /finances/summary
+# no momento (auditabilidade — os números não mudam depois). O Conselho Fiscal
+# audita ao nível do período (cf_audit: conferido + observações; decisão §12.3).
+
+BALANCETE_TIPOS = ["periodico", "balanco_anual"]
+BALANCETE_VISIBILITIES = ["socios", "publico", "direcao"]
+
+
+class Balancete(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tipo: Literal["periodico", "balanco_anual"] = "periodico"
+    periodo: str  # rótulo: "2026-03" | "2026-Q1" | "2026"
+    exercicio_ano: int
+    snapshot: dict  # congelado de /finances/summary (totais + por categoria)
+    document_id: Optional[str] = None  # PDF opcional
+    published: bool = False
+    published_by: Optional[str] = None  # Tesoureiro
+    published_at: Optional[str] = None
+    # {audited_by, audited_at, conferido: bool, observacoes}
+    cf_audit: Optional[dict] = None
+    visibility: Literal["socios", "publico", "direcao"] = "socios"
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    source_article: str = "34"
+
+
+class BalanceteCreate(BaseModel):
+    tipo: Literal["periodico", "balanco_anual"] = "periodico"
+    periodo: str = Field(min_length=4, max_length=12)
+    exercicio_ano: int = Field(ge=2000, le=2100)
+    # Janela do snapshot. Sem month/datas → ano inteiro (balanço anual). month →
+    # mensal. date_inicio/date_fim → trimestral ou janela custom.
+    month: Optional[int] = Field(default=None, ge=1, le=12)
+    date_inicio: Optional[str] = None
+    date_fim: Optional[str] = None
+    document_id: Optional[str] = None
+    visibility: Literal["socios", "publico", "direcao"] = "socios"
+
+    @field_validator("date_inicio", "date_fim", mode="before")
+    @classmethod
+    def _v_dt(cls, v):
+        return _validate_datetime_str(v) if v else v
+
+
+class BalanceteAuditar(BaseModel):
+    conferido: bool
+    observacoes: Optional[str] = Field(default=None, max_length=2000)
+
+
+# ===== EXERCÍCIO / CICLO DE PRESTAÇÃO DE CONTAS (spec-ciclo §4, Art. 19.1/31.k/37) =====
+# Máquina de estados que guia o ciclo anual: a Direcção submete Relatório e
+# Contas (+ Orçamento e Plano do ano seguinte, em DADOS ESTRUTURADOS — decisão
+# §12.8), o CF emite Parecer, a Mesa liga à AG ordinária e a deliberação aprova.
+#   aberto → relatorio_submetido → parecer_emitido → em_aprovacao_ag → aprovado
+#                                                                    ↘ rejeitado → reaberto
+
+EXERCICIO_STATUSES = [
+    "aberto",
+    "relatorio_submetido",
+    "parecer_emitido",
+    "em_aprovacao_ag",
+    "aprovado",
+    "rejeitado",
+    "reaberto",
+]
+PARECER_SENTIDOS = ["favoravel", "favoravel_com_reservas", "desfavoravel"]
+PLANO_ATIVIDADE_ESTADOS = ["planeada", "em_curso", "concluida"]
+
+
+class OrcamentoLinha(BaseModel):
+    categoria: str
+    tipo: Literal["receita", "despesa"]
+    valor_previsto: float = Field(ge=0)
+    nota: Optional[str] = Field(default=None, max_length=500)
+
+
+class PlanoAtividade(BaseModel):
+    titulo: str = Field(min_length=2, max_length=200)
+    descricao: Optional[str] = Field(default=None, max_length=2000)
+    trimestre: Optional[int] = Field(default=None, ge=1, le=4)
+    responsavel: Optional[str] = Field(default=None, max_length=200)
+    estado: Literal["planeada", "em_curso", "concluida"] = "planeada"
+
+
+class Exercicio(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    ano: int  # exercício económico
+    status: Literal[
+        "aberto",
+        "relatorio_submetido",
+        "parecer_emitido",
+        "em_aprovacao_ag",
+        "aprovado",
+        "rejeitado",
+        "reaberto",
+    ] = "aberto"
+    relatorio_contas: Optional[dict] = None  # {document_id, dre_snapshot, submitted_by, submitted_at}
+    orcamento: Optional[dict] = None  # {linhas[], document_id?, ano_orcamento, submitted_by, submitted_at}
+    plano_atividades: Optional[dict] = None  # {atividades[], document_id?, submitted_by, submitted_at}
+    parecer_cf: Optional[dict] = None  # ver ParecerCF
+    assembleia_id: Optional[str] = None  # AG ordinária do 1.º trimestre
+    deliberacao_id: Optional[str] = None  # deliberação que aprova
+    aprovado_em: Optional[str] = None
+    created_by: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    source_article: str = "37"
+
+
+class ParecerCF(BaseModel):
+    document_id: Optional[str] = None
+    sentido: Literal["favoravel", "favoravel_com_reservas", "desfavoravel"]
+    texto: str
+    emitted_by: str  # membro do CF
+    emitted_at: str
+
+
+class ExercicioCreate(BaseModel):
+    ano: int = Field(ge=2000, le=2100)
+
+
+class RelatorioContasSubmit(BaseModel):
+    document_id: str
+
+
+class OrcamentoSubmit(BaseModel):
+    linhas: List[OrcamentoLinha] = Field(min_length=1)
+    document_id: Optional[str] = None
+    ano_orcamento: Optional[int] = Field(default=None, ge=2000, le=2100)  # default = exercicio.ano + 1
+
+
+class PlanoSubmit(BaseModel):
+    atividades: List[PlanoAtividade] = Field(min_length=1)
+    document_id: Optional[str] = None
+
+
+class ParecerSubmit(BaseModel):
+    sentido: Literal["favoravel", "favoravel_com_reservas", "desfavoravel"]
+    texto: str = Field(min_length=1, max_length=10000)
+    document_id: Optional[str] = None
+
+
+class ExercicioSubmeterAG(BaseModel):
+    assembleia_id: str
+
+
+class ExercicioAprovar(BaseModel):
+    deliberacao_id: str
+    aprovado: bool = True
