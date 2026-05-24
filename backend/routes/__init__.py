@@ -28,6 +28,7 @@ from routes.participacao import router as participacao_router
 from routes.atos import router as atos_router
 from routes.regulamentos import router as regulamentos_router
 from routes.prestacao_contas import router as prestacao_contas_router
+from routes.comunicados import router as comunicados_router
 
 api_router = APIRouter(prefix="/api")
 
@@ -60,3 +61,4 @@ api_router.include_router(participacao_router)
 api_router.include_router(atos_router)
 api_router.include_router(regulamentos_router)
 api_router.include_router(prestacao_contas_router)
+api_router.include_router(comunicados_router)
