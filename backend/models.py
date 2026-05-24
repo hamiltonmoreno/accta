@@ -953,7 +953,7 @@ COMUNICADO_STATUSES = ["a_enviar", "enviando", "enviado", "parcial", "falhado"]
 
 
 class ComunicadoSegment(BaseModel):
-    kind: str
+    kind: Literal["all_active", "role", "orgao", "member_category", "manual"]
     value: Optional[str] = None
     user_ids: Optional[List[str]] = None
 
@@ -961,8 +961,8 @@ class ComunicadoSegment(BaseModel):
 class ComunicadoCreate(BaseModel):
     subject: str
     body: str
-    tipo: str = "informativo"
-    channels: List[str]
+    tipo: Literal["oficial", "informativo"] = "informativo"
+    channels: List[Literal["in_app", "email"]]
     segment: ComunicadoSegment
     notification_type: str = "comunicado"
     cta_label: Optional[str] = None
@@ -981,15 +981,9 @@ class ComunicadoCreate(BaseModel):
     @field_validator("body")
     @classmethod
     def _v_body(cls, v):
-        if len((v or "").strip()) < 10:
+        v = (v or "").strip()
+        if len(v) < 10:
             raise ValueError("Corpo demasiado curto")
-        return v
-
-    @field_validator("tipo")
-    @classmethod
-    def _v_tipo(cls, v):
-        if v not in COMUNICADO_TIPOS:
-            raise ValueError("Tipo inválido")
         return v
 
     @field_validator("channels")
@@ -997,9 +991,6 @@ class ComunicadoCreate(BaseModel):
     def _v_channels(cls, v):
         if not v:
             raise ValueError("Selecione pelo menos um canal")
-        bad = [c for c in v if c not in COMUNICADO_CHANNELS]
-        if bad:
-            raise ValueError(f"Canal inválido: {bad}")
         return list(dict.fromkeys(v))  # dedupe preservando ordem
 
     @field_validator("cta_url")
@@ -1007,6 +998,7 @@ class ComunicadoCreate(BaseModel):
     def _v_cta_url(cls, v):
         if v is None:
             return v
+        v = v.strip()
         if not (v.startswith("http://") or v.startswith("https://")):
             raise ValueError("URL do CTA deve começar por http:// ou https://")
         return v
@@ -1014,8 +1006,6 @@ class ComunicadoCreate(BaseModel):
     @model_validator(mode="after")
     def _v_segment(self):
         seg = self.segment
-        if seg.kind not in COMUNICADO_SEGMENT_KINDS:
-            raise ValueError("Segmento inválido")
         if seg.kind in ("role", "orgao", "member_category") and not seg.value:
             raise ValueError("Este segmento requer 'value'")
         if seg.kind == "manual" and not seg.user_ids:
@@ -1024,8 +1014,8 @@ class ComunicadoCreate(BaseModel):
 
 
 class RecipientsCountRequest(BaseModel):
-    tipo: str = "informativo"
-    channels: List[str]
+    tipo: Literal["oficial", "informativo"] = "informativo"
+    channels: List[Literal["in_app", "email"]]
     segment: ComunicadoSegment
 
 
