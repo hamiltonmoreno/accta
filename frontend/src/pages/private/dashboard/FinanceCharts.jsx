@@ -65,22 +65,37 @@ const FinanceCharts = ({ monthlyChartData, expensePieData, currentYear, onViewAl
               <AreaChart data={monthlyChartData}>
                 <defs>
                   <linearGradient id="gradReceitas" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#16A34A" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#16A34A" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="gradDespesas" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#C7202F" stopOpacity={0.1} />
                     <stop offset="95%" stopColor="#C7202F" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#6B7280' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: '#6B7280' }} axisLine={false} tickLine={false} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
                 <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="Receitas" stroke="#10b981" strokeWidth={2.5} fill="url(#gradReceitas)" />
+                <Area type="monotone" dataKey="Receitas" stroke="#16A34A" strokeWidth={2.5} fill="url(#gradReceitas)" />
                 <Area type="monotone" dataKey="Despesas" stroke="#C7202F" strokeWidth={2.5} fill="url(#gradDespesas)" />
               </AreaChart>
             </ResponsiveContainer>
+            <table className="sr-only">
+              <caption>Receitas e despesas por mes</caption>
+              <thead>
+                <tr><th scope="col">Mes</th><th scope="col">Receitas (CVE)</th><th scope="col">Despesas (CVE)</th></tr>
+              </thead>
+              <tbody>
+                {monthlyChartData.map((d) => (
+                  <tr key={d.name}>
+                    <th scope="row">{d.name}</th>
+                    <td>{d.Receitas}</td>
+                    <td>{d.Despesas}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </ChartCard>
       </div>

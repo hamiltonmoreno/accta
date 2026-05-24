@@ -371,10 +371,11 @@ export const MuralPage = () => {
         <div className="card-technical rounded-xl p-5 sm:p-6 animate-fade-up">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block font-mono text-xs uppercase tracking-widest mb-2 text-muted-auto">
+              <label htmlFor="post-content" className="block font-mono text-xs uppercase tracking-widest mb-2 text-muted-auto">
                 Nova Mensagem
               </label>
               <textarea
+                id="post-content"
                 value={newPost}
                 onChange={(e) => setNewPost(e.target.value)}
                 placeholder="Compartilhe as suas ideias, sugestoes ou mensagens com a comunidade..."
@@ -386,8 +387,9 @@ export const MuralPage = () => {
 
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-2">
-                <label className="text-xs uppercase tracking-wider font-mono text-muted-auto">Categoria:</label>
+                <label htmlFor="post-category" className="text-xs uppercase tracking-wider font-mono text-muted-auto">Categoria:</label>
                 <select
+                  id="post-category"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
@@ -507,7 +509,7 @@ export const MuralPage = () => {
                           {canModerate && (
                             <button
                               onClick={() => pinMutation.mutate(post.id)}
-                              className={`p-1.5 rounded-lg transition-colors ${post.pinned ? 'text-carmesim bg-carmesim/10' : 'text-gray-400 hover:text-carmesim hover:bg-carmesim/10'}`}
+                              className={`rounded-lg transition-colors min-w-[44px] min-h-[44px] inline-flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 ${post.pinned ? 'text-carmesim bg-carmesim/10' : 'text-gray-400 hover:text-carmesim hover:bg-carmesim/10'}`}
                               title={post.pinned ? 'Desfixar' : 'Fixar'}
                               aria-label={post.pinned ? 'Desfixar post' : 'Fixar post'}
                               data-testid={`pin-post-${post.id}`}
@@ -517,7 +519,7 @@ export const MuralPage = () => {
                           )}
                           <button
                             onClick={() => setConfirmDeletePost(post.id)}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-carmesim hover:bg-carmesim/10 transition-colors"
+                            className="rounded-lg text-gray-400 hover:text-carmesim hover:bg-carmesim/10 transition-colors min-w-[44px] min-h-[44px] inline-flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40"
                             title="Remover"
                             aria-label="Apagar post"
                             data-testid={`delete-post-${post.id}`}

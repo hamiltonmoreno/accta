@@ -205,15 +205,15 @@ export const ContactosPage = () => {
                     </div>
 
                     {/* Subject */}
-                    <div>
-                      <label className="block text-xs uppercase tracking-wider text-gray-500 mb-2">
+                    <fieldset>
+                      <legend className="block text-xs uppercase tracking-wider text-gray-500 mb-2">
                         Assunto
-                      </label>
+                      </legend>
                       <div className="grid grid-cols-2 gap-3">
                         {subjects.map((subject) => (
                           <label
                             key={subject.value}
-                            className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
+                            className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[#C7202F]/40 has-[:focus-visible]:ring-offset-2 ${
                               formData.subject === subject.value
                                 ? 'bg-grafite text-white'
                                 : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
@@ -225,14 +225,14 @@ export const ContactosPage = () => {
                               value={subject.value}
                               checked={formData.subject === subject.value}
                               onChange={handleChange}
-                              className="hidden"
+                              className="sr-only"
                             />
-                            <subject.icon className="w-5 h-5" />
+                            <subject.icon className="w-5 h-5" aria-hidden="true" />
                             <span className="text-sm font-medium">{subject.label}</span>
                           </label>
                         ))}
                       </div>
-                    </div>
+                    </fieldset>
 
                     {/* Message */}
                     <div>

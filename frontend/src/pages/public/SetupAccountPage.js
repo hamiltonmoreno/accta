@@ -65,7 +65,7 @@ export const SetupAccountPage = () => {
           <div className="w-14 h-14 bg-[#FEF2F2] rounded-2xl flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-7 h-7 text-carmesim" />
           </div>
-          <h1 className="text-xl font-bold text-grafite mb-2">Convite Invalido</h1>
+          <h1 className="text-xl font-bold text-grafite mb-2">Convite Inválido</h1>
           <p className="text-sm text-gray-500 mb-6">
             Este link de convite e invalido ou ja foi utilizado. Contacte o administrador da ACCTA.
           </p>
@@ -111,7 +111,7 @@ export const SetupAccountPage = () => {
           <div className="w-12 h-12 bg-carmesim/10 rounded-2xl flex items-center justify-center mx-auto mb-3">
             <Shield className="w-6 h-6 text-carmesim" />
           </div>
-          <h1 className="text-xl font-bold text-grafite mb-1">Bem-vindo a ACCTA</h1>
+          <h1 className="text-xl font-bold text-grafite mb-1">Bem-vindo à ACCTA</h1>
           <p className="text-sm text-gray-500">
             {inviteData?.name}, defina a sua senha para ativar a conta.
           </p>
@@ -129,7 +129,7 @@ export const SetupAccountPage = () => {
                 autoComplete="new-password"
                 aria-invalid={errors.password ? 'true' : 'false'}
                 {...register('password')}
-                placeholder="Minimo 6 caracteres"
+                placeholder="Mínimo 6 caracteres"
                 className="w-full pl-9 pr-10 py-3 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none aria-[invalid=true]:border-carmesim/60"
                 data-testid="setup-password"
               />

@@ -85,12 +85,12 @@ export const VotacoesPage = () => {
 
       {/* Status Alert for Inactive Members */}
       {!isAtivo && (
-        <div className="card-technical p-4 sm:p-6 border-l-4 border-l-orange-500 animate-fade-up"
+        <div className="card-technical p-4 sm:p-6 border-l-4 border-l-[#D97706] bg-[#FFFBEB] animate-fade-up"
           data-testid="voting-restricted">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-[#D97706] flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-sm text-orange-700 mb-1">Votação Restrita</h3>
+              <h3 className="font-semibold text-sm text-[#B45309] mb-1">Votação Restrita</h3>
               <p className="text-xs sm:text-sm text-gray-600">
                 Apenas sócios com status <strong>ativo</strong> podem participar de votações.
               </p>

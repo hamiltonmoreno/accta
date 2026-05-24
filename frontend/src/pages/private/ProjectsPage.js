@@ -24,8 +24,12 @@ const ProjectCard = ({ project, onClick }) => {
   const budgetPct = project.budget > 0 ? Math.round((project.spent / project.budget) * 100) : 0;
 
   return (
-    <div className="bg-white border border-gray-200/80 rounded-2xl p-5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer animate-fade-up"
+    <div className="bg-white border border-gray-200/80 rounded-2xl p-5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer animate-fade-up outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
+      aria-label={`Abrir projeto ${project.title}`}
       data-testid={`project-card-${project.id}`}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0 mr-3">

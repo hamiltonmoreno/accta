@@ -21,6 +21,12 @@ export const PublicLayout = ({ children }) => {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[60] focus:px-4 focus:py-2 focus:bg-white focus:text-grafite focus:rounded-lg focus:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40"
+      >
+        Saltar para o conteúdo
+      </a>
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
@@ -119,7 +125,7 @@ export const PublicLayout = ({ children }) => {
       </header>
 
       {/* Page Content */}
-      <main className="flex-grow pt-16 lg:pt-[60px]">
+      <main id="main-content" tabIndex={-1} className="flex-grow pt-16 lg:pt-[60px] outline-none">
         {children}
       </main>
 

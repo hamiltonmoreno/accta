@@ -212,8 +212,9 @@ export const CriarContaPage = () => {
             </div>
           </div>
 
-          <label className="flex items-start gap-2.5 cursor-pointer">
+          <label htmlFor="reg-consent" className="flex items-start gap-2.5 cursor-pointer">
             <input
+              id="reg-consent"
               type="checkbox"
               {...register('consent_data')}
               className="mt-0.5 h-4 w-4 rounded border-gray-300 text-carmesim focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"

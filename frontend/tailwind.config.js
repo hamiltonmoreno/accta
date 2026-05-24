@@ -46,7 +46,7 @@ module.exports = {
         carmesim: {
           DEFAULT: "#C7202F",
           light: "#E8444F",
-          dark: "#9E1925",
+          dark: "#A51B27",
           50: "#FEF2F2",
           100: "#FEE2E4",
         },

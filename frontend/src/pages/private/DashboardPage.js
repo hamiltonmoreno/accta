@@ -281,8 +281,12 @@ export const DashboardPage = () => {
 
       {/* ===== Financial Summary Banner (for admin) ===== */}
       {hasFinance && financeSummary && (
-        <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 cursor-pointer hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all animate-fade-up"
+        <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 cursor-pointer hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all animate-fade-up outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
           onClick={() => navigate('/financeiro')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/financeiro'); } }}
+          aria-label={`Ver Financeiro ${currentYear}`}
           data-testid="finance-summary-widget">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-grafite flex items-center gap-2">

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Check, CheckCheck, X } from 'lucide-react';
+import { Bell, BarChart3, CheckCheck, CheckCircle2, FileText, Wallet, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -18,20 +18,13 @@ export const NotificationBell = () => {
   const unreadNotifications = notifications.filter((n) => !n.read);
   const recentNotifications = notifications.slice(0, 10);
 
-  const getNotificationIcon = (type) => {
-    switch (type) {
-      case 'poll_opened':
-        return '📊';
-      case 'invoice_due':
-        return '💰';
-      case 'document_new':
-        return '📄';
-      case 'wall_post_approved':
-        return '✅';
-      default:
-        return '🔔';
-    }
+  const NOTIF_ICONS = {
+    poll_opened: BarChart3,
+    invoice_due: Wallet,
+    document_new: FileText,
+    wall_post_approved: CheckCircle2,
   };
+  const getNotificationIcon = (type) => NOTIF_ICONS[type] || Bell;
 
   const handleNotificationClick = (notification) => {
     markAsRead(notification.id);
@@ -122,7 +115,9 @@ export const NotificationBell = () => {
                   </div>
                 ) : (
                   <div className="divide-y divide-[#E5E7EB]">
-                    {recentNotifications.map((notification) => (
+                    {recentNotifications.map((notification) => {
+                      const Icon = getNotificationIcon(notification.type);
+                      return (
                       <button
                         key={notification.id}
                         onClick={() => handleNotificationClick(notification)}
@@ -132,8 +127,8 @@ export const NotificationBell = () => {
                         data-testid={`notification-${notification.id}`}
                       >
                         <div className="flex items-start gap-3">
-                          <span className="text-2xl flex-shrink-0">
-                            {getNotificationIcon(notification.type)}
+                          <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-[#F5F5F5] flex items-center justify-center">
+                            <Icon className="w-5 h-5 text-grafite" aria-hidden="true" />
                           </span>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2 mb-1">
@@ -154,7 +149,8 @@ export const NotificationBell = () => {
                           </div>
                         </div>
                       </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

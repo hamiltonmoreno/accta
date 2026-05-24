@@ -4,6 +4,7 @@ import { financesAPI } from '../../../utils/api';
 import { toast } from 'sonner';
 import { DollarSign, Settings, RefreshCw, CheckCircle, Users } from 'lucide-react';
 import { MONTH_NAMES } from './constants';
+import { Skeleton } from '../../../components/ui/skeleton';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -98,7 +99,12 @@ export const SettingsTab = () => {
   };
 
   if (loading) {
-    return <div className="p-10 text-center"><div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" /></div>;
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-28 w-full rounded-lg" />
+        <Skeleton className="h-28 w-full rounded-lg" />
+      </div>
+    );
   }
 
   return (

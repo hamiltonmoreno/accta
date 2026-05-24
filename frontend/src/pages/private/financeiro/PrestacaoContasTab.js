@@ -32,7 +32,7 @@ const Stepper = ({ status }) => {
       {STEPS.map((s, i) => {
         const done = idx >= 0 && i <= idx;
         return (
-          <span key={s.key} className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${done ? 'bg-[#FBEAEC] text-grafite' : 'bg-[#F5F5F5] text-[#6B7280]'}`}>
+          <span key={s.key} className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${done ? 'bg-[#FBEAEC] text-grafite font-semibold' : 'bg-[#F5F5F5] text-[#6B7280] font-medium'}`}>
             {s.label}
           </span>
         );

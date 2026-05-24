@@ -460,8 +460,9 @@ export const AdminAssembleiasPage = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className={labelCls}>Tipo</label>
+              <label htmlFor="convocar-tipo" className={labelCls}>Tipo</label>
               <select
+                id="convocar-tipo"
                 value={convocarForm.tipo}
                 onChange={(e) => setConvocarForm({ ...convocarForm, tipo: e.target.value })}
                 className={`${fieldCls} bg-white`}
@@ -471,8 +472,9 @@ export const AdminAssembleiasPage = () => {
               </select>
             </div>
             <div>
-              <label className={labelCls}>Título</label>
+              <label htmlFor="convocar-titulo" className={labelCls}>Título</label>
               <input
+                id="convocar-titulo"
                 type="text"
                 value={convocarForm.titulo}
                 onChange={(e) => setConvocarForm({ ...convocarForm, titulo: e.target.value })}
@@ -486,8 +488,9 @@ export const AdminAssembleiasPage = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className={labelCls}>Data e hora</label>
+                <label htmlFor="convocar-data" className={labelCls}>Data e hora</label>
                 <input
+                  id="convocar-data"
                   type="datetime-local"
                   value={convocarForm.data}
                   onChange={(e) => setConvocarForm({ ...convocarForm, data: e.target.value })}
@@ -496,8 +499,9 @@ export const AdminAssembleiasPage = () => {
                 />
               </div>
               <div>
-                <label className={labelCls}>Local</label>
+                <label htmlFor="convocar-local" className={labelCls}>Local</label>
                 <input
+                  id="convocar-local"
                   type="text"
                   value={convocarForm.local}
                   onChange={(e) => setConvocarForm({ ...convocarForm, local: e.target.value })}
@@ -509,8 +513,9 @@ export const AdminAssembleiasPage = () => {
             </div>
             {convocarForm.tipo === 'extraordinaria' && (
               <div>
-                <label className={labelCls}>Requerente (opcional)</label>
+                <label htmlFor="convocar-requerente" className={labelCls}>Requerente (opcional)</label>
                 <select
+                  id="convocar-requerente"
                   value={convocarForm.requerente_tipo}
                   onChange={(e) => setConvocarForm({ ...convocarForm, requerente_tipo: e.target.value })}
                   className={`${fieldCls} bg-white`}
