@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
-import { usersAPI, cargosAPI, governanceAPI } from '../../utils/api';
+import { usersAPI, cargosAPI, governanceAPI, comunicadosAPI } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
+import { Switch } from '../../components/ui/switch';
 import { PRIVILEGE_LABELS, cargoLabelFrom, memberCategoryLabel } from '../../lib/governanceLabels';
 import { toast } from 'sonner';
 import {
@@ -228,6 +229,19 @@ export const PerfilPage = () => {
     },
     onError: (error) => {
       toast.error(error.response?.data?.detail || 'Erro ao atualizar perfil');
+    },
+  });
+
+  // Preferência de comunicados informativos por email. O switch reflecte se o
+  // sócio RECEBE (ON) — o campo persistido é o opt-OUT, logo invertemos.
+  const emailPrefsMutation = useMutation({
+    mutationFn: (data) => comunicadosAPI.updateEmailPreferences(data),
+    onSuccess: async () => {
+      if (refreshUser) await refreshUser();
+      toast.success('Preferência de email atualizada.');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Erro ao atualizar a preferência de email.');
     },
   });
 
@@ -472,6 +486,32 @@ export const PerfilPage = () => {
 
       {/* Privileges */}
       <PrivilegesSection privileges={user.privileges} />
+
+      {/* Preferências de email */}
+      <div className="card-technical p-5 animate-fade-up" data-testid="email-prefs-section">
+        <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280] mb-3">
+          <Mail className="w-3 h-3 inline mr-1" aria-hidden="true" /> Preferências de Email
+        </h3>
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <label htmlFor="email-opt-informativos" className="text-sm font-medium text-grafite block">
+              Receber comunicados informativos por email
+            </label>
+            <p className="text-xs text-[#6B7280] mt-1">
+              Os comunicados oficiais (convocatórias, deliberações) chegam sempre.
+            </p>
+          </div>
+          <Switch
+            id="email-opt-informativos"
+            checked={!user.email_opt_out_informativos}
+            disabled={emailPrefsMutation.isPending}
+            onCheckedChange={(checked) =>
+              emailPrefsMutation.mutate({ email_opt_out_informativos: !checked })
+            }
+            data-testid="email-opt-informativos-switch"
+          />
+        </div>
+      </div>
 
       {/* Histórico de cargos do próprio sócio */}
       <MeusCargosSection userId={user.id} structure={structure} />
