@@ -230,7 +230,7 @@ const PendingPostsPanel = () => {
                         <XCircle className="w-4 h-4" /> Rejeitar
                       </button>
                       <button onClick={() => approveMutation.mutate(post.id)}
-                        className="flex items-center gap-1 px-3 py-1.5 text-sm text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm text-white bg-[#16A34A] rounded-lg hover:bg-[#15803D] transition-colors"
                         data-testid={`approve-post-${post.id}`}>
                         <CheckCircle className="w-4 h-4" /> Aprovar
                       </button>

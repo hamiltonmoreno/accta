@@ -9,12 +9,12 @@ import { toast } from 'sonner';
 const OfflineBanner = ({ isOnline }) => {
   if (isOnline) return null;
   return (
-    <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center gap-3 animate-fade-up"
+    <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-xl p-4 flex items-center gap-3 animate-fade-up"
       data-testid="offline-banner">
-      <WifiOff className="w-5 h-5 text-orange-600 flex-shrink-0" />
+      <WifiOff className="w-5 h-5 text-[#D97706] flex-shrink-0" />
       <div>
-        <p className="text-sm font-semibold text-orange-800">Modo Offline</p>
-        <p className="text-xs text-orange-600">A exibir dados guardados localmente. QR Code disponivel.</p>
+        <p className="text-sm font-semibold text-[#B45309]">Modo Offline</p>
+        <p className="text-xs text-[#B45309]">A exibir dados guardados localmente. QR Code disponivel.</p>
       </div>
     </div>
   );
@@ -195,9 +195,9 @@ export const CarteiraPage = () => {
         </h1>
         <div className="flex items-center gap-2 text-gray-500 mt-1">
           {isOnline ? (
-            <Wifi className="w-4 h-4 text-green-500" />
+            <Wifi className="w-4 h-4 text-[#16A34A]" />
           ) : (
-            <WifiOff className="w-4 h-4 text-orange-500" />
+            <WifiOff className="w-4 h-4 text-[#D97706]" />
           )}
           <p className="text-sm">
             Sua identificacao digital de socio ACCTA

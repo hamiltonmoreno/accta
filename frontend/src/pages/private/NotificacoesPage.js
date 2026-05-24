@@ -246,7 +246,7 @@ export const NotificacoesPage = () => {
           <div className="text-xs uppercase tracking-wider mt-1 text-muted-auto">Nao lidas</div>
         </div>
         <div className="card-technical p-4">
-          <div className="font-mono text-2xl font-bold text-green-600">{readCount}</div>
+          <div className="font-mono text-2xl font-bold text-[#15803D]">{readCount}</div>
           <div className="text-xs uppercase tracking-wider mt-1 text-muted-auto">Lidas</div>
         </div>
         <div className="card-technical p-4">
