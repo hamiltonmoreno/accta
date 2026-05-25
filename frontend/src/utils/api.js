@@ -277,6 +277,20 @@ export const regulamentosAPI = {
   revogarVersao: (id, vid, data) => api.post(`/regulamentos/${id}/versoes/${vid}/revogar`, data || {}),
 };
 
+// Documentos de prestação de contas (multipart). Cria o registo `documents`
+// com visibilidade/título por política server-side a partir de `kind`.
+export const prestacaoContasAPI = {
+  uploadDocumento: (file, { kind, title } = {}) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('kind', kind);
+    if (title) formData.append('title', title);
+    return api.post('/prestacao-contas/documentos', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+};
+
 // Polls API
 export const pollsAPI = {
   getAll: () => api.get('/polls'),

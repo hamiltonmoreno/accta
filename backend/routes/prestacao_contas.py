@@ -14,20 +14,28 @@ RBAC:
 - ver balancetes:     `can_view_finances`; o PDF público segue o fluxo de documentos
 """
 
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from auth import can_manage_finances, can_view_finances, get_current_user
 from database import db
-from helpers import create_audit_log, members_of_orgao, notify_all_active_users, notify_users
+from helpers import (
+    create_audit_log,
+    delete_upload_file,
+    members_of_orgao,
+    notify_all_active_users,
+    notify_users,
+)
 from models import (
     EXPENSE_CATEGORIES,
     INCOME_CATEGORIES,
     Balancete,
     BalanceteAuditar,
     BalanceteCreate,
+    Document,
     Exercicio,
     ExercicioAprovar,
     ExercicioCreate,
@@ -41,8 +49,11 @@ from models import (
 )
 from permissions import can_emit_parecer_cf, is_direcao, is_mesa_ag
 from routes.finances import compute_dre_report, compute_financial_summary
+from routes.upload import save_validated_upload
 
 router = APIRouter(tags=["prestacao-contas"])
+
+logger = logging.getLogger(__name__)
 
 _LINK_BAL = "/financeiro/balancetes"
 _LINK_EX = "/financeiro/prestacao-contas"
@@ -71,6 +82,96 @@ async def _validate_document(document_id: str):
     doc = await db.documents.find_one({"id": document_id}, {"_id": 0, "id": 1})
     if not doc:
         raise HTTPException(status_code=400, detail="Documento associado nao encontrado")
+
+
+def _can_upload_kind(kind: str, user: User) -> bool:
+    """O upload de cada `kind` exige a MESMA permissão da ação correspondente —
+    impede falsificação cruzada de órgão (ex.: manage_finances a criar 'Parecer
+    do CF', ou CF a criar 'Relatório e Contas')."""
+    if kind in ("relatorio", "orcamento", "plano"):
+        return user.role == "admin" or is_direcao(user)
+    if kind == "balancete":
+        return can_manage_finances(user)
+    if kind == "parecer":
+        return can_emit_parecer_cf(user)
+    return False
+
+
+# kind → (visibilidade FINAL aplicada pela ação, título por defeito). O upload
+# cria SEMPRE um rascunho "direcao" (não-público); só a ação promove ao final.
+_PRESTACAO_DOC_POLICY = {
+    "relatorio": ("publico", "Relatório e Contas"),
+    "balancete": ("publico", "Balancete"),
+    "parecer": ("publico", "Parecer do Conselho Fiscal"),
+    "orcamento": ("socios", "Orçamento"),
+    "plano": ("socios", "Plano de Atividades"),
+}
+
+
+async def _publish_document(document_id: Optional[str], visibility: str) -> None:
+    """Promove a visibilidade do documento (rascunho 'direcao' → final) quando a
+    ação correspondente é publicada com sucesso. No-op se não houver document_id
+    ou se o alvo não for um RASCUNHO de prestação ('type'=='prestacao_contas',
+    'visibility'=='direcao') — impede promover documentos arbitrários."""
+    if document_id:
+        await db.documents.update_one(
+            {"id": document_id, "type": "prestacao_contas", "visibility": "direcao"},
+            {"$set": {"visibility": visibility}},
+        )
+
+
+@router.post("/prestacao-contas/documentos")
+async def upload_prestacao_documento(
+    file: UploadFile = File(...),
+    kind: str = Form(...),
+    title: Optional[str] = Form(None),
+    current_user: User = Depends(get_current_user),
+):
+    """Upload + criação atómica de um documento de prestação de contas (RASCUNHO).
+
+    Alarga deliberadamente a escrita na categoria `documents` (caso contrário
+    admin-only) aos atores de prestação, mas com RBAC POR `kind` (espelha a
+    permissão da ação correspondente — não a UNIÃO dos órgãos) e cria SEMPRE um
+    rascunho não-público (`visibility="direcao"`). A publicação (visibilidade
+    final) só acontece na ação respetiva, via `_publish_document` — o documento
+    nunca fica acessível por `GET /documents/public` antes da ação do órgão certo."""
+    if kind not in _PRESTACAO_DOC_POLICY:
+        raise HTTPException(status_code=400, detail="Tipo de documento invalido")
+    if not _can_upload_kind(kind, current_user):
+        raise HTTPException(status_code=403, detail="Sem permissao para anexar este tipo de documento")
+    _final_visibility, default_title = _PRESTACAO_DOC_POLICY[kind]
+    final_title = (title or "").strip() or default_title
+
+    contents = await file.read()
+    file_url = await save_validated_upload("documents", contents, file.filename)
+    # Rascunho NÃO-público: a publicação só acontece na ação correspondente.
+    doc = Document(
+        title=final_title,
+        file_url=file_url,
+        type="prestacao_contas",
+        visibility="direcao",
+        tags=[],
+    )
+    try:
+        await db.documents.insert_one(doc.model_dump())
+        await create_audit_log(
+            current_user.id,
+            "upload_documento_prestacao",
+            doc.id,
+            details={"kind": kind, "title": final_title, "draft": True},
+        )
+    except Exception:
+        delete_upload_file(file_url)
+        await db.documents.delete_one({"id": doc.id})  # rollback completo: sem órfãos
+        logger.exception("Falha ao registar/auditar documento de prestacao (kind=%s)", kind)
+        raise HTTPException(status_code=500, detail="Erro ao registar o documento")
+    return {
+        "document_id": doc.id,
+        "file_url": file_url,
+        "title": final_title,
+        "visibility": "direcao",
+        "kind": kind,
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -110,6 +211,9 @@ async def publish_balancete(data: BalanceteCreate, current_user: User = Depends(
         bal.id,
         details={"tipo": data.tipo, "periodo": data.periodo, "exercicio_ano": data.exercicio_ano},
     )
+    # Promove o rascunho a público SÓ após o balancete persistir (SEC: sem fuga
+    # se a publicação falhar antes da escrita).
+    await _publish_document(data.document_id, "publico")
     cf_ids = await members_of_orgao("conselho_fiscal")
     await notify_users(
         cf_ids,
@@ -265,6 +369,8 @@ async def submeter_relatorio(ano: int, data: RelatorioContasSubmit, current_user
         {"ano": ano}, {"$set": {"relatorio_contas": relatorio, "status": "relatorio_submetido"}}
     )
     await create_audit_log(current_user.id, f"Submeteu relatorio e contas do exercicio {ano}", ex["id"])
+    # Promove o rascunho a público SÓ após o relatório persistir (SEC).
+    await _publish_document(data.document_id, "publico")
 
     cf_ids = await members_of_orgao("conselho_fiscal")
     await notify_users(
@@ -302,6 +408,10 @@ async def submeter_orcamento(ano: int, data: OrcamentoSubmit, current_user: User
     }
     await db.exercicios.update_one({"ano": ano}, {"$set": {"orcamento": orcamento}})
     await create_audit_log(current_user.id, f"Submeteu orcamento do exercicio {ano}", ex["id"])
+    # Promove o rascunho a sócios SÓ após validação + persistência (SEC: uma
+    # categoria inválida 400 deixa o documento como rascunho, sem fuga).
+    if data.document_id:
+        await _publish_document(data.document_id, "socios")
     return {"ano": ano, "orcamento": orcamento}
 
 
@@ -322,6 +432,9 @@ async def submeter_plano(ano: int, data: PlanoSubmit, current_user: User = Depen
     }
     await db.exercicios.update_one({"ano": ano}, {"$set": {"plano_atividades": plano}})
     await create_audit_log(current_user.id, f"Submeteu plano de atividades do exercicio {ano}", ex["id"])
+    # Promove o rascunho a sócios SÓ após o plano persistir (SEC).
+    if data.document_id:
+        await _publish_document(data.document_id, "socios")
     return {"ano": ano, "plano_atividades": plano}
 
 
@@ -343,6 +456,8 @@ async def emitir_parecer(ano: int, data: ParecerSubmit, current_user: User = Dep
     ).model_dump()
     await db.exercicios.update_one({"ano": ano}, {"$set": {"parecer_cf": parecer, "status": "parecer_emitido"}})
     await create_audit_log(current_user.id, f"Emitiu parecer do CF do exercicio {ano} ({data.sentido})", ex["id"])
+    # Promove o rascunho a público SÓ após o parecer persistir (SEC).
+    await _publish_document(data.document_id, "publico")
     mesa_ids = await members_of_orgao("mesa_ag")
     await notify_users(
         mesa_ids,
