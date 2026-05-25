@@ -16,6 +16,7 @@ import routes.gallery as gallery
 import routes.notifications as notifications
 import routes.projects as projects
 import routes.wall as wall
+from models import ProjectMilestoneUpdate
 
 pytestmark = pytest.mark.unit
 
@@ -80,6 +81,34 @@ async def test_delete_milestone_non_manager_forbidden(mock_db, socio_user):
     with pytest.raises(HTTPException) as exc:
         await projects.delete_milestone("p1", "m1", current_user=socio_user)
     assert exc.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_update_milestone_no_cross_project_disclosure(mock_db, socio_user):
+    # IDOR de divulgação cruzada: gestor do projeto B faz PATCH de um milestone
+    # que pertence ao projeto A. A autorização é feita pelo projeto da URL (B),
+    # mas a re-leitura TEM de ser escopada por project_id — caso contrário
+    # devolve o documento de A. O mock é fiel ao DAO: milestone-A só "aparece"
+    # se a query NÃO estiver escopada ao projeto B (= o bug). Esperado: 404.
+    manager = socio_user
+    mock_db.projects.find_one = AsyncMock(
+        return_value={"id": "project-B", "created_by": manager.id, "responsible_id": manager.id}
+    )
+    mock_db.project_milestones = MagicMock()
+    mock_db.project_milestones.update_one = AsyncMock(return_value=MagicMock(modified_count=0))
+
+    async def _find_one(filt, projection=None):
+        if filt.get("project_id") in (None, "project-A"):
+            return {"id": "milestone-A", "project_id": "project-A", "title": "Segredo de A"}
+        return None
+
+    mock_db.project_milestones.find_one = AsyncMock(side_effect=_find_one)
+
+    with pytest.raises(HTTPException) as exc:
+        await projects.update_milestone(
+            "project-B", "milestone-A", ProjectMilestoneUpdate(title="hijack"), current_user=manager
+        )
+    assert exc.value.status_code == 404
 
 
 # ---- mural -----------------------------------------------------------------

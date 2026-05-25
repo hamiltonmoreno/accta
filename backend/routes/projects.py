@@ -614,6 +614,15 @@ async def update_milestone(
     if not can_manage_project(current_user, project):
         raise HTTPException(status_code=403, detail="Sem permissao")
 
+    # Confirma que o milestone pertence a ESTE projeto antes de tocar/devolver
+    # (evita IDOR de divulgacao cruzada: a re-leitura tem de ficar escopada
+    # por project_id, tal como em update_task).
+    milestone = await db.project_milestones.find_one(
+        {"id": milestone_id, "project_id": project_id}, {"_id": 0}
+    )
+    if not milestone:
+        raise HTTPException(status_code=404, detail="Milestone nao encontrado")
+
     updates = {}
     if data.completed is not None:
         updates["completed"] = data.completed
@@ -625,7 +634,7 @@ async def update_milestone(
     if updates:
         await db.project_milestones.update_one({"id": milestone_id, "project_id": project_id}, {"$set": updates})
 
-    updated = await db.project_milestones.find_one({"id": milestone_id}, {"_id": 0})
+    updated = await db.project_milestones.find_one({"id": milestone_id, "project_id": project_id}, {"_id": 0})
     return updated
 
 
