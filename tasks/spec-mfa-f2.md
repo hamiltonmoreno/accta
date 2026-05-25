@@ -326,6 +326,17 @@ def _consume_backup_code(user_doc: dict, code: str) -> Optional[list[str]]:
   (b) OTP errado partilha o contador de lockout da password — um atacante que conheça
   a password pode trancar a conta (DoS) — candidato a alerta de anomalia no F3.
 
+  **2ª revisão (4 achados — remediados, re-revisão APROVADA)**: (1) *bloqueante* —
+  MFA "obrigatório" não era imposto (flag ignorável): agora `login`/`setup-account`
+  emitem token com claim `mfa_pending` e `get_current_user` limita essa sessão a
+  endpoints de enrolment (`MFA_PENDING_ALLOWED_PATHS`); `mfa_verify` faz upgrade
+  para token completo. (2) *bloqueante* — campos MFA vazavam por respostas cruas de
+  utilizador: excluídos em TODAS as projeções via `models.MFA_SECRET_FIELDS`
+  (`users.py`/`admin.py`/`finances.py`/`stats.py`). (3) backup codes subidos para
+  ~80 bits. (4) consumo de backup code tornado atómico (`$pull` condicional +
+  `modified_count`). Diferido p/ F3: SSE/`get_user_from_token` não honram
+  `mfa_pending` (risco baixo — só dados próprios).
+
   **Handoff PR2 (frontend)**: falta o ecrã de setup (QR a partir de `otpauth_uri` +
   segredo manual), o ecrã de backup codes (mostrados 1x na resposta de
   `/mfa/verify`), o campo OTP no login orquestrado pelo `detail` `mfa_required`, e
