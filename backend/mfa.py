@@ -11,7 +11,7 @@ import secrets
 from typing import Optional
 
 import pyotp
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 
 from auth import SECRET_KEY
 
@@ -45,6 +45,17 @@ def provisioning_uri(secret: str, email: str) -> str:
 def verify_totp(secret: str, code: str) -> bool:
     # valid_window=1 tolera +-30s de drift de relógio.
     return pyotp.TOTP(secret).verify((code or "").strip(), valid_window=1)
+
+
+def verify_totp_encrypted(encrypted_secret: str, code: str) -> bool:
+    """Verifica um OTP contra um segredo TOTP CIFRADO. Falha FECHADO (False) se
+    o token estiver corrompido ou o SECRET_KEY tiver sido rodado (InvalidToken),
+    em vez de propagar 500 no caminho de login/verify."""
+    try:
+        secret = decrypt_secret(encrypted_secret)
+    except InvalidToken:
+        return False
+    return verify_totp(secret, code)
 
 
 def generate_backup_codes(n: int = BACKUP_CODE_COUNT) -> list[str]:

@@ -305,7 +305,7 @@ def _consume_backup_code(user_doc: dict, code: str) -> Optional[list[str]]:
   disable,status}` e o gate no `POST /auth/login` (2.º fator TOTP **ou** backup code
   de uso único, OTP errado conta para o lockout existente, `detail` distinguível:
   `mfa_required`/`mfa_invalido`). `mfa_setup_required` sinaliza papéis obrigatórios
-  ainda não inscritos. Cobertura: 25 testes em `tests/test_mfa.py` (cripto/primitivas,
+  ainda não inscritos. Cobertura: 26 testes em `tests/test_mfa.py` (cripto/primitivas,
   modelos, endpoints, 7 ramos de login). Sem regressão na suite de segurança
   (137 passed). Nenhuma stop condition disparada (tudo aditivo, sem migração/drop,
   sem alteração do `SECRET_KEY`/algoritmo, sem CORS, sem emails).
@@ -316,6 +316,15 @@ def _consume_backup_code(user_doc: dict, code: str) -> Optional[list[str]]:
   request=request|None)`) funcionam sem ajuste. O import de `mfa.consume_backup_code`
   em `auth_routes.py` só é adicionado na Task 4 (onde é usado), para cada commit ficar
   ruff-limpo.
+
+  **Pós-revisão (opus, APROVADA)**: corrigida a lacuna *Importante* — `decrypt_secret`
+  não tratava `InvalidToken` (segredo corrompido / `SECRET_KEY` rodado → 500 no login).
+  Novo helper `mfa.verify_totp_encrypted(encrypted, code)` falha **fechado** (False),
+  usado no gate do login e no `mfa_verify` (+ teste dedicado). **Diferido para F3**
+  (Menor, não-bloqueante): (a) `mfa_verify`/`mfa_disable` registam audit sem IP/UA
+  (`request=None`) — acrescentar `request: Request` para contexto de origem;
+  (b) OTP errado partilha o contador de lockout da password — um atacante que conheça
+  a password pode trancar a conta (DoS) — candidato a alerta de anomalia no F3.
 
   **Handoff PR2 (frontend)**: falta o ecrã de setup (QR a partir de `otpauth_uri` +
   segredo manual), o ecrã de backup codes (mostrados 1x na resposta de

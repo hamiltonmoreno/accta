@@ -49,6 +49,16 @@ def test_verify_totp_accepts_current_rejects_wrong():
     assert verify_totp(s, wrong) is False
 
 
+def test_verify_totp_encrypted_fails_closed_on_corrupt_token():
+    from mfa import encrypt_secret, generate_totp_secret, verify_totp_encrypted
+
+    secret = generate_totp_secret()
+    code = pyotp.TOTP(secret).now()
+    assert verify_totp_encrypted(encrypt_secret(secret), code) is True
+    # token corrompido / SECRET_KEY rodado → False (sem exceção, sem 500)
+    assert verify_totp_encrypted("nao-e-token-fernet-valido", code) is False
+
+
 def test_backup_codes_count_unique_and_hash():
     from mfa import BACKUP_CODE_COUNT, generate_backup_codes, hash_backup_code
 

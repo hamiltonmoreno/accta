@@ -42,14 +42,13 @@ from helpers import (
 from permissions import is_voting_member
 from mfa import (
     consume_backup_code,
-    decrypt_secret,
     encrypt_secret,
     generate_backup_codes,
     generate_totp_secret,
     hash_backup_code,
     is_mfa_mandatory,
     provisioning_uri,
-    verify_totp,
+    verify_totp_encrypted,
 )
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -105,7 +104,7 @@ async def login(request: Request, response: Response, credentials: UserLogin):
             await create_audit_log(user_doc["id"], "login_mfa_challenge", request=request)
             raise HTTPException(status_code=401, detail="mfa_required")
         new_backups = consume_backup_code(user_doc.get("mfa_backup_codes") or [], credentials.otp)
-        if not verify_totp(decrypt_secret(user_doc["mfa_secret"]), credentials.otp) and new_backups is None:
+        if not verify_totp_encrypted(user_doc["mfa_secret"], credentials.otp) and new_backups is None:
             await record_failed_login(credentials.email, ip=request.client.host if request.client else None)
             await create_audit_log(user_doc["id"], "login_mfa_failed", request=request)
             raise HTTPException(status_code=401, detail="mfa_invalido")
@@ -186,7 +185,7 @@ async def mfa_verify(data: MfaVerifyRequest, current_user: User = Depends(get_cu
     pending = (doc or {}).get("mfa_pending_secret")
     if not pending:
         raise HTTPException(status_code=400, detail="Inicie a configuracao de MFA primeiro")
-    if not verify_totp(decrypt_secret(pending), data.otp):
+    if not verify_totp_encrypted(pending, data.otp):
         raise HTTPException(status_code=400, detail="Codigo invalido")
     codes = generate_backup_codes()
     await db.users.update_one(
