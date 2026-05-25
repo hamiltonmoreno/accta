@@ -168,3 +168,35 @@ a matriz de casos esteja completa, não que os testes existentes passem.
 **Context**: `backend/routes/projects.py::update_milestone` (corrigido);
 `test_idor.py::test_update_milestone_no_cross_project_disclosure`. Auditar o
 padrão "authz no pai + re-read do filho por id só" noutros routers.
+
+### L13 — "Obrigatório" e "segredo" têm de ser garantidos no servidor, não no modelo/UI
+**Mistake**: No F2 MFA (PR #120), uma revisão apanhou 4 falhas que escaparam à
+implementação E à 1ª revisão: (1) MFA "obrigatório" era só uma flag
+`mfa_setup_required` no `Token` que o cliente podia ignorar — o backend emitia
+JWT normal e `get_current_user` aceitava-o → enforcement inexistente; (2) os
+campos secretos novos (`mfa_secret`/`mfa_pending_secret`/`mfa_backup_codes`)
+eram removidos só na resposta de login (+`extra="ignore"` no `User`), mas
+`GET /users/{id}`/`PATCH` devolvem o **doc cru** com projeção que só excluía
+`password` → vazavam; (3) backup codes com 32 bits; (4) consumo de backup code
+não-atómico (read-then-`$set` → aceita o mesmo código em logins concorrentes).
+**Rule**:
+- **"Obrigatório"/"mandatory" impõe-se no servidor**, nunca por flag de UI: ex.
+  sessão limitada via claim no token (`mfa_pending`) verificada na dependência
+  central de auth contra uma allowlist de endpoints de enrolment. Uma flag que o
+  cliente lê ≠ enforcement.
+- **Campo secreto novo = excluí-lo em TODAS as projeções de utilizador** (uma
+  constante partilhada, ex. `models.MFA_SECRET_FIELDS`) ou `response_model`
+  consistente. O `pop()` numa rota + `extra="ignore"` não chega: rotas que
+  devolvem o doc cru contornam o modelo. Auditar TODAS as leituras de `db.users`
+  devolvidas ao cliente.
+- **Credencial de uso único consome-se atomicamente** (`$pull` condicional +
+  `modified_count==1`), nunca read-then-write. Segredos/códigos ≥80 bits
+  (`secrets`).
+- **A revisão de auth tem de ser adversarial**: procurar caminhos de auth
+  alternativos (`get_user_from_token`/`get_optional_user`/SSE) e fugas residuais
+  noutros routers — não só o ficheiro do diff.
+**Context**: `spec-mfa-f2`, PR #120; `auth.py::MFA_PENDING_ALLOWED_PATHS` +
+gate em `get_current_user`; `models.MFA_SECRET_FIELDS`; `$pull` atómico em
+`auth_routes.py::login`. Itens menores diferidos p/ F3: SSE/`get_user_from_token`
+não honram `mfa_pending`; audit sem IP/UA em verify/disable; lockout
+partilhado password↔OTP.

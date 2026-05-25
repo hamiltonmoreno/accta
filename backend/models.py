@@ -103,6 +103,9 @@ class UserBase(BaseModel):
     cta_qualified_since: Optional[str] = None
     joia_devida: Optional[float] = None
     joia_isento: Optional[bool] = None
+    # MFA TOTP (spec-mfa-f2). Só a flag é exposta; segredo/backup vivem no doc
+    # jsonb e nunca em modelos (User tem extra="ignore").
+    mfa_enabled: bool = False
 
 
 class UserCreate(UserBase):
@@ -115,6 +118,11 @@ class User(UserBase):
     qr_code_hash: Optional[str] = None
     last_login_at: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+# Campos secretos de MFA — NUNCA expostos (a par de password). Usar em toda
+# projeção de utilizador que vá para o cliente.
+MFA_SECRET_FIELDS = ("mfa_secret", "mfa_pending_secret", "mfa_backup_codes")
 
 
 # Tipos sanguíneos aceites (sistema ABO/Rh). Usado na validação de escrita.
@@ -253,12 +261,22 @@ class UserAdminUpdate(_EditableProfileFields):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+    otp: Optional[str] = None
 
 
 class Token(BaseModel):
     access_token: str
     token_type: str
     user: User
+    mfa_setup_required: bool = False
+
+
+class MfaVerifyRequest(BaseModel):
+    otp: str
+
+
+class MfaDisableRequest(BaseModel):
+    password: str
 
 
 class InviteCreate(BaseModel):

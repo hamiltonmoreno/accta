@@ -9,6 +9,7 @@ from models import (
     CARGOS_ORGAOS_SOCIAIS,
     CARGO_DEFAULTS,
     CARGO_SEATS,
+    MFA_SECRET_FIELDS,
     PRIVILEGES,
     USER_STATUSES,
 )
@@ -43,7 +44,7 @@ SENSITIVE_PROFILE_FIELDS = [
 
 def _user_projection(include_sensitive: bool) -> dict:
     """Projeção base (sem _id/password); oculta a PII sensível salvo para o próprio."""
-    proj = {"_id": 0, "password": 0}
+    proj = {"_id": 0, "password": 0, **dict.fromkeys(MFA_SECRET_FIELDS, 0)}
     if not include_sensitive:
         proj.update({f: 0 for f in SENSITIVE_PROFILE_FIELDS})
     return proj
@@ -127,7 +128,9 @@ async def update_own_profile(data: UserProfileUpdate, current_user: User = Depen
     await db.users.update_one({"id": current_user.id}, {"$set": update_data})
 
     # Return updated user
-    updated = await db.users.find_one({"id": current_user.id}, {"_id": 0, "password": 0})
+    updated = await db.users.find_one(
+        {"id": current_user.id}, {"_id": 0, "password": 0, **dict.fromkeys(MFA_SECRET_FIELDS, 0)}
+    )
     await create_audit_log(current_user.id, "Atualizou o próprio perfil")
     return updated
 
@@ -205,7 +208,7 @@ async def admin_update_user(
             "/perfil",
         )
 
-    updated = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+    updated = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0, **dict.fromkeys(MFA_SECRET_FIELDS, 0)})
     return updated
 
 

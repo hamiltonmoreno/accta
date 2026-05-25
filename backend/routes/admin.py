@@ -13,6 +13,7 @@ from models import (
     PRIVILEGES,
     CARGO_SEATS,
     FinanceSettings,
+    MFA_SECRET_FIELDS,
 )
 from finance_joia import compute_joia
 from governance import (
@@ -135,9 +136,10 @@ async def get_pending_invites(current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Sem permissao")
 
-    users = await db.users.find({"status": "pendente_convite"}, {"_id": 0, "password": 0, "invite_token": 0}).to_list(
-        100
-    )
+    users = await db.users.find(
+        {"status": "pendente_convite"},
+        {"_id": 0, "password": 0, "invite_token": 0, **dict.fromkeys(MFA_SECRET_FIELDS, 0)},
+    ).to_list(100)
 
     return users
 
@@ -184,7 +186,7 @@ async def list_registration_requests(
     requests = (
         await db.users.find(
             {"status": status},
-            {"_id": 0, "password": 0, "invite_token": 0, "qr_code_hash": 0},
+            {"_id": 0, "password": 0, "invite_token": 0, "qr_code_hash": 0, **dict.fromkeys(MFA_SECRET_FIELDS, 0)},
         )
         .sort("registration_request_at", -1)
         .skip(skip)

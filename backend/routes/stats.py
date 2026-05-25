@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timezone
-from models import User
+from models import User, MFA_SECRET_FIELDS
 from database import db
 from auth import get_current_user
 
@@ -32,7 +32,9 @@ async def get_statistics(current_user: User = Depends(get_current_user)):
 # VALIDATOR (PUBLIC)
 @router.get("/validate/{qr_hash}")
 async def validate_wallet(qr_hash: str):
-    user = await db.users.find_one({"qr_code_hash": qr_hash}, {"_id": 0, "password": 0})
+    user = await db.users.find_one(
+        {"qr_code_hash": qr_hash}, {"_id": 0, "password": 0, **dict.fromkeys(MFA_SECRET_FIELDS, 0)}
+    )
     if not user:
         raise HTTPException(status_code=404, detail="Carteira não encontrada")
 
