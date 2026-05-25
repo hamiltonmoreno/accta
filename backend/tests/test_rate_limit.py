@@ -44,3 +44,15 @@ def test_login_rate_limited_after_10(mock_db, reset_limiter):
     codes = [client.post("/api/auth/login", json=body).status_code for _ in range(11)]
     assert codes[:10] == [401] * 10
     assert codes[10] == 429
+
+
+def test_forgot_password_rate_limited_after_3(mock_db, reset_limiter):
+    # Email inexistente → 200 genérico (anti-enumeração) e NENHUM email enviado
+    # (send_password_reset_email só corre quando o user existe). 4.º POST → 429.
+    mock_db.users.find_one = AsyncMock(return_value=None)
+
+    client = TestClient(app)  # sem `with` → sem startup/DB
+    body = {"email": "ninguem@accta.cv"}
+    codes = [client.post("/api/auth/forgot-password", json=body).status_code for _ in range(4)]
+    assert codes[:3] == [200] * 3
+    assert codes[3] == 429
