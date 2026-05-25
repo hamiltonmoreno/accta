@@ -33,9 +33,9 @@ export const FinanceiroPage = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="page-title" data-testid="finance-title">Gestao Financeira</h1>
+        <h1 className="page-title" data-testid="finance-title">Gestão Financeira</h1>
         <p className="page-subtitle">
-          Fluxo de caixa, relatorios DRE e configuracoes
+          Fluxo de caixa, relatórios DRE e configurações
           {!canManageFinances && (
             <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-[#F5F5F5] text-[#6B7280]" data-testid="finance-readonly-badge">
               Modo leitura

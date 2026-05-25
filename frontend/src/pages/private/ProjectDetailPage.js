@@ -261,7 +261,7 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
       setForm({ description: '', amount: '', date: new Date().toISOString().split('T')[0] });
       setShowAdd(false);
       onReload();
-      toast.success('Despesa registrada');
+      toast.success('Despesa registada');
     },
     onError: (err) => toast.error(err.response?.data?.detail || 'Erro'),
   });
@@ -351,7 +351,7 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
       )}
 
       {expenses.length === 0 ? (
-        <EmptyState icon={DollarSign} title="Nenhuma despesa registrada" className="p-6 sm:p-8" testId="no-expenses" />
+        <EmptyState icon={DollarSign} title="Nenhuma despesa registada" className="p-6 sm:p-8" testId="no-expenses" />
       ) : (
         <div className="bg-white border border-gray-200/80 rounded-xl overflow-hidden">
           <table className="w-full text-sm">

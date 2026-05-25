@@ -208,7 +208,7 @@ export const SettingsTab = () => {
           <div>
             <h4 className="font-semibold text-sm mb-1 text-grafite-auto">Desconto em Folha</h4>
             <p className="text-xs leading-relaxed text-secondary-auto">
-              As quotas dos socios ativos sao descontadas diretamente na folha de pagamento. Nao existe o conceito de "socio inadimplente" nesta associacao.
+              As quotas dos sócios ativos são descontadas diretamente na folha de pagamento. Não existe o conceito de "sócio inadimplente" nesta associação.
             </p>
           </div>
         </div>

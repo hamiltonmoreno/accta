@@ -303,7 +303,7 @@ const UploadDocumentModal = ({ onClose }) => {
                 <div className="flex items-center justify-between p-4 bg-carmesim/5 border border-carmesim/20 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-carmesim rounded-lg flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-grafite" />
+                      <FileText className="w-5 h-5 text-white" />
                     </div>
                     <div>
                       <div className="font-sans font-semibold text-grafite text-sm">{file.name}</div>

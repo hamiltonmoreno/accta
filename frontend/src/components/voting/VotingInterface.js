@@ -18,7 +18,7 @@ export const VotingInterface = ({ poll, onVoteSuccess }) => {
     try {
       await pollsAPI.vote({ poll_id: poll.id, vote_option: selected });
       setVoted(true);
-      toast.success('Voto registrado!');
+      toast.success('Voto registado!');
       setTimeout(() => onVoteSuccess && onVoteSuccess(), 1500);
     } catch (error) {
       const msg = error.response?.data?.detail || 'Erro ao votar';
@@ -35,7 +35,7 @@ export const VotingInterface = ({ poll, onVoteSuccess }) => {
         <div className="flex items-center gap-3 p-4 bg-carmesim/5 rounded-lg border border-carmesim/20">
           <CheckCircle className="w-6 h-6 text-carmesim" />
           <div>
-            <div className="font-semibold text-grafite">Voto Registrado</div>
+            <div className="font-semibold text-grafite">Voto Registado</div>
             <div className="text-sm text-gray-600">Obrigado pela participação!</div>
           </div>
         </div>
@@ -44,7 +44,7 @@ export const VotingInterface = ({ poll, onVoteSuccess }) => {
   }
 
   const options = poll.options || [];
-  const optionLabel = (opt) => opt.label || opt.text || `Opcao ${opt.id}`;
+  const optionLabel = (opt) => opt.label || opt.text || `Opção ${opt.id}`;
 
   return (
     <div className="border-t border-gray-200 pt-6 mt-6">

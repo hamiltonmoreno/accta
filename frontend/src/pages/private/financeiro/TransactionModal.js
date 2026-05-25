@@ -31,7 +31,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
         ? financesAPI.updateTransaction(tx.id, payload)
         : financesAPI.createTransaction(payload),
     onSuccess: () => {
-      toast.success(isEdit ? 'Transacao atualizada' : 'Transacao criada');
+      toast.success(isEdit ? 'Transação atualizada' : 'Transação criada');
       // onSaved: parent invalida ['transactions']. onClose: o modal fecha-se a
       // si proprio, sem depender do parent para o fechar.
       onSaved();
@@ -59,7 +59,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-md rounded-xl p-0 gap-0 max-h-[90vh] overflow-y-auto" data-testid="transaction-modal">
         <DialogHeader className="p-5 border-b border-gray-200 text-left space-y-0">
-          <DialogTitle className="font-bold text-lg text-grafite">{isEdit ? 'Editar Transacao' : 'Nova Transacao'}</DialogTitle>
+          <DialogTitle className="font-bold text-lg text-grafite">{isEdit ? 'Editar Transação' : 'Nova Transação'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
@@ -153,7 +153,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
             className="w-full btn-primary py-3 text-sm font-semibold"
             data-testid="save-transaction-btn"
           >
-            {saving ? 'A guardar...' : isEdit ? 'Atualizar' : 'Criar Transacao'}
+            {saving ? 'A guardar...' : isEdit ? 'Atualizar' : 'Criar Transação'}
           </button>
         </form>
       </DialogContent>

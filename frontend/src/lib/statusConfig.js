@@ -36,7 +36,7 @@ export const PROJECT_STATUS_CONFIG = {
   proposta: { label: 'Proposta', icon: Clock, ...TONE.warning },
   aprovado: { label: 'Aprovado', icon: Info, ...TONE.info },
   em_curso: { label: 'Em Curso', icon: Info, ...TONE.info },
-  concluido: { label: 'Concluido', icon: CheckCircle, ...TONE.success },
+  concluido: { label: 'Concluído', icon: CheckCircle, ...TONE.success },
   cancelado: { label: 'Cancelado', icon: XCircle, ...TONE.error },
 };
 export const PROJECT_STATUS_FALLBACK = 'proposta';
@@ -46,7 +46,7 @@ export const PROJECT_STATUS_FALLBACK = 'proposta';
 // media -> info · baixa -> neutro
 export const TASK_PRIORITY_CONFIG = {
   baixa: { label: 'Baixa', icon: Flag, ...TONE.neutro },
-  media: { label: 'Media', icon: Flag, ...TONE.info },
+  media: { label: 'Média', icon: Flag, ...TONE.info },
   alta: { label: 'Alta', icon: AlertTriangle, ...TONE.warning },
 };
 export const TASK_PRIORITY_FALLBACK = 'media';
@@ -54,7 +54,7 @@ export const TASK_PRIORITY_FALLBACK = 'media';
 // ---- Estado de tarefa (icone de toggle) ------------------------------------
 // concluido -> success · em_curso -> info · pendente -> neutro
 export const TASK_STATUS_CONFIG = {
-  concluido: { label: 'Concluido', icon: CheckCircle, ...TONE.success },
+  concluido: { label: 'Concluído', icon: CheckCircle, ...TONE.success },
   em_curso: { label: 'Em Curso', icon: Clock, ...TONE.info },
   pendente: { label: 'Pendente', icon: Clock, ...TONE.neutro },
 };
@@ -81,12 +81,15 @@ export const INVOICE_STATUS_CONFIG = {
 export const INVOICE_STATUS_FALLBACK = 'pendente';
 
 // ---- Estado de utilizador --------------------------------------------------
-// ativo -> success · pendente_convite -> warning · inativo -> neutro
+// ativo -> success · pendente_convite/pendente_aprovacao -> warning ·
+// inativo -> neutro · rejeitado -> error
 // (NAO existe "inadimplente" — quotas sao descontadas em folha)
 export const USER_STATUS_CONFIG = {
   ativo: { label: 'ativo', icon: CheckCircle, ...TONE.success },
   inativo: { label: 'inativo', icon: XCircle, ...TONE.neutro },
   pendente_convite: { label: 'pendente_convite', icon: Clock, ...TONE.warning },
+  pendente_aprovacao: { label: 'pendente_aprovacao', icon: Clock, ...TONE.warning },
+  rejeitado: { label: 'rejeitado', icon: XCircle, ...TONE.error },
 };
 export const USER_STATUS_FALLBACK = 'inativo';
 
