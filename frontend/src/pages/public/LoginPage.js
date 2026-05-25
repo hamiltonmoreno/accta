@@ -242,16 +242,22 @@ export const LoginPage = () => {
                   <label htmlFor="otp" className="block text-xs uppercase tracking-widest text-[#6B7280] mb-2 font-semibold">
                     Código de verificação
                   </label>
+                  {/* Texto livre (inputMode text): aceita TOTP de 6 dígitos OU um
+                      código de recuperação alfanumérico (xxxx-xxxx-…); 'numeric'
+                      esconderia as letras a-f no teclado móvel. */}
                   <input
                     id="otp"
                     type="text"
-                    inputMode="numeric"
+                    inputMode="text"
                     autoComplete="one-time-code"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     autoFocus
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm font-mono tracking-widest focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 transition-all"
-                    placeholder="000000"
+                    placeholder="000000 ou código de recuperação"
                     data-testid="login-otp"
                   />
                   <p className="mt-2 text-xs text-[#6B7280]">

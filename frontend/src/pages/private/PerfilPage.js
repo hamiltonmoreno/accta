@@ -217,20 +217,21 @@ const EMPTY_FORM = {
 // Segurança / Autenticação de dois fatores (spec-mfa-frontend-pr2 §5). O backend
 // é a fonte da verdade (status/mandatory); aqui só damos UI para ativar/desativar.
 const SecuritySection = () => {
-  const { refreshUser } = useAuth();
+  const { user, refreshUser } = useAuth();
   const qc = useQueryClient();
   const [activateOpen, setActivateOpen] = useState(false);
   const [disableOpen, setDisableOpen] = useState(false);
   const [password, setPassword] = useState('');
 
-  const { data: status, isLoading } = useQuery({
-    queryKey: queryKeys.mfa.status(),
+  const { data: status, isLoading, isError, refetch } = useQuery({
+    queryKey: queryKeys.mfa.status(user?.id),
     queryFn: async () => (await mfaAPI.status()).data,
+    enabled: !!user?.id,
   });
 
   const refreshAll = async () => {
     if (refreshUser) await refreshUser();
-    qc.invalidateQueries({ queryKey: queryKeys.mfa.status() });
+    qc.invalidateQueries({ queryKey: queryKeys.mfa.status(user?.id) });
   };
 
   const disableMutation = useMutation({
@@ -247,7 +248,12 @@ const SecuritySection = () => {
     },
   });
 
-  const enabled = !!status?.enabled;
+  // Estado só é fidedigno com a query carregada com sucesso. Num erro
+  // transitório (rede/500) NÃO afirmamos "Inativo" nem oferecemos ações — isso
+  // poderia levar alguém com MFA ativo a reconfigurar por engano. O badge
+  // recorre a `user.mfa_enabled` como fallback conservador.
+  const statusConfirmed = !!status && !isError;
+  const enabled = status ? !!status.enabled : !!user?.mfa_enabled;
   const mandatory = !!status?.mandatory;
   const remaining = status?.backup_codes_remaining ?? 0;
 
@@ -276,23 +282,36 @@ const SecuritySection = () => {
             <p className="text-xs text-[#6B7280] mt-2">
               Protege o acesso à sua conta com um código gerado por uma app de autenticação.
             </p>
-            {mandatory && (
+            {isError && (
+              <p className="text-xs text-[#B45309] mt-2 flex items-center gap-2" data-testid="mfa-status-error">
+                Não foi possível carregar o estado.
+                <button
+                  type="button"
+                  onClick={() => refetch()}
+                  className="underline font-semibold hover:text-grafite transition-colors"
+                >
+                  Tentar novamente
+                </button>
+              </p>
+            )}
+            {statusConfirmed && mandatory && (
               <p className="text-xs text-[#B45309] mt-1">Obrigatório para o seu cargo.</p>
             )}
-            {enabled && (
+            {statusConfirmed && enabled && (
               <p className="text-xs text-[#6B7280] mt-1">
                 Códigos de recuperação restantes: <strong className="text-grafite">{remaining}</strong>
               </p>
             )}
           </div>
 
+          {/* Ações só com o estado confirmado pelo servidor (nunca sobre erro). */}
           <div className="shrink-0">
-            {!enabled && (
+            {statusConfirmed && !enabled && (
               <button type="button" onClick={() => setActivateOpen(true)} className={btnPrimaryCls} data-testid="mfa-activate-btn">
                 <ShieldCheck className="w-4 h-4" /> Ativar 2FA
               </button>
             )}
-            {enabled && !mandatory && (
+            {statusConfirmed && enabled && !mandatory && (
               <button type="button" onClick={() => setDisableOpen(true)} className={btnSecondaryCls} data-testid="mfa-disable-btn">
                 <Lock className="w-4 h-4" /> Desativar
               </button>

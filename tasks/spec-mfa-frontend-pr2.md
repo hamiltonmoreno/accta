@@ -206,9 +206,25 @@ backups).
   `xxxx-xxxx-xxxx-xxxx-xxxx` (24 chars) e não cabem em 6 dígitos — necessário para
   o cenário 3 do walkthrough. O `InputOTP` de 6 slots mantém-se no passo de
   confirmação do `SetupMFA` (TOTP puro).
-- **Conclusão**: PR2 implementado em 8 ficheiros (3 novos: `mfaAPI` em `api.js` +
-  `queryKeys.mfa`; `AuthContext`; `SetupMFA.jsx`; `MfaSetupPage.jsx`; `App.js`;
-  `LoginPage.js`; `PerfilPage.js`). Sem alterações ao backend nem novas
-  dependências. Dá UI completa ao MFA que o backend já impunha — ativação no
-  Perfil, 2.º fator inline no login (TOTP/backup), enrolment obrigatório
-  bloqueante para admin/financeiro — fechando a feature MFA de ponta a ponta.
+- **Remediação da revisão do PR #121** (3 achados, build+eslint OK):
+  - **[P1] Leak de estado MFA entre contas no mesmo browser** — a key
+    `['mfa','status']` era global e o status fica fresco 30s; o logout só limpa o
+    `user`, não o cache. Conta B entrando ≤30s após logout de A via o badge/contagem
+    de A. **Corrigido**: `queryKeys.mfa.status(userId)` → `['mfa','status',userId]`
+    + `enabled: !!user?.id`, igual ao padrão do `NotificationContext`.
+  - **[P2] Erro no `status` mostrado como "Inativo"** — num erro de rede/500 o
+    status indefinido virava `enabled=false` + botão "Ativar 2FA". **Corrigido**:
+    `isError` rende estado de erro com "Tentar novamente" (`refetch`), badge cai
+    para `user.mfa_enabled` (fallback conservador) e as ações só aparecem com o
+    estado confirmado pelo servidor (`statusConfirmed`).
+  - **[P2] Login por backup code impraticável em mobile** — o campo tinha
+    `inputMode="numeric"` mas os backup codes são alfanuméricos (`a-f`+hífen).
+    **Corrigido**: `inputMode="text"` (+ `autoCapitalize/autoCorrect/spellCheck`
+    off) e placeholder esclarecedor.
+- **Conclusão**: PR2 implementado em 8 ficheiros de código + spec (3 novos:
+  `SetupMFA.jsx`, `MfaSetupPage.jsx`, e os grupos `mfaAPI`/`queryKeys.mfa`;
+  alterados `api.js`, `queryClient.js`, `AuthContext.js`, `App.js`, `LoginPage.js`,
+  `PerfilPage.js`). Sem alterações ao backend nem novas dependências. Dá UI
+  completa ao MFA que o backend já impunha — ativação no Perfil, 2.º fator inline
+  no login (TOTP/backup), enrolment obrigatório bloqueante para admin/financeiro —
+  fechando a feature MFA de ponta a ponta.
