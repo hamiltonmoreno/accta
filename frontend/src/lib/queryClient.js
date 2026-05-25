@@ -67,6 +67,9 @@ export const queryKeys = {
     list: (filters) => ['users', filters || {}],
     byId: (id) => ['users', id],
   },
+  mfa: {
+    status: () => ['mfa', 'status'],
+  },
   registration: {
     requests: (status) => ['registration', 'requests', status || 'pendente_aprovacao'],
     joiaPreview: (userId, since) => ['registration', 'joia-preview', userId || null, since || null],

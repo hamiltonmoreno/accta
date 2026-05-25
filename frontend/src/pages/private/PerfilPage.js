@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
-import { usersAPI, cargosAPI, governanceAPI, comunicadosAPI } from '../../utils/api';
+import { usersAPI, cargosAPI, governanceAPI, comunicadosAPI, mfaAPI } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
 import { Switch } from '../../components/ui/switch';
+import { SetupMFA } from '../../components/SetupMFA';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '../../components/ui/dialog';
 import { PRIVILEGE_LABELS, cargoLabelFrom, memberCategoryLabel } from '../../lib/governanceLabels';
 import { toast } from 'sonner';
 import {
   Mail, Phone, Shield, Award, FileText, Calendar, Save, Briefcase, Hash,
   Pencil, X, History, AlertTriangle, Users as UsersIcon, Cake, Droplet,
   MapPin, Home, Globe, HeartPulse, Building2, BadgeCheck, Clock,
-  CheckCircle2, Fingerprint, User as UserIcon,
+  CheckCircle2, Fingerprint, User as UserIcon, ShieldCheck, Lock, Loader2,
 } from 'lucide-react';
 import {
   USER_STATUS_CONFIG, USER_STATUS_FALLBACK, getStatusConfig,
@@ -62,6 +66,15 @@ const GENDER_OPTIONS = [
 const labelCls = 'block text-xs uppercase tracking-widest text-gray-500 font-semibold mb-1';
 const inputCls =
   'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/30 outline-none';
+// Botões: Carmesim como acento único (1 primário por contexto); restantes neutros.
+const btnPrimaryCls =
+  'inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-carmesim text-white ' +
+  'hover:bg-carmesim-dark font-semibold text-sm transition-colors disabled:opacity-50 ' +
+  'disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 outline-none';
+const btnSecondaryCls =
+  'inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg border border-[#D1D5DB] ' +
+  'text-grafite hover:bg-gray-50 font-semibold text-sm transition-colors disabled:opacity-50 ' +
+  'focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 outline-none';
 
 const FormInput = ({ id, testId, label, value, onChange, type = 'text', placeholder, max }) => (
   <div>
@@ -199,6 +212,149 @@ const EMPTY_FORM = {
   address: '', postal_code: '', city: '', residence_island: '',
   emergency_contact_name: '', emergency_contact_phone: '', emergency_contact_relationship: '',
   profession: '', employer: '', license_number: '', license_category: '', license_expiry_date: '',
+};
+
+// Segurança / Autenticação de dois fatores (spec-mfa-frontend-pr2 §5). O backend
+// é a fonte da verdade (status/mandatory); aqui só damos UI para ativar/desativar.
+const SecuritySection = () => {
+  const { refreshUser } = useAuth();
+  const qc = useQueryClient();
+  const [activateOpen, setActivateOpen] = useState(false);
+  const [disableOpen, setDisableOpen] = useState(false);
+  const [password, setPassword] = useState('');
+
+  const { data: status, isLoading } = useQuery({
+    queryKey: queryKeys.mfa.status(),
+    queryFn: async () => (await mfaAPI.status()).data,
+  });
+
+  const refreshAll = async () => {
+    if (refreshUser) await refreshUser();
+    qc.invalidateQueries({ queryKey: queryKeys.mfa.status() });
+  };
+
+  const disableMutation = useMutation({
+    mutationFn: (pw) => mfaAPI.disable(pw),
+    onSuccess: async () => {
+      await refreshAll();
+      setDisableOpen(false);
+      setPassword('');
+      toast.success('Autenticação de dois fatores desativada.');
+    },
+    onError: (error) => {
+      if (error.response?.status === 403) toast.error('Password incorreta');
+      else toast.error(error.response?.data?.detail || 'Erro ao desativar o MFA.');
+    },
+  });
+
+  const enabled = !!status?.enabled;
+  const mandatory = !!status?.mandatory;
+  const remaining = status?.backup_codes_remaining ?? 0;
+
+  return (
+    <div className="card-technical p-5 animate-fade-up" data-testid="mfa-section">
+      <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280] mb-3">
+        <ShieldCheck className="w-3 h-3 inline mr-1" aria-hidden="true" /> Autenticação de Dois Fatores
+      </h3>
+
+      {isLoading ? (
+        <div className="flex items-center gap-2 text-sm text-[#6B7280]" role="status" aria-live="polite">
+          <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> A carregar…
+        </div>
+      ) : (
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold ${
+                enabled ? 'bg-[#F0FDF4] text-[#15803D]' : 'bg-[#F5F5F5] text-[#3A3A3A]'
+              }`}
+              data-testid="mfa-status-badge"
+            >
+              {enabled ? <CheckCircle2 className="w-3 h-3" aria-hidden="true" /> : <Lock className="w-3 h-3" aria-hidden="true" />}
+              {enabled ? 'Ativo' : 'Inativo'}
+            </span>
+            <p className="text-xs text-[#6B7280] mt-2">
+              Protege o acesso à sua conta com um código gerado por uma app de autenticação.
+            </p>
+            {mandatory && (
+              <p className="text-xs text-[#B45309] mt-1">Obrigatório para o seu cargo.</p>
+            )}
+            {enabled && (
+              <p className="text-xs text-[#6B7280] mt-1">
+                Códigos de recuperação restantes: <strong className="text-grafite">{remaining}</strong>
+              </p>
+            )}
+          </div>
+
+          <div className="shrink-0">
+            {!enabled && (
+              <button type="button" onClick={() => setActivateOpen(true)} className={btnPrimaryCls} data-testid="mfa-activate-btn">
+                <ShieldCheck className="w-4 h-4" /> Ativar 2FA
+              </button>
+            )}
+            {enabled && !mandatory && (
+              <button type="button" onClick={() => setDisableOpen(true)} className={btnSecondaryCls} data-testid="mfa-disable-btn">
+                <Lock className="w-4 h-4" /> Desativar
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Dialog: ativar (renderiza o wizard partilhado) */}
+      <Dialog open={activateOpen} onOpenChange={setActivateOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ativar autenticação de dois fatores</DialogTitle>
+            <DialogDescription>Siga os passos para proteger a sua conta.</DialogDescription>
+          </DialogHeader>
+          <SetupMFA
+            onComplete={async () => {
+              await refreshAll();
+              setActivateOpen(false);
+              toast.success('Autenticação de dois fatores ativada.');
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: desativar (confirma com password) */}
+      <Dialog open={disableOpen} onOpenChange={(o) => { setDisableOpen(o); if (!o) setPassword(''); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Desativar 2FA</DialogTitle>
+            <DialogDescription>
+              Confirme a sua password para desativar a autenticação de dois fatores.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => { e.preventDefault(); if (password) disableMutation.mutate(password); }}
+            className="space-y-4"
+          >
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="A sua password"
+              className={inputCls}
+              data-testid="mfa-disable-password"
+              autoFocus
+            />
+            <DialogFooter>
+              <button type="button" onClick={() => setDisableOpen(false)} className={btnSecondaryCls}>
+                Cancelar
+              </button>
+              <button type="submit" disabled={!password || disableMutation.isPending} className={btnPrimaryCls}>
+                {disableMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+                Desativar
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 };
 
 export const PerfilPage = () => {
@@ -512,6 +668,9 @@ export const PerfilPage = () => {
           />
         </div>
       </div>
+
+      {/* Segurança / Autenticação de dois fatores */}
+      <SecuritySection />
 
       {/* Histórico de cargos do próprio sócio */}
       <MeusCargosSection userId={user.id} structure={structure} />

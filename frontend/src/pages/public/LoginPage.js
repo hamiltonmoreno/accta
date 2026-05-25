@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { LogIn, Shield, Plane, ArrowLeft, Lock } from 'lucide-react';
+import { LogIn, Shield, Plane, ArrowLeft, Lock, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import { BrandLogo } from '../../components/BrandLogo';
@@ -30,6 +30,11 @@ export const LoginPage = () => {
   const { login } = useAuth();
   const [lockedUntil, setLockedUntil] = useState(null); // ms epoch
   const [now, setNow] = useState(Date.now());
+  // MFA (spec-mfa-frontend-pr2 §6): 2.º fator inline. A password fica no estado do
+  // form (react-hook-form) e não viaja entre rotas. `otp` aceita TOTP (6 dígitos)
+  // OU um código de recuperação (formato xxxx-xxxx-…), por isso é texto livre.
+  const [mfaStep, setMfaStep] = useState(false);
+  const [otp, setOtp] = useState('');
   const {
     register,
     handleSubmit,
@@ -55,9 +60,11 @@ export const LoginPage = () => {
 
   const onSubmit = async (data) => {
     try {
-      const user = await login(data);
+      const user = await login({ ...data, otp: otp.trim() || undefined });
       toast.success(`Bem-vindo, ${user.name}!`);
-      navigate('/dashboard');
+      // admin/financeiro sem MFA → enrolment bloqueante; restantes → dashboard.
+      const needsSetup = ['admin', 'financeiro'].includes(user.role) && !user.mfa_enabled;
+      navigate(needsSetup ? '/mfa-setup' : '/dashboard');
     } catch (error) {
       const lockedUntilTs = parseLockedUntil(error);
       if (lockedUntilTs) {
@@ -65,8 +72,24 @@ export const LoginPage = () => {
         toast.error('Conta temporariamente bloqueada por excesso de tentativas');
         return;
       }
-      toast.error(error.response?.data?.detail || 'Erro ao fazer login');
+      const detail = error.response?.data?.detail;
+      if (error.response?.status === 401 && detail === 'mfa_required') {
+        // Password OK, falta o 2.º fator — revela o campo OTP (sem nova rota).
+        setMfaStep(true);
+        return;
+      }
+      if (error.response?.status === 401 && detail === 'mfa_invalido') {
+        toast.error('Código de verificação inválido');
+        setOtp('');
+        return;
+      }
+      toast.error(detail || 'Erro ao fazer login');
     }
+  };
+
+  const backToCredentials = () => {
+    setMfaStep(false);
+    setOtp('');
   };
 
   return (
@@ -172,9 +195,10 @@ export const LoginPage = () => {
                   type="email"
                   inputMode="email"
                   autoComplete="email"
+                  readOnly={mfaStep}
                   aria-invalid={errors.email ? 'true' : 'false'}
                   {...register('email')}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
+                  className={`w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60 ${mfaStep ? 'bg-gray-50 text-gray-500' : ''}`}
                   placeholder="seu@email.cv"
                   data-testid="login-email"
                 />
@@ -200,9 +224,10 @@ export const LoginPage = () => {
                   id="password"
                   type="password"
                   autoComplete="current-password"
+                  readOnly={mfaStep}
                   aria-invalid={errors.password ? 'true' : 'false'}
                   {...register('password')}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
+                  className={`w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60 ${mfaStep ? 'bg-gray-50 text-gray-500' : ''}`}
                   placeholder="********"
                   data-testid="login-password"
                 />
@@ -211,9 +236,33 @@ export const LoginPage = () => {
                 )}
               </div>
 
+              {/* 2.º fator — revelado quando o backend devolve 401 mfa_required */}
+              {mfaStep && (
+                <div data-testid="login-mfa-step">
+                  <label htmlFor="otp" className="block text-xs uppercase tracking-widest text-[#6B7280] mb-2 font-semibold">
+                    Código de verificação
+                  </label>
+                  <input
+                    id="otp"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    autoFocus
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm font-mono tracking-widest focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 transition-all"
+                    placeholder="000000"
+                    data-testid="login-otp"
+                  />
+                  <p className="mt-2 text-xs text-[#6B7280]">
+                    Introduza o código da sua app de autenticação (ou um código de recuperação).
+                  </p>
+                </div>
+              )}
+
               <button
                 type="submit"
-                disabled={isSubmitting || isLocked}
+                disabled={isSubmitting || isLocked || (mfaStep && otp.trim().length < 6)}
                 className="w-full bg-carmesim text-white hover:bg-carmesim-dark h-11 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 data-testid="login-submit"
               >
@@ -224,6 +273,11 @@ export const LoginPage = () => {
                     <Lock className="w-4 h-4" />
                     Bloqueado · {formatRemaining(remainingMs)}
                   </>
+                ) : mfaStep ? (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    Verificar
+                  </>
                 ) : (
                   <>
                     <LogIn className="w-4 h-4" />
@@ -231,6 +285,18 @@ export const LoginPage = () => {
                   </>
                 )}
               </button>
+
+              {mfaStep && (
+                <button
+                  type="button"
+                  onClick={backToCredentials}
+                  className="w-full inline-flex items-center justify-center gap-1.5 text-sm text-[#6B7280] hover:text-grafite transition-colors"
+                  data-testid="login-mfa-back"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Voltar
+                </button>
+              )}
 
               <p className="text-center text-sm text-[#6B7280] mt-4">
                 Ainda não é sócio?{' '}

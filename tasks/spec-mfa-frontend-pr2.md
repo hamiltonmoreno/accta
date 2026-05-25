@@ -195,8 +195,20 @@ backups).
 
 ## 12. Review (preencher ao concluir)
 
-- [ ] `mfaAPI` + AuthContext `mfaSetupRequired` + `SetupMFA` + secção no Perfil +
-  login inline + rota/guarda `/mfa-setup` + interceptor.
-- [ ] `yarn build` limpo; eslint dentro do limite.
-- [ ] Walkthrough manual dos 5 cenários ok.
-- **Conclusão**: _(resumo + nota de que fecha a feature MFA de ponta a ponta)_
+- [x] `mfaAPI` + AuthContext `mfaMandatory`/`mfaSetupRequired` + `SetupMFA` +
+  secção no Perfil + login inline + rota/guarda `/mfa-setup` + interceptor.
+- [x] `yarn build` limpo (exit 0); eslint 0 erros / 37 warnings (limite 60),
+  nenhum nos ficheiros novos/alterados.
+- [ ] Walkthrough manual dos 5 cenários — **pendente** (requer servidor + DB
+  com um admin; correr em staging/local antes do merge).
+- **Desvio à letra do §6**: o campo de 2.º fator no login é um **input de texto**
+  (não `InputOTP` de 6 slots), porque os backup codes têm o formato
+  `xxxx-xxxx-xxxx-xxxx-xxxx` (24 chars) e não cabem em 6 dígitos — necessário para
+  o cenário 3 do walkthrough. O `InputOTP` de 6 slots mantém-se no passo de
+  confirmação do `SetupMFA` (TOTP puro).
+- **Conclusão**: PR2 implementado em 8 ficheiros (3 novos: `mfaAPI` em `api.js` +
+  `queryKeys.mfa`; `AuthContext`; `SetupMFA.jsx`; `MfaSetupPage.jsx`; `App.js`;
+  `LoginPage.js`; `PerfilPage.js`). Sem alterações ao backend nem novas
+  dependências. Dá UI completa ao MFA que o backend já impunha — ativação no
+  Perfil, 2.º fator inline no login (TOTP/backup), enrolment obrigatório
+  bloqueante para admin/financeiro — fechando a feature MFA de ponta a ponta.
