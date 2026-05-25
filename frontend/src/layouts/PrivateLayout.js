@@ -6,6 +6,7 @@ import { registrationAPI } from '../utils/api';
 import { queryKeys } from '../lib/queryClient';
 import { NotificationBell } from '../components/NotificationBell';
 import { BrandLogo } from '../components/BrandLogo';
+import { USER_STATUS_CONFIG, USER_STATUS_FALLBACK, getStatusConfig } from '../lib/statusConfig';
 import {
   LayoutDashboard,
   CreditCard,
@@ -391,12 +392,18 @@ export const PrivateLayout = ({ children }) => {
           </div>
         </div>
 
-        {/* Status badge */}
-        {user?.status !== 'ativo' && !collapsed && (
-          <div className="mx-1 mb-2 px-2 py-1 bg-[#FFFBEB] border border-[#D97706]/30 rounded-md text-xs text-[#B45309] uppercase tracking-wider font-semibold text-center">
-            {user?.status}
-          </div>
-        )}
+        {/* Status badge — só para estados não-'ativo'; tom semântico por estado
+            (pendente_* warning · inativo neutro · rejeitado erro) via statusConfig */}
+        {user?.status && user.status !== 'ativo' && !collapsed && (() => {
+          const sc = getStatusConfig(USER_STATUS_CONFIG, user.status, USER_STATUS_FALLBACK);
+          const StatusIcon = sc.icon;
+          return (
+            <div className={`mx-1 mb-2 px-2 py-1 rounded-md text-xs uppercase tracking-wider font-semibold text-center flex items-center justify-center gap-1 ${sc.className}`}>
+              {StatusIcon && <StatusIcon className="h-3 w-3" />}
+              {sc.label}
+            </div>
+          );
+        })()}
 
         {/* Logout button */}
         <button

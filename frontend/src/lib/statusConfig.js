@@ -81,12 +81,15 @@ export const INVOICE_STATUS_CONFIG = {
 export const INVOICE_STATUS_FALLBACK = 'pendente';
 
 // ---- Estado de utilizador --------------------------------------------------
-// ativo -> success · pendente_convite -> warning · inativo -> neutro
+// ativo -> success · pendente_convite/pendente_aprovacao -> warning ·
+// inativo -> neutro · rejeitado -> error
 // (NAO existe "inadimplente" — quotas sao descontadas em folha)
 export const USER_STATUS_CONFIG = {
   ativo: { label: 'ativo', icon: CheckCircle, ...TONE.success },
   inativo: { label: 'inativo', icon: XCircle, ...TONE.neutro },
   pendente_convite: { label: 'pendente_convite', icon: Clock, ...TONE.warning },
+  pendente_aprovacao: { label: 'pendente_aprovacao', icon: Clock, ...TONE.warning },
+  rejeitado: { label: 'rejeitado', icon: XCircle, ...TONE.error },
 };
 export const USER_STATUS_FALLBACK = 'inativo';
 
