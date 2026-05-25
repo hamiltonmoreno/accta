@@ -113,3 +113,101 @@ def test_mfa_request_models():
 
     assert MfaVerifyRequest(otp="123456").otp == "123456"
     assert MfaDisableRequest(password="pw").password == "pw"
+
+
+# ====================== Task 3 — endpoints ======================
+def _http_request(path="/api/auth/mfa/setup"):
+    from starlette.requests import Request
+
+    return Request({"type": "http", "method": "POST", "path": path,
+                    "headers": [], "client": ("t", 1), "query_string": b""})
+
+
+@pytest.mark.asyncio
+async def test_mfa_setup_stores_pending_and_returns_uri(mock_db, socio_user, monkeypatch):
+    import routes.auth_routes as auth_routes
+    from mfa import decrypt_secret
+
+    monkeypatch.setattr(auth_routes.limiter, "enabled", False)
+    mock_db.users.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
+    resp = await auth_routes.mfa_setup(_http_request(), current_user=socio_user)
+
+    assert resp["otpauth_uri"].startswith("otpauth://totp/")
+    setdoc = mock_db.users.update_one.call_args.args[1]["$set"]
+    assert decrypt_secret(setdoc["mfa_pending_secret"]) == resp["secret"]
+
+
+@pytest.mark.asyncio
+async def test_mfa_verify_activates_and_returns_backup_codes(mock_db, socio_user):
+    import routes.auth_routes as auth_routes
+    from mfa import encrypt_secret, generate_totp_secret, hash_backup_code
+    from models import MfaVerifyRequest
+
+    secret = generate_totp_secret()
+    pending = encrypt_secret(secret)
+    mock_db.users.find_one = AsyncMock(return_value={"id": socio_user.id, "mfa_pending_secret": pending})
+    mock_db.users.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
+
+    resp = await auth_routes.mfa_verify(MfaVerifyRequest(otp=pyotp.TOTP(secret).now()), current_user=socio_user)
+
+    assert len(resp["backup_codes"]) == 10
+    setdoc = mock_db.users.update_one.call_args.args[1]["$set"]
+    assert setdoc["mfa_enabled"] is True
+    assert setdoc["mfa_secret"] == pending
+    assert hash_backup_code(resp["backup_codes"][0]) in setdoc["mfa_backup_codes"]
+
+
+@pytest.mark.asyncio
+async def test_mfa_verify_wrong_code_400(mock_db, socio_user):
+    import routes.auth_routes as auth_routes
+    from mfa import encrypt_secret, generate_totp_secret
+    from models import MfaVerifyRequest
+
+    secret = generate_totp_secret()
+    mock_db.users.find_one = AsyncMock(return_value={"id": socio_user.id, "mfa_pending_secret": encrypt_secret(secret)})
+    bad = "000000" if pyotp.TOTP(secret).now() != "000000" else "111111"
+    with pytest.raises(HTTPException) as exc:
+        await auth_routes.mfa_verify(MfaVerifyRequest(otp=bad), current_user=socio_user)
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_mfa_verify_no_pending_400(mock_db, socio_user):
+    import routes.auth_routes as auth_routes
+    from models import MfaVerifyRequest
+
+    mock_db.users.find_one = AsyncMock(return_value={"id": socio_user.id})
+    with pytest.raises(HTTPException) as exc:
+        await auth_routes.mfa_verify(MfaVerifyRequest(otp="123456"), current_user=socio_user)
+    assert exc.value.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_mfa_disable_requires_correct_password(mock_db, socio_user):
+    import routes.auth_routes as auth_routes
+    from auth import hash_password
+    from models import MfaDisableRequest
+
+    mock_db.users.find_one = AsyncMock(return_value={"id": socio_user.id, "password": hash_password("correct")})
+    mock_db.users.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
+
+    with pytest.raises(HTTPException) as exc:
+        await auth_routes.mfa_disable(MfaDisableRequest(password="errada"), current_user=socio_user)
+    assert exc.value.status_code == 403
+
+    resp = await auth_routes.mfa_disable(MfaDisableRequest(password="correct"), current_user=socio_user)
+    assert "message" in resp
+    upd = mock_db.users.update_one.call_args.args[1]
+    assert upd["$set"]["mfa_enabled"] is False
+    assert "mfa_secret" in upd["$unset"]
+
+
+@pytest.mark.asyncio
+async def test_mfa_status(mock_db, admin_user):
+    import routes.auth_routes as auth_routes
+
+    mock_db.users.find_one = AsyncMock(
+        return_value={"id": admin_user.id, "mfa_enabled": True, "mfa_backup_codes": ["a", "b"]}
+    )
+    resp = await auth_routes.mfa_status(current_user=admin_user)
+    assert resp == {"enabled": True, "mandatory": True, "backup_codes_remaining": 2}

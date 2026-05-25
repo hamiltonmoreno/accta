@@ -11,6 +11,8 @@ from models import (
     RegistrationRequest,
     Patrocinio,
     CARGOS_DECLARADOS,
+    MfaVerifyRequest,
+    MfaDisableRequest,
 )
 from database import db, next_member_id
 from auth import (
@@ -38,6 +40,16 @@ from helpers import (
     resolve_link_base,
 )
 from permissions import is_voting_member
+from mfa import (
+    decrypt_secret,
+    encrypt_secret,
+    generate_backup_codes,
+    generate_totp_secret,
+    hash_backup_code,
+    is_mfa_mandatory,
+    provisioning_uri,
+    verify_totp,
+)
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 import uuid
@@ -136,6 +148,71 @@ async def logout(
     clear_session_cookie(response)
     await create_audit_log(current_user.id, "logout", request=request)
     return {"message": "Sessão encerrada"}
+
+
+@router.post("/mfa/setup")
+@limiter.limit("5/minute")
+async def mfa_setup(request: Request, current_user: User = Depends(get_current_user)):
+    """Inicia enrolment: gera segredo TOTP, guarda-o cifrado como PENDING
+    (não mexe no ativo) e devolve segredo + otpauth URI para o QR."""
+    secret = generate_totp_secret()
+    await db.users.update_one(
+        {"id": current_user.id}, {"$set": {"mfa_pending_secret": encrypt_secret(secret)}}
+    )
+    await create_audit_log(current_user.id, "mfa_setup_initiated", request=request)
+    return {"secret": secret, "otpauth_uri": provisioning_uri(secret, current_user.email)}
+
+
+@router.post("/mfa/verify")
+async def mfa_verify(data: MfaVerifyRequest, current_user: User = Depends(get_current_user)):
+    """Confirma o primeiro OTP, ativa o MFA e devolve os backup codes (1x)."""
+    doc = await db.users.find_one({"id": current_user.id}, {"_id": 0})
+    pending = (doc or {}).get("mfa_pending_secret")
+    if not pending:
+        raise HTTPException(status_code=400, detail="Inicie a configuracao de MFA primeiro")
+    if not verify_totp(decrypt_secret(pending), data.otp):
+        raise HTTPException(status_code=400, detail="Codigo invalido")
+    codes = generate_backup_codes()
+    await db.users.update_one(
+        {"id": current_user.id},
+        {
+            "$set": {
+                "mfa_secret": pending,
+                "mfa_enabled": True,
+                "mfa_backup_codes": [hash_backup_code(c) for c in codes],
+            },
+            "$unset": {"mfa_pending_secret": ""},
+        },
+    )
+    await create_audit_log(current_user.id, "mfa_enabled", request=None)
+    return {"backup_codes": codes}
+
+
+@router.post("/mfa/disable")
+async def mfa_disable(data: MfaDisableRequest, current_user: User = Depends(get_current_user)):
+    """Desativa MFA após re-autenticação por password."""
+    doc = await db.users.find_one({"id": current_user.id}, {"_id": 0})
+    if not doc or not doc.get("password") or not verify_password(data.password, doc["password"]):
+        raise HTTPException(status_code=403, detail="Password incorreta")
+    await db.users.update_one(
+        {"id": current_user.id},
+        {
+            "$set": {"mfa_enabled": False},
+            "$unset": {"mfa_secret": "", "mfa_pending_secret": "", "mfa_backup_codes": ""},
+        },
+    )
+    await create_audit_log(current_user.id, "mfa_disabled", request=None)
+    return {"message": "MFA desativado"}
+
+
+@router.get("/mfa/status")
+async def mfa_status(current_user: User = Depends(get_current_user)):
+    doc = await db.users.find_one({"id": current_user.id}, {"_id": 0}) or {}
+    return {
+        "enabled": bool(doc.get("mfa_enabled")),
+        "mandatory": is_mfa_mandatory(current_user.role),
+        "backup_codes_remaining": len(doc.get("mfa_backup_codes") or []),
+    }
 
 
 @router.get("/registration-options")
