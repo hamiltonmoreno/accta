@@ -41,7 +41,6 @@ from helpers import (
 )
 from permissions import is_voting_member
 from mfa import (
-    consume_backup_code,
     encrypt_secret,
     generate_backup_codes,
     generate_totp_secret,
@@ -103,13 +102,21 @@ async def login(request: Request, response: Response, credentials: UserLogin):
         if not credentials.otp:
             await create_audit_log(user_doc["id"], "login_mfa_challenge", request=request)
             raise HTTPException(status_code=401, detail="mfa_required")
-        new_backups = consume_backup_code(user_doc.get("mfa_backup_codes") or [], credentials.otp)
-        if not verify_totp_encrypted(user_doc["mfa_secret"], credentials.otp) and new_backups is None:
+        totp_ok = verify_totp_encrypted(user_doc["mfa_secret"], credentials.otp)
+        backup_ok = False
+        if not totp_ok:
+            # Consumo ATÓMICO: remove o hash só se presente; uma corrida concorrente
+            # vê modified_count=0 → uso único garantido ao nível da BD.
+            code_hash = hash_backup_code(credentials.otp)
+            res = await db.users.update_one(
+                {"id": user_doc["id"], "mfa_backup_codes": code_hash},
+                {"$pull": {"mfa_backup_codes": code_hash}},
+            )
+            backup_ok = res.modified_count == 1
+        if not totp_ok and not backup_ok:
             await record_failed_login(credentials.email, ip=request.client.host if request.client else None)
             await create_audit_log(user_doc["id"], "login_mfa_failed", request=request)
             raise HTTPException(status_code=401, detail="mfa_invalido")
-        if new_backups is not None:
-            await db.users.update_one({"id": user_doc["id"]}, {"$set": {"mfa_backup_codes": new_backups}})
 
     # Login sucesso — limpa contador de falhas para que utilizador legitimo
     # nao seja afectado por tentativas anteriores erradas/atacante.
@@ -124,7 +131,10 @@ async def login(request: Request, response: Response, credentials: UserLogin):
         user_doc.pop(_k, None)
 
     user = User(**user_doc)
-    token = create_access_token({"sub": user.id})
+    claims = {"sub": user.id}
+    if mfa_setup_required:
+        claims["mfa_pending"] = True  # sessão limitada aos endpoints de enrolment
+    token = create_access_token(claims)
     # Sprint 10 — set httpOnly cookie. Token ainda e devolvido no body para
     # compat com testes legados / clientes nao-browser. Frontend novo nao usa.
     set_session_cookie(response, token)
@@ -179,7 +189,7 @@ async def mfa_setup(request: Request, current_user: User = Depends(get_current_u
 
 
 @router.post("/mfa/verify")
-async def mfa_verify(data: MfaVerifyRequest, current_user: User = Depends(get_current_user)):
+async def mfa_verify(data: MfaVerifyRequest, response: Response, current_user: User = Depends(get_current_user)):
     """Confirma o primeiro OTP, ativa o MFA e devolve os backup codes (1x)."""
     doc = await db.users.find_one({"id": current_user.id}, {"_id": 0})
     pending = (doc or {}).get("mfa_pending_secret")
@@ -200,7 +210,10 @@ async def mfa_verify(data: MfaVerifyRequest, current_user: User = Depends(get_cu
         },
     )
     await create_audit_log(current_user.id, "mfa_enabled", request=None)
-    return {"backup_codes": codes}
+    # Upgrade da sessão limitada → token completo (sem mfa_pending).
+    full_token = create_access_token({"sub": current_user.id})
+    set_session_cookie(response, full_token)
+    return {"backup_codes": codes, "access_token": full_token, "token_type": "bearer"}
 
 
 @router.post("/mfa/disable")
@@ -396,7 +409,11 @@ async def setup_account(request: Request, response: Response, background_tasks: 
     user_doc["last_login_at"] = datetime.now(timezone.utc).isoformat()
 
     user = User(**user_doc)
-    token = create_access_token({"sub": user.id})
+    mfa_setup_required = is_mfa_mandatory(user.role) and not user_doc.get("mfa_enabled")
+    claims = {"sub": user.id}
+    if mfa_setup_required:
+        claims["mfa_pending"] = True
+    token = create_access_token(claims)
 
     await create_audit_log(user.id, "account_activated", request=request)
 
@@ -411,6 +428,7 @@ async def setup_account(request: Request, response: Response, background_tasks: 
         "access_token": token,
         "token_type": "bearer",
         "user": user.model_dump(),
+        "mfa_setup_required": mfa_setup_required,
     }
 
 

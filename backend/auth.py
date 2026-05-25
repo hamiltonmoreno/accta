@@ -17,6 +17,16 @@ if not SECRET_KEY:
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
+# Endpoints permitidos a uma sessão "mfa_pending" (papel obrigatório ainda sem
+# MFA): só enrolment + sessão. Tudo o resto é bloqueado até o MFA estar ativo.
+MFA_PENDING_ALLOWED_PATHS = {
+    "/api/auth/mfa/setup",
+    "/api/auth/mfa/verify",
+    "/api/auth/mfa/status",
+    "/api/auth/me",
+    "/api/auth/logout",
+}
+
 # ===== Cookie config =====
 # Sprint 10 — JWT em httpOnly cookie em vez de localStorage. Mitigates XSS
 # token theft. Em prod (cross-site Vercel <-> Render): SameSite=None + Secure.
@@ -178,6 +188,8 @@ async def get_current_user(request: Request):
         user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
         if user_doc is None:
             raise HTTPException(status_code=401, detail="Usuário não encontrado")
+        if payload.get("mfa_pending") and request.url.path not in MFA_PENDING_ALLOWED_PATHS:
+            raise HTTPException(status_code=403, detail="mfa_setup_required")
         return User(**user_doc)
     except JWTError:
         raise HTTPException(status_code=401, detail="Token inválido")

@@ -8,7 +8,6 @@ from __future__ import annotations
 import base64
 import hashlib
 import secrets
-from typing import Optional
 
 import pyotp
 from cryptography.fernet import Fernet, InvalidToken
@@ -59,19 +58,11 @@ def verify_totp_encrypted(encrypted_secret: str, code: str) -> bool:
 
 
 def generate_backup_codes(n: int = BACKUP_CODE_COUNT) -> list[str]:
-    return [f"{secrets.token_hex(2)}-{secrets.token_hex(2)}" for _ in range(n)]
+    return ["-".join(secrets.token_hex(2) for _ in range(5)) for _ in range(n)]
 
 
 def hash_backup_code(code: str) -> str:
     return hashlib.sha256((code or "").strip().encode()).hexdigest()
-
-
-def consume_backup_code(stored_hashes: list[str], code: str) -> Optional[list[str]]:
-    """Se `code` (em claro) casar um hash em `stored_hashes`, devolve a lista
-    SEM esse hash (uso único). Caso contrário, None."""
-    h = hash_backup_code(code)
-    codes = stored_hashes or []
-    return [c for c in codes if c != h] if h in codes else None
 
 
 def is_mfa_mandatory(role: str) -> bool:

@@ -67,16 +67,6 @@ def test_backup_codes_count_unique_and_hash():
     assert hash_backup_code(codes[0]) != codes[0]
 
 
-def test_consume_backup_code():
-    from mfa import consume_backup_code, hash_backup_code
-
-    plain = "aaaa-bbbb"
-    stored = [hash_backup_code(plain), hash_backup_code("other")]
-    new = consume_backup_code(stored, plain)
-    assert new == [hash_backup_code("other")]
-    assert consume_backup_code(stored, "nao-existe") is None
-
-
 def test_is_mfa_mandatory():
     from mfa import is_mfa_mandatory
 
@@ -150,6 +140,7 @@ async def test_mfa_setup_stores_pending_and_returns_uri(mock_db, socio_user, mon
 @pytest.mark.asyncio
 async def test_mfa_verify_activates_and_returns_backup_codes(mock_db, socio_user):
     import routes.auth_routes as auth_routes
+    from fastapi import Response
     from mfa import encrypt_secret, generate_totp_secret, hash_backup_code
     from models import MfaVerifyRequest
 
@@ -158,9 +149,13 @@ async def test_mfa_verify_activates_and_returns_backup_codes(mock_db, socio_user
     mock_db.users.find_one = AsyncMock(return_value={"id": socio_user.id, "mfa_pending_secret": pending})
     mock_db.users.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
 
-    resp = await auth_routes.mfa_verify(MfaVerifyRequest(otp=pyotp.TOTP(secret).now()), current_user=socio_user)
+    resp = await auth_routes.mfa_verify(
+        MfaVerifyRequest(otp=pyotp.TOTP(secret).now()), Response(), current_user=socio_user
+    )
 
     assert len(resp["backup_codes"]) == 10
+    # FIX 1: verify faz upgrade da sessão para token completo (sem mfa_pending).
+    assert resp["access_token"]
     setdoc = mock_db.users.update_one.call_args.args[1]["$set"]
     assert setdoc["mfa_enabled"] is True
     assert setdoc["mfa_secret"] == pending
@@ -170,6 +165,7 @@ async def test_mfa_verify_activates_and_returns_backup_codes(mock_db, socio_user
 @pytest.mark.asyncio
 async def test_mfa_verify_wrong_code_400(mock_db, socio_user):
     import routes.auth_routes as auth_routes
+    from fastapi import Response
     from mfa import encrypt_secret, generate_totp_secret
     from models import MfaVerifyRequest
 
@@ -177,18 +173,19 @@ async def test_mfa_verify_wrong_code_400(mock_db, socio_user):
     mock_db.users.find_one = AsyncMock(return_value={"id": socio_user.id, "mfa_pending_secret": encrypt_secret(secret)})
     bad = "000000" if pyotp.TOTP(secret).now() != "000000" else "111111"
     with pytest.raises(HTTPException) as exc:
-        await auth_routes.mfa_verify(MfaVerifyRequest(otp=bad), current_user=socio_user)
+        await auth_routes.mfa_verify(MfaVerifyRequest(otp=bad), Response(), current_user=socio_user)
     assert exc.value.status_code == 400
 
 
 @pytest.mark.asyncio
 async def test_mfa_verify_no_pending_400(mock_db, socio_user):
     import routes.auth_routes as auth_routes
+    from fastapi import Response
     from models import MfaVerifyRequest
 
     mock_db.users.find_one = AsyncMock(return_value={"id": socio_user.id})
     with pytest.raises(HTTPException) as exc:
-        await auth_routes.mfa_verify(MfaVerifyRequest(otp="123456"), current_user=socio_user)
+        await auth_routes.mfa_verify(MfaVerifyRequest(otp="123456"), Response(), current_user=socio_user)
     assert exc.value.status_code == 400
 
 
@@ -281,6 +278,8 @@ async def test_login_mfa_invalid_otp_counts_failure(login_env, mock_db):
 
     secret = generate_totp_secret()
     mock_db.users.find_one = AsyncMock(return_value=_user_doc(mfa_enabled=True, secret=secret))
+    # OTP errado não é um backup code → o $pull atómico não casa (modified_count=0).
+    mock_db.users.update_one = AsyncMock(return_value=MagicMock(modified_count=0))
     bad = "000000" if pyotp.TOTP(secret).now() != "000000" else "111111"
     with pytest.raises(HTTPException) as exc:
         await login_env.login(_login_request(), Response(), UserLogin(email="u@accta.cv", password="pw", otp=bad))
@@ -313,18 +312,21 @@ async def test_login_backup_code_consumed(login_env, mock_db):
     secret = generate_totp_secret()
     backups = [hash_backup_code("aaaa-bbbb"), hash_backup_code("cccc-dddd")]
     mock_db.users.find_one = AsyncMock(return_value=_user_doc(mfa_enabled=True, secret=secret, backups=backups))
+    # TOTP falha para o backup code; o $pull atómico simula sucesso (modified_count=1).
+    mock_db.users.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
     tok = await login_env.login(
         _login_request(), Response(), UserLogin(email="u@accta.cv", password="pw", otp="aaaa-bbbb")
     )
     assert tok.access_token
+    # FIX 4: consumo atómico via filtro array-contém + $pull condicional (não mais $set).
     consume_calls = [
         c for c in mock_db.users.update_one.call_args_list
-        if "$set" in c.args[1] and "mfa_backup_codes" in c.args[1]["$set"]
+        if "$pull" in c.args[1] and "mfa_backup_codes" in c.args[0]
     ]
-    assert consume_calls, "esperava persistir a lista de backups reduzida"
-    new_list = consume_calls[0].args[1]["$set"]["mfa_backup_codes"]
-    assert hash_backup_code("aaaa-bbbb") not in new_list
-    assert hash_backup_code("cccc-dddd") in new_list
+    assert consume_calls, "esperava um $pull atómico do hash do backup code"
+    filt = consume_calls[0].args[0]
+    assert filt["mfa_backup_codes"] == hash_backup_code("aaaa-bbbb")
+    assert consume_calls[0].args[1] == {"$pull": {"mfa_backup_codes": hash_backup_code("aaaa-bbbb")}}
 
 
 @pytest.mark.asyncio
@@ -362,3 +364,116 @@ async def test_login_response_hides_mfa_secret(login_env, mock_db):
     assert "mfa_secret" not in dumped
     assert "mfa_backup_codes" not in dumped
     assert "password" not in dumped
+
+
+# ====================== FIX 1 — enforcement de MFA obrigatório ======================
+def _bearer_request(token: str, path: str):
+    """Request real com Authorization Bearer + path — get_current_user lê
+    request.url.path para o gate mfa_pending."""
+    from starlette.requests import Request
+
+    return Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": path,
+            "headers": [(b"authorization", f"Bearer {token}".encode())],
+            "query_string": b"",
+        }
+    )
+
+
+@pytest.mark.asyncio
+async def test_login_admin_unenrolled_token_is_mfa_pending(login_env, mock_db):
+    """Admin obrigatório-sem-MFA → o token de login carrega a claim mfa_pending
+    (sessão limitada). Sócio sem MFA não a carrega."""
+    from fastapi import Response
+    from jose import jwt
+    from models import UserLogin
+
+    import auth
+
+    mock_db.users.find_one = AsyncMock(return_value=_user_doc(role="admin", mfa_enabled=False))
+    tok = await login_env.login(_login_request(), Response(), UserLogin(email="u@accta.cv", password="pw"))
+    payload = jwt.decode(tok.access_token, auth.SECRET_KEY, algorithms=["HS256"])
+    assert payload.get("mfa_pending") is True
+
+    mock_db.users.find_one = AsyncMock(return_value=_user_doc(role="socio", mfa_enabled=False))
+    tok2 = await login_env.login(_login_request(), Response(), UserLogin(email="u@accta.cv", password="pw"))
+    payload2 = jwt.decode(tok2.access_token, auth.SECRET_KEY, algorithms=["HS256"])
+    assert "mfa_pending" not in payload2
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_blocks_mfa_pending_on_protected_path(mock_db, make_token):
+    """Uma sessão mfa_pending só pode tocar endpoints de enrolment/sessão.
+    Caminho protegido → 403 mfa_setup_required; caminho de setup → passa."""
+    import auth
+    from models import User
+
+    mock_db.tokens_revoked = MagicMock()
+    mock_db.tokens_revoked.find_one = AsyncMock(return_value=None)
+    mock_db.users.find_one = AsyncMock(
+        return_value={"id": "adm", "email": "a@accta.cv", "name": "A", "role": "admin", "status": "ativo"}
+    )
+    token = make_token("adm", extra_claims={"mfa_pending": True})
+
+    # Caminho não-enrolment → bloqueado com 403 mfa_setup_required.
+    with pytest.raises(HTTPException) as exc:
+        await auth.get_current_user(_bearer_request(token, "/api/users"))
+    assert exc.value.status_code == 403
+    assert exc.value.detail == "mfa_setup_required"
+
+    # Caminho de enrolment → permitido (devolve o User).
+    user = await auth.get_current_user(_bearer_request(token, "/api/auth/mfa/setup"))
+    assert isinstance(user, User)
+    assert user.id == "adm"
+
+
+# ====================== FIX 2 — campos MFA nunca expostos ======================
+@pytest.mark.asyncio
+async def test_get_user_projection_excludes_mfa_fields(mock_db, admin_user):
+    """A rota PEDE explicitamente a exclusão dos campos MFA na projeção
+    (o mock_db não aplica projeções — testa-se o pedido)."""
+    import routes.users as users_routes
+
+    mock_db.users.find_one = AsyncMock(return_value={"id": "outro-id", "name": "X"})
+    await users_routes.get_user("outro-id", current_user=admin_user)
+    proj = mock_db.users.find_one.call_args.args[1]
+    assert proj.get("password") == 0
+    assert proj.get("mfa_secret") == 0
+    assert proj.get("mfa_pending_secret") == 0
+    assert proj.get("mfa_backup_codes") == 0
+
+
+@pytest.mark.asyncio
+async def test_update_own_profile_projection_excludes_mfa_fields(mock_db, socio_user):
+    import routes.users as users_routes
+    from models import UserProfileUpdate
+
+    mock_db.users.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
+    mock_db.users.find_one = AsyncMock(return_value={"id": socio_user.id, "name": "X"})
+    await users_routes.update_own_profile(UserProfileUpdate(phone_number="999"), current_user=socio_user)
+    proj = mock_db.users.find_one.call_args.args[1]
+    assert proj.get("mfa_secret") == 0
+    assert proj.get("mfa_pending_secret") == 0
+    assert proj.get("mfa_backup_codes") == 0
+
+
+@pytest.mark.asyncio
+async def test_admin_update_user_projection_excludes_mfa_fields(mock_db, admin_user):
+    import routes.users as users_routes
+    from models import UserAdminUpdate
+
+    # 1.ª find_one = leitura do existente; depois update; 2.ª find_one = leitura final.
+    mock_db.users.find_one = AsyncMock(
+        side_effect=[{"id": "alvo", "name": "X"}, {"id": "alvo", "name": "X"}]
+    )
+    mock_db.users.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
+    await users_routes.admin_update_user(
+        "alvo", UserAdminUpdate(status="ativo"), _http_request(), current_user=admin_user
+    )
+    proj = mock_db.users.find_one.call_args.args[1]  # a última chamada = leitura final
+    assert proj.get("mfa_secret") == 0
+    assert proj.get("mfa_pending_secret") == 0
+    assert proj.get("mfa_backup_codes") == 0

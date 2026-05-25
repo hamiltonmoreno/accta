@@ -15,6 +15,7 @@ from models import (
     EXPENSE_CATEGORIES,
     INCOME_CATEGORY_LABELS,
     EXPENSE_CATEGORY_LABELS,
+    MFA_SECRET_FIELDS,
 )
 from finance_joia import joia_status
 from database import db
@@ -960,7 +961,7 @@ async def preview_joia(
     modal de aprovação. `cta_qualified_since` (opcional) sobrepõe o valor do doc,
     para o admin ver o efeito da data que vai introduzir."""
     require_view_finances(current_user)
-    user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0, **dict.fromkeys(MFA_SECRET_FIELDS, 0)})
     if not user:
         raise HTTPException(status_code=404, detail="Utilizador nao encontrado")
     if cta_qualified_since is not None:

@@ -120,6 +120,11 @@ class User(UserBase):
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
+# Campos secretos de MFA — NUNCA expostos (a par de password). Usar em toda
+# projeção de utilizador que vá para o cliente.
+MFA_SECRET_FIELDS = ("mfa_secret", "mfa_pending_secret", "mfa_backup_codes")
+
+
 # Tipos sanguíneos aceites (sistema ABO/Rh). Usado na validação de escrita.
 BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 
