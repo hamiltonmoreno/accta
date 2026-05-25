@@ -222,7 +222,9 @@ async def test_publish_document_promotes_when_id_present(mock_db):
     await pmod._publish_document("doc1", "publico")
     mock_db.documents.update_one.assert_awaited_once()
     args = mock_db.documents.update_one.call_args.args
-    assert args[0] == {"id": "doc1"}
+    # SEC: o filtro é ESCOPADO — só promove um RASCUNHO de prestação ('type'
+    # prestacao_contas, 'visibility' direcao), nunca um documento arbitrário.
+    assert args[0] == {"id": "doc1", "type": "prestacao_contas", "visibility": "direcao"}
     assert args[1] == {"$set": {"visibility": "publico"}}
 
 

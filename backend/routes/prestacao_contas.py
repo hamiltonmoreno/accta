@@ -110,9 +110,14 @@ _PRESTACAO_DOC_POLICY = {
 
 async def _publish_document(document_id: Optional[str], visibility: str) -> None:
     """Promove a visibilidade do documento (rascunho 'direcao' → final) quando a
-    ação correspondente é publicada com sucesso. No-op se não houver document_id."""
+    ação correspondente é publicada com sucesso. No-op se não houver document_id
+    ou se o alvo não for um RASCUNHO de prestação ('type'=='prestacao_contas',
+    'visibility'=='direcao') — impede promover documentos arbitrários."""
     if document_id:
-        await db.documents.update_one({"id": document_id}, {"$set": {"visibility": visibility}})
+        await db.documents.update_one(
+            {"id": document_id, "type": "prestacao_contas", "visibility": "direcao"},
+            {"$set": {"visibility": visibility}},
+        )
 
 
 @router.post("/prestacao-contas/documentos")
@@ -179,7 +184,6 @@ async def publish_balancete(data: BalanceteCreate, current_user: User = Depends(
     _require_manage_finances(current_user)
     if data.document_id:
         await _validate_document(data.document_id)
-        await _publish_document(data.document_id, "publico")  # promove o rascunho a público
 
     # Congela o snapshot no momento da publicação (não recalcular depois).
     if data.date_inicio or data.date_fim:
@@ -207,6 +211,9 @@ async def publish_balancete(data: BalanceteCreate, current_user: User = Depends(
         bal.id,
         details={"tipo": data.tipo, "periodo": data.periodo, "exercicio_ano": data.exercicio_ano},
     )
+    # Promove o rascunho a público SÓ após o balancete persistir (SEC: sem fuga
+    # se a publicação falhar antes da escrita).
+    await _publish_document(data.document_id, "publico")
     cf_ids = await members_of_orgao("conselho_fiscal")
     await notify_users(
         cf_ids,
@@ -349,7 +356,6 @@ async def submeter_relatorio(ano: int, data: RelatorioContasSubmit, current_user
     if ex["status"] not in ("aberto", "reaberto"):
         raise HTTPException(status_code=400, detail="O relatorio so pode ser submetido com o exercicio aberto")
     await _validate_document(data.document_id)
-    await _publish_document(data.document_id, "publico")  # promove o rascunho a público
 
     # Congela o DRE do ano no momento da submissão (auditabilidade).
     dre_snapshot = await compute_dre_report(ano)
@@ -363,6 +369,8 @@ async def submeter_relatorio(ano: int, data: RelatorioContasSubmit, current_user
         {"ano": ano}, {"$set": {"relatorio_contas": relatorio, "status": "relatorio_submetido"}}
     )
     await create_audit_log(current_user.id, f"Submeteu relatorio e contas do exercicio {ano}", ex["id"])
+    # Promove o rascunho a público SÓ após o relatório persistir (SEC).
+    await _publish_document(data.document_id, "publico")
 
     cf_ids = await members_of_orgao("conselho_fiscal")
     await notify_users(
@@ -384,7 +392,6 @@ async def submeter_orcamento(ano: int, data: OrcamentoSubmit, current_user: User
         raise HTTPException(status_code=400, detail="O exercicio ja foi a AG; orcamento nao editavel")
     if data.document_id:
         await _validate_document(data.document_id)
-        await _publish_document(data.document_id, "socios")  # promove o rascunho a sócios
 
     # Categorias têm de bater com as estatutárias (para comparar orçado/realizado).
     for linha in data.linhas:
@@ -401,6 +408,10 @@ async def submeter_orcamento(ano: int, data: OrcamentoSubmit, current_user: User
     }
     await db.exercicios.update_one({"ano": ano}, {"$set": {"orcamento": orcamento}})
     await create_audit_log(current_user.id, f"Submeteu orcamento do exercicio {ano}", ex["id"])
+    # Promove o rascunho a sócios SÓ após validação + persistência (SEC: uma
+    # categoria inválida 400 deixa o documento como rascunho, sem fuga).
+    if data.document_id:
+        await _publish_document(data.document_id, "socios")
     return {"ano": ano, "orcamento": orcamento}
 
 
@@ -412,7 +423,6 @@ async def submeter_plano(ano: int, data: PlanoSubmit, current_user: User = Depen
         raise HTTPException(status_code=400, detail="O exercicio ja foi a AG; plano nao editavel")
     if data.document_id:
         await _validate_document(data.document_id)
-        await _publish_document(data.document_id, "socios")  # promove o rascunho a sócios
 
     plano = {
         "atividades": [a.model_dump() for a in data.atividades],
@@ -422,6 +432,9 @@ async def submeter_plano(ano: int, data: PlanoSubmit, current_user: User = Depen
     }
     await db.exercicios.update_one({"ano": ano}, {"$set": {"plano_atividades": plano}})
     await create_audit_log(current_user.id, f"Submeteu plano de atividades do exercicio {ano}", ex["id"])
+    # Promove o rascunho a sócios SÓ após o plano persistir (SEC).
+    if data.document_id:
+        await _publish_document(data.document_id, "socios")
     return {"ano": ano, "plano_atividades": plano}
 
 
@@ -433,7 +446,6 @@ async def emitir_parecer(ano: int, data: ParecerSubmit, current_user: User = Dep
         raise HTTPException(status_code=400, detail="O parecer so pode ser emitido apos o relatorio submetido")
     if data.document_id:
         await _validate_document(data.document_id)
-        await _publish_document(data.document_id, "publico")  # promove o rascunho a público
 
     parecer = ParecerCF(
         document_id=data.document_id,
@@ -444,6 +456,8 @@ async def emitir_parecer(ano: int, data: ParecerSubmit, current_user: User = Dep
     ).model_dump()
     await db.exercicios.update_one({"ano": ano}, {"$set": {"parecer_cf": parecer, "status": "parecer_emitido"}})
     await create_audit_log(current_user.id, f"Emitiu parecer do CF do exercicio {ano} ({data.sentido})", ex["id"])
+    # Promove o rascunho a público SÓ após o parecer persistir (SEC).
+    await _publish_document(data.document_id, "publico")
     mesa_ids = await members_of_orgao("mesa_ag")
     await notify_users(
         mesa_ids,
