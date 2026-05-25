@@ -149,3 +149,22 @@ assumir que a "Proposta/Recomendação" da spec está aprovada. (Memória:
 **Context**: utilizador: "já tínhamos decidido que a password poderia ser
 mínimo 6". spec-correcoes está, de resto, ~toda implementada (Fases 1-3 feitas
 em código; B17 adiado por design; Fase 5 = épico separado).
+
+### L12 — Testar IDOR é provar divulgação cruzada, não só o 403 do não-dono
+**Mistake**: No F0 de segurança (PR #119), o teste IDOR de milestone cobria
+apenas "não-gestor → 403 no DELETE" e declarei "0 achados". Faltava o caso
+real, apanhado por um revisor: `update_milestone` (PATCH) autoriza pelo projeto
+da URL mas **relê o resultado só por `id`** (sem `project_id`) — um gestor do
+projeto B obtinha o milestone do projeto A. Endpoint análogo `update_task` já
+estava correto (lê o filho escopado + 404 antes do update); `update_milestone`
+não tinha esse check.
+**Rule**: Para cada endpoint que autoriza por um **pai** (ex. `project_id` da
+URL) mas opera sobre um **filho** (`milestone_id`/`task_id`/…), o teste IDOR
+tem de cobrir o caso **cross-parent de LEITURA/escrita** (B↛filho-de-A), não só
+o 403 do não-autorizado. E qualquer re-leitura/`find_one` pós-update tem de
+ficar **escopada pelo pai** (`{"id": child, "project_id": parent}`) + 404, igual
+ao update/delete. Um teste verde prova só o que afirma — "0 achados" exige que
+a matriz de casos esteja completa, não que os testes existentes passem.
+**Context**: `backend/routes/projects.py::update_milestone` (corrigido);
+`test_idor.py::test_update_milestone_no_cross_project_disclosure`. Auditar o
+padrão "authz no pai + re-read do filho por id só" noutros routers.
