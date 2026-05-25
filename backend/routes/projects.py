@@ -650,7 +650,9 @@ async def delete_milestone(
     if not can_manage_project(current_user, project):
         raise HTTPException(status_code=403, detail="Sem permissao")
 
-    await db.project_milestones.delete_one({"id": milestone_id, "project_id": project_id})
+    result = await db.project_milestones.delete_one({"id": milestone_id, "project_id": project_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Milestone nao encontrado")
     return {"message": "Milestone removido"}
 
 

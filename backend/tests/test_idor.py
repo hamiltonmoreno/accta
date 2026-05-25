@@ -111,6 +111,21 @@ async def test_update_milestone_no_cross_project_disclosure(mock_db, socio_user)
     assert exc.value.status_code == 404
 
 
+@pytest.mark.asyncio
+async def test_delete_milestone_cross_project_404(mock_db, socio_user):
+    # Gestor do projeto B tenta apagar milestone do projeto A: delete escopado
+    # por project_id não casa (deleted_count=0) → 404 (harmonizado com o PATCH).
+    manager = socio_user
+    mock_db.projects.find_one = AsyncMock(
+        return_value={"id": "project-B", "created_by": manager.id, "responsible_id": manager.id}
+    )
+    mock_db.project_milestones = MagicMock()
+    mock_db.project_milestones.delete_one = AsyncMock(return_value=MagicMock(deleted_count=0))
+    with pytest.raises(HTTPException) as exc:
+        await projects.delete_milestone("project-B", "milestone-A", current_user=manager)
+    assert exc.value.status_code == 404
+
+
 # ---- mural -----------------------------------------------------------------
 @pytest.mark.asyncio
 async def test_delete_wall_post_of_other_forbidden(mock_db, socio_user):
