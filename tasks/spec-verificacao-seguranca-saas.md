@@ -325,7 +325,7 @@ frontend → verificação manual.
 - [ ] `grep -rn "dangerouslySetInnerHTML" frontend/src` → 0 (ou justificado)
 - [ ] grep por `@router.(get|post|put|patch|delete)` em rotas protegidas sem `Depends(get_current_user)` → 0
 - [ ] `pytest tests/test_auth_hardening.py tests/test_permissions.py tests/test_rbac_matrix.py` verde
-- [ ] novos: `test_idor`, `test_security_headers`, `test_csrf_middleware`, `test_rate_limit`, `test_lockout_integration`, `test_sql_injection_fuzz` verdes
+- [x] novos: `test_idor`, `test_security_headers`, `test_csrf_middleware`, `test_rate_limit`, `test_lockout_integration`, `test_sql_injection_fuzz` verdes (38 testes — ramo `feature/seguranca-testes-regressao`)
 - [ ] `curl -I` confirma `Set-Cookie` httpOnly/Secure/SameSite e os headers de segurança
 
 **P1 — lacunas reais:**
@@ -365,7 +365,15 @@ frontend → verificação manual.
 
 ## Review (preencher ao concluir)
 
-- [ ] F0 concluída — todos os testes de regressão de segurança verdes (provámos o que já existia).
+- [x] F0 concluída (2026-05-25) — 38 testes de regressão de segurança verdes.
+  **Achado (corrigido)**: 1 IDOR de divulgação cruzada em `update_milestone`
+  (PATCH) — autorizava pelo projeto da URL mas relia o milestone só por `id`,
+  sem `project_id`; um gestor do projeto B obtinha o milestone do projeto A.
+  Corrigido em `routes/projects.py` (re-leitura escopada por `project_id` +
+  404, como em `update_task`), com teste de regressão dedicado
+  (`test_update_milestone_no_cross_project_disclosure`). `delete_milestone`
+  harmonizado para 404 (escopado por `project_id`), com teste dedicado.
+  Restantes controlos provados sem alteração de produção.
 - [ ] F1/F2 concluídas — password policy + MFA atrás de gates D1/D2 confirmados.
 - [ ] F3/F4 concluídas ou explicitamente adiadas.
 - [ ] F5 (infra) confirmada com o operador e documentada.
