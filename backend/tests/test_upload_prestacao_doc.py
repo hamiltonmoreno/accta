@@ -130,6 +130,16 @@ async def test_upload_doc_relatorio_forbidden_for_cf_only(mock_db, socio_user):
 
 
 @pytest.mark.asyncio
+async def test_upload_doc_cf_cannot_upload_balancete(mock_db, socio_user):
+    # CF (emit_cf_parecer, role socio) NÃO tem manage_finances → não pode forjar 'balancete'.
+    cf_user = socio_user.model_copy(update={"privileges": ["emit_cf_parecer"]})
+    with pytest.raises(Exception) as ei:
+        await pmod.upload_prestacao_documento(file=_upload(), kind="balancete",
+                                              title=None, current_user=cf_user)
+    assert getattr(ei.value, "status_code", None) == 403
+
+
+@pytest.mark.asyncio
 async def test_upload_doc_balancete_allowed_for_manage_finances(mock_db, financeiro_user):
     # balancete espelha manage_finances → permitido para financeiro.
     res = await pmod.upload_prestacao_documento(file=_upload(), kind="balancete",
