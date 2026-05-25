@@ -74,3 +74,42 @@ def test_is_mfa_mandatory():
     assert is_mfa_mandatory("financeiro") is True
     assert is_mfa_mandatory("socio") is False
     assert is_mfa_mandatory("moderador") is False
+
+
+# ====================== Task 2 — modelos ======================
+def test_userbase_mfa_enabled_defaults_false():
+    from models import User, UserBase
+
+    assert UserBase(name="X", email="x@accta.cv").mfa_enabled is False
+    # doc legado sem mfa_enabled → default, sem erro
+    assert User(name="X", email="x@accta.cv", id="1").mfa_enabled is False
+
+
+def test_userlogin_otp_optional():
+    from models import UserLogin
+
+    assert UserLogin(email="x@accta.cv", password="p").otp is None
+    assert UserLogin(email="x@accta.cv", password="p", otp="123456").otp == "123456"
+
+
+def test_token_mfa_setup_required_default_false():
+    from models import Token, User
+
+    u = User(name="X", email="x@accta.cv", id="1")
+    assert Token(access_token="a", token_type="bearer", user=u).mfa_setup_required is False
+
+
+def test_user_drops_mfa_secret_fields():
+    from models import User
+
+    u = User(name="X", email="x@accta.cv", id="1", mfa_secret="leak", mfa_backup_codes=["h"])
+    dumped = u.model_dump()
+    assert "mfa_secret" not in dumped
+    assert "mfa_backup_codes" not in dumped
+
+
+def test_mfa_request_models():
+    from models import MfaDisableRequest, MfaVerifyRequest
+
+    assert MfaVerifyRequest(otp="123456").otp == "123456"
+    assert MfaDisableRequest(password="pw").password == "pw"
