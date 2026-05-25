@@ -293,8 +293,32 @@ def _consume_backup_code(user_doc: dict, code: str) -> Optional[list[str]]:
 
 ## 11. Review (preencher ao concluir)
 
-- [ ] Modelos aditivos + `mfa.py` + endpoints + gate no login implementados.
-- [ ] `test_mfa.py` verde; sem regressão em `test_auth_*`/`test_rate_limit`/`test_lockout_integration`.
-- [ ] `pyotp`/`cryptography` em `requirements.txt`; `ruff` limpo.
-- [ ] Segredos comprovadamente não-expostos (teste dedicado).
-- **Conclusão**: _(resumo + nota de handoff para o PR2 frontend)_
+- [x] Modelos aditivos + `mfa.py` + endpoints + gate no login implementados.
+- [x] `test_mfa.py` verde (25 testes); sem regressão em `test_auth_*`/`test_rate_limit`/`test_lockout_integration` (suite de segurança: 137 passed).
+- [x] `pyotp==2.9.0` em `requirements.txt`; `cryptography` transitivo via `python-jose[cryptography]`; `ruff` limpo (`mfa.py`, `models.py`, `routes/auth_routes.py`, `tests/test_mfa.py`).
+- [x] Segredos comprovadamente não-expostos (`test_user_drops_mfa_secret_fields` + `test_login_response_hides_mfa_secret`).
+- **Conclusão**: F2 (backend) concluído via TDD em 5 tarefas. Implementado o módulo
+  `backend/mfa.py` (Fernet com chave derivada do `SECRET_KEY` + TOTP via `pyotp` +
+  backup codes hash-sha256 + política de obrigatoriedade), campos aditivos em
+  `models.py` (`UserBase.mfa_enabled`, `UserLogin.otp`, `Token.mfa_setup_required`,
+  `MfaVerifyRequest`, `MfaDisableRequest`), 4 endpoints `/api/auth/mfa/{setup,verify,
+  disable,status}` e o gate no `POST /auth/login` (2.º fator TOTP **ou** backup code
+  de uso único, OTP errado conta para o lockout existente, `detail` distinguível:
+  `mfa_required`/`mfa_invalido`). `mfa_setup_required` sinaliza papéis obrigatórios
+  ainda não inscritos. Cobertura: 25 testes em `tests/test_mfa.py` (cripto/primitivas,
+  modelos, endpoints, 7 ramos de login). Sem regressão na suite de segurança
+  (137 passed). Nenhuma stop condition disparada (tudo aditivo, sem migração/drop,
+  sem alteração do `SECRET_KEY`/algoritmo, sem CORS, sem emails).
+
+  **Divergências plano↔código resolvidas**: a assinatura real de `create_audit_log`
+  em `helpers.py` é `(user_id, action, target_id=None, *, request=None, details=None, ...)`
+  — `request` é keyword-only, logo as chamadas do plano (`create_audit_log(uid, "...",
+  request=request|None)`) funcionam sem ajuste. O import de `mfa.consume_backup_code`
+  em `auth_routes.py` só é adicionado na Task 4 (onde é usado), para cada commit ficar
+  ruff-limpo.
+
+  **Handoff PR2 (frontend)**: falta o ecrã de setup (QR a partir de `otpauth_uri` +
+  segredo manual), o ecrã de backup codes (mostrados 1x na resposta de
+  `/mfa/verify`), o campo OTP no login orquestrado pelo `detail` `mfa_required`, e
+  forçar o enrolment quando `Token.mfa_setup_required is True`. Backend não impõe
+  bloqueio por-rota nesta fase (pré-produção; flag + gate-no-login chegam).
