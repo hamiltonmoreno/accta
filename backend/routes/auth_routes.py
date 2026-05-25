@@ -105,11 +105,15 @@ async def login(request: Request, response: Response, credentials: UserLogin):
         totp_ok = verify_totp_encrypted(user_doc["mfa_secret"], credentials.otp)
         backup_ok = False
         if not totp_ok:
-            # Consumo ATÓMICO: remove o hash só se presente; uma corrida concorrente
-            # vê modified_count=0 → uso único garantido ao nível da BD.
+            # Consumo ATÓMICO: o $pull remove o hash só se presente; modified_count
+            # reflete a alteração real, logo uma corrida concorrente vê 0 → uso único
+            # garantido ao nível da BD. O filtro é só por `id` (escalar): o DAO
+            # Mongo-compatível NÃO emula match de pertença em array
+            # (`{"mfa_backup_codes": code_hash}` num campo-array nunca casa → o login
+            # por backup code ficava sempre 401 mfa_invalido).
             code_hash = hash_backup_code(credentials.otp)
             res = await db.users.update_one(
-                {"id": user_doc["id"], "mfa_backup_codes": code_hash},
+                {"id": user_doc["id"]},
                 {"$pull": {"mfa_backup_codes": code_hash}},
             )
             backup_ok = res.modified_count == 1
