@@ -41,6 +41,7 @@ from helpers import (
 )
 from permissions import is_voting_member
 from mfa import (
+    consume_backup_code,
     decrypt_secret,
     encrypt_secret,
     generate_backup_codes,
@@ -97,6 +98,20 @@ async def login(request: Request, response: Response, credentials: UserLogin):
             status_code=403, detail="Conta pendente de ativacao. Use o link de convite para definir a sua senha."
         )
 
+    # MFA (spec-mfa-f2): se ativo, exige 2.º fator (TOTP ou backup code) antes
+    # de emitir a sessão. OTP errado conta para o lockout (anti brute-force).
+    if user_doc.get("mfa_enabled"):
+        if not credentials.otp:
+            await create_audit_log(user_doc["id"], "login_mfa_challenge", request=request)
+            raise HTTPException(status_code=401, detail="mfa_required")
+        new_backups = consume_backup_code(user_doc.get("mfa_backup_codes") or [], credentials.otp)
+        if not verify_totp(decrypt_secret(user_doc["mfa_secret"]), credentials.otp) and new_backups is None:
+            await record_failed_login(credentials.email, ip=request.client.host if request.client else None)
+            await create_audit_log(user_doc["id"], "login_mfa_failed", request=request)
+            raise HTTPException(status_code=401, detail="mfa_invalido")
+        if new_backups is not None:
+            await db.users.update_one({"id": user_doc["id"]}, {"$set": {"mfa_backup_codes": new_backups}})
+
     # Login sucesso — limpa contador de falhas para que utilizador legitimo
     # nao seja afectado por tentativas anteriores erradas/atacante.
     await reset_failed_logins(credentials.email)
@@ -105,15 +120,16 @@ async def login(request: Request, response: Response, credentials: UserLogin):
     )
     await create_audit_log(user_doc["id"], "login_success", request=request)
 
-    user_doc.pop("password", None)
-    user_doc.pop("invite_token", None)
+    mfa_setup_required = is_mfa_mandatory(user_doc["role"]) and not user_doc.get("mfa_enabled")
+    for _k in ("password", "invite_token", "mfa_secret", "mfa_pending_secret", "mfa_backup_codes"):
+        user_doc.pop(_k, None)
 
     user = User(**user_doc)
     token = create_access_token({"sub": user.id})
     # Sprint 10 — set httpOnly cookie. Token ainda e devolvido no body para
     # compat com testes legados / clientes nao-browser. Frontend novo nao usa.
     set_session_cookie(response, token)
-    return Token(access_token=token, token_type="bearer", user=user)
+    return Token(access_token=token, token_type="bearer", user=user, mfa_setup_required=mfa_setup_required)
 
 
 @router.get("/me", response_model=User)

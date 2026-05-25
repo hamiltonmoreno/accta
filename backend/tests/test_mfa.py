@@ -211,3 +211,144 @@ async def test_mfa_status(mock_db, admin_user):
     )
     resp = await auth_routes.mfa_status(current_user=admin_user)
     assert resp == {"enabled": True, "mandatory": True, "backup_codes_remaining": 2}
+
+
+# ====================== Task 4 — gate no login ======================
+def _login_request():
+    from starlette.requests import Request
+
+    return Request({"type": "http", "method": "POST", "path": "/api/auth/login",
+                    "headers": [], "client": ("t", 1), "query_string": b""})
+
+
+def _user_doc(role="socio", mfa_enabled=False, secret=None, backups=None):
+    from auth import hash_password
+
+    doc = {
+        "id": "u1", "name": "U", "email": "u@accta.cv", "role": role, "status": "ativo",
+        "cargo": "socio", "privileges": [], "consent_data": True, "password": hash_password("pw"),
+    }
+    if mfa_enabled:
+        from mfa import encrypt_secret
+
+        doc["mfa_enabled"] = True
+        doc["mfa_secret"] = encrypt_secret(secret)
+        doc["mfa_backup_codes"] = backups or []
+    return doc
+
+
+@pytest.fixture
+def login_env(mock_db, monkeypatch):
+    import routes.auth_routes as auth_routes
+
+    monkeypatch.setattr(auth_routes.limiter, "enabled", False)
+    mock_db.login_attempts = MagicMock()
+    mock_db.login_attempts.count_documents = AsyncMock(return_value=0)
+    mock_db.login_attempts.insert_one = AsyncMock()
+    mock_db.login_attempts.delete_many = AsyncMock()
+    mock_db.users.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
+    return auth_routes
+
+
+@pytest.mark.asyncio
+async def test_login_mfa_required_without_otp(login_env, mock_db):
+    from fastapi import Response
+    from mfa import generate_totp_secret
+    from models import UserLogin
+
+    mock_db.users.find_one = AsyncMock(return_value=_user_doc(mfa_enabled=True, secret=generate_totp_secret()))
+    with pytest.raises(HTTPException) as exc:
+        await login_env.login(_login_request(), Response(), UserLogin(email="u@accta.cv", password="pw"))
+    assert exc.value.status_code == 401
+    assert exc.value.detail == "mfa_required"
+
+
+@pytest.mark.asyncio
+async def test_login_mfa_invalid_otp_counts_failure(login_env, mock_db):
+    from fastapi import Response
+    from mfa import generate_totp_secret
+    from models import UserLogin
+
+    secret = generate_totp_secret()
+    mock_db.users.find_one = AsyncMock(return_value=_user_doc(mfa_enabled=True, secret=secret))
+    bad = "000000" if pyotp.TOTP(secret).now() != "000000" else "111111"
+    with pytest.raises(HTTPException) as exc:
+        await login_env.login(_login_request(), Response(), UserLogin(email="u@accta.cv", password="pw", otp=bad))
+    assert exc.value.status_code == 401
+    assert exc.value.detail == "mfa_invalido"
+    mock_db.login_attempts.insert_one.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_login_mfa_totp_ok_issues_token(login_env, mock_db):
+    from fastapi import Response
+    from mfa import generate_totp_secret
+    from models import UserLogin
+
+    secret = generate_totp_secret()
+    mock_db.users.find_one = AsyncMock(return_value=_user_doc(mfa_enabled=True, secret=secret))
+    tok = await login_env.login(
+        _login_request(), Response(), UserLogin(email="u@accta.cv", password="pw", otp=pyotp.TOTP(secret).now())
+    )
+    assert tok.access_token
+    assert tok.user.mfa_enabled is True
+
+
+@pytest.mark.asyncio
+async def test_login_backup_code_consumed(login_env, mock_db):
+    from fastapi import Response
+    from mfa import generate_totp_secret, hash_backup_code
+    from models import UserLogin
+
+    secret = generate_totp_secret()
+    backups = [hash_backup_code("aaaa-bbbb"), hash_backup_code("cccc-dddd")]
+    mock_db.users.find_one = AsyncMock(return_value=_user_doc(mfa_enabled=True, secret=secret, backups=backups))
+    tok = await login_env.login(
+        _login_request(), Response(), UserLogin(email="u@accta.cv", password="pw", otp="aaaa-bbbb")
+    )
+    assert tok.access_token
+    consume_calls = [
+        c for c in mock_db.users.update_one.call_args_list
+        if "$set" in c.args[1] and "mfa_backup_codes" in c.args[1]["$set"]
+    ]
+    assert consume_calls, "esperava persistir a lista de backups reduzida"
+    new_list = consume_calls[0].args[1]["$set"]["mfa_backup_codes"]
+    assert hash_backup_code("aaaa-bbbb") not in new_list
+    assert hash_backup_code("cccc-dddd") in new_list
+
+
+@pytest.mark.asyncio
+async def test_login_admin_unenrolled_flags_setup_required(login_env, mock_db):
+    from fastapi import Response
+    from models import UserLogin
+
+    mock_db.users.find_one = AsyncMock(return_value=_user_doc(role="admin", mfa_enabled=False))
+    tok = await login_env.login(_login_request(), Response(), UserLogin(email="u@accta.cv", password="pw"))
+    assert tok.mfa_setup_required is True
+
+
+@pytest.mark.asyncio
+async def test_login_socio_unenrolled_no_setup_required(login_env, mock_db):
+    from fastapi import Response
+    from models import UserLogin
+
+    mock_db.users.find_one = AsyncMock(return_value=_user_doc(role="socio", mfa_enabled=False))
+    tok = await login_env.login(_login_request(), Response(), UserLogin(email="u@accta.cv", password="pw"))
+    assert tok.mfa_setup_required is False
+
+
+@pytest.mark.asyncio
+async def test_login_response_hides_mfa_secret(login_env, mock_db):
+    from fastapi import Response
+    from mfa import generate_totp_secret
+    from models import UserLogin
+
+    secret = generate_totp_secret()
+    mock_db.users.find_one = AsyncMock(return_value=_user_doc(mfa_enabled=True, secret=secret, backups=["h"]))
+    tok = await login_env.login(
+        _login_request(), Response(), UserLogin(email="u@accta.cv", password="pw", otp=pyotp.TOTP(secret).now())
+    )
+    dumped = tok.user.model_dump()
+    assert "mfa_secret" not in dumped
+    assert "mfa_backup_codes" not in dumped
+    assert "password" not in dumped
