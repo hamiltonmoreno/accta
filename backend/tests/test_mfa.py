@@ -318,15 +318,74 @@ async def test_login_backup_code_consumed(login_env, mock_db):
         _login_request(), Response(), UserLogin(email="u@accta.cv", password="pw", otp="aaaa-bbbb")
     )
     assert tok.access_token
-    # FIX 4: consumo atómico via filtro array-contém + $pull condicional (não mais $set).
+    # Consumo atómico via $pull condicional. O filtro é SÓ por `id` (escalar): o DAO
+    # Mongo-compatível NÃO emula pertença em array, logo o filtro NÃO pode conter
+    # `mfa_backup_codes` (ver test_login_backup_code_works_against_dao_semantics).
     consume_calls = [
         c for c in mock_db.users.update_one.call_args_list
-        if "$pull" in c.args[1] and "mfa_backup_codes" in c.args[0]
+        if "$pull" in c.args[1] and "mfa_backup_codes" in c.args[1]["$pull"]
     ]
     assert consume_calls, "esperava um $pull atómico do hash do backup code"
     filt = consume_calls[0].args[0]
-    assert filt["mfa_backup_codes"] == hash_backup_code("aaaa-bbbb")
+    assert "mfa_backup_codes" not in filt, "filtro não pode depender de pertença em array (não suportada pelo DAO)"
+    assert filt == {"id": "u1"}
     assert consume_calls[0].args[1] == {"$pull": {"mfa_backup_codes": hash_backup_code("aaaa-bbbb")}}
+
+
+class _FakeUsersDAO:
+    """DAO de utilizadores fiel à semântica do DAO real para este caso: um filtro
+    {campo_array: escalar} NÃO casa (o DAO Mongo-compatível não emula pertença em
+    array) e o $pull só altera modified_count se o valor estava mesmo no array.
+    Com isto, o filtro bugado de array-membership devolve modified_count=0 → o teste
+    abaixo falharia com o código antigo e passa com o fix (filtro por `id`)."""
+
+    def __init__(self, doc):
+        self.doc = doc
+
+    async def find_one(self, *_a, **_k):
+        return dict(self.doc)
+
+    async def update_one(self, filt, update):
+        for key, want in filt.items():
+            cur = self.doc.get(key)
+            if isinstance(cur, list) and not isinstance(want, list):
+                return MagicMock(modified_count=0)  # pertença em array: não suportada
+            if not isinstance(cur, list) and cur != want:
+                return MagicMock(modified_count=0)
+        changed = False
+        for field, val in (update.get("$pull") or {}).items():
+            arr = self.doc.get(field, [])
+            if val in arr:
+                arr.remove(val)
+                self.doc[field] = arr
+                changed = True
+        if update.get("$set"):
+            self.doc.update(update["$set"])
+            changed = True
+        return MagicMock(modified_count=1 if changed else 0)
+
+
+@pytest.mark.asyncio
+async def test_login_backup_code_works_against_dao_semantics(login_env, mock_db):
+    """Regressão: login por backup code contra um DAO que emula o Postgres real.
+    Apanha o bug que o mock_db genérico (modified_count fixo) escondia."""
+    from fastapi import Response
+    from mfa import generate_totp_secret, hash_backup_code
+    from models import UserLogin
+
+    secret = generate_totp_secret()
+    h_used, h_other = hash_backup_code("aaaa-bbbb"), hash_backup_code("cccc-dddd")
+    doc = _user_doc(mfa_enabled=True, secret=secret, backups=[h_used, h_other])
+    fake = _FakeUsersDAO(doc)
+    mock_db.users.find_one = fake.find_one
+    mock_db.users.update_one = fake.update_one
+
+    tok = await login_env.login(
+        _login_request(), Response(), UserLogin(email="u@accta.cv", password="pw", otp="aaaa-bbbb")
+    )
+    assert tok.access_token  # falha com filtro de array-membership (modified_count=0 → mfa_invalido)
+    assert h_used not in doc["mfa_backup_codes"], "o backup code usado tem de ser consumido"
+    assert h_other in doc["mfa_backup_codes"], "os restantes backup codes mantêm-se"
 
 
 @pytest.mark.asyncio
