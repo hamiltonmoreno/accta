@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
-import { usersAPI, cargosAPI, governanceAPI, comunicadosAPI, mfaAPI } from '../../utils/api';
+import { usersAPI, cargosAPI, governanceAPI, comunicadosAPI, mfaAPI, uploadAPI } from '../../utils/api';
+import { UserAvatar } from '../../components/UserAvatar';
+import { AvatarCropDialog } from '../../components/AvatarCropDialog';
 import { queryKeys } from '../../lib/queryClient';
 import { Switch } from '../../components/ui/switch';
 import { SetupMFA } from '../../components/SetupMFA';
@@ -15,6 +17,7 @@ import {
   Pencil, X, History, AlertTriangle, Users as UsersIcon, Cake, Droplet,
   MapPin, Home, Globe, HeartPulse, Building2, BadgeCheck, Clock,
   CheckCircle2, Fingerprint, User as UserIcon, ShieldCheck, Lock, Loader2,
+  Camera, Trash2,
 } from 'lucide-react';
 import {
   USER_STATUS_CONFIG, USER_STATUS_FALLBACK, getStatusConfig,
@@ -407,6 +410,59 @@ export const PerfilPage = () => {
     },
   });
 
+  // Foto de perfil — fluxo próprio (independente do form de dados): escolher →
+  // recortar (AvatarCropDialog) → upload (avatars) → grava photo_url. "Remover"
+  // envia "" (convenção de limpar do backend) e volta às iniciais.
+  const fileInputRef = useRef(null);
+  const [cropSrc, setCropSrc] = useState(null);
+
+  const photoMutation = useMutation({
+    mutationFn: async (file) => {
+      const up = await uploadAPI.uploadFile('avatars', file);
+      await usersAPI.updateProfile({ photo_url: up.data.file_url });
+    },
+    onSuccess: async () => {
+      if (refreshUser) await refreshUser();
+      setCropSrc(null);
+      toast.success('Foto de perfil atualizada!');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Erro ao atualizar a foto.');
+    },
+  });
+
+  const removePhotoMutation = useMutation({
+    mutationFn: () => usersAPI.updateProfile({ photo_url: '' }),
+    onSuccess: async () => {
+      if (refreshUser) await refreshUser();
+      toast.success('Foto removida.');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || 'Erro ao remover a foto.');
+    },
+  });
+
+  const onFilePicked = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // permite re-selecionar o mesmo ficheiro
+    if (!file) return;
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      toast.error('Formato inválido. Use JPG ou PNG.');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('A imagem excede o limite de 2 MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setCropSrc(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const onCropConfirmed = (blob) => {
+    photoMutation.mutate(new File([blob], 'avatar.jpg', { type: 'image/jpeg' }));
+  };
+
   // Preferência de comunicados informativos por email. O switch reflecte se o
   // sócio RECEBE (ON) — o campo persistido é o opt-OUT, logo invertemos.
   const emailPrefsMutation = useMutation({
@@ -486,18 +542,64 @@ export const PerfilPage = () => {
         )}
       </div>
 
+      <AvatarCropDialog
+        open={!!cropSrc}
+        imageSrc={cropSrc}
+        onCancel={() => setCropSrc(null)}
+        onConfirm={onCropConfirmed}
+        pending={photoMutation.isPending}
+      />
+
       {/* Profile Card */}
       <div className="card-technical overflow-hidden animate-fade-up">
         {/* Banner */}
         <div className="h-20 bg-gradient-to-r from-grafite to-grafite/80 relative">
           <div className="absolute -bottom-8 left-6">
-            <div className="w-16 h-16 bg-carmesim rounded-xl flex items-center justify-center text-white text-2xl font-bold shadow-lg border-4 border-white">
-              {user.name?.charAt(0).toUpperCase()}
+            <div className="relative">
+              <UserAvatar
+                size="lg"
+                name={user.name}
+                photoUrl={user.photo_url}
+                className="rounded-xl border-4 border-white shadow-lg"
+                fallbackClassName="rounded-xl"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={photoMutation.isPending}
+                aria-label="Alterar foto de perfil"
+                className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-carmesim text-white shadow-md hover:bg-carmesim-dark transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50"
+                data-testid="change-photo-btn"
+              >
+                <Camera className="w-3.5 h-3.5" aria-hidden="true" />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png"
+                onChange={onFilePicked}
+                className="hidden"
+                data-testid="photo-file-input"
+              />
             </div>
           </div>
         </div>
 
         <div className="pt-12 px-6 pb-6">
+          {user.photo_url && (
+            <div className="flex justify-end -mt-4 mb-2">
+              <button
+                type="button"
+                onClick={() => removePhotoMutation.mutate()}
+                disabled={removePhotoMutation.isPending}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6B7280] hover:text-carmesim transition-colors disabled:opacity-50"
+                data-testid="remove-photo-btn"
+              >
+                <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                Remover foto
+              </button>
+            </div>
+          )}
           {/* Name + badges */}
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <h2 className="text-xl font-bold text-grafite" data-testid="profile-name">{user.name}</h2>

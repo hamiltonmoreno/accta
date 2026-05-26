@@ -6,6 +6,7 @@ import { registrationAPI } from '../utils/api';
 import { queryKeys } from '../lib/queryClient';
 import { NotificationBell } from '../components/NotificationBell';
 import { BrandLogo } from '../components/BrandLogo';
+import { UserAvatar } from '../components/UserAvatar';
 import { USER_STATUS_CONFIG, USER_STATUS_FALLBACK, getStatusConfig } from '../lib/statusConfig';
 import {
   LayoutDashboard,
@@ -382,9 +383,7 @@ export const PrivateLayout = ({ children }) => {
       <div className="px-2 py-3 border-t border-[var(--surface-border)]">
         {/* User profile */}
         <div className="flex items-center gap-3 px-1 mb-2">
-          <div className="w-9 h-9 bg-carmesim rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-            {user?.name?.charAt(0).toUpperCase()}
-          </div>
+          <UserAvatar size="sm" name={user?.name} photoUrl={user?.photo_url} />
           <div
             className={`min-w-0 flex-1 transition-opacity duration-300 ${
               collapsed && !isMobile ? 'opacity-0 pointer-events-none w-0' : 'opacity-100'
@@ -482,9 +481,7 @@ export const PrivateLayout = ({ children }) => {
             </div>
             <div className="flex items-center gap-2">
               <NotificationBell />
-              <div className="w-8 h-8 bg-carmesim rounded-full flex items-center justify-center text-white text-xs font-bold">
-                {user?.name?.charAt(0).toUpperCase()}
-              </div>
+              <UserAvatar size="xs" name={user?.name} photoUrl={user?.photo_url} />
             </div>
           </div>
         </header>
@@ -499,9 +496,7 @@ export const PrivateLayout = ({ children }) => {
             <div className="flex items-center gap-3">
               <NotificationBell />
               <div className="flex items-center gap-2 pl-3 border-l border-[var(--surface-border)]">
-                <div className="w-8 h-8 bg-carmesim rounded-full flex items-center justify-center text-white text-xs font-bold">
-                  {user?.name?.charAt(0).toUpperCase()}
-                </div>
+                <UserAvatar size="xs" name={user?.name} photoUrl={user?.photo_url} />
                 <span className="text-sm font-medium hidden lg:block text-grafite-auto">{user?.name}</span>
               </div>
             </div>

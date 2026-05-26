@@ -14,36 +14,31 @@ Spec: `tasks/spec-foto-de-perfil.md`. Branch `feature/foto-de-perfil` (de `devel
 - `upload.py` avatares exigem `status == "ativo"` (não só autenticado) — refina §8.
 - `delete_upload_file` (helpers) é no-op seguro em URL vazia/inexistente — reutilizável.
 
-## Fase 1 — Backend (TDD)
-- [ ] `models.py`: mover `photo_url` de `_EditableProfileFields` → `UserProfileUpdate`.
-- [ ] `users.py` `update_own_profile`: ler doc atual; `photo_url==""` → limpar (None) +
-      `delete_upload_file(antigo)`; troca de foto → apaga o antigo; audit
-      `profile_photo_updated`/`profile_photo_removed` (genérico nos restantes campos).
-- [ ] `users.py` `DELETE /users/{id}/photo` (admin+moderador): limpa, apaga ficheiro,
-      audit `profile_photo_removed` (com `request`+details) + notifica o utilizador.
-- [ ] `helpers.py` `enrich_author_photos(docs, id_field="user_id", out_field="user_photo_url")`
-      — 1 batch `find({"id": {"$in": ids}}, {"id":1,"photo_url":1})`.
-- [ ] `wall.py`: aplicar em posts (`get_wall_posts`, `get_pending_wall_posts`) e
-      comentários (`get_wall_comments`).
-- [ ] `projects.py`: aplicar em `comments` de `get_project`.
-- [ ] Testes (extend `test_users_routes.py` + enrich): limpar/trocar/manter foto;
-      DELETE RBAC (admin/moderador OK; financeiro/socio 403) + audit + notify;
-      `enrich_author_photos` (injeta correto / sem foto / autor inexistente).
+## Fase 1 — Backend (TDD) ✅ (commit 433e458)
+- [x] `models.py`: `photo_url` movido de `_EditableProfileFields` → `UserProfileUpdate`.
+- [x] `users.py` `update_own_profile`: `""`→None + higiene de ficheiro + audit específico.
+- [x] `users.py` `DELETE /users/{id}/photo` (admin+moderador): limpa/apaga/audit/notifica.
+- [x] `helpers.py` `enrich_author_photos` (1 batch query/listagem).
+- [x] `wall.py`: posts + pending + comentários. `projects.py`: comentários de `get_project`.
+- [x] Testes: **115 passed** (foto set/clear/keep, RBAC remoção, enrich) + ruff limpo.
 
-## Fase 2 — Componente + resolução de URL
-- [ ] `components/UserAvatar.js` (wrapper do `<Avatar>` shadcn; fallback iniciais carmesim).
-- [ ] `utils/api.js`: `mediaUrl(path)` + `usersAPI.removePhoto(userId)`.
-- [ ] Substituir iniciais por `<UserAvatar>`: `PrivateLayout` (3), `AdminUsuariosPage`,
-      `MuralPage` (post+comentário), `ProjectDetailPage` (autor+próprio).
+## Fase 2 — Componente + resolução de URL ✅
+- [x] `components/UserAvatar.js` (fallback configurável: carmesim/neutro/âmbar/squircle).
+- [x] `utils/api.js`: `mediaUrl(path)` + `usersAPI.removePhoto(userId)`.
+- [x] Iniciais → `<UserAvatar>`: `PrivateLayout` (3), `AdminUsuariosPage` (3),
+      `MuralPage` (3), `ProjectDetailPage` (2). eslint: só avisos pré-existentes.
 
-## Fase 3 — Perfil (upload + recorte + remover)
-- [ ] `PerfilPage.js`: avatar + "Alterar foto" (modal recorte `react-easy-crop`) + "Remover".
-- [ ] dep `react-easy-crop` no `package.json`.
+## Fase 3 — Perfil (upload + recorte + remover) ✅
+- [x] `components/AvatarCropDialog.js` — **recorte central por canvas (ZERO deps)**:
+      o `react-easy-crop` não instalou (rede instável desta máquina); o dono optou
+      pelo fallback pré-aprovado. Corta o quadrado central → JPEG ~512px;
+      pré-visualização circular `object-cover` (WYSIWYG). Sem pan/zoom manual.
+- [x] `PerfilPage.js`: avatar + botão câmara "Alterar foto" + "Remover foto" + mutations.
 
-## Fase 4 — Moderação (UI)
-- [ ] `AdminUsuariosPage`: ação "Remover foto" (admin/moderador) → `usersAPI.removePhoto`.
+## Fase 4 — Moderação (UI) ✅
+- [x] `AdminUsuariosPage`: "Remover foto" no diálogo de edição → `usersAPI.removePhoto`.
 
-## Fase 5 — Verificação
-- [ ] `pytest -m unit` (sem regressões) + `ruff check`.
-- [ ] `eslint` 0/0 + `craco build`.
+## Fase 5 — Verificação ✅
+- [x] `pytest` backend (115 passed) + `ruff check` limpo.
+- [x] `eslint` 0 erros (9 avisos pré-existentes) + `craco build` de produção OK.
 - [ ] PR `feature/foto-de-perfil → develop`.
