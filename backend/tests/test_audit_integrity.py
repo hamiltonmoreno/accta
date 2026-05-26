@@ -13,11 +13,20 @@ pytestmark = pytest.mark.unit
 
 
 def _cursor(items):
+    """Cursor falso com paginação fiel (skip/limit) — o /verify itera em lotes,
+    logo o mock tem de honrar skip/limit senão o loop não termina."""
+    state = {"skip": 0, "limit": None}
     cur = MagicMock()
     cur.sort = MagicMock(return_value=cur)
-    cur.skip = MagicMock(return_value=cur)
-    cur.limit = MagicMock(return_value=cur)
-    cur.to_list = AsyncMock(return_value=items)
+    cur.skip = MagicMock(side_effect=lambda n: (state.__setitem__("skip", n), cur)[1])
+    cur.limit = MagicMock(side_effect=lambda n: (state.__setitem__("limit", n), cur)[1])
+
+    async def _to_list(n=None):
+        start = state["skip"]
+        lim = state["limit"] if state["limit"] is not None else n
+        return items[start : start + lim] if lim is not None else items[start:]
+
+    cur.to_list = AsyncMock(side_effect=_to_list)
     return cur
 
 
@@ -102,6 +111,26 @@ async def test_verify_endpoint_flags_tampered_and_counts_legacy(mock_db, admin_u
     assert res["tampered_count"] == 1
     assert "a2" in res["tampered_ids"]
     assert "a1" not in res["tampered_ids"]
+
+
+@pytest.mark.asyncio
+async def test_verify_endpoint_strip_attack_is_not_falsely_ok(mock_db, admin_user):
+    """bug_003: um atacante com escrita na BD altera um campo E REMOVE o
+    entry_hash. A entrada cai em legacy_unhashed (não 'tampered'), mas `ok` tem
+    de ficar False — não pode reportar integridade quando há não-verificáveis."""
+    import helpers
+    import routes.notifications as notif
+
+    good = _entry(id="a1")
+    good["entry_hash"] = helpers.audit_entry_hash(good)
+    stripped = _entry(id="a2", action="ADULTERADA")  # entry_hash removido pelo atacante
+    mock_db.audit_logs = MagicMock()
+    mock_db.audit_logs.find = MagicMock(return_value=_cursor([good, stripped]))
+
+    res = await notif.verify_audit_logs(current_user=admin_user)
+    assert res["ok"] is False  # não falso-ok
+    assert res["legacy_unhashed"] == 1
+    assert res["tampered_count"] == 0  # sem hash p/ comparar → não classificável como tampered
 
 
 @pytest.mark.asyncio

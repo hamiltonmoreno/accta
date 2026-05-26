@@ -142,11 +142,13 @@ def extract_request_meta(request: Optional[Request]) -> dict:
 
 # === AUDIT LOG TAMPER-EVIDENCE (spec-verificacao-seguranca-saas §8.1, F4) ====
 # Cada entrada leva um HMAC-SHA256 do seu conteúdo imutável. A chave é derivada
-# do SECRET_KEY — que vive no env da app, NUNCA na BD. Logo um atacante com
-# escrita direta na BD (mas sem o SECRET_KEY) não consegue forjar o HMAC depois
-# de alterar uma entrada → modificação detetável. (A resistência a APAGAMENTO é
-# delegada ao role do Postgres: revogar DELETE/UPDATE em audit_logs ao role da
-# app — ver runbook/F5. A app já é append-only por construção.)
+# do SECRET_KEY — que vive no env da app, NUNCA na BD. Logo quem tenha escrita
+# direta na BD (mas não o SECRET_KEY) não consegue FORJAR o HMAC: uma alteração
+# que mantenha o hash antigo é apanhada pelo /verify. Essa pessoa pode REMOVER o
+# hash ao alterar a linha — aí a entrada fica "não verificável" (o /verify
+# reflete-o e nega o `ok`), e a resistência completa a remoção/apagamento fica
+# no role do Postgres: revogar UPDATE/DELETE em audit_logs ao role da app
+# (runbook/F5). A app já é append-only por construção.
 _AUDIT_HASH_FIELDS = ("id", "user_id", "action", "target_id", "ip", "user_agent", "details", "created_at")
 
 
@@ -158,7 +160,14 @@ def _audit_hmac_key() -> bytes:
 def audit_entry_hash(doc: dict) -> str:
     """HMAC-SHA256 determinístico do conteúdo imutável da entrada (exclui o
     próprio entry_hash). Normaliza pela MESMA via que a BD serializa (jsonb)
-    para casar no round-trip, depois ordena/compacta."""
+    para casar no round-trip, depois ordena/compacta.
+
+    Nota (round-trip): casa o intervalo de valores realista deste domínio
+    (strings, datas ISO, montantes em CVE, contagens, índices). Floats de
+    magnitude ≥ ~1e16 em `details` (que o Python serializa em notação
+    exponencial mas o jsonb expande para decimal e relê como int) NÃO são
+    round-trip-estáveis e dariam um falso `tampered` — fora do alcance dos
+    dados de auditoria do ACCTA."""
     payload = {k: doc.get(k) for k in _AUDIT_HASH_FIELDS}
     normalized = json.loads(json.dumps(payload, default=_json_default))
     canonical = json.dumps(normalized, sort_keys=True, separators=(",", ":"))

@@ -167,20 +167,51 @@ async def get_audit_logs(
 
 @router.get("/audit-logs/verify")
 async def verify_audit_logs(current_user: User = Depends(get_current_user)):
-    """Reverifica o tamper-evidence (HMAC) de todas as entradas de audit log
-    (F4 §8.1). Deteta modificações pós-facto — mesmo por escrita direta na BD,
-    porque a chave HMAC deriva do SECRET_KEY (fora da BD). Entradas legadas sem
-    `entry_hash` (pré-F4) contam como 'não verificáveis', não como adulteradas."""
+    """Reverifica o tamper-evidence (HMAC) das entradas de audit log (F4 §8.1).
+
+    A chave HMAC deriva do SECRET_KEY (fora da BD): quem tem escrita na BD mas
+    não o SECRET_KEY **não consegue forjar** um hash válido, logo uma entrada
+    alterada que mantenha o hash antigo é apanhada (`tampered`). Essa pessoa
+    pode, porém, **remover** o `entry_hash` ao alterar a linha → a entrada passa
+    a *não verificável* e cai em `legacy_unhashed`. Por isso `ok` exige **zero
+    adulteradas E zero não-verificáveis**: numa instalação pós-F4
+    `legacy_unhashed` devia ser 0; > 0 é sinal a reconciliar contra o baseline
+    de entradas pré-F4. A resistência *completa* a remoção/apagamento fica no
+    role do Postgres (revogar UPDATE/DELETE ao role da app — F5/operador).
+
+    Itera em lotes: memória limitada + cede o event loop entre lotes (não
+    bloquear os workers numa tabela de retenção indefinida).
+    """
     if not has_role_or_privilege(current_user, ("admin",), "view_audit_logs"):
         raise HTTPException(status_code=403, detail="Sem permissao")
 
-    logs = await db.audit_logs.find({}, {"_id": 0}).sort("created_at", 1).to_list(None)
-    legacy = sum(1 for log in logs if not log.get("entry_hash"))
-    tampered = [log.get("id") for log in logs if log.get("entry_hash") and not verify_audit_entry(log)]
+    BATCH = 1000
+    total = legacy = 0
+    tampered: List[str] = []
+    offset = 0
+    while True:
+        rows = await (
+            db.audit_logs.find({}, {"_id": 0})
+            .sort("created_at", 1)
+            .skip(offset)
+            .limit(BATCH)
+            .to_list(BATCH)
+        )
+        if not rows:
+            break
+        for log in rows:
+            total += 1
+            if not log.get("entry_hash"):
+                legacy += 1
+            elif not verify_audit_entry(log):
+                tampered.append(log.get("id"))
+        offset += len(rows)
+        await asyncio.sleep(0)  # cede o event loop entre lotes
+
     return {
-        "ok": len(tampered) == 0,
-        "total": len(logs),
-        "verified": len(logs) - legacy,
+        "ok": len(tampered) == 0 and legacy == 0,
+        "total": total,
+        "verified": total - legacy,
         "legacy_unhashed": legacy,
         "tampered_count": len(tampered),
         "tampered_ids": tampered[:50],

@@ -945,9 +945,12 @@ class AuditLog(BaseModel):
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     # Tamper-evidence (spec-verificacao-seguranca-saas §8.1, F4): HMAC-SHA256 do
     # conteúdo imutável da entrada, com chave derivada do SECRET_KEY (que vive no
-    # env da app, nunca na BD). Deteta modificações pós-facto mesmo por quem tenha
-    # escrita direta na BD. Aditivo/opcional: docs legados (pré-F4) não o têm e
-    # são tratados como "não verificáveis", não como adulterados.
+    # env da app, nunca na BD). Quem tem escrita na BD mas não o SECRET_KEY não
+    # consegue FORJAR um hash válido → uma alteração que deixe o hash antigo é
+    # apanhada. (Pode REMOVER o hash → a entrada fica "não verificável", o que o
+    # endpoint /verify reflete; a resistência completa a remoção/apagamento fica
+    # no role da BD — revogar UPDATE/DELETE, F5.) Aditivo/opcional: docs legados
+    # (pré-F4) não o têm.
     entry_hash: Optional[str] = None
 
 

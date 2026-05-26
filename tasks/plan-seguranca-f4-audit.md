@@ -43,7 +43,22 @@ Spec: `tasks/spec-verificacao-seguranca-saas.md` §8.1 + §12 (F4). Branch
   HMAC dos audit logs existentes — registar no runbook como consequência da
   rotação (gate com o operador).
 
+## Remediação da revisão (ultrareview PR #125)
+- **bug_003 (normal) — evasão por remoção do hash**: quem escreve na BD pode
+  alterar um campo E pôr `entry_hash=NULL` → a entrada cai em `legacy_unhashed`,
+  não em `tampered`. Fix: `/verify` passa a exigir **`ok` = zero adulteradas E
+  zero não-verificáveis** (a remoção do hash faz `ok=False`); docstrings/modelo
+  corrigidos (a deteção isolada cobre forja/modificação-ingénua; a resistência
+  completa exige revogar **UPDATE**+DELETE no role da BD — F5).
+- **bug_001 (normal) — `/verify` carregava a tabela toda + bloqueava o event
+  loop**: fix → itera em **lotes de 1000** com `await asyncio.sleep(0)` entre
+  lotes (memória limitada + cede o loop).
+- **bug_010 (nit) — round-trip de floats ≥1e16 em `details`**: documentado em
+  `audit_entry_hash` (fora do alcance do domínio: montantes CVE/contagens). Sem
+  coerção numérica (o fix robusto exigiria validação contra Postgres real —
+  desproporcionado para um nit).
+
 ## Verificação
-- [x] `ruff` limpo; testes F4 + regressão de audit/notificações verdes.
-- [ ] suite unit completa sem regressões (a correr).
+- [x] `ruff` limpo; `tests/test_audit_integrity.py` (8, incl. evasão) verde.
+- [x] suite unit completa **925 passed, 0 regressões** (`-m unit`).
 - Sem mudança Pydantic não-aditiva, sem emails, sem tocar `main`.
