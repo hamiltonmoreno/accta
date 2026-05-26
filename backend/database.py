@@ -288,7 +288,14 @@ class _WhereBuilder:
             return f"(NOT (doc ? {key}) OR doc->>{key} IS NULL)"
         scalar = self._cmp(field, "=", value)
         # Mongo: {field: v} also matches if doc.field is an array containing v.
-        arr = f"(jsonb_typeof(doc->{key}) = 'array' AND doc->{key} @> {self._ph(_dumps([value]))}::jsonb)"
+        # Membership via the `?` existence operator with a *text* parameter — NOT
+        # `@> $n::jsonb`: asyncpg binds a jsonb parameter such that `col @> $n::jsonb`
+        # never matches (a jsonb literal does), so that branch was dead and any
+        # {arrayField: scalar} filter silently returned nothing. `?` tests whether
+        # the value is a top-level string element of the array; consistent with the
+        # `$in` branch (which uses `?|`). Covers the string arrays in the schema
+        # (attendees, team_members, likes, privileges, …).
+        arr = f"(jsonb_typeof(doc->{key}) = 'array' AND doc->{key} ? {self._ph(_to_scalar_text(value))})"
         return f"({scalar} OR {arr})"
 
     def _field_clause(self, field: str, cond: Any) -> str:
