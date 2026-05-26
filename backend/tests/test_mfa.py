@@ -150,7 +150,7 @@ async def test_mfa_verify_activates_and_returns_backup_codes(mock_db, socio_user
     mock_db.users.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
 
     resp = await auth_routes.mfa_verify(
-        MfaVerifyRequest(otp=pyotp.TOTP(secret).now()), Response(), current_user=socio_user
+        _login_request(), MfaVerifyRequest(otp=pyotp.TOTP(secret).now()), Response(), current_user=socio_user
     )
 
     assert len(resp["backup_codes"]) == 10
@@ -173,7 +173,7 @@ async def test_mfa_verify_wrong_code_400(mock_db, socio_user):
     mock_db.users.find_one = AsyncMock(return_value={"id": socio_user.id, "mfa_pending_secret": encrypt_secret(secret)})
     bad = "000000" if pyotp.TOTP(secret).now() != "000000" else "111111"
     with pytest.raises(HTTPException) as exc:
-        await auth_routes.mfa_verify(MfaVerifyRequest(otp=bad), Response(), current_user=socio_user)
+        await auth_routes.mfa_verify(_login_request(), MfaVerifyRequest(otp=bad), Response(), current_user=socio_user)
     assert exc.value.status_code == 400
 
 
@@ -185,7 +185,7 @@ async def test_mfa_verify_no_pending_400(mock_db, socio_user):
 
     mock_db.users.find_one = AsyncMock(return_value={"id": socio_user.id})
     with pytest.raises(HTTPException) as exc:
-        await auth_routes.mfa_verify(MfaVerifyRequest(otp="123456"), Response(), current_user=socio_user)
+        await auth_routes.mfa_verify(_login_request(), MfaVerifyRequest(otp="123456"), Response(), current_user=socio_user)
     assert exc.value.status_code == 400
 
 
@@ -199,10 +199,10 @@ async def test_mfa_disable_requires_correct_password(mock_db, socio_user):
     mock_db.users.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
 
     with pytest.raises(HTTPException) as exc:
-        await auth_routes.mfa_disable(MfaDisableRequest(password="errada"), current_user=socio_user)
+        await auth_routes.mfa_disable(_login_request(), MfaDisableRequest(password="errada"), current_user=socio_user)
     assert exc.value.status_code == 403
 
-    resp = await auth_routes.mfa_disable(MfaDisableRequest(password="correct"), current_user=socio_user)
+    resp = await auth_routes.mfa_disable(_login_request(), MfaDisableRequest(password="correct"), current_user=socio_user)
     assert "message" in resp
     upd = mock_db.users.update_one.call_args.args[1]
     assert upd["$set"]["mfa_enabled"] is False

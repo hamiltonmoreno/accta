@@ -31,6 +31,7 @@ from auth import (
 from email_service import send_welcome_email, send_password_reset_email
 from helpers import (
     LOCKOUT_WINDOW_MINUTES,
+    alert_admins_account_locked,
     create_audit_log,
     is_account_locked,
     notify_admins,
@@ -81,13 +82,15 @@ async def login(request: Request, response: Response, credentials: UserLogin):
     user_doc = await db.users.find_one({"email": credentials.email}, {"_id": 0})
     if not user_doc or not user_doc.get("password") or not verify_password(credentials.password, user_doc["password"]):
         # Conta tentativa falhada para futuro lockout (avaliado por is_account_locked).
-        await record_failed_login(credentials.email, ip=request.client.host if request.client else None)
+        just_locked = await record_failed_login(credentials.email, ip=request.client.host if request.client else None)
         await create_audit_log(
             user_doc["id"] if user_doc else "anonymous",
             "login_failed",
             request=request,
             details={"email": credentials.email, "reason": "invalid_credentials"},
         )
+        if just_locked:
+            await alert_admins_account_locked(credentials.email)
         raise HTTPException(status_code=401, detail="Credenciais invalidas")
 
     if user_doc.get("status") == "pendente_convite":
@@ -118,8 +121,10 @@ async def login(request: Request, response: Response, credentials: UserLogin):
             )
             backup_ok = res.modified_count == 1
         if not totp_ok and not backup_ok:
-            await record_failed_login(credentials.email, ip=request.client.host if request.client else None)
+            just_locked = await record_failed_login(credentials.email, ip=request.client.host if request.client else None)
             await create_audit_log(user_doc["id"], "login_mfa_failed", request=request)
+            if just_locked:
+                await alert_admins_account_locked(credentials.email)
             raise HTTPException(status_code=401, detail="mfa_invalido")
 
     # Login sucesso — limpa contador de falhas para que utilizador legitimo
@@ -193,7 +198,7 @@ async def mfa_setup(request: Request, current_user: User = Depends(get_current_u
 
 
 @router.post("/mfa/verify")
-async def mfa_verify(data: MfaVerifyRequest, response: Response, current_user: User = Depends(get_current_user)):
+async def mfa_verify(request: Request, data: MfaVerifyRequest, response: Response, current_user: User = Depends(get_current_user)):
     """Confirma o primeiro OTP, ativa o MFA e devolve os backup codes (1x)."""
     doc = await db.users.find_one({"id": current_user.id}, {"_id": 0})
     pending = (doc or {}).get("mfa_pending_secret")
@@ -213,7 +218,7 @@ async def mfa_verify(data: MfaVerifyRequest, response: Response, current_user: U
             "$unset": {"mfa_pending_secret": ""},
         },
     )
-    await create_audit_log(current_user.id, "mfa_enabled", request=None)
+    await create_audit_log(current_user.id, "mfa_enabled", request=request)
     # Upgrade da sessão limitada → token completo (sem mfa_pending).
     full_token = create_access_token({"sub": current_user.id})
     set_session_cookie(response, full_token)
@@ -221,7 +226,7 @@ async def mfa_verify(data: MfaVerifyRequest, response: Response, current_user: U
 
 
 @router.post("/mfa/disable")
-async def mfa_disable(data: MfaDisableRequest, current_user: User = Depends(get_current_user)):
+async def mfa_disable(request: Request, data: MfaDisableRequest, current_user: User = Depends(get_current_user)):
     """Desativa MFA após re-autenticação por password."""
     doc = await db.users.find_one({"id": current_user.id}, {"_id": 0})
     if not doc or not doc.get("password") or not verify_password(data.password, doc["password"]):
@@ -233,7 +238,7 @@ async def mfa_disable(data: MfaDisableRequest, current_user: User = Depends(get_
             "$unset": {"mfa_secret": "", "mfa_pending_secret": "", "mfa_backup_codes": ""},
         },
     )
-    await create_audit_log(current_user.id, "mfa_disabled", request=None)
+    await create_audit_log(current_user.id, "mfa_disabled", request=request)
     return {"message": "MFA desativado"}
 
 

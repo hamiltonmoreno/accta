@@ -26,7 +26,7 @@ from governance import (
 )
 from database import db, transfer_cargo, next_member_id
 from auth import get_current_user, generate_qr_hash, has_role_or_privilege
-from helpers import create_audit_log, resolve_link_base, notify_users
+from helpers import alert_admins_privilege_escalation, create_audit_log, resolve_link_base, notify_users
 from email_service import send_invite_email, send_registration_rejected_email
 import uuid
 import secrets
@@ -471,6 +471,14 @@ async def promote_user(
         request=request,
         details={"cargo": cargo_key, "role": data.role, "mandate_id": mandate["id"], "privileges": privileges},
     )
+    await alert_admins_privilege_escalation(
+        current_user.id,
+        user.get("name", "Utilizador"),
+        user.get("role"),
+        data.role,
+        user.get("privileges"),
+        privileges,
+    )
     await notify_users([user_id], "system", "Novo cargo atribuído", f"Foi-lhe atribuído o cargo de {label}.", "/perfil")
     return {"message": f"{user.get('name', 'Utilizador')} promovido a {label}.", "cargo_history": history}
 
@@ -574,6 +582,14 @@ async def transfer_cargo_endpoint(
             "from_user_id": data.from_user_id,
             "mandate_id": mandate["id"],
         },
+    )
+    await alert_admins_privilege_escalation(
+        current_user.id,
+        to_user.get("name", "Utilizador"),
+        to_user.get("role"),
+        data.role,
+        to_user.get("privileges"),
+        privileges,
     )
     await notify_users(
         [data.from_user_id], "system", "Fim de mandato", f"O cargo de {label} foi transferido.", "/perfil"

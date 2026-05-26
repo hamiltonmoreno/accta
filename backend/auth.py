@@ -220,6 +220,12 @@ async def get_user_from_token(token: str):
         # Honra blocklist para consistencia com get_current_user.
         if await is_token_revoked(payload.get("jti")):
             return None
+        # Honra mfa_pending: uma sessão limitada (papel obrigatório ainda sem
+        # MFA) não acede a SSE/streams nem a conteúdo autenticado opcional — só
+        # aos endpoints de enrolment (servidos por get_current_user). Paridade
+        # com get_current_user; sem isto, o SSE era uma fuga ao enforcement.
+        if payload.get("mfa_pending"):
+            return None
         user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
         if not user_doc:
             return None
