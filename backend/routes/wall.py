@@ -3,7 +3,7 @@ from typing import Optional
 from models import User, WallPost, WallPostCreate, WallComment, WallCommentCreate
 from database import db
 from auth import get_current_user, has_role_or_privilege
-from helpers import create_audit_log, create_notification
+from helpers import create_audit_log, create_notification, enrich_author_photos
 
 router = APIRouter(tags=["wall"])
 
@@ -24,6 +24,7 @@ async def get_wall_posts(category: Optional[str] = None, current_user: User = De
         p.setdefault("category", "geral")
         p.setdefault("pinned", False)
 
+    await enrich_author_photos(posts)
     return posts
 
 
@@ -37,6 +38,7 @@ async def get_pending_wall_posts(current_user: User = Depends(get_current_user))
         p.setdefault("likes", [])
         p.setdefault("comment_count", 0)
         p.setdefault("category", "geral")
+    await enrich_author_photos(posts)
     return posts
 
 
@@ -160,6 +162,7 @@ async def get_wall_comments(post_id: str, current_user: User = Depends(get_curre
     if not post.get("approved") and not is_staff:
         raise HTTPException(status_code=403, detail="Sem permissão")
     comments = await db.wall_comments.find({"post_id": post_id}, {"_id": 0}).sort("created_at", 1).to_list(100)
+    await enrich_author_photos(comments)
     return comments
 
 

@@ -23,7 +23,14 @@ from models import (
 )
 from database import db
 from auth import get_current_user
-from helpers import create_audit_log, notify_users, notify_admins, get_project_stakeholder_ids, create_notification
+from helpers import (
+    create_audit_log,
+    notify_users,
+    notify_admins,
+    get_project_stakeholder_ids,
+    create_notification,
+    enrich_author_photos,
+)
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -163,6 +170,7 @@ async def get_project(
     comments = (
         await db.project_comments.find({"project_id": project_id}, {"_id": 0}).sort("created_at", -1).to_list(200)
     )
+    await enrich_author_photos(comments)
     expenses = await db.project_expenses.find({"project_id": project_id}, {"_id": 0}).sort("date", -1).to_list(200)
     milestones = await db.project_milestones.find({"project_id": project_id}, {"_id": 0}).sort("date", 1).to_list(100)
 
