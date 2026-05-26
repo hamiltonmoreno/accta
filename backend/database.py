@@ -924,22 +924,25 @@ _PGCRON_DDL: tuple[str, ...] = (
 )
 
 
-# audit_logs append-only (spec-verificacao-seguranca-saas §8.1, F5.1): trigger
-# que bloqueia UPDATE/DELETE/TRUNCATE ao nível da BD. Robusto ao owner-bypass de
-# GRANT/REVOKE (um dono ignora REVOKE mas não um trigger). A app só faz
-# INSERT/SELECT em audit_logs; ensure_schema só cria; _TTL_PURGE não inclui
-# audit_logs — logo nenhuma operação legítima é bloqueada. Complementa o
-# tamper-evidence por HMAC (F4): o HMAC deteta modificação, o trigger impede
-# remoção/alteração. Idempotente (OR REPLACE / DROP IF EXISTS).
+# audit_logs append-only (spec-verificacao-seguranca-saas §8.1, F5.1) —
+# DEFESA EM PROFUNDIDADE, não garantia absoluta: trigger que rejeita
+# UPDATE/DELETE/TRUNCATE. Bloqueia mutação acidental (bugs da app, SQL
+# descuidado, acesso casual) e complementa o HMAC do F4 (HMAC deteta
+# modificação; o trigger impede-a). NÃO protege contra quem detém a credencial
+# runtime: o ensure_schema corre COM essa credencial e o role da app é DONO da
+# tabela, logo esse role pode DISABLE/DROP o trigger ou CREATE OR REPLACE a
+# função. A imutabilidade AUTORITATIVA exige separação de roles no operador
+# (owner/migração ≠ runtime) + REVOKE UPDATE/DELETE/TRUNCATE ao role runtime —
+# ver runbook F5.1. Seguro: a app só faz INSERT/SELECT; ensure_schema só cria;
+# _TTL_PURGE não inclui audit_logs. Idempotente e SEM janela destrutiva
+# (CREATE OR REPLACE TRIGGER, sem DROP — PG ≥ 14).
 _AUDIT_IMMUTABILITY_DDL: tuple[str, ...] = (
     "CREATE OR REPLACE FUNCTION accta_audit_logs_immutable() "
     "RETURNS trigger LANGUAGE plpgsql AS $$ "
     "BEGIN RAISE EXCEPTION 'audit_logs is append-only: % not allowed', TG_OP; END; $$",
-    'DROP TRIGGER IF EXISTS trg_audit_logs_immutable ON "audit_logs"',
-    'CREATE TRIGGER trg_audit_logs_immutable BEFORE UPDATE OR DELETE ON "audit_logs" '
+    'CREATE OR REPLACE TRIGGER trg_audit_logs_immutable BEFORE UPDATE OR DELETE ON "audit_logs" '
     "FOR EACH ROW EXECUTE FUNCTION accta_audit_logs_immutable()",
-    'DROP TRIGGER IF EXISTS trg_audit_logs_no_truncate ON "audit_logs"',
-    'CREATE TRIGGER trg_audit_logs_no_truncate BEFORE TRUNCATE ON "audit_logs" '
+    'CREATE OR REPLACE TRIGGER trg_audit_logs_no_truncate BEFORE TRUNCATE ON "audit_logs" '
     "FOR EACH STATEMENT EXECUTE FUNCTION accta_audit_logs_immutable()",
 )
 
@@ -976,11 +979,22 @@ async def ensure_schema() -> None:
                 await conn.execute(ddl)
             except Exception as e:  # noqa: BLE001 - pg_cron optional
                 logger.info(f"pg_cron not configured (using opportunistic purge): {e}")
-        for ddl in _AUDIT_IMMUTABILITY_DDL:
-            try:
-                await conn.execute(ddl)
-            except Exception as e:  # noqa: BLE001 - non-fatal: role pode não ter rights p/ trigger
-                logger.warning(f"audit_logs immutability trigger warning (non-fatal): {e}")
+        # Instala atomicamente (transação) e sem janela destrutiva (CREATE OR
+        # REPLACE, sem DROP). Non-fatal de propósito: numa instalação endurecida
+        # com roles separados, o role runtime pode (e deve) não ter direito de
+        # criar o trigger — aí é o role de migração/owner que o instala e a
+        # imutabilidade autoritativa vem do REVOKE (runbook F5.1). A app arranca.
+        try:
+            async with conn.transaction():
+                for ddl in _AUDIT_IMMUTABILITY_DDL:
+                    await conn.execute(ddl)
+            logger.info("audit_logs immutability trigger (defesa em profundidade) instalado")
+        except Exception as e:  # noqa: BLE001
+            logger.warning(
+                "audit_logs immutability trigger (defesa em profundidade) NAO instalado — "
+                "a imutabilidade autoritativa e o REVOKE/role-separation do operador (runbook F5.1): %s",
+                e,
+            )
     logger.info("PostgreSQL schema and indexes ensured")
 
 

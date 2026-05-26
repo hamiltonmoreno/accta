@@ -23,47 +23,72 @@ correta para isso.
 **Porque o HMAC sozinho não chega**: quem tem escrita direta na BD pode alterar
 uma linha **e remover o `entry_hash`**; a entrada passa a "não verificável"
 (`GET /api/audit-logs/verify` reflete-o e nega o `ok`, mas não consegue provar
-que foi adulterada). Bloquear UPDATE/DELETE na BD elimina esse vetor.
+que foi adulterada). Fechar a mutação ao nível da BD elimina esse vetor.
 
-**✅ Já AUTOMÁTICO no código** (PR do F5.1): `ensure_schema()` em `database.py`
-(`_AUDIT_IMMUTABILITY_DDL`) instala, em cada arranque (idempotente), um trigger
-`BEFORE UPDATE OR DELETE OR TRUNCATE` no `audit_logs` que **rejeita** qualquer
-mutação. Não há SQL para o operador correr — só **verificar**. Robusto ao
-owner-bypass (um trigger trava toda a gente, ao contrário de GRANT/REVOKE que
-não trava o dono da tabela). Provado contra Postgres real: INSERT permitido,
-UPDATE/DELETE bloqueados.
+### Duas camadas — e qual é a **autoritativa**
 
-**Verificação do operador** (após o deploy que inclua o F5.1):
+**(1) Trigger automático — DEFESA EM PROFUNDIDADE (já no código)**: `ensure_schema()`
+instala em cada arranque (idempotente, atómico, `CREATE OR REPLACE TRIGGER` — sem
+janela destrutiva) um trigger `BEFORE UPDATE/DELETE/TRUNCATE` no `audit_logs` que
+rejeita a mutação. **Bloqueia mutação acidental** (bugs da app, SQL descuidado,
+acesso casual) e complementa o HMAC do F4.
+
+> ⚠️ **O trigger NÃO é garantia contra quem detém a credencial runtime.** O
+> `ensure_schema` corre **com** essa credencial e o role da app é **dono** da
+> tabela; um dono pode `ALTER TABLE … DISABLE TRIGGER`, `DROP TRIGGER`, ou
+> `CREATE OR REPLACE` a função para um no-op. Por isso a camada (2) é que dá a
+> garantia real.
+
+**(2) Separação de roles + REVOKE — AUTORITATIVA (operador, OBRIGATÓRIA p/ produção)**:
+para que a imutabilidade resista a quem tem a credencial da app, o **schema tem
+de ser propriedade de um role de migração/owner distinto do role runtime**, e o
+role runtime recebe só o necessário:
 
 ```sql
--- (a) triggers presentes:
-SELECT tgname FROM pg_trigger WHERE tgrelid = 'public.audit_logs'::regclass
-  AND tgname LIKE 'trg_audit_logs%';
--- → trg_audit_logs_immutable, trg_audit_logs_no_truncate
+-- Como role privilegiado (owner/migração), uma vez:
+--   o role runtime (o de DATABASE_URL) deixa de poder mutar audit_logs:
+REVOKE UPDATE, DELETE, TRUNCATE ON public.audit_logs FROM <role_runtime>;
+GRANT INSERT, SELECT ON public.audit_logs TO <role_runtime>;
+-- (o REVOKE só é eficaz se <role_runtime> NÃO for o dono da tabela; se hoje a
+--  app cria/possui as tabelas, é preciso reatribuir o owner ao role de migração
+--  — ALTER TABLE public.audit_logs OWNER TO <role_migracao> — e correr o
+--  ensure_schema/migrações com esse role, não com o runtime.)
+```
 
--- (b) mutação é rejeitada (deve dar ERRO 'audit_logs is append-only'):
-UPDATE public.audit_logs SET doc = doc WHERE pk = (SELECT pk FROM public.audit_logs LIMIT 1);
-DELETE FROM public.audit_logs            WHERE pk = (SELECT pk FROM public.audit_logs LIMIT 1);
+### Verificação do operador (após deploy + REVOKE)
+
+```sql
+-- (a) triggers presentes E ativos (tgenabled = 'O' = enabled; 'D' = disabled):
+SELECT tgname, tgenabled FROM pg_trigger
+WHERE tgrelid = 'public.audit_logs'::regclass AND tgname LIKE 'trg_audit_logs%';
+-- → ('trg_audit_logs_immutable','O'), ('trg_audit_logs_no_truncate','O')
+
+-- (b) o trigger DISPARA mesmo (sem deixar lixo): insere uma linha só p/ o teste
+--     e tenta alterá-la na MESMA transação; o UPDATE deve dar ERRO, e o
+--     ROLLBACK desfaz o INSERT de teste.
+BEGIN;
+  INSERT INTO public.audit_logs (doc) VALUES ('{"_probe":"f5_1"}'::jsonb);
+  UPDATE public.audit_logs SET doc = doc WHERE doc->>'_probe' = 'f5_1';  -- ERRO esperado
+ROLLBACK;
+
+-- (c) como <role_runtime> (camada 2): UPDATE/DELETE devem dar 'permission denied'
+--     ANTES sequer do trigger. (Confirma que o REVOKE pegou e o runtime não é owner.)
 ```
 E confirmar que a app continua a **inserir** audit logs (ação admin → nova
 entrada em `GET /api/audit-logs`) e que `GET /api/audit-logs/verify` dá `ok`.
 
-**Camada complementar (opcional, defesa em profundidade)** — só tem efeito se o
-role da app **não** for o dono da tabela:
-```sql
--- REVOKE UPDATE, DELETE, TRUNCATE ON public.audit_logs FROM <role_da_app>;
-```
+> ⚠️ Verificar com `WHERE pk = (SELECT … LIMIT 1)` numa tabela **vazia** afeta 0
+> linhas → o trigger `FOR EACH ROW` **não dispara** e dá falso-sucesso. Por isso
+> o teste (b) **insere** uma linha própria dentro da transação.
 
 **Ressalvas**:
 - O trigger **não** afeta a app: a app só faz `INSERT`+`SELECT` em `audit_logs`;
-  `ensure_schema()` apenas faz `CREATE … IF NOT EXISTS`; o purge oportunista
-  (`_TTL_PURGE`) **não** inclui `audit_logs`. Verificado no código.
-- Um **superuser** pode contornar com `SET session_replication_role='replica'` —
-  o trigger eleva muito a fasquia vs. um `DELETE` simples, mas não substitui
-  limitar quem tem credenciais de superuser/`service_role`.
-- Se algum dia for preciso **purga** legítima (a retenção é indefinida, F5.5),
-  é uma operação deliberada de superuser (desativar o trigger, purgar, reativar)
-  — registar em mudança controlada.
+  `ensure_schema()` apenas faz `CREATE … IF NOT EXISTS`/`OR REPLACE`; o purge
+  oportunista (`_TTL_PURGE`) **não** inclui `audit_logs`. Verificado no código.
+- Um **superuser** contorna sempre (`SET session_replication_role='replica'`,
+  `DISABLE TRIGGER`) — limitar quem tem credenciais de superuser/`service_role`.
+- Purga legítima futura (retenção é indefinida, F5.5) = operação deliberada do
+  role de migração/superuser, em mudança controlada.
 
 ---
 
@@ -161,7 +186,8 @@ de conformidade.
 
 ## Checklist (colar no PR de release / issue de operação)
 
-- [ ] F5.1 Triggers de imutabilidade do `audit_logs` (automáticos via `ensure_schema`) **verificados** em prod (pg_trigger presentes; UPDATE/DELETE falham; INSERT da app OK; `/verify` dá `ok`)
+- [ ] F5.1a (defesa em profundidade) trigger ativo em prod (`tgenabled='O'`; teste transacional → ERRO; INSERT da app OK; `/verify` dá `ok`)
+- [ ] F5.1b **(autoritativo, obrigatório)** role runtime ≠ owner do schema; `REVOKE UPDATE/DELETE/TRUNCATE ON audit_logs FROM <role_runtime>` aplicado e verificado (UPDATE como runtime → `permission denied`)
 - [ ] F5.2 TLS≥1.2 + redireção 80→443 + cabeçalhos de segurança confirmados; env vars de prod (CORS sem `*`, `ENVIRONMENT=production`)
 - [ ] F5.3 Backups/PITR confirmados; RPO/RTO documentados; **restauro de staging testado**
 - [ ] F5.4 **GATE D6** — decidir com o dono: adiar rotação OU implementar suporte multi-chave antes de rodar

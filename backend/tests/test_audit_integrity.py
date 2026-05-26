@@ -175,4 +175,10 @@ def test_audit_immutability_trigger_ddl_wired():
     assert "BEFORE UPDATE OR DELETE" in ddl
     assert "BEFORE TRUNCATE" in ddl
     assert '"audit_logs"' in ddl
-    assert "_AUDIT_IMMUTABILITY_DDL" in inspect.getsource(database.ensure_schema)
+    # atómico/sem janela destrutiva: CREATE OR REPLACE, nunca DROP+CREATE
+    assert "CREATE OR REPLACE TRIGGER" in ddl
+    assert "DROP TRIGGER" not in ddl
+    # instalado dentro de uma transação no ensure_schema
+    src = inspect.getsource(database.ensure_schema)
+    assert "_AUDIT_IMMUTABILITY_DDL" in src
+    assert "conn.transaction()" in src
