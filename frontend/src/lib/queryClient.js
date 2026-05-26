@@ -67,6 +67,12 @@ export const queryKeys = {
     list: (filters) => ['users', filters || {}],
     byId: (id) => ['users', id],
   },
+  mfa: {
+    // Key scoped por userId — sem isto o status (fresco 30s) vazaria entre
+    // contas no mesmo browser após logout/login (logout só limpa o user, não
+    // o cache). Mesmo padrão do NotificationContext.
+    status: (userId) => ['mfa', 'status', userId || null],
+  },
   registration: {
     requests: (status) => ['registration', 'requests', status || 'pendente_aprovacao'],
     joiaPreview: (userId, since) => ['registration', 'joia-preview', userId || null, since || null],

@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -64,6 +64,7 @@ const ReclamacoesPage = lazy(() => import('./pages/private/ReclamacoesPage').the
 const PropostasPage = lazy(() => import('./pages/private/PropostasPage').then((m) => ({ default: m.PropostasPage })));
 const HonorariosPage = lazy(() => import('./pages/private/HonorariosPage').then((m) => ({ default: m.HonorariosPage })));
 const NoticiaDetailPage = lazy(() => import('./pages/public/NoticiaDetailPage').then((m) => ({ default: m.NoticiaDetailPage })));
+const MfaSetupPage = lazy(() => import('./pages/MfaSetupPage').then((m) => ({ default: m.MfaSetupPage })));
 
 const RouteSpinner = () => (
   <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-live="polite">
@@ -73,7 +74,8 @@ const RouteSpinner = () => (
 );
 
 const ProtectedRoute = ({ children, allowedRoles = [], allowedPrivileges = [] }) => {
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated, user, loading, mfaSetupRequired } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -86,6 +88,13 @@ const ProtectedRoute = ({ children, allowedRoles = [], allowedPrivileges = [] })
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Enrolment obrigatório de MFA (spec-mfa-frontend-pr2 §7): admin/financeiro sem
+  // MFA ficam presos em /mfa-setup. Não redirecionar quando já lá estamos — senão
+  // a própria rota /mfa-setup entraria em loop.
+  if (mfaSetupRequired && location.pathname !== '/mfa-setup') {
+    return <Navigate to="/mfa-setup" replace />;
   }
 
   if (allowedRoles.length > 0) {
@@ -122,6 +131,16 @@ function AppRoutes() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/setup-account" element={<SetupAccountPage />} />
         <Route path="/criar-conta" element={<PublicLayout><CriarContaPage /></PublicLayout>} />
+
+        {/* Enrolment obrigatório de MFA — sem PrivateLayout (página bloqueante) */}
+        <Route
+          path="/mfa-setup"
+          element={
+            <ProtectedRoute>
+              <MfaSetupPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Private Routes */}
         <Route

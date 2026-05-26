@@ -104,6 +104,11 @@ export const AuthProvider = ({ children }) => {
     // can(privilege): RBAC aditivo — admin OU detentor do privilégio.
     const can = (p) => isAdmin || privileges.includes(p);
 
+    // MFA (spec-mfa-frontend-pr2): obrigatório para admin/financeiro — espelha
+    // is_mfa_mandatory do backend. mfaSetupRequired aciona a guarda /mfa-setup.
+    const mfaMandatory = ['admin', 'financeiro'].includes(user?.role);
+    const mfaSetupRequired = !!user && mfaMandatory && !user.mfa_enabled;
+
     return {
       user,
       loading,
@@ -124,6 +129,8 @@ export const AuthProvider = ({ children }) => {
       isTesoureiro,
       isPresidente,
       isVotingMember,
+      mfaMandatory,
+      mfaSetupRequired,
       refreshUser,
     };
   }, [user, loading, login, logout, refreshUser]);
