@@ -566,7 +566,7 @@ export const PerfilPage = () => {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={photoMutation.isPending}
+                disabled={photoMutation.isPending || user.status !== 'ativo'}
                 aria-label="Alterar foto de perfil"
                 className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-carmesim text-white shadow-md hover:bg-carmesim-dark transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50"
                 data-testid="change-photo-btn"

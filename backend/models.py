@@ -246,6 +246,18 @@ class UserProfileUpdate(_EditableProfileFields):
     # apaga o ficheiro antigo). Fora do UserAdminUpdate por design.
     photo_url: Optional[str] = Field(default=None, max_length=500)
 
+    @field_validator("photo_url")
+    @classmethod
+    def _v_photo_url(cls, v):
+        # Só aceita avatares carregados pelo nosso endpoint (/uploads/avatars/…),
+        # "" (limpar) ou None (manter). Bloqueia URLs externas — impede beacons de
+        # tracking embutidos no avatar e carregamento de imagem de terceiros.
+        if v in (None, ""):
+            return v
+        if not v.startswith("/uploads/avatars/"):
+            raise ValueError("URL de foto inválida")
+        return v
+
 
 class UserAdminUpdate(_EditableProfileFields):
     # NOTA: member_id e cargo NÃO são editáveis aqui (spec-identidade-cargos).

@@ -309,6 +309,23 @@ class TestProfileFieldValidation:
         m = UserProfileUpdate(blood_type="", date_of_birth="")
         assert m.blood_type == "" and m.date_of_birth == ""
 
+    def test_photo_url_rejects_external(self):
+        """photo_url só aceita /uploads/avatars/… — bloqueia URL externa (beacon)."""
+        from pydantic import ValidationError
+        from models import UserProfileUpdate
+
+        with pytest.raises(ValidationError):
+            UserProfileUpdate(photo_url="https://tracker.externo.com/pixel.png")
+        with pytest.raises(ValidationError):
+            UserProfileUpdate(photo_url="/uploads/documents/x.pdf")
+
+    def test_photo_url_accepts_own_upload_blank_none(self):
+        from models import UserProfileUpdate
+
+        assert UserProfileUpdate(photo_url="/uploads/avatars/x.jpg").photo_url == "/uploads/avatars/x.jpg"
+        assert UserProfileUpdate(photo_url="").photo_url == ""
+        assert UserProfileUpdate(photo_url=None).photo_url is None
+
     def test_admin_update_inherits_personal_fields(self):
         """UserAdminUpdate herda os campos pessoais + valida-os."""
         from pydantic import ValidationError

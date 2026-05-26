@@ -1,4 +1,5 @@
 import React from 'react';
+import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 
 /**
@@ -31,8 +32,13 @@ async function getCenterCroppedBlob(imageSrc, size = 512) {
 export function AvatarCropDialog({ open, imageSrc, onCancel, onConfirm, pending }) {
   const handleConfirm = async () => {
     if (!imageSrc) return;
-    const blob = await getCenterCroppedBlob(imageSrc);
-    if (blob) onConfirm(blob);
+    try {
+      const blob = await getCenterCroppedBlob(imageSrc);
+      if (blob) onConfirm(blob);
+      else toast.error('Não foi possível processar a imagem.');
+    } catch {
+      toast.error('Erro ao processar a imagem. Tente novamente.');
+    }
   };
 
   return (
