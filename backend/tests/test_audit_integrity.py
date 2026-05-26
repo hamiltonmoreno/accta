@@ -158,3 +158,21 @@ async def test_verify_endpoint_forbidden_for_socio(mock_db, socio_user):
     with pytest.raises(HTTPException) as exc:
         await notif.verify_audit_logs(current_user=socio_user)
     assert exc.value.status_code == 403
+
+
+# ===================== F5.1 — imutabilidade ao nível da BD ================ #
+def test_audit_immutability_trigger_ddl_wired():
+    """Regressão: ensure_schema instala o trigger append-only do audit_logs
+    (BEFORE UPDATE/DELETE/TRUNCATE). Provado contra Postgres real na sonda F5;
+    aqui guardamos o DDL e a sua ligação ao ensure_schema."""
+    import inspect
+
+    import database
+
+    ddl = " ".join(database._AUDIT_IMMUTABILITY_DDL)
+    assert "trg_audit_logs_immutable" in ddl
+    assert "trg_audit_logs_no_truncate" in ddl
+    assert "BEFORE UPDATE OR DELETE" in ddl
+    assert "BEFORE TRUNCATE" in ddl
+    assert '"audit_logs"' in ddl
+    assert "_AUDIT_IMMUTABILITY_DDL" in inspect.getsource(database.ensure_schema)

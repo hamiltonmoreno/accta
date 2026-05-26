@@ -924,6 +924,26 @@ _PGCRON_DDL: tuple[str, ...] = (
 )
 
 
+# audit_logs append-only (spec-verificacao-seguranca-saas §8.1, F5.1): trigger
+# que bloqueia UPDATE/DELETE/TRUNCATE ao nível da BD. Robusto ao owner-bypass de
+# GRANT/REVOKE (um dono ignora REVOKE mas não um trigger). A app só faz
+# INSERT/SELECT em audit_logs; ensure_schema só cria; _TTL_PURGE não inclui
+# audit_logs — logo nenhuma operação legítima é bloqueada. Complementa o
+# tamper-evidence por HMAC (F4): o HMAC deteta modificação, o trigger impede
+# remoção/alteração. Idempotente (OR REPLACE / DROP IF EXISTS).
+_AUDIT_IMMUTABILITY_DDL: tuple[str, ...] = (
+    "CREATE OR REPLACE FUNCTION accta_audit_logs_immutable() "
+    "RETURNS trigger LANGUAGE plpgsql AS $$ "
+    "BEGIN RAISE EXCEPTION 'audit_logs is append-only: % not allowed', TG_OP; END; $$",
+    'DROP TRIGGER IF EXISTS trg_audit_logs_immutable ON "audit_logs"',
+    'CREATE TRIGGER trg_audit_logs_immutable BEFORE UPDATE OR DELETE ON "audit_logs" '
+    "FOR EACH ROW EXECUTE FUNCTION accta_audit_logs_immutable()",
+    'DROP TRIGGER IF EXISTS trg_audit_logs_no_truncate ON "audit_logs"',
+    'CREATE TRIGGER trg_audit_logs_no_truncate BEFORE TRUNCATE ON "audit_logs" '
+    "FOR EACH STATEMENT EXECUTE FUNCTION accta_audit_logs_immutable()",
+)
+
+
 async def ensure_schema() -> None:
     """Create all tables + indexes. Idempotent (safe to re-run on every
     startup) — same operational contract as the old ensure_indexes()."""
@@ -956,6 +976,11 @@ async def ensure_schema() -> None:
                 await conn.execute(ddl)
             except Exception as e:  # noqa: BLE001 - pg_cron optional
                 logger.info(f"pg_cron not configured (using opportunistic purge): {e}")
+        for ddl in _AUDIT_IMMUTABILITY_DDL:
+            try:
+                await conn.execute(ddl)
+            except Exception as e:  # noqa: BLE001 - non-fatal: role pode não ter rights p/ trigger
+                logger.warning(f"audit_logs immutability trigger warning (non-fatal): {e}")
     logger.info("PostgreSQL schema and indexes ensured")
 
 
