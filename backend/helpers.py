@@ -1,9 +1,12 @@
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
+import hashlib
+import hmac
 import ipaddress
+import json
 import os
 from fastapi import Request
-from database import db, UPLOAD_DIR
+from database import db, UPLOAD_DIR, _json_default
 from models import AuditLog, Notification
 
 
@@ -137,6 +140,50 @@ def extract_request_meta(request: Optional[Request]) -> dict:
     return {"ip": ip, "user_agent": ua or None}
 
 
+# === AUDIT LOG TAMPER-EVIDENCE (spec-verificacao-seguranca-saas §8.1, F4) ====
+# Cada entrada leva um HMAC-SHA256 do seu conteúdo imutável. A chave é derivada
+# do SECRET_KEY — que vive no env da app, NUNCA na BD. Logo quem tenha escrita
+# direta na BD (mas não o SECRET_KEY) não consegue FORJAR o HMAC: uma alteração
+# que mantenha o hash antigo é apanhada pelo /verify. Essa pessoa pode REMOVER o
+# hash ao alterar a linha — aí a entrada fica "não verificável" (o /verify
+# reflete-o e nega o `ok`), e a resistência completa a remoção/apagamento fica
+# no role do Postgres: revogar UPDATE/DELETE em audit_logs ao role da app
+# (runbook/F5). A app já é append-only por construção.
+_AUDIT_HASH_FIELDS = ("id", "user_id", "action", "target_id", "ip", "user_agent", "details", "created_at")
+
+
+def _audit_hmac_key() -> bytes:
+    # Chave dedicada e namespaced, derivada do SECRET_KEY (não o reutiliza cru).
+    return hashlib.sha256(b"accta-audit-integrity:" + os.environ.get("SECRET_KEY", "").encode()).digest()
+
+
+def audit_entry_hash(doc: dict) -> str:
+    """HMAC-SHA256 determinístico do conteúdo imutável da entrada (exclui o
+    próprio entry_hash). Normaliza pela MESMA via que a BD serializa (jsonb)
+    para casar no round-trip, depois ordena/compacta.
+
+    Nota (round-trip): casa o intervalo de valores realista deste domínio
+    (strings, datas ISO, montantes em CVE, contagens, índices). Floats de
+    magnitude ≥ ~1e16 em `details` (que o Python serializa em notação
+    exponencial mas o jsonb expande para decimal e relê como int) NÃO são
+    round-trip-estáveis e dariam um falso `tampered` — fora do alcance dos
+    dados de auditoria do ACCTA."""
+    payload = {k: doc.get(k) for k in _AUDIT_HASH_FIELDS}
+    normalized = json.loads(json.dumps(payload, default=_json_default))
+    canonical = json.dumps(normalized, sort_keys=True, separators=(",", ":"))
+    return hmac.new(_audit_hmac_key(), canonical.encode(), hashlib.sha256).hexdigest()
+
+
+def verify_audit_entry(doc: dict) -> bool:
+    """True se o entry_hash guardado bate com o recomputado (entrada íntegra).
+    False se foi adulterada. Entradas legadas sem entry_hash → False aqui; o
+    chamador deve classificá-las como 'não verificáveis' antes de chamar."""
+    stored = doc.get("entry_hash")
+    if not stored:
+        return False
+    return hmac.compare_digest(stored, audit_entry_hash(doc))
+
+
 async def create_audit_log(
     user_id: str,
     action: str,
@@ -166,6 +213,7 @@ async def create_audit_log(
         details=details,
     )
     log_dict = log.model_dump()
+    log_dict["entry_hash"] = audit_entry_hash(log_dict)
     await db.audit_logs.insert_one(log_dict)
 
 
