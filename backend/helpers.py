@@ -1,9 +1,12 @@
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
+import hashlib
+import hmac
 import ipaddress
+import json
 import os
 from fastapi import Request
-from database import db, UPLOAD_DIR
+from database import db, UPLOAD_DIR, _json_default
 from models import AuditLog, Notification
 
 
@@ -137,6 +140,41 @@ def extract_request_meta(request: Optional[Request]) -> dict:
     return {"ip": ip, "user_agent": ua or None}
 
 
+# === AUDIT LOG TAMPER-EVIDENCE (spec-verificacao-seguranca-saas §8.1, F4) ====
+# Cada entrada leva um HMAC-SHA256 do seu conteúdo imutável. A chave é derivada
+# do SECRET_KEY — que vive no env da app, NUNCA na BD. Logo um atacante com
+# escrita direta na BD (mas sem o SECRET_KEY) não consegue forjar o HMAC depois
+# de alterar uma entrada → modificação detetável. (A resistência a APAGAMENTO é
+# delegada ao role do Postgres: revogar DELETE/UPDATE em audit_logs ao role da
+# app — ver runbook/F5. A app já é append-only por construção.)
+_AUDIT_HASH_FIELDS = ("id", "user_id", "action", "target_id", "ip", "user_agent", "details", "created_at")
+
+
+def _audit_hmac_key() -> bytes:
+    # Chave dedicada e namespaced, derivada do SECRET_KEY (não o reutiliza cru).
+    return hashlib.sha256(b"accta-audit-integrity:" + os.environ.get("SECRET_KEY", "").encode()).digest()
+
+
+def audit_entry_hash(doc: dict) -> str:
+    """HMAC-SHA256 determinístico do conteúdo imutável da entrada (exclui o
+    próprio entry_hash). Normaliza pela MESMA via que a BD serializa (jsonb)
+    para casar no round-trip, depois ordena/compacta."""
+    payload = {k: doc.get(k) for k in _AUDIT_HASH_FIELDS}
+    normalized = json.loads(json.dumps(payload, default=_json_default))
+    canonical = json.dumps(normalized, sort_keys=True, separators=(",", ":"))
+    return hmac.new(_audit_hmac_key(), canonical.encode(), hashlib.sha256).hexdigest()
+
+
+def verify_audit_entry(doc: dict) -> bool:
+    """True se o entry_hash guardado bate com o recomputado (entrada íntegra).
+    False se foi adulterada. Entradas legadas sem entry_hash → False aqui; o
+    chamador deve classificá-las como 'não verificáveis' antes de chamar."""
+    stored = doc.get("entry_hash")
+    if not stored:
+        return False
+    return hmac.compare_digest(stored, audit_entry_hash(doc))
+
+
 async def create_audit_log(
     user_id: str,
     action: str,
@@ -166,6 +204,7 @@ async def create_audit_log(
         details=details,
     )
     log_dict = log.model_dump()
+    log_dict["entry_hash"] = audit_entry_hash(log_dict)
     await db.audit_logs.insert_one(log_dict)
 
 

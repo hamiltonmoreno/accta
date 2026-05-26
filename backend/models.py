@@ -943,6 +943,12 @@ class AuditLog(BaseModel):
     user_agent: Optional[str] = None
     details: Optional[dict] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    # Tamper-evidence (spec-verificacao-seguranca-saas §8.1, F4): HMAC-SHA256 do
+    # conteúdo imutável da entrada, com chave derivada do SECRET_KEY (que vive no
+    # env da app, nunca na BD). Deteta modificações pós-facto mesmo por quem tenha
+    # escrita direta na BD. Aditivo/opcional: docs legados (pré-F4) não o têm e
+    # são tratados como "não verificáveis", não como adulterados.
+    entry_hash: Optional[str] = None
 
 
 class Notification(BaseModel):

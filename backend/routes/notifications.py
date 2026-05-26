@@ -4,7 +4,7 @@ from typing import List, Optional
 from models import User, Notification, NotificationCreate, AuditLog
 from database import db
 from auth import _extract_token, get_current_user, get_user_from_token, has_role_or_privilege
-from helpers import create_audit_log, notify_all_active_users
+from helpers import create_audit_log, notify_all_active_users, verify_audit_entry
 import asyncio
 import json
 
@@ -163,3 +163,25 @@ async def get_audit_logs(
 
     logs = await db.audit_logs.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     return logs
+
+
+@router.get("/audit-logs/verify")
+async def verify_audit_logs(current_user: User = Depends(get_current_user)):
+    """Reverifica o tamper-evidence (HMAC) de todas as entradas de audit log
+    (F4 §8.1). Deteta modificações pós-facto — mesmo por escrita direta na BD,
+    porque a chave HMAC deriva do SECRET_KEY (fora da BD). Entradas legadas sem
+    `entry_hash` (pré-F4) contam como 'não verificáveis', não como adulteradas."""
+    if not has_role_or_privilege(current_user, ("admin",), "view_audit_logs"):
+        raise HTTPException(status_code=403, detail="Sem permissao")
+
+    logs = await db.audit_logs.find({}, {"_id": 0}).sort("created_at", 1).to_list(None)
+    legacy = sum(1 for log in logs if not log.get("entry_hash"))
+    tampered = [log.get("id") for log in logs if log.get("entry_hash") and not verify_audit_entry(log)]
+    return {
+        "ok": len(tampered) == 0,
+        "total": len(logs),
+        "verified": len(logs) - legacy,
+        "legacy_unhashed": legacy,
+        "tampered_count": len(tampered),
+        "tampered_ids": tampered[:50],
+    }
