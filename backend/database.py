@@ -103,6 +103,10 @@ COLLECTIONS: tuple[str, ...] = (
     "regulamento_versoes",
     # comunicados (spec-comunicados-email):
     "comunicados",
+    # ranking de atuação do sócio (spec-ranking-socio):
+    "member_scores",
+    "ranking_ajustes",
+    "ranking_settings",
     # no Pydantic model — schema derived from usage:
     "password_resets",
     "tokens_revoked",
@@ -897,6 +901,14 @@ _INDEX_DDL: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS ix_comunicados_created_by ON \"comunicados\" ((doc->>'created_by'))",
     'CREATE INDEX IF NOT EXISTS ix_comunicados_source ON "comunicados" '
     "((doc->>'source_kind'), (doc->>'source_ref_id'))",
+    # ranking de atuação do sócio (spec-ranking-socio)
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_mscores_user_period ON "member_scores" '
+    "((doc->>'user_id'), (doc->>'period_key'))",
+    'CREATE INDEX IF NOT EXISTS ix_mscores_period_rank ON "member_scores" '
+    "((doc->>'period_key'), (doc->>'rank'))",
+    'CREATE INDEX IF NOT EXISTS ix_rajustes_user_period ON "ranking_ajustes" '
+    "((doc->>'user_id'), (doc->>'period_key'))",
+    "CREATE INDEX IF NOT EXISTS ix_rajustes_created ON \"ranking_ajustes\" ((doc->>'created_at') DESC)",
 )
 
 REQUIRED_INDEX_NAMES = {
