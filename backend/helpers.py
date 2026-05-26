@@ -75,13 +75,21 @@ LOCKOUT_THRESHOLD = 5
 LOCKOUT_WINDOW_MINUTES = 15
 
 
-async def record_failed_login(email: str, ip: Optional[str] = None) -> None:
-    """Insere uma entry de tentativa falhada. A contagem na janela é feita
-    por `is_account_locked` quando necessário — não recontamos aqui (a
-    contagem era descartada pelo call-site = query desperdiçada por falha).
+async def record_failed_login(email: str, ip: Optional[str] = None) -> bool:
+    """Insere uma entry de tentativa falhada e devolve `True` se ESTA falha
+    acabou de **cruzar** o threshold de lockout (count == LOCKOUT_THRESHOLD na
+    janela) — para os call-sites alertarem os admins **uma vez** na transição
+    para trancada (F3 §8.2.a). Falhas subsequentes já-trancadas devolvem `False`
+    (count > threshold) e não re-alertam. Aditivo: callers que ignoram o retorno
+    mantêm-se válidos (a contagem extra é index-backed e o login é rate-limited).
     """
     now = datetime.now(timezone.utc)
     await db.login_attempts.insert_one({"email": email, "ip": ip, "attempted_at": now})
+    window_start = now - timedelta(minutes=LOCKOUT_WINDOW_MINUTES)
+    count = await db.login_attempts.count_documents(
+        {"email": email, "attempted_at": {"$gte": window_start}}
+    )
+    return count == LOCKOUT_THRESHOLD
 
 
 async def reset_failed_logins(email: str) -> None:
@@ -209,6 +217,58 @@ async def notify_admins(
     admins = await db.users.find({"role": "admin"}, {"_id": 0, "id": 1}).to_list(100)
     admin_ids = [a["id"] for a in admins]
     await notify_users(admin_ids, type, title, message, link, exclude_id)
+
+
+# --------------------------------------------------------------------------- #
+# Alertas de anomalia de segurança (spec-verificacao-seguranca-saas §8.2, F3).
+# Canal in-app/SSE via `notify_admins` (sem email — defesa-em-profundidade de
+# baixo ruído, evita a stop condition de emails reais). Só (a) lockout e (c)
+# escalada de privilégio; (b) IPs distintos e (d) picos 4xx/429 ficam diferidos.
+# --------------------------------------------------------------------------- #
+
+_ELEVATED_ROLES = frozenset({"admin", "financeiro", "moderador"})
+
+
+async def alert_admins_account_locked(email: str) -> None:
+    """Alerta os admins quando uma conta é trancada por excesso de tentativas
+    de login (§8.2.a). Chamado só na transição (ver `record_failed_login`)."""
+    await notify_admins(
+        "system",
+        "Conta bloqueada por tentativas de login",
+        f"A conta {email} atingiu {LOCKOUT_THRESHOLD} tentativas falhadas em "
+        f"{LOCKOUT_WINDOW_MINUTES} min e foi bloqueada. Verifique os registos de auditoria.",
+        "/admin",
+    )
+
+
+async def alert_admins_privilege_escalation(
+    actor_id: str,
+    target_name: str,
+    old_role: Optional[str],
+    new_role: Optional[str],
+    old_privileges: Optional[List[str]] = None,
+    new_privileges: Optional[List[str]] = None,
+) -> None:
+    """Alerta os admins (exceto o ator) quando uma conta GANHA acesso elevado —
+    `role` para {admin,financeiro,moderador} ou novos `privileges` (§8.2.c).
+    Defesa contra escalada (admin comprometido a promover cúmplice; abuso de
+    poder). De-escalada (demote/expulsão) não alerta."""
+    gained = sorted(set(new_privileges or []) - set(old_privileges or []))
+    role_up = new_role != old_role and new_role in _ELEVATED_ROLES
+    if not role_up and not gained:
+        return
+    parts = []
+    if role_up:
+        parts.append(f"role {old_role or 'socio'} → {new_role}")
+    if gained:
+        parts.append("privilégios +" + ", ".join(gained))
+    await notify_admins(
+        "system",
+        "Escalada de privilégio",
+        f"{target_name} recebeu acesso elevado ({'; '.join(parts)}).",
+        "/admin",
+        exclude_id=actor_id,
+    )
 
 
 def get_project_stakeholder_ids(project: dict) -> List[str]:
