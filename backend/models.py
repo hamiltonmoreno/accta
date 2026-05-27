@@ -1563,6 +1563,49 @@ class AssembleiaFaseUpdate(BaseModel):
     current_item_id: Optional[str] = None  # ponto da OT em curso (opcional)
 
 
+# Durações default da palavra por tipo, em segundos (spec §4.1; confirmar com o
+# Regimento — decisão D3).
+PALAVRA_DURACOES = {
+    "intervencao": 180,
+    "protesto": 60,
+    "esclarecimento": 120,
+    "defesa_honra": 120,
+}
+
+
+class PalavraRequest(BaseModel):
+    """Inscrição para uso da palavra (spec-sessao-assembleia §4.1)."""
+
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    assembleia_id: str
+    item_id: Optional[str] = None  # ponto da ordem de trabalhos
+    user_id: str
+    tipo: Literal["intervencao", "protesto", "esclarecimento", "defesa_honra"]
+    status: Literal["inscrito", "a_falar", "concluido", "retirado", "negado"] = "inscrito"
+    ordem: Optional[int] = None  # posição atribuída pela Mesa
+    duration_limit_s: int  # default por tipo (PALAVRA_DURACOES)
+    requested_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    started_at: Optional[str] = None
+    ends_at: Optional[str] = None  # started_at + duration_limit_s
+    ended_at: Optional[str] = None
+    source_article: str = "27"
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class PalavraCreate(BaseModel):
+    tipo: Literal["intervencao", "protesto", "esclarecimento", "defesa_honra"] = "intervencao"
+    item_id: Optional[str] = None
+
+
+class PalavraOrdenar(BaseModel):
+    ordem: int = Field(ge=0)
+
+
+class PalavraIniciar(BaseModel):
+    duration_s: Optional[int] = Field(default=None, ge=5, le=3600)  # override opcional da Mesa
+
+
 # ===== GOVERNANÇA: ELEIÇÕES (spec-governanca §12) =====
 
 ELEICAO_STATUS = [

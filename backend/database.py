@@ -78,6 +78,8 @@ COLLECTIONS: tuple[str, ...] = (
     "assembleias",
     "assembleia_presencas",
     "assembleia_deliberacoes",
+    # sessão da AG "ao vivo" (spec-sessao-assembleia-ao-vivo):
+    "assembleia_palavra",
     "eleicoes",
     "eleicao_listas",
     "eleicao_voter_receipts",
@@ -845,6 +847,10 @@ _INDEX_DDL: tuple[str, ...] = (
     "((doc->>'assembleia_id'), (doc->>'user_id'))",
     'CREATE INDEX IF NOT EXISTS ix_assembdelib_assemb ON "assembleia_deliberacoes" '
     "((doc->>'assembleia_id'), (doc->>'created_at') DESC)",
+    # sessão "ao vivo" — fila de uso da palavra
+    "CREATE INDEX IF NOT EXISTS ix_assembpalavra_assemb ON \"assembleia_palavra\" ((doc->>'assembleia_id'))",
+    'CREATE INDEX IF NOT EXISTS ix_assembpalavra_assemb_status ON "assembleia_palavra" '
+    "((doc->>'assembleia_id'), (doc->>'status'))",
     # governança — eleições
     "CREATE INDEX IF NOT EXISTS ix_eleicoes_status_ano ON \"eleicoes\" ((doc->>'status'), (doc->>'ano'))",
     "CREATE INDEX IF NOT EXISTS ix_eleicoes_assemb ON \"eleicoes\" ((doc->>'assembleia_id'))",

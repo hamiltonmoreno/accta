@@ -38,6 +38,11 @@ from models import (
     AssembleiaPresenca,
     AssembleiaPresencaCreate,
     MAX_REPRESENTADOS,
+    PALAVRA_DURACOES,
+    PalavraCreate,
+    PalavraIniciar,
+    PalavraOrdenar,
+    PalavraRequest,
     User,
 )
 from permissions import can_convene_assembleia, is_mesa_ag
@@ -111,14 +116,26 @@ async def _bump_session(assembleia_id: str, extra: dict | None = None) -> int:
     return new_version
 
 
+async def _is_present(assembleia_id: str, user_id: str) -> bool:
+    """O membro tem presença própria registada nesta assembleia?"""
+    p = await db.assembleia_presencas.find_one(
+        {"assembleia_id": assembleia_id, "user_id": user_id}, {"_id": 0, "id": 1}
+    )
+    return p is not None
+
+
 async def _session_snapshot(assembleia_id: str) -> dict | None:
-    """Snapshot emitido pelo SSE (§2.2). Mínimo na F0 — fila/voto entram depois."""
+    """Snapshot emitido pelo SSE (§2.2). Inclui quórum (F1) e fila de palavra (F2)."""
     a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0})
     if not a:
         return None
     eligible = a.get("eligible_voters_count", 0)
     present_count, present_power = await _present_voting_power(assembleia_id)
     required = required_quorum(eligible, a.get("chamada_actual", 1))
+    a_falar = await db.assembleia_palavra.find_one({"assembleia_id": assembleia_id, "status": "a_falar"}, {"_id": 0})
+    fila = await db.assembleia_palavra.find(
+        {"assembleia_id": assembleia_id, "status": "inscrito"}, {"_id": 0, "id": 1}
+    ).to_list(None)
     return {
         "version": int(a.get("session_version", 0)),
         "phase": a.get("session_phase", "fechada"),
@@ -130,6 +147,19 @@ async def _session_snapshot(assembleia_id: str) -> dict | None:
             "present_power": present_power,
             "present_count": present_count,
             "met": present_power >= required,
+        },
+        "speaking": {
+            "current": (
+                {
+                    "qid": a_falar["id"],
+                    "user_id": a_falar["user_id"],
+                    "tipo": a_falar["tipo"],
+                    "ends_at": a_falar.get("ends_at"),
+                }
+                if a_falar
+                else None
+            ),
+            "queue_len": len(fila),
         },
     }
 
@@ -574,6 +604,155 @@ async def list_presencas(assembleia_id: str, current_user: User = Depends(get_cu
         .to_list(None)
     )
     return {"presencas": rows}
+
+
+# ===== F2 — Fila de uso da palavra (spec-sessao-assembleia §4) =====
+
+
+async def _get_palavra(assembleia_id: str, qid: str) -> dict:
+    p = await db.assembleia_palavra.find_one({"id": qid, "assembleia_id": assembleia_id}, {"_id": 0})
+    if not p:
+        raise HTTPException(status_code=404, detail="Pedido de palavra não encontrado")
+    return p
+
+
+@router.post("/{assembleia_id}/palavra")
+async def pedir_palavra(
+    assembleia_id: str,
+    request: Request,
+    data: PalavraCreate,
+    current_user: User = Depends(get_current_user),
+):
+    """Um membro presente inscreve-se para usar a palavra (Art. 27)."""
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    if a.get("status") != "em_curso":
+        raise HTTPException(status_code=400, detail="A sessão não está a decorrer.")
+    if not await _is_present(assembleia_id, current_user.id):
+        raise HTTPException(status_code=403, detail="Tem de estar presente para pedir a palavra.")
+    # Uma inscrição activa por membro (evita fila duplicada).
+    ativo = await db.assembleia_palavra.find_one(
+        {"assembleia_id": assembleia_id, "user_id": current_user.id, "status": {"$in": ["inscrito", "a_falar"]}},
+        {"_id": 0, "id": 1},
+    )
+    if ativo:
+        raise HTTPException(status_code=409, detail="Já tem um pedido de palavra activo.")
+
+    p = PalavraRequest(
+        assembleia_id=assembleia_id,
+        item_id=data.item_id or a.get("current_item_id"),
+        user_id=current_user.id,
+        tipo=data.tipo,
+        duration_limit_s=PALAVRA_DURACOES[data.tipo],
+    )
+    doc = p.model_dump()
+    await db.assembleia_palavra.insert_one(doc)
+    await _bump_session(assembleia_id)
+    await create_audit_log(
+        current_user.id, "palavra_pedida", assembleia_id, request=request, details={"tipo": data.tipo, "qid": doc["id"]}
+    )
+    return doc
+
+
+@router.delete("/{assembleia_id}/palavra/{qid}")
+async def retirar_palavra(
+    assembleia_id: str,
+    qid: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    """O próprio retira o seu pedido; a Mesa pode retirar qualquer um."""
+    p = await _get_palavra(assembleia_id, qid)
+    if p["user_id"] != current_user.id and not can_convene_assembleia(current_user):
+        raise HTTPException(status_code=403, detail="Só o próprio ou a Mesa podem retirar o pedido.")
+    if p["status"] not in ("inscrito", "a_falar"):
+        raise HTTPException(status_code=400, detail="O pedido já não está activo.")
+    await db.assembleia_palavra.update_one({"id": qid}, {"$set": {"status": "retirado"}})
+    await _bump_session(assembleia_id)
+    await create_audit_log(current_user.id, "palavra_retirada", assembleia_id, request=request, details={"qid": qid})
+    return {"id": qid, "status": "retirado"}
+
+
+@router.post("/{assembleia_id}/palavra/{qid}/ordenar")
+async def ordenar_palavra(
+    assembleia_id: str,
+    qid: str,
+    request: Request,
+    data: PalavraOrdenar,
+    current_user: User = Depends(get_current_user),
+):
+    """A Mesa atribui a posição na fila."""
+    _require_convene(current_user)
+    await _get_palavra(assembleia_id, qid)
+    await db.assembleia_palavra.update_one({"id": qid}, {"$set": {"ordem": data.ordem}})
+    await _bump_session(assembleia_id)
+    await create_audit_log(
+        current_user.id, "palavra_ordenada", assembleia_id, request=request, details={"qid": qid, "ordem": data.ordem}
+    )
+    return {"id": qid, "ordem": data.ordem}
+
+
+@router.post("/{assembleia_id}/palavra/{qid}/iniciar")
+async def iniciar_palavra(
+    assembleia_id: str,
+    qid: str,
+    request: Request,
+    data: PalavraIniciar,
+    current_user: User = Depends(get_current_user),
+):
+    """A Mesa concede a palavra: arranca o cronómetro (`ends_at`). Chamar de novo
+    estende o tempo (recalcula `ends_at` a partir de agora)."""
+    _require_convene(current_user)
+    p = await _get_palavra(assembleia_id, qid)
+    if p["status"] in ("concluido", "retirado", "negado"):
+        raise HTTPException(status_code=400, detail="O pedido já foi encerrado.")
+    dur = data.duration_s or p.get("duration_limit_s") or PALAVRA_DURACOES[p["tipo"]]
+    now = datetime.now(timezone.utc)
+    ends_at = (now + timedelta(seconds=dur)).isoformat()
+    update = {
+        "status": "a_falar",
+        "started_at": p.get("started_at") or now.isoformat(),
+        "ends_at": ends_at,
+        "duration_limit_s": dur,
+    }
+    await db.assembleia_palavra.update_one({"id": qid}, {"$set": update})
+    await _bump_session(assembleia_id)
+    await create_audit_log(
+        current_user.id, "palavra_iniciada", assembleia_id, request=request, details={"qid": qid, "duration_s": dur}
+    )
+    return {"id": qid, **update}
+
+
+@router.post("/{assembleia_id}/palavra/{qid}/terminar")
+async def terminar_palavra(
+    assembleia_id: str,
+    qid: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    """A Mesa encerra a intervenção em curso."""
+    _require_convene(current_user)
+    p = await _get_palavra(assembleia_id, qid)
+    if p["status"] != "a_falar":
+        raise HTTPException(status_code=400, detail="Este pedido não está em uso da palavra.")
+    ended_at = _now_iso()
+    await db.assembleia_palavra.update_one({"id": qid}, {"$set": {"status": "concluido", "ended_at": ended_at}})
+    await _bump_session(assembleia_id)
+    await create_audit_log(current_user.id, "palavra_terminada", assembleia_id, request=request, details={"qid": qid})
+    return {"id": qid, "status": "concluido", "ended_at": ended_at}
+
+
+@router.get("/{assembleia_id}/palavra")
+async def list_palavra(assembleia_id: str, current_user: User = Depends(get_current_user)):
+    """Lista a fila (qualquer membro autenticado). Ordenada por `ordem` (Mesa) e,
+    em empate/ausência, por ordem de inscrição."""
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "id": 1})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    rows = await db.assembleia_palavra.find({"assembleia_id": assembleia_id}, {"_id": 0}).to_list(None)
+    rows.sort(key=lambda r: (r.get("ordem") if r.get("ordem") is not None else 10**9, r.get("requested_at", "")))
+    return {"palavra": rows}
 
 
 @router.post("/{assembleia_id}/deliberacoes")

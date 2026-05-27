@@ -81,6 +81,7 @@ def gov_env(mock_db, monkeypatch):
     mock_db.assembleias = _coll()
     mock_db.assembleia_presencas = _coll()
     mock_db.assembleia_deliberacoes = _coll()
+    mock_db.assembleia_palavra = _coll()  # F2 — não pré-ligada no conftest
     monkeypatch.setattr(a_route, "create_audit_log", AsyncMock())
     monkeypatch.setattr(a_route, "notify_all_active_users", AsyncMock())
     return mock_db
@@ -848,9 +849,243 @@ class TestListPresencas:
 
     async def test_mesa_lista(self, gov_env):
         gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
-        gov_env.assembleia_presencas.find = MagicMock(
-            return_value=_cursor([{"user_id": "u1", "method": "join_click"}])
-        )
+        gov_env.assembleia_presencas.find = MagicMock(return_value=_cursor([{"user_id": "u1", "method": "join_click"}]))
         result = await a_route.list_presencas(assembleia_id="a1", current_user=_mesa_ag())
         assert len(result["presencas"]) == 1
         assert result["presencas"][0]["method"] == "join_click"
+
+
+# --------------------------------------------------------------------------- #
+# F2 — Fila de uso da palavra
+# --------------------------------------------------------------------------- #
+
+
+def _palavra(**over):
+    base = {
+        "id": "q1",
+        "assembleia_id": "a1",
+        "user_id": "u1",
+        "tipo": "intervencao",
+        "status": "inscrito",
+        "duration_limit_s": 180,
+        "requested_at": "2030-01-01T10:00:00+00:00",
+    }
+    base.update(over)
+    return base
+
+
+class TestPedirPalavra:
+    async def test_presente_pede(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_presencas.find_one = AsyncMock(return_value={"id": "p1"})  # presente
+        gov_env.assembleia_palavra.find_one = AsyncMock(return_value=None)  # sem pedido activo
+        captured = {}
+        gov_env.assembleia_palavra.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        result = await a_route.pedir_palavra(
+            assembleia_id="a1",
+            request=_request(),
+            data=a_route.PalavraCreate(tipo="intervencao"),
+            current_user=socio_user,
+        )
+        assert captured["user_id"] == socio_user.id
+        assert captured["tipo"] == "intervencao"
+        assert captured["duration_limit_s"] == 180
+        assert result["status"] == "inscrito"
+
+    async def test_protesto_duracao_60(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_presencas.find_one = AsyncMock(return_value={"id": "p1"})
+        gov_env.assembleia_palavra.find_one = AsyncMock(return_value=None)
+        captured = {}
+        gov_env.assembleia_palavra.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        await a_route.pedir_palavra(
+            assembleia_id="a1",
+            request=_request(),
+            data=a_route.PalavraCreate(tipo="protesto"),
+            current_user=socio_user,
+        )
+        assert captured["duration_limit_s"] == 60
+
+    async def test_nao_presente_403(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_presencas.find_one = AsyncMock(return_value=None)  # ausente
+        with pytest.raises(HTTPException) as exc:
+            await a_route.pedir_palavra(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.PalavraCreate(),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_sessao_nao_em_curso_400(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess(status="convocada"))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.pedir_palavra(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.PalavraCreate(),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 400
+
+    async def test_pedido_duplicado_409(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_presencas.find_one = AsyncMock(return_value={"id": "p1"})
+        gov_env.assembleia_palavra.find_one = AsyncMock(return_value={"id": "q0"})  # já tem activo
+        with pytest.raises(HTTPException) as exc:
+            await a_route.pedir_palavra(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.PalavraCreate(),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 409
+
+
+class TestRetirarPalavra:
+    async def test_owner_retira(self, gov_env, socio_user):
+        gov_env.assembleia_palavra.find_one = AsyncMock(return_value=_palavra(user_id=socio_user.id))
+        result = await a_route.retirar_palavra(
+            assembleia_id="a1", qid="q1", request=_request(), current_user=socio_user
+        )
+        assert result["status"] == "retirado"
+
+    async def test_outro_socio_403(self, gov_env, socio_user):
+        gov_env.assembleia_palavra.find_one = AsyncMock(return_value=_palavra(user_id="outro"))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.retirar_palavra(assembleia_id="a1", qid="q1", request=_request(), current_user=socio_user)
+        assert exc.value.status_code == 403
+
+    async def test_mesa_retira_qualquer(self, gov_env):
+        gov_env.assembleia_palavra.find_one = AsyncMock(return_value=_palavra(user_id="outro"))
+        result = await a_route.retirar_palavra(
+            assembleia_id="a1", qid="q1", request=_request(), current_user=_mesa_ag()
+        )
+        assert result["status"] == "retirado"
+
+    async def test_ja_concluido_400(self, gov_env, socio_user):
+        gov_env.assembleia_palavra.find_one = AsyncMock(
+            return_value=_palavra(user_id=socio_user.id, status="concluido")
+        )
+        with pytest.raises(HTTPException) as exc:
+            await a_route.retirar_palavra(assembleia_id="a1", qid="q1", request=_request(), current_user=socio_user)
+        assert exc.value.status_code == 400
+
+
+class TestOrdenarPalavra:
+    async def test_socio_403(self, gov_env, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await a_route.ordenar_palavra(
+                assembleia_id="a1",
+                qid="q1",
+                request=_request(),
+                data=a_route.PalavraOrdenar(ordem=1),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_mesa_ordena(self, gov_env):
+        gov_env.assembleia_palavra.find_one = AsyncMock(return_value=_palavra())
+        captured = {}
+        gov_env.assembleia_palavra.update_one = AsyncMock(side_effect=lambda flt, upd: captured.update(upd["$set"]))
+        result = await a_route.ordenar_palavra(
+            assembleia_id="a1",
+            qid="q1",
+            request=_request(),
+            data=a_route.PalavraOrdenar(ordem=3),
+            current_user=_mesa_ag(),
+        )
+        assert result["ordem"] == 3
+        assert captured["ordem"] == 3
+
+
+class TestIniciarPalavra:
+    async def test_socio_403(self, gov_env, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await a_route.iniciar_palavra(
+                assembleia_id="a1",
+                qid="q1",
+                request=_request(),
+                data=a_route.PalavraIniciar(),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_mesa_inicia_arranca_cronometro(self, gov_env):
+        gov_env.assembleia_palavra.find_one = AsyncMock(return_value=_palavra())
+        captured = {}
+        gov_env.assembleia_palavra.update_one = AsyncMock(side_effect=lambda flt, upd: captured.update(upd["$set"]))
+        result = await a_route.iniciar_palavra(
+            assembleia_id="a1",
+            qid="q1",
+            request=_request(),
+            data=a_route.PalavraIniciar(),
+            current_user=_mesa_ag(),
+        )
+        assert result["status"] == "a_falar"
+        assert result["ends_at"] is not None
+        assert result["started_at"] is not None
+        assert captured["duration_limit_s"] == 180
+
+    async def test_override_duracao(self, gov_env):
+        gov_env.assembleia_palavra.find_one = AsyncMock(return_value=_palavra())
+        captured = {}
+        gov_env.assembleia_palavra.update_one = AsyncMock(side_effect=lambda flt, upd: captured.update(upd["$set"]))
+        await a_route.iniciar_palavra(
+            assembleia_id="a1",
+            qid="q1",
+            request=_request(),
+            data=a_route.PalavraIniciar(duration_s=60),
+            current_user=_mesa_ag(),
+        )
+        assert captured["duration_limit_s"] == 60
+
+    async def test_ja_concluido_400(self, gov_env):
+        gov_env.assembleia_palavra.find_one = AsyncMock(return_value=_palavra(status="concluido"))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.iniciar_palavra(
+                assembleia_id="a1",
+                qid="q1",
+                request=_request(),
+                data=a_route.PalavraIniciar(),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 400
+
+
+class TestTerminarPalavra:
+    async def test_mesa_termina(self, gov_env):
+        gov_env.assembleia_palavra.find_one = AsyncMock(return_value=_palavra(status="a_falar"))
+        result = await a_route.terminar_palavra(
+            assembleia_id="a1", qid="q1", request=_request(), current_user=_mesa_ag()
+        )
+        assert result["status"] == "concluido"
+        assert result["ended_at"] is not None
+
+    async def test_nao_a_falar_400(self, gov_env):
+        gov_env.assembleia_palavra.find_one = AsyncMock(return_value=_palavra(status="inscrito"))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.terminar_palavra(assembleia_id="a1", qid="q1", request=_request(), current_user=_mesa_ag())
+        assert exc.value.status_code == 400
+
+    async def test_socio_403(self, gov_env, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await a_route.terminar_palavra(assembleia_id="a1", qid="q1", request=_request(), current_user=socio_user)
+        assert exc.value.status_code == 403
+
+
+class TestListPalavra:
+    async def test_lista_ordenada_por_ordem(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_palavra.find = MagicMock(
+            return_value=_cursor(
+                [
+                    {"id": "a", "ordem": 2, "requested_at": "t1"},
+                    {"id": "b", "ordem": 1, "requested_at": "t2"},
+                    {"id": "c", "ordem": None, "requested_at": "t0"},
+                ]
+            )
+        )
+        result = await a_route.list_palavra(assembleia_id="a1", current_user=socio_user)
+        assert [r["id"] for r in result["palavra"]] == ["b", "a", "c"]

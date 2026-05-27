@@ -96,18 +96,23 @@ sem partir o que existe (tudo aditivo).
       presenças Mesa / 403. ruff check limpo.
 - _Nota D9:_ representação online via Mesa; self check-in regista só presença própria.
 
-## F2 — 2.2 Fila de uso da palavra + cronómetros (Art. 21/27/28/29) — dep: F0, F1
-- [ ] `database.py`: + colecção `assembleia_palavra`; índices `assembleia_id`,
+## F2 — 2.2 Fila de uso da palavra + cronómetros (Art. 21/27/28/29) ✅ (backend) — dep: F0, F1
+- [x] `database.py`: + colecção `assembleia_palavra`; índices `assembleia_id` e
       `(assembleia_id, status)`.
-- [ ] `models.py`: `PalavraRequest` (tipo `intervencao|protesto|esclarecimento|
-      defesa_honra`, status `inscrito|a_falar|concluido|retirado|negado`, `ordem`,
-      `duration_limit_s`, `started_at`/`ends_at`). Const `PALAVRA_DURACOES`
-      = 180/60/120/120 (**confirmar Regimento — D3**).
-- [ ] Endpoints: `POST .../palavra` (membro presente), `DELETE .../palavra/{qid}`,
-      `POST .../palavra/{qid}/ordenar|iniciar|terminar` (Mesa), `GET .../palavra`.
-      `iniciar` arranca cronómetro (`ends_at = started_at + duration`). Bump em cada.
-- [ ] Testes: só presentes pedem; concessão arranca `ends_at` correcto; ordenação só
-      Mesa; fila no SSE.
+- [x] `models.py`: `PalavraRequest` + `PalavraCreate`/`PalavraOrdenar`/`PalavraIniciar`;
+      const `PALAVRA_DURACOES` = 180/60/120/120 (**a confirmar c/ Regimento — D3**).
+- [x] Endpoints: `POST /{id}/palavra` (membro presente, 1 pedido activo), `DELETE
+      /{id}/palavra/{qid}` (próprio ou Mesa), `POST /{id}/palavra/{qid}/ordenar|
+      iniciar|terminar` (Mesa), `GET /{id}/palavra` (qualquer membro, ordenado por
+      `ordem`→`requested_at`). `iniciar` arranca/estende cronómetro (`ends_at`); bump
+      em cada mutação.
+- [x] `_session_snapshot` estendido com bloco `speaking` (orador atual + `queue_len`)
+      → o SSE da F0 propaga a fila em tempo real.
+- [x] Testes (19 novos, 67/67 verdes): presente pede / protesto 60s / não-presente
+      403 / sessão-não-em-curso 400 / pedido duplicado 409; retirar próprio / outro
+      403 / Mesa qualquer / já-concluído 400; ordenar Mesa / socio 403; iniciar
+      arranca cronómetro / override duração / já-concluído 400 / socio 403; terminar
+      Mesa / não-a-falar 400 / socio 403; listar ordenado. ruff check limpo.
 
 ## F3 — 2.5 Modos de voto + conflito + voto separado (Art. 32) — dep: F0, F1  ⚠️ pesado
 - [ ] `database.py`: + `assembleia_votos` (unique `(deliberacao_id,user_id)`),
