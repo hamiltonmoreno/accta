@@ -11,7 +11,7 @@ from fastapi import HTTPException
 from starlette.requests import Request
 
 import ranking
-from models import RankingAjusteCreate, RankingSettingsUpdate
+from models import RankingAjusteCreate, RankingOptOut, RankingSettingsUpdate
 from routes import report as report_route
 from routes import ranking as ranking_route
 
@@ -292,6 +292,7 @@ def _wcoll(**kw):
     c.insert_many = AsyncMock()
     c.delete_many = AsyncMock()
     c.update_one = AsyncMock()
+    c.update_many = AsyncMock()
     return c
 
 
@@ -614,3 +615,62 @@ class TestAdjustmentsRoutes:
         await ranking_route.list_ranking_adjustments(user_id="u9", period="2026", current_user=admin_user)
         q = mock_db.ranking_ajustes.find.call_args.args[0]
         assert q == {"user_id": "u9", "period_key": "2026"}
+
+
+# --------------------------------------------------------------------------- #
+# F5 — visibility=direcao_only + opt-out
+# --------------------------------------------------------------------------- #
+
+
+class TestVisibilityAndOptOut:
+    async def test_direcao_only_forbids_socio(self, mock_db, socio_user):
+        mock_db.member_scores = _coll(count=0, find_list=[], find_one_ret=None)
+        mock_db.ranking_settings = _coll(find_one_ret={"visibility": "direcao_only"})
+        with pytest.raises(HTTPException) as ei:
+            await ranking_route.get_leaderboard(period="2026", current_user=socio_user)
+        assert ei.value.status_code == 403
+
+    async def test_direcao_only_allows_admin(self, mock_db, admin_user):
+        mock_db.member_scores = _coll(
+            count=3, find_list=[{"user_id": "a", "rank": 1, "computed_at": "2026-05-27T00:00:00+00:00"}], find_one_ret=None
+        )
+        mock_db.ranking_settings = _coll(find_one_ret={"visibility": "direcao_only"})
+        res = await ranking_route.get_leaderboard(period="2026", current_user=admin_user)
+        assert res["visibility"] == "direcao_only"
+        assert res["entries"]  # serviu a lista a um gestor
+
+    async def test_leaderboard_query_excludes_opt_out(self, mock_db, socio_user):
+        mock_db.member_scores = _coll(count=0, find_list=[], find_one_ret=None)
+        mock_db.ranking_settings = _coll(find_one_ret=None)  # all_members
+        await ranking_route.get_leaderboard(period="2026", current_user=socio_user)
+        q = mock_db.member_scores.find.call_args.args[0]
+        assert q["period_key"] == "2026"
+        assert q["ranking_opt_out"] == {"$ne": True}
+
+    async def test_me_returned_even_when_opted_out(self, mock_db, socio_user):
+        me_doc = {"user_id": socio_user.id, "rank": 4, "score": 7, "ranking_opt_out": True}
+        mock_db.member_scores = _coll(count=0, find_list=[], find_one_ret=me_doc)
+        mock_db.ranking_settings = _coll(find_one_ret=None)
+        res = await ranking_route.get_leaderboard(period="2026", current_user=socio_user)
+        assert res["me"] == me_doc  # o próprio vê sempre a sua posição
+        me_q = mock_db.member_scores.find_one.call_args.args[0]
+        assert "ranking_opt_out" not in me_q  # a query do `me` não filtra opt-out
+
+    async def test_opt_out_syncs_user_and_snapshot(self, mock_db, socio_user):
+        mock_db.users = _wcoll()
+        mock_db.member_scores = _wcoll()
+        res = await ranking_route.set_ranking_opt_out(payload=RankingOptOut(opt_out=True), current_user=socio_user)
+        assert res == {"opt_out": True}
+        assert mock_db.users.update_one.call_args.args[1]["$set"]["ranking_opt_out"] is True
+        # sincroniza o snapshot de imediato (sem esperar rebuild)
+        mock_db.member_scores.update_many.assert_awaited_once()
+        assert mock_db.member_scores.update_many.call_args.args[0] == {"user_id": socio_user.id}
+
+    async def test_rebuild_denormalizes_opt_out(self, mock_db, monkeypatch):
+        mock_db.users = _coll(find_list=[{"id": "a", "name": "Ana", "status": "ativo", "ranking_opt_out": True}])
+        mock_db.member_scores = _wcoll()
+        mock_db.ranking_settings = _wcoll(find_one_ret=None)
+        monkeypatch.setattr(ranking, "compute_member_score", AsyncMock(return_value={"score": 5, "breakdown": {}}))
+        await ranking.rebuild_scores("2026")
+        doc = mock_db.member_scores.insert_many.call_args.args[0][0]
+        assert doc["ranking_opt_out"] is True

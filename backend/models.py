@@ -72,6 +72,9 @@ class UserBase(BaseModel):
     # Opt-out de comunicados informativos por email (spec-comunicados-email).
     # Round-trips por /auth/me para o toggle do perfil refletir o valor guardado.
     email_opt_out_informativos: bool = False
+    # Opt-out do ranking (spec-ranking-socio §2.5): membro fora das LISTAS
+    # públicas (leaderboard) mas continua a ver a sua própria posição (/me).
+    ranking_opt_out: bool = False
     # ===== Perfil pessoal estendido (feature/perfil) =====
     # Campos opcionais geridos pelo próprio sócio (PATCH /users/me/profile) ou
     # por admin. Datas como string ISO "AAAA-MM-DD" (regra do projeto: nunca
@@ -1987,6 +1990,7 @@ class MemberScore(BaseModel):
     cargo: Optional[str] = None
     photo_url: Optional[str] = None
     status: str                        # ativo/inativo
+    ranking_opt_out: bool = False      # denormalizado p/ filtrar listas públicas (§2.5)
     computed_at: str
 
 
@@ -2009,3 +2013,8 @@ class RankingSettingsUpdate(BaseModel):
     visibility: Optional[Literal["all_members", "direcao_only"]] = None
     top_n_dashboard: Optional[int] = Field(default=None, ge=1, le=50)
     enabled: Optional[bool] = None
+
+
+class RankingOptOut(BaseModel):
+    """Body do opt-out do próprio membro (F5, §2.5)."""
+    opt_out: bool

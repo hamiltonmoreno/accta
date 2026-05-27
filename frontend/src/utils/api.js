@@ -492,6 +492,7 @@ export const rankingAPI = {
   addAdjustment: (data) => api.post('/ranking/adjustments', data),
   listAdjustments: (params) => api.get('/ranking/adjustments', { params }),
   rebuild: (period) => api.post('/ranking/rebuild', null, { params: { period } }),
+  setOptOut: (optOut) => api.put('/ranking/opt-out', { opt_out: optOut }),
 };
 
 export const reportAPI = {

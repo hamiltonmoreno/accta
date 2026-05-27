@@ -97,9 +97,10 @@ export const RankingPage = () => {
 
   const canManage = isAdmin || isDirecao || hasPrivilege('manage_ranking');
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: queryKeys.ranking.leaderboard(period),
     queryFn: async () => (await rankingAPI.leaderboard({ period, limit: FETCH_LIMIT })).data,
+    retry: false, // 403 (direcao_only) não deve fazer retry
   });
 
   const rebuildMutation = useMutation({
@@ -147,6 +148,17 @@ export const RankingPage = () => {
     onError: (e) => toast.error(e.response?.data?.detail || 'Falha ao registar o ajuste.'),
   });
 
+  // Opt-out do próprio (§2.5): sair das listas públicas mantendo o /me.
+  const optOutMutation = useMutation({
+    mutationFn: (optOut) => rankingAPI.setOptOut(optOut),
+    onSuccess: (res) => {
+      toast.success(res.data.opt_out ? 'Saíste das listas públicas do ranking.' : 'Voltaste a aparecer no ranking.');
+      qc.invalidateQueries({ queryKey: queryKeys.ranking.leaderboard(period) });
+      qc.invalidateQueries({ queryKey: queryKeys.ranking.me(period) });
+    },
+    onError: (e) => toast.error(e.response?.data?.detail || 'Falha ao atualizar a preferência.'),
+  });
+
   const openSettings = async () => {
     const { data: s } = await settingsQuery.refetch();
     setForm({
@@ -188,11 +200,14 @@ export const RankingPage = () => {
   const me = data?.me;
   const top3 = allEntries.slice(0, 3);
 
-  // Respeita visibility=direcao_only: sócio comum é redirecionado (à semelhança
-  // do ProtectedRoute). O enforcement server-side completo chega na F5.
+  // Respeita visibility=direcao_only: o servidor devolve 403 a não-gestores
+  // (F5) → redirecionamos para o dashboard. O ramo `visibility` mantém o
+  // redireccionamento defensivo caso o payload chegue (gestores).
   useEffect(() => {
-    if (visibility === 'direcao_only' && !canManage) navigate('/dashboard', { replace: true });
-  }, [visibility, canManage, navigate]);
+    if (error?.response?.status === 403 || (visibility === 'direcao_only' && !canManage)) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [error, visibility, canManage, navigate]);
 
   // Reset de paginação quando muda o período ou a pesquisa.
   useEffect(() => { setPage(0); }, [period, search]);
@@ -255,21 +270,35 @@ export const RankingPage = () => {
 
       {/* A minha posição (#FBEAEC = superfície selecionada → texto Grafite) */}
       {enabled && me && (
-        <div className="bg-[#FBEAEC] border border-carmesim/20 rounded-2xl px-5 py-4 flex items-center justify-between" data-testid="ranking-my-position">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center flex-shrink-0">
-              <RankBadge rank={me.rank} />
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-grafite">A minha posição</div>
-              <div className="text-xs text-grafite">
-                {me.rank ? `#${me.rank} de ${data.total}` : 'Ainda sem posição neste período'}
+        <div className="bg-[#FBEAEC] border border-carmesim/20 rounded-2xl px-5 py-4" data-testid="ranking-my-position">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center flex-shrink-0">
+                <RankBadge rank={me.rank} />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-grafite">A minha posição</div>
+                <div className="text-xs text-grafite">
+                  {me.ranking_opt_out
+                    ? 'Estás oculto das listas públicas'
+                    : me.rank ? `#${me.rank} de ${data.total_ranked ?? data.total}` : 'Ainda sem posição neste período'}
+                </div>
               </div>
             </div>
+            <div className="text-right">
+              <div className="font-bold text-xl text-grafite leading-none">{me.score}</div>
+              <div className="text-[11px] text-grafite mt-0.5">pts</div>
+            </div>
           </div>
-          <div className="text-right">
-            <div className="font-bold text-xl text-grafite leading-none">{me.score}</div>
-            <div className="text-[11px] text-grafite mt-0.5">pts</div>
+          <div className="mt-3 pt-3 border-t border-carmesim/15 flex items-center justify-between">
+            <Label htmlFor="rk-optout" className="text-xs text-grafite">Aparecer no ranking público</Label>
+            <Switch
+              id="rk-optout"
+              checked={!me.ranking_opt_out}
+              onCheckedChange={(appear) => optOutMutation.mutate(!appear)}
+              disabled={optOutMutation.isPending}
+              data-testid="ranking-optout"
+            />
           </div>
         </div>
       )}

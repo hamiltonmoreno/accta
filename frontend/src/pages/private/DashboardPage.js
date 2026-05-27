@@ -159,6 +159,7 @@ export const DashboardPage = () => {
     // para filtrar inativos client-side sem ficar abaixo do Top-N.
     queryFn: async () => (await rankingAPI.leaderboard({ period: String(currentYear), limit: 50 })).data,
     enabled: leaderboardEnabled,
+    retry: false, // 403 (visibility=direcao_only) → esconde o widget sem 3 retries
   });
 
   // Queries gated por hasFinance — `enabled` evita request desnecessario
@@ -610,7 +611,8 @@ export const DashboardPage = () => {
       )}
 
       {/* ===== RANKING TOP-N (Atuacao do socio) ===== */}
-      {rankingOn && (
+      {/* isError esconde o widget quando o leaderboard e restrito (direcao_only → 403). */}
+      {rankingOn && !leaderboardQuery.isError && (
         <div className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden animate-fade-up" data-testid="ranking-widget">
           <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100">
             <div className="flex items-center gap-2">

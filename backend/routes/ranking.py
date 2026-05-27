@@ -21,7 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from auth import get_current_user
 from database import db
 from helpers import create_audit_log, create_notification
-from models import RankingAjusteCreate, RankingSettingsUpdate, User
+from models import RankingAjusteCreate, RankingOptOut, RankingSettingsUpdate, User
 from permissions import is_direcao, user_can
 from ranking import DEFAULT_SETTINGS, DEFAULT_WEIGHTS, compute_member_score, load_settings, rebuild_scores
 
@@ -90,17 +90,27 @@ async def get_leaderboard(
     # (defesa server-side; o frontend já o esconde). O `/me` mantém-se acessível.
     if not settings["enabled"]:
         return {
-            "period": period_key, "total": 0, "limit": 0, "offset": 0,
+            "period": period_key, "total": 0, "total_ranked": 0, "limit": 0, "offset": 0,
             "computed_at": None, "top_n_dashboard": settings["top_n_dashboard"],
             "visibility": settings["visibility"], "enabled": False,
             "entries": [], "me": None,
         }
 
+    # `visibility=direcao_only` (§6): a lista pública é restrita à Direcção/admin.
+    # O `/me` mantém-se sempre acessível ao próprio (endpoint separado).
+    if settings["visibility"] == "direcao_only" and not _can_manage_ranking(current_user):
+        raise HTTPException(status_code=403, detail="O ranking está restrito à Direcção")
+
     limit = max(1, min(limit, 100))
     offset = max(0, offset)
 
-    query = {"period_key": period_key}
-    total = await db.member_scores.count_documents(query)
+    # Membros com opt-out são omitidos das LISTAS públicas (§2.5); o `me` é
+    # devolvido sem este filtro, por isso o próprio vê sempre a sua posição.
+    query = {"period_key": period_key, "ranking_opt_out": {"$ne": True}}
+    total = await db.member_scores.count_documents(query)  # visíveis (sem opt-out) — paginação
+    # `rank` é global (calculado sobre todos no rebuild), por isso o denominador
+    # do "#N de M" usa a contagem completa do período, não a filtrada por opt-out.
+    total_ranked = await db.member_scores.count_documents({"period_key": period_key})
     entries = (
         await db.member_scores.find(query, {"_id": 0, "breakdown": 0})
         .sort("rank", 1)
@@ -116,6 +126,7 @@ async def get_leaderboard(
     return {
         "period": period_key,
         "total": total,
+        "total_ranked": total_ranked,
         "limit": limit,
         "offset": offset,
         "computed_at": computed_at,
@@ -274,3 +285,15 @@ async def list_ranking_adjustments(
         query["period_key"] = period
 
     return await db.ranking_ajustes.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+
+
+@router.put("/ranking/opt-out")
+async def set_ranking_opt_out(payload: RankingOptOut, current_user: User = Depends(get_current_user)):
+    """O próprio membro decide se aparece nas LISTAS públicas do ranking (§2.5).
+    Continua sempre a ver a sua posição em `/me`. Atualiza o `users` (fonte para
+    o próximo rebuild) e sincroniza o snapshot de imediato (efeito instantâneo)."""
+    await db.users.update_one({"id": current_user.id}, {"$set": {"ranking_opt_out": payload.opt_out}})
+    await db.member_scores.update_many(
+        {"user_id": current_user.id}, {"$set": {"ranking_opt_out": payload.opt_out}}
+    )
+    return {"opt_out": payload.opt_out}

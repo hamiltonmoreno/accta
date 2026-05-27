@@ -152,9 +152,35 @@ Feature GRANDE, faseada (F0–F5), PRs pequenos. Aditivo — sem migração dest
   `test_manage_ranking_privilege_grants_access`; N3 (asserção do diff de pesos)
   → `changes["weights"]` verificado.
 
-## Fases seguintes (por fazer)
-- **F5** `ranking_opt_out` + `visibility=direcao_only` (enforcement server-side) +
-  `scripts/rebuild_ranking.py` (cron).
+## F5 — Privacidade (opt-out + direcao_only) + cron ✅
+- [x] `models.py`: `UserBase.ranking_opt_out` (aditivo, default False),
+      `MemberScore.ranking_opt_out` (denormalizado), `RankingOptOut` body.
+- [x] `ranking.py`: `_eligible_members`/`rebuild_scores` denormalizam
+      `ranking_opt_out` no snapshot.
+- [x] `routes/ranking.py`: `GET /leaderboard` → 403 a não-gestores quando
+      `visibility=direcao_only` (`/me` mantém-se acessível); lista exclui opt-out
+      (`{"$ne": True}`) mas o `me` é devolvido sem filtro (o próprio vê sempre a
+      sua posição); `total_ranked` (contagem completa) é o denominador do
+      "#N de M". **`PUT /ranking/opt-out`**: o próprio altera o seu flag —
+      atualiza `users` **e** `member_scores` (`update_many`) p/ efeito imediato.
+- [x] `scripts/rebuild_ranking.py`: cron (load_dotenv + `rebuild_scores` p/ ano
+      atual + "all" + `close_pool`; continua nos restantes períodos em erro).
+- [x] Frontend: `rankingAPI.setOptOut`; toggle "Aparecer no ranking público" no
+      cartão "A minha posição"; redireção em 403 + `retry:false`; widget do
+      dashboard escondido em `isError`.
+- [x] Testes: direcao_only 403/permite-gestor, query exclui opt-out, `me` sem
+      filtro, opt-out dual-write, rebuild denormaliza. `test_ranking.py` **51
+      passed**; suíte unit 0 regressões; ruff/eslint limpos; `craco build` OK.
+
+## Achados da revisão F5 (2026-05-27)
+- ✅ **IMPORTANT 1**: `leaderboardQuery` do dashboard sem `retry:false` (4 pedidos
+  num 403 direcao_only) → `retry:false` adicionado.
+- ✅ **IMPORTANT 2**: denominador "#N de M" usava o total filtrado (sem opt-out)
+  mas o `rank` é global → `total_ranked` (contagem completa) adicionado e usado.
+- Nits (sem ação): sem audit no opt-out (preferência pessoal, igual a
+  `email_opt_out_informativos`); `load_dotenv` silencioso (padrão de cron).
+
+## ✅ Spec COMPLETA — F0–F5 implementadas (PR #128). Falta só o merge para `develop`.
 
 ## Stop conditions
 Não tornar público com efeito reputacional sem validação (default: Top-N + breakdown

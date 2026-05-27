@@ -217,7 +217,7 @@ async def _eligible_members() -> list[dict]:
     """Membros elegíveis para o ranking, com os campos de display do snapshot."""
     return await db.users.find(
         {**_MEMBER_FILTER, "status": {"$in": _RANKED_STATUSES}},
-        {"_id": 0, "id": 1, "name": 1, "member_id": 1, "cargo": 1, "photo_url": 1, "status": 1},
+        {"_id": 0, "id": 1, "name": 1, "member_id": 1, "cargo": 1, "photo_url": 1, "status": 1, "ranking_opt_out": 1},
     ).to_list(None)
 
 
@@ -269,6 +269,7 @@ async def rebuild_scores(period_key: str) -> int:
                 "cargo": m.get("cargo"),
                 "photo_url": m.get("photo_url"),
                 "status": m.get("status") or "ativo",
+                "ranking_opt_out": bool(m.get("ranking_opt_out")),
                 "computed_at": computed_at,
             }
         )
