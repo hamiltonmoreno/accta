@@ -153,7 +153,7 @@ async def gather_signal_counts(uid: str, period_key: Optional[str], *, include_t
     liked_posts = await db.wall_posts.find(
         {"user_id": uid, "approved": True, **_date_match("created_at", period_key)},
         {"_id": 0, "likes": 1},
-    ).to_list(2000)
+    ).to_list(None)  # unbounded: preserva o comportamento antigo de report.personal
     counts["mural_like_recebido"] = sum(len(p.get("likes") or []) for p in liked_posts)
 
     counts["eleicao_turnout"] = await _count_elections_voted(uid, period_key) if include_turnout else 0

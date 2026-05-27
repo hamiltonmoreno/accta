@@ -40,6 +40,15 @@ Feature GRANDE, faseada (F0–F5), PRs pequenos. Aditivo — sem migração dest
 - [x] Testes: 4 novos (`/me` ao vivo, rank do snapshot, período default, pesos do
       doc) — `test_ranking.py` **20 passed**; eslint 0 erros; `craco build` OK.
 
+## Achados da revisão F0+F1 (2026-05-26)
+- ✅ N3 corrigido: tally de likes usa `to_list(None)` (preserva report.personal unbounded).
+- ⏳ **F2**: o índice `ix_mscores_period_rank` ordena `rank` como TEXTO; o `_order_by`
+  do DAO faz cast numérico em runtime que não casa com o índice → ao implementar o
+  `sort("rank")` do leaderboard, validar plano/índice (provável `(...)::numeric` ou
+  ordenar por score desc) para evitar table scan. Sem impacto em F1 (só `find_one`).
+- Aceites (sem ação): N1 (ficheiro sem acentos — consistência), N2 (1 request quando
+  ranking off), N4 (`_period_bounds` aceita anos absurdos → 0 resultados, inofensivo).
+
 ## Fases seguintes (por fazer)
 - **F2** modelos `RankingAjuste`/`MemberScore`/`RankingSettings` + `rebuild_scores` +
   `POST /rebuild` + `GET /leaderboard` + widget Top-N no dashboard.
