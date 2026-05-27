@@ -205,10 +205,14 @@ def mock_db(monkeypatch):
     import database
     import auth
     import helpers
+    import ranking
 
     monkeypatch.setattr(database, "db", fake_db)
     monkeypatch.setattr(auth, "db", fake_db)
     monkeypatch.setattr(helpers, "db", fake_db)
+    # ranking.py faz `from database import db` no topo (fonte única do score,
+    # usada por report.personal e pela rota de ranking) — patch explícito.
+    monkeypatch.setattr(ranking, "db", fake_db)
 
     # comunicados_service faz `from database import db` no topo — patch explícito
     if "comunicados_service" in sys.modules:

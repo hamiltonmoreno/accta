@@ -1,0 +1,188 @@
+# Plano — Ranking de Atuação do Sócio
+
+Spec: `tasks/spec-ranking-socio.md`. Branch `feature/ranking-socio` (de `develop`, GitFlow).
+Feature GRANDE, faseada (F0–F5), PRs pequenos. Aditivo — sem migração destrutiva.
+
+## Decisões fechadas com o dono (2026-05-26)
+- **D1 Visibilidade**: default `all_members` (configurável em `ranking_settings`).
+- **D2 Opt-out**: SIM — `ranking_opt_out` (aditivo, default false) em `UserBase`.
+- **D3 status=inativo**: incluído, marcado "inativo"; fora do Top-N do dashboard.
+- **D4 Pesos**: os propostos §3.1 (AGA 10 · eleição 8 · projeto 6 · voto 5 · evento 4 ·
+  tarefa 4 · post 3 · foto 2 · comentário 1 · like 0.5; cap likes 50), afináveis via settings.
+- **D5 Documentos acedidos** como sinal → FORA. **D6 Rebuild** → manual (MVP) + `scripts/`
+  para cron depois. **D7 Notif Top-3** → OFF. **D8 Períodos** → ano civil + "all".
+  **D9 Arrumação** → `member_scores` cache materializada; pessoal ao vivo.
+
+## F0 — Fundação ✅
+- [x] `backend/ranking.py`: `DEFAULT_WEIGHTS`/`MAX_LIKE_POINTS`/`SIGNAL_KEYS`;
+      `_period_bounds`/`_date_match` (ano civil vs "all"); `voter_hash` (comparência
+      sem tocar boletins, §3.3); `gather_signal_counts` (contagens por sinal +
+      filtro de período; `include_turnout` para report); `_adjustments_total`;
+      **`compute_member_score`** (fonte única: soma ponderada + cap likes + ajustes).
+- [x] `database.py`: + `member_scores`/`ranking_ajustes`/`ranking_settings` em
+      COLLECTIONS; índices (`ux_mscores_user_period`, `ix_mscores_period_rank`,
+      `ix_rajustes_user_period`, `ix_rajustes_created`).
+- [x] `routes/report.py`: reusa `gather_signal_counts(uid,"all",include_turnout=False)`
+      — **contrato inalterado** (não-regressão testada).
+- [x] `tests/conftest.py`: patch a `ranking.db`.
+- [x] `tests/test_ranking.py`: período, score (pesos/cap/ajustes ±/pesos custom),
+      `gather_signal_counts` (agregação + filtro + comparência por hash sem boletins),
+      `_adjustments_total`, não-regressão do `report.personal`. **16 novos testes.**
+- [x] Verificação: suíte unit **943 passed**, 0 regressões; ruff limpo.
+
+## F1 — Score pessoal ao vivo ✅
+- [x] `ranking.py`: `load_settings` (doc fundido com defaults) + `DEFAULT_SETTINGS`.
+- [x] `routes/ranking.py`: `GET /ranking/me` (score+breakdown ao vivo; `rank`/`total`
+      do snapshot `member_scores` se existir, senão `None`) + registo do router.
+- [x] `api.js`: `rankingAPI` (grupo completo §8.4); `queryClient`: keys `ranking`.
+- [x] `DashboardPage`: cartão "A Minha Participação" com cabeçalho de score+posição
+      (+medalha Top-3 neutro/Carmesim) e `+N pts` por tile pontuado.
+- [x] Testes: 4 novos (`/me` ao vivo, rank do snapshot, período default, pesos do
+      doc) — `test_ranking.py` **20 passed**; eslint 0 erros; `craco build` OK.
+
+## Achados da revisão F0+F1 (2026-05-26)
+- ✅ N3 corrigido: tally de likes usa `to_list(None)` (preserva report.personal unbounded).
+- ⏳ **F2**: o índice `ix_mscores_period_rank` ordena `rank` como TEXTO; o `_order_by`
+  do DAO faz cast numérico em runtime que não casa com o índice → ao implementar o
+  `sort("rank")` do leaderboard, validar plano/índice (provável `(...)::numeric` ou
+  ordenar por score desc) para evitar table scan. Sem impacto em F1 (só `find_one`).
+- Aceites (sem ação): N1 (ficheiro sem acentos — consistência), N2 (1 request quando
+  ranking off), N4 (`_period_bounds` aceita anos absurdos → 0 resultados, inofensivo).
+
+## F2 — Snapshot + leaderboard + widget Top-N ✅
+- [x] `models.py`: `RankingAjuste`/`RankingAjusteCreate`/`MemberScore`/
+      `RankingSettings`/`RankingSettingsUpdate` (auto-contidos; **não** importam
+      `ranking.py` — `ranking → auth → models` seria ciclo; defaults de pesos
+      aplicados em runtime por `load_settings`).
+- [x] `ranking.py`: `_eligible_members` (filtro canónico §2.3: técnicos fora;
+      só `ativo`/`inativo`) + `rebuild_scores` (chama `compute_member_score` por
+      membro — fonte única; ranking de competição com empates partilhados
+      `1,2,2,4`; idempotente `delete_many`+`insert_many`; `last_rebuild_at` via
+      find-then-update/insert — o DAO não tem `upsert`).
+- [x] `routes/ranking.py`: `_can_manage_ranking` (admin|`is_direcao`; F4 junta
+      `manage_ranking`), `POST /ranking/rebuild` (RBAC+audit `ranking_rebuilt`),
+      `GET /ranking/leaderboard` (sort `rank` asc, paginado, linha do próprio,
+      **breakdown removido das linhas públicas** §2.5, **short-circuit quando
+      `enabled=False`**).
+- [x] `DashboardPage.js`: cartão "Ranking de Atuacao" Top-N (medalha Top-3
+      neutro/Carmesim no #1, nome, cargo via `CARGO_LABELS_FALLBACK`, mini-barra
+      proporcional, realce do próprio, `computed_at`); **inativos filtrados do
+      Top-N (D3)**; `Skeleton`/`EmptyState`; query gated em `enabled`, `limit=50`.
+- [x] Testes: rebuild (ranks/empates/idempotência/elegibilidade/vazio),
+      leaderboard (entries+total+me, breakdown excluído, paginação clamp,
+      disabled→vazio), RBAC rebuild (sócio/financeiro/moderador 403; admin +
+      Direcção OK; audita). `test_ranking.py` **33 passed**; suíte unit 0
+      regressões; ruff limpo; eslint 0 erros; `craco build` OK.
+
+## Achados da revisão F2 (2026-05-27)
+- ✅ **IMPORTANT #2 corrigido**: inativos apareciam no Top-N do dashboard
+  (violava D3) → filtro `status !== 'inativo'` antes do slice + `limit=50`.
+- ✅ **IMPORTANT #3 corrigido**: `enabled=False` agora curto-circuita o
+  `/leaderboard` server-side (não servia a feature desligada a clientes diretos).
+- ✅ **N2/N3/N4**: `limit=50` (cobre `top_n` até 50); +testes RBAC financeiro/
+  moderador; comentário em `_wcoll`.
+- ⏳ **IMPORTANT #1 (índice) — aceite sem ação, com fundamento**: o `_order_by`
+  do DAO embrulha QUALQUER sort numérico num `CASE WHEN … THEN (col)::numeric END`
+  — **nenhum** índice de expressão btree o satisfaz (nem `::numeric` nem `->`). O
+  `ix_mscores_period_rank` serve o **filtro de igualdade** `period_key` (coluna
+  líder); o sort é em memória sobre 1 linha por membro (centenas, DB ~vazia) →
+  negligível. Um sort backed-by-index exigiria mudar o `_order_by` global (fora
+  de âmbito, arriscado). Sem alteração de schema.
+- **#4 (inline style na barra) — aceite**: `style={{ width: \`${pct}%\` }}` é o
+  padrão existente (`PollResults.js`, `DRETab.js`) para barras proporcionais;
+  alinhar com ele é o correcto.
+- **N1 (acentos) — aceite**: `DashboardPage.js` é deliberadamente sem acentos
+  (consistência; já aceite na revisão F0+F1).
+- **N5 (N queries/membro no rebuild) — roadmap**: pré-agregação (um `$group`/
+  colecção, §5) fica para quando houver volume; rebuild corre fora do request path.
+
+## F3 — Página `/ranking` ✅
+- [x] `pages/private/RankingPage.js` (novo): pódio Top-3 (Crown Carmesim no #1,
+      Medal neutro #2/#3), tabela (rank/nome/cargo/score + badge inativo),
+      realce da linha do próprio + cartão "A minha posição" (do `me`), pesquisa
+      por nome + paginação **client-side** sobre 1 fetch (`limit=200`), filtro de
+      período (Este ano / Sempre), botão **Recalcular** (`POST /rebuild`, gated
+      `isAdmin||isDirecao||manage_ranking`), estados loading/desativado/vazio/
+      sem-resultados, redireção se `visibility=direcao_only` (enforcement
+      server-side fica na F5).
+- [x] `App.js`: lazy import + rota `/ranking` (ProtectedRoute+PrivateLayout).
+      `PrivateLayout`: `Trophy` + item na secção "Painel" (`roles:['all']`).
+      `DashboardPage`: link "Ver ranking completo →" no footer do widget Top-N.
+- [x] Verificação: eslint 0 erros, `craco build` OK.
+
+## Achados da revisão F3 (2026-05-27)
+- ✅ **IMPORTANT #1**: `PeriodToggle`/`RecalcularButton` estavam definidos dentro
+  do render (recria o tipo → remonta/perde foco) → elevados a componentes de
+  módulo com props.
+- ✅ **IMPORTANT #2**: `text-[#6B7280]` sobre `#FBEAEC` dava 4.16:1 (< 4.5) → o
+  token `#FBEAEC` só leva texto Grafite; cartão "A minha posição" passou a
+  Grafite e o realce do pódio passou a `ring` sobre branco (texto muted fica em
+  branco). Linha selecionada da tabela mantém `#FBEAEC` (token de selected-row).
+- ✅ **IMPORTANT #3**: badge "Inativo" 4.39:1 → texto para `#4B5563` (gray-600;
+  mais escuro que o piso `#6B7280`, passa ~5.7:1). A sugestão da revisão
+  (escurecer o fundo p/ gray-200) estava invertida — escurecer o **texto** é o
+  correcto. Apliquei o mesmo ao label inativo do toggle de período.
+- ✅ **N1** (testid `ranking-computed-at` duplicado) → `ranking-page-computed-at`
+  na página. **N2** (link sem focus ring) → ring adicionado ao link novo.
+- **N3** (`manage_ranking` no frontend antes do backend) — **intencional** (§8.3
+  lista `hasPrivilege('manage_ranking')`); ninguém tem o privilégio até a F4
+  o registar; ambos os lados sobem juntos. Sem ação.
+
+## F4 — Config admin/Direcção + privilégio `manage_ranking` ✅
+- [x] `governance.py`: `manage_ranking` em PRIVILEGES; `cargoLabels.js`: label.
+      `_can_manage_ranking` = `user_can(user,'manage_ranking') or is_direcao(user)`.
+- [x] `routes/ranking.py`: `GET/PUT /ranking/settings` (merge parcial de pesos —
+      só chaves válidas e ≥0; audita `ranking_settings_updated` com diff;
+      find-then-update/insert), `POST /ranking/adjustments` (404 ghost; audita
+      `ranking_adjustment_added`; notifica o membro in-app type=`system`, **sem
+      email**; `delta != 0`), `GET /ranking/adjustments` (gestor filtra; membro
+      comum só vê os seus).
+- [x] `RankingPage.js`: dialog **Definições** (enabled/visibilidade/Top-N/cap +
+      10 pesos → PUT) e **Registar ajuste** (membro das entries + delta + motivo
+      → POST); botões secundários no header; gated `canManage`; invalida queries.
+- [x] Testes: settings GET/PUT (RBAC, merge, diff de audit, privilégio
+      `manage_ranking`), adjustments POST (RBAC, 404, audit, notify), GET
+      (gestor vs próprio). `test_ranking.py` **45 passed**; suíte unit **971
+      passed** (0 regressões); ruff/eslint limpos; `craco build` OK.
+
+## Achados da revisão F4 (2026-05-27)
+- ✅ Revisão: **0 bloqueantes, 0 importantes, 3 nits — todos remediados**:
+  N1 (delta=0 aceite) → validador `delta != 0` em `RankingAjusteCreate` +
+  `adjustValid` no frontend; N2 (sem teste do caminho `manage_ranking`) →
+  `test_manage_ranking_privilege_grants_access`; N3 (asserção do diff de pesos)
+  → `changes["weights"]` verificado.
+
+## F5 — Privacidade (opt-out + direcao_only) + cron ✅
+- [x] `models.py`: `UserBase.ranking_opt_out` (aditivo, default False),
+      `MemberScore.ranking_opt_out` (denormalizado), `RankingOptOut` body.
+- [x] `ranking.py`: `_eligible_members`/`rebuild_scores` denormalizam
+      `ranking_opt_out` no snapshot.
+- [x] `routes/ranking.py`: `GET /leaderboard` → 403 a não-gestores quando
+      `visibility=direcao_only` (`/me` mantém-se acessível); lista exclui opt-out
+      (`{"$ne": True}`) mas o `me` é devolvido sem filtro (o próprio vê sempre a
+      sua posição); `total_ranked` (contagem completa) é o denominador do
+      "#N de M". **`PUT /ranking/opt-out`**: o próprio altera o seu flag —
+      atualiza `users` **e** `member_scores` (`update_many`) p/ efeito imediato.
+- [x] `scripts/rebuild_ranking.py`: cron (load_dotenv + `rebuild_scores` p/ ano
+      atual + "all" + `close_pool`; continua nos restantes períodos em erro).
+- [x] Frontend: `rankingAPI.setOptOut`; toggle "Aparecer no ranking público" no
+      cartão "A minha posição"; redireção em 403 + `retry:false`; widget do
+      dashboard escondido em `isError`.
+- [x] Testes: direcao_only 403/permite-gestor, query exclui opt-out, `me` sem
+      filtro, opt-out dual-write, rebuild denormaliza. `test_ranking.py` **51
+      passed**; suíte unit 0 regressões; ruff/eslint limpos; `craco build` OK.
+
+## Achados da revisão F5 (2026-05-27)
+- ✅ **IMPORTANT 1**: `leaderboardQuery` do dashboard sem `retry:false` (4 pedidos
+  num 403 direcao_only) → `retry:false` adicionado.
+- ✅ **IMPORTANT 2**: denominador "#N de M" usava o total filtrado (sem opt-out)
+  mas o `rank` é global → `total_ranked` (contagem completa) adicionado e usado.
+- Nits (sem ação): sem audit no opt-out (preferência pessoal, igual a
+  `email_opt_out_informativos`); `load_dotenv` silencioso (padrão de cron).
+
+## ✅ Spec COMPLETA — F0–F5 implementadas (PR #128). Falta só o merge para `develop`.
+
+## Stop conditions
+Não tornar público com efeito reputacional sem validação (default: Top-N + breakdown
+privado + opt-out); não mudar contrato do `report.personal`; sem emails; push só para
+`develop` (nunca `main`).
