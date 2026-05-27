@@ -1500,6 +1500,11 @@ class AssembleiaPresenca(BaseModel):
     voting_power: int = 1  # 1 (se votante) + nº de representados votantes
     documento_id: Optional[str] = None  # procuração/representação
     registado_por: str
+    # --- Camada "ao vivo" (spec-sessao-assembleia §3.1; aditivo) ---
+    method: Literal["join_click", "qr_meeting", "qr_scan", "self_code", "mesa_manual"] = "mesa_manual"
+    can_vote: bool = True  # is_voting_member no momento do check-in
+    checked_in_at: Optional[str] = None  # ISO 8601
+    source_article: str = "21"
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -1507,6 +1512,20 @@ class AssembleiaPresencaCreate(BaseModel):
     user_id: str
     representados: List[str] = Field(default_factory=list, max_length=MAX_REPRESENTADOS)
     documento_id: Optional[str] = None
+
+
+class AssembleiaCheckinRequest(BaseModel):
+    """Self check-in do próprio membro (online). Representação NÃO entra aqui —
+    é registada pela Mesa em `POST /presencas` (decisão D9)."""
+
+    method: Literal["join_click", "qr_meeting", "self_code"] = "join_click"
+    code: Optional[str] = None  # código de sessão (reforço anti-proxy opcional — D1)
+
+
+class AssembleiaCheckinScan(BaseModel):
+    """A Mesa lê o QR pessoal da carteira de um sócio (presencial)."""
+
+    qr_hash: str = Field(min_length=8, max_length=200)
 
 
 class AssembleiaDeliberacao(BaseModel):

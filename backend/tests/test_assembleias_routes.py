@@ -597,3 +597,260 @@ class TestStream:
         assert len(chunks) == 1  # emite uma vez (version mudou de -1 p/ 3)
         assert '"version": 3' in chunks[0]
         assert "checkin" in chunks[0]
+
+
+# --------------------------------------------------------------------------- #
+# F1 — Check-in ao vivo + quórum em tempo real
+# --------------------------------------------------------------------------- #
+
+
+def _sess(**over):
+    base = {
+        "id": "a1",
+        "titulo": "AGO 2030",
+        "status": "em_curso",
+        "session_phase": "checkin",
+        "quorum_required": 6,
+        "eligible_voters_count": 10,
+        "chamada_actual": 1,
+        "session_version": 0,
+    }
+    base.update(over)
+    return base
+
+
+def _voter_doc(uid, **over):
+    base = {"id": uid, "account_type": "member", "status": "ativo", "member_category": "ordinario", "cargo": "socio"}
+    base.update(over)
+    return base
+
+
+def _pres_find(existing=None, power=None):
+    """side_effect p/ assembleia_presencas.find: distingue a query de existentes
+    (user_id/representados) da de poder de voto (voting_power)."""
+    existing = existing or []
+    power = power or []
+
+    def _f(query, proj=None):
+        if proj and "voting_power" in proj:
+            return _cursor(power)
+        return _cursor(existing)
+
+    return _f
+
+
+class TestSelfCheckin:
+    async def test_fora_de_janela_400(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess(session_phase="fechada"))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.self_checkin(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.AssembleiaCheckinRequest(),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 400
+
+    async def test_self_checkin_ok(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.users.find_one = AsyncMock(return_value=_voter_doc(socio_user.id))
+        gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_find(existing=[], power=[{"voting_power": 1}]))
+        captured = {}
+        gov_env.assembleia_presencas.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        result = await a_route.self_checkin(
+            assembleia_id="a1",
+            request=_request(),
+            data=a_route.AssembleiaCheckinRequest(method="join_click"),
+            current_user=socio_user,
+        )
+        assert captured["user_id"] == socio_user.id
+        assert captured["method"] == "join_click"
+        assert captured["can_vote"] is True
+        assert captured["voting_power"] == 1
+        assert captured["checked_in_at"] is not None
+        assert result["present_voting_power"] == 1
+        a_route.create_audit_log.assert_awaited()
+
+    async def test_honorario_nao_vota_power_0(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.users.find_one = AsyncMock(return_value=_voter_doc(socio_user.id, member_category="honorario"))
+        gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_find(existing=[], power=[{"voting_power": 0}]))
+        captured = {}
+        gov_env.assembleia_presencas.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        await a_route.self_checkin(
+            assembleia_id="a1",
+            request=_request(),
+            data=a_route.AssembleiaCheckinRequest(),
+            current_user=socio_user,
+        )
+        assert captured["can_vote"] is False
+        assert captured["voting_power"] == 0
+
+    async def test_codigo_invalido_400(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess(check_in_code="ABC123"))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.self_checkin(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.AssembleiaCheckinRequest(method="self_code", code="WRONG1"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 400
+
+    async def test_codigo_expirado_400(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(
+            return_value=_sess(check_in_code="ABC123", check_in_code_expires_at="2000-01-01T00:00:00+00:00")
+        )
+        with pytest.raises(HTTPException) as exc:
+            await a_route.self_checkin(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.AssembleiaCheckinRequest(method="self_code", code="ABC123"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 400
+
+    async def test_ja_presente_409(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.users.find_one = AsyncMock(return_value=_voter_doc(socio_user.id))
+        gov_env.assembleia_presencas.find = MagicMock(
+            side_effect=_pres_find(existing=[{"user_id": socio_user.id, "representados": []}])
+        )
+        with pytest.raises(HTTPException) as exc:
+            await a_route.self_checkin(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.AssembleiaCheckinRequest(),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 409
+
+    async def test_conta_tecnica_400(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.users.find_one = AsyncMock(return_value=_voter_doc(socio_user.id, account_type="technical"))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.self_checkin(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.AssembleiaCheckinRequest(),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 400
+
+
+class TestCheckinScan:
+    async def test_socio_comum_403(self, gov_env, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await a_route.checkin_scan(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.AssembleiaCheckinScan(qr_hash="hash-1234"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_resolve_user_por_qr(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.users.find_one = AsyncMock(return_value=_voter_doc("scanned1"))
+        gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_find(existing=[], power=[{"voting_power": 1}]))
+        captured = {}
+        gov_env.assembleia_presencas.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        result = await a_route.checkin_scan(
+            assembleia_id="a1",
+            request=_request(),
+            data=a_route.AssembleiaCheckinScan(qr_hash="hash-1234"),
+            current_user=_mesa_ag(),
+        )
+        assert captured["user_id"] == "scanned1"
+        assert captured["method"] == "qr_scan"
+        assert result["present_voting_power"] == 1
+
+    async def test_qr_desconhecido_404(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.users.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await a_route.checkin_scan(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.AssembleiaCheckinScan(qr_hash="hash-xxxx"),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 404
+
+    async def test_fora_de_janela_400(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess(session_phase="fechada"))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.checkin_scan(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.AssembleiaCheckinScan(qr_hash="hash-1234"),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 400
+
+
+class TestAbrirFecharCheckin:
+    async def test_socio_comum_403(self, gov_env, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await a_route.abrir_checkin(assembleia_id="a1", request=_request(), current_user=socio_user)
+        assert exc.value.status_code == 403
+
+    async def test_abrir_gera_codigo_e_marca_em_curso(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess(status="convocada", session_phase="fechada"))
+        captured = {}
+        gov_env.assembleias.update_one = AsyncMock(side_effect=lambda flt, upd: captured.update(upd["$set"]))
+        result = await a_route.abrir_checkin(assembleia_id="a1", request=_request(), current_user=_mesa_ag())
+        assert len(result["check_in_code"]) == 6
+        assert result["session_phase"] == "checkin"
+        assert captured["check_in_code"] == result["check_in_code"]
+        assert captured["session_phase"] == "checkin"
+        assert captured["status"] == "em_curso"
+        a_route.notify_all_active_users.assert_awaited()
+
+    async def test_fechar_invalida_codigo(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess(check_in_code="ABC123"))
+        captured = {}
+        gov_env.assembleias.update_one = AsyncMock(side_effect=lambda flt, upd: captured.update(upd["$set"]))
+        await a_route.fechar_checkin(assembleia_id="a1", request=_request(), current_user=_mesa_ag())
+        assert captured["check_in_code"] is None
+        assert captured["check_in_code_expires_at"] is None
+
+
+class TestSegundaConvocatoria:
+    async def test_socio_comum_403(self, gov_env, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await a_route.segunda_convocatoria(assembleia_id="a1", request=_request(), current_user=socio_user)
+        assert exc.value.status_code == 403
+
+    async def test_recalcula_quorum_um_terco(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess(eligible_voters_count=10))
+        gov_env.assembleia_presencas.find = MagicMock(return_value=_cursor([{"voting_power": 4}]))
+        captured = {}
+        gov_env.assembleias.update_one = AsyncMock(side_effect=lambda flt, upd: captured.update(upd["$set"]))
+        result = await a_route.segunda_convocatoria(assembleia_id="a1", request=_request(), current_user=_mesa_ag())
+        assert result["chamada_actual"] == 2
+        assert result["quorum_required"] == 4  # ceil(10/3)
+        assert result["quorum_met"] is True  # poder 4 >= 4
+        assert captured["chamada_actual"] == 2
+
+    async def test_ja_em_segunda_400(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess(chamada_actual=2))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.segunda_convocatoria(assembleia_id="a1", request=_request(), current_user=_mesa_ag())
+        assert exc.value.status_code == 400
+
+
+class TestListPresencas:
+    async def test_socio_comum_403(self, gov_env, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await a_route.list_presencas(assembleia_id="a1", current_user=socio_user)
+        assert exc.value.status_code == 403
+
+    async def test_mesa_lista(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_presencas.find = MagicMock(
+            return_value=_cursor([{"user_id": "u1", "method": "join_click"}])
+        )
+        result = await a_route.list_presencas(assembleia_id="a1", current_user=_mesa_ag())
+        assert len(result["presencas"]) == 1
+        assert result["presencas"][0]["method"] == "join_click"

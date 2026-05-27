@@ -69,26 +69,32 @@ sem partir o que existe (tudo aditivo).
 - [ ] _(movido p/ F7)_ FE: hook `useAssembleiaStream(id)` — feito quando houver a
       sala que o consome (não entregar hook sem página que o renderize/verifique).
 
-## F1 — 2.1 Check-in ao vivo + quórum em tempo real (Art. 5, 21) — dep: F0
-- [ ] `models.py`: estender `AssembleiaPresenca` com `method`
-      (`join_click|qr_meeting|qr_scan|self_code|mesa_manual`), `can_vote`,
-      `checked_in_at`, `source_article="21"`. (`is_member`/`voting_power` já existem.)
-- [ ] `POST /assembleias/{id}/checkin` (membro autenticado): self check-in
-      (`join_click`/`qr_meeting`/`self_code`); valida sessão em `checkin`/`em_curso`,
-      é membro, código (se enviado) == `check_in_code` não expirado; representação
-      ≤3 (reusa validação existente). Devolve quórum recalculado + bump.
-- [ ] `POST /assembleias/{id}/checkin/scan` (Mesa): `{qr_hash}` → reusa lookup de
-      `GET /stats/validate/{qr_hash}`; regista presença `method=qr_scan`.
-- [ ] `POST /assembleias/{id}/checkin/abrir|fechar` (Mesa): abre janela e **roda**
-      `check_in_code` (+`expires_at`); `fechar` limpa o código.
-- [ ] `POST /assembleias/{id}/segunda-convocatoria` (Mesa): `chamada_actual=2`,
-      recalcula `quorum_required = required_quorum(n, 2)`.
-- [ ] `GET /assembleias/{id}/presencas` (Mesa). (`GET /quorum` já existe — reusar.)
-- [ ] Manter `POST /presencas` actual como caminho `mesa_manual`.
-- [ ] Audit: `assembleia_checkin`, `assembleia_checkin_scan`,
-      `assembleia_segunda_convocatoria`. Notif `event` ao abrir check-in.
-- [ ] Testes: self só com código válido + sessão aberta; scan resolve user; rep ≤3 e
-      Mesa-não-representa; quórum 1ª (`floor/2+1`) vs 2ª (`ceil/3`); dup bloqueada.
+## F1 — 2.1 Check-in ao vivo + quórum em tempo real (Art. 5, 21) ✅ (backend) — dep: F0
+- [x] `models.py`: `AssembleiaPresenca` + `method`/`can_vote`/`checked_in_at`/
+      `source_article="21"` (defaults retro-compat: `method="mesa_manual"`);
+      request models `AssembleiaCheckinRequest` + `AssembleiaCheckinScan`.
+- [x] `POST /{id}/checkin` (membro autenticado): self check-in (`join_click`/
+      `qr_meeting`/`self_code`); valida janela aberta (`_checkin_open`), é membro,
+      código (se enviado) válido+não-expirado (`_code_valid`), anti-duplicado
+      (`_existing_present_ids`), `voting_power`=1 se votante senão 0. **Representação
+      NÃO entra aqui** — fica no `POST /presencas` da Mesa (decisão D9).
+- [x] `POST /{id}/checkin/scan` (Mesa): `{qr_hash}` → `db.users.find_one(
+      {qr_code_hash})` (igual a `/stats/validate`); regista `method=qr_scan`.
+- [x] `POST /{id}/checkin/abrir|fechar` (Mesa): abrir gera/roda `check_in_code`
+      (TTL 30 min) + entra em `checkin`/`em_curso`; fechar invalida o código.
+- [x] `POST /{id}/segunda-convocatoria` (Mesa): `chamada_actual=2`,
+      `quorum_required=required_quorum(n,2)`, recalcula `quorum_met`.
+- [x] `GET /{id}/presencas` (Mesa). (`GET /quorum` reutilizado.)
+- [x] `POST /presencas` actual = caminho `mesa_manual` (+ `can_vote`/`checked_in_at`);
+      passou a usar `_finalize_checkin` → faz bump de sessão (SSE).
+- [x] Audit: `assembleia_checkin`/`_scan`/`_abrir`/`_fechar`/`_segunda_convocatoria`.
+      Notif `event` ao abrir check-in. Todas as mutações fazem bump de `session_version`.
+- [x] Testes (19 novos, 48/48 verdes): self ok / honorário power 0 / código
+      inválido / código expirado / já presente 409 / conta técnica / fora-de-janela;
+      scan resolve por qr / 404 / 403 / fora-de-janela; abrir gera código+em_curso /
+      403 / fechar invalida; 2ª convocatória recalcula 1/3 / já-em-2ª / 403; listar
+      presenças Mesa / 403. ruff check limpo.
+- _Nota D9:_ representação online via Mesa; self check-in regista só presença própria.
 
 ## F2 — 2.2 Fila de uso da palavra + cronómetros (Art. 21/27/28/29) — dep: F0, F1
 - [ ] `database.py`: + colecção `assembleia_palavra`; índices `assembleia_id`,

@@ -10,7 +10,8 @@ das presenças (1 por votante próprio + 1 por cada representado votante).
 
 import asyncio
 import json
-from datetime import datetime, timezone
+import secrets
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
@@ -28,6 +29,8 @@ from governance import (
 from helpers import create_audit_log, notify_all_active_users
 from models import (
     Assembleia,
+    AssembleiaCheckinRequest,
+    AssembleiaCheckinScan,
     AssembleiaCreate,
     AssembleiaDeliberacao,
     AssembleiaDeliberacaoCreate,
@@ -40,6 +43,11 @@ from models import (
 from permissions import can_convene_assembleia, is_mesa_ag
 
 router = APIRouter(prefix="/assembleias", tags=["assembleias"])
+
+# Janela de validade do código de check-in (reforço anti-proxy — D1).
+CHECK_IN_CODE_TTL_MIN = 30
+# Fases em que o check-in está aberto (não em fechada/encerramento).
+_CHECKIN_OPEN_PHASES = ("checkin", "antes_ot", "ordem_trabalhos")
 
 # Sócios reais (account_type member ou ausente — retro-compat).
 _MEMBER_FILTER = {"$or": [{"account_type": "member"}, {"account_type": {"$exists": False}}]}
@@ -123,6 +131,56 @@ async def _session_snapshot(assembleia_id: str) -> dict | None:
             "present_count": present_count,
             "met": present_power >= required,
         },
+    }
+
+
+def _gen_check_in_code() -> str:
+    """Código curto (6 chars), sem caracteres ambíguos, para self check-in."""
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # sem I/O/0/1
+    return "".join(secrets.choice(alphabet) for _ in range(6))
+
+
+def _checkin_open(a: dict) -> bool:
+    """A janela de check-in está aberta? (sessão a decorrer, fase não-fechada)."""
+    return a.get("status") in ("convocada", "em_curso") and a.get("session_phase") in _CHECKIN_OPEN_PHASES
+
+
+def _code_valid(a: dict, code: str | None) -> bool:
+    """Valida o código de sessão (se a Mesa o exigir e o membro o enviar)."""
+    if not code:
+        return True  # código é reforço opcional (D1) — ausência não bloqueia
+    expected = a.get("check_in_code")
+    if not expected or code.strip().upper() != expected:
+        return False
+    expires = _parse_dt(a.get("check_in_code_expires_at") or "")
+    return expires is None or expires > datetime.now(timezone.utc)
+
+
+async def _existing_present_ids(assembleia_id: str) -> set[str]:
+    """Todos os ids já presentes ou representados (anti-duplicado)."""
+    rows = await db.assembleia_presencas.find(
+        {"assembleia_id": assembleia_id}, {"_id": 0, "user_id": 1, "representados": 1}
+    ).to_list(None)
+    ids: set[str] = set()
+    for r in rows:
+        ids.add(r["user_id"])
+        ids.update(r.get("representados", []))
+    return ids
+
+
+async def _finalize_checkin(a: dict, presenca: AssembleiaPresenca) -> dict:
+    """Insere a presença, recalcula o quórum, faz bump de sessão (SSE) e devolve
+    o snapshot de contagem. Partilhado por todos os caminhos de check-in."""
+    doc = presenca.model_dump()
+    await db.assembleia_presencas.insert_one(doc)
+    present_count, present_power = await _present_voting_power(a["id"])
+    quorum_met = present_power >= a.get("quorum_required", 0)
+    await _bump_session(a["id"], {"quorum_met": quorum_met})
+    return {
+        "presenca": doc,
+        "present_count": present_count,
+        "present_voting_power": present_power,
+        "quorum_met": quorum_met,
     }
 
 
@@ -308,13 +366,11 @@ async def register_presenca(
         voting_power=power,
         documento_id=data.documento_id,
         registado_por=current_user.id,
+        method="mesa_manual",
+        can_vote=is_voting_member(present),
+        checked_in_at=_now_iso(),
     )
-    doc = presenca.model_dump()
-    await db.assembleia_presencas.insert_one(doc)
-
-    present_count, present_power = await _present_voting_power(assembleia_id)
-    quorum_met = present_power >= a.get("quorum_required", 0)
-    await db.assembleias.update_one({"id": assembleia_id}, {"$set": {"quorum_met": quorum_met}})
+    result = await _finalize_checkin(a, presenca)
     await create_audit_log(
         current_user.id,
         "assembleia_presenca",
@@ -322,12 +378,202 @@ async def register_presenca(
         request=request,
         details={"user_id": data.user_id, "representados": data.representados, "voting_power": power},
     )
+    return result
+
+
+@router.post("/{assembleia_id}/checkin")
+async def self_checkin(
+    assembleia_id: str,
+    request: Request,
+    data: AssembleiaCheckinRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Self check-in do próprio membro (online): clique em "Entrar na reunião" /
+    QR da reunião / código de sessão. Atribuível e datado (= assinar a folha — D1).
+    Representação NÃO entra aqui: é registada pela Mesa em `POST /presencas` (D9)."""
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    if not _checkin_open(a):
+        raise HTTPException(status_code=400, detail="O check-in não está aberto.")
+    if not _code_valid(a, data.code):
+        raise HTTPException(status_code=400, detail="Código de sessão inválido ou expirado.")
+
+    present = await db.users.find_one({"id": current_user.id}, _VOTER_PROJ)
+    if not present or present.get("account_type", "member") != "member":
+        raise HTTPException(status_code=400, detail="Apenas sócios participam em assembleias.")
+    if current_user.id in await _existing_present_ids(assembleia_id):
+        raise HTTPException(status_code=409, detail="A sua presença já está registada.")
+
+    can_vote = is_voting_member(present)
+    presenca = AssembleiaPresenca(
+        assembleia_id=assembleia_id,
+        user_id=current_user.id,
+        tipo="propria",
+        voting_power=1 if can_vote else 0,
+        registado_por=current_user.id,
+        method=data.method,
+        can_vote=can_vote,
+        checked_in_at=_now_iso(),
+    )
+    result = await _finalize_checkin(a, presenca)
+    await create_audit_log(
+        current_user.id,
+        "assembleia_checkin",
+        assembleia_id,
+        request=request,
+        details={"method": data.method, "can_vote": can_vote},
+    )
+    return result
+
+
+@router.post("/{assembleia_id}/checkin/scan")
+async def checkin_scan(
+    assembleia_id: str,
+    request: Request,
+    data: AssembleiaCheckinScan,
+    current_user: User = Depends(get_current_user),
+):
+    """A Mesa lê o QR pessoal da carteira de um sócio (presencial) e regista a
+    presença desse sócio. Resolve `qr_code_hash → user` (igual a `/stats/validate`)."""
+    _require_convene(current_user)
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    if not _checkin_open(a):
+        raise HTTPException(status_code=400, detail="O check-in não está aberto.")
+
+    present = await db.users.find_one({"qr_code_hash": data.qr_hash}, _VOTER_PROJ)
+    if not present:
+        raise HTTPException(status_code=404, detail="QR não corresponde a nenhum sócio.")
+    if present.get("account_type", "member") != "member":
+        raise HTTPException(status_code=400, detail="Conta técnica não participa em assembleias.")
+    if present["id"] in await _existing_present_ids(assembleia_id):
+        raise HTTPException(status_code=409, detail="Presença já registada.")
+
+    can_vote = is_voting_member(present)
+    presenca = AssembleiaPresenca(
+        assembleia_id=assembleia_id,
+        user_id=present["id"],
+        tipo="propria",
+        voting_power=1 if can_vote else 0,
+        registado_por=current_user.id,
+        method="qr_scan",
+        can_vote=can_vote,
+        checked_in_at=_now_iso(),
+    )
+    result = await _finalize_checkin(a, presenca)
+    await create_audit_log(
+        current_user.id,
+        "assembleia_checkin_scan",
+        assembleia_id,
+        request=request,
+        details={"user_id": present["id"], "can_vote": can_vote},
+    )
+    return result
+
+
+@router.post("/{assembleia_id}/checkin/abrir")
+async def abrir_checkin(
+    assembleia_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    """A Mesa abre a janela de check-in e gera/roda o código de sessão."""
+    _require_convene(current_user)
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    if a["status"] in ("encerrada", "anulada"):
+        raise HTTPException(status_code=400, detail="Assembleia encerrada ou anulada.")
+
+    code = _gen_check_in_code()
+    expires = (datetime.now(timezone.utc) + timedelta(minutes=CHECK_IN_CODE_TTL_MIN)).isoformat()
+    extra: dict = {"check_in_code": code, "check_in_code_expires_at": expires}
+    if a.get("session_phase", "fechada") == "fechada":
+        extra["session_phase"] = "checkin"
+    if a["status"] == "convocada":
+        extra["status"] = "em_curso"
+    await _bump_session(assembleia_id, extra)
+    await create_audit_log(current_user.id, "assembleia_checkin_abrir", assembleia_id, request=request, details={})
+    await notify_all_active_users(
+        "event",
+        "Check-in aberto",
+        f"O check-in da {a.get('titulo', 'Assembleia Geral')} está aberto.",
+        f"/assembleias/{assembleia_id}",
+    )
     return {
-        "presenca": doc,
-        "present_count": present_count,
+        "check_in_code": code,
+        "check_in_code_expires_at": expires,
+        "session_phase": extra.get("session_phase", a.get("session_phase", "fechada")),
+    }
+
+
+@router.post("/{assembleia_id}/checkin/fechar")
+async def fechar_checkin(
+    assembleia_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    """A Mesa fecha a janela: invalida o código (a fase mantém-se)."""
+    _require_convene(current_user)
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "id": 1})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    await _bump_session(assembleia_id, {"check_in_code": None, "check_in_code_expires_at": None})
+    await create_audit_log(current_user.id, "assembleia_checkin_fechar", assembleia_id, request=request, details={})
+    return {"message": "Check-in fechado; código invalidado."}
+
+
+@router.post("/{assembleia_id}/segunda-convocatoria")
+async def segunda_convocatoria(
+    assembleia_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    """A Mesa declara a 2.ª convocatória: o quórum exigido passa a 1/3 do universo."""
+    _require_convene(current_user)
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    if a["status"] in ("encerrada", "anulada"):
+        raise HTTPException(status_code=400, detail="Assembleia encerrada ou anulada.")
+    if a.get("chamada_actual", 1) == 2:
+        raise HTTPException(status_code=400, detail="Já está em segunda convocatória.")
+
+    eligible = a.get("eligible_voters_count", 0)
+    new_required = required_quorum(eligible, 2)
+    _, present_power = await _present_voting_power(assembleia_id)
+    quorum_met = present_power >= new_required
+    await _bump_session(assembleia_id, {"chamada_actual": 2, "quorum_required": new_required, "quorum_met": quorum_met})
+    await create_audit_log(
+        current_user.id,
+        "assembleia_segunda_convocatoria",
+        assembleia_id,
+        request=request,
+        details={"quorum_required": new_required},
+    )
+    return {
+        "chamada_actual": 2,
+        "quorum_required": new_required,
         "present_voting_power": present_power,
         "quorum_met": quorum_met,
     }
+
+
+@router.get("/{assembleia_id}/presencas")
+async def list_presencas(assembleia_id: str, current_user: User = Depends(get_current_user)):
+    """Lista as presenças da assembleia (folha de presenças — só Mesa/admin)."""
+    _require_convene(current_user)
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "id": 1})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    rows = (
+        await db.assembleia_presencas.find({"assembleia_id": assembleia_id}, {"_id": 0})
+        .sort("created_at", 1)
+        .to_list(None)
+    )
+    return {"presencas": rows}
 
 
 @router.post("/{assembleia_id}/deliberacoes")
