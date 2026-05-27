@@ -96,8 +96,39 @@ Feature GRANDE, faseada (F0–F5), PRs pequenos. Aditivo — sem migração dest
 - **N5 (N queries/membro no rebuild) — roadmap**: pré-agregação (um `$group`/
   colecção, §5) fica para quando houver volume; rebuild corre fora do request path.
 
+## F3 — Página `/ranking` ✅
+- [x] `pages/private/RankingPage.js` (novo): pódio Top-3 (Crown Carmesim no #1,
+      Medal neutro #2/#3), tabela (rank/nome/cargo/score + badge inativo),
+      realce da linha do próprio + cartão "A minha posição" (do `me`), pesquisa
+      por nome + paginação **client-side** sobre 1 fetch (`limit=200`), filtro de
+      período (Este ano / Sempre), botão **Recalcular** (`POST /rebuild`, gated
+      `isAdmin||isDirecao||manage_ranking`), estados loading/desativado/vazio/
+      sem-resultados, redireção se `visibility=direcao_only` (enforcement
+      server-side fica na F5).
+- [x] `App.js`: lazy import + rota `/ranking` (ProtectedRoute+PrivateLayout).
+      `PrivateLayout`: `Trophy` + item na secção "Painel" (`roles:['all']`).
+      `DashboardPage`: link "Ver ranking completo →" no footer do widget Top-N.
+- [x] Verificação: eslint 0 erros, `craco build` OK.
+
+## Achados da revisão F3 (2026-05-27)
+- ✅ **IMPORTANT #1**: `PeriodToggle`/`RecalcularButton` estavam definidos dentro
+  do render (recria o tipo → remonta/perde foco) → elevados a componentes de
+  módulo com props.
+- ✅ **IMPORTANT #2**: `text-[#6B7280]` sobre `#FBEAEC` dava 4.16:1 (< 4.5) → o
+  token `#FBEAEC` só leva texto Grafite; cartão "A minha posição" passou a
+  Grafite e o realce do pódio passou a `ring` sobre branco (texto muted fica em
+  branco). Linha selecionada da tabela mantém `#FBEAEC` (token de selected-row).
+- ✅ **IMPORTANT #3**: badge "Inativo" 4.39:1 → texto para `#4B5563` (gray-600;
+  mais escuro que o piso `#6B7280`, passa ~5.7:1). A sugestão da revisão
+  (escurecer o fundo p/ gray-200) estava invertida — escurecer o **texto** é o
+  correcto. Apliquei o mesmo ao label inativo do toggle de período.
+- ✅ **N1** (testid `ranking-computed-at` duplicado) → `ranking-page-computed-at`
+  na página. **N2** (link sem focus ring) → ring adicionado ao link novo.
+- **N3** (`manage_ranking` no frontend antes do backend) — **intencional** (§8.3
+  lista `hasPrivilege('manage_ranking')`); ninguém tem o privilégio até a F4
+  o registar; ambos os lados sobem juntos. Sem ação.
+
 ## Fases seguintes (por fazer)
-- **F3** página `/ranking` (pódio, tabela, período, pesquisa) + sidebar + rota.
 - **F4** config admin/Direcção: `settings`/`adjustments` + privilégio `manage_ranking`.
 - **F5** `ranking_opt_out` + `visibility=direcao_only` + `scripts/rebuild_ranking.py` (cron).
 

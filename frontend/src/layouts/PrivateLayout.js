@@ -43,6 +43,7 @@ import {
   FileCheck,
   ScrollText,
   Megaphone,
+  Trophy,
 } from 'lucide-react';
 
 const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
@@ -53,6 +54,7 @@ const menuSections = [
     title: 'Painel',
     items: [
       { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['all'] },
+      { label: 'Ranking', path: '/ranking', icon: Trophy, roles: ['all'] },
       { label: 'Meu Perfil', path: '/perfil', icon: UserCircle, roles: ['all'] },
       { label: 'Carteira Digital', path: '/carteira', icon: CreditCard, roles: ['socio'] },
     ],

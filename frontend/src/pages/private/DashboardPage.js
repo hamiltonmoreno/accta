@@ -679,11 +679,20 @@ export const DashboardPage = () => {
                   );
                 })}
               </div>
-              {leaderboard?.computed_at && (
-                <div className="px-5 sm:px-6 py-3 border-t border-gray-100 text-xs text-[#6B7280]" data-testid="ranking-computed-at">
-                  Atualizado {format(new Date(leaderboard.computed_at), "dd 'de' MMMM, HH:mm", { locale: ptBR })}
-                </div>
-              )}
+              <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-3 border-t border-gray-100">
+                <span className="text-xs text-[#6B7280]" data-testid="ranking-computed-at">
+                  {leaderboard?.computed_at
+                    ? `Atualizado ${format(new Date(leaderboard.computed_at), "dd 'de' MMMM, HH:mm", { locale: ptBR })}`
+                    : ''}
+                </span>
+                <button
+                  onClick={() => navigate('/ranking')}
+                  className="text-xs text-carmesim hover:text-carmesim-dark font-semibold flex items-center gap-1 flex-shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-1"
+                  data-testid="ranking-ver-completo"
+                >
+                  Ver ranking completo <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </>
           )}
         </div>
