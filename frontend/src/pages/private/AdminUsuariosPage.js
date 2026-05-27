@@ -24,6 +24,7 @@ import {
 } from '../../lib/statusConfig';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
+import { UserAvatar } from '../../components/UserAvatar';
 
 // CARGOS e PRIVILEGES vêm do backend (GET /users/meta/cargos). Aqui só os
 // conjuntos pequenos e estáveis; rótulos PT em lib/cargoLabels.
@@ -106,6 +107,18 @@ export const AdminUsuariosPage = () => {
       invalidateUsers();
     },
     onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao remover'),
+  });
+
+  // Moderação reativa da foto: admin/moderador removem (não definem) — o backend
+  // notifica o utilizador. Atualiza o editingUser localmente para refletir já.
+  const removePhotoMutation = useMutation({
+    mutationFn: (userId) => usersAPI.removePhoto(userId),
+    onSuccess: () => {
+      toast.success('Foto removida');
+      setEditingUser((u) => (u ? { ...u, photo_url: null } : u));
+      invalidateUsers();
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao remover a foto'),
   });
 
   const inviteMutation = useMutation({
@@ -264,9 +277,13 @@ export const AdminUsuariosPage = () => {
                     <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-[#F5F5F5] rounded-lg flex items-center justify-center text-grafite text-sm font-bold flex-shrink-0">
-                            {u.name?.charAt(0).toUpperCase()}
-                          </div>
+                          <UserAvatar
+                            size="sm"
+                            className="rounded-lg"
+                            name={u.name}
+                            photoUrl={u.photo_url}
+                            fallbackClassName="rounded-lg bg-[#F5F5F5] text-grafite"
+                          />
                           <div className="min-w-0">
                             <div className="font-semibold text-grafite truncate">{u.name}</div>
                             <div className="text-xs text-[#6B7280] truncate">{u.email}</div>
@@ -330,9 +347,12 @@ export const AdminUsuariosPage = () => {
               <div key={u.id} className="card-technical p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#F5F5F5] rounded-lg flex items-center justify-center text-grafite font-bold flex-shrink-0">
-                      {u.name?.charAt(0).toUpperCase()}
-                    </div>
+                    <UserAvatar
+                      className="rounded-lg"
+                      name={u.name}
+                      photoUrl={u.photo_url}
+                      fallbackClassName="rounded-lg bg-[#F5F5F5] text-grafite"
+                    />
                     <div className="min-w-0">
                       <div className="font-semibold text-grafite text-sm truncate">{u.name}</div>
                       <div className="text-xs text-[#6B7280]">{u.cargo || 'Sócio'}</div>
@@ -370,13 +390,28 @@ export const AdminUsuariosPage = () => {
               {/* Modal Header */}
               <DialogHeader className="px-5 py-4 border-b border-gray-100 text-left space-y-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#F5F5F5] rounded-lg flex items-center justify-center text-grafite font-bold shrink-0">
-                    {editingUser.name?.charAt(0).toUpperCase()}
-                  </div>
+                  <UserAvatar
+                    className="rounded-lg"
+                    name={editingUser.name}
+                    photoUrl={editingUser.photo_url}
+                    fallbackClassName="rounded-lg bg-[#F5F5F5] text-grafite"
+                  />
                   <div className="min-w-0">
                     <DialogTitle className="font-bold text-grafite text-sm truncate">{editingUser.name}</DialogTitle>
                     <DialogDescription className="text-xs text-[#6B7280] truncate">{editingUser.email}</DialogDescription>
                   </div>
+                  {editingUser.photo_url && (
+                    <button
+                      type="button"
+                      onClick={() => removePhotoMutation.mutate(editingUser.id)}
+                      disabled={removePhotoMutation.isPending}
+                      className="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold text-[#6B7280] hover:text-carmesim transition-colors disabled:opacity-50 shrink-0"
+                      data-testid="admin-remove-photo-btn"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                      Remover foto
+                    </button>
+                  )}
                 </div>
               </DialogHeader>
 

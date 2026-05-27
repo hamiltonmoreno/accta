@@ -309,6 +309,23 @@ class TestProfileFieldValidation:
         m = UserProfileUpdate(blood_type="", date_of_birth="")
         assert m.blood_type == "" and m.date_of_birth == ""
 
+    def test_photo_url_rejects_external(self):
+        """photo_url só aceita /uploads/avatars/… — bloqueia URL externa (beacon)."""
+        from pydantic import ValidationError
+        from models import UserProfileUpdate
+
+        with pytest.raises(ValidationError):
+            UserProfileUpdate(photo_url="https://tracker.externo.com/pixel.png")
+        with pytest.raises(ValidationError):
+            UserProfileUpdate(photo_url="/uploads/documents/x.pdf")
+
+    def test_photo_url_accepts_own_upload_blank_none(self):
+        from models import UserProfileUpdate
+
+        assert UserProfileUpdate(photo_url="/uploads/avatars/x.jpg").photo_url == "/uploads/avatars/x.jpg"
+        assert UserProfileUpdate(photo_url="").photo_url == ""
+        assert UserProfileUpdate(photo_url=None).photo_url is None
+
     def test_admin_update_inherits_personal_fields(self):
         """UserAdminUpdate herda os campos pessoais + valida-os."""
         from pydantic import ValidationError
@@ -519,3 +536,168 @@ class TestMeta:
     async def test_privileges_returns_list(self):
         result = await users_route.get_privileges()
         assert isinstance(result["privileges"], list) and len(result["privileges"]) > 0
+
+
+# --------------------------------------------------------------------------- #
+# Foto de perfil — auto-serviço (PATCH /users/me/profile) — spec-foto-de-perfil
+# --------------------------------------------------------------------------- #
+
+
+class TestOwnProfilePhoto:
+    async def test_set_new_photo_persists_and_deletes_old(self, mock_db, monkeypatch, socio_user):
+        from models import UserProfileUpdate
+
+        deleted = MagicMock()
+        monkeypatch.setattr(users_route, "delete_upload_file", deleted)
+        mock_db.users.find_one = AsyncMock(
+            return_value={"id": socio_user.id, "photo_url": "/uploads/avatars/old.jpg"}
+        )
+        await users_route.update_own_profile(
+            data=UserProfileUpdate(photo_url="/uploads/avatars/new.jpg"), current_user=socio_user
+        )
+        set_data = mock_db.users.update_one.call_args[0][1]["$set"]
+        assert set_data["photo_url"] == "/uploads/avatars/new.jpg"
+        deleted.assert_called_once_with("/uploads/avatars/old.jpg")
+
+    async def test_clear_photo_sets_none_and_deletes_old(self, mock_db, monkeypatch, socio_user):
+        """photo_url == "" limpa (grava None), apaga o ficheiro e audita removed."""
+        from models import UserProfileUpdate
+
+        deleted = MagicMock()
+        audited = AsyncMock()
+        monkeypatch.setattr(users_route, "delete_upload_file", deleted)
+        monkeypatch.setattr(users_route, "create_audit_log", audited)
+        mock_db.users.find_one = AsyncMock(
+            return_value={"id": socio_user.id, "photo_url": "/uploads/avatars/old.jpg"}
+        )
+        await users_route.update_own_profile(data=UserProfileUpdate(photo_url=""), current_user=socio_user)
+        set_data = mock_db.users.update_one.call_args[0][1]["$set"]
+        assert set_data["photo_url"] is None
+        deleted.assert_called_once_with("/uploads/avatars/old.jpg")
+        assert audited.await_args[0][1] == "profile_photo_removed"
+
+    async def test_set_photo_only_audits_specific(self, mock_db, monkeypatch, socio_user):
+        from models import UserProfileUpdate
+
+        monkeypatch.setattr(users_route, "delete_upload_file", MagicMock())
+        audited = AsyncMock()
+        monkeypatch.setattr(users_route, "create_audit_log", audited)
+        mock_db.users.find_one = AsyncMock(return_value={"id": socio_user.id, "photo_url": None})
+        await users_route.update_own_profile(
+            data=UserProfileUpdate(photo_url="/uploads/avatars/new.jpg"), current_user=socio_user
+        )
+        assert audited.await_args[0][1] == "profile_photo_updated"
+
+    async def test_photo_omitted_keeps_value_and_no_delete(self, mock_db, monkeypatch, socio_user, socio_user_dict):
+        from models import UserProfileUpdate
+
+        deleted = MagicMock()
+        monkeypatch.setattr(users_route, "delete_upload_file", deleted)
+        mock_db.users.find_one = AsyncMock(return_value=socio_user_dict)
+        await users_route.update_own_profile(data=UserProfileUpdate(name="Novo"), current_user=socio_user)
+        set_data = mock_db.users.update_one.call_args[0][1]["$set"]
+        assert "photo_url" not in set_data
+        deleted.assert_not_called()
+
+    async def test_mixed_edit_with_photo_audits_generic(self, mock_db, monkeypatch, socio_user):
+        """Edição mista (foto + outros campos) usa o audit genérico do perfil."""
+        from models import UserProfileUpdate
+
+        monkeypatch.setattr(users_route, "delete_upload_file", MagicMock())
+        audited = AsyncMock()
+        monkeypatch.setattr(users_route, "create_audit_log", audited)
+        mock_db.users.find_one = AsyncMock(return_value={"id": socio_user.id, "photo_url": None})
+        await users_route.update_own_profile(
+            data=UserProfileUpdate(name="Novo", photo_url="/uploads/avatars/new.jpg"),
+            current_user=socio_user,
+        )
+        assert audited.await_args[0][1] == "Atualizou o próprio perfil"
+        set_data = mock_db.users.update_one.call_args[0][1]["$set"]
+        assert set_data["photo_url"] == "/uploads/avatars/new.jpg" and set_data["name"] == "Novo"
+
+
+# --------------------------------------------------------------------------- #
+# DELETE /users/{id}/photo — moderação reativa (admin + moderador)
+# --------------------------------------------------------------------------- #
+
+
+class TestRemoveUserPhoto:
+    async def test_admin_removes(self, mock_db, monkeypatch, admin_user):
+        deleted = MagicMock()
+        audited = AsyncMock()
+        notified = AsyncMock()
+        monkeypatch.setattr(users_route, "delete_upload_file", deleted)
+        monkeypatch.setattr(users_route, "create_audit_log", audited)
+        monkeypatch.setattr(users_route, "create_notification", notified)
+        mock_db.users.find_one = AsyncMock(
+            return_value={"id": "u1", "photo_url": "/uploads/avatars/x.jpg", "name": "Zé"}
+        )
+        result = await users_route.remove_user_photo(user_id="u1", request=_mock_request(), current_user=admin_user)
+        set_data = mock_db.users.update_one.call_args[0][1]["$set"]
+        assert set_data["photo_url"] is None
+        deleted.assert_called_once_with("/uploads/avatars/x.jpg")
+        assert audited.await_args[0][1] == "profile_photo_removed"
+        notified.assert_awaited_once()
+        assert "removida" in result["message"].lower()
+
+    async def test_moderador_removes(self, mock_db, monkeypatch, moderador_user):
+        monkeypatch.setattr(users_route, "delete_upload_file", MagicMock())
+        monkeypatch.setattr(users_route, "create_audit_log", AsyncMock())
+        monkeypatch.setattr(users_route, "create_notification", AsyncMock())
+        mock_db.users.find_one = AsyncMock(return_value={"id": "u1", "photo_url": None, "name": "Zé"})
+        result = await users_route.remove_user_photo(user_id="u1", request=_mock_request(), current_user=moderador_user)
+        assert "removida" in result["message"].lower()
+
+    async def test_financeiro_403(self, mock_db, financeiro_user):
+        with pytest.raises(HTTPException) as exc:
+            await users_route.remove_user_photo(user_id="u1", request=_mock_request(), current_user=financeiro_user)
+        assert exc.value.status_code == 403
+
+    async def test_socio_403(self, mock_db, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await users_route.remove_user_photo(user_id="u1", request=_mock_request(), current_user=socio_user)
+        assert exc.value.status_code == 403
+
+    async def test_404_when_not_found(self, mock_db, admin_user):
+        mock_db.users.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await users_route.remove_user_photo(user_id="missing", request=_mock_request(), current_user=admin_user)
+        assert exc.value.status_code == 404
+
+
+# --------------------------------------------------------------------------- #
+# enrich_author_photos (helpers) — resolução da foto do autor na leitura
+# --------------------------------------------------------------------------- #
+
+
+class TestEnrichAuthorPhotos:
+    async def test_injects_current_photo(self, mock_db):
+        from helpers import enrich_author_photos
+
+        mock_db.users.find.return_value.to_list = AsyncMock(
+            return_value=[{"id": "u1", "photo_url": "/uploads/avatars/a.jpg"}, {"id": "u2", "photo_url": None}]
+        )
+        docs = [{"user_id": "u1"}, {"user_id": "u2"}]
+        await enrich_author_photos(docs)
+        assert docs[0]["user_photo_url"] == "/uploads/avatars/a.jpg"
+        assert docs[1]["user_photo_url"] is None
+
+    async def test_missing_author_is_none(self, mock_db):
+        from helpers import enrich_author_photos
+
+        mock_db.users.find.return_value.to_list = AsyncMock(return_value=[])
+        docs = [{"user_id": "ghost"}]
+        await enrich_author_photos(docs)
+        assert docs[0]["user_photo_url"] is None
+
+    async def test_empty_docs_noop(self, mock_db):
+        from helpers import enrich_author_photos
+
+        assert await enrich_author_photos([]) == []
+
+    async def test_docs_without_id_get_none(self, mock_db):
+        from helpers import enrich_author_photos
+
+        docs = [{"text": "sem autor"}]
+        await enrich_author_photos(docs)
+        assert docs[0]["user_photo_url"] is None

@@ -190,7 +190,9 @@ class _EditableProfileFields(BaseModel):
     name: Optional[str] = Field(default=None, max_length=120)
     phone_number: Optional[str] = Field(default=None, max_length=30)
     bio: Optional[str] = Field(default=None, max_length=1000)
-    photo_url: Optional[str] = Field(default=None, max_length=500)
+    # NOTA: photo_url NÃO vive aqui de propósito — só o próprio gere a sua foto
+    # (UserProfileUpdate). Admin/moderador apenas REMOVEM via
+    # DELETE /users/{id}/photo, nunca definem (spec-foto-de-perfil §5.2).
     # Dados pessoais
     date_of_birth: Optional[str] = None  # AAAA-MM-DD
     blood_type: Optional[str] = None
@@ -240,7 +242,21 @@ class UserProfileUpdate(_EditableProfileFields):
     NÃO inclui campos de acesso (role/status/privileges) nem identidade
     (email/member_id/cargo)."""
 
-    pass
+    # Foto de perfil — só o próprio a define/troca/limpa ("" limpa; o route
+    # apaga o ficheiro antigo). Fora do UserAdminUpdate por design.
+    photo_url: Optional[str] = Field(default=None, max_length=500)
+
+    @field_validator("photo_url")
+    @classmethod
+    def _v_photo_url(cls, v):
+        # Só aceita avatares carregados pelo nosso endpoint (/uploads/avatars/…),
+        # "" (limpar) ou None (manter). Bloqueia URLs externas — impede beacons de
+        # tracking embutidos no avatar e carregamento de imagem de terceiros.
+        if v in (None, ""):
+            return v
+        if not v.startswith("/uploads/avatars/"):
+            raise ValueError("URL de foto inválida")
+        return v
 
 
 class UserAdminUpdate(_EditableProfileFields):
