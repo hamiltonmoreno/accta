@@ -17,6 +17,7 @@ from routes import assembleias as a_route
 from models import (
     AssembleiaCreate,
     AssembleiaDeliberacaoCreate,
+    AssembleiaFaseUpdate,
     AssembleiaPresencaCreate,
     User,
 )
@@ -418,3 +419,181 @@ class TestDeliberacoes:
         assert result["base_calculo"] == 9
         assert result["threshold"] == 6
         assert result["aprovado"] is True
+
+
+# --------------------------------------------------------------------------- #
+# Camada "ao vivo" (spec-sessao-assembleia-ao-vivo) — F0
+# --------------------------------------------------------------------------- #
+
+
+class TestBumpSession:
+    async def test_incrementa_e_aplica_extra(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value={"id": "a1", "session_version": 4})
+        captured = {}
+        gov_env.assembleias.update_one = AsyncMock(side_effect=lambda flt, upd: captured.update(upd["$set"]))
+        v = await a_route._bump_session("a1", {"session_phase": "checkin"})
+        assert v == 5
+        assert captured["session_version"] == 5
+        assert captured["session_phase"] == "checkin"
+
+    async def test_arranca_do_zero(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value={"id": "a1"})  # sem session_version
+        gov_env.assembleias.update_one = AsyncMock()
+        assert await a_route._bump_session("a1") == 1
+
+
+class TestSnapshot:
+    async def test_reflete_fase_e_quorum(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(
+            return_value={
+                "id": "a1",
+                "session_version": 7,
+                "session_phase": "ordem_trabalhos",
+                "status": "em_curso",
+                "chamada_actual": 1,
+                "current_item_id": "ot-3",
+                "eligible_voters_count": 10,
+            }
+        )
+        gov_env.assembleia_presencas.find = MagicMock(
+            return_value=_cursor([{"voting_power": 4}, {"voting_power": 3}])  # poder = 7
+        )
+        snap = await a_route._session_snapshot("a1")
+        assert snap["version"] == 7
+        assert snap["phase"] == "ordem_trabalhos"
+        assert snap["chamada"] == 1
+        assert snap["current_item_id"] == "ot-3"
+        assert snap["quorum"]["present_power"] == 7
+        assert snap["quorum"]["required"] == 6  # floor(10/2)+1
+        assert snap["quorum"]["met"] is True
+
+    async def test_inexistente_none(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=None)
+        assert await a_route._session_snapshot("nope") is None
+
+
+class TestFase:
+    def _assembleia(self, **over):
+        base = {
+            "id": "a1",
+            "status": "convocada",
+            "session_phase": "fechada",
+            "session_version": 0,
+            "eligible_voters_count": 10,
+            "chamada_actual": 1,
+        }
+        base.update(over)
+        return base
+
+    async def test_socio_comum_403(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value=self._assembleia())
+        with pytest.raises(HTTPException) as exc:
+            await a_route.transicao_fase(
+                assembleia_id="a1",
+                request=_request(),
+                data=AssembleiaFaseUpdate(session_phase="checkin"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_mesa_avanca_e_marca_em_curso(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=self._assembleia())
+        captured = {}
+        gov_env.assembleias.update_one = AsyncMock(side_effect=lambda flt, upd: captured.update(upd["$set"]))
+        result = await a_route.transicao_fase(
+            assembleia_id="a1",
+            request=_request(),
+            data=AssembleiaFaseUpdate(session_phase="checkin"),
+            current_user=_mesa_ag(),
+        )
+        assert result["session_phase"] == "checkin"
+        assert result["session_version"] == 1
+        assert result["status"] == "em_curso"
+        assert captured["session_phase"] == "checkin"
+        assert captured["status"] == "em_curso"
+        a_route.create_audit_log.assert_awaited()
+
+    async def test_nao_recua_fase(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(
+            return_value=self._assembleia(session_phase="ordem_trabalhos", status="em_curso")
+        )
+        with pytest.raises(HTTPException) as exc:
+            await a_route.transicao_fase(
+                assembleia_id="a1",
+                request=_request(),
+                data=AssembleiaFaseUpdate(session_phase="checkin"),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 400
+
+    async def test_antes_ot_regista_abertura(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(
+            return_value=self._assembleia(session_phase="checkin", status="em_curso")
+        )
+        captured = {}
+        gov_env.assembleias.update_one = AsyncMock(side_effect=lambda flt, upd: captured.update(upd["$set"]))
+        await a_route.transicao_fase(
+            assembleia_id="a1",
+            request=_request(),
+            data=AssembleiaFaseUpdate(session_phase="antes_ot"),
+            current_user=_mesa_ag(),
+        )
+        assert captured["session_phase"] == "antes_ot"
+        assert "antes_ot_aberto_em" in captured  # limite soft de 30 min (Art. 14)
+
+    async def test_encerrada_400(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=self._assembleia(status="encerrada"))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.transicao_fase(
+                assembleia_id="a1",
+                request=_request(),
+                data=AssembleiaFaseUpdate(session_phase="checkin"),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 400
+
+
+class TestStream:
+    async def test_sem_token_401(self, gov_env, monkeypatch):
+        monkeypatch.setattr(a_route, "_extract_token", lambda r: None)
+        with pytest.raises(HTTPException) as exc:
+            await a_route.assembleia_stream(assembleia_id="a1", request=_request())
+        assert exc.value.status_code == 401
+
+    async def test_assembleia_inexistente_404(self, gov_env, monkeypatch):
+        monkeypatch.setattr(a_route, "_extract_token", lambda r: "tok")
+        monkeypatch.setattr(a_route, "get_user_from_token", AsyncMock(return_value=MagicMock(id="u1")))
+        gov_env.assembleias.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await a_route.assembleia_stream(assembleia_id="nope", request=_request())
+        assert exc.value.status_code == 404
+
+    async def test_emite_snapshot_uma_vez(self, gov_env, monkeypatch):
+        monkeypatch.setattr(a_route, "_extract_token", lambda r: "tok")
+        monkeypatch.setattr(a_route, "get_user_from_token", AsyncMock(return_value=MagicMock(id="u1")))
+        monkeypatch.setattr(a_route.asyncio, "sleep", AsyncMock())  # sem espera real
+        doc = {
+            "id": "a1",
+            "session_version": 3,
+            "session_phase": "checkin",
+            "status": "em_curso",
+            "chamada_actual": 1,
+            "current_item_id": None,
+            "eligible_voters_count": 4,
+        }
+        gov_env.assembleias.find_one = AsyncMock(return_value=doc)
+        gov_env.assembleia_presencas.find = MagicMock(return_value=_cursor([{"voting_power": 2}]))
+
+        class _Req:
+            def __init__(self):
+                self._calls = 0
+
+            async def is_disconnected(self):
+                self._calls += 1
+                return self._calls > 1  # liga na 1ª iteração, desliga na 2ª
+
+        resp = await a_route.assembleia_stream(assembleia_id="a1", request=_Req())
+        chunks = [c async for c in resp.body_iterator]
+        assert len(chunks) == 1  # emite uma vez (version mudou de -1 p/ 3)
+        assert '"version": 3' in chunks[0]
+        assert "checkin" in chunks[0]

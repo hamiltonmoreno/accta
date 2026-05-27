@@ -1,99 +1,185 @@
-# TODO — Ciclo Anual de Prestação de Contas (Categoria 3)
+# TODO — Sessão da Assembleia "ao vivo" (Categoria 2)
 
-Spec: `tasks/spec-ciclo-prestacao-contas.md`. Branch `feature/ciclo-prestacao-contas`
-(ramificado de `develop` **após** merge da pilha Cat 4 — PRs #105/#106/#108).
+Spec: `tasks/spec-sessao-assembleia-ao-vivo.md`. Branch a criar:
+`feature/assembleia-ao-vivo` (de `develop`). PRs pequenos por fase.
 
-## Decisões do dono (gates §12, fechadas 2026-05-23)
-- **§12.1 Aprovação**: sempre via **AG ordinária** (deliberação); a Mesa regista
-  resultado interino manual enquanto não há sessão ao vivo.
-- **§12.3 Conferência CF**: **ao nível do balancete** (`cf_audit`: conferido + observações).
-- **§12.8 Orçamento/Plano**: **DADOS ESTRUTURADOS** — `orcamento.linhas[]` (categoria/
-  tipo/valor_previsto) + endpoint orçado-vs-realizado; `plano_atividades.atividades[]`.
-- **§12.4/§12.7**: `proof_url`/`conferido` já na `Transaction` (via #105). Parecer
-  gated por `is_conselho_fiscal(user) OR privilégio emit_cf_parecer`.
-- **§12.5**: semear só o **Regimento da AG** (competência AG); restantes `direcao`.
-- **§12.2/§12.6**: `periodo` mensal/trimestral/anual; Transparência via PDF
-  (snapshot inline público fica opcional/futuro).
+## Reconciliação com o código (a spec está stale no §1/F0)
+A spec diz que o núcleo da governança "ainda não está implementado". **Está** —
+governança F0–F7 merged. Logo o pré-requisito da F0 **já está satisfeito**:
+- ✅ `governance.py`/`permissions.py`: `required_quorum`, `is_mesa_ag`,
+  `is_voting_member`, `required_three_quarters/two_thirds/absolute_majority`.
+- ✅ `routes/assembleias.py` (404 l.): create/list/get, `GET /quorum` (1ª/2ª),
+  `POST /presencas` (representação ≤3, Mesa-não-representa, anti-dup,
+  `voting_power`), `POST/GET /deliberacoes` (maioria + **comunicado oficial auto**),
+  `POST /encerrar`.
+- ✅ Colecções `assembleias`, `assembleia_presencas`, `assembleia_deliberacoes`.
+- ✅ FE: `AdminAssembleiasPage.js`, sidebar, grupo `assembleiasAPI`.
 
-## F0 — Fundação ✅ (commit 7c6eef7)
-- [x] `database.py`: + colecções `exercicios`, `balancetes`, `regulamentos`, `regulamento_versoes` em `COLLECTIONS`
-- [x] `database.py`: + índices (§7) em `_INDEX_DDL` (ano unique; status; exercicio_ano; tipo+periodo; published; slug unique; regulamento_id; regulamento_id+versao)
-- [x] `governance.py`: + privilégio `emit_cf_parecer` em `PRIVILEGES`
-- [x] `permissions.py`: helper `can_emit_parecer_cf` (= `is_conselho_fiscal` OR privilégio)
-- [x] route modules registados (regulamentos na F1; `prestacao_contas` na F2 — criados com conteúdo, sem esqueletos mortos)
+**Natureza do que existe:** batch conduzido pela Mesa (folha de presenças + ata
+agregada). A Cat 2 acrescenta a camada **participativa em tempo real** por cima —
+sem partir o que existe (tudo aditivo).
 
-## F1 — 3.3 Regulamentos versionados (Art. 31.j, 56) — independente das finanças ✅
-- [x] `models.py`: `Regulamento` + `RegulamentoVersao` (+ `*Create`/`Aprovar`/`Revogar`, literais)
-- [x] `routes/regulamentos.py`: criar · listar/detalhe (+ histórico) · nova versão (rascunho) · submeter · aprovar (Direção ou Mesa-AG c/ deliberação) · revogar
-- [x] RBAC (manage_documents/Direção; competência-AG exige `deliberacao_id` aprovada) + audit + notif (`system`)
-- [x] Seed do **Regimento da AG** (`slug=regimento-ag`, competência `assembleia_geral`) no arranque
-- [x] Testes: 22/22 — aprovar troca `current_version` e revoga anterior; Regimento exige deliberação; `slug` único + validador kebab-case
+## Decisões do dono (gates §15, fechadas 2026-05-27)
+- **D1 — prova de presença online**: **clique/QR autenticado basta** (atribuível +
+  datado = assinar a folha; fonte de verdade do quórum). Código de sessão = reforço
+  anti-proxy opcional. **Sem** integração Meet/Zoom (scope próprio, fora).
+- **D6 — voto secreto/nominal online**: **apoio administrativo** (não vinculativo
+  por si; valor segue Regimento/ata). Não exige alteração estatutária.
+- **D4 — limite 30 min (Art. 14)**: **aviso soft**; a Mesa encerra/estende com nota.
+  Sem auto-fecho.
+- **D7 — tempo real**: **polling SSE ~3s** (padrão do `notifications/stream`); zero
+  deps novas; ok ~50–150 presentes. Redis = futuro (aberto).
+- Defaults assumidos: **D2** só guardar/abrir `meeting_link` (iframe bloqueado);
+  **D3** durações 180/60/120/120s **a confirmar com o Regimento**; **D5** braço-no-ar
+  por contagem manual da Mesa; **D8** estender `routes/assembleias.py` (não novo
+  módulo); **D9** representação online por registo manual da Mesa.
 
-## F2 — 3.2 Balancetes (Art. 34, 37) ✅
-- [x] `models.py`: `Balancete` (+ `BalanceteCreate`/`BalanceteAuditar`); `proof_url` adicionado ao `TransactionUpdate`
-- [x] `finances.py`: extraído `compute_financial_summary` (fonte única — endpoint + snapshot)
-- [x] `routes/prestacao_contas.py`: publicar (Tesoureiro — congela snapshot; janela mensal/anual/trimestral) · listar/detalhe · auditar (CF)
-- [x] `proof_url` aceite no `PATCH /finances/transactions/{id}` (testado)
-- [x] RBAC (publicar=manage_finances; auditar=`can_emit_parecer_cf`; ver=can_view_finances) + audit + notif (`finance`)
-- [x] Testes: 13/13 — snapshot congelado; só Tesoureiro publica; CF readonly não publica; só CF audita; `proof_url` aceite. Sem regressões nos testes de finanças unit (50✓)
-- ℹ️ Exposição pública inline do balancete: adiada (§12.6) — público vê só o PDF via fluxo de documentos
-
-## F3 — 3.1 Ciclo do exercício + orçamento/plano estruturados (Art. 19.1, 31.k, 37) ✅
-- [x] `models.py`: `Exercicio` (máquina de estados), `ParecerCF`, `OrcamentoLinha`, `PlanoAtividade` (+ `*Submit`/`Create`/`Aprovar`)
-- [x] `finances.py`: extraído `compute_dre_report` (fonte única do `dre_snapshot`)
-- [x] `routes/prestacao_contas.py`: abrir · relatório (congela `dre_snapshot`) · orçamento (linhas estruturadas, categorias validadas) · plano (atividades) · parecer (CF) · submeter-AG · aprovar · reabrir
-- [x] `GET /exercicios/{ano}/orcamento/execucao` — orçado vs. realizado por categoria + desvio
-- [x] Estados avançam por ordem; aviso fora do 1.º trimestre (não bloqueia)
-- [x] RBAC (Direção/CF/Mesa) + audit + notif (`finance`)
-- [x] Testes: 29/29 — ordem dos estados; `dre_snapshot` congelado; só CF emite parecer; CF não escreve transação (403); aprovar exige deliberação aprovada; aviso 1.º trimestre; execução orçado/realizado
-
-## F4 — Integração aprovação na AG ordinária ✅ (integrada na F3)
-- [x] `aprovar`/`submeter-ag` ligam `assembleia_id`/`deliberacao_id`; aprovar exige deliberação **aprovada** (`assembleia_deliberacoes`, governança em `develop`)
-- [x] Testes da deliberação: aprovada→aprovado; não aprovada→400; inexistente→400; rejeição com deliberação existente
-
-## F5 — Frontend ✅
-- [x] `utils/api.js`: `exerciciosAPI`, `balancetesAPI`, `regulamentosAPI`; `lib/queryClient.js`: query keys
-- [x] `FinanceiroPage`: abas "Prestação de Contas" (dashboard do ciclo: stepper + ações por papel + dialogs) e "Balancetes" (cards + auditoria CF)
-- [x] Página `/regulamentos` + rota (`App.js`) + item de menu (Órgãos Sociais) + título; histórico de versões + ações
-- [x] Vista orçado-vs-realizado (tabela com desvio); badges de auditoria/estado; gating por `isDirecao`/`isConselhoFiscal`/`isMesaAG`/`canManageFinances`
-- [x] Design `frontend-design` (neutral-led + Carmesim, ≤1 botão primário/vista, focus rings, sem dark mode); eslint 0 erros/0 avisos
-
-## Verificação por fase
-models → schema/índices (`ensure_schema`) → endpoints+RBAC+audit → testes backend (`pytest -m unit`)
-→ frontend → eslint/build → verificação manual. PRs pequenos `feature/* → develop`.
-
-## Stop conditions (§11)
-Confirmar antes de: mudar `Transaction` para além de aditivos/opcionais; migrar dados
-financeiros; emails reais; remover rotas usadas; tratar aprovação como vinculativa sem
-deliberação da AG. Push para `main` nunca.
+## Stop conditions desta spec
+- Tratar voto secreto/nominal online como vinculativo → **não** (D6 fechou em apoio
+  administrativo). Reabrir só com validação do Regimento.
+- Email real a convidados com o `meeting_link` → fora de scope (stop em users reais).
+- A 2.5 estende `AssembleiaDeliberacao`; o endpoint one-shot actual **já dispara
+  comunicado oficial + email a todos os activos** (`dispatch_oficial_auto`). O novo
+  ciclo abrir→votar→apurar tem de disparar **só no apurar/encerrar** — não duplicar.
 
 ---
 
-## Review (2026-05-24)
+## F0 — Infra de sessão + SSE por-assembleia ✅ (backend; aditivo, não depende dos gates)
+- [x] `models.py`: + 10 campos de sessão em `Assembleia` (aditivos, `extra=ignore`):
+      `modo` (default `online`), `meeting_link`, `meeting_provider`, `meeting_notes`,
+      `session_phase` (default `fechada`), `current_item_id`, `check_in_code`,
+      `check_in_code_expires_at`, `session_version=0`, `antes_ot_aberto_em`.
+      + config de reunião em `AssembleiaCreate` + modelo `AssembleiaFaseUpdate`.
+- [x] `routes/assembleias.py`: `_bump_session(id, extra)` (read-modify-write do
+      `session_version`, aplica `extra` na mesma escrita) + `_session_snapshot(id)`
+      (snapshot mínimo: version/phase/status/chamada/current_item_id/quorum).
+- [x] `create_assembleia`: passa `modo`/`meeting_*` para o doc.
+- [x] `GET /assembleias/{id}/stream` (SSE): `StreamingResponse` text/event-stream,
+      loop `is_disconnected()` + `asyncio.sleep(3)`, emite snapshot quando
+      `session_version` muda. **Auth `_extract_token` (cookie/header), NÃO `?token=`**
+      (removido do `notifications/stream` por segurança). Headers anti-buffering.
+      Subscrição: qualquer membro autenticado.
+- [x] `POST /assembleias/{id}/fase`: transição só pela Mesa (`_require_convene`),
+      ordem linear sem recuar; entra em `em_curso` a partir do check-in; regista
+      `antes_ot_aberto_em` ao entrar em `antes_ot`; bump + audit `assembleia_fase`.
+- [x] Testes (12 novos, 29/29 verdes): `_bump_session` incrementa+aplica extra;
+      snapshot reflete fase/quórum; fase só Mesa, não recua, marca em_curso,
+      regista abertura do antes_ot, bloqueia em encerrada; SSE 401 sem token /
+      404 inexistente / emite snapshot uma vez. ruff check limpo.
+- [ ] _(movido p/ F7)_ FE: hook `useAssembleiaStream(id)` — feito quando houver a
+      sala que o consome (não entregar hook sem página que o renderize/verifique).
 
-**Estado: F0–F5 FEITAS** no branch `feature/ciclo-prestacao-contas` (de `develop`,
-após merge da pilha Cat 4 #105/#106/#108). 5 commits:
-`7c6eef7` F0 · `7b47253` F1 · `35ec7f9` F2 · `297582d` F3+F4 · `1de8cc9` F5.
+## F1 — 2.1 Check-in ao vivo + quórum em tempo real (Art. 5, 21) — dep: F0
+- [ ] `models.py`: estender `AssembleiaPresenca` com `method`
+      (`join_click|qr_meeting|qr_scan|self_code|mesa_manual`), `can_vote`,
+      `checked_in_at`, `source_article="21"`. (`is_member`/`voting_power` já existem.)
+- [ ] `POST /assembleias/{id}/checkin` (membro autenticado): self check-in
+      (`join_click`/`qr_meeting`/`self_code`); valida sessão em `checkin`/`em_curso`,
+      é membro, código (se enviado) == `check_in_code` não expirado; representação
+      ≤3 (reusa validação existente). Devolve quórum recalculado + bump.
+- [ ] `POST /assembleias/{id}/checkin/scan` (Mesa): `{qr_hash}` → reusa lookup de
+      `GET /stats/validate/{qr_hash}`; regista presença `method=qr_scan`.
+- [ ] `POST /assembleias/{id}/checkin/abrir|fechar` (Mesa): abre janela e **roda**
+      `check_in_code` (+`expires_at`); `fechar` limpa o código.
+- [ ] `POST /assembleias/{id}/segunda-convocatoria` (Mesa): `chamada_actual=2`,
+      recalcula `quorum_required = required_quorum(n, 2)`.
+- [ ] `GET /assembleias/{id}/presencas` (Mesa). (`GET /quorum` já existe — reusar.)
+- [ ] Manter `POST /presencas` actual como caminho `mesa_manual`.
+- [ ] Audit: `assembleia_checkin`, `assembleia_checkin_scan`,
+      `assembleia_segunda_convocatoria`. Notif `event` ao abrir check-in.
+- [ ] Testes: self só com código válido + sessão aberta; scan resolve user; rep ≤3 e
+      Mesa-não-representa; quórum 1ª (`floor/2+1`) vs 2ª (`ceil/3`); dup bloqueada.
 
-- **Testes backend**: suite unit completa **826 passed** (762 baseline Cat 4 + 64
-  novos: 22 regulamentos + 13 balancetes + 29 exercícios), 0 regressões. O único
-  erro (`test_activity_feed.py`) é pré-existente/ambiental (teste de integração
-  que lê `REACT_APP_BACKEND_URL` no import). `ruff` limpo.
-- **Frontend**: `eslint` 0 erros/0 avisos; `craco build` de produção OK.
-- **Fonte única dos números**: `compute_financial_summary`/`compute_dre_report`
-  extraídos em `finances.py` e reutilizados pelos snapshots (sem drift).
-- **Separação de poderes**: parecer/auditoria do CF gated por `can_emit_parecer_cf`
-  (cargo CF ou privilégio `emit_cf_parecer`), distinto de `manage_finances` — o CF
-  audita mas **não** escreve transacções (testado: 403).
-- **Aprovação via AG**: aprovar exige `deliberacao_id` **aprovada** em
-  `assembleia_deliberacoes` (integração F4); estados avançam só pela ordem.
-- **Decisão §12.8 (estruturado)**: orçamento em linhas por categoria estatutária +
-  endpoint orçado-vs-realizado; plano em atividades.
-- **Aditivo**: `proof_url` (já em `develop`) + `conferido`; novas colecções e
-  índices; `TransactionUpdate` ganhou `proof_url` (request model, aditivo). Sem
-  migração destrutiva, sem emails, sem mexer em `main`.
+## F2 — 2.2 Fila de uso da palavra + cronómetros (Art. 21/27/28/29) — dep: F0, F1
+- [ ] `database.py`: + colecção `assembleia_palavra`; índices `assembleia_id`,
+      `(assembleia_id, status)`.
+- [ ] `models.py`: `PalavraRequest` (tipo `intervencao|protesto|esclarecimento|
+      defesa_honra`, status `inscrito|a_falar|concluido|retirado|negado`, `ordem`,
+      `duration_limit_s`, `started_at`/`ends_at`). Const `PALAVRA_DURACOES`
+      = 180/60/120/120 (**confirmar Regimento — D3**).
+- [ ] Endpoints: `POST .../palavra` (membro presente), `DELETE .../palavra/{qid}`,
+      `POST .../palavra/{qid}/ordenar|iniciar|terminar` (Mesa), `GET .../palavra`.
+      `iniciar` arranca cronómetro (`ends_at = started_at + duration`). Bump em cada.
+- [ ] Testes: só presentes pedem; concessão arranca `ends_at` correcto; ordenação só
+      Mesa; fila no SSE.
 
-**Aberto/futuro**: exposição pública inline do balancete (§12.6, adiada — público
-vê o PDF); lista estatutária completa de competência dos regulamentos (semeado só
-o Regimento da AG); upload de documentos integrado nos diálogos (hoje recebem
-`document_id`). Falta **push do branch + PR para `develop`** (decisão do dono).
+## F3 — 2.5 Modos de voto + conflito + voto separado (Art. 32) — dep: F0, F1  ⚠️ pesado
+- [ ] `database.py`: + `assembleia_votos` (unique `(deliberacao_id,user_id)`),
+      `assembleia_voto_receipts` (unique `(deliberacao_id,voter_hash)`),
+      `assembleia_voto_ballots` (`deliberacao_id`, **sem** `user_id`).
+- [ ] `models.py`: estender `AssembleiaDeliberacao` com `voting_mode`
+      (`braco_no_ar|nominal|secreto`), `item_id`, `subitem`, `conflitos_excluidos[]`,
+      `status` (`aberta|encerrada|anulada`).
+- [ ] Ciclo novo **aditivo** (não partir o one-shot existente):
+      `POST .../deliberacoes` (Mesa abre: mode/maioria/item/subitem/conflitos →
+      `status=aberta`, **não** dispara comunicado), `POST .../deliberacoes/{did}/
+      votar` (votante presente não-excluído; nominal/secreto), `POST .../{did}/
+      registar-contagem` (Mesa; braço-no-ar agregado), `POST .../{did}/apurar`
+      (Mesa fecha + calcula + **só aqui** dispara comunicado oficial), `GET .../{did}`.
+- [ ] Apuramento: base = `present_power − Σ(voting_power excluídos)`; reusa helpers de
+      maioria. Secreto = par recibo/boletim numa transacção,
+      `voter_hash=HMAC(secret, f"{deliberacao_id}:{user_id}")` (igual às eleições);
+      **nunca** expor ligação eleitor↔boletim.
+- [ ] Testes: 3 modos; excluído não vota e sai da base; voto separado ≥2
+      deliberações/ponto; boletim secreto sem `user_id`; braço-no-ar só agregados;
+      comunicado dispara **uma vez** no apurar.
+
+## F4 — 2.3 Moções/requerimentos/recomendações (Art. 6, 26) — dep: F3
+- [ ] `database.py`: + `assembleia_mocoes`; índices `assembleia_id`,
+      `(assembleia_id, status)`.
+- [ ] `models.py`: `MocaoSessao` (tipo `mocao|requerimento|recomendacao`,
+      `votacao_imediata`, `deliberacao_id`).
+- [ ] Endpoints: `POST .../mocoes` (membro presente), `POST .../mocoes/{mid}/
+      colocar-a-voto` (Mesa → cria deliberação F3), `POST .../mocoes/{mid}/retirar`,
+      `GET .../mocoes`. Regra: `requerimento` ⇒ `votacao_imediata=True` (salta
+      discussão, cria deliberação `em_votacao` ao aceitar).
+- [ ] Audit: `mocao_submetida`, `mocao_a_voto`, `mocao_retirada`.
+- [ ] Testes: requerimento → deliberação imediata; moção/recomendação
+      discussão→voto; só Mesa coloca a voto.
+
+## F5 — 2.4 Antes da ordem de trabalhos + expediente (Art. 14) — dep: F1
+- [ ] `database.py`: + `assembleia_expediente`; índice `assembleia_id`.
+- [ ] `models.py`: `ExpedienteEntry` (tipo `correspondencia|voto_louvor|
+      voto_congratulacao|voto_pesar`, `aprovado_por_aclamacao`).
+- [ ] Endpoints: `POST .../expediente`, `GET .../expediente`. (Fase `antes_ot` e o
+      limite soft de 30 min já vêm da F0; cronómetro é client-side, aviso ao expirar.)
+- [ ] Testes: `antes_ot` regista abertura; transição só Mesa; expediente listado.
+
+## F6 — 2.6 Documentos ≥3 dias + convidados (Art. 20, 36) — dep: F0
+- [ ] Doc da assembleia ganha `documentos: list[str]` (document_ids — **sem**
+      colecção nova). `POST .../documentos` (Mesa/`manage_documents`): valida
+      `now > data − MIN_DOC_ANTECEDENCIA_DIAS(=3)` → aviso (config `bloquear`) +
+      audit `documento_anexado_tardio`. `GET .../documentos`.
+- [ ] `database.py`: + `assembleia_convidados`; índice `assembleia_id`.
+- [ ] `models.py`: `Convidado` (`can_speak`, `checked_in`, `invited_by`). Não conta
+      p/ quórum nem vota; se `can_speak`, Mesa pode pô-lo na fila (F2).
+- [ ] Endpoints: `POST .../convidados`, `GET .../convidados`,
+      `POST .../convidados/{cid}/checkin` (Mesa). **Não** enviar email automático.
+- [ ] Testes: anexo <3 dias avisa/bloqueia + audita; convidado fora do quórum/voto;
+      `can_speak` entra na fila.
+
+## F7 — Sala de sessão (frontend) — incremental por fase
+- [ ] `pages/private/AssembleiaSalaPage.js` rota `/assembleias/{id}`
+      (`<ProtectedRoute>`). Duas vistas na mesma página:
+      - Consola da Mesa (`is_mesa_ag`/admin): fases, código+scan, ordenar/conceder
+        palavra, abrir/apurar votos + braço-no-ar, moções/expediente/docs/convidados.
+      - Participante (membro presente): "Entrar na reunião" (check-in + abre
+        `meeting_link`) / QR da reunião, pedir palavra, votar, submeter moção, ver
+        quórum/fila/voto ao vivo.
+- [ ] `utils/api.js`: completar `assembleiasAPI` (checkin, stream, palavra, mocoes,
+      deliberacoes ciclo novo, expediente, documentos, convidados).
+- [ ] Reusar `QRCode`/lookup do validador, upload de documentos, TanStack+SSE.
+      Design neutral-led + Carmesim, sem dark mode (skill `frontend-design`).
+- [ ] Cronómetros + barra de quórum com estados claros.
+- [ ] Testes FE: consola Mesa vs participante, countdown da palavra, barra de quórum,
+      cartão de voto por modo, gating por `is_mesa_ag`.
+
+## Ordem dentro de cada fase (spec §12)
+models/campos → schema/índices (`ensure_schema`) → endpoints + RBAC + audit + bump
+→ testes backend → frontend → testes FE → **ensaio manual** de uma sessão online
+(check-in, quórum, palavra, voto) em dev com um link de reunião de teste.
+
+---
+
+## Review
+_(a preencher no fim de cada fase: ficheiros tocados, testes, validação)_

@@ -8,12 +8,15 @@ Quórum e maiorias são SEMPRE calculados pelos helpers de `governance.py`
 das presenças (1 por votante próprio + 1 por cada representado votante).
 """
 
+import asyncio
+import json
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
+from fastapi.responses import StreamingResponse
 
 import comunicados_service
-from auth import get_current_user
+from auth import _extract_token, get_current_user, get_user_from_token
 from database import db
 from governance import (
     is_voting_member,
@@ -28,6 +31,7 @@ from models import (
     AssembleiaCreate,
     AssembleiaDeliberacao,
     AssembleiaDeliberacaoCreate,
+    AssembleiaFaseUpdate,
     AssembleiaPresenca,
     AssembleiaPresencaCreate,
     MAX_REPRESENTADOS,
@@ -80,6 +84,48 @@ async def _present_voting_power(assembleia_id: str) -> tuple[int, int]:
     return len(rows), sum(int(r.get("voting_power", 0)) for r in rows)
 
 
+# Ordem linear das fases finas da sessão ao vivo (transições só pela Mesa).
+PHASE_ORDER = ["fechada", "checkin", "antes_ot", "ordem_trabalhos", "encerramento"]
+
+
+async def _bump_session(assembleia_id: str, extra: dict | None = None) -> int:
+    """Incrementa `session_version` (base do SSE) e aplica `extra` na mesma escrita.
+
+    Chamado por TODA a mutação de sessão. O valor exacto não importa para o SSE —
+    só que mude; a leitura-e-escrita não é transaccional (ok para ~150 presentes,
+    coerente com a simplicidade do resto do código)."""
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "session_version": 1})
+    new_version = int((a or {}).get("session_version", 0)) + 1
+    update = {"session_version": new_version}
+    if extra:
+        update.update(extra)
+    await db.assembleias.update_one({"id": assembleia_id}, {"$set": update})
+    return new_version
+
+
+async def _session_snapshot(assembleia_id: str) -> dict | None:
+    """Snapshot emitido pelo SSE (§2.2). Mínimo na F0 — fila/voto entram depois."""
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0})
+    if not a:
+        return None
+    eligible = a.get("eligible_voters_count", 0)
+    present_count, present_power = await _present_voting_power(assembleia_id)
+    required = required_quorum(eligible, a.get("chamada_actual", 1))
+    return {
+        "version": int(a.get("session_version", 0)),
+        "phase": a.get("session_phase", "fechada"),
+        "status": a.get("status"),
+        "chamada": a.get("chamada_actual", 1),
+        "current_item_id": a.get("current_item_id"),
+        "quorum": {
+            "required": required,
+            "present_power": present_power,
+            "present_count": present_count,
+            "met": present_power >= required,
+        },
+    }
+
+
 @router.post("")
 async def create_assembleia(
     request: Request,
@@ -123,6 +169,10 @@ async def create_assembleia(
         chamada_actual=1,
         quorum_required=required_quorum(eligible, 1),
         quorum_met=False,
+        modo=data.modo,
+        meeting_link=data.meeting_link,
+        meeting_provider=data.meeting_provider,
+        meeting_notes=data.meeting_notes,
     )
     doc = assembleia.model_dump()
     await db.assembleias.insert_one(doc)
@@ -402,3 +452,93 @@ async def encerrar_assembleia(
         details={"acta_document_id": acta_document_id or None},
     )
     return {"message": "Assembleia encerrada.", "status": "encerrada"}
+
+
+# ===== Camada "ao vivo" (spec-sessao-assembleia-ao-vivo) — F0 =====
+
+
+@router.get("/{assembleia_id}/stream")
+async def assembleia_stream(assembleia_id: str, request: Request):
+    """SSE da sessão ao vivo: faz poll do snapshot a cada ~3s e emite quando
+    `session_version` muda. Qualquer membro autenticado pode subscrever.
+
+    Auth por cookie/header via `_extract_token` (igual ao `notifications/stream`);
+    NÃO usa `?token=` (removido por segurança — token aparecia em logs de proxy)."""
+    token = _extract_token(request)
+    if not token:
+        raise HTTPException(status_code=401, detail="Não autenticado")
+    user = await get_user_from_token(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    exists = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "id": 1})
+    if not exists:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+
+    async def event_generator():
+        last_version = -1
+        try:
+            while True:
+                if await request.is_disconnected():
+                    break
+                snap = await _session_snapshot(assembleia_id)
+                if snap is None:
+                    break
+                if snap["version"] != last_version:
+                    last_version = snap["version"]
+                    yield f"data: {json.dumps(snap)}\n\n"
+                await asyncio.sleep(3)
+        except asyncio.CancelledError:
+            pass
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
+    )
+
+
+@router.post("/{assembleia_id}/fase")
+async def transicao_fase(
+    assembleia_id: str,
+    request: Request,
+    data: AssembleiaFaseUpdate,
+    current_user: User = Depends(get_current_user),
+):
+    """Transita a fase fina da sessão (só Mesa/admin). Ordem linear, sem recuar:
+    fechada → checkin → antes_ot → ordem_trabalhos → encerramento."""
+    _require_convene(current_user)
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    if a["status"] in ("encerrada", "anulada"):
+        raise HTTPException(status_code=400, detail="Assembleia encerrada ou anulada")
+
+    current = a.get("session_phase", "fechada")
+    target = data.session_phase
+    if PHASE_ORDER.index(target) < PHASE_ORDER.index(current):
+        raise HTTPException(status_code=400, detail=f"Não é possível recuar de '{current}' para '{target}'")
+
+    extra: dict = {"session_phase": target}
+    if data.current_item_id is not None:
+        extra["current_item_id"] = data.current_item_id
+    # Entrar em antes_ot regista a abertura (limite soft de 30 min — Art. 14).
+    if target == "antes_ot" and not a.get("antes_ot_aberto_em"):
+        extra["antes_ot_aberto_em"] = _now_iso()
+    # A partir do check-in a assembleia está, de facto, em curso.
+    if target != "fechada" and a["status"] == "convocada":
+        extra["status"] = "em_curso"
+
+    new_version = await _bump_session(assembleia_id, extra)
+    await create_audit_log(
+        current_user.id,
+        "assembleia_fase",
+        assembleia_id,
+        request=request,
+        details={"de": current, "para": target},
+    )
+    return {
+        "session_phase": target,
+        "session_version": new_version,
+        "status": extra.get("status", a["status"]),
+        "current_item_id": extra.get("current_item_id", a.get("current_item_id")),
+    }

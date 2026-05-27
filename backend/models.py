@@ -1459,6 +1459,18 @@ class Assembleia(BaseModel):
     quorum_met: bool = False
     acta_document_id: Optional[str] = None
     encerrada_em: Optional[str] = None
+    # --- Camada "ao vivo" (spec-sessao-assembleia-ao-vivo §2.1; aditivo) ---
+    modo: Literal["presencial", "online", "hibrido"] = "online"  # online é o default
+    meeting_link: Optional[str] = None  # URL externa da videochamada (link out, sem iframe)
+    meeting_provider: Optional[str] = None  # meet | zoom | teams | outro
+    meeting_notes: Optional[str] = None  # instruções / dial-in
+    # Estado fino enquanto status == "em_curso"; transições só pela Mesa.
+    session_phase: Literal["fechada", "checkin", "antes_ot", "ordem_trabalhos", "encerramento"] = "fechada"
+    current_item_id: Optional[str] = None  # ponto da ordem de trabalhos em curso
+    check_in_code: Optional[str] = None  # código curto rotativo p/ self check-in
+    check_in_code_expires_at: Optional[str] = None  # ISO 8601
+    session_version: int = 0  # bump a cada mutação de sessão → base do SSE
+    antes_ot_aberto_em: Optional[str] = None  # p/ limite soft de 30 min (Art. 14)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -1471,6 +1483,11 @@ class AssembleiaCreate(BaseModel):
     requerente_tipo: Optional[str] = None
     requerentes: List[str] = []
     ordem_trabalhos: List[dict] = []
+    # Config da sessão ao vivo (opcional na convocação; editável depois).
+    modo: Literal["presencial", "online", "hibrido"] = "online"
+    meeting_link: Optional[str] = Field(default=None, max_length=500)
+    meeting_provider: Optional[str] = None  # meet | zoom | teams | outro
+    meeting_notes: Optional[str] = Field(default=None, max_length=2000)
 
 
 class AssembleiaPresenca(BaseModel):
@@ -1518,6 +1535,13 @@ class AssembleiaDeliberacaoCreate(BaseModel):
     votos_contra: int = Field(ge=0)
     abstencoes: int = Field(ge=0)
     source_article: Optional[str] = Field(default=None, max_length=50)
+
+
+class AssembleiaFaseUpdate(BaseModel):
+    """Transição da fase fina da sessão ao vivo (spec-sessao-assembleia §2.1)."""
+
+    session_phase: Literal["fechada", "checkin", "antes_ot", "ordem_trabalhos", "encerramento"]
+    current_item_id: Optional[str] = None  # ponto da OT em curso (opcional)
 
 
 # ===== GOVERNANÇA: ELEIÇÕES (spec-governanca §12) =====
