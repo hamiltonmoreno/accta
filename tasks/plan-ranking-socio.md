@@ -30,8 +30,17 @@ Feature GRANDE, faseada (F0–F5), PRs pequenos. Aditivo — sem migração dest
       `_adjustments_total`, não-regressão do `report.personal`. **16 novos testes.**
 - [x] Verificação: suíte unit **943 passed**, 0 regressões; ruff limpo.
 
+## F1 — Score pessoal ao vivo ✅
+- [x] `ranking.py`: `load_settings` (doc fundido com defaults) + `DEFAULT_SETTINGS`.
+- [x] `routes/ranking.py`: `GET /ranking/me` (score+breakdown ao vivo; `rank`/`total`
+      do snapshot `member_scores` se existir, senão `None`) + registo do router.
+- [x] `api.js`: `rankingAPI` (grupo completo §8.4); `queryClient`: keys `ranking`.
+- [x] `DashboardPage`: cartão "A Minha Participação" com cabeçalho de score+posição
+      (+medalha Top-3 neutro/Carmesim) e `+N pts` por tile pontuado.
+- [x] Testes: 4 novos (`/me` ao vivo, rank do snapshot, período default, pesos do
+      doc) — `test_ranking.py` **20 passed**; eslint 0 erros; `craco build` OK.
+
 ## Fases seguintes (por fazer)
-- **F1** `GET /api/ranking/me` (ao vivo) + cartão "A Minha Participação" com score/posição/pontos por tile.
 - **F2** modelos `RankingAjuste`/`MemberScore`/`RankingSettings` + `rebuild_scores` +
   `POST /rebuild` + `GET /leaderboard` + widget Top-N no dashboard.
 - **F3** página `/ranking` (pódio, tabela, período, pesquisa) + sidebar + rota.

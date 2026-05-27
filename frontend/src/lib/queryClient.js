@@ -175,4 +175,9 @@ export const queryKeys = {
   report: {
     personal: () => ['report', 'personal'],
   },
+  ranking: {
+    leaderboard: (period) => ['ranking', 'leaderboard', period],
+    me: (period) => ['ranking', 'me', period],
+    settings: () => ['ranking', 'settings'],
+  },
 };

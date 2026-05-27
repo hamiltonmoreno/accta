@@ -2,13 +2,13 @@ import React, { Suspense, lazy, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
-import { statsAPI, pollsAPI, eventsAPI, financesAPI, activityAPI, reportAPI } from '../../utils/api';
+import { statsAPI, pollsAPI, eventsAPI, financesAPI, activityAPI, reportAPI, rankingAPI } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
 import {
   Users, DollarSign, Vote, CheckCircle, Bell,
   Calendar, MapPin, Clock, ArrowRight, TrendingUp, TrendingDown,
   Wallet, ArrowUpRight, ArrowDownRight, BarChart3, MessageSquare,
-  FolderKanban, Trophy, Activity, Image, FileText, Heart, ThumbsUp,
+  FolderKanban, Trophy, Activity, Image, FileText, Heart, ThumbsUp, Medal,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -143,6 +143,12 @@ export const DashboardPage = () => {
     queryFn: async () => (await reportAPI.getPersonal()).data,
   });
 
+  // Ranking de atuação do próprio (ao vivo): score + posição + pontos por tile.
+  const myRankingQuery = useQuery({
+    queryKey: queryKeys.ranking.me(String(currentYear)),
+    queryFn: async () => (await rankingAPI.me(String(currentYear))).data,
+  });
+
   // Queries gated por hasFinance — `enabled` evita request desnecessario
   // para socios. Quando false, isLoading=false e data=undefined.
   const statsQuery = useQuery({
@@ -167,6 +173,9 @@ export const DashboardPage = () => {
   const upcomingEvents = (upcomingEventsQuery.data || []).slice(0, 3);
   const recentActivity = recentActivityQuery.data || [];
   const personalReport = personalReportQuery.data;
+  const myRanking = myRankingQuery.data;
+  const rankingOn = !!myRanking?.enabled;
+  const rankBreakdown = myRanking?.breakdown || {};
   const stats = statsQuery.data;
   const financeSummary = financeSummaryQuery.data;
   const dreData = dreQuery.data;
@@ -474,7 +483,27 @@ export const DashboardPage = () => {
               <BarChart3 className="w-4 h-4 text-carmesim" />
               <h2 className="text-lg font-semibold text-grafite">A Minha Participacao</h2>
             </div>
-            <span className="text-xs text-[#6B7280] uppercase tracking-wider hidden sm:block">Relatorio pessoal</span>
+            {rankingOn ? (
+              <div className="flex items-center gap-2.5" data-testid="ranking-score-header">
+                {myRanking.rank && myRanking.rank <= 3 && (
+                  <Medal
+                    className={`w-5 h-5 ${myRanking.rank === 1 ? 'text-carmesim' : 'text-[#6B7280]'}`}
+                    aria-hidden="true"
+                  />
+                )}
+                <div className="text-right">
+                  <div className="font-bold text-lg text-grafite leading-none">
+                    {myRanking.score}
+                    <span className="text-xs font-normal text-[#6B7280] ml-1">pts</span>
+                  </div>
+                  <div className="text-xs text-[#6B7280] mt-0.5">
+                    {myRanking.rank ? `#${myRanking.rank} de ${myRanking.total_members}` : 'Atuacao'}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <span className="text-xs text-[#6B7280] uppercase tracking-wider hidden sm:block">Relatorio pessoal</span>
+            )}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-gray-100">
@@ -485,6 +514,7 @@ export const DashboardPage = () => {
                 value: personalReport.events_attended,
                 total: personalReport.total_events,
                 color: 'bg-carmesim/10 text-carmesim',
+                signalKey: 'evento_presenca',
               },
               {
                 icon: Vote,
@@ -492,6 +522,7 @@ export const DashboardPage = () => {
                 value: personalReport.polls_voted,
                 total: personalReport.total_polls,
                 color: 'bg-[#EFF6FF] text-[#1D4ED8]',
+                signalKey: 'votacao_voto',
               },
               {
                 icon: MessageSquare,
@@ -499,6 +530,7 @@ export const DashboardPage = () => {
                 value: personalReport.wall_posts,
                 total: null,
                 color: 'bg-[#F0FDF4] text-[#15803D]',
+                signalKey: 'mural_post',
               },
               {
                 icon: ThumbsUp,
@@ -506,6 +538,7 @@ export const DashboardPage = () => {
                 value: personalReport.likes_received,
                 total: null,
                 color: 'bg-[#F5F5F5] text-[#3A3A3A]',
+                signalKey: 'mural_like_recebido',
               },
               {
                 icon: FolderKanban,
@@ -513,6 +546,7 @@ export const DashboardPage = () => {
                 value: personalReport.projects_member,
                 total: null,
                 color: 'bg-[#F5F5F5] text-[#3A3A3A]',
+                signalKey: 'projeto_participacao',
               },
               {
                 icon: Image,
@@ -520,6 +554,7 @@ export const DashboardPage = () => {
                 value: personalReport.photos_approved,
                 total: personalReport.photos_submitted,
                 color: 'bg-[#FFFBEB] text-[#B45309]',
+                signalKey: 'galeria_foto',
               },
               {
                 icon: Heart,
@@ -545,6 +580,11 @@ export const DashboardPage = () => {
                   <div className="text-xs text-[#6B7280] font-mono mt-0.5">de {item.total}</div>
                 )}
                 <div className="text-xs text-gray-500 mt-1">{item.label}</div>
+                {rankingOn && item.signalKey && rankBreakdown[item.signalKey]?.points > 0 && (
+                  <div className="text-[11px] font-semibold text-[#6B7280] mt-1">
+                    +{rankBreakdown[item.signalKey].points} pts
+                  </div>
+                )}
               </div>
             ))}
           </div>

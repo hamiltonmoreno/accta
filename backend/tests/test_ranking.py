@@ -10,6 +10,7 @@ import pytest
 
 import ranking
 from routes import report as report_route
+from routes import ranking as ranking_route
 
 pytestmark = [pytest.mark.unit, pytest.mark.asyncio]
 
@@ -29,6 +30,17 @@ def _coll(count=0, find_list=None, find_one_ret=None):
     agg.to_list = AsyncMock(return_value=[])
     c.aggregate = MagicMock(return_value=agg)
     return c
+
+
+def _wire_signals(mock_db):
+    """Cabla a zero/vazio todas as colecções que compute_member_score toca."""
+    for name in (
+        "assembleia_presencas", "user_votes", "events", "wall_posts",
+        "gallery_photos", "wall_comments", "project_tasks", "projects",
+        "eleicoes", "eleicao_voter_receipts", "ranking_ajustes",
+        "member_scores", "ranking_settings",
+    ):
+        setattr(mock_db, name, _coll())
 
 
 # --------------------------------------------------------------------------- #
@@ -220,3 +232,45 @@ class TestReportPersonalContract:
         mock_db.user_votes = _coll(count=3)
         result = await report_route.get_personal_report(current_user=socio_user)
         assert result["polls_voted"] == 3
+
+
+# --------------------------------------------------------------------------- #
+# GET /ranking/me — F1 (score ao vivo; rank/total do snapshot quando existir)
+# --------------------------------------------------------------------------- #
+
+
+class TestRankingMe:
+    async def test_live_score_no_snapshot(self, mock_db, socio_user):
+        _wire_signals(mock_db)
+        mock_db.assembleia_presencas = _coll(count=1)  # 1 × 10 = 10
+        res = await ranking_route.get_my_ranking(period="2026", current_user=socio_user)
+        assert res["period"] == "2026"
+        assert res["score"] == 10
+        assert "assembleia_presenca" in res["breakdown"]
+        # sem rebuild ainda → sem posição
+        assert res["rank"] is None
+        assert res["total_members"] is None
+        assert res["enabled"] is True
+
+    async def test_rank_from_snapshot(self, mock_db, socio_user):
+        _wire_signals(mock_db)
+        mock_db.member_scores = _coll(count=142, find_one_ret={"rank": 7, "computed_at": "2026-05-26T10:00:00+00:00"})
+        res = await ranking_route.get_my_ranking(period="2026", current_user=socio_user)
+        assert res["rank"] == 7
+        assert res["total_members"] == 142
+        assert res["computed_at"] == "2026-05-26T10:00:00+00:00"
+
+    async def test_default_period_is_current_year(self, mock_db, socio_user):
+        from datetime import datetime, timezone
+
+        _wire_signals(mock_db)
+        res = await ranking_route.get_my_ranking(current_user=socio_user)
+        assert res["period"] == str(datetime.now(timezone.utc).year)
+
+    async def test_weights_from_settings_doc(self, mock_db, socio_user):
+        """Pesos do doc ranking_settings sobrepõem os defaults."""
+        _wire_signals(mock_db)
+        mock_db.wall_posts = _coll(count=2)  # sinal mural_post = 2
+        mock_db.ranking_settings = _coll(find_one_ret={"weights": {"mural_post": 100}})
+        res = await ranking_route.get_my_ranking(period="2026", current_user=socio_user)
+        assert res["breakdown"]["mural_post"]["points"] == 200

@@ -39,6 +39,30 @@ DEFAULT_WEIGHTS: dict[str, float] = {
 MAX_LIKE_POINTS = 50
 SIGNAL_KEYS: tuple[str, ...] = tuple(DEFAULT_WEIGHTS.keys())
 
+# Configuração default (doc único `ranking_settings`; editável por admin na F4).
+DEFAULT_SETTINGS: dict = {
+    "max_like_points_per_period": MAX_LIKE_POINTS,
+    "visibility": "all_members",  # all_members | direcao_only
+    "top_n_dashboard": 5,
+    "enabled": True,
+}
+
+
+async def load_settings() -> dict:
+    """Configuração efetiva do ranking: o doc persistido fundido com os defaults
+    (pesos sempre completos). Devolve defaults se ainda não houver doc."""
+    doc = await db.ranking_settings.find_one({}, {"_id": 0}) or {}
+    return {
+        "weights": {**DEFAULT_WEIGHTS, **(doc.get("weights") or {})},
+        "max_like_points_per_period": doc.get("max_like_points_per_period", MAX_LIKE_POINTS),
+        "visibility": doc.get("visibility", "all_members"),
+        "top_n_dashboard": doc.get("top_n_dashboard", 5),
+        "enabled": doc.get("enabled", True),
+        "last_rebuild_at": doc.get("last_rebuild_at"),
+        "updated_at": doc.get("updated_at"),
+        "updated_by": doc.get("updated_by"),
+    }
+
 
 def _period_bounds(period_key: Optional[str]) -> Optional[tuple[str, str]]:
     """(início, fim) ISO para um ano civil ("2026" → ["2026-01-01","2027-01-01"));

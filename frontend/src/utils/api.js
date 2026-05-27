@@ -483,6 +483,17 @@ export const projectsAPI = {
 
 
 // Personal Report API
+export const rankingAPI = {
+  leaderboard: (params) => api.get('/ranking/leaderboard', { params }),
+  me: (period) => api.get('/ranking/me', { params: { period } }),
+  getUser: (userId, period) => api.get(`/ranking/users/${userId}`, { params: { period } }),
+  getSettings: () => api.get('/ranking/settings'),
+  updateSettings: (data) => api.put('/ranking/settings', data),
+  addAdjustment: (data) => api.post('/ranking/adjustments', data),
+  listAdjustments: (params) => api.get('/ranking/adjustments', { params }),
+  rebuild: (period) => api.post('/ranking/rebuild', null, { params: { period } }),
+};
+
 export const reportAPI = {
   getPersonal: () => api.get('/report/personal'),
 };
