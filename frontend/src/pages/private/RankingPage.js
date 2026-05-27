@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Trophy, Medal, Crown, Search, RefreshCw, Slash } from 'lucide-react';
+import { Trophy, Medal, Crown, Search, RefreshCw, Slash, Settings2, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { rankingAPI } from '../../utils/api';
@@ -11,12 +11,31 @@ import { useAuth } from '../../contexts/AuthContext';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
 import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
+import { Label } from '../../components/ui/label';
+import { Switch } from '../../components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui/dialog';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select';
 import { CARGO_LABELS_FALLBACK } from '../../lib/governanceLabels';
 
 const PAGE_SIZE = 20;
 // Uma busca generosa cobre a dimensão real da associação (centenas); pesquisa e
 // paginação são client-side sobre este conjunto (pesquisa instantânea sobre todos).
 const FETCH_LIMIT = 200;
+
+// Rótulos PT dos sinais de pontuação (chaves de `weights`, §3.1).
+const WEIGHT_LABELS = {
+  assembleia_presenca: 'Presença em AGA',
+  eleicao_turnout: 'Voto em eleição',
+  projeto_participacao: 'Participação em projeto',
+  tarefa_concluida: 'Tarefa concluída',
+  votacao_voto: 'Voto em votação',
+  evento_presenca: 'Presença em evento',
+  mural_post: 'Publicação (mural)',
+  galeria_foto: 'Foto aprovada (galeria)',
+  mural_comentario: 'Comentário (mural)',
+  mural_like_recebido: 'Like recebido',
+};
 
 const cargoLabelOf = (c) => (c && c !== 'socio' ? CARGO_LABELS_FALLBACK[c] || null : null);
 
@@ -93,6 +112,76 @@ export const RankingPage = () => {
     onError: (e) => toast.error(e.response?.data?.detail || 'Falha ao recalcular o ranking.'),
   });
 
+  // ---- F4: configuração + ajustes manuais (só gestores) ----
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [form, setForm] = useState(null);
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  const [adjust, setAdjust] = useState({ user_id: '', delta: '', reason: '' });
+
+  const settingsQuery = useQuery({
+    queryKey: queryKeys.ranking.settings(),
+    queryFn: async () => (await rankingAPI.getSettings()).data,
+    enabled: false, // só carrega quando um gestor está na página (ativada abaixo)
+  });
+
+  const settingsMutation = useMutation({
+    mutationFn: (payload) => rankingAPI.updateSettings(payload),
+    onSuccess: () => {
+      toast.success('Definições do ranking atualizadas.');
+      qc.invalidateQueries({ queryKey: queryKeys.ranking.settings() });
+      qc.invalidateQueries({ queryKey: queryKeys.ranking.leaderboard(period) });
+      qc.invalidateQueries({ queryKey: queryKeys.ranking.me(period) });
+      setSettingsOpen(false);
+    },
+    onError: (e) => toast.error(e.response?.data?.detail || 'Falha ao guardar as definições.'),
+  });
+
+  const adjustMutation = useMutation({
+    mutationFn: (payload) => rankingAPI.addAdjustment(payload),
+    onSuccess: () => {
+      toast.success('Ajuste registado. Recalcule para refletir na tabela.');
+      qc.invalidateQueries({ queryKey: queryKeys.ranking.me(period) });
+      setAdjustOpen(false);
+      setAdjust({ user_id: '', delta: '', reason: '' });
+    },
+    onError: (e) => toast.error(e.response?.data?.detail || 'Falha ao registar o ajuste.'),
+  });
+
+  const openSettings = async () => {
+    const { data: s } = await settingsQuery.refetch();
+    setForm({
+      enabled: s?.enabled ?? true,
+      visibility: s?.visibility ?? 'all_members',
+      top_n_dashboard: s?.top_n_dashboard ?? 5,
+      max_like_points_per_period: s?.max_like_points_per_period ?? 50,
+      weights: { ...(s?.weights || {}) },
+    });
+    setSettingsOpen(true);
+  };
+
+  const submitSettings = () => {
+    if (!form) return;
+    const weights = {};
+    for (const k of Object.keys(WEIGHT_LABELS)) {
+      const n = parseFloat(form.weights?.[k]);
+      weights[k] = Number.isFinite(n) && n >= 0 ? n : 0;
+    }
+    settingsMutation.mutate({
+      enabled: form.enabled,
+      visibility: form.visibility,
+      top_n_dashboard: parseInt(form.top_n_dashboard, 10) || 5,
+      max_like_points_per_period: parseInt(form.max_like_points_per_period, 10) || 0,
+      weights,
+    });
+  };
+
+  const adjustDelta = parseFloat(adjust.delta);
+  const adjustValid = !!adjust.user_id && !!adjust.reason.trim() && Number.isFinite(adjustDelta) && adjustDelta !== 0;
+  const submitAdjust = () => {
+    if (!adjustValid) return;
+    adjustMutation.mutate({ user_id: adjust.user_id, period_key: period, delta: adjustDelta, reason: adjust.reason.trim() });
+  };
+
   const enabled = data?.enabled !== false;
   const visibility = data?.visibility;
   const allEntries = useMemo(() => data?.entries || [], [data]);
@@ -134,10 +223,32 @@ export const RankingPage = () => {
             Reconhecimento da participação dos sócios na vida associativa — {periodLabel}.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           <PeriodToggle period={period} currentYear={currentYear} onChange={setPeriod} />
-          {enabled && allEntries.length > 0 && canManage && (
-            <RecalcularButton onClick={recalcular} isPending={rebuildMutation.isPending} />
+          {canManage && (
+            <>
+              <button
+                type="button"
+                onClick={openSettings}
+                className="inline-flex items-center gap-2 rounded-md border border-[#D1D5DB] bg-white px-3.5 py-2 text-sm font-medium text-grafite hover:bg-[#F5F5F5] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-1"
+                data-testid="ranking-settings-open"
+              >
+                <Settings2 className="w-4 h-4" /> Definições
+              </button>
+              {allEntries.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setAdjustOpen(true)}
+                  className="inline-flex items-center gap-2 rounded-md border border-[#D1D5DB] bg-white px-3.5 py-2 text-sm font-medium text-grafite hover:bg-[#F5F5F5] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-1"
+                  data-testid="ranking-adjust-open"
+                >
+                  <Plus className="w-4 h-4" /> Registar ajuste
+                </button>
+              )}
+              {enabled && allEntries.length > 0 && (
+                <RecalcularButton onClick={recalcular} isPending={rebuildMutation.isPending} />
+              )}
+            </>
           )}
         </div>
       </div>
@@ -340,6 +451,131 @@ export const RankingPage = () => {
               Atualizado {format(new Date(data.computed_at), "dd 'de' MMMM 'de' yyyy, HH:mm", { locale: ptBR })}
             </p>
           )}
+        </>
+      )}
+
+      {/* ===== Dialogs de gestão (admin/Direcção/manage_ranking) ===== */}
+      {canManage && (
+        <>
+          {/* Definições */}
+          <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+            <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Definições do ranking</DialogTitle>
+                <DialogDescription>Pesos por sinal, visibilidade e ativação da funcionalidade.</DialogDescription>
+              </DialogHeader>
+              {form && (
+                <div className="space-y-5">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="rk-enabled" className="text-sm text-grafite">Ranking ativo</Label>
+                    <Switch
+                      id="rk-enabled"
+                      checked={form.enabled}
+                      onCheckedChange={(v) => setForm((f) => ({ ...f, enabled: v }))}
+                      data-testid="settings-enabled"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="rk-vis" className="text-sm text-grafite">Visibilidade</Label>
+                      <Select value={form.visibility} onValueChange={(v) => setForm((f) => ({ ...f, visibility: v }))}>
+                        <SelectTrigger id="rk-vis" data-testid="settings-visibility"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all_members">Todos os membros</SelectItem>
+                          <SelectItem value="direcao_only">Apenas Direcção</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="rk-topn" className="text-sm text-grafite">Top-N no dashboard</Label>
+                      <Input id="rk-topn" type="number" min="1" max="50" value={form.top_n_dashboard}
+                        onChange={(e) => setForm((f) => ({ ...f, top_n_dashboard: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label htmlFor="rk-cap" className="text-sm text-grafite">Máx. pontos de likes por período</Label>
+                      <Input id="rk-cap" type="number" min="0" value={form.max_like_points_per_period}
+                        onChange={(e) => setForm((f) => ({ ...f, max_like_points_per_period: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-grafite mb-2">Pesos por sinal</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {Object.keys(WEIGHT_LABELS).map((k) => (
+                        <div key={k} className="flex items-center justify-between gap-3">
+                          <Label htmlFor={`w-${k}`} className="text-sm text-[#6B7280]">{WEIGHT_LABELS[k]}</Label>
+                          <Input id={`w-${k}`} type="number" min="0" step="0.5" value={form.weights?.[k] ?? ''}
+                            onChange={(e) => setForm((f) => ({ ...f, weights: { ...f.weights, [k]: e.target.value } }))}
+                            className="w-24 flex-shrink-0" data-testid={`weight-${k}`} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+              <DialogFooter>
+                <button type="button" onClick={() => setSettingsOpen(false)}
+                  className="rounded-md border border-[#D1D5DB] bg-white px-4 py-2 text-sm font-medium text-grafite hover:bg-[#F5F5F5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-1">
+                  Cancelar
+                </button>
+                <button type="button" onClick={submitSettings} disabled={settingsMutation.isPending}
+                  className="bg-carmesim text-white hover:bg-carmesim-dark rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                  data-testid="settings-save">
+                  {settingsMutation.isPending ? 'A guardar…' : 'Guardar'}
+                </button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Registar ajuste */}
+          <Dialog open={adjustOpen} onOpenChange={(o) => { setAdjustOpen(o); if (!o) setAdjust({ user_id: '', delta: '', reason: '' }); }}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Registar ajuste manual</DialogTitle>
+                <DialogDescription>Pontos atribuídos pela Direcção ({periodLabel}). O membro é notificado.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="adj-member" className="text-sm text-grafite">Membro</Label>
+                  {allEntries.length > 0 ? (
+                    <Select value={adjust.user_id} onValueChange={(v) => setAdjust((a) => ({ ...a, user_id: v }))}>
+                      <SelectTrigger id="adj-member" data-testid="adjust-member"><SelectValue placeholder="Selecionar membro…" /></SelectTrigger>
+                      <SelectContent>
+                        {allEntries.map((e) => (
+                          <SelectItem key={e.user_id} value={e.user_id}>{e.member_name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-sm text-[#6B7280]">Recalcule o ranking primeiro para listar os membros.</p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="adj-delta" className="text-sm text-grafite">Pontos (delta)</Label>
+                  <Input id="adj-delta" type="number" step="0.5" value={adjust.delta}
+                    onChange={(e) => setAdjust((a) => ({ ...a, delta: e.target.value }))}
+                    placeholder="ex.: 10 ou -5" data-testid="adjust-delta" />
+                  <p className="text-xs text-[#6B7280]">Use valores negativos para penalizar.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="adj-reason" className="text-sm text-grafite">Motivo</Label>
+                  <Textarea id="adj-reason" value={adjust.reason}
+                    onChange={(e) => setAdjust((a) => ({ ...a, reason: e.target.value }))}
+                    placeholder="ex.: Organizou a festa anual" maxLength={500} rows={3} data-testid="adjust-reason" />
+                </div>
+              </div>
+              <DialogFooter>
+                <button type="button" onClick={() => setAdjustOpen(false)}
+                  className="rounded-md border border-[#D1D5DB] bg-white px-4 py-2 text-sm font-medium text-grafite hover:bg-[#F5F5F5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-1">
+                  Cancelar
+                </button>
+                <button type="button" onClick={submitAdjust} disabled={!adjustValid || adjustMutation.isPending}
+                  className="bg-carmesim text-white hover:bg-carmesim-dark rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                  data-testid="adjust-save">
+                  {adjustMutation.isPending ? 'A registar…' : 'Registar'}
+                </button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </>
       )}
     </div>

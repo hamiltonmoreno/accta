@@ -1965,6 +1965,13 @@ class RankingAjusteCreate(BaseModel):
     delta: float
     reason: str = Field(min_length=1, max_length=500)
 
+    @field_validator("delta")
+    @classmethod
+    def _v_delta(cls, v):
+        if v == 0:
+            raise ValueError("O ajuste não pode ser 0")
+        return v
+
 
 class MemberScore(BaseModel):
     """Cache materializada (derivada/descartável) — uma linha do leaderboard."""

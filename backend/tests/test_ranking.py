@@ -11,6 +11,7 @@ from fastapi import HTTPException
 from starlette.requests import Request
 
 import ranking
+from models import RankingAjusteCreate, RankingSettingsUpdate
 from routes import report as report_route
 from routes import ranking as ranking_route
 
@@ -488,3 +489,128 @@ class TestRebuildRoute:
                 await ranking_route.rebuild_ranking(request=_req(), period="2026", current_user=u)
             assert ei.value.status_code == 403
         rb.assert_not_called()
+
+
+# --------------------------------------------------------------------------- #
+# F4 — GET/PUT /ranking/settings
+# --------------------------------------------------------------------------- #
+
+
+class TestSettingsRoutes:
+    async def test_get_forbidden_for_socio(self, mock_db, socio_user):
+        mock_db.ranking_settings = _coll(find_one_ret=None)
+        with pytest.raises(HTTPException) as ei:
+            await ranking_route.get_ranking_settings(current_user=socio_user)
+        assert ei.value.status_code == 403
+
+    async def test_get_returns_merged_settings(self, mock_db, admin_user):
+        mock_db.ranking_settings = _coll(find_one_ret={"visibility": "direcao_only"})
+        res = await ranking_route.get_ranking_settings(current_user=admin_user)
+        assert res["visibility"] == "direcao_only"
+        assert res["weights"]["assembleia_presenca"] == 10  # defaults fundidos
+
+    async def test_put_merges_weights_and_audits(self, mock_db, admin_user, monkeypatch):
+        mock_db.ranking_settings = _wcoll(find_one_ret={"id": "s1"})  # já existe → update
+        audit = AsyncMock()
+        monkeypatch.setattr(ranking_route, "create_audit_log", audit)
+        payload = RankingSettingsUpdate(weights={"mural_post": 9}, top_n_dashboard=10)
+        await ranking_route.update_ranking_settings(payload=payload, request=_req(), current_user=admin_user)
+
+        upd = mock_db.ranking_settings.update_one.call_args.args[1]["$set"]
+        assert upd["weights"]["mural_post"] == 9
+        assert upd["weights"]["assembleia_presenca"] == 10  # merge preserva os outros
+        assert upd["top_n_dashboard"] == 10
+        assert upd["updated_by"] == admin_user.id
+        changes = audit.await_args.kwargs["details"]["changes"]
+        assert audit.await_args.kwargs["action"] == "ranking_settings_updated"
+        assert changes["top_n_dashboard"] == 10
+        assert changes["weights"] == {"mural_post": 9}  # diff só dos pesos enviados
+
+    async def test_manage_ranking_privilege_grants_access(self, mock_db, socio_user):
+        """Sócio comum + privilégio `manage_ranking` → acede às definições (sem ser admin/Direcção)."""
+        mgr = socio_user.model_copy(update={"privileges": ["manage_ranking"]})
+        mock_db.ranking_settings = _coll(find_one_ret=None)
+        res = await ranking_route.get_ranking_settings(current_user=mgr)
+        assert "weights" in res
+
+    async def test_put_creates_settings_when_absent(self, mock_db, admin_user, monkeypatch):
+        mock_db.ranking_settings = _wcoll(find_one_ret=None)  # sem doc → insert
+        monkeypatch.setattr(ranking_route, "create_audit_log", AsyncMock())
+        await ranking_route.update_ranking_settings(
+            payload=RankingSettingsUpdate(enabled=False), request=_req(), current_user=admin_user
+        )
+        mock_db.ranking_settings.insert_one.assert_awaited_once()
+
+    async def test_put_invalid_weight_key_400(self, mock_db, admin_user):
+        mock_db.ranking_settings = _wcoll(find_one_ret=None)
+        with pytest.raises(HTTPException) as ei:
+            await ranking_route.update_ranking_settings(
+                payload=RankingSettingsUpdate(weights={"bogus": 5}), request=_req(), current_user=admin_user
+            )
+        assert ei.value.status_code == 400
+
+    async def test_put_forbidden_for_socio(self, mock_db, socio_user):
+        mock_db.ranking_settings = _wcoll(find_one_ret=None)
+        with pytest.raises(HTTPException) as ei:
+            await ranking_route.update_ranking_settings(
+                payload=RankingSettingsUpdate(enabled=False), request=_req(), current_user=socio_user
+            )
+        assert ei.value.status_code == 403
+
+
+# --------------------------------------------------------------------------- #
+# F4 — POST/GET /ranking/adjustments
+# --------------------------------------------------------------------------- #
+
+
+class TestAdjustmentsRoutes:
+    async def test_add_forbidden_for_socio(self, socio_user):
+        with pytest.raises(HTTPException) as ei:
+            await ranking_route.add_ranking_adjustment(
+                payload=RankingAjusteCreate(user_id="u9", period_key="2026", delta=5, reason="x"),
+                request=_req(), current_user=socio_user,
+            )
+        assert ei.value.status_code == 403
+
+    async def test_add_ghost_member_404(self, mock_db, admin_user, monkeypatch):
+        mock_db.users = _coll(find_one_ret=None)
+        mock_db.ranking_ajustes = _wcoll()
+        monkeypatch.setattr(ranking_route, "create_audit_log", AsyncMock())
+        monkeypatch.setattr(ranking_route, "create_notification", AsyncMock())
+        with pytest.raises(HTTPException) as ei:
+            await ranking_route.add_ranking_adjustment(
+                payload=RankingAjusteCreate(user_id="ghost", period_key="2026", delta=5, reason="x"),
+                request=_req(), current_user=admin_user,
+            )
+        assert ei.value.status_code == 404
+        mock_db.ranking_ajustes.insert_one.assert_not_called()
+
+    async def test_add_success_audits_and_notifies(self, mock_db, admin_user, monkeypatch):
+        mock_db.users = _coll(find_one_ret={"id": "u9", "name": "Ana"})
+        mock_db.ranking_ajustes = _wcoll()
+        audit = AsyncMock()
+        notif = AsyncMock()
+        monkeypatch.setattr(ranking_route, "create_audit_log", audit)
+        monkeypatch.setattr(ranking_route, "create_notification", notif)
+        res = await ranking_route.add_ranking_adjustment(
+            payload=RankingAjusteCreate(user_id="u9", period_key="2026", delta=-3.5, reason="atraso"),
+            request=_req(), current_user=admin_user,
+        )
+        assert res["user_id"] == "u9" and res["delta"] == -3.5 and res["created_by"] == admin_user.id
+        mock_db.ranking_ajustes.insert_one.assert_awaited_once()
+        assert audit.await_args.kwargs["action"] == "ranking_adjustment_added"
+        notif.assert_awaited_once()
+        assert notif.await_args.kwargs["user_id"] == "u9"
+        assert notif.await_args.kwargs["type"] == "system"
+
+    async def test_list_member_sees_only_own(self, mock_db, socio_user):
+        mock_db.ranking_ajustes = _coll(find_list=[{"id": "a1", "user_id": socio_user.id}])
+        await ranking_route.list_ranking_adjustments(user_id="alguem_outro", current_user=socio_user)
+        q = mock_db.ranking_ajustes.find.call_args.args[0]
+        assert q["user_id"] == socio_user.id  # ignora o param, força ao próprio
+
+    async def test_list_manager_filters_by_user_and_period(self, mock_db, admin_user):
+        mock_db.ranking_ajustes = _coll(find_list=[])
+        await ranking_route.list_ranking_adjustments(user_id="u9", period="2026", current_user=admin_user)
+        q = mock_db.ranking_ajustes.find.call_args.args[0]
+        assert q == {"user_id": "u9", "period_key": "2026"}

@@ -201,6 +201,10 @@ PRIVILEGES = [
     # disparo de comunicados (spec-comunicados-email) — overlay aditivo:
     # admin OU este privilégio podem compor/enviar comunicados.
     "send_comunicados",
+    # ranking de atuação (spec-ranking-socio §7) — overlay aditivo: configurar
+    # pesos/visibilidade, registar ajustes e recalcular o ranking sem dar admin
+    # (concedível à Direcção).
+    "manage_ranking",
 ]
 
 ROLES = ["admin", "financeiro", "moderador", "socio"]

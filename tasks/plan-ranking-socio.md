@@ -128,9 +128,33 @@ Feature GRANDE, faseada (F0–F5), PRs pequenos. Aditivo — sem migração dest
   lista `hasPrivilege('manage_ranking')`); ninguém tem o privilégio até a F4
   o registar; ambos os lados sobem juntos. Sem ação.
 
+## F4 — Config admin/Direcção + privilégio `manage_ranking` ✅
+- [x] `governance.py`: `manage_ranking` em PRIVILEGES; `cargoLabels.js`: label.
+      `_can_manage_ranking` = `user_can(user,'manage_ranking') or is_direcao(user)`.
+- [x] `routes/ranking.py`: `GET/PUT /ranking/settings` (merge parcial de pesos —
+      só chaves válidas e ≥0; audita `ranking_settings_updated` com diff;
+      find-then-update/insert), `POST /ranking/adjustments` (404 ghost; audita
+      `ranking_adjustment_added`; notifica o membro in-app type=`system`, **sem
+      email**; `delta != 0`), `GET /ranking/adjustments` (gestor filtra; membro
+      comum só vê os seus).
+- [x] `RankingPage.js`: dialog **Definições** (enabled/visibilidade/Top-N/cap +
+      10 pesos → PUT) e **Registar ajuste** (membro das entries + delta + motivo
+      → POST); botões secundários no header; gated `canManage`; invalida queries.
+- [x] Testes: settings GET/PUT (RBAC, merge, diff de audit, privilégio
+      `manage_ranking`), adjustments POST (RBAC, 404, audit, notify), GET
+      (gestor vs próprio). `test_ranking.py` **45 passed**; suíte unit **971
+      passed** (0 regressões); ruff/eslint limpos; `craco build` OK.
+
+## Achados da revisão F4 (2026-05-27)
+- ✅ Revisão: **0 bloqueantes, 0 importantes, 3 nits — todos remediados**:
+  N1 (delta=0 aceite) → validador `delta != 0` em `RankingAjusteCreate` +
+  `adjustValid` no frontend; N2 (sem teste do caminho `manage_ranking`) →
+  `test_manage_ranking_privilege_grants_access`; N3 (asserção do diff de pesos)
+  → `changes["weights"]` verificado.
+
 ## Fases seguintes (por fazer)
-- **F4** config admin/Direcção: `settings`/`adjustments` + privilégio `manage_ranking`.
-- **F5** `ranking_opt_out` + `visibility=direcao_only` + `scripts/rebuild_ranking.py` (cron).
+- **F5** `ranking_opt_out` + `visibility=direcao_only` (enforcement server-side) +
+  `scripts/rebuild_ranking.py` (cron).
 
 ## Stop conditions
 Não tornar público com efeito reputacional sem validação (default: Top-N + breakdown

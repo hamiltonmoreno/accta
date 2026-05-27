@@ -8,18 +8,22 @@ ficam `None` e o frontend mostra só o score+breakdown.
 F2: `POST /api/ranking/rebuild` (recalcula o snapshot) e
 `GET /api/ranking/leaderboard` (lê o snapshot, paginado, com a linha do próprio).
 O breakdown detalhado fica fora das linhas públicas (§2.5 — privado ao próprio).
+
+F4: configuração (`GET`/`PUT /api/ranking/settings`) e ajustes manuais
+(`POST`/`GET /api/ranking/adjustments`), gated a admin/Direcção/`manage_ranking`.
 """
 
+import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from auth import get_current_user
 from database import db
-from helpers import create_audit_log
-from models import User
-from permissions import is_direcao
-from ranking import compute_member_score, load_settings, rebuild_scores
+from helpers import create_audit_log, create_notification
+from models import RankingAjusteCreate, RankingSettingsUpdate, User
+from permissions import is_direcao, user_can
+from ranking import DEFAULT_SETTINGS, DEFAULT_WEIGHTS, compute_member_score, load_settings, rebuild_scores
 
 router = APIRouter(tags=["ranking"])
 
@@ -29,9 +33,10 @@ def _current_period() -> str:
 
 
 def _can_manage_ranking(user) -> bool:
-    """Quem recalcula/configura o ranking. F2: admin ou Direcção. A F4 acrescenta
-    o privilégio aditivo `manage_ranking` (concedível à Direcção sem dar admin)."""
-    return getattr(user, "role", None) == "admin" or is_direcao(user)
+    """Quem recalcula/configura o ranking: admin, Direcção, ou o privilégio
+    aditivo `manage_ranking` (concedível à Direcção sem dar admin; §7).
+    `user_can` já cobre o admin."""
+    return user_can(user, "manage_ranking") or is_direcao(user)
 
 
 @router.get("/ranking/me")
@@ -140,3 +145,132 @@ async def rebuild_ranking(
         details={"period": period_key, "members": members},
     )
     return {"period": period_key, "members": members}
+
+
+# --------------------------------------------------------------------------- #
+# F4 — Configuração (settings) e ajustes manuais
+# --------------------------------------------------------------------------- #
+
+
+@router.get("/ranking/settings")
+async def get_ranking_settings(current_user: User = Depends(get_current_user)):
+    """Configuração efetiva do ranking (pesos + defaults fundidos)."""
+    if not _can_manage_ranking(current_user):
+        raise HTTPException(status_code=403, detail="Sem permissão para gerir o ranking")
+    return await load_settings()
+
+
+@router.put("/ranking/settings")
+async def update_ranking_settings(
+    payload: RankingSettingsUpdate,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    """Edita pesos (merge parcial)/visibilidade/Top-N/cap de likes/ativação.
+    Audita `ranking_settings_updated` com o diff dos campos alterados."""
+    if not _can_manage_ranking(current_user):
+        raise HTTPException(status_code=403, detail="Sem permissão para gerir o ranking")
+
+    current = await load_settings()
+    update: dict = {}
+    changes: dict = {}
+
+    if payload.weights is not None:
+        invalid = [k for k in payload.weights if k not in DEFAULT_WEIGHTS]
+        if invalid:
+            raise HTTPException(status_code=400, detail=f"Pesos desconhecidos: {', '.join(invalid)}")
+        for k, v in payload.weights.items():
+            if not isinstance(v, (int, float)) or isinstance(v, bool) or v < 0:
+                raise HTTPException(status_code=400, detail=f"Peso inválido para '{k}'")
+        update["weights"] = {**current["weights"], **payload.weights}
+        changes["weights"] = dict(payload.weights)
+
+    for field in ("max_like_points_per_period", "visibility", "top_n_dashboard", "enabled"):
+        val = getattr(payload, field)
+        if val is not None and val != current.get(field):
+            update[field] = val
+            changes[field] = val
+
+    if not update:
+        return current  # nada mudou
+
+    now = datetime.now(timezone.utc).isoformat()
+    update["updated_at"] = now
+    update["updated_by"] = current_user.id
+
+    existing = await db.ranking_settings.find_one({}, {"_id": 0, "id": 1})
+    if existing is not None:
+        await db.ranking_settings.update_one({}, {"$set": update})
+    else:
+        await db.ranking_settings.insert_one({**DEFAULT_SETTINGS, "weights": dict(DEFAULT_WEIGHTS), **update})
+
+    await create_audit_log(
+        user_id=current_user.id,
+        action="ranking_settings_updated",
+        request=request,
+        details={"changes": changes},
+    )
+    return await load_settings()
+
+
+@router.post("/ranking/adjustments")
+async def add_ranking_adjustment(
+    payload: RankingAjusteCreate,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    """Regista um ajuste manual (delta ±, motivo) ao score de um membro.
+    Audita `ranking_adjustment_added` e notifica o membro (in-app; sem email).
+    O delta só se reflecte na tabela após o próximo rebuild (o `/me` é ao vivo)."""
+    if not _can_manage_ranking(current_user):
+        raise HTTPException(status_code=403, detail="Sem permissão para gerir o ranking")
+
+    member = await db.users.find_one({"id": payload.user_id}, {"_id": 0, "id": 1})
+    if not member:
+        raise HTTPException(status_code=404, detail="Membro não encontrado")
+
+    doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": payload.user_id,
+        "period_key": payload.period_key,
+        "delta": payload.delta,
+        "reason": payload.reason,
+        "created_by": current_user.id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.ranking_ajustes.insert_one(doc)
+
+    await create_audit_log(
+        user_id=current_user.id,
+        action="ranking_adjustment_added",
+        request=request,
+        details={"user_id": payload.user_id, "delta": payload.delta, "reason": payload.reason, "period": payload.period_key},
+    )
+    await create_notification(
+        user_id=payload.user_id,
+        type="system",
+        title="Ajuste de pontuação",
+        message=f"A Direcção registou {payload.delta:+g} pontos no teu ranking: {payload.reason}",
+        link="/ranking",
+    )
+    return doc
+
+
+@router.get("/ranking/adjustments")
+async def list_ranking_adjustments(
+    user_id: str | None = None,
+    period: str | None = None,
+    current_user: User = Depends(get_current_user),
+):
+    """Lista ajustes. Gestores (admin/Direcção/`manage_ranking`) filtram por
+    `user_id`/`period`; um membro comum vê apenas os seus próprios (transparência)."""
+    query: dict = {}
+    if _can_manage_ranking(current_user):
+        if user_id:
+            query["user_id"] = user_id
+    else:
+        query["user_id"] = current_user.id  # não-gestor só vê os seus
+    if period:
+        query["period_key"] = period
+
+    return await db.ranking_ajustes.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
