@@ -10,6 +10,30 @@ from database import db, UPLOAD_DIR, _json_default
 from models import AuditLog, Notification
 
 
+async def enrich_author_photos(docs, id_field: str = "user_id", out_field: str = "user_photo_url"):
+    """Injeta a foto ATUAL do autor em cada doc de uma listagem, resolvida na
+    leitura (sempre fresca e cobre conteúdo antigo, sem denormalizar nem migrar).
+
+    Custo: 1 query agregada por listagem (`find {id: {$in: [...]}}`). Tolerante —
+    autor sem foto ou inexistente → `out_field=None` (fallback iniciais no UI).
+    Muta os dicts in-place e devolve a mesma lista.
+    """
+    if not docs:
+        return docs
+    ids = {d.get(id_field) for d in docs if d.get(id_field)}
+    if not ids:
+        for d in docs:
+            d[out_field] = None
+        return docs
+    rows = await db.users.find(
+        {"id": {"$in": list(ids)}}, {"_id": 0, "id": 1, "photo_url": 1}
+    ).to_list(len(ids))
+    photo_by_id = {r["id"]: r.get("photo_url") for r in rows}
+    for d in docs:
+        d[out_field] = photo_by_id.get(d.get(id_field))
+    return docs
+
+
 def delete_upload_file(url: str) -> bool:
     """Apaga o ficheiro físico associado a um URL `/uploads/...`, com guard de
     path traversal. Devolve True se apagou. Falha silenciosa (False) em URLs

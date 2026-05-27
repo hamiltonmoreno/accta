@@ -16,6 +16,7 @@ import {
   getStatusConfig,
 } from '../../lib/statusConfig';
 import { EmptyState } from '../../components/EmptyState';
+import { UserAvatar } from '../../components/UserAvatar';
 
 const TabBtn = ({ active, label, icon: Icon, onClick, badge, testId }) => (
   <button onClick={onClick} data-testid={testId}
@@ -198,9 +199,7 @@ const CommentsTab = ({ project, comments, onReload }) => {
     <div className="space-y-4">
       {/* Input */}
       <div className="bg-white border border-gray-200/80 rounded-xl p-3.5 flex items-start gap-3">
-        <div className="w-8 h-8 bg-carmesim rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-          {user?.name?.charAt(0).toUpperCase()}
-        </div>
+        <UserAvatar size="xs" name={user?.name} photoUrl={user?.photo_url} />
         <div className="flex-1">
           <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)}
             placeholder="Partilhe uma ideia ou comentario..."
@@ -223,9 +222,13 @@ const CommentsTab = ({ project, comments, onReload }) => {
           {comments.map((c) => (
             <div key={c.id} className="bg-white border border-gray-200/80 rounded-xl p-4" data-testid={`comment-${c.id}`}>
               <div className="flex items-center gap-2 mb-1.5">
-                <div className="w-7 h-7 bg-grafite rounded-full flex items-center justify-center text-white text-xs font-bold">
-                  {c.user_name?.charAt(0)?.toUpperCase() || '?'}
-                </div>
+                <UserAvatar
+                  size="xs"
+                  className="w-7 h-7"
+                  name={c.user_name}
+                  photoUrl={c.user_photo_url}
+                  fallbackClassName="bg-grafite"
+                />
                 <span className="font-semibold text-sm text-grafite">{c.user_name}</span>
                 <span className="text-xs text-[#6B7280] ml-auto">
                   {c.created_at ? new Date(c.created_at).toLocaleDateString('pt') : ''}

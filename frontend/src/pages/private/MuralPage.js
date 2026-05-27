@@ -11,6 +11,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
 import { EmptyState } from '../../components/EmptyState';
+import { UserAvatar } from '../../components/UserAvatar';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -99,9 +100,12 @@ const CommentSection = ({ postId, commentCount, user }) => {
               ) : (
                 comments.map((comment) => (
                   <div key={comment.id} className="flex gap-3 group" data-testid={`comment-${comment.id}`}>
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 text-grafite-auto bg-[var(--surface-border)]">
-                      {comment.user_name?.charAt(0).toUpperCase()}
-                    </div>
+                    <UserAvatar
+                      size="xs"
+                      name={comment.user_name}
+                      photoUrl={comment.user_photo_url}
+                      fallbackClassName="bg-[var(--surface-border)] text-grafite-auto"
+                    />
                     <div className="flex-1 rounded-lg px-3 py-2 bg-[var(--surface-card-hover)]">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-semibold text-grafite-auto">{comment.user_name}</span>
@@ -208,9 +212,12 @@ const PendingPostsPanel = () => {
                   <div key={post.id} className="border border-[#FDE68A] rounded-lg p-4 bg-[#FFFBEB]/50" data-testid={`pending-post-${post.id}`}>
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-[#FEF3C7] rounded-full flex items-center justify-center text-sm font-bold text-[#B45309]">
-                          {post.user_name?.charAt(0).toUpperCase()}
-                        </div>
+                        <UserAvatar
+                          size="xs"
+                          name={post.user_name}
+                          photoUrl={post.user_photo_url}
+                          fallbackClassName="bg-[#FEF3C7] text-[#B45309] text-sm"
+                        />
                         <div>
                           <span className="font-semibold text-sm text-grafite-auto">{post.user_name}</span>
                           <span className="text-xs ml-2 text-muted-auto">
@@ -487,9 +494,12 @@ export const MuralPage = () => {
                 )}
 
                 <div className="flex items-start gap-3 sm:gap-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-carmesim rounded-full flex items-center justify-center font-bold text-white flex-shrink-0 text-sm sm:text-base">
-                    {post.user_name?.charAt(0).toUpperCase()}
-                  </div>
+                  <UserAvatar
+                    name={post.user_name}
+                    photoUrl={post.user_photo_url}
+                    className="w-10 h-10 sm:w-12 sm:h-12"
+                    fallbackClassName="text-sm sm:text-base"
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between mb-2">
                       <div>

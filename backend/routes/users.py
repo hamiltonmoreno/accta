@@ -121,17 +121,48 @@ async def get_user(user_id: str, current_user: User = Depends(get_current_user))
 # ===== UPDATE OWN PROFILE =====
 @router.patch("/users/me/profile")
 async def update_own_profile(data: UserProfileUpdate, current_user: User = Depends(get_current_user)):
-    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
-    if not update_data:
+    dumped = data.model_dump()
+
+    # Convenção de "limpar" da foto: photo_url == "" remove (grava None) e apaga
+    # o ficheiro antigo; uma URL nova substitui (apaga a antiga); None/ausente
+    # mantém. Tratada à parte do filtro de None (que descartaria o "").
+    new_photo = dumped.get("photo_url")
+    if new_photo == "":
+        photo_op = "clear"
+    elif isinstance(new_photo, str) and new_photo:
+        photo_op = "set"
+    else:
+        photo_op = None
+
+    update_data = {k: v for k, v in dumped.items() if v is not None and k != "photo_url"}
+    if not update_data and photo_op is None:
         raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
 
+    old_photo = None
+    if photo_op is not None:
+        existing = await db.users.find_one({"id": current_user.id}, {"_id": 0, "photo_url": 1})
+        old_photo = (existing or {}).get("photo_url")
+        update_data["photo_url"] = new_photo if photo_op == "set" else None
+
     await db.users.update_one({"id": current_user.id}, {"$set": update_data})
+
+    # Higiene de ficheiros: ao trocar/remover, apaga o avatar antigo se mudou.
+    if photo_op is not None and old_photo and old_photo != update_data.get("photo_url"):
+        delete_upload_file(old_photo)
 
     # Return updated user
     updated = await db.users.find_one(
         {"id": current_user.id}, {"_id": 0, "password": 0, **dict.fromkeys(MFA_SECRET_FIELDS, 0)}
     )
-    await create_audit_log(current_user.id, "Atualizou o próprio perfil")
+    # Audit específico para a foto quando essa foi a única acção; genérico caso
+    # contrário (edição mista de campos do perfil).
+    if photo_op and not (update_data.keys() - {"photo_url"}):
+        await create_audit_log(
+            current_user.id,
+            "profile_photo_removed" if photo_op == "clear" else "profile_photo_updated",
+        )
+    else:
+        await create_audit_log(current_user.id, "Atualizou o próprio perfil")
     return updated
 
 
@@ -244,6 +275,42 @@ async def delete_user(user_id: str, current_user: User = Depends(get_current_use
     delete_upload_file(existing.get("photo_url") or "")
     await create_audit_log(current_user.id, f"Removeu utilizador {existing.get('name', user_id)}", user_id)
     return {"message": "Utilizador removido com sucesso"}
+
+
+# ===== REMOVE USER PHOTO (moderação reativa) =====
+@router.delete("/users/{user_id}/photo")
+async def remove_user_photo(
+    user_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    """Admin/moderador removem a foto de perfil de um membro (foto inadequada).
+    Apenas REMOVEM — não definem fotos (spec-foto-de-perfil §5.2). Volta às
+    iniciais, apaga o ficheiro, regista audit e notifica o utilizador."""
+    if not has_role_or_privilege(current_user, ("admin", "moderador"), "manage_users"):
+        raise HTTPException(status_code=403, detail="Sem permissão")
+
+    existing = await db.users.find_one({"id": user_id}, {"_id": 0, "photo_url": 1, "name": 1})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Utilizador não encontrado")
+
+    await db.users.update_one({"id": user_id}, {"$set": {"photo_url": None}})
+    delete_upload_file(existing.get("photo_url") or "")
+    await create_audit_log(
+        current_user.id,
+        "profile_photo_removed",
+        user_id,
+        request=request,
+        details={"target_name": existing.get("name")},
+    )
+    await create_notification(
+        user_id,
+        "admin",
+        "Foto removida",
+        "A sua foto de perfil foi removida pela moderação.",
+        "/perfil",
+    )
+    return {"message": "Foto removida"}
 
 
 # ===== CARGO HISTORY =====

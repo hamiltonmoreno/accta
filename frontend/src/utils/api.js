@@ -3,6 +3,13 @@ import axios from 'axios';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API_BASE = `${BACKEND_URL}/api`;
 
+// Ficheiros enviados (/uploads/...) são servidos na RAIZ do backend (fora de
+// /api). Em produção é a mesma origem (Nginx) e o caminho relativo bastaria,
+// mas em dev (portas diferentes) é preciso prefixar BACKEND_URL. URLs já
+// absolutas (http/https) passam intactas; vazio devolve ''.
+export const mediaUrl = (path) =>
+  !path ? '' : /^https?:\/\//.test(path) ? path : `${BACKEND_URL}${path}`;
+
 // Sprint 10 — JWT em httpOnly cookie em vez de localStorage. withCredentials
 // faz o axios incluir o cookie cross-origin (requer backend CORS allow_credentials
 // + cookie SameSite=None;Secure em prod).
@@ -222,6 +229,7 @@ export const usersAPI = {
   adminUpdate: (userId, data) => api.patch(`/users/${userId}`, data),
   updateStatus: (userId, status) => api.patch(`/users/${userId}/status`, null, { params: { status } }),
   delete: (userId) => api.delete(`/users/${userId}`),
+  removePhoto: (userId) => api.delete(`/users/${userId}/photo`),
   getCargos: () => api.get('/users/meta/cargos'),
   getPrivileges: () => api.get('/users/meta/privileges'),
 };
