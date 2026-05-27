@@ -49,9 +49,54 @@ Feature GRANDE, faseada (F0–F5), PRs pequenos. Aditivo — sem migração dest
 - Aceites (sem ação): N1 (ficheiro sem acentos — consistência), N2 (1 request quando
   ranking off), N4 (`_period_bounds` aceita anos absurdos → 0 resultados, inofensivo).
 
+## F2 — Snapshot + leaderboard + widget Top-N ✅
+- [x] `models.py`: `RankingAjuste`/`RankingAjusteCreate`/`MemberScore`/
+      `RankingSettings`/`RankingSettingsUpdate` (auto-contidos; **não** importam
+      `ranking.py` — `ranking → auth → models` seria ciclo; defaults de pesos
+      aplicados em runtime por `load_settings`).
+- [x] `ranking.py`: `_eligible_members` (filtro canónico §2.3: técnicos fora;
+      só `ativo`/`inativo`) + `rebuild_scores` (chama `compute_member_score` por
+      membro — fonte única; ranking de competição com empates partilhados
+      `1,2,2,4`; idempotente `delete_many`+`insert_many`; `last_rebuild_at` via
+      find-then-update/insert — o DAO não tem `upsert`).
+- [x] `routes/ranking.py`: `_can_manage_ranking` (admin|`is_direcao`; F4 junta
+      `manage_ranking`), `POST /ranking/rebuild` (RBAC+audit `ranking_rebuilt`),
+      `GET /ranking/leaderboard` (sort `rank` asc, paginado, linha do próprio,
+      **breakdown removido das linhas públicas** §2.5, **short-circuit quando
+      `enabled=False`**).
+- [x] `DashboardPage.js`: cartão "Ranking de Atuacao" Top-N (medalha Top-3
+      neutro/Carmesim no #1, nome, cargo via `CARGO_LABELS_FALLBACK`, mini-barra
+      proporcional, realce do próprio, `computed_at`); **inativos filtrados do
+      Top-N (D3)**; `Skeleton`/`EmptyState`; query gated em `enabled`, `limit=50`.
+- [x] Testes: rebuild (ranks/empates/idempotência/elegibilidade/vazio),
+      leaderboard (entries+total+me, breakdown excluído, paginação clamp,
+      disabled→vazio), RBAC rebuild (sócio/financeiro/moderador 403; admin +
+      Direcção OK; audita). `test_ranking.py` **33 passed**; suíte unit 0
+      regressões; ruff limpo; eslint 0 erros; `craco build` OK.
+
+## Achados da revisão F2 (2026-05-27)
+- ✅ **IMPORTANT #2 corrigido**: inativos apareciam no Top-N do dashboard
+  (violava D3) → filtro `status !== 'inativo'` antes do slice + `limit=50`.
+- ✅ **IMPORTANT #3 corrigido**: `enabled=False` agora curto-circuita o
+  `/leaderboard` server-side (não servia a feature desligada a clientes diretos).
+- ✅ **N2/N3/N4**: `limit=50` (cobre `top_n` até 50); +testes RBAC financeiro/
+  moderador; comentário em `_wcoll`.
+- ⏳ **IMPORTANT #1 (índice) — aceite sem ação, com fundamento**: o `_order_by`
+  do DAO embrulha QUALQUER sort numérico num `CASE WHEN … THEN (col)::numeric END`
+  — **nenhum** índice de expressão btree o satisfaz (nem `::numeric` nem `->`). O
+  `ix_mscores_period_rank` serve o **filtro de igualdade** `period_key` (coluna
+  líder); o sort é em memória sobre 1 linha por membro (centenas, DB ~vazia) →
+  negligível. Um sort backed-by-index exigiria mudar o `_order_by` global (fora
+  de âmbito, arriscado). Sem alteração de schema.
+- **#4 (inline style na barra) — aceite**: `style={{ width: \`${pct}%\` }}` é o
+  padrão existente (`PollResults.js`, `DRETab.js`) para barras proporcionais;
+  alinhar com ele é o correcto.
+- **N1 (acentos) — aceite**: `DashboardPage.js` é deliberadamente sem acentos
+  (consistência; já aceite na revisão F0+F1).
+- **N5 (N queries/membro no rebuild) — roadmap**: pré-agregação (um `$group`/
+  colecção, §5) fica para quando houver volume; rebuild corre fora do request path.
+
 ## Fases seguintes (por fazer)
-- **F2** modelos `RankingAjuste`/`MemberScore`/`RankingSettings` + `rebuild_scores` +
-  `POST /rebuild` + `GET /leaderboard` + widget Top-N no dashboard.
 - **F3** página `/ranking` (pódio, tabela, período, pesquisa) + sidebar + rota.
 - **F4** config admin/Direcção: `settings`/`adjustments` + privilégio `manage_ranking`.
 - **F5** `ranking_opt_out` + `visibility=direcao_only` + `scripts/rebuild_ranking.py` (cron).

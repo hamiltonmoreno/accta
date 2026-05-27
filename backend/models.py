@@ -1937,3 +1937,68 @@ class ExercicioSubmeterAG(BaseModel):
 class ExercicioAprovar(BaseModel):
     deliberacao_id: str
     aprovado: bool = True
+
+
+# ===== RANKING DE ATUAÇÃO DO SÓCIO (spec-ranking-socio) =====
+# A pontuação é DERIVADA de sinais já gravados (não event-sourcing); a fonte
+# única do cálculo é `backend/ranking.py` (`compute_member_score`), onde também
+# vivem os pesos default (`DEFAULT_WEIGHTS`). Estes modelos NÃO importam de
+# `ranking.py` de propósito: `ranking` → `auth` → `models` formaria um ciclo.
+# Os defaults de pesos são aplicados em runtime por `ranking.load_settings()`.
+
+
+class RankingAjuste(BaseModel):
+    """Delta manual auditável (o "registar" do que o sistema não infere)."""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str                       # membro pontuado
+    period_key: str                    # "2026" | "all"
+    delta: float                       # +/-; pode ser negativo
+    reason: str                        # obrigatório, auditável
+    created_by: str                    # admin/Direcção que registou
+    created_at: str
+
+
+class RankingAjusteCreate(BaseModel):
+    """Body do registo de ajuste manual (F4)."""
+    user_id: str
+    period_key: str = Field(min_length=1, max_length=16)
+    delta: float
+    reason: str = Field(min_length=1, max_length=500)
+
+
+class MemberScore(BaseModel):
+    """Cache materializada (derivada/descartável) — uma linha do leaderboard."""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    period_key: str
+    score: float
+    rank: int                          # 1 = topo (dentro do período)
+    breakdown: dict                    # {chave: {"count": int, "points": float}}
+    # snapshot de display (evita join no leaderboard)
+    member_name: str
+    member_id: Optional[str] = None
+    cargo: Optional[str] = None
+    photo_url: Optional[str] = None
+    status: str                        # ativo/inativo
+    computed_at: str
+
+
+class RankingSettings(BaseModel):
+    """Doc único de configuração do ranking (editável por admin na F4)."""
+    weights: dict = Field(default_factory=dict)  # defaults aplicados por load_settings()
+    max_like_points_per_period: int = 50
+    visibility: Literal["all_members", "direcao_only"] = "all_members"
+    top_n_dashboard: int = Field(default=5, ge=1, le=50)
+    enabled: bool = True
+    last_rebuild_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    updated_by: Optional[str] = None
+
+
+class RankingSettingsUpdate(BaseModel):
+    """Body parcial de edição de definições (F4)."""
+    weights: Optional[dict] = None
+    max_like_points_per_period: Optional[int] = Field(default=None, ge=0)
+    visibility: Optional[Literal["all_members", "direcao_only"]] = None
+    top_n_dashboard: Optional[int] = Field(default=None, ge=1, le=50)
+    enabled: Optional[bool] = None

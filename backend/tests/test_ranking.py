@@ -7,6 +7,8 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from fastapi import HTTPException
+from starlette.requests import Request
 
 import ranking
 from routes import report as report_route
@@ -274,3 +276,215 @@ class TestRankingMe:
         mock_db.ranking_settings = _coll(find_one_ret={"weights": {"mural_post": 100}})
         res = await ranking_route.get_my_ranking(period="2026", current_user=socio_user)
         assert res["breakdown"]["mural_post"]["points"] == 200
+
+
+# --------------------------------------------------------------------------- #
+# rebuild_scores — F2 (ranking de competição, idempotência, elegibilidade)
+# --------------------------------------------------------------------------- #
+
+
+def _wcoll(**kw):
+    """Como _coll mas com métodos de escrita (insert/delete/update) AsyncMock.
+    `find_one`/`count_documents`/`find` são herdados de _coll (já AsyncMock)."""
+    c = _coll(**kw)
+    c.insert_one = AsyncMock()
+    c.insert_many = AsyncMock()
+    c.delete_many = AsyncMock()
+    c.update_one = AsyncMock()
+    return c
+
+
+def _members(*specs):
+    """specs: (id, name) → docs de membro elegível para rebuild."""
+    return [
+        {"id": i, "name": n, "status": "ativo", "member_id": None, "cargo": None, "photo_url": None}
+        for i, n in specs
+    ]
+
+
+class TestRebuildScores:
+    async def test_ranks_desc_with_shared_ties(self, mock_db, monkeypatch):
+        mock_db.users = _coll(find_list=_members(("a", "Ana"), ("b", "Bruno"), ("c", "Carla"), ("d", "Duarte")))
+        mock_db.member_scores = _wcoll()
+        mock_db.ranking_settings = _wcoll(find_one_ret=None)
+
+        scores = {"a": 30.0, "b": 20.0, "c": 20.0, "d": 5.0}
+
+        async def fake_compute(uid, period, weights=None, max_like=50):
+            return {"score": scores[uid], "breakdown": {"x": {"count": 1, "points": scores[uid]}}}
+
+        monkeypatch.setattr(ranking, "compute_member_score", AsyncMock(side_effect=fake_compute))
+
+        n = await ranking.rebuild_scores("2026")
+        assert n == 4
+        docs = mock_db.member_scores.insert_many.call_args.args[0]
+        by_user = {d["user_id"]: d for d in docs}
+        assert by_user["a"]["rank"] == 1
+        # empate em 20.0 partilha a rank 2 (desempate estável por nome: Bruno < Carla)
+        assert by_user["b"]["rank"] == 2
+        assert by_user["c"]["rank"] == 2
+        # próxima salta para 4 (ranking de competição padrão)
+        assert by_user["d"]["rank"] == 4
+        # cada doc do snapshot tem os campos de display
+        assert by_user["a"]["member_name"] == "Ana"
+        assert by_user["a"]["period_key"] == "2026"
+
+    async def test_idempotent_replaces_snapshot(self, mock_db, monkeypatch):
+        mock_db.users = _coll(find_list=_members(("a", "Ana"), ("b", "Bruno")))
+        mock_db.member_scores = _wcoll()
+        mock_db.ranking_settings = _wcoll(find_one_ret={"id": "s1"})  # settings já existe
+        monkeypatch.setattr(
+            ranking, "compute_member_score", AsyncMock(return_value={"score": 10.0, "breakdown": {}})
+        )
+
+        await ranking.rebuild_scores("2026")
+        await ranking.rebuild_scores("2026")
+        # cada rebuild apaga o período antes de inserir → idempotente
+        assert mock_db.member_scores.delete_many.await_count == 2
+        mock_db.member_scores.delete_many.assert_awaited_with({"period_key": "2026"})
+        # settings já existia → update_one (nunca insert duplicado)
+        assert mock_db.ranking_settings.update_one.await_count == 2
+        mock_db.ranking_settings.insert_one.assert_not_called()
+
+    async def test_settings_created_when_absent(self, mock_db, monkeypatch):
+        mock_db.users = _coll(find_list=_members(("a", "Ana")))
+        mock_db.member_scores = _wcoll()
+        mock_db.ranking_settings = _wcoll(find_one_ret=None)  # sem doc de settings
+        monkeypatch.setattr(
+            ranking, "compute_member_score", AsyncMock(return_value={"score": 1.0, "breakdown": {}})
+        )
+
+        await ranking.rebuild_scores("2026")
+        mock_db.ranking_settings.insert_one.assert_awaited_once()
+        created = mock_db.ranking_settings.insert_one.call_args.args[0]
+        assert "last_rebuild_at" in created and created["weights"]  # doc bem formado
+
+    async def test_eligibility_filter_excludes_pendentes_and_technical(self, mock_db, monkeypatch):
+        mock_db.users = _coll(find_list=[])
+        mock_db.member_scores = _wcoll()
+        mock_db.ranking_settings = _wcoll(find_one_ret=None)
+        monkeypatch.setattr(
+            ranking, "compute_member_score", AsyncMock(return_value={"score": 0, "breakdown": {}})
+        )
+
+        await ranking.rebuild_scores("2026")
+        q = mock_db.users.find.call_args.args[0]
+        assert q["status"] == {"$in": ["ativo", "inativo"]}
+        assert {"account_type": "member"} in q["$or"]
+        assert {"account_type": {"$exists": False}} in q["$or"]
+
+    async def test_empty_members_no_insert(self, mock_db, monkeypatch):
+        mock_db.users = _coll(find_list=[])
+        mock_db.member_scores = _wcoll()
+        mock_db.ranking_settings = _wcoll(find_one_ret=None)
+        monkeypatch.setattr(
+            ranking, "compute_member_score", AsyncMock(return_value={"score": 0, "breakdown": {}})
+        )
+        n = await ranking.rebuild_scores("2026")
+        assert n == 0
+        mock_db.member_scores.insert_many.assert_not_called()
+        mock_db.member_scores.delete_many.assert_awaited_once()  # apaga mesmo quando vazio
+
+
+# --------------------------------------------------------------------------- #
+# GET /ranking/leaderboard — F2 (snapshot, paginação, linha do próprio, privacidade)
+# --------------------------------------------------------------------------- #
+
+
+class TestLeaderboard:
+    async def test_returns_entries_total_and_me(self, mock_db, socio_user):
+        entries = [
+            {"user_id": "a", "rank": 1, "score": 30, "member_name": "Ana", "computed_at": "2026-05-26T10:00:00+00:00"},
+            {"user_id": "b", "rank": 2, "score": 20, "member_name": "Bruno", "computed_at": "2026-05-26T10:00:00+00:00"},
+        ]
+        me = {
+            "user_id": socio_user.id, "rank": 5, "score": 8,
+            "breakdown": {"x": {"count": 1, "points": 8}}, "computed_at": "2026-05-26T10:00:00+00:00",
+        }
+        mock_db.member_scores = _coll(count=142, find_list=entries, find_one_ret=me)
+        mock_db.ranking_settings = _coll(find_one_ret=None)
+
+        res = await ranking_route.get_leaderboard(period="2026", current_user=socio_user)
+        assert res["total"] == 142
+        assert res["entries"] == entries
+        assert res["me"] == me  # a própria linha traz breakdown
+        assert res["computed_at"] == "2026-05-26T10:00:00+00:00"
+        assert res["top_n_dashboard"] == 5
+
+    async def test_breakdown_excluded_from_public_list(self, mock_db, socio_user):
+        mock_db.member_scores = _coll(count=0, find_list=[], find_one_ret=None)
+        mock_db.ranking_settings = _coll(find_one_ret=None)
+        await ranking_route.get_leaderboard(period="2026", current_user=socio_user)
+        proj = mock_db.member_scores.find.call_args.args[1]
+        assert proj.get("breakdown") == 0  # §2.5: breakdown é privado
+
+    async def test_pagination_clamped(self, mock_db, socio_user):
+        mock_db.member_scores = _coll(count=0, find_list=[], find_one_ret=None)
+        mock_db.ranking_settings = _coll(find_one_ret=None)
+        await ranking_route.get_leaderboard(period="2026", limit=999, offset=-5, current_user=socio_user)
+        cur = mock_db.member_scores.find.return_value
+        cur.skip.assert_called_with(0)
+        cur.limit.assert_called_with(100)
+
+    async def test_disabled_returns_empty(self, mock_db, socio_user):
+        """`enabled=False` → não serve o snapshot (defesa server-side)."""
+        mock_db.member_scores = _coll(count=99, find_list=[{"user_id": "a"}], find_one_ret={"user_id": socio_user.id})
+        mock_db.ranking_settings = _coll(find_one_ret={"enabled": False})
+        res = await ranking_route.get_leaderboard(period="2026", current_user=socio_user)
+        assert res["enabled"] is False
+        assert res["entries"] == []
+        assert res["me"] is None
+        assert res["total"] == 0
+        mock_db.member_scores.find.assert_not_called()  # short-circuit: nem consulta o snapshot
+
+
+# --------------------------------------------------------------------------- #
+# POST /ranking/rebuild — RBAC + auditoria (F2)
+# --------------------------------------------------------------------------- #
+
+
+def _req():
+    return Request(
+        {"type": "http", "headers": [], "client": ("127.0.0.1", 0), "method": "POST", "path": "/api/ranking/rebuild"}
+    )
+
+
+class TestRebuildRoute:
+    async def test_socio_forbidden(self, socio_user, monkeypatch):
+        rb = AsyncMock(return_value=3)
+        monkeypatch.setattr(ranking_route, "rebuild_scores", rb)
+        with pytest.raises(HTTPException) as ei:
+            await ranking_route.rebuild_ranking(request=_req(), period="2026", current_user=socio_user)
+        assert ei.value.status_code == 403
+        rb.assert_not_called()
+
+    async def test_admin_allowed_and_audits(self, admin_user, monkeypatch):
+        rb = AsyncMock(return_value=7)
+        audit = AsyncMock()
+        monkeypatch.setattr(ranking_route, "rebuild_scores", rb)
+        monkeypatch.setattr(ranking_route, "create_audit_log", audit)
+        res = await ranking_route.rebuild_ranking(request=_req(), period="2026", current_user=admin_user)
+        assert res == {"period": "2026", "members": 7}
+        rb.assert_awaited_once_with("2026")
+        audit.assert_awaited_once()
+        assert audit.await_args.kwargs["action"] == "ranking_rebuilt"
+        assert audit.await_args.kwargs["details"] == {"period": "2026", "members": 7}
+
+    async def test_direcao_allowed(self, socio_user, monkeypatch):
+        direcao = socio_user.model_copy(update={"cargo": "dir_tesoureiro"})
+        rb = AsyncMock(return_value=1)
+        monkeypatch.setattr(ranking_route, "rebuild_scores", rb)
+        monkeypatch.setattr(ranking_route, "create_audit_log", AsyncMock())
+        res = await ranking_route.rebuild_ranking(request=_req(), period="2026", current_user=direcao)
+        assert res["members"] == 1
+        rb.assert_awaited_once()
+
+    async def test_financeiro_and_moderador_forbidden(self, financeiro_user, moderador_user, monkeypatch):
+        """Financeiro/moderador não gerem o ranking (nem admin nem Direcção) → 403."""
+        rb = AsyncMock(return_value=1)
+        monkeypatch.setattr(ranking_route, "rebuild_scores", rb)
+        for u in (financeiro_user, moderador_user):
+            with pytest.raises(HTTPException) as ei:
+                await ranking_route.rebuild_ranking(request=_req(), period="2026", current_user=u)
+            assert ei.value.status_code == 403
+        rb.assert_not_called()

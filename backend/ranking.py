@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import uuid
+from datetime import datetime, timezone
 from typing import Optional
 
 from database import db
@@ -201,3 +203,88 @@ async def compute_member_score(
     breakdown["ajustes"] = {"count": None, "points": round(adj, 1)}
 
     return {"score": round(total, 1), "breakdown": breakdown}
+
+
+# Filtro canónico de membros reais (técnicos excluídos) — espelha
+# `routes/users.py`/`routes/assembleias.py` (§1/§2.3 da spec).
+_MEMBER_FILTER = {"$or": [{"account_type": "member"}, {"account_type": {"$exists": False}}]}
+# `ativo`/`inativo` entram (inativo marcado, fora do Top-N); `pendente_*`/
+# `rejeitado` ainda não são sócios de pleno → excluídos (§2.3).
+_RANKED_STATUSES = ["ativo", "inativo"]
+
+
+async def _eligible_members() -> list[dict]:
+    """Membros elegíveis para o ranking, com os campos de display do snapshot."""
+    return await db.users.find(
+        {**_MEMBER_FILTER, "status": {"$in": _RANKED_STATUSES}},
+        {"_id": 0, "id": 1, "name": 1, "member_id": 1, "cargo": 1, "photo_url": 1, "status": 1},
+    ).to_list(None)
+
+
+async def rebuild_scores(period_key: str) -> int:
+    """Reconstrói o snapshot `member_scores` de um período. **Idempotente**
+    (`delete_many` + `insert_many`) — `member_scores` é cache derivada,
+    descartável (§2.1). Devolve o nº de membros pontuados.
+
+    Usa `compute_member_score` por membro (fonte única do score). Pré-agregação
+    em lote (um `$group` por colecção, §5) fica como optimização futura quando
+    houver volume — a DB ainda está praticamente vazia e o rebuild corre fora do
+    request path (§2.4); não se pré-optimiza.
+    """
+    settings = await load_settings()
+    weights = settings["weights"]
+    max_like = settings["max_like_points_per_period"]
+    members = await _eligible_members()
+
+    computed_at = datetime.now(timezone.utc).isoformat()
+    scored: list[dict] = []
+    for m in members:
+        uid = m.get("id")
+        if not uid:
+            continue
+        result = await compute_member_score(uid, period_key, weights, max_like)
+        scored.append({"member": m, "score": result["score"], "breakdown": result["breakdown"]})
+
+    # Ordena desc por score; ranking de competição padrão: empates partilham a
+    # `rank`, a seguinte salta (1,2,2,4) — desempate estável por nome.
+    scored.sort(key=lambda s: (-s["score"], (s["member"].get("name") or "").lower()))
+    docs: list[dict] = []
+    prev_score: Optional[float] = None
+    rank = 0
+    for i, s in enumerate(scored, start=1):
+        if prev_score is None or s["score"] != prev_score:
+            rank = i
+            prev_score = s["score"]
+        m = s["member"]
+        docs.append(
+            {
+                "id": str(uuid.uuid4()),
+                "user_id": m["id"],
+                "period_key": period_key,
+                "score": s["score"],
+                "rank": rank,
+                "breakdown": s["breakdown"],
+                "member_name": m.get("name") or "",
+                "member_id": m.get("member_id"),
+                "cargo": m.get("cargo"),
+                "photo_url": m.get("photo_url"),
+                "status": m.get("status") or "ativo",
+                "computed_at": computed_at,
+            }
+        )
+
+    # Substitui o snapshot do período (idempotente).
+    await db.member_scores.delete_many({"period_key": period_key})
+    if docs:
+        await db.member_scores.insert_many(docs)
+
+    # Carimba `last_rebuild_at` no doc único de settings (o DAO não tem upsert).
+    existing = await db.ranking_settings.find_one({}, {"_id": 0, "id": 1})
+    if existing is not None:
+        await db.ranking_settings.update_one({}, {"$set": {"last_rebuild_at": computed_at}})
+    else:
+        await db.ranking_settings.insert_one(
+            {**DEFAULT_SETTINGS, "weights": dict(DEFAULT_WEIGHTS), "last_rebuild_at": computed_at}
+        )
+
+    return len(docs)
