@@ -182,16 +182,72 @@ export const brandAPI = {
   update: (data) => api.patch('/brand', data),
 };
 
-// Assembleia Geral (spec-governanca §11)
+// Assembleia Geral (spec-governanca §11 + spec-sessao-assembleia-ao-vivo F0–F6)
+//
+// O grupo divide-se em (a) gestão (lista/criar/encerrar), (b) núcleo da governança
+// (quórum/presenças/deliberações one-shot), e (c) camada ao vivo F0–F6:
+// fase, check-in self/scan/abrir/fechar/2ª chamada, fila de palavra, ciclo de
+// voto (abrir/votar/registar-contagem/apurar), moções, expediente, documentos
+// e convidados. URL do SSE é exposto para o EventSource consumir.
 export const assembleiasAPI = {
+  // Gestão
   list: (params) => api.get('/assembleias', { params }),
   get: (id) => api.get(`/assembleias/${id}`),
   create: (data) => api.post('/assembleias', data),
+  encerrar: (id, params) => api.post(`/assembleias/${id}/encerrar`, null, { params }),
+
+  // Governança (núcleo já existente)
   quorum: (id) => api.get(`/assembleias/${id}/quorum`),
   addPresenca: (id, data) => api.post(`/assembleias/${id}/presencas`, data),
+  presencas: (id) => api.get(`/assembleias/${id}/presencas`),
   deliberacoes: (id) => api.get(`/assembleias/${id}/deliberacoes`),
   addDeliberacao: (id, data) => api.post(`/assembleias/${id}/deliberacoes`, data),
-  encerrar: (id, params) => api.post(`/assembleias/${id}/encerrar`, null, { params }),
+
+  // F0 — sessão ao vivo: fase e SSE
+  setFase: (id, data) => api.post(`/assembleias/${id}/fase`, data),
+  streamUrl: (id) => `${process.env.REACT_APP_BACKEND_URL}/api/assembleias/${id}/stream`,
+
+  // F1 — check-in ao vivo + quórum
+  checkin: (id, data) => api.post(`/assembleias/${id}/checkin`, data),
+  checkinScan: (id, data) => api.post(`/assembleias/${id}/checkin/scan`, data),
+  abrirCheckin: (id) => api.post(`/assembleias/${id}/checkin/abrir`),
+  fecharCheckin: (id) => api.post(`/assembleias/${id}/checkin/fechar`),
+  segundaConvocatoria: (id) => api.post(`/assembleias/${id}/segunda-convocatoria`),
+
+  // F2 — fila de uso da palavra
+  pedirPalavra: (id, data) => api.post(`/assembleias/${id}/palavra`, data),
+  retirarPalavra: (id, qid) => api.delete(`/assembleias/${id}/palavra/${qid}`),
+  ordenarPalavra: (id, qid, data) => api.post(`/assembleias/${id}/palavra/${qid}/ordenar`, data),
+  iniciarPalavra: (id, qid, data) => api.post(`/assembleias/${id}/palavra/${qid}/iniciar`, data),
+  terminarPalavra: (id, qid) => api.post(`/assembleias/${id}/palavra/${qid}/terminar`),
+  palavra: (id) => api.get(`/assembleias/${id}/palavra`),
+
+  // F3 — modos de voto ao vivo (ciclo novo; o `addDeliberacao` continua disponível
+  // para o batch one-shot que já existia)
+  abrirDeliberacao: (id, data) => api.post(`/assembleias/${id}/deliberacoes/abrir`, data),
+  votarDeliberacao: (id, did, data) => api.post(`/assembleias/${id}/deliberacoes/${did}/votar`, data),
+  registarContagem: (id, did, data) =>
+    api.post(`/assembleias/${id}/deliberacoes/${did}/registar-contagem`, data),
+  apurarDeliberacao: (id, did) => api.post(`/assembleias/${id}/deliberacoes/${did}/apurar`),
+  getDeliberacao: (id, did) => api.get(`/assembleias/${id}/deliberacoes/${did}`),
+
+  // F4 — moções / requerimentos / recomendações
+  submeterMocao: (id, data) => api.post(`/assembleias/${id}/mocoes`, data),
+  colocarMocaoAVoto: (id, mid, data) => api.post(`/assembleias/${id}/mocoes/${mid}/colocar-a-voto`, data),
+  retirarMocao: (id, mid) => api.post(`/assembleias/${id}/mocoes/${mid}/retirar`),
+  mocoes: (id) => api.get(`/assembleias/${id}/mocoes`),
+
+  // F5 — antes da OT: expediente
+  addExpediente: (id, data) => api.post(`/assembleias/${id}/expediente`, data),
+  expediente: (id) => api.get(`/assembleias/${id}/expediente`),
+
+  // F6 — documentos da sessão (≥3 dias) + convidados
+  anexarDocumento: (id, data) => api.post(`/assembleias/${id}/documentos`, data),
+  documentos: (id) => api.get(`/assembleias/${id}/documentos`),
+  addConvidado: (id, data) => api.post(`/assembleias/${id}/convidados`, data),
+  convidados: (id) => api.get(`/assembleias/${id}/convidados`),
+  checkinConvidado: (id, cid) => api.post(`/assembleias/${id}/convidados/${cid}/checkin`),
+  pedirPalavraConvidado: (id, data) => api.post(`/assembleias/${id}/palavra/convidado`, data),
 };
 
 // Eleições (spec-governanca §12)

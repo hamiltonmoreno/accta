@@ -53,6 +53,7 @@ const AdminLogsPage = lazy(() => import('./pages/private/AdminLogsPage').then((m
 const AdminPedidosInscricaoPage = lazy(() => import('./pages/private/AdminPedidosInscricaoPage').then((m) => ({ default: m.AdminPedidosInscricaoPage })));
 const AdminCargosPage = lazy(() => import('./pages/private/AdminCargosPage').then((m) => ({ default: m.AdminCargosPage })));
 const AdminAssembleiasPage = lazy(() => import('./pages/private/AdminAssembleiasPage').then((m) => ({ default: m.AdminAssembleiasPage })));
+const AssembleiaSalaPage = lazy(() => import('./pages/private/AssembleiaSalaPage').then((m) => ({ default: m.AssembleiaSalaPage })));
 const AdminEleicoesPage = lazy(() => import('./pages/private/AdminEleicoesPage').then((m) => ({ default: m.AdminEleicoesPage })));
 const AdminDisciplinarPage = lazy(() => import('./pages/private/AdminDisciplinarPage').then((m) => ({ default: m.AdminDisciplinarPage })));
 const AdminAparenciaPage = lazy(() => import('./pages/private/AdminAparenciaPage').then((m) => ({ default: m.AdminAparenciaPage })));
@@ -311,6 +312,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <PrivateLayout><AdminAssembleiasPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/assembleias/:id"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><AssembleiaSalaPage /></PrivateLayout>
             </ProtectedRoute>
           }
         />

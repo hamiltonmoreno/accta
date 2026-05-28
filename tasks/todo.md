@@ -223,21 +223,52 @@ sem partir o que existe (tudo aditivo).
       !checked_in 400, dup 409, Mesa inscreve com user_id=None+convidado_id).
       Suite unit: **1116/1116**.
 
-## F7 — Sala de sessão (frontend) — incremental por fase
-- [ ] `pages/private/AssembleiaSalaPage.js` rota `/assembleias/{id}`
-      (`<ProtectedRoute>`). Duas vistas na mesma página:
-      - Consola da Mesa (`is_mesa_ag`/admin): fases, código+scan, ordenar/conceder
-        palavra, abrir/apurar votos + braço-no-ar, moções/expediente/docs/convidados.
-      - Participante (membro presente): "Entrar na reunião" (check-in + abre
-        `meeting_link`) / QR da reunião, pedir palavra, votar, submeter moção, ver
-        quórum/fila/voto ao vivo.
-- [ ] `utils/api.js`: completar `assembleiasAPI` (checkin, stream, palavra, mocoes,
-      deliberacoes ciclo novo, expediente, documentos, convidados).
-- [ ] Reusar `QRCode`/lookup do validador, upload de documentos, TanStack+SSE.
-      Design neutral-led + Carmesim, sem dark mode (skill `frontend-design`).
-- [ ] Cronómetros + barra de quórum com estados claros.
-- [ ] Testes FE: consola Mesa vs participante, countdown da palavra, barra de quórum,
-      cartão de voto por modo, gating por `is_mesa_ag`.
+## F7 — Sala de sessão (frontend) ✅ (PR #130, NÃO merged) — dep: F0–F6
+- [x] `pages/private/AssembleiaSalaPage.js` rota `/assembleias/{id}` em
+      `<ProtectedRoute>` + `PrivateLayout`. Duas vistas na mesma página
+      detectadas por `useAuth().isMesaAG/isAdmin`. Header (titulo/data/local +
+      StatusBadge + PhaseBadge), QuórumBar live (snapshot SSE + fallback GET
+      /quorum), Countdown para a palavra.
+      - Consola Mesa: avançar fase, abrir/fechar check-in (código visível),
+        2.ª convocatória, ordenar/conceder/terminar palavra, abrir deliberação
+        (mode/maioria/conflitos), registar contagem braço-no-ar, apurar (dispara
+        comunicado 1×), colocar moção a voto, registar expediente, anexar
+        document_id (toast warning em tardio), adicionar convidado + checkin
+        + pôr na fila (`POST /palavra/convidado`).
+      - Participante: "Entrar na reunião" (`POST /checkin join_click` + abre
+        `meeting_link` em nova aba), self_code, pedir/retirar palavra, votar
+        favor/contra/abstenção (nominal/secreto; sinaliza exclusão por
+        conflito), submeter moção/requerimento/recomendação.
+- [x] `utils/api.js`: `assembleiasAPI` estendido com **23 endpoints F1–F6** +
+      `streamUrl(id)` para o hook consumir.
+- [x] `hooks/useAssembleiaStream.js`: EventSource(withCredentials) + fallback
+      polling 30s + visibility pause; espelha o `NotificationContext`; empurra
+      snapshot para a cache TanStack (`['assembleia', id, 'snapshot']`).
+- [x] `lib/governanceLabels.js`: `SESSION_PHASE_LABELS`, `VOTING_MODE_LABELS`,
+      `PALAVRA_TIPO_LABELS`, `MOCAO_TIPO_LABELS`, `EXPEDIENTE_TIPO_LABELS`.
+- [x] `App.js`: rota `/assembleias/:id`. `AdminAssembleiasPage`: link
+      "Sala ao vivo" nas linhas com status `convocada`/`em_curso`.
+- [x] Design system: neutral-led + Carmesim como acento único (uma `primaryBtn`
+      por vista); status sempre ícone+texto; focus ring; PT em todos os textos.
+      ESLint `--max-warnings=60`: 0 problemas.
+- [x] **Testes FE (RTL/Jest) — 29 novos, suite 89/89 verde:**
+      `__tests__/AssembleiaSalaPage.test.js` (23) cobre QuorumBar (snapshot vs
+      fallback, met/em-curso, esqueleto), Countdown (m:ss + tick), Checkin-
+      Participante (presente sticky, "Entrar na reunião" + window.open,
+      self_code uppercase), Palavra (Mesa Conceder/Terminar vs membro Pedir,
+      payload `{tipo}`), Votação (form Mesa vs cartão Participante, exclusão
+      conflito, 3 modos, payload voto), Moções (badge voto-imediato match
+      exacto, RBAC Mesa/proponente, payload requerimento).
+      `hooks/__tests__/useAssembleiaStream.test.js` (6) cobre: EventSource
+      withCredentials+URL, snapshot → cache TanStack, JSON inválido sem partir,
+      onerror → polling 30s (`invalidateQueries`), close em unmount, id falsy
+      não abre stream. Padrões: axios mock + virtual react-router-dom mock
+      (v7 ESM-only); QueryClient próprio por teste; sonner stub.
+- [ ] **Scan QR pessoal pela Mesa na sala** — incremental; o backend já tem
+      `POST /checkin/scan` testado.
+- [ ] **Upload integrado de documentos** — incremental; UI actual recebe
+      `document_id` existente; integrar `/upload/documents` é o próximo passo
+      (reutilizar `DocumentUploadField` da spec upload-documentos-prestacao).
 
 ## Ordem dentro de cada fase (spec §12)
 models/campos → schema/índices (`ensure_schema`) → endpoints + RBAC + audit + bump
