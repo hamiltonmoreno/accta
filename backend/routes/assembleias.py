@@ -47,6 +47,9 @@ from models import (
     AssembleiaVotoCast,
     AssembleiaVotoReceipt,
     MAX_REPRESENTADOS,
+    MocaoColocarVoto,
+    MocaoCreate,
+    MocaoSessao,
     PALAVRA_DURACOES,
     PalavraCreate,
     PalavraIniciar,
@@ -1182,6 +1185,155 @@ async def get_deliberacao(assembleia_id: str, did: str, current_user: User = Dep
         receipts = await db.assembleia_voto_receipts.find({"deliberacao_id": did}, {"_id": 0, "id": 1}).to_list(None)
         out["votes_cast"] = len(receipts)
     return out
+
+
+# ===== F4 — Moções, requerimentos e recomendações (spec §5; Art. 6, 26) =====
+#
+# Qualquer membro presente submete. A Mesa coloca a voto criando uma deliberação
+# do ciclo F3 (status=aberta). Requerimento (Art. 6, 26) salta a discussão
+# (`votacao_imediata=True`) — a Mesa coloca-o a voto sem fase de discussão.
+
+
+async def _get_mocao(assembleia_id: str, mid: str) -> dict:
+    m = await db.assembleia_mocoes.find_one({"id": mid, "assembleia_id": assembleia_id}, {"_id": 0})
+    if not m:
+        raise HTTPException(status_code=404, detail="Moção não encontrada")
+    return m
+
+
+@router.post("/{assembleia_id}/mocoes")
+async def submeter_mocao(
+    assembleia_id: str,
+    request: Request,
+    data: MocaoCreate,
+    current_user: User = Depends(get_current_user),
+):
+    """Um membro presente submete uma moção, requerimento ou recomendação."""
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    if a.get("status") != "em_curso":
+        raise HTTPException(status_code=400, detail="A sessão não está a decorrer.")
+    if not await _is_present(assembleia_id, current_user.id):
+        raise HTTPException(status_code=403, detail="Tem de estar presente para submeter.")
+
+    m = MocaoSessao(
+        assembleia_id=assembleia_id,
+        item_id=data.item_id or a.get("current_item_id"),
+        tipo=data.tipo,
+        titulo=data.titulo,
+        texto=data.texto,
+        proposta_por=current_user.id,
+        # Requerimento: Art. 6/26 — vai a voto imediato sem discussão.
+        votacao_imediata=(data.tipo == "requerimento"),
+    )
+    doc = m.model_dump()
+    await db.assembleia_mocoes.insert_one(doc)
+    await _bump_session(assembleia_id)
+    await create_audit_log(
+        current_user.id,
+        "mocao_submetida",
+        assembleia_id,
+        request=request,
+        details={"mocao_id": doc["id"], "tipo": data.tipo},
+    )
+    return doc
+
+
+@router.post("/{assembleia_id}/mocoes/{mid}/colocar-a-voto")
+async def colocar_mocao_a_voto(
+    assembleia_id: str,
+    mid: str,
+    request: Request,
+    data: MocaoColocarVoto,
+    current_user: User = Depends(get_current_user),
+):
+    """A Mesa aceita a moção e cria a deliberação (F3) — para `requerimento`
+    isto acontece sem fase de discussão (a Mesa decide o timing)."""
+    _require_convene(current_user)
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    if a.get("status") != "em_curso":
+        raise HTTPException(status_code=400, detail="A sessão não está a decorrer.")
+    m = await _get_mocao(assembleia_id, mid)
+    if m.get("status") not in ("submetida", "em_discussao"):
+        raise HTTPException(status_code=400, detail="A moção já não pode ser colocada a voto.")
+    eligible = a.get("eligible_voters_count", 0)
+    _, present_power = await _present_voting_power(assembleia_id)
+    if present_power < required_quorum(eligible, 2):
+        raise HTTPException(status_code=400, detail="Sem quórum para deliberar")
+
+    # Cria a deliberação ligada à moção. O título da moção alimenta o `ponto` e o
+    # texto a `descricao`, para a ata ficar coerente.
+    delib = AssembleiaDeliberacao(
+        assembleia_id=assembleia_id,
+        ponto=m["titulo"],
+        descricao=m["texto"],
+        tipo_maioria=data.tipo_maioria,
+        voting_mode=data.voting_mode,
+        item_id=m.get("item_id") or a.get("current_item_id"),
+        subitem=data.subitem,
+        conflitos_excluidos=data.conflitos_excluidos,
+        status="aberta",
+        source_article=m.get("source_article"),
+        registado_por=current_user.id,
+    )
+    delib_doc = delib.model_dump()
+    await db.assembleia_deliberacoes.insert_one(delib_doc)
+    await db.assembleia_mocoes.update_one(
+        {"id": mid}, {"$set": {"status": "em_votacao", "deliberacao_id": delib_doc["id"]}}
+    )
+    await _bump_session(assembleia_id)
+    await create_audit_log(
+        current_user.id,
+        "mocao_a_voto",
+        assembleia_id,
+        request=request,
+        details={
+            "mocao_id": mid,
+            "tipo": m["tipo"],
+            "deliberacao_id": delib_doc["id"],
+            "voting_mode": data.voting_mode,
+            "votacao_imediata": m.get("votacao_imediata", False),
+        },
+    )
+    return {"mocao_id": mid, "deliberacao_id": delib_doc["id"], "status": "em_votacao"}
+
+
+@router.post("/{assembleia_id}/mocoes/{mid}/retirar")
+async def retirar_mocao(
+    assembleia_id: str,
+    mid: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    """O proponente ou a Mesa retira a moção (só enquanto não está em votação)."""
+    m = await _get_mocao(assembleia_id, mid)
+    if m["proposta_por"] != current_user.id and not can_convene_assembleia(current_user):
+        raise HTTPException(status_code=403, detail="Só o proponente ou a Mesa podem retirar a moção.")
+    if m.get("status") not in ("submetida", "em_discussao"):
+        raise HTTPException(status_code=400, detail="A moção já não pode ser retirada.")
+    await db.assembleia_mocoes.update_one({"id": mid}, {"$set": {"status": "retirada"}})
+    await _bump_session(assembleia_id)
+    await create_audit_log(
+        current_user.id, "mocao_retirada", assembleia_id, request=request, details={"mocao_id": mid}
+    )
+    return {"mocao_id": mid, "status": "retirada"}
+
+
+@router.get("/{assembleia_id}/mocoes")
+async def list_mocoes(assembleia_id: str, current_user: User = Depends(get_current_user)):
+    """Lista as moções da assembleia (qualquer membro autenticado)."""
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "id": 1})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    rows = (
+        await db.assembleia_mocoes.find({"assembleia_id": assembleia_id}, {"_id": 0})
+        .sort("created_at", 1)
+        .to_list(None)
+    )
+    return {"mocoes": rows}
 
 
 @router.post("/{assembleia_id}/encerrar")

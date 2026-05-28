@@ -164,18 +164,26 @@ sem partir o que existe (tudo aditivo).
       (`javascript:`/`data:`); testes em `TestMeetingLinkValidation`.
 - [x] I4: `get_assembleia` filtra `check_in_code`/`_expires_at` para não-Mesa.
 
-## F4 — 2.3 Moções/requerimentos/recomendações (Art. 6, 26) — dep: F3
-- [ ] `database.py`: + `assembleia_mocoes`; índices `assembleia_id`,
+## F4 — 2.3 Moções/requerimentos/recomendações (Art. 6, 26) ✅ (backend) — dep: F3
+- [x] `database.py`: + `assembleia_mocoes`; índices `assembleia_id` e
       `(assembleia_id, status)`.
-- [ ] `models.py`: `MocaoSessao` (tipo `mocao|requerimento|recomendacao`,
-      `votacao_imediata`, `deliberacao_id`).
-- [ ] Endpoints: `POST .../mocoes` (membro presente), `POST .../mocoes/{mid}/
-      colocar-a-voto` (Mesa → cria deliberação F3), `POST .../mocoes/{mid}/retirar`,
-      `GET .../mocoes`. Regra: `requerimento` ⇒ `votacao_imediata=True` (salta
-      discussão, cria deliberação `em_votacao` ao aceitar).
-- [ ] Audit: `mocao_submetida`, `mocao_a_voto`, `mocao_retirada`.
-- [ ] Testes: requerimento → deliberação imediata; moção/recomendação
-      discussão→voto; só Mesa coloca a voto.
+- [x] `models.py`: `MocaoSessao` (tipo `mocao|requerimento|recomendacao`,
+      `votacao_imediata`, `deliberacao_id`, status submetida→em_discussao→em_votacao→
+      aprovada/rejeitada/retirada) + `MocaoCreate` + `MocaoColocarVoto` (voting_mode/
+      tipo_maioria/subitem/conflitos_excluidos com defaults).
+- [x] Endpoints: `POST .../mocoes` (membro presente; `requerimento` ⇒
+      `votacao_imediata=True` automático), `POST .../mocoes/{mid}/colocar-a-voto`
+      (Mesa, exige quórum 2.ª chamada, cria deliberação F3 `status=aberta` ligada
+      pelo título/texto/item, marca a moção `em_votacao` + `deliberacao_id`),
+      `POST .../mocoes/{mid}/retirar` (proponente ou Mesa, só enquanto submetida/
+      em_discussao), `GET .../mocoes` (qualquer membro autenticado).
+- [x] Audit: `mocao_submetida`, `mocao_a_voto`, `mocao_retirada`. Bump em todas
+      as mutações.
+- [x] Testes (15 novos, 114/114 verdes): submeter (sessão em curso, presença,
+      requerimento ⇒ votacao_imediata, moção/recomendação não); colocar-a-voto
+      (RBAC, 404, status, quórum, cria deliberação aberta + linka moção); retirar
+      (proponente ✓, Mesa ✓, outro 403, em_votacao 400); listar.
+      Suite unit completa: **1091/1091** (+15 face à F3).
 
 ## F5 — 2.4 Antes da ordem de trabalhos + expediente (Art. 14) — dep: F1
 - [ ] `database.py`: + `assembleia_expediente`; índice `assembleia_id`.

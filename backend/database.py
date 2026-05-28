@@ -83,6 +83,7 @@ COLLECTIONS: tuple[str, ...] = (
     "assembleia_votos",  # voto nominal (registado por nome)
     "assembleia_voto_receipts",  # voto secreto: recibo (HMAC)
     "assembleia_voto_ballots",  # voto secreto: boletim (sem user_id)
+    "assembleia_mocoes",  # F4 — moções/requerimentos/recomendações em sessão
     "eleicoes",
     "eleicao_listas",
     "eleicao_voter_receipts",
@@ -866,6 +867,10 @@ _INDEX_DDL: tuple[str, ...] = (
     'CREATE UNIQUE INDEX IF NOT EXISTS ux_assembvotoreceipt_delib_hash ON "assembleia_voto_receipts" '
     "((doc->>'deliberacao_id'), (doc->>'voter_hash'))",
     "CREATE INDEX IF NOT EXISTS ix_assembvotoballot_delib ON \"assembleia_voto_ballots\" ((doc->>'deliberacao_id'))",
+    # sessão "ao vivo" — moções/requerimentos/recomendações (F4)
+    "CREATE INDEX IF NOT EXISTS ix_assembmocoes_assemb ON \"assembleia_mocoes\" ((doc->>'assembleia_id'))",
+    'CREATE INDEX IF NOT EXISTS ix_assembmocoes_assemb_status ON "assembleia_mocoes" '
+    "((doc->>'assembleia_id'), (doc->>'status'))",
     # governança — eleições
     "CREATE INDEX IF NOT EXISTS ix_eleicoes_status_ano ON \"eleicoes\" ((doc->>'status'), (doc->>'ano'))",
     "CREATE INDEX IF NOT EXISTS ix_eleicoes_assemb ON \"eleicoes\" ((doc->>'assembleia_id'))",

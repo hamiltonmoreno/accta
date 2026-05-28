@@ -87,6 +87,8 @@ def gov_env(mock_db, monkeypatch):
     mock_db.assembleia_votos = _coll()
     mock_db.assembleia_voto_receipts = _coll()
     mock_db.assembleia_voto_ballots = _coll()
+    # F4 — moções/requerimentos/recomendações
+    mock_db.assembleia_mocoes = _coll()
     monkeypatch.setattr(a_route, "create_audit_log", AsyncMock())
     monkeypatch.setattr(a_route, "notify_all_active_users", AsyncMock())
     monkeypatch.setattr(a_route, "cast_assembleia_ballot", AsyncMock())
@@ -1679,3 +1681,214 @@ class TestMeetingLinkValidation:
     async def test_none_aceite(self):
         a = AssembleiaCreate(tipo="ordinaria", titulo="AGO 2030", data=FUTURE, local="Sede")
         assert a.meeting_link is None
+
+
+# --------------------------------------------------------------------------- #
+# F4 — Moções/requerimentos/recomendações (spec §5; Art. 6, 26)
+# --------------------------------------------------------------------------- #
+
+
+def _mocao(**over):
+    base = {
+        "id": "m1",
+        "assembleia_id": "a1",
+        "tipo": "mocao",
+        "titulo": "Titulo",
+        "texto": "Texto",
+        "proposta_por": "u1",
+        "status": "submetida",
+        "votacao_imediata": False,
+    }
+    base.update(over)
+    return base
+
+
+class TestSubmeterMocao:
+    async def test_nao_em_curso_400(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess(status="convocada"))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.submeter_mocao(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.MocaoCreate(titulo="Aprovar isto", texto="x"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 400
+
+    async def test_nao_presente_403(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_presencas.find_one = AsyncMock(return_value=None)  # ausente
+        with pytest.raises(HTTPException) as exc:
+            await a_route.submeter_mocao(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.MocaoCreate(titulo="Aprovar isto", texto="x"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_presente_submete_mocao_simples(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_presencas.find_one = AsyncMock(return_value={"id": "p1"})
+        captured = {}
+        gov_env.assembleia_mocoes.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        result = await a_route.submeter_mocao(
+            assembleia_id="a1",
+            request=_request(),
+            data=a_route.MocaoCreate(tipo="mocao", titulo="Aprovar isto", texto="razões"),
+            current_user=socio_user,
+        )
+        assert captured["proposta_por"] == socio_user.id
+        assert captured["tipo"] == "mocao"
+        assert captured["status"] == "submetida"
+        # Moção: NÃO é votação imediata (vai a discussão antes).
+        assert captured["votacao_imediata"] is False
+        assert result["votacao_imediata"] is False
+
+    async def test_requerimento_marca_votacao_imediata(self, gov_env, socio_user):
+        # Art. 6, 26: requerimento salta a discussão.
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_presencas.find_one = AsyncMock(return_value={"id": "p1"})
+        captured = {}
+        gov_env.assembleia_mocoes.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        await a_route.submeter_mocao(
+            assembleia_id="a1",
+            request=_request(),
+            data=a_route.MocaoCreate(tipo="requerimento", titulo="Encerrar debate", texto="já"),
+            current_user=socio_user,
+        )
+        assert captured["votacao_imediata"] is True
+
+    async def test_recomendacao_nao_imediata(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_presencas.find_one = AsyncMock(return_value={"id": "p1"})
+        captured = {}
+        gov_env.assembleia_mocoes.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        await a_route.submeter_mocao(
+            assembleia_id="a1",
+            request=_request(),
+            data=a_route.MocaoCreate(tipo="recomendacao", titulo="Recomendar X", texto="y"),
+            current_user=socio_user,
+        )
+        assert captured["votacao_imediata"] is False
+
+
+class TestColocarMocaoAVoto:
+    async def test_socio_comum_403(self, gov_env, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await a_route.colocar_mocao_a_voto(
+                assembleia_id="a1",
+                mid="m1",
+                request=_request(),
+                data=a_route.MocaoColocarVoto(),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_mocao_inexistente_404(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_mocoes.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await a_route.colocar_mocao_a_voto(
+                assembleia_id="a1",
+                mid="m1",
+                request=_request(),
+                data=a_route.MocaoColocarVoto(),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 404
+
+    async def test_mocao_ja_encerrada_400(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_mocoes.find_one = AsyncMock(return_value=_mocao(status="em_votacao"))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.colocar_mocao_a_voto(
+                assembleia_id="a1",
+                mid="m1",
+                request=_request(),
+                data=a_route.MocaoColocarVoto(),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 400
+
+    async def test_sem_quorum_400(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_mocoes.find_one = AsyncMock(return_value=_mocao())
+        # poder 2 < 2.ª chamada ceil(10/3)=4 → 400
+        gov_env.assembleia_presencas.find = MagicMock(return_value=_cursor([{"voting_power": 2}]))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.colocar_mocao_a_voto(
+                assembleia_id="a1",
+                mid="m1",
+                request=_request(),
+                data=a_route.MocaoColocarVoto(),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 400
+        gov_env.assembleia_deliberacoes.insert_one.assert_not_awaited()
+
+    async def test_mesa_cria_deliberacao_e_marca_em_votacao(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_mocoes.find_one = AsyncMock(
+            return_value=_mocao(titulo="Encerrar debate", texto="já", item_id="ot-1")
+        )
+        gov_env.assembleia_presencas.find = MagicMock(return_value=_cursor([{"voting_power": 6}]))
+        delib_captured = {}
+        gov_env.assembleia_deliberacoes.insert_one = AsyncMock(side_effect=lambda d: delib_captured.update(d))
+        mocao_update = {}
+        gov_env.assembleia_mocoes.update_one = AsyncMock(side_effect=lambda flt, upd: mocao_update.update(upd["$set"]))
+        result = await a_route.colocar_mocao_a_voto(
+            assembleia_id="a1",
+            mid="m1",
+            request=_request(),
+            data=a_route.MocaoColocarVoto(voting_mode="nominal", subitem="b"),
+            current_user=_mesa_ag(),
+        )
+        # Cria deliberação aberta ligada à moção pelo título/texto/item.
+        assert delib_captured["status"] == "aberta"
+        assert delib_captured["voting_mode"] == "nominal"
+        assert delib_captured["ponto"] == "Encerrar debate"
+        assert delib_captured["descricao"] == "já"
+        assert delib_captured["item_id"] == "ot-1"
+        assert delib_captured["subitem"] == "b"
+        # Moção fica em_votacao com a ligação à deliberação.
+        assert mocao_update["status"] == "em_votacao"
+        assert mocao_update["deliberacao_id"] == delib_captured["id"]
+        assert result["deliberacao_id"] == delib_captured["id"]
+
+
+class TestRetirarMocao:
+    async def test_proponente_retira(self, gov_env, socio_user):
+        gov_env.assembleia_mocoes.find_one = AsyncMock(return_value=_mocao(proposta_por=socio_user.id))
+        captured = {}
+        gov_env.assembleia_mocoes.update_one = AsyncMock(side_effect=lambda flt, upd: captured.update(upd["$set"]))
+        result = await a_route.retirar_mocao(assembleia_id="a1", mid="m1", request=_request(), current_user=socio_user)
+        assert result["status"] == "retirada"
+        assert captured["status"] == "retirada"
+
+    async def test_outro_socio_403(self, gov_env, socio_user):
+        gov_env.assembleia_mocoes.find_one = AsyncMock(return_value=_mocao(proposta_por="outro"))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.retirar_mocao(assembleia_id="a1", mid="m1", request=_request(), current_user=socio_user)
+        assert exc.value.status_code == 403
+
+    async def test_mesa_retira_qualquer(self, gov_env):
+        gov_env.assembleia_mocoes.find_one = AsyncMock(return_value=_mocao(proposta_por="outro"))
+        await a_route.retirar_mocao(assembleia_id="a1", mid="m1", request=_request(), current_user=_mesa_ag())
+        gov_env.assembleia_mocoes.update_one.assert_awaited()
+
+    async def test_ja_em_votacao_400(self, gov_env, socio_user):
+        gov_env.assembleia_mocoes.find_one = AsyncMock(
+            return_value=_mocao(proposta_por=socio_user.id, status="em_votacao")
+        )
+        with pytest.raises(HTTPException) as exc:
+            await a_route.retirar_mocao(assembleia_id="a1", mid="m1", request=_request(), current_user=socio_user)
+        assert exc.value.status_code == 400
+
+
+class TestListMocoes:
+    async def test_lista(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_mocoes.find = MagicMock(return_value=_cursor([_mocao(id="m1"), _mocao(id="m2")]))
+        result = await a_route.list_mocoes(assembleia_id="a1", current_user=socio_user)
+        assert [m["id"] for m in result["mocoes"]] == ["m1", "m2"]

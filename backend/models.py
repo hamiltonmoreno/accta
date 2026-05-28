@@ -1642,6 +1642,46 @@ class AssembleiaVotoReceipt(BaseModel):
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
+# ===== F4 — Moções, requerimentos e recomendações em sessão (spec §5; Art. 6, 26) =====
+
+
+class MocaoSessao(BaseModel):
+    """Submissão durante a reunião. Requerimento (Art. 6, 26) vai a voto imediato
+    sem discussão; moções/recomendações podem entrar em discussão antes do voto."""
+
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    assembleia_id: str
+    item_id: Optional[str] = None
+    tipo: Literal["mocao", "requerimento", "recomendacao"]
+    titulo: str
+    texto: str
+    proposta_por: str  # user_id do membro presente
+    status: Literal["submetida", "em_discussao", "em_votacao", "aprovada", "rejeitada", "retirada"] = "submetida"
+    votacao_imediata: bool = False  # True p/ requerimento (salta discussão)
+    deliberacao_id: Optional[str] = None  # preenchido quando a Mesa coloca a voto
+    source_article: str = "26"
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class MocaoCreate(BaseModel):
+    tipo: Literal["mocao", "requerimento", "recomendacao"] = "mocao"
+    titulo: str = Field(min_length=3, max_length=200)
+    texto: str = Field(min_length=1, max_length=4000)
+    item_id: Optional[str] = None
+
+
+class MocaoColocarVoto(BaseModel):
+    """A Mesa coloca uma moção a voto — cria uma `AssembleiaDeliberacao` (F3)."""
+
+    tipo_maioria: Literal["absoluta", "qualificada_2_3", "qualificada_3_4_presentes", "qualificada_3_4_universo"] = (
+        "absoluta"
+    )
+    voting_mode: Literal["braco_no_ar", "nominal", "secreto"] = "braco_no_ar"
+    subitem: Optional[str] = Field(default=None, max_length=200)
+    conflitos_excluidos: List[str] = Field(default_factory=list)
+
+
 class AssembleiaFaseUpdate(BaseModel):
     """Transição da fase fina da sessão ao vivo (spec-sessao-assembleia §2.1)."""
 
