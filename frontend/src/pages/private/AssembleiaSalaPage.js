@@ -3,9 +3,9 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, Calendar, CheckCircle2, ChevronRight, Clock, ExternalLink, Gavel,
-  KeyRound, Mic, MicOff, PlayCircle, ShieldCheck, StopCircle, Users, Vote,
-  XCircle,
+  ArrowLeft, Calendar, CheckCircle2, ChevronRight, ExternalLink, FileText, Gavel,
+  KeyRound, Mail, Mic, MicOff, PlayCircle, ShieldCheck, StopCircle, Users, UserPlus,
+  Vote, XCircle,
 } from 'lucide-react';
 
 import { assembleiasAPI } from '../../utils/api';
@@ -18,6 +18,7 @@ import {
   PALAVRA_TIPO_LABELS,
   MOCAO_TIPO_LABELS,
   MAIORIA_LABELS,
+  EXPEDIENTE_TIPO_LABELS,
 } from '../../lib/governanceLabels';
 // ---------- Tokens & helpers ----------------------------------------------- //
 
@@ -710,6 +711,295 @@ const MocoesPanel = ({ assembleia, snapshot, isMesa, presente, currentUserId }) 
   );
 };
 
+// ---------- Expediente (F5) ------------------------------------------------ //
+
+const ExpedientePanel = ({ assembleia, snapshot, isMesa }) => {
+  const qc = useQueryClient();
+  const [tipo, setTipo] = useState('correspondencia');
+  const [texto, setTexto] = useState('');
+  const [aclamacao, setAclamacao] = useState(true);
+
+  const { data: entries = [], refetch } = useQuery({
+    queryKey: ['assembleia', assembleia.id, 'expediente'],
+    queryFn: async () => (await assembleiasAPI.expediente(assembleia.id)).data.expediente || [],
+    staleTime: 10000,
+  });
+  const ver = snapshot?.version;
+  useEffect(() => { if (ver != null) refetch(); }, [ver, refetch]);
+
+  const addMut = useMutation({
+    mutationFn: (data) => assembleiasAPI.addExpediente(assembleia.id, data),
+    onSuccess: () => {
+      toast.success('Expediente registado');
+      qc.invalidateQueries({ queryKey: ['assembleia', assembleia.id, 'expediente'] });
+      setTexto('');
+    },
+    onError: (e) => toast.error(e.response?.data?.detail || 'Erro'),
+  });
+
+  return (
+    <div className="space-y-4">
+      {entries.length === 0 ? (
+        <p className="text-sm text-[#6B7280] italic">Sem expediente registado.</p>
+      ) : (
+        <ul className="divide-y divide-[#E5E7EB] border border-[#E5E7EB] rounded-md">
+          {entries.map((e) => (
+            <li key={e.id} className="px-3 py-2 text-sm">
+              <span className="inline-block text-xs px-1.5 py-0.5 rounded bg-[#F5F5F5] text-[#6B7280] border border-[#E5E7EB] mr-2">
+                {EXPEDIENTE_TIPO_LABELS[e.tipo] || e.tipo}
+              </span>
+              {e.aprovado_por_aclamacao && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#F0FDF4] text-[#15803D] border border-[#BBF7D0] mr-2">
+                  por aclamação
+                </span>
+              )}
+              <span className="text-[#3A3A3A]">{e.texto}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {isMesa && (
+        <form
+          className="space-y-2 pt-3 border-t border-[#E5E7EB]"
+          onSubmit={(ev) => {
+            ev.preventDefault();
+            const payload = { tipo, texto };
+            if (tipo !== 'correspondencia') payload.aprovado_por_aclamacao = aclamacao;
+            addMut.mutate(payload);
+          }}
+        >
+          <p className="text-xs font-medium text-[#6B7280]">Registar (Mesa)</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="sm:col-span-1">
+              <label className={labelCls} htmlFor="exp-tipo">Tipo</label>
+              <select id="exp-tipo" className={fieldCls} value={tipo} onChange={(ev) => setTipo(ev.target.value)}>
+                {Object.entries(EXPEDIENTE_TIPO_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className={labelCls} htmlFor="exp-texto">Texto</label>
+              <input id="exp-texto" className={fieldCls} required minLength={1} value={texto} onChange={(ev) => setTexto(ev.target.value)} />
+            </div>
+          </div>
+          {tipo !== 'correspondencia' && (
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={aclamacao} onChange={(ev) => setAclamacao(ev.target.checked)} />
+              Aprovado por aclamação
+            </label>
+          )}
+          <button type="submit" className={primaryBtn} disabled={addMut.isPending}>
+            Registar
+          </button>
+        </form>
+      )}
+    </div>
+  );
+};
+
+// ---------- Documentos (F6) ----------------------------------------------- //
+
+const DocumentosPanel = ({ assembleia, isMesa }) => {
+  const qc = useQueryClient();
+  const [docId, setDocId] = useState('');
+
+  const { data: docs = [] } = useQuery({
+    queryKey: ['assembleia', assembleia.id, 'documentos'],
+    queryFn: async () => (await assembleiasAPI.documentos(assembleia.id)).data.documentos || [],
+    staleTime: 30000,
+  });
+
+  const anexarMut = useMutation({
+    mutationFn: (document_id) => assembleiasAPI.anexarDocumento(assembleia.id, { document_id }),
+    onSuccess: (res) => {
+      if (res.data.tardio) {
+        toast.warning('Documento anexado (tardio — <3 dias antes da sessão)');
+      } else {
+        toast.success('Documento anexado');
+      }
+      qc.invalidateQueries({ queryKey: ['assembleia', assembleia.id, 'documentos'] });
+      setDocId('');
+    },
+    onError: (e) => toast.error(e.response?.data?.detail || 'Erro'),
+  });
+
+  return (
+    <div className="space-y-3">
+      {docs.length === 0 ? (
+        <p className="text-sm text-[#6B7280] italic">Sem documentos anexados.</p>
+      ) : (
+        <ul className="divide-y divide-[#E5E7EB] border border-[#E5E7EB] rounded-md">
+          {docs.map((d) => (
+            <li key={d.id} className="px-3 py-2 text-sm flex items-center justify-between">
+              <span className="inline-flex items-center gap-2">
+                <FileText className="w-3.5 h-3.5 text-[#6B7280]" />
+                {d.title || d.id}
+              </span>
+              {d.file_url && (
+                <a href={d.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-carmesim hover:underline inline-flex items-center gap-1">
+                  Abrir <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {isMesa && (
+        <div className="flex flex-wrap items-end gap-2 pt-2 border-t border-[#E5E7EB]">
+          <div className="flex-1 min-w-[220px]">
+            <label className={labelCls} htmlFor="doc-id">document_id existente</label>
+            <input
+              id="doc-id"
+              className={fieldCls}
+              placeholder="UUID do documento já carregado"
+              value={docId}
+              onChange={(e) => setDocId(e.target.value)}
+            />
+          </div>
+          <button
+            type="button"
+            className={secondaryBtn}
+            disabled={!docId || anexarMut.isPending}
+            onClick={() => anexarMut.mutate(docId.trim())}
+          >
+            Anexar
+          </button>
+          <p className="w-full text-xs text-[#6B7280]">
+            Anexar com <strong>&lt;3 dias</strong> de antecedência fica marcado como tardio (Art. 20).
+            Upload integrado de ficheiros — futuro.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ---------- Convidados (F6) ----------------------------------------------- //
+
+const ConvidadosPanel = ({ assembleia, snapshot }) => {
+  const qc = useQueryClient();
+  const [nome, setNome] = useState('');
+  const [email, setEmail] = useState('');
+  const [canSpeak, setCanSpeak] = useState(false);
+
+  const { data: convidados = [], refetch } = useQuery({
+    queryKey: ['assembleia', assembleia.id, 'convidados'],
+    queryFn: async () => (await assembleiasAPI.convidados(assembleia.id)).data.convidados || [],
+    staleTime: 10000,
+  });
+  const ver = snapshot?.version;
+  useEffect(() => { if (ver != null) refetch(); }, [ver, refetch]);
+
+  const okAndRefresh = (msg) => () => {
+    toast.success(msg);
+    qc.invalidateQueries({ queryKey: ['assembleia', assembleia.id, 'convidados'] });
+  };
+  const onErr = (fallback) => (e) => toast.error(e.response?.data?.detail || fallback);
+
+  const addMut = useMutation({
+    mutationFn: (data) => assembleiasAPI.addConvidado(assembleia.id, data),
+    onSuccess: () => {
+      okAndRefresh('Convidado adicionado')();
+      setNome(''); setEmail(''); setCanSpeak(false);
+    },
+    onError: onErr('Erro'),
+  });
+  const checkinMut = useMutation({
+    mutationFn: (cid) => assembleiasAPI.checkinConvidado(assembleia.id, cid),
+    onSuccess: okAndRefresh('Convidado presente'),
+    onError: onErr('Erro'),
+  });
+  const palavraMut = useMutation({
+    mutationFn: (cid) => assembleiasAPI.pedirPalavraConvidado(assembleia.id, { convidado_id: cid, tipo: 'intervencao' }),
+    onSuccess: () => {
+      toast.success('Convidado inscrito na fila de palavra');
+      qc.invalidateQueries({ queryKey: ['assembleia', assembleia.id, 'palavra'] });
+    },
+    onError: onErr('Erro'),
+  });
+
+  return (
+    <div className="space-y-4">
+      {convidados.length === 0 ? (
+        <p className="text-sm text-[#6B7280] italic">Sem convidados.</p>
+      ) : (
+        <ul className="divide-y divide-[#E5E7EB] border border-[#E5E7EB] rounded-md">
+          {convidados.map((c) => (
+            <li key={c.id} className="px-3 py-2 text-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium">{c.nome}</span>
+                  {c.email && (
+                    <span className="ml-2 text-xs text-[#6B7280] inline-flex items-center gap-1">
+                      <Mail className="w-3 h-3" />{c.email}
+                    </span>
+                  )}
+                  {c.can_speak && (
+                    <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-[#EFF6FF] text-[#1D4ED8] border border-[#BFDBFE]">
+                      pode intervir
+                    </span>
+                  )}
+                  {c.checked_in && (
+                    <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-[#F0FDF4] text-[#15803D] border border-[#BBF7D0]">
+                      presente
+                    </span>
+                  )}
+                  {c.motivo && <p className="text-xs text-[#6B7280] mt-0.5">{c.motivo}</p>}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {!c.checked_in && (
+                    <button type="button" className={secondaryBtn} onClick={() => checkinMut.mutate(c.id)}>
+                      Marcar presente
+                    </button>
+                  )}
+                  {c.can_speak && c.checked_in && (
+                    <button type="button" className={secondaryBtn} onClick={() => palavraMut.mutate(c.id)}>
+                      <Mic className="w-3.5 h-3.5" />
+                      Pôr na fila
+                    </button>
+                  )}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <form
+        className="space-y-2 pt-3 border-t border-[#E5E7EB]"
+        onSubmit={(e) => {
+          e.preventDefault();
+          addMut.mutate({ nome, email: email || null, can_speak: canSpeak });
+        }}
+      >
+        <p className="text-xs font-medium text-[#6B7280]">Convidar (Mesa)</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div>
+            <label className={labelCls} htmlFor="conv-nome">Nome</label>
+            <input id="conv-nome" className={fieldCls} required minLength={2} value={nome} onChange={(e) => setNome(e.target.value)} />
+          </div>
+          <div>
+            <label className={labelCls} htmlFor="conv-email">Email (opcional)</label>
+            <input id="conv-email" type="email" className={fieldCls} value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+        </div>
+        <label className="inline-flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={canSpeak} onChange={(e) => setCanSpeak(e.target.checked)} />
+          Pode intervir
+        </label>
+        <p className="text-xs text-[#6B7280]">
+          Email não é enviado automaticamente — partilhe o `meeting_link` manualmente.
+        </p>
+        <button type="submit" className={primaryBtn} disabled={addMut.isPending}>
+          <UserPlus className="w-3.5 h-3.5" />
+          Adicionar
+        </button>
+      </form>
+    </div>
+  );
+};
+
 // ---------- Página principal ---------------------------------------------- //
 
 export const AssembleiaSalaPage = () => {
@@ -819,15 +1109,25 @@ export const AssembleiaSalaPage = () => {
         <MocoesPanel assembleia={assembleia} snapshot={snapshot} isMesa={isMesa} presente={presente} currentUserId={user?.id} />
       </section>
 
-      {/* TODO follow-up: expediente (F5), documentos (F6), convidados (F6) — UI
-          de gestão; backend está pronto. */}
+      {/* Expediente (F5) — antes da OT */}
       <section className={cardCls}>
-        <p className={`${sectionTitle} mb-2 flex items-center gap-1.5`}><Clock className="w-4 h-4" />A chegar</p>
-        <p className="text-sm text-[#6B7280]">
-          Expediente do antes-OT, documentos da sessão (≥3 dias) e convidados não-membros chegarão num
-          commit seguinte. O backend já está pronto (ver PR #129).
-        </p>
+        <p className={`${sectionTitle} mb-3 flex items-center gap-1.5`}><Mail className="w-4 h-4" />Expediente</p>
+        <ExpedientePanel assembleia={assembleia} snapshot={snapshot} isMesa={isMesa} />
       </section>
+
+      {/* Documentos (F6) — anexos ≥3 dias antes */}
+      <section className={cardCls}>
+        <p className={`${sectionTitle} mb-3 flex items-center gap-1.5`}><FileText className="w-4 h-4" />Documentos da sessão</p>
+        <DocumentosPanel assembleia={assembleia} isMesa={isMesa} />
+      </section>
+
+      {/* Convidados (F6) — só visível à Mesa (RBAC no GET) */}
+      {isMesa && (
+        <section className={cardCls}>
+          <p className={`${sectionTitle} mb-3 flex items-center gap-1.5`}><UserPlus className="w-4 h-4" />Convidados</p>
+          <ConvidadosPanel assembleia={assembleia} snapshot={snapshot} />
+        </section>
+      )}
     </div>
   );
 };
