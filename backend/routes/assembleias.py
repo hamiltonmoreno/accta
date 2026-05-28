@@ -42,10 +42,13 @@ from models import (
     AssembleiaFaseUpdate,
     AssembleiaPresenca,
     AssembleiaPresencaCreate,
+    AssembleiaDocumentoAttach,
     AssembleiaVoto,
     AssembleiaVotoBallot,
     AssembleiaVotoCast,
     AssembleiaVotoReceipt,
+    Convidado,
+    ConvidadoCreate,
     ExpedienteCreate,
     ExpedienteEntry,
     MAX_REPRESENTADOS,
@@ -53,6 +56,7 @@ from models import (
     MocaoCreate,
     MocaoSessao,
     PALAVRA_DURACOES,
+    PalavraConvidadoCreate,
     PalavraCreate,
     PalavraIniciar,
     PalavraOrdenar,
@@ -67,6 +71,9 @@ router = APIRouter(prefix="/assembleias", tags=["assembleias"])
 CHECK_IN_CODE_TTL_MIN = 30
 # Fases em que o check-in está aberto (não em fechada/encerramento).
 _CHECKIN_OPEN_PHASES = ("checkin", "antes_ot", "ordem_trabalhos")
+# Antecedência mínima dos documentos da sessão (Art. 20). Anexos com <3 dias
+# de antecedência são aceites mas marcados como tardios na auditoria.
+MIN_DOC_ANTECEDENCIA_DIAS = 3
 
 # Sócios reais (account_type member ou ausente — retro-compat).
 _MEMBER_FILTER = {"$or": [{"account_type": "member"}, {"account_type": {"$exists": False}}]}
@@ -1391,6 +1398,198 @@ async def list_expediente(assembleia_id: str, current_user: User = Depends(get_c
         .to_list(None)
     )
     return {"expediente": rows}
+
+
+# ===== F6 — Documentos da sessão + convidados (spec §8; Art. 20, 36) =====
+#
+# Documentos: lista `documentos: list[str]` (document_ids) no doc da assembleia,
+# sem colecção nova. A validação Art. 20 ≥3 dias é soft — anexo tardio é aceite
+# mas marcado `documento_anexado_tardio` na auditoria (configurável depois).
+# Convidados: não-membros que assistem/intervêm; NÃO contam p/ quórum nem votam.
+
+
+def _is_tardio(assembleia_data: str | None) -> bool:
+    """O anexo é tardio (<MIN_DOC_ANTECEDENCIA_DIAS dias antes da sessão)?"""
+    dt = _parse_dt(assembleia_data or "")
+    if dt is None:
+        return False
+    delta = dt - datetime.now(timezone.utc)
+    return delta.total_seconds() < MIN_DOC_ANTECEDENCIA_DIAS * 86400
+
+
+@router.post("/{assembleia_id}/documentos")
+async def anexar_documento(
+    assembleia_id: str,
+    request: Request,
+    data: AssembleiaDocumentoAttach,
+    current_user: User = Depends(get_current_user),
+):
+    """A Mesa anexa um documento à sessão. Anexar com <3 dias de antecedência
+    (Art. 20) é aceite mas fica marcado como tardio na auditoria."""
+    _require_convene(current_user)
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+
+    doc = await db.documents.find_one({"id": data.document_id}, {"_id": 0, "id": 1, "title": 1})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+    if data.document_id in (a.get("documentos") or []):
+        raise HTTPException(status_code=409, detail="Documento já anexado a esta assembleia.")
+
+    tardio = _is_tardio(a.get("data"))
+    await db.assembleias.update_one({"id": assembleia_id}, {"$push": {"documentos": data.document_id}})
+    await _bump_session(assembleia_id)
+    await create_audit_log(
+        current_user.id,
+        "documento_anexado_tardio" if tardio else "documento_anexado",
+        assembleia_id,
+        request=request,
+        details={"document_id": data.document_id, "tardio": tardio, "title": doc.get("title")},
+    )
+    return {"document_id": data.document_id, "tardio": tardio, "title": doc.get("title")}
+
+
+@router.get("/{assembleia_id}/documentos")
+async def list_documentos(assembleia_id: str, current_user: User = Depends(get_current_user)):
+    """Lista os documentos anexados à sessão (qualquer membro autenticado).
+    Resolve os ids contra `documents` para devolver título/url."""
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "documentos": 1})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    ids = a.get("documentos") or []
+    if not ids:
+        return {"documentos": []}
+    docs = await db.documents.find({"id": {"$in": ids}}, {"_id": 0}).to_list(None)
+    return {"documentos": docs}
+
+
+@router.post("/{assembleia_id}/convidados")
+async def adicionar_convidado(
+    assembleia_id: str,
+    request: Request,
+    data: ConvidadoCreate,
+    current_user: User = Depends(get_current_user),
+):
+    """A Mesa convida um não-membro (Art. 36). NÃO envia email automático —
+    isso é stop condition em utilizadores reais."""
+    _require_convene(current_user)
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "id": 1})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    conv = Convidado(
+        assembleia_id=assembleia_id,
+        nome=data.nome,
+        email=data.email,
+        can_speak=data.can_speak,
+        motivo=data.motivo,
+        invited_by=current_user.id,
+    )
+    doc = conv.model_dump()
+    await db.assembleia_convidados.insert_one(doc)
+    await _bump_session(assembleia_id)
+    await create_audit_log(
+        current_user.id,
+        "convidado_adicionado",
+        assembleia_id,
+        request=request,
+        details={"convidado_id": doc["id"], "can_speak": data.can_speak},
+    )
+    return doc
+
+
+@router.get("/{assembleia_id}/convidados")
+async def list_convidados(assembleia_id: str, current_user: User = Depends(get_current_user)):
+    """Lista os convidados da sessão (Mesa/admin — gestão da sala)."""
+    _require_convene(current_user)
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "id": 1})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    rows = (
+        await db.assembleia_convidados.find({"assembleia_id": assembleia_id}, {"_id": 0})
+        .sort("created_at", 1)
+        .to_list(None)
+    )
+    return {"convidados": rows}
+
+
+@router.post("/{assembleia_id}/convidados/{cid}/checkin")
+async def checkin_convidado(
+    assembleia_id: str,
+    cid: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    """A Mesa marca o convidado como presente (não conta p/ quórum nem vota)."""
+    _require_convene(current_user)
+    conv = await db.assembleia_convidados.find_one(
+        {"id": cid, "assembleia_id": assembleia_id}, {"_id": 0, "id": 1}
+    )
+    if not conv:
+        raise HTTPException(status_code=404, detail="Convidado não encontrado")
+    await db.assembleia_convidados.update_one({"id": cid}, {"$set": {"checked_in": True}})
+    await _bump_session(assembleia_id)
+    await create_audit_log(
+        current_user.id, "convidado_checkin", assembleia_id, request=request, details={"convidado_id": cid}
+    )
+    return {"convidado_id": cid, "checked_in": True}
+
+
+@router.post("/{assembleia_id}/palavra/convidado")
+async def pedir_palavra_convidado(
+    assembleia_id: str,
+    request: Request,
+    data: PalavraConvidadoCreate,
+    current_user: User = Depends(get_current_user),
+):
+    """A Mesa põe um convidado autorizado (`can_speak=True` e presente) na fila
+    de palavra (F2). Convidados não votam — só pedem a palavra através da Mesa."""
+    _require_convene(current_user)
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "id": 1, "status": 1, "current_item_id": 1})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    if a.get("status") != "em_curso":
+        raise HTTPException(status_code=400, detail="A sessão não está a decorrer.")
+    conv = await db.assembleia_convidados.find_one(
+        {"id": data.convidado_id, "assembleia_id": assembleia_id}, {"_id": 0}
+    )
+    if not conv:
+        raise HTTPException(status_code=404, detail="Convidado não encontrado")
+    if not conv.get("can_speak"):
+        raise HTTPException(status_code=400, detail="Este convidado não está autorizado a intervir.")
+    if not conv.get("checked_in"):
+        raise HTTPException(status_code=400, detail="O convidado tem de estar presente (check-in pela Mesa).")
+    # Uma inscrição activa por convidado, igual aos membros.
+    ativo = await db.assembleia_palavra.find_one(
+        {
+            "assembleia_id": assembleia_id,
+            "convidado_id": data.convidado_id,
+            "status": {"$in": ["inscrito", "a_falar"]},
+        },
+        {"_id": 0, "id": 1},
+    )
+    if ativo:
+        raise HTTPException(status_code=409, detail="O convidado já tem um pedido de palavra activo.")
+
+    p = PalavraRequest(
+        assembleia_id=assembleia_id,
+        item_id=a.get("current_item_id"),
+        user_id=None,
+        convidado_id=data.convidado_id,
+        tipo=data.tipo,
+        duration_limit_s=PALAVRA_DURACOES[data.tipo],
+    )
+    doc = p.model_dump()
+    await db.assembleia_palavra.insert_one(doc)
+    await _bump_session(assembleia_id)
+    await create_audit_log(
+        current_user.id,
+        "palavra_pedida_convidado",
+        assembleia_id,
+        request=request,
+        details={"convidado_id": data.convidado_id, "tipo": data.tipo, "qid": doc["id"]},
+    )
+    return doc
 
 
 @router.post("/{assembleia_id}/encerrar")

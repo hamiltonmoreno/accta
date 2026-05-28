@@ -85,6 +85,7 @@ COLLECTIONS: tuple[str, ...] = (
     "assembleia_voto_ballots",  # voto secreto: boletim (sem user_id)
     "assembleia_mocoes",  # F4 — moções/requerimentos/recomendações em sessão
     "assembleia_expediente",  # F5 — antes da OT (correspondência + votos de louvor/etc)
+    "assembleia_convidados",  # F6 — não-membros autorizados a assistir/intervir
     "eleicoes",
     "eleicao_listas",
     "eleicao_voter_receipts",
@@ -874,6 +875,8 @@ _INDEX_DDL: tuple[str, ...] = (
     "((doc->>'assembleia_id'), (doc->>'status'))",
     # sessão "ao vivo" — expediente do antes-OT (F5)
     "CREATE INDEX IF NOT EXISTS ix_assembexpediente_assemb ON \"assembleia_expediente\" ((doc->>'assembleia_id'))",
+    # sessão "ao vivo" — convidados (F6)
+    "CREATE INDEX IF NOT EXISTS ix_assembconvidados_assemb ON \"assembleia_convidados\" ((doc->>'assembleia_id'))",
     # governança — eleições
     "CREATE INDEX IF NOT EXISTS ix_eleicoes_status_ano ON \"eleicoes\" ((doc->>'status'), (doc->>'ano'))",
     "CREATE INDEX IF NOT EXISTS ix_eleicoes_assemb ON \"eleicoes\" ((doc->>'assembleia_id'))",

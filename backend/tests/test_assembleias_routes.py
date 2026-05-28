@@ -91,6 +91,8 @@ def gov_env(mock_db, monkeypatch):
     mock_db.assembleia_mocoes = _coll()
     # F5 — expediente do antes-OT
     mock_db.assembleia_expediente = _coll()
+    # F6 — convidados não-membros
+    mock_db.assembleia_convidados = _coll()
     monkeypatch.setattr(a_route, "create_audit_log", AsyncMock())
     monkeypatch.setattr(a_route, "notify_all_active_users", AsyncMock())
     monkeypatch.setattr(a_route, "cast_assembleia_ballot", AsyncMock())
@@ -1960,6 +1962,262 @@ class TestExpediente:
         )
         result = await a_route.list_expediente(assembleia_id="a1", current_user=socio_user)
         assert [e["id"] for e in result["expediente"]] == ["e1", "e2"]
+
+
+# --------------------------------------------------------------------------- #
+# F6 — Documentos da sessão + convidados (Art. 20, 36)
+# --------------------------------------------------------------------------- #
+
+
+def _now_iso():
+    from datetime import datetime as _dt, timezone as _tz
+
+    return _dt.now(_tz.utc).isoformat()
+
+
+def _iso_in_days(days: float) -> str:
+    from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+
+    return (_dt.now(_tz.utc) + _td(days=days)).isoformat()
+
+
+class TestAnexarDocumento:
+    async def test_socio_comum_403(self, gov_env, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await a_route.anexar_documento(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.AssembleiaDocumentoAttach(document_id="doc12345"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_documento_inexistente_404(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value={"id": "a1", "data": FUTURE, "documentos": []})
+        gov_env.documents.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await a_route.anexar_documento(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.AssembleiaDocumentoAttach(document_id="doc12345"),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 404
+
+    async def test_ja_anexado_409(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(
+            return_value={"id": "a1", "data": FUTURE, "documentos": ["doc12345"]}
+        )
+        gov_env.documents.find_one = AsyncMock(return_value={"id": "doc12345", "title": "Acta"})
+        with pytest.raises(HTTPException) as exc:
+            await a_route.anexar_documento(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.AssembleiaDocumentoAttach(document_id="doc12345"),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 409
+
+    async def test_anexar_tempo_marca_nao_tardio(self, gov_env):
+        # data a 10 dias → >3 dias → não tardio.
+        gov_env.assembleias.find_one = AsyncMock(
+            return_value={"id": "a1", "data": _iso_in_days(10), "documentos": []}
+        )
+        gov_env.documents.find_one = AsyncMock(return_value={"id": "doc12345", "title": "Relatório"})
+        captured = {}
+        gov_env.assembleias.update_one = AsyncMock(side_effect=lambda flt, upd: captured.update(upd))
+        result = await a_route.anexar_documento(
+            assembleia_id="a1",
+            request=_request(),
+            data=a_route.AssembleiaDocumentoAttach(document_id="doc12345"),
+            current_user=_mesa_ag(),
+        )
+        assert result["tardio"] is False
+        assert captured["$push"] == {"documentos": "doc12345"}
+        # Audit: action = documento_anexado (não _tardio)
+        last_call = a_route.create_audit_log.await_args
+        assert last_call.args[1] == "documento_anexado"
+
+    async def test_anexar_tardio_audita_tardio(self, gov_env):
+        # data a 1 dia → <3 dias → tardio.
+        gov_env.assembleias.find_one = AsyncMock(
+            return_value={"id": "a1", "data": _iso_in_days(1), "documentos": []}
+        )
+        gov_env.documents.find_one = AsyncMock(return_value={"id": "doc12345", "title": "Anexo de última hora"})
+        result = await a_route.anexar_documento(
+            assembleia_id="a1",
+            request=_request(),
+            data=a_route.AssembleiaDocumentoAttach(document_id="doc12345"),
+            current_user=_mesa_ag(),
+        )
+        assert result["tardio"] is True
+        last_call = a_route.create_audit_log.await_args
+        assert last_call.args[1] == "documento_anexado_tardio"
+
+
+class TestListDocumentos:
+    async def test_vazio(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value={"id": "a1", "documentos": []})
+        result = await a_route.list_documentos(assembleia_id="a1", current_user=socio_user)
+        assert result["documentos"] == []
+
+    async def test_resolve_titles(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value={"id": "a1", "documentos": ["d1", "d2"]})
+        gov_env.documents.find = MagicMock(
+            return_value=_cursor([{"id": "d1", "title": "Relatório"}, {"id": "d2", "title": "Orçamento"}])
+        )
+        result = await a_route.list_documentos(assembleia_id="a1", current_user=socio_user)
+        assert {d["id"] for d in result["documentos"]} == {"d1", "d2"}
+
+
+class TestConvidados:
+    async def test_socio_comum_403_adicionar(self, gov_env, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await a_route.adicionar_convidado(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.ConvidadoCreate(nome="Convidado X", can_speak=True),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_mesa_adiciona_com_can_speak(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value={"id": "a1"})
+        captured = {}
+        gov_env.assembleia_convidados.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        result = await a_route.adicionar_convidado(
+            assembleia_id="a1",
+            request=_request(),
+            data=a_route.ConvidadoCreate(nome="João Visita", can_speak=True, motivo="Especialista"),
+            current_user=_mesa_ag(),
+        )
+        assert captured["nome"] == "João Visita"
+        assert captured["can_speak"] is True
+        assert captured["motivo"] == "Especialista"
+        # Convidados não votam nem entram no quórum: o doc não tem voting_power.
+        assert "voting_power" not in captured
+        assert captured["checked_in"] is False
+        assert result["id"] == captured["id"]
+
+    async def test_socio_comum_403_listar(self, gov_env, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await a_route.list_convidados(assembleia_id="a1", current_user=socio_user)
+        assert exc.value.status_code == 403
+
+    async def test_mesa_lista(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value={"id": "a1"})
+        gov_env.assembleia_convidados.find = MagicMock(
+            return_value=_cursor([{"id": "c1", "nome": "X"}, {"id": "c2", "nome": "Y"}])
+        )
+        result = await a_route.list_convidados(assembleia_id="a1", current_user=_mesa_ag())
+        assert [c["id"] for c in result["convidados"]] == ["c1", "c2"]
+
+    async def test_checkin_convidado_marca_presente(self, gov_env):
+        gov_env.assembleia_convidados.find_one = AsyncMock(return_value={"id": "c1"})
+        captured = {}
+        gov_env.assembleia_convidados.update_one = AsyncMock(
+            side_effect=lambda flt, upd: captured.update(upd["$set"])
+        )
+        result = await a_route.checkin_convidado(
+            assembleia_id="a1", cid="c1", request=_request(), current_user=_mesa_ag()
+        )
+        assert captured["checked_in"] is True
+        assert result["checked_in"] is True
+
+    async def test_checkin_inexistente_404(self, gov_env):
+        gov_env.assembleia_convidados.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await a_route.checkin_convidado(
+                assembleia_id="a1", cid="c99", request=_request(), current_user=_mesa_ag()
+            )
+        assert exc.value.status_code == 404
+
+
+class TestPalavraConvidado:
+    async def test_socio_comum_403(self, gov_env, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await a_route.pedir_palavra_convidado(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.PalavraConvidadoCreate(convidado_id="c1"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_convidado_inexistente_404(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_convidados.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await a_route.pedir_palavra_convidado(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.PalavraConvidadoCreate(convidado_id="c1"),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 404
+
+    async def test_can_speak_false_400(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_convidados.find_one = AsyncMock(
+            return_value={"id": "c1", "can_speak": False, "checked_in": True}
+        )
+        with pytest.raises(HTTPException) as exc:
+            await a_route.pedir_palavra_convidado(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.PalavraConvidadoCreate(convidado_id="c1"),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 400
+
+    async def test_nao_presente_400(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_convidados.find_one = AsyncMock(
+            return_value={"id": "c1", "can_speak": True, "checked_in": False}
+        )
+        with pytest.raises(HTTPException) as exc:
+            await a_route.pedir_palavra_convidado(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.PalavraConvidadoCreate(convidado_id="c1"),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 400
+
+    async def test_duplicado_409(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_convidados.find_one = AsyncMock(
+            return_value={"id": "c1", "can_speak": True, "checked_in": True}
+        )
+        gov_env.assembleia_palavra.find_one = AsyncMock(return_value={"id": "q0"})
+        with pytest.raises(HTTPException) as exc:
+            await a_route.pedir_palavra_convidado(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.PalavraConvidadoCreate(convidado_id="c1"),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 409
+
+    async def test_mesa_inscreve_convidado(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_convidados.find_one = AsyncMock(
+            return_value={"id": "c1", "can_speak": True, "checked_in": True}
+        )
+        gov_env.assembleia_palavra.find_one = AsyncMock(return_value=None)
+        captured = {}
+        gov_env.assembleia_palavra.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        result = await a_route.pedir_palavra_convidado(
+            assembleia_id="a1",
+            request=_request(),
+            data=a_route.PalavraConvidadoCreate(convidado_id="c1", tipo="intervencao"),
+            current_user=_mesa_ag(),
+        )
+        assert captured["user_id"] is None
+        assert captured["convidado_id"] == "c1"
+        assert captured["tipo"] == "intervencao"
+        assert captured["duration_limit_s"] == 180
+        assert result["status"] == "inscrito"
 
 
 class TestFaseAntesOTRegista:

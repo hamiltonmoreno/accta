@@ -195,18 +195,33 @@ sem partir o que existe (tudo aditivo).
 - [x] Testes (6 novos, 120/120 verdes): RBAC, 404, correspondência registada,
       voto-pesar por aclamação, listar; `antes_ot_aberto_em` só escrito 1ª vez.
 
-## F6 — 2.6 Documentos ≥3 dias + convidados (Art. 20, 36) — dep: F0
-- [ ] Doc da assembleia ganha `documentos: list[str]` (document_ids — **sem**
-      colecção nova). `POST .../documentos` (Mesa/`manage_documents`): valida
-      `now > data − MIN_DOC_ANTECEDENCIA_DIAS(=3)` → aviso (config `bloquear`) +
-      audit `documento_anexado_tardio`. `GET .../documentos`.
-- [ ] `database.py`: + `assembleia_convidados`; índice `assembleia_id`.
-- [ ] `models.py`: `Convidado` (`can_speak`, `checked_in`, `invited_by`). Não conta
-      p/ quórum nem vota; se `can_speak`, Mesa pode pô-lo na fila (F2).
-- [ ] Endpoints: `POST .../convidados`, `GET .../convidados`,
-      `POST .../convidados/{cid}/checkin` (Mesa). **Não** enviar email automático.
-- [ ] Testes: anexo <3 dias avisa/bloqueia + audita; convidado fora do quórum/voto;
-      `can_speak` entra na fila.
+## F6 — 2.6 Documentos ≥3 dias + convidados (Art. 20, 36) ✅ (backend) — dep: F0
+- [x] Doc da assembleia ganha `documentos: list[str]` (sem colecção nova).
+      `POST .../documentos` (Mesa): valida `_is_tardio` contra
+      `MIN_DOC_ANTECEDENCIA_DIAS=3` → audit `documento_anexado` vs
+      `documento_anexado_tardio` + `tardio` no payload da resposta. Soft (não
+      bloqueia — configurar depois). `GET .../documentos` resolve titles/urls
+      contra `documents`. 409 em duplicado.
+- [x] `database.py`: + `assembleia_convidados`; índice `assembleia_id`.
+- [x] `models.py`: `Convidado` (`can_speak`/`checked_in`/`invited_by`/`motivo`)
+      + `ConvidadoCreate`. Sem `voting_power` (não conta p/ quórum nem vota).
+      Estendido `PalavraRequest` com `user_id: Optional` + `convidado_id:
+      Optional` (retro-compat: docs antigos têm user_id; loaders ficam intactos).
+- [x] Endpoints: `POST .../convidados` (Mesa), `GET .../convidados` (Mesa/gestão),
+      `POST .../convidados/{cid}/checkin` (Mesa marca presente). Email automático
+      NÃO enviado (stop condition em users reais).
+- [x] **Integração F2:** novo `POST /{id}/palavra/convidado` (Mesa) — exige
+      convidado existir + `can_speak=True` + `checked_in=True`; bloqueia
+      duplicado; insere palavra com `user_id=None, convidado_id=<id>`.
+      `pedir_palavra` membro continua igual.
+- [x] Audit: `documento_anexado`/`documento_anexado_tardio`, `convidado_adicionado`,
+      `convidado_checkin`, `palavra_pedida_convidado`. Bump em escrita.
+- [x] Testes (19 novos, 139/139 verdes): anexar (RBAC, 404 doc, 409 dup, tardio
+      vs no-tempo audita correctamente); listar docs (vazio, resolve titles);
+      convidados (RBAC adicionar/listar, can_speak, sem voting_power, checkin
+      Mesa marca, 404); palavra convidado (RBAC, 404, can_speak false 400,
+      !checked_in 400, dup 409, Mesa inscreve com user_id=None+convidado_id).
+      Suite unit: **1116/1116**.
 
 ## F7 — Sala de sessão (frontend) — incremental por fase
 - [ ] `pages/private/AssembleiaSalaPage.js` rota `/assembleias/{id}`

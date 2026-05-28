@@ -1706,6 +1706,46 @@ class ExpedienteCreate(BaseModel):
     aprovado_por_aclamacao: Optional[bool] = None
 
 
+# ===== F6 — Documentos da sessão + convidados (spec §8; Art. 20, 36) =====
+
+
+class AssembleiaDocumentoAttach(BaseModel):
+    """A Mesa anexa um documento já existente em `documents` à assembleia."""
+
+    document_id: str = Field(min_length=8, max_length=200)
+
+
+class Convidado(BaseModel):
+    """Não-membro autorizado a assistir/intervir (Art. 36). NÃO conta p/ quórum
+    nem vota. Se `can_speak`, a Mesa pode pô-lo na fila de palavra (F2)."""
+
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    assembleia_id: str
+    nome: str
+    email: Optional[str] = None
+    can_speak: bool = False
+    motivo: Optional[str] = None
+    invited_by: str  # user_id da Mesa
+    checked_in: bool = False
+    source_article: str = "36"
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class ConvidadoCreate(BaseModel):
+    nome: str = Field(min_length=2, max_length=200)
+    email: Optional[str] = Field(default=None, max_length=200)
+    can_speak: bool = False
+    motivo: Optional[str] = Field(default=None, max_length=500)
+
+
+class PalavraConvidadoCreate(BaseModel):
+    """A Mesa põe um convidado `can_speak` na fila de palavra (F2)."""
+
+    convidado_id: str
+    tipo: Literal["intervencao", "protesto", "esclarecimento", "defesa_honra"] = "intervencao"
+
+
 class AssembleiaFaseUpdate(BaseModel):
     """Transição da fase fina da sessão ao vivo (spec-sessao-assembleia §2.1)."""
 
@@ -1724,13 +1764,18 @@ PALAVRA_DURACOES = {
 
 
 class PalavraRequest(BaseModel):
-    """Inscrição para uso da palavra (spec-sessao-assembleia §4.1)."""
+    """Inscrição para uso da palavra (spec-sessao-assembleia §4.1).
+
+    Para membros, `user_id` está preenchido e `convidado_id=None`. Para convidados
+    autorizados a intervir (F6), `convidado_id` está preenchido e `user_id=None`
+    (inserido pela Mesa)."""
 
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     assembleia_id: str
     item_id: Optional[str] = None  # ponto da ordem de trabalhos
-    user_id: str
+    user_id: Optional[str] = None  # membro presente; None se for convidado
+    convidado_id: Optional[str] = None  # F6 — convidado autorizado pela Mesa
     tipo: Literal["intervencao", "protesto", "esclarecimento", "defesa_honra"]
     status: Literal["inscrito", "a_falar", "concluido", "retirado", "negado"] = "inscrito"
     ordem: Optional[int] = None  # posição atribuída pela Mesa
