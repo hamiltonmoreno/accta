@@ -1459,6 +1459,18 @@ class Assembleia(BaseModel):
     quorum_met: bool = False
     acta_document_id: Optional[str] = None
     encerrada_em: Optional[str] = None
+    # --- Camada "ao vivo" (spec-sessao-assembleia-ao-vivo §2.1; aditivo) ---
+    modo: Literal["presencial", "online", "hibrido"] = "online"  # online é o default
+    meeting_link: Optional[str] = None  # URL externa da videochamada (link out, sem iframe)
+    meeting_provider: Optional[str] = None  # meet | zoom | teams | outro
+    meeting_notes: Optional[str] = None  # instruções / dial-in
+    # Estado fino enquanto status == "em_curso"; transições só pela Mesa.
+    session_phase: Literal["fechada", "checkin", "antes_ot", "ordem_trabalhos", "encerramento"] = "fechada"
+    current_item_id: Optional[str] = None  # ponto da ordem de trabalhos em curso
+    check_in_code: Optional[str] = None  # código curto rotativo p/ self check-in
+    check_in_code_expires_at: Optional[str] = None  # ISO 8601
+    session_version: int = 0  # bump a cada mutação de sessão → base do SSE
+    antes_ot_aberto_em: Optional[str] = None  # p/ limite soft de 30 min (Art. 14)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -1471,6 +1483,25 @@ class AssembleiaCreate(BaseModel):
     requerente_tipo: Optional[str] = None
     requerentes: List[str] = []
     ordem_trabalhos: List[dict] = []
+    # Config da sessão ao vivo (opcional na convocação; editável depois).
+    modo: Literal["presencial", "online", "hibrido"] = "online"
+    meeting_link: Optional[str] = Field(default=None, max_length=500)
+    meeting_provider: Optional[str] = None  # meet | zoom | teams | outro
+    meeting_notes: Optional[str] = Field(default=None, max_length=2000)
+
+    @field_validator("meeting_link")
+    @classmethod
+    def _v_meeting_link(cls, v):
+        # Só http(s): impede esquemas perigosos (javascript:, data:) no botão
+        # "Entrar na reunião" que abre esta URL (link out).
+        if v is None:
+            return v
+        v = v.strip()
+        if not v:
+            return None
+        if not (v.startswith("http://") or v.startswith("https://")):
+            raise ValueError("meeting_link deve começar por http:// ou https://")
+        return v
 
 
 class AssembleiaPresenca(BaseModel):
@@ -1483,6 +1514,11 @@ class AssembleiaPresenca(BaseModel):
     voting_power: int = 1  # 1 (se votante) + nº de representados votantes
     documento_id: Optional[str] = None  # procuração/representação
     registado_por: str
+    # --- Camada "ao vivo" (spec-sessao-assembleia §3.1; aditivo) ---
+    method: Literal["join_click", "qr_meeting", "qr_scan", "self_code", "mesa_manual"] = "mesa_manual"
+    can_vote: bool = True  # is_voting_member no momento do check-in
+    checked_in_at: Optional[str] = None  # ISO 8601
+    source_article: str = "21"
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -1492,6 +1528,20 @@ class AssembleiaPresencaCreate(BaseModel):
     documento_id: Optional[str] = None
 
 
+class AssembleiaCheckinRequest(BaseModel):
+    """Self check-in do próprio membro (online). Representação NÃO entra aqui —
+    é registada pela Mesa em `POST /presencas` (decisão D9)."""
+
+    method: Literal["join_click", "qr_meeting", "self_code"] = "join_click"
+    code: Optional[str] = None  # código de sessão (reforço anti-proxy opcional — D1)
+
+
+class AssembleiaCheckinScan(BaseModel):
+    """A Mesa lê o QR pessoal da carteira de um sócio (presencial)."""
+
+    qr_hash: str = Field(min_length=8, max_length=200)
+
+
 class AssembleiaDeliberacao(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -1499,14 +1549,24 @@ class AssembleiaDeliberacao(BaseModel):
     ponto: str  # ponto da ordem de trabalhos
     descricao: str
     tipo_maioria: Literal["absoluta", "qualificada_2_3", "qualificada_3_4_presentes", "qualificada_3_4_universo"]
-    base_calculo: int  # poder de voto presente OU universo (computado pelo servidor)
-    votos_favor: int
-    votos_contra: int
-    abstencoes: int
-    threshold: int  # nº de votos necessário (computado)
-    aprovado: bool
+    # Contagens/apuramento: opcionais para suportar o ciclo ao vivo (abre sem
+    # votos; preenchidos no apuramento). O caminho one-shot passa-os explícitos.
+    base_calculo: int = 0  # poder de voto presente OU universo (computado pelo servidor)
+    votos_favor: int = 0
+    votos_contra: int = 0
+    abstencoes: int = 0
+    threshold: int = 0  # nº de votos necessário (computado)
+    aprovado: bool = False
     source_article: Optional[str] = None
     registado_por: str
+    # --- Camada "ao vivo" (spec-sessao-assembleia §7; aditivo) ---
+    voting_mode: Literal["braco_no_ar", "nominal", "secreto"] = "braco_no_ar"
+    item_id: Optional[str] = None  # ponto da OT
+    subitem: Optional[str] = None  # voto separado: vários assuntos no mesmo ponto
+    conflitos_excluidos: List[str] = []  # user_ids sem direito a voto neste ponto (Art. 32)
+    # one-shot nasce já "encerrada" (final); o ciclo ao vivo abre em "aberta".
+    status: Literal["aberta", "encerrada", "anulada"] = "encerrada"
+    apurado_em: Optional[str] = None  # ISO 8601 — quando a Mesa fechou o voto
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -1518,6 +1578,227 @@ class AssembleiaDeliberacaoCreate(BaseModel):
     votos_contra: int = Field(ge=0)
     abstencoes: int = Field(ge=0)
     source_article: Optional[str] = Field(default=None, max_length=50)
+
+
+class AssembleiaDeliberacaoAbrir(BaseModel):
+    """Abre uma deliberação para votação ao vivo (spec-sessao-assembleia §7).
+    A Mesa escolhe o modo; as contagens vêm depois (votos individuais ou o
+    agregado do braço no ar) e o apuramento fecha-a."""
+
+    ponto: str = Field(min_length=1, max_length=200)
+    descricao: str = Field(min_length=1, max_length=2000)
+    tipo_maioria: Literal["absoluta", "qualificada_2_3", "qualificada_3_4_presentes", "qualificada_3_4_universo"] = (
+        "absoluta"
+    )
+    voting_mode: Literal["braco_no_ar", "nominal", "secreto"] = "braco_no_ar"
+    item_id: Optional[str] = None
+    subitem: Optional[str] = Field(default=None, max_length=200)
+    conflitos_excluidos: List[str] = Field(default_factory=list)
+    source_article: Optional[str] = Field(default=None, max_length=50)
+
+
+class AssembleiaVotoCast(BaseModel):
+    """Voto individual (nominal ou secreto) numa deliberação aberta."""
+
+    escolha: Literal["favor", "contra", "abstencao"]
+
+
+class AssembleiaContagem(BaseModel):
+    """Contagem agregada do braço no ar — a Mesa conta as mãos na chamada (D5)."""
+
+    votos_favor: int = Field(ge=0)
+    votos_contra: int = Field(ge=0)
+    abstencoes: int = Field(ge=0)
+
+
+class AssembleiaVoto(BaseModel):
+    """Voto NOMINAL — registado por nome (spec §7.1). Único por
+    (deliberacao_id, user_id); apurado com o peso de voto da presença."""
+
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    deliberacao_id: str
+    assembleia_id: str
+    user_id: str
+    escolha: Literal["favor", "contra", "abstencao"]
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+# Voto SECRETO: par recibo/boletim, gravado numa transação (database.cast_assembleia_ballot),
+# igual ao desenho das eleições. O boletim NUNCA liga ao eleitor (spec §7.1, §9).
+class AssembleiaVotoBallot(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    deliberacao_id: str
+    escolha: Literal["favor", "contra", "abstencao"]  # sem user_id / voter_hash
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class AssembleiaVotoReceipt(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    deliberacao_id: str
+    voter_hash: str  # HMAC(secret, f"{deliberacao_id}:{user_id}") — prova de voto, não o sentido
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+# ===== F4 — Moções, requerimentos e recomendações em sessão (spec §5; Art. 6, 26) =====
+
+
+class MocaoSessao(BaseModel):
+    """Submissão durante a reunião. Requerimento (Art. 6, 26) vai a voto imediato
+    sem discussão; moções/recomendações podem entrar em discussão antes do voto."""
+
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    assembleia_id: str
+    item_id: Optional[str] = None
+    tipo: Literal["mocao", "requerimento", "recomendacao"]
+    titulo: str
+    texto: str
+    proposta_por: str  # user_id do membro presente
+    status: Literal["submetida", "em_discussao", "em_votacao", "aprovada", "rejeitada", "retirada"] = "submetida"
+    votacao_imediata: bool = False  # True p/ requerimento (salta discussão)
+    deliberacao_id: Optional[str] = None  # preenchido quando a Mesa coloca a voto
+    source_article: str = "26"
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class MocaoCreate(BaseModel):
+    tipo: Literal["mocao", "requerimento", "recomendacao"] = "mocao"
+    titulo: str = Field(min_length=3, max_length=200)
+    texto: str = Field(min_length=1, max_length=4000)
+    item_id: Optional[str] = None
+
+
+class MocaoColocarVoto(BaseModel):
+    """A Mesa coloca uma moção a voto — cria uma `AssembleiaDeliberacao` (F3)."""
+
+    tipo_maioria: Literal["absoluta", "qualificada_2_3", "qualificada_3_4_presentes", "qualificada_3_4_universo"] = (
+        "absoluta"
+    )
+    voting_mode: Literal["braco_no_ar", "nominal", "secreto"] = "braco_no_ar"
+    subitem: Optional[str] = Field(default=None, max_length=200)
+    conflitos_excluidos: List[str] = Field(default_factory=list)
+
+
+# ===== F5 — Período "antes da ordem de trabalhos" (spec §6; Art. 14) =====
+
+
+class ExpedienteEntry(BaseModel):
+    """Correspondência ou votos de louvor/congratulação/pesar registados pela
+    Mesa no período `antes_ot` (limite soft de 30 min — D4)."""
+
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    assembleia_id: str
+    tipo: Literal["correspondencia", "voto_louvor", "voto_congratulacao", "voto_pesar"]
+    texto: str
+    registado_por: str
+    aprovado_por_aclamacao: Optional[bool] = None  # só para votos de louvor/congratulação/pesar
+    source_article: str = "14"
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class ExpedienteCreate(BaseModel):
+    tipo: Literal["correspondencia", "voto_louvor", "voto_congratulacao", "voto_pesar"]
+    texto: str = Field(min_length=1, max_length=4000)
+    aprovado_por_aclamacao: Optional[bool] = None
+
+
+# ===== F6 — Documentos da sessão + convidados (spec §8; Art. 20, 36) =====
+
+
+class AssembleiaDocumentoAttach(BaseModel):
+    """A Mesa anexa um documento já existente em `documents` à assembleia."""
+
+    document_id: str = Field(min_length=8, max_length=200)
+
+
+class Convidado(BaseModel):
+    """Não-membro autorizado a assistir/intervir (Art. 36). NÃO conta p/ quórum
+    nem vota. Se `can_speak`, a Mesa pode pô-lo na fila de palavra (F2)."""
+
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    assembleia_id: str
+    nome: str
+    email: Optional[str] = None
+    can_speak: bool = False
+    motivo: Optional[str] = None
+    invited_by: str  # user_id da Mesa
+    checked_in: bool = False
+    source_article: str = "36"
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class ConvidadoCreate(BaseModel):
+    nome: str = Field(min_length=2, max_length=200)
+    email: Optional[str] = Field(default=None, max_length=200)
+    can_speak: bool = False
+    motivo: Optional[str] = Field(default=None, max_length=500)
+
+
+class PalavraConvidadoCreate(BaseModel):
+    """A Mesa põe um convidado `can_speak` na fila de palavra (F2)."""
+
+    convidado_id: str
+    tipo: Literal["intervencao", "protesto", "esclarecimento", "defesa_honra"] = "intervencao"
+
+
+class AssembleiaFaseUpdate(BaseModel):
+    """Transição da fase fina da sessão ao vivo (spec-sessao-assembleia §2.1)."""
+
+    session_phase: Literal["fechada", "checkin", "antes_ot", "ordem_trabalhos", "encerramento"]
+    current_item_id: Optional[str] = None  # ponto da OT em curso (opcional)
+
+
+# Durações default da palavra por tipo, em segundos (spec §4.1; confirmar com o
+# Regimento — decisão D3).
+PALAVRA_DURACOES = {
+    "intervencao": 180,
+    "protesto": 60,
+    "esclarecimento": 120,
+    "defesa_honra": 120,
+}
+
+
+class PalavraRequest(BaseModel):
+    """Inscrição para uso da palavra (spec-sessao-assembleia §4.1).
+
+    Para membros, `user_id` está preenchido e `convidado_id=None`. Para convidados
+    autorizados a intervir (F6), `convidado_id` está preenchido e `user_id=None`
+    (inserido pela Mesa)."""
+
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    assembleia_id: str
+    item_id: Optional[str] = None  # ponto da ordem de trabalhos
+    user_id: Optional[str] = None  # membro presente; None se for convidado
+    convidado_id: Optional[str] = None  # F6 — convidado autorizado pela Mesa
+    tipo: Literal["intervencao", "protesto", "esclarecimento", "defesa_honra"]
+    status: Literal["inscrito", "a_falar", "concluido", "retirado", "negado"] = "inscrito"
+    ordem: Optional[int] = None  # posição atribuída pela Mesa
+    duration_limit_s: int  # default por tipo (PALAVRA_DURACOES)
+    requested_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    started_at: Optional[str] = None
+    ends_at: Optional[str] = None  # started_at + duration_limit_s
+    ended_at: Optional[str] = None
+    source_article: str = "27"
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class PalavraCreate(BaseModel):
+    tipo: Literal["intervencao", "protesto", "esclarecimento", "defesa_honra"] = "intervencao"
+    item_id: Optional[str] = None
+
+
+class PalavraOrdenar(BaseModel):
+    ordem: int = Field(ge=0)
+
+
+class PalavraIniciar(BaseModel):
+    duration_s: Optional[int] = Field(default=None, ge=5, le=3600)  # override opcional da Mesa
 
 
 # ===== GOVERNANÇA: ELEIÇÕES (spec-governanca §12) =====

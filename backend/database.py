@@ -78,6 +78,14 @@ COLLECTIONS: tuple[str, ...] = (
     "assembleias",
     "assembleia_presencas",
     "assembleia_deliberacoes",
+    # sessão da AG "ao vivo" (spec-sessao-assembleia-ao-vivo):
+    "assembleia_palavra",
+    "assembleia_votos",  # voto nominal (registado por nome)
+    "assembleia_voto_receipts",  # voto secreto: recibo (HMAC)
+    "assembleia_voto_ballots",  # voto secreto: boletim (sem user_id)
+    "assembleia_mocoes",  # F4 — moções/requerimentos/recomendações em sessão
+    "assembleia_expediente",  # F5 — antes da OT (correspondência + votos de louvor/etc)
+    "assembleia_convidados",  # F6 — não-membros autorizados a assistir/intervir
     "eleicoes",
     "eleicao_listas",
     "eleicao_voter_receipts",
@@ -841,10 +849,34 @@ _INDEX_DDL: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS ix_assemb_status ON \"assembleias\" ((doc->>'status'))",
     "CREATE INDEX IF NOT EXISTS ix_assemb_tipo ON \"assembleias\" ((doc->>'tipo'))",
     "CREATE INDEX IF NOT EXISTS ix_assemb_data ON \"assembleias\" ((doc->>'data') DESC)",
-    'CREATE INDEX IF NOT EXISTS ix_assembpres_assemb_user ON "assembleia_presencas" '
+    # UNIQUE: um membro só pode ter UMA presença própria por assembleia — backstop
+    # de integridade à verificação aplicacional (corrida de dois check-ins
+    # simultâneos do mesmo sócio inflaria o poder de voto presente / quórum).
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_assembpres_assemb_user ON "assembleia_presencas" '
     "((doc->>'assembleia_id'), (doc->>'user_id'))",
     'CREATE INDEX IF NOT EXISTS ix_assembdelib_assemb ON "assembleia_deliberacoes" '
     "((doc->>'assembleia_id'), (doc->>'created_at') DESC)",
+    # sessão "ao vivo" — fila de uso da palavra
+    "CREATE INDEX IF NOT EXISTS ix_assembpalavra_assemb ON \"assembleia_palavra\" ((doc->>'assembleia_id'))",
+    'CREATE INDEX IF NOT EXISTS ix_assembpalavra_assemb_status ON "assembleia_palavra" '
+    "((doc->>'assembleia_id'), (doc->>'status'))",
+    # sessão "ao vivo" — modos de votação (spec-sessao-assembleia §7/§9)
+    # voto nominal: um voto por (deliberação, membro)
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_assembvoto_delib_user ON "assembleia_votos" '
+    "((doc->>'deliberacao_id'), (doc->>'user_id'))",
+    "CREATE INDEX IF NOT EXISTS ix_assembvoto_delib ON \"assembleia_votos\" ((doc->>'deliberacao_id'))",
+    # voto secreto: recibo prova que votou (único por eleitor); boletim é anónimo
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_assembvotoreceipt_delib_hash ON "assembleia_voto_receipts" '
+    "((doc->>'deliberacao_id'), (doc->>'voter_hash'))",
+    "CREATE INDEX IF NOT EXISTS ix_assembvotoballot_delib ON \"assembleia_voto_ballots\" ((doc->>'deliberacao_id'))",
+    # sessão "ao vivo" — moções/requerimentos/recomendações (F4)
+    "CREATE INDEX IF NOT EXISTS ix_assembmocoes_assemb ON \"assembleia_mocoes\" ((doc->>'assembleia_id'))",
+    'CREATE INDEX IF NOT EXISTS ix_assembmocoes_assemb_status ON "assembleia_mocoes" '
+    "((doc->>'assembleia_id'), (doc->>'status'))",
+    # sessão "ao vivo" — expediente do antes-OT (F5)
+    "CREATE INDEX IF NOT EXISTS ix_assembexpediente_assemb ON \"assembleia_expediente\" ((doc->>'assembleia_id'))",
+    # sessão "ao vivo" — convidados (F6)
+    "CREATE INDEX IF NOT EXISTS ix_assembconvidados_assemb ON \"assembleia_convidados\" ((doc->>'assembleia_id'))",
     # governança — eleições
     "CREATE INDEX IF NOT EXISTS ix_eleicoes_status_ano ON \"eleicoes\" ((doc->>'status'), (doc->>'ano'))",
     "CREATE INDEX IF NOT EXISTS ix_eleicoes_assemb ON \"eleicoes\" ((doc->>'assembleia_id'))",
@@ -1085,24 +1117,48 @@ async def transfer_cargo(from_user_id: str, to_user_id: str, from_update: dict, 
                 )
 
 
-async def cast_ballot(eleicao_id: str, voter_hash: str, receipt_doc: dict, ballot_doc: dict) -> None:
-    """Voto secreto (spec-governanca §7): insere o recibo do eleitor e o boletim
-    numa ÚNICA transação. O recibo prova (por HMAC) que o eleitor votou; o
-    boletim não tem qualquer ligação ao eleitor. Levanta ValueError em voto
-    duplicado (também garantido pelo índice único ux_eleicao_receipt).
+async def _cast_secret_ballot(
+    receipt_table: str, ballot_table: str, dup_filter: dict, receipt_doc: dict, ballot_doc: dict
+) -> None:
+    """Voto secreto genérico: insere o recibo do eleitor e o boletim numa ÚNICA
+    transação. O recibo prova (por HMAC) que o eleitor votou; o boletim não tem
+    qualquer ligação ao eleitor. Levanta ValueError em voto duplicado (também
+    garantido pelo índice único do recibo).
 
-    O raw SQL fica no DAO (regra api.md). As rotas chamam só este helper.
-    """
+    O raw SQL fica no DAO (regra api.md). As rotas chamam só os wrappers."""
     pool = await get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
             wb = _WhereBuilder()
-            where = wb.build({"eleicao_id": eleicao_id, "voter_hash": voter_hash})
+            where = wb.build(dup_filter)
             existing = await conn.fetchrow(
-                f"SELECT pk FROM {_quote_ident('eleicao_voter_receipts')} WHERE {where} LIMIT 1",
+                f"SELECT pk FROM {_quote_ident(receipt_table)} WHERE {where} LIMIT 1",
                 *wb.params,
             )
             if existing is not None:
                 raise ValueError("voto duplicado")
-            await conn.execute(f"INSERT INTO {_quote_ident('eleicao_voter_receipts')} (doc) VALUES ($1)", receipt_doc)
-            await conn.execute(f"INSERT INTO {_quote_ident('eleicao_ballots')} (doc) VALUES ($1)", ballot_doc)
+            await conn.execute(f"INSERT INTO {_quote_ident(receipt_table)} (doc) VALUES ($1)", receipt_doc)
+            await conn.execute(f"INSERT INTO {_quote_ident(ballot_table)} (doc) VALUES ($1)", ballot_doc)
+
+
+async def cast_ballot(eleicao_id: str, voter_hash: str, receipt_doc: dict, ballot_doc: dict) -> None:
+    """Voto secreto de eleição (spec-governanca §7). Ver `_cast_secret_ballot`."""
+    await _cast_secret_ballot(
+        "eleicao_voter_receipts",
+        "eleicao_ballots",
+        {"eleicao_id": eleicao_id, "voter_hash": voter_hash},
+        receipt_doc,
+        ballot_doc,
+    )
+
+
+async def cast_assembleia_ballot(deliberacao_id: str, voter_hash: str, receipt_doc: dict, ballot_doc: dict) -> None:
+    """Voto secreto de uma deliberação de assembleia (spec-sessao-assembleia §7).
+    Ver `_cast_secret_ballot`."""
+    await _cast_secret_ballot(
+        "assembleia_voto_receipts",
+        "assembleia_voto_ballots",
+        {"deliberacao_id": deliberacao_id, "voter_hash": voter_hash},
+        receipt_doc,
+        ballot_doc,
+    )
