@@ -1682,6 +1682,30 @@ class MocaoColocarVoto(BaseModel):
     conflitos_excluidos: List[str] = Field(default_factory=list)
 
 
+# ===== F5 — Período "antes da ordem de trabalhos" (spec §6; Art. 14) =====
+
+
+class ExpedienteEntry(BaseModel):
+    """Correspondência ou votos de louvor/congratulação/pesar registados pela
+    Mesa no período `antes_ot` (limite soft de 30 min — D4)."""
+
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    assembleia_id: str
+    tipo: Literal["correspondencia", "voto_louvor", "voto_congratulacao", "voto_pesar"]
+    texto: str
+    registado_por: str
+    aprovado_por_aclamacao: Optional[bool] = None  # só para votos de louvor/congratulação/pesar
+    source_article: str = "14"
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class ExpedienteCreate(BaseModel):
+    tipo: Literal["correspondencia", "voto_louvor", "voto_congratulacao", "voto_pesar"]
+    texto: str = Field(min_length=1, max_length=4000)
+    aprovado_por_aclamacao: Optional[bool] = None
+
+
 class AssembleiaFaseUpdate(BaseModel):
     """Transição da fase fina da sessão ao vivo (spec-sessao-assembleia §2.1)."""
 

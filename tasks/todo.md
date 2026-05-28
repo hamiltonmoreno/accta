@@ -185,13 +185,15 @@ sem partir o que existe (tudo aditivo).
       (proponente ✓, Mesa ✓, outro 403, em_votacao 400); listar.
       Suite unit completa: **1091/1091** (+15 face à F3).
 
-## F5 — 2.4 Antes da ordem de trabalhos + expediente (Art. 14) — dep: F1
-- [ ] `database.py`: + `assembleia_expediente`; índice `assembleia_id`.
-- [ ] `models.py`: `ExpedienteEntry` (tipo `correspondencia|voto_louvor|
-      voto_congratulacao|voto_pesar`, `aprovado_por_aclamacao`).
-- [ ] Endpoints: `POST .../expediente`, `GET .../expediente`. (Fase `antes_ot` e o
-      limite soft de 30 min já vêm da F0; cronómetro é client-side, aviso ao expirar.)
-- [ ] Testes: `antes_ot` regista abertura; transição só Mesa; expediente listado.
+## F5 — 2.4 Antes da ordem de trabalhos + expediente (Art. 14) ✅ (backend) — dep: F1
+- [x] `database.py`: + `assembleia_expediente`; índice `assembleia_id`.
+- [x] `models.py`: `ExpedienteEntry` (tipo `correspondencia|voto_louvor|
+      voto_congratulacao|voto_pesar`, `aprovado_por_aclamacao`) + `ExpedienteCreate`.
+- [x] Endpoints: `POST .../expediente` (Mesa) + `GET .../expediente` (qualquer
+      autenticado). Fase `antes_ot` e `antes_ot_aberto_em` vêm da F0; cronómetro
+      30 min soft é client-side (D4). Audit: `expediente_registado`.
+- [x] Testes (6 novos, 120/120 verdes): RBAC, 404, correspondência registada,
+      voto-pesar por aclamação, listar; `antes_ot_aberto_em` só escrito 1ª vez.
 
 ## F6 — 2.6 Documentos ≥3 dias + convidados (Art. 20, 36) — dep: F0
 - [ ] Doc da assembleia ganha `documentos: list[str]` (document_ids — **sem**

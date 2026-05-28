@@ -46,6 +46,8 @@ from models import (
     AssembleiaVotoBallot,
     AssembleiaVotoCast,
     AssembleiaVotoReceipt,
+    ExpedienteCreate,
+    ExpedienteEntry,
     MAX_REPRESENTADOS,
     MocaoColocarVoto,
     MocaoCreate,
@@ -1334,6 +1336,61 @@ async def list_mocoes(assembleia_id: str, current_user: User = Depends(get_curre
         .to_list(None)
     )
     return {"mocoes": rows}
+
+
+# ===== F5 — Período "antes da ordem de trabalhos" (spec §6; Art. 14) =====
+#
+# A fase `antes_ot` e o `antes_ot_aberto_em` já vêm da F0. O limite soft de 30 min
+# é client-side (D4 — aviso visual; a Mesa encerra/estende). Aqui ficam só os
+# registos de expediente: correspondência + votos de louvor/congratulação/pesar.
+
+
+@router.post("/{assembleia_id}/expediente")
+async def registar_expediente(
+    assembleia_id: str,
+    request: Request,
+    data: ExpedienteCreate,
+    current_user: User = Depends(get_current_user),
+):
+    """A Mesa regista correspondência ou votos de louvor/congratulação/pesar.
+    Votos de louvor/etc são tipicamente aprovados por aclamação — o sinalizador
+    `aprovado_por_aclamacao` regista isso na ata (não é uma deliberação F3)."""
+    _require_convene(current_user)
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "id": 1})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    entry = ExpedienteEntry(
+        assembleia_id=assembleia_id,
+        tipo=data.tipo,
+        texto=data.texto,
+        aprovado_por_aclamacao=data.aprovado_por_aclamacao,
+        registado_por=current_user.id,
+    )
+    doc = entry.model_dump()
+    await db.assembleia_expediente.insert_one(doc)
+    await _bump_session(assembleia_id)
+    await create_audit_log(
+        current_user.id,
+        "expediente_registado",
+        assembleia_id,
+        request=request,
+        details={"tipo": data.tipo, "expediente_id": doc["id"]},
+    )
+    return doc
+
+
+@router.get("/{assembleia_id}/expediente")
+async def list_expediente(assembleia_id: str, current_user: User = Depends(get_current_user)):
+    """Lista o expediente registado (qualquer membro autenticado)."""
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "id": 1})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    rows = (
+        await db.assembleia_expediente.find({"assembleia_id": assembleia_id}, {"_id": 0})
+        .sort("created_at", 1)
+        .to_list(None)
+    )
+    return {"expediente": rows}
 
 
 @router.post("/{assembleia_id}/encerrar")

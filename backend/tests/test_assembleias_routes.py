@@ -89,6 +89,8 @@ def gov_env(mock_db, monkeypatch):
     mock_db.assembleia_voto_ballots = _coll()
     # F4 — moções/requerimentos/recomendações
     mock_db.assembleia_mocoes = _coll()
+    # F5 — expediente do antes-OT
+    mock_db.assembleia_expediente = _coll()
     monkeypatch.setattr(a_route, "create_audit_log", AsyncMock())
     monkeypatch.setattr(a_route, "notify_all_active_users", AsyncMock())
     monkeypatch.setattr(a_route, "cast_assembleia_ballot", AsyncMock())
@@ -1892,3 +1894,99 @@ class TestListMocoes:
         gov_env.assembleia_mocoes.find = MagicMock(return_value=_cursor([_mocao(id="m1"), _mocao(id="m2")]))
         result = await a_route.list_mocoes(assembleia_id="a1", current_user=socio_user)
         assert [m["id"] for m in result["mocoes"]] == ["m1", "m2"]
+
+
+# --------------------------------------------------------------------------- #
+# F5 — Antes da ordem de trabalhos + expediente (Art. 14)
+# --------------------------------------------------------------------------- #
+
+
+class TestExpediente:
+    async def test_socio_comum_403(self, gov_env, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await a_route.registar_expediente(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.ExpedienteCreate(tipo="correspondencia", texto="Carta da Direcção"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_assembleia_inexistente_404(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await a_route.registar_expediente(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.ExpedienteCreate(tipo="correspondencia", texto="Carta"),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 404
+
+    async def test_mesa_regista_correspondencia(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        captured = {}
+        gov_env.assembleia_expediente.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        result = await a_route.registar_expediente(
+            assembleia_id="a1",
+            request=_request(),
+            data=a_route.ExpedienteCreate(tipo="correspondencia", texto="Convite IFATCA"),
+            current_user=_mesa_ag(),
+        )
+        assert captured["tipo"] == "correspondencia"
+        assert captured["texto"] == "Convite IFATCA"
+        assert captured["source_article"] == "14"
+        assert result["id"] == captured["id"]
+
+    async def test_voto_pesar_por_aclamacao(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        captured = {}
+        gov_env.assembleia_expediente.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        await a_route.registar_expediente(
+            assembleia_id="a1",
+            request=_request(),
+            data=a_route.ExpedienteCreate(
+                tipo="voto_pesar", texto="Falecimento do sócio X", aprovado_por_aclamacao=True
+            ),
+            current_user=_mesa_ag(),
+        )
+        assert captured["tipo"] == "voto_pesar"
+        assert captured["aprovado_por_aclamacao"] is True
+
+    async def test_lista_expediente(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_expediente.find = MagicMock(
+            return_value=_cursor([{"id": "e1", "tipo": "correspondencia"}, {"id": "e2", "tipo": "voto_louvor"}])
+        )
+        result = await a_route.list_expediente(assembleia_id="a1", current_user=socio_user)
+        assert [e["id"] for e in result["expediente"]] == ["e1", "e2"]
+
+
+class TestFaseAntesOTRegista:
+    # Sanity check — a fase antes_ot regista `antes_ot_aberto_em` (já testada na F0
+    # em TestFase.test_antes_ot_regista_abertura). Reafirmo aqui o contrato do F5.
+    async def test_antes_ot_abertura_marcada_uma_vez(self, gov_env):
+        # Re-entrar em antes_ot não altera `antes_ot_aberto_em` (ordem linear não
+        # permite recuar; quando a fase já é antes_ot a chamada é rejeitada).
+        gov_env.assembleias.find_one = AsyncMock(
+            return_value={
+                "id": "a1",
+                "status": "em_curso",
+                "session_phase": "antes_ot",
+                "antes_ot_aberto_em": "2030-01-01T10:00:00+00:00",
+                "eligible_voters_count": 10,
+            }
+        )
+        # Não recua: avançar para antes_ot quando já lá está é a mesma posição
+        # (PHASE_ORDER.index(target)==PHASE_ORDER.index(current) é OK; mas o campo
+        # `antes_ot_aberto_em` só é escrito se ainda não estiver definido).
+        captured = {}
+        gov_env.assembleias.update_one = AsyncMock(side_effect=lambda flt, upd: captured.update(upd["$set"]))
+        await a_route.transicao_fase(
+            assembleia_id="a1",
+            request=_request(),
+            data=AssembleiaFaseUpdate(session_phase="antes_ot"),
+            current_user=_mesa_ag(),
+        )
+        # antes_ot_aberto_em já estava definido → não é re-escrito.
+        assert "antes_ot_aberto_em" not in captured
