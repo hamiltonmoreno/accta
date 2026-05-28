@@ -9,16 +9,19 @@ das presenças (1 por votante próprio + 1 por cada representado votante).
 """
 
 import asyncio
+import hashlib
+import hmac
 import json
 import secrets
 from datetime import datetime, timedelta, timezone
 
+import asyncpg
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 import comunicados_service
-from auth import _extract_token, get_current_user, get_user_from_token
-from database import db
+from auth import SECRET_KEY, _extract_token, get_current_user, get_user_from_token
+from database import cast_assembleia_ballot, db
 from governance import (
     is_voting_member,
     required_absolute_majority,
@@ -31,12 +34,18 @@ from models import (
     Assembleia,
     AssembleiaCheckinRequest,
     AssembleiaCheckinScan,
+    AssembleiaContagem,
     AssembleiaCreate,
     AssembleiaDeliberacao,
+    AssembleiaDeliberacaoAbrir,
     AssembleiaDeliberacaoCreate,
     AssembleiaFaseUpdate,
     AssembleiaPresenca,
     AssembleiaPresencaCreate,
+    AssembleiaVoto,
+    AssembleiaVotoBallot,
+    AssembleiaVotoCast,
+    AssembleiaVotoReceipt,
     MAX_REPRESENTADOS,
     PALAVRA_DURACOES,
     PalavraCreate,
@@ -136,6 +145,10 @@ async def _session_snapshot(assembleia_id: str) -> dict | None:
     fila = await db.assembleia_palavra.find(
         {"assembleia_id": assembleia_id, "status": "inscrito"}, {"_id": 0, "id": 1}
     ).to_list(None)
+    # Deliberação aberta (F3): a consola da Mesa puxa o detalhe/tally por GET /{did}.
+    open_delib = await db.assembleia_deliberacoes.find_one(
+        {"assembleia_id": assembleia_id, "status": "aberta"}, {"_id": 0, "id": 1, "voting_mode": 1, "ponto": 1}
+    )
     return {
         "version": int(a.get("session_version", 0)),
         "phase": a.get("session_phase", "fechada"),
@@ -161,6 +174,15 @@ async def _session_snapshot(assembleia_id: str) -> dict | None:
             ),
             "queue_len": len(fila),
         },
+        "open_vote": (
+            {
+                "deliberacao_id": open_delib["id"],
+                "voting_mode": open_delib.get("voting_mode"),
+                "ponto": open_delib.get("ponto"),
+            }
+            if open_delib
+            else None
+        ),
     }
 
 
@@ -202,7 +224,12 @@ async def _finalize_checkin(a: dict, presenca: AssembleiaPresenca) -> dict:
     """Insere a presença, recalcula o quórum, faz bump de sessão (SSE) e devolve
     o snapshot de contagem. Partilhado por todos os caminhos de check-in."""
     doc = presenca.model_dump()
-    await db.assembleia_presencas.insert_one(doc)
+    try:
+        await db.assembleia_presencas.insert_one(doc)
+    except asyncpg.UniqueViolationError:
+        # Corrida de dois check-ins simultâneos do mesmo sócio: o índice UNIQUE
+        # (ux_assembpres_assemb_user) é o backstop atómico à guarda aplicacional.
+        raise HTTPException(status_code=409, detail="A presença já está registada.")
     present_count, present_power = await _present_voting_power(a["id"])
     quorum_met = present_power >= a.get("quorum_required", 0)
     await _bump_session(a["id"], {"quorum_met": quorum_met})
@@ -310,6 +337,10 @@ async def get_assembleia(assembleia_id: str, current_user: User = Depends(get_cu
     a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0})
     if not a:
         raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    # O código de check-in é reforço anti-proxy (D1): só a Mesa/admin o vê. Expô-lo
+    # a qualquer sócio anulava o mecanismo (review F0/F1, I4).
+    if not can_convene_assembleia(current_user):
+        a = {k: v for k, v in a.items() if k not in ("check_in_code", "check_in_code_expires_at")}
     present_count, present_power = await _present_voting_power(assembleia_id)
     return {**a, "present_count": present_count, "present_voting_power": present_power}
 
@@ -848,6 +879,309 @@ async def list_deliberacoes(assembleia_id: str, current_user: User = Depends(get
         .to_list(None)
     )
     return {"deliberacoes": rows}
+
+
+# ===== F3 — Modos de votação ao vivo (spec-sessao-assembleia §7) =====
+#
+# Ciclo ADITIVO ao one-shot `register_deliberacao` (que mantém o disparo de
+# comunicado na criação): abrir → votar/registar-contagem → apurar. O comunicado
+# oficial dispara SÓ no apurar (não duplicar). Modos:
+#   - braco_no_ar: a Mesa regista o agregado (D5); sem votos individuais.
+#   - nominal: cada votante presente vota; apura-se com o peso de voto da presença.
+#   - secreto: par recibo/boletim anónimo (cast_assembleia_ballot); apoio
+#     administrativo (D6). Para preservar o anonimato, o voto secreto é
+#     UM-membro-UM-boletim (o peso de representação NÃO se aplica) — a base é a
+#     contagem de votantes presentes não-excluídos. Confirmar com o Regimento.
+
+
+def _voter_hash(deliberacao_id: str, user_id: str) -> str:
+    """HMAC-SHA256 (igual às eleições): o recibo prova que o membro votou sem ser
+    reversível para o user_id sem o segredo do servidor."""
+    return hmac.new(SECRET_KEY.encode(), f"{deliberacao_id}:{user_id}".encode(), hashlib.sha256).hexdigest()
+
+
+async def _get_deliberacao(assembleia_id: str, did: str) -> dict:
+    d = await db.assembleia_deliberacoes.find_one({"id": did, "assembleia_id": assembleia_id}, {"_id": 0})
+    if not d:
+        raise HTTPException(status_code=404, detail="Deliberação não encontrada")
+    return d
+
+
+async def _load_presencas(assembleia_id: str) -> list[dict]:
+    return await db.assembleia_presencas.find(
+        {"assembleia_id": assembleia_id}, {"_id": 0, "user_id": 1, "voting_power": 1, "can_vote": 1}
+    ).to_list(None)
+
+
+def _threshold_and_base(tipo_maioria: str, present_base: int, eligible: int) -> tuple[int, int]:
+    """(base, threshold) pela maioria aplicável — mesmos helpers do one-shot."""
+    if tipo_maioria == "qualificada_3_4_universo":
+        return eligible, required_three_quarters(eligible)
+    if tipo_maioria == "qualificada_3_4_presentes":
+        return present_base, required_three_quarters(present_base)
+    if tipo_maioria == "qualificada_2_3":
+        return present_base, required_two_thirds(present_base)
+    return present_base, required_absolute_majority(present_base)
+
+
+@router.post("/{assembleia_id}/deliberacoes/abrir")
+async def abrir_deliberacao(
+    assembleia_id: str,
+    request: Request,
+    data: AssembleiaDeliberacaoAbrir,
+    current_user: User = Depends(get_current_user),
+):
+    """A Mesa abre uma deliberação para votação ao vivo (status=aberta). NÃO
+    dispara comunicado — isso só acontece no apuramento."""
+    _require_convene(current_user)
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    if a["status"] != "em_curso":
+        raise HTTPException(status_code=400, detail="A sessão não está a decorrer.")
+    eligible = a.get("eligible_voters_count", 0)
+    _, present_power = await _present_voting_power(assembleia_id)
+    if present_power < required_quorum(eligible, 2):
+        raise HTTPException(status_code=400, detail="Sem quórum para deliberar")
+
+    delib = AssembleiaDeliberacao(
+        assembleia_id=assembleia_id,
+        ponto=data.ponto,
+        descricao=data.descricao,
+        tipo_maioria=data.tipo_maioria,
+        voting_mode=data.voting_mode,
+        item_id=data.item_id or a.get("current_item_id"),
+        subitem=data.subitem,
+        conflitos_excluidos=data.conflitos_excluidos,
+        status="aberta",
+        source_article=data.source_article,
+        registado_por=current_user.id,
+    )
+    doc = delib.model_dump()
+    await db.assembleia_deliberacoes.insert_one(doc)
+    await _bump_session(assembleia_id)
+    await create_audit_log(
+        current_user.id,
+        "assembleia_deliberacao_abrir",
+        assembleia_id,
+        request=request,
+        details={"deliberacao_id": doc["id"], "voting_mode": data.voting_mode, "ponto": data.ponto},
+    )
+    return doc
+
+
+@router.post("/{assembleia_id}/deliberacoes/{did}/votar")
+async def votar_deliberacao(
+    assembleia_id: str,
+    did: str,
+    request: Request,
+    data: AssembleiaVotoCast,
+    current_user: User = Depends(get_current_user),
+):
+    """Um votante presente e não-excluído vota numa deliberação aberta
+    (nominal ou secreto). O braço no ar não aceita votos individuais."""
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "id": 1, "status": 1})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    if a.get("status") != "em_curso":
+        raise HTTPException(status_code=400, detail="A sessão não está a decorrer.")
+    d = await _get_deliberacao(assembleia_id, did)
+    if d.get("status") != "aberta":
+        raise HTTPException(status_code=400, detail="A deliberação não está aberta a votos.")
+    mode = d.get("voting_mode", "braco_no_ar")
+    if mode == "braco_no_ar":
+        raise HTTPException(status_code=400, detail="Esta deliberação é por braço no ar (sem votos individuais).")
+
+    pres = await db.assembleia_presencas.find_one(
+        {"assembleia_id": assembleia_id, "user_id": current_user.id}, {"_id": 0, "can_vote": 1}
+    )
+    if not pres:
+        raise HTTPException(status_code=403, detail="Tem de estar presente para votar.")
+    if not pres.get("can_vote"):
+        raise HTTPException(status_code=403, detail="Não tem direito de voto.")
+    if current_user.id in set(d.get("conflitos_excluidos", [])):
+        raise HTTPException(status_code=403, detail="Está excluído desta votação por conflito de interesses.")
+
+    if mode == "nominal":
+        existing = await db.assembleia_votos.find_one(
+            {"deliberacao_id": did, "user_id": current_user.id}, {"_id": 0, "id": 1}
+        )
+        if existing:
+            raise HTTPException(status_code=409, detail="Já votou nesta deliberação.")
+        voto = AssembleiaVoto(
+            deliberacao_id=did, assembleia_id=assembleia_id, user_id=current_user.id, escolha=data.escolha
+        )
+        try:
+            await db.assembleia_votos.insert_one(voto.model_dump())
+        except asyncpg.UniqueViolationError:
+            raise HTTPException(status_code=409, detail="Já votou nesta deliberação.")
+        # Nominal: o sentido fica registado por nome — pode constar da auditoria.
+        await create_audit_log(
+            current_user.id,
+            "assembleia_voto",
+            assembleia_id,
+            request=request,
+            details={"deliberacao_id": did, "escolha": data.escolha},
+        )
+    else:  # secreto
+        vh = _voter_hash(did, current_user.id)
+        receipt = AssembleiaVotoReceipt(deliberacao_id=did, voter_hash=vh).model_dump()
+        ballot = AssembleiaVotoBallot(deliberacao_id=did, escolha=data.escolha).model_dump()
+        try:
+            await cast_assembleia_ballot(did, vh, receipt, ballot)
+        except ValueError:
+            raise HTTPException(status_code=409, detail="Já votou nesta deliberação.")
+        # Secreto: NUNCA registar o sentido ligado ao eleitor (só que votou).
+        await create_audit_log(
+            current_user.id,
+            "assembleia_voto_secreto",
+            assembleia_id,
+            request=request,
+            details={"deliberacao_id": did},
+        )
+
+    await _bump_session(assembleia_id)
+    return {"deliberacao_id": did, "status": "registado", "voting_mode": mode}
+
+
+@router.post("/{assembleia_id}/deliberacoes/{did}/registar-contagem")
+async def registar_contagem(
+    assembleia_id: str,
+    did: str,
+    request: Request,
+    data: AssembleiaContagem,
+    current_user: User = Depends(get_current_user),
+):
+    """A Mesa regista a contagem agregada do braço no ar (D5)."""
+    _require_convene(current_user)
+    await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "id": 1})
+    d = await _get_deliberacao(assembleia_id, did)
+    if d.get("status") != "aberta":
+        raise HTTPException(status_code=400, detail="A deliberação não está aberta.")
+    if d.get("voting_mode", "braco_no_ar") != "braco_no_ar":
+        raise HTTPException(status_code=400, detail="Contagem agregada só se aplica ao braço no ar.")
+
+    presencas = await _load_presencas(assembleia_id)
+    excluded = set(d.get("conflitos_excluidos", []))
+    present_power = sum(int(p.get("voting_power", 0)) for p in presencas)
+    excluded_power = sum(int(p.get("voting_power", 0)) for p in presencas if p["user_id"] in excluded)
+    present_base = present_power - excluded_power
+    total = data.votos_favor + data.votos_contra + data.abstencoes
+    if total > present_base:
+        raise HTTPException(status_code=400, detail="Contagem excede o poder de voto presente (excluídos os conflitos).")
+
+    update = {"votos_favor": data.votos_favor, "votos_contra": data.votos_contra, "abstencoes": data.abstencoes}
+    await db.assembleia_deliberacoes.update_one({"id": did}, {"$set": update})
+    await _bump_session(assembleia_id)
+    await create_audit_log(
+        current_user.id, "assembleia_contagem", assembleia_id, request=request, details={"deliberacao_id": did, **update}
+    )
+    return {"deliberacao_id": did, **update}
+
+
+@router.post("/{assembleia_id}/deliberacoes/{did}/apurar")
+async def apurar_deliberacao(
+    assembleia_id: str,
+    did: str,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+):
+    """A Mesa fecha a votação e apura o resultado pela maioria aplicável. SÓ aqui
+    se dispara o comunicado oficial (in-app + email a todos os activos)."""
+    _require_convene(current_user)
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    d = await _get_deliberacao(assembleia_id, did)
+    if d.get("status") != "aberta":
+        raise HTTPException(status_code=400, detail="A deliberação já foi apurada ou anulada.")
+
+    eligible = a.get("eligible_voters_count", 0)
+    presencas = await _load_presencas(assembleia_id)
+    excluded = set(d.get("conflitos_excluidos", []))
+    mode = d.get("voting_mode", "braco_no_ar")
+
+    if mode == "secreto":
+        # Um-membro-um-boletim (anonimato): base = contagem de votantes presentes
+        # não-excluídos; cada boletim conta 1 (peso de representação não se aplica).
+        present_base = sum(1 for p in presencas if p.get("can_vote") and p["user_id"] not in excluded)
+        ballots = await db.assembleia_voto_ballots.find(
+            {"deliberacao_id": did}, {"_id": 0, "escolha": 1}
+        ).to_list(None)
+        favor = sum(1 for b in ballots if b.get("escolha") == "favor")
+        contra = sum(1 for b in ballots if b.get("escolha") == "contra")
+        abst = sum(1 for b in ballots if b.get("escolha") == "abstencao")
+    else:
+        power_by_user = {p["user_id"]: int(p.get("voting_power", 0)) for p in presencas}
+        present_power = sum(power_by_user.values())
+        excluded_power = sum(power_by_user.get(uid, 0) for uid in excluded)
+        present_base = present_power - excluded_power
+        if mode == "nominal":
+            # Apura com o peso de voto da presença (representação incluída).
+            votos = await db.assembleia_votos.find(
+                {"deliberacao_id": did}, {"_id": 0, "user_id": 1, "escolha": 1}
+            ).to_list(None)
+            favor = sum(power_by_user.get(v["user_id"], 0) for v in votos if v.get("escolha") == "favor")
+            contra = sum(power_by_user.get(v["user_id"], 0) for v in votos if v.get("escolha") == "contra")
+            abst = sum(power_by_user.get(v["user_id"], 0) for v in votos if v.get("escolha") == "abstencao")
+        else:  # braco_no_ar — agregado já registado pela Mesa
+            favor = int(d.get("votos_favor", 0))
+            contra = int(d.get("votos_contra", 0))
+            abst = int(d.get("abstencoes", 0))
+
+    base, threshold = _threshold_and_base(d["tipo_maioria"], present_base, eligible)
+    aprovado = favor >= threshold
+    update = {
+        "status": "encerrada",
+        "base_calculo": base,
+        "votos_favor": favor,
+        "votos_contra": contra,
+        "abstencoes": abst,
+        "threshold": threshold,
+        "aprovado": aprovado,
+        "apurado_em": _now_iso(),
+    }
+    await db.assembleia_deliberacoes.update_one({"id": did}, {"$set": update})
+    await _bump_session(assembleia_id)
+    await create_audit_log(
+        current_user.id,
+        "assembleia_deliberacao_apurar",
+        assembleia_id,
+        request=request,
+        details={"deliberacao_id": did, "tipo_maioria": d["tipo_maioria"], "aprovado": aprovado, "voting_mode": mode},
+    )
+    # Comunicado OFICIAL — só no apuramento (não duplicar o one-shot), fire-and-forget.
+    background_tasks.add_task(
+        comunicados_service.dispatch_oficial_auto,
+        subject=f"Deliberações — {a.get('titulo', 'Assembleia Geral')}",
+        body=("Foi apurada uma deliberação da Assembleia Geral.\n\nConsulte o detalhe e a ata no Portal ACCTA."),
+        cta_label="Ver deliberações",
+        cta_url=f"/assembleias/{assembleia_id}",
+        source_kind="assembleia_deliberacao",
+        ref_id=did,
+    )
+    return {"id": did, **update}
+
+
+@router.get("/{assembleia_id}/deliberacoes/{did}")
+async def get_deliberacao(assembleia_id: str, did: str, current_user: User = Depends(get_current_user)):
+    """Detalhe de uma deliberação. Em modo nominal a Mesa vê a lista de votos; em
+    secreto expõe-se apenas quantos votaram (NUNCA o sentido por eleitor)."""
+    d = await _get_deliberacao(assembleia_id, did)
+    out = dict(d)
+    mode = d.get("voting_mode", "braco_no_ar")
+    if mode == "nominal":
+        votos = await db.assembleia_votos.find(
+            {"deliberacao_id": did}, {"_id": 0, "user_id": 1, "escolha": 1}
+        ).to_list(None)
+        out["votes_cast"] = len(votos)
+        if can_convene_assembleia(current_user):
+            out["votos"] = votos
+    elif mode == "secreto":
+        receipts = await db.assembleia_voto_receipts.find({"deliberacao_id": did}, {"_id": 0, "id": 1}).to_list(None)
+        out["votes_cast"] = len(receipts)
+    return out
 
 
 @router.post("/{assembleia_id}/encerrar")

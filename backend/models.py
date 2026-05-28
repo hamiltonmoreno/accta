@@ -1489,6 +1489,20 @@ class AssembleiaCreate(BaseModel):
     meeting_provider: Optional[str] = None  # meet | zoom | teams | outro
     meeting_notes: Optional[str] = Field(default=None, max_length=2000)
 
+    @field_validator("meeting_link")
+    @classmethod
+    def _v_meeting_link(cls, v):
+        # Só http(s): impede esquemas perigosos (javascript:, data:) no botão
+        # "Entrar na reunião" que abre esta URL (link out).
+        if v is None:
+            return v
+        v = v.strip()
+        if not v:
+            return None
+        if not (v.startswith("http://") or v.startswith("https://")):
+            raise ValueError("meeting_link deve começar por http:// ou https://")
+        return v
+
 
 class AssembleiaPresenca(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -1535,14 +1549,24 @@ class AssembleiaDeliberacao(BaseModel):
     ponto: str  # ponto da ordem de trabalhos
     descricao: str
     tipo_maioria: Literal["absoluta", "qualificada_2_3", "qualificada_3_4_presentes", "qualificada_3_4_universo"]
-    base_calculo: int  # poder de voto presente OU universo (computado pelo servidor)
-    votos_favor: int
-    votos_contra: int
-    abstencoes: int
-    threshold: int  # nº de votos necessário (computado)
-    aprovado: bool
+    # Contagens/apuramento: opcionais para suportar o ciclo ao vivo (abre sem
+    # votos; preenchidos no apuramento). O caminho one-shot passa-os explícitos.
+    base_calculo: int = 0  # poder de voto presente OU universo (computado pelo servidor)
+    votos_favor: int = 0
+    votos_contra: int = 0
+    abstencoes: int = 0
+    threshold: int = 0  # nº de votos necessário (computado)
+    aprovado: bool = False
     source_article: Optional[str] = None
     registado_por: str
+    # --- Camada "ao vivo" (spec-sessao-assembleia §7; aditivo) ---
+    voting_mode: Literal["braco_no_ar", "nominal", "secreto"] = "braco_no_ar"
+    item_id: Optional[str] = None  # ponto da OT
+    subitem: Optional[str] = None  # voto separado: vários assuntos no mesmo ponto
+    conflitos_excluidos: List[str] = []  # user_ids sem direito a voto neste ponto (Art. 32)
+    # one-shot nasce já "encerrada" (final); o ciclo ao vivo abre em "aberta".
+    status: Literal["aberta", "encerrada", "anulada"] = "encerrada"
+    apurado_em: Optional[str] = None  # ISO 8601 — quando a Mesa fechou o voto
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -1554,6 +1578,68 @@ class AssembleiaDeliberacaoCreate(BaseModel):
     votos_contra: int = Field(ge=0)
     abstencoes: int = Field(ge=0)
     source_article: Optional[str] = Field(default=None, max_length=50)
+
+
+class AssembleiaDeliberacaoAbrir(BaseModel):
+    """Abre uma deliberação para votação ao vivo (spec-sessao-assembleia §7).
+    A Mesa escolhe o modo; as contagens vêm depois (votos individuais ou o
+    agregado do braço no ar) e o apuramento fecha-a."""
+
+    ponto: str = Field(min_length=1, max_length=200)
+    descricao: str = Field(min_length=1, max_length=2000)
+    tipo_maioria: Literal["absoluta", "qualificada_2_3", "qualificada_3_4_presentes", "qualificada_3_4_universo"] = (
+        "absoluta"
+    )
+    voting_mode: Literal["braco_no_ar", "nominal", "secreto"] = "braco_no_ar"
+    item_id: Optional[str] = None
+    subitem: Optional[str] = Field(default=None, max_length=200)
+    conflitos_excluidos: List[str] = Field(default_factory=list)
+    source_article: Optional[str] = Field(default=None, max_length=50)
+
+
+class AssembleiaVotoCast(BaseModel):
+    """Voto individual (nominal ou secreto) numa deliberação aberta."""
+
+    escolha: Literal["favor", "contra", "abstencao"]
+
+
+class AssembleiaContagem(BaseModel):
+    """Contagem agregada do braço no ar — a Mesa conta as mãos na chamada (D5)."""
+
+    votos_favor: int = Field(ge=0)
+    votos_contra: int = Field(ge=0)
+    abstencoes: int = Field(ge=0)
+
+
+class AssembleiaVoto(BaseModel):
+    """Voto NOMINAL — registado por nome (spec §7.1). Único por
+    (deliberacao_id, user_id); apurado com o peso de voto da presença."""
+
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    deliberacao_id: str
+    assembleia_id: str
+    user_id: str
+    escolha: Literal["favor", "contra", "abstencao"]
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+# Voto SECRETO: par recibo/boletim, gravado numa transação (database.cast_assembleia_ballot),
+# igual ao desenho das eleições. O boletim NUNCA liga ao eleitor (spec §7.1, §9).
+class AssembleiaVotoBallot(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    deliberacao_id: str
+    escolha: Literal["favor", "contra", "abstencao"]  # sem user_id / voter_hash
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class AssembleiaVotoReceipt(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    deliberacao_id: str
+    voter_hash: str  # HMAC(secret, f"{deliberacao_id}:{user_id}") — prova de voto, não o sentido
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class AssembleiaFaseUpdate(BaseModel):

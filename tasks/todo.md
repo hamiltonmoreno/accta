@@ -114,26 +114,55 @@ sem partir o que existe (tudo aditivo).
       arranca cronómetro / override duração / já-concluído 400 / socio 403; terminar
       Mesa / não-a-falar 400 / socio 403; listar ordenado. ruff check limpo.
 
-## F3 — 2.5 Modos de voto + conflito + voto separado (Art. 32) — dep: F0, F1  ⚠️ pesado
-- [ ] `database.py`: + `assembleia_votos` (unique `(deliberacao_id,user_id)`),
+## F3 — 2.5 Modos de voto + conflito + voto separado (Art. 32) ✅ (backend) — dep: F0, F1
+- [x] `database.py`: + `assembleia_votos` (unique `(deliberacao_id,user_id)`),
       `assembleia_voto_receipts` (unique `(deliberacao_id,voter_hash)`),
-      `assembleia_voto_ballots` (`deliberacao_id`, **sem** `user_id`).
-- [ ] `models.py`: estender `AssembleiaDeliberacao` com `voting_mode`
-      (`braco_no_ar|nominal|secreto`), `item_id`, `subitem`, `conflitos_excluidos[]`,
-      `status` (`aberta|encerrada|anulada`).
-- [ ] Ciclo novo **aditivo** (não partir o one-shot existente):
-      `POST .../deliberacoes` (Mesa abre: mode/maioria/item/subitem/conflitos →
-      `status=aberta`, **não** dispara comunicado), `POST .../deliberacoes/{did}/
-      votar` (votante presente não-excluído; nominal/secreto), `POST .../{did}/
-      registar-contagem` (Mesa; braço-no-ar agregado), `POST .../{did}/apurar`
-      (Mesa fecha + calcula + **só aqui** dispara comunicado oficial), `GET .../{did}`.
-- [ ] Apuramento: base = `present_power − Σ(voting_power excluídos)`; reusa helpers de
-      maioria. Secreto = par recibo/boletim numa transacção,
-      `voter_hash=HMAC(secret, f"{deliberacao_id}:{user_id}")` (igual às eleições);
-      **nunca** expor ligação eleitor↔boletim.
-- [ ] Testes: 3 modos; excluído não vota e sai da base; voto separado ≥2
-      deliberações/ponto; boletim secreto sem `user_id`; braço-no-ar só agregados;
-      comunicado dispara **uma vez** no apurar.
+      `assembleia_voto_ballots` (`deliberacao_id`, **sem** `user_id`). Refactor:
+      `_cast_secret_ballot` partilhado por `cast_ballot` (eleições) e
+      `cast_assembleia_ballot`.
+- [x] `models.py`: `AssembleiaDeliberacao` ganhou `voting_mode`/`item_id`/`subitem`/
+      `conflitos_excluidos[]`/`status`/`apurado_em` (contagens passam a opcionais
+      default 0 p/ permitir abertura sem votos). Novos request models:
+      `AssembleiaDeliberacaoAbrir`, `AssembleiaVotoCast`, `AssembleiaContagem`;
+      armazenamento: `AssembleiaVoto` (nominal), `AssembleiaVotoBallot` (secreto, sem
+      user_id), `AssembleiaVotoReceipt` (secreto, voter_hash HMAC).
+- [x] Ciclo novo **aditivo** (não parte o one-shot — frontend mantém-no): rotas em
+      sub-paths distintos. **`POST .../deliberacoes/abrir`** (Mesa: mode/maioria/
+      item/subitem/conflitos → `status=aberta`, **sem** comunicado),
+      **`POST .../{did}/votar`** (votante presente não-excluído; nominal/secreto;
+      braço-no-ar dá 400), **`POST .../{did}/registar-contagem`** (Mesa; só braço-no-ar),
+      **`POST .../{did}/apurar`** (Mesa fecha + calcula + **só aqui** dispara
+      comunicado oficial), **`GET .../{did}`** (Mesa vê lista nominal; secreto
+      expõe só `votes_cast`). _Decisão da spec dizia reutilizar `POST .../deliberacoes`;
+      mantive sub-paths distintos p/ não partir o one-shot que o FE chama (stop
+      condition de rota removida)._
+- [x] Apuramento por modo: **nominal** = base `present_power − Σ(voting_power
+      excluídos)`, votos ponderados pelo `voting_power` do votante. **secreto** =
+      **headcount** (1 boletim por membro; pesos de representação NÃO se aplicam,
+      p/ preservar anonimato; coerente com D6 apoio administrativo — confirmar c/
+      Regimento). **braço-no-ar** = agregado registado pela Mesa, mesma base de
+      power. Maioria via helpers `required_absolute_majority/two_thirds/three_quarters`
+      (universo p/ `qualificada_3_4_universo`). `voter_hash=HMAC(SECRET_KEY,
+      f"{deliberacao_id}:{user_id}")` igual às eleições.
+- [x] `_session_snapshot` ganha `open_vote` (deliberacao_id + voting_mode + ponto) —
+      SSE da F0 propaga abertura de voto.
+- [x] Testes (32 novos, 99/99 verdes): abrir (RBAC, sessão em curso, quórum, voto
+      separado por subitem); votar nominal (presença, can_vote, exclusão, modo
+      errado, duplicado 409, audit inclui escolha); votar secreto (boletim sem
+      user_id, recibo com HMAC SHA-256 hex, ValueError→409, audit não inclui
+      escolha); registar-contagem (RBAC, modo, base, valor); apurar (RBAC, status,
+      nominal ponderado com exclusão, secreto headcount, braço usa agregado,
+      comunicado dispara 1×); GET (Mesa vs sócio em nominal; secreto sem boletins).
+      ruff check limpo; suite completa unit: 1076/1076.
+
+## Remediação da review F0/F1 (resolvida nesta entrega) ✅
+- [x] I1: `_finalize_checkin` faz `try/except asyncpg.UniqueViolationError → 409`;
+      o índice passou a `UNIQUE INDEX ux_assembpres_assemb_user`.
+- [x] I2: SSE `test_token_invalido_401` em `TestStream` cobre token inválido →
+      `get_user_from_token` devolve None → 401.
+- [x] I3: `AssembleiaCreate.meeting_link` rejeita esquemas não-http(s)
+      (`javascript:`/`data:`); testes em `TestMeetingLinkValidation`.
+- [x] I4: `get_assembleia` filtra `check_in_code`/`_expires_at` para não-Mesa.
 
 ## F4 — 2.3 Moções/requerimentos/recomendações (Art. 6, 26) — dep: F3
 - [ ] `database.py`: + `assembleia_mocoes`; índices `assembleia_id`,

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
 
+import asyncpg
 import pytest
 from fastapi import BackgroundTasks, HTTPException
 from pydantic import ValidationError
@@ -82,8 +83,13 @@ def gov_env(mock_db, monkeypatch):
     mock_db.assembleia_presencas = _coll()
     mock_db.assembleia_deliberacoes = _coll()
     mock_db.assembleia_palavra = _coll()  # F2 — não pré-ligada no conftest
+    # F3 — voto ao vivo (nominal/secreto): não pré-cabladas no conftest
+    mock_db.assembleia_votos = _coll()
+    mock_db.assembleia_voto_receipts = _coll()
+    mock_db.assembleia_voto_ballots = _coll()
     monkeypatch.setattr(a_route, "create_audit_log", AsyncMock())
     monkeypatch.setattr(a_route, "notify_all_active_users", AsyncMock())
+    monkeypatch.setattr(a_route, "cast_assembleia_ballot", AsyncMock())
     return mock_db
 
 
@@ -568,6 +574,15 @@ class TestStream:
         with pytest.raises(HTTPException) as exc:
             await a_route.assembleia_stream(assembleia_id="nope", request=_request())
         assert exc.value.status_code == 404
+
+    async def test_token_invalido_401(self, gov_env, monkeypatch):
+        # I2 (review F0/F1): token presente mas inválido/expirado/bloquelisted →
+        # get_user_from_token devolve None → 401 (não 500 nem ligação aberta).
+        monkeypatch.setattr(a_route, "_extract_token", lambda r: "tok")
+        monkeypatch.setattr(a_route, "get_user_from_token", AsyncMock(return_value=None))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.assembleia_stream(assembleia_id="a1", request=_request())
+        assert exc.value.status_code == 401
 
     async def test_emite_snapshot_uma_vez(self, gov_env, monkeypatch):
         monkeypatch.setattr(a_route, "_extract_token", lambda r: "tok")
@@ -1089,3 +1104,578 @@ class TestListPalavra:
         )
         result = await a_route.list_palavra(assembleia_id="a1", current_user=socio_user)
         assert [r["id"] for r in result["palavra"]] == ["b", "a", "c"]
+
+
+# --------------------------------------------------------------------------- #
+# F3 — Modos de voto + conflito + voto separado (spec §7)
+# --------------------------------------------------------------------------- #
+
+
+def _delib(**over):
+    """Doc de uma deliberação aberta (ciclo F3)."""
+    base = {
+        "id": "d1",
+        "assembleia_id": "a1",
+        "ponto": "P1",
+        "descricao": "Aprovar X",
+        "tipo_maioria": "absoluta",
+        "voting_mode": "nominal",
+        "status": "aberta",
+        "conflitos_excluidos": [],
+        "votos_favor": 0,
+        "votos_contra": 0,
+        "abstencoes": 0,
+    }
+    base.update(over)
+    return base
+
+
+def _pres_rows(rows):
+    """Side-effect para assembleia_presencas.find: devolve sempre `rows`
+    (a projecção varia mas os campos relevantes existem)."""
+
+    def _f(query, proj=None):
+        return _cursor(rows)
+
+    return _f
+
+
+class TestAbrirDeliberacao:
+    async def test_socio_comum_403(self, gov_env, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await a_route.abrir_deliberacao(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.AssembleiaDeliberacaoAbrir(ponto="P1", descricao="Aprovar X"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_sessao_nao_em_curso_400(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess(status="convocada"))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.abrir_deliberacao(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.AssembleiaDeliberacaoAbrir(ponto="P1", descricao="Aprovar X"),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 400
+
+    async def test_sem_quorum_400(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        # eligible=10 → 2.ª chamada = ceil(10/3)=4; poder presente 2 < 4 → bloqueia.
+        gov_env.assembleia_presencas.find = MagicMock(return_value=_cursor([{"voting_power": 2}]))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.abrir_deliberacao(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.AssembleiaDeliberacaoAbrir(ponto="P1", descricao="Aprovar X"),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 400
+        gov_env.assembleia_deliberacoes.insert_one.assert_not_awaited()
+
+    async def test_mesa_abre_status_aberta(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_presencas.find = MagicMock(return_value=_cursor([{"voting_power": 6}]))
+        captured = {}
+        gov_env.assembleia_deliberacoes.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        result = await a_route.abrir_deliberacao(
+            assembleia_id="a1",
+            request=_request(),
+            data=a_route.AssembleiaDeliberacaoAbrir(
+                ponto="P1",
+                descricao="Aprovar X",
+                voting_mode="nominal",
+                conflitos_excluidos=["u9"],
+                subitem="a",
+            ),
+            current_user=_mesa_ag(),
+        )
+        assert captured["status"] == "aberta"
+        assert captured["voting_mode"] == "nominal"
+        assert captured["conflitos_excluidos"] == ["u9"]
+        assert captured["subitem"] == "a"
+        assert result["status"] == "aberta"
+
+    async def test_voto_separado_duas_deliberacoes(self, gov_env):
+        # Voto separado: o mesmo `ponto` aceita várias deliberações (subitens
+        # diferentes); o ciclo de abrir não impõe unicidade por ponto.
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_presencas.find = MagicMock(return_value=_cursor([{"voting_power": 6}]))
+        inserted = []
+        gov_env.assembleia_deliberacoes.insert_one = AsyncMock(side_effect=lambda d: inserted.append(d))
+        for sub in ("a", "b"):
+            await a_route.abrir_deliberacao(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.AssembleiaDeliberacaoAbrir(ponto="P1", descricao="X", subitem=sub),
+                current_user=_mesa_ag(),
+            )
+        assert {d["subitem"] for d in inserted} == {"a", "b"}
+        assert all(d["ponto"] == "P1" and d["status"] == "aberta" for d in inserted)
+
+
+class TestVotarNominal:
+    async def _setup(self, gov_env, *, presence=None, conflitos=None):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_deliberacoes.find_one = AsyncMock(
+            return_value=_delib(voting_mode="nominal", conflitos_excluidos=conflitos or [])
+        )
+        gov_env.assembleia_presencas.find_one = AsyncMock(return_value=presence)
+        gov_env.assembleia_votos.find_one = AsyncMock(return_value=None)
+
+    async def test_nao_presente_403(self, gov_env, socio_user):
+        await self._setup(gov_env, presence=None)
+        with pytest.raises(HTTPException) as exc:
+            await a_route.votar_deliberacao(
+                assembleia_id="a1",
+                did="d1",
+                request=_request(),
+                data=a_route.AssembleiaVotoCast(escolha="favor"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_sem_direito_voto_403(self, gov_env, socio_user):
+        await self._setup(gov_env, presence={"can_vote": False})
+        with pytest.raises(HTTPException) as exc:
+            await a_route.votar_deliberacao(
+                assembleia_id="a1",
+                did="d1",
+                request=_request(),
+                data=a_route.AssembleiaVotoCast(escolha="favor"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_excluido_por_conflito_403(self, gov_env, socio_user):
+        await self._setup(gov_env, presence={"can_vote": True}, conflitos=[socio_user.id])
+        with pytest.raises(HTTPException) as exc:
+            await a_route.votar_deliberacao(
+                assembleia_id="a1",
+                did="d1",
+                request=_request(),
+                data=a_route.AssembleiaVotoCast(escolha="favor"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_braco_no_ar_400(self, gov_env, socio_user):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value=_delib(voting_mode="braco_no_ar"))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.votar_deliberacao(
+                assembleia_id="a1",
+                did="d1",
+                request=_request(),
+                data=a_route.AssembleiaVotoCast(escolha="favor"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 400
+
+    async def test_voto_duplicado_409(self, gov_env, socio_user):
+        await self._setup(gov_env, presence={"can_vote": True})
+        gov_env.assembleia_votos.find_one = AsyncMock(return_value={"id": "v0"})
+        with pytest.raises(HTTPException) as exc:
+            await a_route.votar_deliberacao(
+                assembleia_id="a1",
+                did="d1",
+                request=_request(),
+                data=a_route.AssembleiaVotoCast(escolha="favor"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 409
+
+    async def test_voto_registado_e_audita_escolha(self, gov_env, socio_user):
+        await self._setup(gov_env, presence={"can_vote": True})
+        captured = {}
+        gov_env.assembleia_votos.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        result = await a_route.votar_deliberacao(
+            assembleia_id="a1",
+            did="d1",
+            request=_request(),
+            data=a_route.AssembleiaVotoCast(escolha="favor"),
+            current_user=socio_user,
+        )
+        assert captured["user_id"] == socio_user.id
+        assert captured["escolha"] == "favor"
+        assert result["status"] == "registado"
+        # Nominal: a auditoria inclui o sentido do voto (atribuível).
+        a_route.create_audit_log.assert_awaited()
+        last_call = a_route.create_audit_log.await_args
+        assert last_call.kwargs["details"]["escolha"] == "favor"
+
+
+class TestVotarSecreto:
+    async def _setup(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value=_delib(voting_mode="secreto"))
+        gov_env.assembleia_presencas.find_one = AsyncMock(return_value={"can_vote": True})
+
+    async def test_boletim_sem_user_id_e_recibo_com_hash(self, gov_env, socio_user, monkeypatch):
+        await self._setup(gov_env)
+        captured = {}
+
+        async def _fake_cast(did, vh, receipt, ballot):
+            captured.update({"did": did, "vh": vh, "receipt": receipt, "ballot": ballot})
+
+        monkeypatch.setattr(a_route, "cast_assembleia_ballot", _fake_cast)
+        await a_route.votar_deliberacao(
+            assembleia_id="a1",
+            did="d1",
+            request=_request(),
+            data=a_route.AssembleiaVotoCast(escolha="contra"),
+            current_user=socio_user,
+        )
+        assert "user_id" not in captured["ballot"]
+        assert "voter_hash" not in captured["ballot"]
+        assert captured["ballot"]["escolha"] == "contra"
+        assert captured["receipt"]["voter_hash"] == captured["vh"]
+        assert "user_id" not in captured["receipt"]
+        assert len(captured["vh"]) == 64  # SHA-256 hex
+
+    async def test_voto_duplicado_409(self, gov_env, socio_user, monkeypatch):
+        await self._setup(gov_env)
+        monkeypatch.setattr(a_route, "cast_assembleia_ballot", AsyncMock(side_effect=ValueError("voto duplicado")))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.votar_deliberacao(
+                assembleia_id="a1",
+                did="d1",
+                request=_request(),
+                data=a_route.AssembleiaVotoCast(escolha="favor"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 409
+
+    async def test_audit_nao_inclui_escolha(self, gov_env, socio_user):
+        await self._setup(gov_env)
+        await a_route.votar_deliberacao(
+            assembleia_id="a1",
+            did="d1",
+            request=_request(),
+            data=a_route.AssembleiaVotoCast(escolha="favor"),
+            current_user=socio_user,
+        )
+        a_route.create_audit_log.assert_awaited()
+        last_call = a_route.create_audit_log.await_args
+        # Secreto: nunca ligar sentido↔eleitor (nem via audit).
+        assert "escolha" not in last_call.kwargs["details"]
+        assert last_call.args[1] == "assembleia_voto_secreto"
+
+
+class TestRegistarContagem:
+    async def test_socio_comum_403(self, gov_env, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await a_route.registar_contagem(
+                assembleia_id="a1",
+                did="d1",
+                request=_request(),
+                data=a_route.AssembleiaContagem(votos_favor=1, votos_contra=0, abstencoes=0),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_modo_errado_400(self, gov_env):
+        gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value=_delib(voting_mode="nominal"))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.registar_contagem(
+                assembleia_id="a1",
+                did="d1",
+                request=_request(),
+                data=a_route.AssembleiaContagem(votos_favor=1, votos_contra=0, abstencoes=0),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 400
+
+    async def test_excede_base_400(self, gov_env):
+        gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value=_delib(voting_mode="braco_no_ar"))
+        # base = present_power=2 - excluded_power=0 = 2; total 3 > 2.
+        gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_rows([{"user_id": "u1", "voting_power": 2}]))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.registar_contagem(
+                assembleia_id="a1",
+                did="d1",
+                request=_request(),
+                data=a_route.AssembleiaContagem(votos_favor=2, votos_contra=1, abstencoes=0),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 400
+
+    async def test_mesa_regista(self, gov_env):
+        gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value=_delib(voting_mode="braco_no_ar"))
+        gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_rows([{"user_id": "u1", "voting_power": 5}]))
+        captured = {}
+        gov_env.assembleia_deliberacoes.update_one = AsyncMock(
+            side_effect=lambda flt, upd: captured.update(upd["$set"])
+        )
+        result = await a_route.registar_contagem(
+            assembleia_id="a1",
+            did="d1",
+            request=_request(),
+            data=a_route.AssembleiaContagem(votos_favor=3, votos_contra=1, abstencoes=1),
+            current_user=_mesa_ag(),
+        )
+        assert captured == {"votos_favor": 3, "votos_contra": 1, "abstencoes": 1}
+        assert result["votos_favor"] == 3
+
+
+class TestApurar:
+    async def test_socio_comum_403(self, gov_env, socio_user):
+        with pytest.raises(HTTPException) as exc:
+            await a_route.apurar_deliberacao(
+                assembleia_id="a1",
+                did="d1",
+                request=_request(),
+                background_tasks=BackgroundTasks(),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_nao_aberta_400(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value=_delib(status="encerrada"))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.apurar_deliberacao(
+                assembleia_id="a1",
+                did="d1",
+                request=_request(),
+                background_tasks=BackgroundTasks(),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 400
+
+    async def test_nominal_pondera_pelo_voting_power(self, gov_env):
+        # u1 (power 3, favor) + u2 (power 2, favor) + u3 (power 1, contra, excluído).
+        # base = 6 - 1 = 5; favor ponderado = 5; absoluta → threshold = floor(5/2)+1 = 3 → aprovado.
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_deliberacoes.find_one = AsyncMock(
+            return_value=_delib(voting_mode="nominal", conflitos_excluidos=["u3"])
+        )
+        gov_env.assembleia_presencas.find = MagicMock(
+            side_effect=_pres_rows(
+                [
+                    {"user_id": "u1", "voting_power": 3, "can_vote": True},
+                    {"user_id": "u2", "voting_power": 2, "can_vote": True},
+                    {"user_id": "u3", "voting_power": 1, "can_vote": True},
+                ]
+            )
+        )
+        gov_env.assembleia_votos.find = MagicMock(
+            return_value=_cursor(
+                [
+                    {"user_id": "u1", "escolha": "favor"},
+                    {"user_id": "u2", "escolha": "favor"},
+                ]
+            )
+        )
+        captured = {}
+        gov_env.assembleia_deliberacoes.update_one = AsyncMock(
+            side_effect=lambda flt, upd: captured.update(upd["$set"])
+        )
+        bg = BackgroundTasks()
+        result = await a_route.apurar_deliberacao(
+            assembleia_id="a1",
+            did="d1",
+            request=_request(),
+            background_tasks=bg,
+            current_user=_mesa_ag(),
+        )
+        assert captured["base_calculo"] == 5  # excluído sai da base
+        assert captured["votos_favor"] == 5  # ponderado pelo voting_power
+        assert captured["threshold"] == 3
+        assert captured["aprovado"] is True
+        assert captured["status"] == "encerrada"
+        assert result["apurado_em"]
+        # Comunicado oficial dispara UMA vez no apurar.
+        assert len(bg.tasks) == 1
+
+    async def test_secreto_headcount_um_membro_um_boletim(self, gov_env):
+        # 4 votantes presentes; 1 excluído; base = 3 (headcount, não power).
+        # Boletins: 2 favor, 1 abstencao; absoluta → threshold = floor(3/2)+1 = 2 → aprovado.
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_deliberacoes.find_one = AsyncMock(
+            return_value=_delib(voting_mode="secreto", conflitos_excluidos=["u4"])
+        )
+        gov_env.assembleia_presencas.find = MagicMock(
+            side_effect=_pres_rows(
+                [
+                    {"user_id": "u1", "voting_power": 1, "can_vote": True},
+                    {"user_id": "u2", "voting_power": 1, "can_vote": True},
+                    {"user_id": "u3", "voting_power": 1, "can_vote": True},
+                    {"user_id": "u4", "voting_power": 1, "can_vote": True},  # excluído
+                ]
+            )
+        )
+        gov_env.assembleia_voto_ballots.find = MagicMock(
+            return_value=_cursor(
+                [{"escolha": "favor"}, {"escolha": "favor"}, {"escolha": "abstencao"}]
+            )
+        )
+        captured = {}
+        gov_env.assembleia_deliberacoes.update_one = AsyncMock(
+            side_effect=lambda flt, upd: captured.update(upd["$set"])
+        )
+        await a_route.apurar_deliberacao(
+            assembleia_id="a1",
+            did="d1",
+            request=_request(),
+            background_tasks=BackgroundTasks(),
+            current_user=_mesa_ag(),
+        )
+        assert captured["base_calculo"] == 3
+        assert captured["votos_favor"] == 2  # cada boletim = 1, sem pesos
+        assert captured["abstencoes"] == 1
+        assert captured["threshold"] == 2
+        assert captured["aprovado"] is True
+
+    async def test_braco_no_ar_usa_agregado_registado(self, gov_env):
+        # Mesa registou 4-1-0; base com excluído u9 (power 2) tira 2 → 6.
+        # absoluta → threshold = floor(6/2)+1 = 4; favor 4 >= 4 → aprovado.
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_deliberacoes.find_one = AsyncMock(
+            return_value=_delib(
+                voting_mode="braco_no_ar",
+                conflitos_excluidos=["u9"],
+                votos_favor=4,
+                votos_contra=1,
+                abstencoes=0,
+            )
+        )
+        gov_env.assembleia_presencas.find = MagicMock(
+            side_effect=_pres_rows(
+                [
+                    {"user_id": "u1", "voting_power": 6, "can_vote": True},
+                    {"user_id": "u9", "voting_power": 2, "can_vote": True},
+                ]
+            )
+        )
+        captured = {}
+        gov_env.assembleia_deliberacoes.update_one = AsyncMock(
+            side_effect=lambda flt, upd: captured.update(upd["$set"])
+        )
+        await a_route.apurar_deliberacao(
+            assembleia_id="a1",
+            did="d1",
+            request=_request(),
+            background_tasks=BackgroundTasks(),
+            current_user=_mesa_ag(),
+        )
+        assert captured["base_calculo"] == 6  # 8 - 2 excluído
+        assert captured["votos_favor"] == 4
+        assert captured["aprovado"] is True
+
+
+class TestGetDeliberacao:
+    async def test_nominal_mesa_ve_votos_socio_so_count(self, gov_env, socio_user):
+        gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value=_delib(voting_mode="nominal"))
+        gov_env.assembleia_votos.find = MagicMock(
+            return_value=_cursor([{"user_id": "u1", "escolha": "favor"}, {"user_id": "u2", "escolha": "contra"}])
+        )
+        # Mesa vê a lista nominal.
+        mesa_view = await a_route.get_deliberacao(assembleia_id="a1", did="d1", current_user=_mesa_ag())
+        assert mesa_view["votes_cast"] == 2
+        assert len(mesa_view["votos"]) == 2
+
+        # Sócio vê só a contagem (não-Mesa não recebe a lista nominal).
+        gov_env.assembleia_votos.find = MagicMock(
+            return_value=_cursor([{"user_id": "u1", "escolha": "favor"}, {"user_id": "u2", "escolha": "contra"}])
+        )
+        socio_view = await a_route.get_deliberacao(assembleia_id="a1", did="d1", current_user=socio_user)
+        assert socio_view["votes_cast"] == 2
+        assert "votos" not in socio_view
+
+    async def test_secreto_nunca_expoe_boletins(self, gov_env, socio_user):
+        gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value=_delib(voting_mode="secreto"))
+        gov_env.assembleia_voto_receipts.find = MagicMock(return_value=_cursor([{"id": "r1"}, {"id": "r2"}]))
+        view = await a_route.get_deliberacao(assembleia_id="a1", did="d1", current_user=_mesa_ag())
+        assert view["votes_cast"] == 2
+        # Secreto: NUNCA expõe a escolha por eleitor — mesmo à Mesa.
+        assert "votos" not in view
+        assert "ballots" not in view
+
+
+# --------------------------------------------------------------------------- #
+# Review F0/F1 — remediação (I1 corrida UNIQUE, I4 leak de check_in_code)
+# --------------------------------------------------------------------------- #
+
+
+class TestCheckinRaceUnique:
+    async def test_corrida_unique_devolve_409(self, gov_env, socio_user):
+        # I1: dois check-ins simultâneos do mesmo sócio passam a guarda aplicacional;
+        # o índice UNIQUE rejeita o segundo e o handler traduz para 409 limpo.
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.users.find_one = AsyncMock(return_value=_voter_doc(socio_user.id))
+        gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_find(existing=[], power=[{"voting_power": 1}]))
+        gov_env.assembleia_presencas.insert_one = AsyncMock(side_effect=asyncpg.UniqueViolationError("duplicate"))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.self_checkin(
+                assembleia_id="a1",
+                request=_request(),
+                data=a_route.AssembleiaCheckinRequest(),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 409
+
+
+class TestGetAssembleiaLeak:
+    async def test_socio_nao_ve_check_in_code(self, gov_env, socio_user):
+        # I4: expor `check_in_code` a qualquer autenticado anula o mecanismo anti-proxy.
+        gov_env.assembleias.find_one = AsyncMock(
+            return_value={
+                "id": "a1",
+                "check_in_code": "ABC123",
+                "check_in_code_expires_at": "2099-01-01T00:00:00+00:00",
+                "titulo": "AGO",
+            }
+        )
+        gov_env.assembleia_presencas.find = MagicMock(return_value=_cursor([]))
+        out = await a_route.get_assembleia(assembleia_id="a1", current_user=socio_user)
+        assert "check_in_code" not in out
+        assert "check_in_code_expires_at" not in out
+        assert out["titulo"] == "AGO"
+
+    async def test_mesa_ve_check_in_code(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(
+            return_value={
+                "id": "a1",
+                "check_in_code": "ABC123",
+                "check_in_code_expires_at": "2099-01-01T00:00:00+00:00",
+                "titulo": "AGO",
+            }
+        )
+        gov_env.assembleia_presencas.find = MagicMock(return_value=_cursor([]))
+        out = await a_route.get_assembleia(assembleia_id="a1", current_user=_mesa_ag())
+        assert out["check_in_code"] == "ABC123"
+
+
+# --------------------------------------------------------------------------- #
+# I3 — validação de meeting_link (review F0/F1)
+# --------------------------------------------------------------------------- #
+
+
+class TestMeetingLinkValidation:
+    async def test_javascript_rejeitado(self):
+        with pytest.raises(ValidationError):
+            AssembleiaCreate(
+                tipo="ordinaria",
+                titulo="AGO 2030",
+                data=FUTURE,
+                local="Sede",
+                meeting_link="javascript:alert(1)",
+            )
+
+    async def test_https_aceite(self):
+        a = AssembleiaCreate(
+            tipo="ordinaria",
+            titulo="AGO 2030",
+            data=FUTURE,
+            local="Sede",
+            meeting_link="https://meet.google.com/abc-defg-hij",
+        )
+        assert a.meeting_link.startswith("https://")
+
+    async def test_none_aceite(self):
+        a = AssembleiaCreate(tipo="ordinaria", titulo="AGO 2030", data=FUTURE, local="Sede")
+        assert a.meeting_link is None
