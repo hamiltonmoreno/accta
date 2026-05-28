@@ -251,10 +251,19 @@ sem partir o que existe (tudo aditivo).
 - [x] Design system: neutral-led + Carmesim como acento único (uma `primaryBtn`
       por vista); status sempre ícone+texto; focus ring; PT em todos os textos.
       ESLint `--max-warnings=60`: 0 problemas.
-- [ ] **Testes FE (RTL/Jest)** — adiados para sessão própria. 12 sub-componentes
-      a cobrir; fixtures necessárias (AuthProvider/QueryClient/MemoryRouter/
-      mocked api). Backend tem 139 testes verdes a cobrir todos os endpoints
-      consumidos.
+- [x] **Testes FE (RTL/Jest) — 29 novos, suite 89/89 verde:**
+      `__tests__/AssembleiaSalaPage.test.js` (23) cobre QuorumBar (snapshot vs
+      fallback, met/em-curso, esqueleto), Countdown (m:ss + tick), Checkin-
+      Participante (presente sticky, "Entrar na reunião" + window.open,
+      self_code uppercase), Palavra (Mesa Conceder/Terminar vs membro Pedir,
+      payload `{tipo}`), Votação (form Mesa vs cartão Participante, exclusão
+      conflito, 3 modos, payload voto), Moções (badge voto-imediato match
+      exacto, RBAC Mesa/proponente, payload requerimento).
+      `hooks/__tests__/useAssembleiaStream.test.js` (6) cobre: EventSource
+      withCredentials+URL, snapshot → cache TanStack, JSON inválido sem partir,
+      onerror → polling 30s (`invalidateQueries`), close em unmount, id falsy
+      não abre stream. Padrões: axios mock + virtual react-router-dom mock
+      (v7 ESM-only); QueryClient próprio por teste; sonner stub.
 - [ ] **Scan QR pessoal pela Mesa na sala** — incremental; o backend já tem
       `POST /checkin/scan` testado.
 - [ ] **Upload integrado de documentos** — incremental; UI actual recebe

@@ -74,7 +74,7 @@ const formatDateTime = (iso) => {
 
 // ---------- Quórum bar ----------------------------------------------------- //
 
-const QuorumBar = ({ snapshot, fallback }) => {
+export const QuorumBar = ({ snapshot, fallback }) => {
   // Preferir snapshot SSE (live); cair para `fallback` (GET /quorum) enquanto não chega.
   const q = snapshot?.quorum || fallback;
   if (!q) return <div className="h-6 bg-[#F5F5F5] rounded animate-pulse" />;
@@ -106,7 +106,7 @@ const QuorumBar = ({ snapshot, fallback }) => {
 
 // ---------- Countdown para palavra ----------------------------------------- //
 
-const Countdown = ({ endsAt }) => {
+export const Countdown = ({ endsAt }) => {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -217,7 +217,7 @@ const CheckinMesaPanel = ({ assembleia, refetchAssemb, refetchSnap }) => {
 
 // ---------- Painel do membro: self check-in -------------------------------- //
 
-const CheckinParticipantePanel = ({ assembleia, presente, refetchAssemb }) => {
+export const CheckinParticipantePanel = ({ assembleia, presente, refetchAssemb }) => {
   const qc = useQueryClient();
   const [code, setCode] = useState('');
 
@@ -295,7 +295,7 @@ const CheckinParticipantePanel = ({ assembleia, presente, refetchAssemb }) => {
 
 // ---------- Fila de uso da palavra ----------------------------------------- //
 
-const PalavraPanel = ({ assembleia, snapshot, isMesa, presente }) => {
+export const PalavraPanel = ({ assembleia, snapshot, isMesa, presente }) => {
   const qc = useQueryClient();
   const [tipo, setTipo] = useState('intervencao');
 
@@ -420,7 +420,7 @@ const PalavraPanel = ({ assembleia, snapshot, isMesa, presente }) => {
 
 // ---------- Votação ao vivo ------------------------------------------------ //
 
-const VotacaoPanel = ({ assembleia, snapshot, isMesa, currentUserId }) => {
+export const VotacaoPanel = ({ assembleia, snapshot, isMesa, currentUserId }) => {
   const qc = useQueryClient();
   const openVote = snapshot?.open_vote;
 
@@ -595,7 +595,7 @@ const ContagemBracoForm = ({ assembleia, deliberacaoId }) => {
 
 // ---------- Moções --------------------------------------------------------- //
 
-const MocoesPanel = ({ assembleia, snapshot, isMesa, presente, currentUserId }) => {
+export const MocoesPanel = ({ assembleia, snapshot, isMesa, presente, currentUserId }) => {
   const qc = useQueryClient();
   const [tipo, setTipo] = useState('mocao');
   const [titulo, setTitulo] = useState('');
