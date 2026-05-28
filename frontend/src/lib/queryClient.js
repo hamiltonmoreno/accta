@@ -119,6 +119,13 @@ export const queryKeys = {
     list: (filters) => ['transactions', filters || {}],
     summary: (year, month) => ['transactions', 'summary', year, month],
   },
+  finances: {
+    // Meta de categorias (income/expense/types/labels) — fonte unica do que
+    // esta seleccionavel hoje, em lockstep com INCOME_CATEGORIES no backend.
+    // Categorias legadas (anteriores a migracao Cat 4 §5.2) NAO entram aqui;
+    // o display historico usa o fallback CATEGORY_LABELS em financeiro/constants.
+    metaCategories: () => ['finances', 'meta', 'categories'],
+  },
   atos: {
     list: (filters) => ['atos', filters || {}],
     byId: (id) => ['atos', id],
