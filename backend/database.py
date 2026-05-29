@@ -118,6 +118,9 @@ COLLECTIONS: tuple[str, ...] = (
     # fins profissionais Cat 5 F2 (spec-fins-profissionais §6/§8):
     "formacoes",
     "publicacoes",
+    # fins profissionais Cat 5 F3 (spec-fins-profissionais §5/§7):
+    "defesa_profissional",
+    "relacoes_externas",
     # no Pydantic model — schema derived from usage:
     "password_resets",
     "tokens_revoked",
@@ -922,8 +925,7 @@ _INDEX_DDL: tuple[str, ...] = (
     "CREATE UNIQUE INDEX IF NOT EXISTS ux_exercicios_ano ON \"exercicios\" ((doc->>'ano'))",
     "CREATE INDEX IF NOT EXISTS ix_exercicios_status ON \"exercicios\" ((doc->>'status'))",
     "CREATE INDEX IF NOT EXISTS ix_balancetes_exercicio ON \"balancetes\" ((doc->>'exercicio_ano'))",
-    'CREATE INDEX IF NOT EXISTS ix_balancetes_tipo_periodo ON "balancetes" '
-    "((doc->>'tipo'), (doc->>'periodo'))",
+    "CREATE INDEX IF NOT EXISTS ix_balancetes_tipo_periodo ON \"balancetes\" ((doc->>'tipo'), (doc->>'periodo'))",
     "CREATE INDEX IF NOT EXISTS ix_balancetes_published ON \"balancetes\" ((doc->>'published'))",
     "CREATE UNIQUE INDEX IF NOT EXISTS ux_regulamentos_slug ON \"regulamentos\" ((doc->>'slug'))",
     "CREATE INDEX IF NOT EXISTS ix_regversoes_reg ON \"regulamento_versoes\" ((doc->>'regulamento_id'))",
@@ -939,8 +941,7 @@ _INDEX_DDL: tuple[str, ...] = (
     # ranking de atuação do sócio (spec-ranking-socio)
     'CREATE UNIQUE INDEX IF NOT EXISTS ux_mscores_user_period ON "member_scores" '
     "((doc->>'user_id'), (doc->>'period_key'))",
-    'CREATE INDEX IF NOT EXISTS ix_mscores_period_rank ON "member_scores" '
-    "((doc->>'period_key'), (doc->>'rank'))",
+    "CREATE INDEX IF NOT EXISTS ix_mscores_period_rank ON \"member_scores\" ((doc->>'period_key'), (doc->>'rank'))",
     'CREATE INDEX IF NOT EXISTS ix_rajustes_user_period ON "ranking_ajustes" '
     "((doc->>'user_id'), (doc->>'period_key'))",
     "CREATE INDEX IF NOT EXISTS ix_rajustes_created ON \"ranking_ajustes\" ((doc->>'created_at') DESC)",
@@ -952,6 +953,14 @@ _INDEX_DDL: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS ix_publicacoes_tipo ON \"publicacoes\" ((doc->>'tipo'))",
     'CREATE INDEX IF NOT EXISTS ix_publicacoes_vis_data ON "publicacoes" '
     "((doc->>'visibility'), (doc->>'data_publicacao') DESC)",
+    # fins profissionais Cat 5 F3 — defesa_profissional (spec §5)
+    'CREATE INDEX IF NOT EXISTS ix_defesa_status_data ON "defesa_profissional" '
+    "((doc->>'status'), (doc->>'data') DESC)",
+    "CREATE INDEX IF NOT EXISTS ix_defesa_visibility ON \"defesa_profissional\" ((doc->>'visibility'))",
+    "CREATE INDEX IF NOT EXISTS ix_defesa_created_by ON \"defesa_profissional\" ((doc->>'created_by'))",
+    # fins profissionais Cat 5 F3 — relacoes_externas (spec §7)
+    "CREATE INDEX IF NOT EXISTS ix_relacoes_tipo ON \"relacoes_externas\" ((doc->>'tipo'))",
+    "CREATE INDEX IF NOT EXISTS ix_relacoes_estado ON \"relacoes_externas\" ((doc->>'estado_filiacao'))",
 )
 
 REQUIRED_INDEX_NAMES = {

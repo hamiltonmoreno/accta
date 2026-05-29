@@ -47,6 +47,7 @@ import {
   Trophy,
   GraduationCap,
   BookOpen,
+  Network,
 } from 'lucide-react';
 
 const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
@@ -111,6 +112,8 @@ const menuSections = [
     items: [
       { label: 'Formações', path: '/formacoes', icon: GraduationCap, roles: ['all'] },
       { label: 'Publicações', path: '/publicacoes', icon: BookOpen, roles: ['all'] },
+      { label: 'Defesa Profissional', path: '/defesa-profissional', icon: Megaphone, roles: ['all'] },
+      { label: 'Relações Externas', path: '/relacoes-externas', icon: Network, roles: ['all'] },
     ],
   },
   {
@@ -161,6 +164,8 @@ const PAGE_TITLES = {
   '/admin/logs': 'Audit Logs',
   '/formacoes': 'Formações & Certificações',
   '/publicacoes': 'Publicações',
+  '/defesa-profissional': 'Defesa Profissional',
+  '/relacoes-externas': 'Relações Externas',
 };
 
 // Rotas dinâmicas (com :id) — verificadas por prefixo só depois do match exacto.
