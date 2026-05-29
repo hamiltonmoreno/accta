@@ -29,8 +29,13 @@ class FakeEventSource {
     this.opts = opts;
     this.onmessage = null;
     this.onerror = null;
+    this.onopen = null;
     this.closed = false;
+    this.listeners = {};
     instances.push(this);
+  }
+  addEventListener(type, fn) {
+    this.listeners[type] = fn;
   }
   close() { this.closed = true; }
 }
@@ -49,10 +54,10 @@ const Wrapper = ({ children, client }) => (
 );
 
 const Probe = ({ id, onSnap, onClient }) => {
-  const snap = useAssembleiaStream(id);
+  const { snapshot } = useAssembleiaStream(id);
   const qc = useQueryClient();
   React.useEffect(() => { onClient?.(qc); }, [qc, onClient]);
-  React.useEffect(() => { onSnap?.(snap); }, [snap, onSnap]);
+  React.useEffect(() => { onSnap?.(snapshot); }, [snapshot, onSnap]);
   return null;
 };
 
@@ -80,15 +85,17 @@ describe('useAssembleiaStream', () => {
     expect(client.getQueryData(['assembleia', 'a1', 'snapshot'])).toEqual(data);
   });
 
-  it('ignora mensagens com JSON inválido sem partir o hook', async () => {
+  it('em parse error, invalida queries para forçar refetch e segue sem partir', async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const invalidate = jest.spyOn(client, 'invalidateQueries');
     render(<Wrapper client={client}><Probe id="a1" /></Wrapper>);
     await waitFor(() => expect(instances).toHaveLength(1));
 
     expect(() => act(() => instances[0].onmessage({ data: '<<not-json>>' }))).not.toThrow();
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['assembleia', 'a1'] });
   });
 
-  it('em erro do EventSource, cai para polling de 30s (invalida queries da assembleia)', () => {
+  it('em erro do EventSource, cai para polling de 30s e reabre com backoff', () => {
     jest.useFakeTimers();
     try {
       const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -99,8 +106,13 @@ describe('useAssembleiaStream', () => {
       act(() => instances[0].onerror({}));
       expect(instances[0].closed).toBe(true);
 
+      // Fallback de 30s arranca imediatamente.
       act(() => jest.advanceTimersByTime(31_000));
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ['assembleia', 'a1'] });
+
+      // Após o primeiro retry (~2s do backoff inicial) reabre o EventSource.
+      // Já passaram 31s desde o erro, por isso o retry de 2s já disparou.
+      expect(instances.length).toBeGreaterThanOrEqual(2);
     } finally {
       jest.useRealTimers();
     }

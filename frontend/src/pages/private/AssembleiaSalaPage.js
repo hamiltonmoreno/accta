@@ -187,7 +187,7 @@ const CheckinMesaPanel = ({ assembleia, refetchAssemb, refetchSnap }) => {
   const segundaMut = useMutation({
     mutationFn: () => assembleiasAPI.segundaConvocatoria(assembleia.id),
     onSuccess: onOk('2.ª convocatória declarada'),
-    onError: onErr('Erro'),
+    onError: onErr('Erro a declarar 2.ª convocatória'),
   });
 
   return (
@@ -1006,7 +1006,7 @@ export const AssembleiaSalaPage = () => {
   const { id } = useParams();
   const { user, isAdmin, isMesaAG } = useAuth();
   const isMesa = isAdmin || isMesaAG;
-  const snapshot = useAssembleiaStream(id);
+  const { snapshot, connected: streamConnected } = useAssembleiaStream(id);
 
   const { data: assembleia, isLoading, refetch } = useQuery({
     queryKey: ['assembleia', id, 'detail'],
@@ -1021,7 +1021,9 @@ export const AssembleiaSalaPage = () => {
     staleTime: 10000,
   });
 
-  // Presenças → o membro actual está presente? (caminho da Mesa devolve 403.)
+  // Presenças → a Mesa lê a lista completa; os participantes recebem só o seu
+  // próprio estado dentro do snapshot SSE (`me.present`), sem precisar de um
+  // endpoint que devolve 403 ao não-Mesa.
   const { data: presencasResp } = useQuery({
     queryKey: ['assembleia', id, 'presencas'],
     queryFn: async () => (await assembleiasAPI.presencas(id)).data.presencas || [],
@@ -1032,11 +1034,8 @@ export const AssembleiaSalaPage = () => {
   const presente = useMemo(() => {
     if (!user) return false;
     if (presencasResp) return presencasResp.some((p) => p.user_id === user.id);
-    // Sem acesso à listagem (não-Mesa): inferir pelo snapshot speaking ou
-    // assumir não-presente até registar. (Optimisticamente — o servidor é a
-    // fonte de verdade no checkin.)
-    return false;
-  }, [user, presencasResp]);
+    return Boolean(snapshot?.me?.present);
+  }, [user, presencasResp, snapshot?.me?.present]);
 
   if (isLoading || !assembleia) {
     return <div className="p-8"><div className="h-24 bg-[#F5F5F5] rounded animate-pulse" /></div>;
@@ -1060,6 +1059,17 @@ export const AssembleiaSalaPage = () => {
           <div className="flex items-center gap-2">
             <StatusBadge status={assembleia.status} />
             <PhaseBadge phase={snapshot?.phase || assembleia.session_phase || 'fechada'} />
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+                streamConnected
+                  ? 'bg-[#F0FDF4] border-[#BBF7D0] text-[#15803D]'
+                  : 'bg-[#FFFBEB] border-[#FDE68A] text-[#92400E]'
+              }`}
+              title={streamConnected ? 'Actualização em tempo real' : 'Sem ligação ao stream — actualização a cada 30s'}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${streamConnected ? 'bg-[#16A34A]' : 'bg-[#D97706]'}`} />
+              {streamConnected ? 'ao vivo' : '30s'}
+            </span>
           </div>
         </div>
       </div>

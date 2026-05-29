@@ -2,23 +2,22 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { assembleiasAPI } from '../utils/api';
 
-/**
- * SSE por-assembleia (spec-sessao-assembleia §2.2 / §10).
- *
- * Espelha o padrão usado pelo `NotificationContext`:
- *  - `EventSource(withCredentials: true)` para autenticar pelo cookie HttpOnly,
- *  - Fallback de 30s (invalidação de queries TanStack) se o SSE falhar,
- *  - Pausa o stream enquanto o separador está oculto e reabre ao voltar.
- *
- * Retorna o último snapshot recebido — `{ version, phase, status, chamada,
- * current_item_id, quorum, speaking, open_vote }` — ou `null` antes do
- * primeiro evento.
- */
+// Backoff exponencial p/ reabrir a SSE após `onerror` — 2s, 8s, depois 30s
+// permanente. Sem isto o `es.close()` defeats o reconnect nativo do EventSource
+// e a sala fica em polling 30s para o resto da sessão mesmo após o servidor
+// recuperar.
+const RECONNECT_BACKOFF_MS = [2000, 8000, 30000];
+const FALLBACK_POLL_MS = 30000;
+
 export function useAssembleiaStream(assembleiaId) {
   const qc = useQueryClient();
   const [snapshot, setSnapshot] = useState(null);
+  const [connected, setConnected] = useState(false);
+  const [lastEventAt, setLastEventAt] = useState(null);
   const esRef = useRef(null);
   const fallbackRef = useRef(null);
+  const retryTimerRef = useRef(null);
+  const retryAttemptRef = useRef(0);
 
   useEffect(() => {
     if (!assembleiaId) return undefined;
@@ -27,44 +26,14 @@ export function useAssembleiaStream(assembleiaId) {
 
     const handleSnapshot = (data) => {
       setSnapshot(data);
-      // Propaga para a cache TanStack — outros consumidores re-renderizam
-      // sem refetch HTTP. Os widgets podem ler ou via prop ou via useQuery
-      // com queryKey ['assembleia', id, 'snapshot'].
+      setLastEventAt(Date.now());
       qc.setQueryData(['assembleia', assembleiaId, 'snapshot'], data);
     };
 
-    const start = () => {
-      if (esRef.current || fallbackRef.current) return;
-      try {
-        const es = new EventSource(url, { withCredentials: true });
-        esRef.current = es;
-        es.onmessage = (evt) => {
-          try {
-            const data = JSON.parse(evt.data);
-            handleSnapshot(data);
-          } catch {
-            /* ignore parse errors */
-          }
-        };
-        es.onerror = () => {
-          es.close();
-          esRef.current = null;
-          // Fallback: invalida tudo da assembleia → as queries refazem fetch.
-          fallbackRef.current = setInterval(() => {
-            qc.invalidateQueries({ queryKey: ['assembleia', assembleiaId] });
-          }, 30000);
-        };
-      } catch {
-        fallbackRef.current = setInterval(() => {
-          qc.invalidateQueries({ queryKey: ['assembleia', assembleiaId] });
-        }, 30000);
-      }
-    };
-
-    const stop = () => {
-      if (esRef.current) {
-        esRef.current.close();
-        esRef.current = null;
+    const clearTimers = () => {
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
       }
       if (fallbackRef.current) {
         clearInterval(fallbackRef.current);
@@ -72,11 +41,87 @@ export function useAssembleiaStream(assembleiaId) {
       }
     };
 
+    const startFallback = () => {
+      if (fallbackRef.current) return;
+      fallbackRef.current = setInterval(() => {
+        qc.invalidateQueries({ queryKey: ['assembleia', assembleiaId] });
+      }, FALLBACK_POLL_MS);
+    };
+
+    const scheduleReconnect = () => {
+      const attempt = retryAttemptRef.current;
+      const delay = RECONNECT_BACKOFF_MS[Math.min(attempt, RECONNECT_BACKOFF_MS.length - 1)];
+      retryAttemptRef.current = attempt + 1;
+      retryTimerRef.current = setTimeout(() => {
+        retryTimerRef.current = null;
+        start();
+      }, delay);
+    };
+
+    const start = () => {
+      if (esRef.current) return;
+      try {
+        const es = new EventSource(url, { withCredentials: true });
+        esRef.current = es;
+        es.onopen = () => {
+          setConnected(true);
+          retryAttemptRef.current = 0;
+          // Recuperou: parar o fallback de 30s, o SSE volta a ser fonte primária.
+          if (fallbackRef.current) {
+            clearInterval(fallbackRef.current);
+            fallbackRef.current = null;
+          }
+        };
+        es.onmessage = (evt) => {
+          try {
+            const data = JSON.parse(evt.data);
+            handleSnapshot(data);
+          } catch (err) {
+            // Snapshot malformado → invalida queries para forçar refetch e segue.
+            console.warn('useAssembleiaStream: snapshot inválido', err);
+            qc.invalidateQueries({ queryKey: ['assembleia', assembleiaId] });
+          }
+        };
+        es.addEventListener('error', (evt) => {
+          if (evt?.data) {
+            // Evento de erro estruturado emitido pelo servidor (cf. SSE generator).
+            try {
+              const payload = JSON.parse(evt.data);
+              console.warn('useAssembleiaStream: erro servidor', payload);
+            } catch {
+              /* opaque */
+            }
+          }
+        });
+        es.onerror = () => {
+          setConnected(false);
+          es.close();
+          esRef.current = null;
+          // Polling como rede-de-segurança enquanto tenta reconectar.
+          startFallback();
+          scheduleReconnect();
+        };
+      } catch {
+        setConnected(false);
+        startFallback();
+        scheduleReconnect();
+      }
+    };
+
+    const stop = () => {
+      setConnected(false);
+      clearTimers();
+      if (esRef.current) {
+        esRef.current.close();
+        esRef.current = null;
+      }
+    };
+
     const onVisibility = () => {
       if (document.hidden) {
         stop();
       } else {
-        // Ao voltar à aba, refresh imediato + reabre o stream.
+        retryAttemptRef.current = 0;
         qc.invalidateQueries({ queryKey: ['assembleia', assembleiaId] });
         start();
       }
@@ -91,5 +136,5 @@ export function useAssembleiaStream(assembleiaId) {
     };
   }, [assembleiaId, qc]);
 
-  return snapshot;
+  return { snapshot, connected, lastEventAt };
 }

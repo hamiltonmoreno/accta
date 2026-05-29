@@ -1471,6 +1471,9 @@ class Assembleia(BaseModel):
     check_in_code_expires_at: Optional[str] = None  # ISO 8601
     session_version: int = 0  # bump a cada mutação de sessão → base do SSE
     antes_ot_aberto_em: Optional[str] = None  # p/ limite soft de 30 min (Art. 14)
+    # Lista de document_ids anexados à sessão (Art. 20). Escrito via $addToSet
+    # — sem este campo declarado, round-trips por `Assembleia(**doc)` perdiam-no.
+    documentos: List[str] = Field(default_factory=list)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -1551,11 +1554,11 @@ class AssembleiaDeliberacao(BaseModel):
     tipo_maioria: Literal["absoluta", "qualificada_2_3", "qualificada_3_4_presentes", "qualificada_3_4_universo"]
     # Contagens/apuramento: opcionais para suportar o ciclo ao vivo (abre sem
     # votos; preenchidos no apuramento). O caminho one-shot passa-os explícitos.
-    base_calculo: int = 0  # poder de voto presente OU universo (computado pelo servidor)
-    votos_favor: int = 0
-    votos_contra: int = 0
-    abstencoes: int = 0
-    threshold: int = 0  # nº de votos necessário (computado)
+    base_calculo: int = Field(default=0, ge=0)
+    votos_favor: int = Field(default=0, ge=0)
+    votos_contra: int = Field(default=0, ge=0)
+    abstencoes: int = Field(default=0, ge=0)
+    threshold: int = Field(default=0, ge=0)
     aprovado: bool = False
     source_article: Optional[str] = None
     registado_por: str
@@ -1779,13 +1782,22 @@ class PalavraRequest(BaseModel):
     tipo: Literal["intervencao", "protesto", "esclarecimento", "defesa_honra"]
     status: Literal["inscrito", "a_falar", "concluido", "retirado", "negado"] = "inscrito"
     ordem: Optional[int] = None  # posição atribuída pela Mesa
-    duration_limit_s: int  # default por tipo (PALAVRA_DURACOES)
+    duration_limit_s: int = Field(ge=5, le=3600)  # default por tipo (PALAVRA_DURACOES)
     requested_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     started_at: Optional[str] = None
     ends_at: Optional[str] = None  # started_at + duration_limit_s
     ended_at: Optional[str] = None
     source_article: str = "27"
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+    @model_validator(mode="after")
+    def _v_user_xor_convidado(self):
+        # Exactamente um dos dois identifica o orador (membro vs convidado F6).
+        has_user = bool(self.user_id)
+        has_conv = bool(self.convidado_id)
+        if has_user == has_conv:
+            raise ValueError("PalavraRequest exige exactamente um de `user_id` ou `convidado_id`.")
+        return self
 
 
 class PalavraCreate(BaseModel):
