@@ -562,3 +562,21 @@ export const rankingAPI = {
 export const reportAPI = {
   getPersonal: () => api.get('/report/personal'),
 };
+
+
+// Cat 5 F2 — fins profissionais (formações + publicações)
+export const formacoesAPI = {
+  getAll: (params) => api.get('/formacoes', { params }),
+  getOne: (id) => api.get(`/formacoes/${id}`),
+  create: (data) => api.post('/formacoes', data),
+  update: (id, data) => api.patch(`/formacoes/${id}`, data),
+  delete: (id) => api.delete(`/formacoes/${id}`),
+};
+
+export const publicacoesAPI = {
+  getAll: (params) => api.get('/publicacoes', { params }),
+  getOne: (id) => api.get(`/publicacoes/${id}`),
+  create: (data) => api.post('/publicacoes', data),
+  update: (id, data) => api.patch(`/publicacoes/${id}`, data),
+  delete: (id) => api.delete(`/publicacoes/${id}`),
+};

@@ -65,6 +65,9 @@ const EsclarecimentosPage = lazy(() => import('./pages/private/EsclarecimentosPa
 const ReclamacoesPage = lazy(() => import('./pages/private/ReclamacoesPage').then((m) => ({ default: m.ReclamacoesPage })));
 const PropostasPage = lazy(() => import('./pages/private/PropostasPage').then((m) => ({ default: m.PropostasPage })));
 const HonorariosPage = lazy(() => import('./pages/private/HonorariosPage').then((m) => ({ default: m.HonorariosPage })));
+// Cat 5 F2 — spec-fins-profissionais §6/§8
+const FormacoesPage = lazy(() => import('./pages/private/FormacoesPage').then((m) => ({ default: m.FormacoesPage })));
+const PublicacoesPage = lazy(() => import('./pages/private/PublicacoesPage').then((m) => ({ default: m.PublicacoesPage })));
 const NoticiaDetailPage = lazy(() => import('./pages/public/NoticiaDetailPage').then((m) => ({ default: m.NoticiaDetailPage })));
 const MfaSetupPage = lazy(() => import('./pages/MfaSetupPage').then((m) => ({ default: m.MfaSetupPage })));
 
@@ -222,6 +225,22 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <PrivateLayout><ProjectDetailPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/formacoes"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><FormacoesPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/publicacoes"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><PublicacoesPage /></PrivateLayout>
             </ProtectedRoute>
           }
         />

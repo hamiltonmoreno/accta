@@ -45,6 +45,8 @@ import {
   ScrollText,
   Megaphone,
   Trophy,
+  GraduationCap,
+  BookOpen,
 } from 'lucide-react';
 
 const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
@@ -102,6 +104,16 @@ const menuSections = [
     ],
   },
   {
+    // Cat 5 (spec-fins-profissionais §10) — Grupos/Comissões já vivem em
+    // /projetos via Project.tipo (F1). F3 acrescenta Defesa profissional e
+    // Relações/IFATCA.
+    title: 'Profissional',
+    items: [
+      { label: 'Formações', path: '/formacoes', icon: GraduationCap, roles: ['all'] },
+      { label: 'Publicações', path: '/publicacoes', icon: BookOpen, roles: ['all'] },
+    ],
+  },
+  {
     title: 'Sistema',
     items: [
       { label: 'Notificações', path: '/notificacoes', icon: Bell, roles: ['all'] },
@@ -147,6 +159,8 @@ const PAGE_TITLES = {
   '/governanca/honorarios': 'Membros Honorários',
   '/admin/usuarios': 'Utilizadores',
   '/admin/logs': 'Audit Logs',
+  '/formacoes': 'Formações & Certificações',
+  '/publicacoes': 'Publicações',
 };
 
 // Rotas dinâmicas (com :id) — verificadas por prefixo só depois do match exacto.
