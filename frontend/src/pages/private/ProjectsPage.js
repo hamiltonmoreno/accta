@@ -9,8 +9,20 @@ import { useNavigate } from 'react-router-dom';
 import {
   FolderKanban, Plus, Search, Filter, ArrowRight, Calendar,
   DollarSign, CheckCircle, Clock, Users, Eye, EyeOff,
-  Target, AlertCircle,
+  Target, AlertCircle, UsersRound, Briefcase,
 } from 'lucide-react';
+
+// Cat 5 F1 — espelha PROJECT_TIPOS do backend (models.py).
+const TIPO_LABELS = {
+  projeto: 'Projeto',
+  grupo_trabalho: 'Grupo de Trabalho',
+  comissao: 'Comissão',
+};
+const TIPO_ICONS = {
+  projeto: FolderKanban,
+  grupo_trabalho: UsersRound,
+  comissao: Briefcase,
+};
 import {
   PROJECT_STATUS_CONFIG, PROJECT_STATUS_FALLBACK, getStatusConfig,
 } from '../../lib/statusConfig';
@@ -22,6 +34,9 @@ const ProjectCard = ({ project, onClick }) => {
   const StatusIcon = st.icon;
   const progress = project.progress || 0;
   const budgetPct = project.budget > 0 ? Math.round((project.spent / project.budget) * 100) : 0;
+  const tipo = project.tipo || 'projeto';
+  const TipoIcon = TIPO_ICONS[tipo] || FolderKanban;
+  const isOrganizational = tipo !== 'projeto';
 
   return (
     <div className="bg-white border border-gray-200/80 rounded-2xl p-5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-200 cursor-pointer animate-fade-up outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
@@ -29,10 +44,16 @@ const ProjectCard = ({ project, onClick }) => {
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
-      aria-label={`Abrir projeto ${project.title}`}
+      aria-label={`Abrir ${TIPO_LABELS[tipo]} ${project.title}`}
       data-testid={`project-card-${project.id}`}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0 mr-3">
+          {isOrganizational && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+              <TipoIcon className="w-3 h-3" aria-hidden="true" />
+              {TIPO_LABELS[tipo]}
+            </span>
+          )}
           <h3 className="font-semibold text-grafite text-base truncate">{project.title}</h3>
           <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{project.description || 'Sem descricao'}</p>
         </div>
@@ -41,6 +62,14 @@ const ProjectCard = ({ project, onClick }) => {
           {st.label}
         </span>
       </div>
+
+      {isOrganizational && project.responsible_name && (
+        <div className="flex items-center gap-1.5 text-xs text-gray-600 mb-2">
+          <Users className="w-3 h-3" aria-hidden="true" />
+          <span className="text-gray-500">Coordenador:</span>
+          <span className="font-semibold text-grafite truncate">{project.responsible_name}</span>
+        </div>
+      )}
 
       {/* Progress bar */}
       <div className="mb-3">
@@ -87,15 +116,18 @@ const ProjectCard = ({ project, onClick }) => {
 // ===== CREATE PROJECT MODAL =====
 const CreateProjectModal = ({ onClose }) => {
   const qc = useQueryClient();
+  const { isAdmin, isDirecao } = useAuth();
+  const canCreateOrganizational = isAdmin || isDirecao;
   const [form, setForm] = useState({
     title: '', description: '', visibility: 'publico',
-    category: '', budget: '', start_date: '', end_date: '',
+    category: '', tipo: 'projeto', budget: '', start_date: '', end_date: '',
   });
 
   const createMutation = useMutation({
     mutationFn: (payload) => projectsAPI.create(payload),
     onSuccess: () => {
-      toast.success('Projeto criado');
+      const labels = { projeto: 'Projeto criado', grupo_trabalho: 'Grupo de trabalho criado', comissao: 'Comissão criada' };
+      toast.success(labels[form.tipo] || 'Projeto criado');
       qc.invalidateQueries({ queryKey: queryKeys.projects.list() });
       onClose();
     },
@@ -103,6 +135,13 @@ const CreateProjectModal = ({ onClose }) => {
   });
 
   const saving = createMutation.isPending;
+  const isOrganizational = form.tipo !== 'projeto';
+  const submitLabel = saving
+    ? 'A criar...'
+    : isOrganizational
+      ? `Criar ${TIPO_LABELS[form.tipo]}`
+      : 'Propor Projeto';
+  const titleLabel = isOrganizational ? `Novo ${TIPO_LABELS[form.tipo]}` : 'Novo Projeto';
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -115,10 +154,27 @@ const CreateProjectModal = ({ onClose }) => {
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-lg rounded-xl p-0 gap-0 max-h-[90vh] overflow-y-auto" data-testid="create-project-modal">
         <DialogHeader className="p-5 border-b border-gray-100 text-left space-y-0">
-          <DialogTitle className="font-bold text-grafite text-lg">Novo Projeto</DialogTitle>
+          <DialogTitle className="font-bold text-grafite text-lg">{titleLabel}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {canCreateOrganizational && (
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Tipo *</label>
+              <select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
+                data-testid="project-tipo-select">
+                <option value="projeto">Projeto</option>
+                <option value="grupo_trabalho">Grupo de Trabalho (Art. 31.e)</option>
+                <option value="comissao">Comissão (Art. 31.e)</option>
+              </select>
+              {isOrganizational && (
+                <p className="mt-1 text-[11px] text-gray-500">
+                  Criado pela Direcção — fica directamente <strong>Aprovado</strong> (salta o passo de proposta).
+                </p>
+              )}
+            </div>
+          )}
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Titulo *</label>
             <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -170,7 +226,7 @@ const CreateProjectModal = ({ onClose }) => {
             </div>
           </div>
           <button type="submit" disabled={saving} className="w-full btn-primary py-3 text-sm font-semibold" data-testid="create-project-btn">
-            {saving ? 'A criar...' : 'Propor Projeto'}
+            {submitLabel}
           </button>
         </form>
       </DialogContent>
@@ -183,14 +239,17 @@ const ProjectsPage = () => {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterTipo, setFilterTipo] = useState('');
   const [searchText, setSearchText] = useState('');
   const [showCreate, setShowCreate] = useState(false);
 
-  // Cache server-side por filterStatus apenas (search e client-side).
+  // Cache server-side por filtros (search e client-side).
   const { data: items = [], isLoading: loading } = useQuery({
-    queryKey: ['projects', { status: filterStatus || undefined }],
+    queryKey: ['projects', { status: filterStatus || undefined, tipo: filterTipo || undefined }],
     queryFn: async () => {
-      const params = filterStatus ? { status: filterStatus } : {};
+      const params = {};
+      if (filterStatus) params.status = filterStatus;
+      if (filterTipo) params.tipo = filterTipo;
       const res = await projectsAPI.getAll(params);
       return res.data.items || [];
     },
@@ -210,6 +269,17 @@ const ProjectsPage = () => {
     { val: 'em_curso', label: 'Em Curso' },
     { val: 'concluido', label: 'Concluidos' },
   ];
+  const tipoTabs = [
+    { val: '', label: 'Todos', icon: FolderKanban },
+    { val: 'projeto', label: 'Projetos', icon: FolderKanban },
+    { val: 'grupo_trabalho', label: 'Grupos de Trabalho', icon: UsersRound },
+    { val: 'comissao', label: 'Comissões', icon: Briefcase },
+  ];
+  const newButtonLabel = filterTipo === 'grupo_trabalho'
+    ? 'Novo Grupo'
+    : filterTipo === 'comissao'
+      ? 'Nova Comissão'
+      : 'Novo Projeto';
 
   return (
     <div className="space-y-6">
@@ -219,8 +289,30 @@ const ProjectsPage = () => {
           <p className="page-subtitle">Gestão e acompanhamento de projetos da associação</p>
         </div>
         <button onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-2 text-sm w-fit" data-testid="new-project-btn">
-          <Plus className="w-4 h-4" /> Novo Projeto
+          <Plus className="w-4 h-4" /> {newButtonLabel}
         </button>
+      </div>
+
+      {/* Tipo tabs — Cat 5 F1 (spec-fins-profissionais §4.3) */}
+      <div className="flex flex-wrap items-center gap-1.5 border-b border-gray-200">
+        {tipoTabs.map((t) => {
+          const Icon = t.icon;
+          const active = filterTipo === t.val;
+          return (
+            <button
+              key={t.val}
+              onClick={() => setFilterTipo(t.val)}
+              data-testid={`tipo-tab-${t.val || 'all'}`}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 -mb-[1px] transition-colors ${
+                active
+                  ? 'text-grafite border-grafite'
+                  : 'text-gray-500 border-transparent hover:text-grafite'
+              }`}>
+              <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Filters */}
