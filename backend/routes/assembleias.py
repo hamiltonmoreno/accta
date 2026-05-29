@@ -12,6 +12,7 @@ import asyncio
 import hashlib
 import hmac
 import json
+import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -64,6 +65,8 @@ from models import (
     User,
 )
 from permissions import can_convene_assembleia, is_mesa_ag
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/assembleias", tags=["assembleias"])
 
@@ -145,8 +148,10 @@ async def _is_present(assembleia_id: str, user_id: str) -> bool:
     return p is not None
 
 
-async def _session_snapshot(assembleia_id: str) -> dict | None:
-    """Snapshot emitido pelo SSE (§2.2). Inclui quórum (F1) e fila de palavra (F2)."""
+async def _session_snapshot(assembleia_id: str, viewer_user_id: str | None = None) -> dict | None:
+    """Snapshot emitido pelo SSE (§2.2). Inclui quórum, fila de palavra e — se
+    `viewer_user_id` for indicado — `me.present`/`me.can_vote` para a UI dos
+    participantes que não vêem `/presencas` (Mesa-only)."""
     a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0})
     if not a:
         return None
@@ -157,10 +162,19 @@ async def _session_snapshot(assembleia_id: str) -> dict | None:
     fila = await db.assembleia_palavra.find(
         {"assembleia_id": assembleia_id, "status": "inscrito"}, {"_id": 0, "id": 1}
     ).to_list(None)
-    # Deliberação aberta (F3): a consola da Mesa puxa o detalhe/tally por GET /{did}.
     open_delib = await db.assembleia_deliberacoes.find_one(
         {"assembleia_id": assembleia_id, "status": "aberta"}, {"_id": 0, "id": 1, "voting_mode": 1, "ponto": 1}
     )
+    me: dict | None = None
+    if viewer_user_id:
+        my_pres = await db.assembleia_presencas.find_one(
+            {"assembleia_id": assembleia_id, "user_id": viewer_user_id},
+            {"_id": 0, "can_vote": 1},
+        )
+        me = {
+            "present": my_pres is not None,
+            "can_vote": bool(my_pres.get("can_vote")) if my_pres else False,
+        }
     return {
         "version": int(a.get("session_version", 0)),
         "phase": a.get("session_phase", "fechada"),
@@ -195,6 +209,7 @@ async def _session_snapshot(assembleia_id: str) -> dict | None:
             if open_delib
             else None
         ),
+        "me": me,
     }
 
 
@@ -837,7 +852,10 @@ async def register_deliberacao(
     else:  # absoluta
         base = present_power
         threshold = required_absolute_majority(base)
-    aprovado = data.votos_favor >= threshold
+    # Paridade com o ciclo ao vivo (apurar_deliberacao): base>0 evita aprovar com
+    # zero eleitorado. Aqui o quórum exigido acima já força base>0, mas a guarda
+    # mantém as duas vias coerentes e defensivas.
+    aprovado = base > 0 and data.votos_favor >= threshold
 
     delib = AssembleiaDeliberacao(
         assembleia_id=assembleia_id,
@@ -1109,6 +1127,20 @@ async def apurar_deliberacao(
     if d.get("status") != "aberta":
         raise HTTPException(status_code=400, detail="A deliberação já foi apurada ou anulada.")
 
+    # Fecha a janela ANTES de ler os votos. Um voto submetido entre o `find_one`
+    # acima e o `update_one` final passaria a guarda em `votar_deliberacao` mas
+    # não seria contado, deixando o eleitor com recibo sem sentido tabulado.
+    # Com o filtro WHERE status="aberta", duas chamadas concorrentes a apurar
+    # tornam-se naturalmente idempotentes — só uma fecha.
+    pre_close = await db.assembleia_deliberacoes.update_one(
+        {"id": did, "status": "aberta"}, {"$set": {"status": "encerrada"}}
+    )
+    # Acesso directo (não `getattr`/default): o DAO garante sempre `modified_count`
+    # (_UpdateResult). Um default silencioso desligaria esta guarda — e ela protege
+    # contra re-apurar e re-disparar o comunicado oficial a todos os activos.
+    if pre_close.modified_count == 0:
+        raise HTTPException(status_code=409, detail="A deliberação já foi apurada por outra sessão da Mesa.")
+
     eligible = a.get("eligible_voters_count", 0)
     presencas = await _load_presencas(assembleia_id)
     excluded = set(d.get("conflitos_excluidos", []))
@@ -1143,9 +1175,11 @@ async def apurar_deliberacao(
             abst = int(d.get("abstencoes", 0))
 
     base, threshold = _threshold_and_base(d["tipo_maioria"], present_base, eligible)
-    aprovado = favor >= threshold
+    # base=0 (eleitorado esvaziado pelos `conflitos_excluidos`, ou universo=0):
+    # nas maiorias por `ceil` (2/3 e 3/4) o threshold também é 0 e `favor>=0`
+    # aprovaria com zero votos — claramente errado. A guarda base>0 cobre todas.
+    aprovado = base > 0 and favor >= threshold
     update = {
-        "status": "encerrada",
         "base_calculo": base,
         "votos_favor": favor,
         "votos_contra": contra,
@@ -1290,9 +1324,21 @@ async def colocar_mocao_a_voto(
     )
     delib_doc = delib.model_dump()
     await db.assembleia_deliberacoes.insert_one(delib_doc)
-    await db.assembleia_mocoes.update_one(
-        {"id": mid}, {"$set": {"status": "em_votacao", "deliberacao_id": delib_doc["id"]}}
-    )
+    # Se o $set seguinte falhar (DB transient), a deliberação fica `aberta` mas a
+    # moção continua no estado anterior (submetida/em_discussao) — listagens
+    # divergem e a Mesa não consegue encontrar o link. Compensa apagando a
+    # deliberação acabada de inserir. Se a própria compensação falhar, regista-se
+    # (sem deixar a excepção do rollback eclipsar o erro original) e re-levanta-se.
+    try:
+        await db.assembleia_mocoes.update_one(
+            {"id": mid}, {"$set": {"status": "em_votacao", "deliberacao_id": delib_doc["id"]}}
+        )
+    except Exception:
+        try:
+            await db.assembleia_deliberacoes.delete_one({"id": delib_doc["id"]})
+        except Exception:
+            logger.exception("Falha ao compensar deliberação órfã %s", delib_doc["id"])
+        raise
     await _bump_session(assembleia_id)
     await create_audit_log(
         current_user.id,
@@ -1641,13 +1687,15 @@ async def assembleia_stream(assembleia_id: str, request: Request):
     if not exists:
         raise HTTPException(status_code=404, detail="Assembleia não encontrada")
 
+    viewer_id = getattr(user, "id", None)
+
     async def event_generator():
         last_version = -1
         try:
             while True:
                 if await request.is_disconnected():
                     break
-                snap = await _session_snapshot(assembleia_id)
+                snap = await _session_snapshot(assembleia_id, viewer_user_id=viewer_id)
                 if snap is None:
                     break
                 if snap["version"] != last_version:
@@ -1682,7 +1730,9 @@ async def transicao_fase(
 
     current = a.get("session_phase", "fechada")
     target = data.session_phase
-    if PHASE_ORDER.index(target) < PHASE_ORDER.index(current):
+    if PHASE_ORDER.index(target) <= PHASE_ORDER.index(current):
+        if target == current:
+            raise HTTPException(status_code=400, detail=f"A sessão já está em '{current}'.")
         raise HTTPException(status_code=400, detail=f"Não é possível recuar de '{current}' para '{target}'")
 
     extra: dict = {"session_phase": target}

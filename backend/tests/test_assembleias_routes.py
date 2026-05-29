@@ -16,10 +16,12 @@ from pydantic import ValidationError
 
 from routes import assembleias as a_route
 from models import (
+    Assembleia,
     AssembleiaCreate,
     AssembleiaDeliberacaoCreate,
     AssembleiaFaseUpdate,
     AssembleiaPresencaCreate,
+    PalavraRequest,
     User,
 )
 
@@ -483,6 +485,30 @@ class TestSnapshot:
     async def test_inexistente_none(self, gov_env):
         gov_env.assembleias.find_one = AsyncMock(return_value=None)
         assert await a_route._session_snapshot("nope") is None
+
+    async def test_me_present_para_viewer(self, gov_env):
+        # Os participantes não vêem /presencas (Mesa-only); o snapshot dá-lhes
+        # o próprio estado em `me` para a UI saber se já estão presentes.
+        gov_env.assembleias.find_one = AsyncMock(
+            return_value={"id": "a1", "session_version": 1, "session_phase": "checkin", "status": "em_curso"}
+        )
+        gov_env.assembleia_presencas.find = MagicMock(return_value=_cursor([{"voting_power": 1}]))
+        gov_env.assembleia_presencas.find_one = AsyncMock(return_value={"can_vote": True})
+        snap = await a_route._session_snapshot("a1", viewer_user_id="v1")
+        assert snap["me"] == {"present": True, "can_vote": True}
+
+    async def test_me_ausente_e_anonimo(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(
+            return_value={"id": "a1", "session_version": 1, "session_phase": "checkin", "status": "em_curso"}
+        )
+        gov_env.assembleia_presencas.find = MagicMock(return_value=_cursor([]))
+        gov_env.assembleia_presencas.find_one = AsyncMock(return_value=None)
+        # viewer não presente → present/can_vote False (não rebenta com None).
+        snap_v = await a_route._session_snapshot("a1", viewer_user_id="v9")
+        assert snap_v["me"] == {"present": False, "can_vote": False}
+        # sem viewer (SSE pré-auth/legado) → me ausente.
+        snap_anon = await a_route._session_snapshot("a1")
+        assert snap_anon["me"] is None
 
 
 class TestFase:
@@ -1413,9 +1439,7 @@ class TestRegistarContagem:
         gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value=_delib(voting_mode="braco_no_ar"))
         gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_rows([{"user_id": "u1", "voting_power": 5}]))
         captured = {}
-        gov_env.assembleia_deliberacoes.update_one = AsyncMock(
-            side_effect=lambda flt, upd: captured.update(upd["$set"])
-        )
+        gov_env.assembleia_deliberacoes.update_one = AsyncMock(side_effect=_capturing_update(captured))
         result = await a_route.registar_contagem(
             assembleia_id="a1",
             did="d1",
@@ -1425,6 +1449,18 @@ class TestRegistarContagem:
         )
         assert captured == {"votos_favor": 3, "votos_contra": 1, "abstencoes": 1}
         assert result["votos_favor"] == 3
+
+
+def _capturing_update(captured):
+    """side_effect p/ `update_one` que capta o `$set` e devolve um resultado com
+    `modified_count=1` — o pre-close (CAS) do apurar lê `result.modified_count`
+    directamente, por isso o mock tem de o expor (não pode devolver None)."""
+
+    def _f(flt, upd):
+        captured.update(upd["$set"])
+        return MagicMock(modified_count=1)
+
+    return _f
 
 
 class TestApurar:
@@ -1477,9 +1513,7 @@ class TestApurar:
             )
         )
         captured = {}
-        gov_env.assembleia_deliberacoes.update_one = AsyncMock(
-            side_effect=lambda flt, upd: captured.update(upd["$set"])
-        )
+        gov_env.assembleia_deliberacoes.update_one = AsyncMock(side_effect=_capturing_update(captured))
         bg = BackgroundTasks()
         result = await a_route.apurar_deliberacao(
             assembleia_id="a1",
@@ -1520,9 +1554,7 @@ class TestApurar:
             )
         )
         captured = {}
-        gov_env.assembleia_deliberacoes.update_one = AsyncMock(
-            side_effect=lambda flt, upd: captured.update(upd["$set"])
-        )
+        gov_env.assembleia_deliberacoes.update_one = AsyncMock(side_effect=_capturing_update(captured))
         await a_route.apurar_deliberacao(
             assembleia_id="a1",
             did="d1",
@@ -1558,9 +1590,7 @@ class TestApurar:
             )
         )
         captured = {}
-        gov_env.assembleia_deliberacoes.update_one = AsyncMock(
-            side_effect=lambda flt, upd: captured.update(upd["$set"])
-        )
+        gov_env.assembleia_deliberacoes.update_one = AsyncMock(side_effect=_capturing_update(captured))
         await a_route.apurar_deliberacao(
             assembleia_id="a1",
             did="d1",
@@ -1571,6 +1601,53 @@ class TestApurar:
         assert captured["base_calculo"] == 6  # 8 - 2 excluído
         assert captured["votos_favor"] == 4
         assert captured["aprovado"] is True
+
+    async def test_apurar_concorrente_devolve_409(self, gov_env):
+        # CAS: o pre-close fecha a janela com WHERE status="aberta". Se outra
+        # sessão da Mesa já fechou (modified_count=0), apurar é idempotente → 409
+        # em vez de re-apurar/re-disparar comunicado.
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value=_delib(voting_mode="nominal"))
+        gov_env.assembleia_deliberacoes.update_one = AsyncMock(return_value=MagicMock(modified_count=0))
+        bg = BackgroundTasks()
+        with pytest.raises(HTTPException) as exc:
+            await a_route.apurar_deliberacao(
+                assembleia_id="a1",
+                did="d1",
+                request=_request(),
+                background_tasks=bg,
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 409
+        assert len(bg.tasks) == 0  # nenhum comunicado disparado
+
+    async def test_base_zero_nao_aprova(self, gov_env):
+        # qualificada_3_4_presentes com o único votante presente excluído por
+        # conflito → base=0 e threshold=0. `favor>=threshold` (0>=0) aprovaria
+        # com zero votos; a guarda `base>0` impede a falsa aprovação.
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_deliberacoes.find_one = AsyncMock(
+            return_value=_delib(
+                voting_mode="nominal",
+                tipo_maioria="qualificada_3_4_presentes",
+                conflitos_excluidos=["u1"],
+            )
+        )
+        gov_env.assembleia_presencas.find = MagicMock(
+            side_effect=_pres_rows([{"user_id": "u1", "voting_power": 3, "can_vote": True}])
+        )
+        gov_env.assembleia_votos.find = MagicMock(return_value=_cursor([]))
+        captured = {}
+        gov_env.assembleia_deliberacoes.update_one = AsyncMock(side_effect=_capturing_update(captured))
+        await a_route.apurar_deliberacao(
+            assembleia_id="a1",
+            did="d1",
+            request=_request(),
+            background_tasks=BackgroundTasks(),
+            current_user=_mesa_ag(),
+        )
+        assert captured["base_calculo"] == 0
+        assert captured["aprovado"] is False
 
 
 class TestGetDeliberacao:
@@ -1859,6 +1936,28 @@ class TestColocarMocaoAVoto:
         assert mocao_update["status"] == "em_votacao"
         assert mocao_update["deliberacao_id"] == delib_captured["id"]
         assert result["deliberacao_id"] == delib_captured["id"]
+
+    async def test_falha_update_mocao_apaga_deliberacao(self, gov_env):
+        # Se o $set da moção falhar após inserir a deliberação, a deliberação
+        # `aberta` ficaria órfã (a Mesa não a consegue ligar). A compensação
+        # apaga-a e a excepção propaga — listagens não divergem.
+        gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
+        gov_env.assembleia_mocoes.find_one = AsyncMock(return_value=_mocao(titulo="X", texto="y"))
+        gov_env.assembleia_presencas.find = MagicMock(return_value=_cursor([{"voting_power": 6}]))
+        delib_captured = {}
+        gov_env.assembleia_deliberacoes.insert_one = AsyncMock(side_effect=lambda d: delib_captured.update(d))
+        gov_env.assembleia_mocoes.update_one = AsyncMock(side_effect=RuntimeError("db transient"))
+        deleted = {}
+        gov_env.assembleia_deliberacoes.delete_one = AsyncMock(side_effect=lambda flt: deleted.update(flt))
+        with pytest.raises(RuntimeError):
+            await a_route.colocar_mocao_a_voto(
+                assembleia_id="a1",
+                mid="m1",
+                request=_request(),
+                data=a_route.MocaoColocarVoto(),
+                current_user=_mesa_ag(),
+            )
+        assert deleted.get("id") == delib_captured["id"]
 
 
 class TestRetirarMocao:
@@ -2223,9 +2322,11 @@ class TestPalavraConvidado:
 class TestFaseAntesOTRegista:
     # Sanity check — a fase antes_ot regista `antes_ot_aberto_em` (já testada na F0
     # em TestFase.test_antes_ot_regista_abertura). Reafirmo aqui o contrato do F5.
-    async def test_antes_ot_abertura_marcada_uma_vez(self, gov_env):
-        # Re-entrar em antes_ot não altera `antes_ot_aberto_em` (ordem linear não
-        # permite recuar; quando a fase já é antes_ot a chamada é rejeitada).
+    async def test_reentrar_mesma_fase_rejeitado(self, gov_env):
+        # Re-entrar na fase actual é rejeitado com 400 — evita um bump de sessão e
+        # um audit log redundantes a cada clique repetido. É essa rejeição que
+        # agora garante que `antes_ot_aberto_em` nunca é re-escrito: a única
+        # escrita do campo ocorre na 1.ª transição para antes_ot.
         gov_env.assembleias.find_one = AsyncMock(
             return_value={
                 "id": "a1",
@@ -2235,16 +2336,71 @@ class TestFaseAntesOTRegista:
                 "eligible_voters_count": 10,
             }
         )
-        # Não recua: avançar para antes_ot quando já lá está é a mesma posição
-        # (PHASE_ORDER.index(target)==PHASE_ORDER.index(current) é OK; mas o campo
-        # `antes_ot_aberto_em` só é escrito se ainda não estiver definido).
-        captured = {}
-        gov_env.assembleias.update_one = AsyncMock(side_effect=lambda flt, upd: captured.update(upd["$set"]))
-        await a_route.transicao_fase(
-            assembleia_id="a1",
-            request=_request(),
-            data=AssembleiaFaseUpdate(session_phase="antes_ot"),
-            current_user=_mesa_ag(),
+        update_mock = AsyncMock()
+        gov_env.assembleias.update_one = update_mock
+        with pytest.raises(HTTPException) as exc:
+            await a_route.transicao_fase(
+                assembleia_id="a1",
+                request=_request(),
+                data=AssembleiaFaseUpdate(session_phase="antes_ot"),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 400
+        assert "já está em" in exc.value.detail
+        # Nada é escrito: sem rewrite de antes_ot_aberto_em, sem bump.
+        update_mock.assert_not_called()
+
+
+class TestPalavraRequestModelo:
+    # O `PalavraRequest` é persistido e reconstruído em round-trips. Sem o
+    # validador, um doc com ambos (ou nenhum) identificador de orador passava
+    # silenciosamente — a F6 introduziu `convidado_id` ao lado de `user_id`.
+    async def test_exige_exactamente_um_de_user_ou_convidado(self):
+        # Membro: só user_id.
+        PalavraRequest(assembleia_id="a1", user_id="u1", tipo="intervencao", duration_limit_s=180)
+        # Convidado (F6): só convidado_id.
+        PalavraRequest(assembleia_id="a1", convidado_id="c1", tipo="intervencao", duration_limit_s=180)
+        # Ambos preenchidos → rejeitado.
+        with pytest.raises(ValidationError):
+            PalavraRequest(assembleia_id="a1", user_id="u1", convidado_id="c1", tipo="intervencao", duration_limit_s=180)
+        # Nenhum → rejeitado.
+        with pytest.raises(ValidationError):
+            PalavraRequest(assembleia_id="a1", tipo="intervencao", duration_limit_s=180)
+
+    async def test_duration_limit_fora_de_limites_rejeitado(self):
+        with pytest.raises(ValidationError):
+            PalavraRequest(assembleia_id="a1", user_id="u1", tipo="intervencao", duration_limit_s=4)
+        with pytest.raises(ValidationError):
+            PalavraRequest(assembleia_id="a1", user_id="u1", tipo="intervencao", duration_limit_s=99999)
+
+
+class TestAssembleiaModelo:
+    # O campo `documentos` (escrito via $push) tem de sobreviver a um round-trip
+    # `Assembleia(**doc).model_dump()` — sem o campo declarado era descartado por
+    # `extra="ignore"`.
+    async def test_documentos_sobrevive_roundtrip(self):
+        doc = {
+            "tipo": "ordinaria",
+            "titulo": "AGO 2030",
+            "data": FUTURE,
+            "local": "Sede",
+            "convocada_por": "u1",
+            "convocatoria_em": FUTURE,
+            "antecedencia_dias": 15,
+            "documentos": ["doc-1", "doc-2"],
+        }
+        a = Assembleia(**doc)
+        assert a.documentos == ["doc-1", "doc-2"]
+        assert a.model_dump()["documentos"] == ["doc-1", "doc-2"]
+
+    async def test_documentos_default_vazio(self):
+        a = Assembleia(
+            tipo="ordinaria",
+            titulo="AGO",
+            data=FUTURE,
+            local="Sede",
+            convocada_por="u1",
+            convocatoria_em=FUTURE,
+            antecedencia_dias=15,
         )
-        # antes_ot_aberto_em já estava definido → não é re-escrito.
-        assert "antes_ot_aberto_em" not in captured
+        assert a.documentos == []

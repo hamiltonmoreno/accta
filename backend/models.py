@@ -1283,6 +1283,10 @@ USER_STATUSES = ["ativo", "inativo", "pendente_convite", "pendente_aprovacao", "
 
 PROJECT_STATUSES = ["proposta", "aprovado", "em_curso", "concluido", "cancelado"]
 PROJECT_VISIBILITIES = ["publico", "privado"]
+# Cat 5 F1 (spec-fins-profissionais §4): distingue projetos comuns de
+# grupos de trabalho/comissões (Art. 31.e). `tipo` é aditivo e imutável após
+# criação — não migra dados antigos (default "projeto").
+PROJECT_TIPOS = ["projeto", "grupo_trabalho", "comissao"]
 TASK_STATUSES = ["pendente", "em_curso", "concluido"]
 TASK_PRIORITIES = ["baixa", "media", "alta"]
 
@@ -1295,6 +1299,7 @@ class Project(BaseModel):
     status: str = "proposta"
     visibility: str = "publico"
     category: str = ""
+    tipo: Literal["projeto", "grupo_trabalho", "comissao"] = "projeto"
     created_by: str = ""
     created_by_name: str = ""
     responsible_id: Optional[str] = None
@@ -1313,6 +1318,7 @@ class ProjectCreate(BaseModel):
     description: str = ""
     visibility: str = "publico"
     category: str = ""
+    tipo: Literal["projeto", "grupo_trabalho", "comissao"] = "projeto"
     budget: float = 0.0
     start_date: Optional[str] = None
     end_date: Optional[str] = None
@@ -1471,6 +1477,10 @@ class Assembleia(BaseModel):
     check_in_code_expires_at: Optional[str] = None  # ISO 8601
     session_version: int = 0  # bump a cada mutação de sessão → base do SSE
     antes_ot_aberto_em: Optional[str] = None  # p/ limite soft de 30 min (Art. 14)
+    # Lista de document_ids anexados à sessão (Art. 20). Escrita via $push com
+    # guarda de duplicados em POST .../documentos. Declarado para o campo sair no
+    # model_dump() e sobreviver a qualquer reconstrução por `Assembleia(**doc)`.
+    documentos: List[str] = Field(default_factory=list)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -1551,11 +1561,11 @@ class AssembleiaDeliberacao(BaseModel):
     tipo_maioria: Literal["absoluta", "qualificada_2_3", "qualificada_3_4_presentes", "qualificada_3_4_universo"]
     # Contagens/apuramento: opcionais para suportar o ciclo ao vivo (abre sem
     # votos; preenchidos no apuramento). O caminho one-shot passa-os explícitos.
-    base_calculo: int = 0  # poder de voto presente OU universo (computado pelo servidor)
-    votos_favor: int = 0
-    votos_contra: int = 0
-    abstencoes: int = 0
-    threshold: int = 0  # nº de votos necessário (computado)
+    base_calculo: int = Field(default=0, ge=0)
+    votos_favor: int = Field(default=0, ge=0)
+    votos_contra: int = Field(default=0, ge=0)
+    abstencoes: int = Field(default=0, ge=0)
+    threshold: int = Field(default=0, ge=0)
     aprovado: bool = False
     source_article: Optional[str] = None
     registado_por: str
@@ -1779,13 +1789,22 @@ class PalavraRequest(BaseModel):
     tipo: Literal["intervencao", "protesto", "esclarecimento", "defesa_honra"]
     status: Literal["inscrito", "a_falar", "concluido", "retirado", "negado"] = "inscrito"
     ordem: Optional[int] = None  # posição atribuída pela Mesa
-    duration_limit_s: int  # default por tipo (PALAVRA_DURACOES)
+    duration_limit_s: int = Field(ge=5, le=3600)  # default por tipo (PALAVRA_DURACOES)
     requested_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     started_at: Optional[str] = None
     ends_at: Optional[str] = None  # started_at + duration_limit_s
     ended_at: Optional[str] = None
     source_article: str = "27"
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+    @model_validator(mode="after")
+    def _v_user_xor_convidado(self):
+        # Exactamente um dos dois identifica o orador (membro vs convidado F6).
+        has_user = bool(self.user_id)
+        has_conv = bool(self.convidado_id)
+        if has_user == has_conv:
+            raise ValueError("PalavraRequest exige exactamente um de `user_id` ou `convidado_id`.")
+        return self
 
 
 class PalavraCreate(BaseModel):
