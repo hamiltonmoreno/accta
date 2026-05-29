@@ -16,6 +16,7 @@ from pydantic import ValidationError
 
 from routes import assembleias as a_route
 from models import (
+    Assembleia,
     AssembleiaCreate,
     AssembleiaDeliberacaoCreate,
     AssembleiaFaseUpdate,
@@ -1438,9 +1439,7 @@ class TestRegistarContagem:
         gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value=_delib(voting_mode="braco_no_ar"))
         gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_rows([{"user_id": "u1", "voting_power": 5}]))
         captured = {}
-        gov_env.assembleia_deliberacoes.update_one = AsyncMock(
-            side_effect=lambda flt, upd: captured.update(upd["$set"])
-        )
+        gov_env.assembleia_deliberacoes.update_one = AsyncMock(side_effect=_capturing_update(captured))
         result = await a_route.registar_contagem(
             assembleia_id="a1",
             did="d1",
@@ -1450,6 +1449,18 @@ class TestRegistarContagem:
         )
         assert captured == {"votos_favor": 3, "votos_contra": 1, "abstencoes": 1}
         assert result["votos_favor"] == 3
+
+
+def _capturing_update(captured):
+    """side_effect p/ `update_one` que capta o `$set` e devolve um resultado com
+    `modified_count=1` — o pre-close (CAS) do apurar lê `result.modified_count`
+    directamente, por isso o mock tem de o expor (não pode devolver None)."""
+
+    def _f(flt, upd):
+        captured.update(upd["$set"])
+        return MagicMock(modified_count=1)
+
+    return _f
 
 
 class TestApurar:
@@ -1502,9 +1513,7 @@ class TestApurar:
             )
         )
         captured = {}
-        gov_env.assembleia_deliberacoes.update_one = AsyncMock(
-            side_effect=lambda flt, upd: captured.update(upd["$set"])
-        )
+        gov_env.assembleia_deliberacoes.update_one = AsyncMock(side_effect=_capturing_update(captured))
         bg = BackgroundTasks()
         result = await a_route.apurar_deliberacao(
             assembleia_id="a1",
@@ -1545,9 +1554,7 @@ class TestApurar:
             )
         )
         captured = {}
-        gov_env.assembleia_deliberacoes.update_one = AsyncMock(
-            side_effect=lambda flt, upd: captured.update(upd["$set"])
-        )
+        gov_env.assembleia_deliberacoes.update_one = AsyncMock(side_effect=_capturing_update(captured))
         await a_route.apurar_deliberacao(
             assembleia_id="a1",
             did="d1",
@@ -1583,9 +1590,7 @@ class TestApurar:
             )
         )
         captured = {}
-        gov_env.assembleia_deliberacoes.update_one = AsyncMock(
-            side_effect=lambda flt, upd: captured.update(upd["$set"])
-        )
+        gov_env.assembleia_deliberacoes.update_one = AsyncMock(side_effect=_capturing_update(captured))
         await a_route.apurar_deliberacao(
             assembleia_id="a1",
             did="d1",
@@ -1633,12 +1638,7 @@ class TestApurar:
         )
         gov_env.assembleia_votos.find = MagicMock(return_value=_cursor([]))
         captured = {}
-
-        def _cap(flt, upd):
-            captured.update(upd["$set"])
-            return MagicMock(modified_count=1)
-
-        gov_env.assembleia_deliberacoes.update_one = AsyncMock(side_effect=_cap)
+        gov_env.assembleia_deliberacoes.update_one = AsyncMock(side_effect=_capturing_update(captured))
         await a_route.apurar_deliberacao(
             assembleia_id="a1",
             did="d1",
@@ -2372,3 +2372,35 @@ class TestPalavraRequestModelo:
             PalavraRequest(assembleia_id="a1", user_id="u1", tipo="intervencao", duration_limit_s=4)
         with pytest.raises(ValidationError):
             PalavraRequest(assembleia_id="a1", user_id="u1", tipo="intervencao", duration_limit_s=99999)
+
+
+class TestAssembleiaModelo:
+    # O campo `documentos` (escrito via $push) tem de sobreviver a um round-trip
+    # `Assembleia(**doc).model_dump()` — sem o campo declarado era descartado por
+    # `extra="ignore"`.
+    async def test_documentos_sobrevive_roundtrip(self):
+        doc = {
+            "tipo": "ordinaria",
+            "titulo": "AGO 2030",
+            "data": FUTURE,
+            "local": "Sede",
+            "convocada_por": "u1",
+            "convocatoria_em": FUTURE,
+            "antecedencia_dias": 15,
+            "documentos": ["doc-1", "doc-2"],
+        }
+        a = Assembleia(**doc)
+        assert a.documentos == ["doc-1", "doc-2"]
+        assert a.model_dump()["documentos"] == ["doc-1", "doc-2"]
+
+    async def test_documentos_default_vazio(self):
+        a = Assembleia(
+            tipo="ordinaria",
+            titulo="AGO",
+            data=FUTURE,
+            local="Sede",
+            convocada_por="u1",
+            convocatoria_em=FUTURE,
+            antecedencia_dias=15,
+        )
+        assert a.documentos == []

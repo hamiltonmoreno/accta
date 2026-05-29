@@ -12,6 +12,7 @@ import asyncio
 import hashlib
 import hmac
 import json
+import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -64,6 +65,8 @@ from models import (
     User,
 )
 from permissions import can_convene_assembleia, is_mesa_ag
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/assembleias", tags=["assembleias"])
 
@@ -166,7 +169,7 @@ async def _session_snapshot(assembleia_id: str, viewer_user_id: str | None = Non
     if viewer_user_id:
         my_pres = await db.assembleia_presencas.find_one(
             {"assembleia_id": assembleia_id, "user_id": viewer_user_id},
-            {"_id": 0, "can_vote": 1, "tipo": 1},
+            {"_id": 0, "can_vote": 1},
         )
         me = {
             "present": my_pres is not None,
@@ -849,7 +852,10 @@ async def register_deliberacao(
     else:  # absoluta
         base = present_power
         threshold = required_absolute_majority(base)
-    aprovado = data.votos_favor >= threshold
+    # Paridade com o ciclo ao vivo (apurar_deliberacao): base>0 evita aprovar com
+    # zero eleitorado. Aqui o quórum exigido acima já força base>0, mas a guarda
+    # mantém as duas vias coerentes e defensivas.
+    aprovado = base > 0 and data.votos_favor >= threshold
 
     delib = AssembleiaDeliberacao(
         assembleia_id=assembleia_id,
@@ -1129,7 +1135,10 @@ async def apurar_deliberacao(
     pre_close = await db.assembleia_deliberacoes.update_one(
         {"id": did, "status": "aberta"}, {"$set": {"status": "encerrada"}}
     )
-    if getattr(pre_close, "modified_count", None) == 0:
+    # Acesso directo (não `getattr`/default): o DAO garante sempre `modified_count`
+    # (_UpdateResult). Um default silencioso desligaria esta guarda — e ela protege
+    # contra re-apurar e re-disparar o comunicado oficial a todos os activos.
+    if pre_close.modified_count == 0:
         raise HTTPException(status_code=409, detail="A deliberação já foi apurada por outra sessão da Mesa.")
 
     eligible = a.get("eligible_voters_count", 0)
@@ -1166,9 +1175,9 @@ async def apurar_deliberacao(
             abst = int(d.get("abstencoes", 0))
 
     base, threshold = _threshold_and_base(d["tipo_maioria"], present_base, eligible)
-    # base=0 ocorre quando `qualificada_3_4_presentes` esvazia o eleitorado pelos
-    # `conflitos_excluidos`; sem votantes possíveis, threshold também é 0 e
-    # `favor>=threshold` seria True com zero votos — claramente errado.
+    # base=0 (eleitorado esvaziado pelos `conflitos_excluidos`, ou universo=0):
+    # nas maiorias por `ceil` (2/3 e 3/4) o threshold também é 0 e `favor>=0`
+    # aprovaria com zero votos — claramente errado. A guarda base>0 cobre todas.
     aprovado = base > 0 and favor >= threshold
     update = {
         "base_calculo": base,
@@ -1316,14 +1325,19 @@ async def colocar_mocao_a_voto(
     delib_doc = delib.model_dump()
     await db.assembleia_deliberacoes.insert_one(delib_doc)
     # Se o $set seguinte falhar (DB transient), a deliberação fica `aberta` mas a
-    # moção continua `submetida` — listagens divergem e a Mesa não consegue
-    # encontrar o link. Compensa apagando a deliberação acabada de inserir.
+    # moção continua no estado anterior (submetida/em_discussao) — listagens
+    # divergem e a Mesa não consegue encontrar o link. Compensa apagando a
+    # deliberação acabada de inserir. Se a própria compensação falhar, regista-se
+    # (sem deixar a excepção do rollback eclipsar o erro original) e re-levanta-se.
     try:
         await db.assembleia_mocoes.update_one(
             {"id": mid}, {"$set": {"status": "em_votacao", "deliberacao_id": delib_doc["id"]}}
         )
     except Exception:
-        await db.assembleia_deliberacoes.delete_one({"id": delib_doc["id"]})
+        try:
+            await db.assembleia_deliberacoes.delete_one({"id": delib_doc["id"]})
+        except Exception:
+            logger.exception("Falha ao compensar deliberação órfã %s", delib_doc["id"])
         raise
     await _bump_session(assembleia_id)
     await create_audit_log(

@@ -3,17 +3,27 @@ import { useQueryClient } from '@tanstack/react-query';
 import { assembleiasAPI } from '../utils/api';
 
 // Backoff exponencial p/ reabrir a SSE após `onerror` — 2s, 8s, depois 30s
-// permanente. Sem isto o `es.close()` defeats o reconnect nativo do EventSource
+// permanente. Sem isto o `es.close()` anula o reconnect nativo do EventSource
 // e a sala fica em polling 30s para o resto da sessão mesmo após o servidor
 // recuperar.
 const RECONNECT_BACKOFF_MS = [2000, 8000, 30000];
 const FALLBACK_POLL_MS = 30000;
 
+/**
+ * SSE por-assembleia (spec-sessao-assembleia §2.2 / §10). Autentica pelo cookie
+ * HttpOnly (`withCredentials`), cai para polling de 30s com backoff de reconexão
+ * em falha, e pausa enquanto o separador está oculto.
+ *
+ * Retorna `{ snapshot, connected }`:
+ *  - `snapshot`: último snapshot recebido (`{ version, phase, status, chamada,
+ *    current_item_id, quorum, speaking, open_vote, me }`) ou `null` antes do 1.º
+ *    evento. `me` (`{ present, can_vote }`) só vem preenchido para o viewer.
+ *  - `connected`: `true` enquanto a SSE está aberta; `false` em fallback/polling.
+ */
 export function useAssembleiaStream(assembleiaId) {
   const qc = useQueryClient();
   const [snapshot, setSnapshot] = useState(null);
   const [connected, setConnected] = useState(false);
-  const [lastEventAt, setLastEventAt] = useState(null);
   const esRef = useRef(null);
   const fallbackRef = useRef(null);
   const retryTimerRef = useRef(null);
@@ -26,7 +36,6 @@ export function useAssembleiaStream(assembleiaId) {
 
     const handleSnapshot = (data) => {
       setSnapshot(data);
-      setLastEventAt(Date.now());
       qc.setQueryData(['assembleia', assembleiaId, 'snapshot'], data);
     };
 
@@ -84,7 +93,9 @@ export function useAssembleiaStream(assembleiaId) {
         };
         es.addEventListener('error', (evt) => {
           if (evt?.data) {
-            // Evento de erro estruturado emitido pelo servidor (cf. SSE generator).
+            // Tratamento defensivo de um 'error' nomeado com payload JSON (alguns
+            // proxies/servidores SSE emitem-no). O nosso gerador ainda não emite
+            // — o erro real de ligação é tratado em `onerror` abaixo.
             try {
               const payload = JSON.parse(evt.data);
               console.warn('useAssembleiaStream: erro servidor', payload);
@@ -136,5 +147,5 @@ export function useAssembleiaStream(assembleiaId) {
     };
   }, [assembleiaId, qc]);
 
-  return { snapshot, connected, lastEventAt };
+  return { snapshot, connected };
 }

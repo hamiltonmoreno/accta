@@ -1283,6 +1283,10 @@ USER_STATUSES = ["ativo", "inativo", "pendente_convite", "pendente_aprovacao", "
 
 PROJECT_STATUSES = ["proposta", "aprovado", "em_curso", "concluido", "cancelado"]
 PROJECT_VISIBILITIES = ["publico", "privado"]
+# Cat 5 F1 (spec-fins-profissionais §4): distingue projetos comuns de
+# grupos de trabalho/comissões (Art. 31.e). `tipo` é aditivo e imutável após
+# criação — não migra dados antigos (default "projeto").
+PROJECT_TIPOS = ["projeto", "grupo_trabalho", "comissao"]
 TASK_STATUSES = ["pendente", "em_curso", "concluido"]
 TASK_PRIORITIES = ["baixa", "media", "alta"]
 
@@ -1295,6 +1299,7 @@ class Project(BaseModel):
     status: str = "proposta"
     visibility: str = "publico"
     category: str = ""
+    tipo: Literal["projeto", "grupo_trabalho", "comissao"] = "projeto"
     created_by: str = ""
     created_by_name: str = ""
     responsible_id: Optional[str] = None
@@ -1313,6 +1318,7 @@ class ProjectCreate(BaseModel):
     description: str = ""
     visibility: str = "publico"
     category: str = ""
+    tipo: Literal["projeto", "grupo_trabalho", "comissao"] = "projeto"
     budget: float = 0.0
     start_date: Optional[str] = None
     end_date: Optional[str] = None
@@ -1471,8 +1477,9 @@ class Assembleia(BaseModel):
     check_in_code_expires_at: Optional[str] = None  # ISO 8601
     session_version: int = 0  # bump a cada mutação de sessão → base do SSE
     antes_ot_aberto_em: Optional[str] = None  # p/ limite soft de 30 min (Art. 14)
-    # Lista de document_ids anexados à sessão (Art. 20). Escrito via $addToSet
-    # — sem este campo declarado, round-trips por `Assembleia(**doc)` perdiam-no.
+    # Lista de document_ids anexados à sessão (Art. 20). Escrita via $push com
+    # guarda de duplicados em POST .../documentos. Declarado para o campo sair no
+    # model_dump() e sobreviver a qualquer reconstrução por `Assembleia(**doc)`.
     documentos: List[str] = Field(default_factory=list)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
