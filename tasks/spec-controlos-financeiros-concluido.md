@@ -1,4 +1,49 @@
-# Spec — Controlos Financeiros Estatutários (Categoria 4)
+# Spec — Controlos Financeiros Estatutários (Categoria 4) — CONCLUÍDA
+
+> ## ✅ Estado actual (2026-05-28)
+>
+> Spec **CONCLUÍDA** no que toca a código de F0–F4 (`develop`). Pendências são
+> **operacionais** (Tesouraria) ou **deliberativas** (AG), não de engenharia.
+>
+> **Implementado:**
+> - **F0** — `permissions.is_direcao` / `is_presidente` / `is_tesoureiro` (key-based,
+>   delegando em `governance.py`); aditivos em `UserBase`
+>   (`cta_qualified_since`, `joia_devida`, `joia_isento`), `Transaction.ato_id`,
+>   `FinanceSettings.joia_multiplier`/`joia_amount`/`coaprovacao_limiar`.
+> - **F1 (4.2)** — `INCOME_CATEGORIES` alinhadas ao Art. 5; endpoint
+>   `GET /api/finances/meta/categories`; `scripts/migrate_income_categories.py`
+>   (`--dry-run`/`--apply`); decisão dono: `patrocinios → donativos`.
+> - **F2 (4.3)** — `finance_joia.py` (compute_joia, joia_status) com isenções
+>   fundador/honorário; integrado em `routes/admin.py` (`approve_registration`,
+>   convite); endpoint `GET /api/finances/joia/preview`.
+> - **F3 (4.1)** — `routes/atos.py` (`POST /api/atos`, `/list`, `/{id}`,
+>   `/{id}/assinar`, `/{id}/executar`, `/{id}/cancelar`); regra estatutária
+>   pura em `atos_rules.py`; gate de pagamentos em `finances.py`
+>   (`coaprovacao_limiar`).
+> - **F4 frontend** — `CoAprovacoesPage.js`, `AdminPedidosInscricaoPage` com
+>   bloco de jóia, `AuthContext.isDirecao`/`isPresidente`/`isTesoureiro`,
+>   `useFinanceCategories` (lê do endpoint meta, sem hard-code).
+>
+> **Testes:** `test_atos.py` (~33) + `test_joia.py` (~22) ✅;
+> `useFinanceCategories.test.js` (4) ✅.
+>
+> **Pendências NÃO-código (operador/AG):**
+> 1. **F5** — correr `scripts/migrate_income_categories.py --apply` em prod
+>    (STOP: confirmação humana antes).
+> 2. **`coaprovacao_limiar`** — definir valor inicial em `FinanceSettings`
+>    (decisão de governança/Tesouraria; default `0.0` ⇒ regra inactiva).
+> 3. **Alterar `quota_amount`/`joia_multiplier`** — exige deliberação de AG
+>    (3/4) por desenho.
+>
+> **Follow-ups conhecidos (não bloqueiam o uso):**
+> - Materializar `cta_qualified_since` para sócios existentes (script de
+>   normalização, opcional).
+> - `cargo_history` para `ato_id` no audit/UI (rastrear quem assinou actos
+>   históricos por mandato).
+> - Mover `CATEGORY_LABELS` de `financeiro/constants.js` para o hook (depois
+>   da migração `--apply`, podem-se eliminar as keys legadas).
+
+---
 
 > **Status**: rascunho técnico (2026-05-21). Requer validação da Direcção/
 > Tesouraria/CF nas regras com efeito estatutário (quem assina o quê, isenções de

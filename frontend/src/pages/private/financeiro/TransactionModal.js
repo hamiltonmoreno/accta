@@ -3,10 +3,13 @@ import { useMutation } from '@tanstack/react-query';
 import { financesAPI } from '../../../utils/api';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
-import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from './constants';
+import { useFinanceCategories } from '../../../hooks/useFinanceCategories';
 
 export const TransactionModal = ({ tx, onClose, onSaved }) => {
   const isEdit = !!tx;
+  // Categorias vem do endpoint /finances/meta/categories (Cat 4 §5.4); o hook
+  // cai num fallback offline durante o load para nao render dropdown vazio.
+  const { income, expense } = useFinanceCategories();
   const [form, setForm] = useState({
     type: tx?.type || 'receita',
     category: tx?.category || 'quotas',
@@ -16,7 +19,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
     reference: tx?.reference || '',
   });
 
-  const categories = form.type === 'receita' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const categories = form.type === 'receita' ? income : expense;
 
   useEffect(() => {
     if (!isEdit) {
