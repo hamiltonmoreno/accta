@@ -2334,3 +2334,111 @@ class RankingSettingsUpdate(BaseModel):
 class RankingOptOut(BaseModel):
     """Body do opt-out do próprio membro (F5, §2.5)."""
     opt_out: bool
+
+
+# ============================================================================
+# Cat 5 F2 — Desenvolvimento técnico-profissional + Publicações
+# (spec-fins-profissionais §6/§8)
+# ============================================================================
+
+# 5.3 Formações / Certificações / Materiais (Art. 2.c)
+FORMACAO_TIPOS = ["formacao", "certificacao", "material"]
+
+
+class Formacao(BaseModel):
+    """Catálogo de formações, certificações e materiais para desenvolvimento
+    técnico-profissional dos sócios (spec-fins-profissionais §6.1)."""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    titulo: str
+    tipo: Literal["formacao", "certificacao", "material"]
+    descricao: str = ""
+    entidade: Optional[str] = None  # provedor / entidade formadora
+    categoria: Optional[str] = None
+    url: Optional[str] = None  # inscrição ou recurso externo
+    document_id: Optional[str] = None  # material anexo via módulo de documentos
+    data: Optional[str] = None  # ISO 8601
+    validade: Optional[str] = None  # ISO 8601, certificações
+    ativo: bool = True
+    created_by: str = ""
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    source_article: str = "2.c"
+
+
+class FormacaoCreate(BaseModel):
+    titulo: str = Field(min_length=1)
+    tipo: Literal["formacao", "certificacao", "material"]
+    descricao: str = ""
+    entidade: Optional[str] = None
+    categoria: Optional[str] = None
+    url: Optional[str] = None
+    document_id: Optional[str] = None
+    data: Optional[str] = None
+    validade: Optional[str] = None
+    ativo: bool = True
+
+
+class FormacaoUpdate(BaseModel):
+    titulo: Optional[str] = Field(default=None, min_length=1)
+    descricao: Optional[str] = None
+    entidade: Optional[str] = None
+    categoria: Optional[str] = None
+    url: Optional[str] = None
+    document_id: Optional[str] = None
+    data: Optional[str] = None
+    validade: Optional[str] = None
+    ativo: Optional[bool] = None
+    # tipo é imutável após criação (define indexação e UI); não está aqui.
+
+
+# 5.5 Publicações formais (Art. 5.c) — distintas de notícias/blog
+PUBLICACAO_TIPOS = ["revista", "boletim", "artigo", "relatorio_tecnico"]
+PUBLICACAO_VISIBILITIES = ["publico", "socios"]
+
+
+class Publicacao(BaseModel):
+    """Publicações formais da associação — revista, boletim, artigo, relatório
+    técnico (spec-fins-profissionais §8.1). Venda fica para F5 (Cat. 4)."""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    titulo: str
+    descricao: Optional[str] = None
+    tipo: Literal["revista", "boletim", "artigo", "relatorio_tecnico"]
+    autor: Optional[str] = None
+    document_id: str  # PDF/ficheiro principal (obrigatório)
+    capa_url: Optional[str] = None
+    data_publicacao: str  # ISO 8601
+    visibility: Literal["publico", "socios"] = "socios"
+    a_venda: bool = False  # FASE 2 (F5)
+    preco: Optional[float] = Field(default=None, ge=0)
+    created_by: str = ""
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    source_article: str = "5.c"
+
+
+class PublicacaoCreate(BaseModel):
+    titulo: str = Field(min_length=1)
+    descricao: Optional[str] = None
+    tipo: Literal["revista", "boletim", "artigo", "relatorio_tecnico"]
+    autor: Optional[str] = None
+    document_id: str = Field(min_length=1)
+    capa_url: Optional[str] = None
+    data_publicacao: str = Field(min_length=1)
+    visibility: Literal["publico", "socios"] = "socios"
+    a_venda: bool = False
+    preco: Optional[float] = Field(default=None, ge=0)
+
+
+class PublicacaoUpdate(BaseModel):
+    titulo: Optional[str] = Field(default=None, min_length=1)
+    descricao: Optional[str] = None
+    autor: Optional[str] = None
+    document_id: Optional[str] = Field(default=None, min_length=1)
+    capa_url: Optional[str] = None
+    data_publicacao: Optional[str] = None
+    visibility: Optional[Literal["publico", "socios"]] = None
+    a_venda: Optional[bool] = None
+    preco: Optional[float] = Field(default=None, ge=0)
+    # tipo é imutável após criação (define listagem/filtros); não está aqui.

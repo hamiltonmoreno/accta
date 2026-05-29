@@ -115,6 +115,9 @@ COLLECTIONS: tuple[str, ...] = (
     "member_scores",
     "ranking_ajustes",
     "ranking_settings",
+    # fins profissionais Cat 5 F2 (spec-fins-profissionais §6/§8):
+    "formacoes",
+    "publicacoes",
     # no Pydantic model — schema derived from usage:
     "password_resets",
     "tokens_revoked",
@@ -941,6 +944,14 @@ _INDEX_DDL: tuple[str, ...] = (
     'CREATE INDEX IF NOT EXISTS ix_rajustes_user_period ON "ranking_ajustes" '
     "((doc->>'user_id'), (doc->>'period_key'))",
     "CREATE INDEX IF NOT EXISTS ix_rajustes_created ON \"ranking_ajustes\" ((doc->>'created_at') DESC)",
+    # fins profissionais Cat 5 F2 — formacoes (spec-fins-profissionais §6/§9)
+    "CREATE INDEX IF NOT EXISTS ix_formacoes_tipo ON \"formacoes\" ((doc->>'tipo'))",
+    "CREATE INDEX IF NOT EXISTS ix_formacoes_ativo ON \"formacoes\" ((doc->>'ativo'))",
+    "CREATE INDEX IF NOT EXISTS ix_formacoes_categoria ON \"formacoes\" ((doc->>'categoria'))",
+    # fins profissionais Cat 5 F2 — publicacoes (spec-fins-profissionais §8/§9)
+    "CREATE INDEX IF NOT EXISTS ix_publicacoes_tipo ON \"publicacoes\" ((doc->>'tipo'))",
+    'CREATE INDEX IF NOT EXISTS ix_publicacoes_vis_data ON "publicacoes" '
+    "((doc->>'visibility'), (doc->>'data_publicacao') DESC)",
 )
 
 REQUIRED_INDEX_NAMES = {
