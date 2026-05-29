@@ -348,3 +348,119 @@ class TestAddCommentExpense:
         assert result["amount"] == 1500
         assert result["description"] == "Catering"
         assert "_id" not in result
+
+
+# --------------------------------------------------------------------------- #
+# POST /projects — Cat 5 F1: Project.tipo + RBAC Direcção para grupos/comissões
+# --------------------------------------------------------------------------- #
+
+
+class TestProjectTipoCreate:
+    """Spec-fins-profissionais §4 — só Direcção/admin cria grupo_trabalho/comissao;
+    fica `aprovado` direto; sócio comum → 403; projeto normal mantém fluxo `proposta`."""
+
+    @pytest.fixture
+    def direcao_user(self):
+        from conftest import _make_user_dict
+        from models import User
+
+        return User(**_make_user_dict("socio", cargo="dir_vogal"))
+
+    async def test_socio_comum_403_em_grupo_trabalho(self, mock_db, socio_user, quiet_notifications):
+        from models import ProjectCreate
+
+        with pytest.raises(HTTPException) as exc:
+            await projects_route.create_project(
+                data=ProjectCreate(title="Grupo X", tipo="grupo_trabalho"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+        mock_db.projects.insert_one.assert_not_awaited()
+
+    async def test_socio_comum_403_em_comissao(self, mock_db, socio_user, quiet_notifications):
+        from models import ProjectCreate
+
+        with pytest.raises(HTTPException) as exc:
+            await projects_route.create_project(
+                data=ProjectCreate(title="Comissão Y", tipo="comissao"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_direcao_cria_grupo_status_aprovado(self, mock_db, direcao_user, quiet_notifications):
+        from models import ProjectCreate
+
+        result = await projects_route.create_project(
+            data=ProjectCreate(title="Grupo Estudo Salários", tipo="grupo_trabalho"),
+            current_user=direcao_user,
+        )
+        assert result["tipo"] == "grupo_trabalho"
+        assert result["status"] == "aprovado"
+
+    async def test_admin_cria_comissao_status_aprovado(self, mock_db, admin_user, quiet_notifications):
+        from models import ProjectCreate
+
+        result = await projects_route.create_project(
+            data=ProjectCreate(title="Comissão Disciplinar", tipo="comissao"),
+            current_user=admin_user,
+        )
+        assert result["tipo"] == "comissao"
+        assert result["status"] == "aprovado"
+
+    async def test_projeto_normal_default_tipo_socio_fica_proposta(
+        self, mock_db, socio_user, quiet_notifications
+    ):
+        from models import ProjectCreate
+
+        result = await projects_route.create_project(
+            data=ProjectCreate(title="Projeto Comum"),  # tipo default = projeto
+            current_user=socio_user,
+        )
+        assert result["tipo"] == "projeto"
+        assert result["status"] == "proposta"
+
+    async def test_grupo_nao_toca_cargo_history(self, mock_db, direcao_user, quiet_notifications):
+        """Coordenador (responsible_id) é função operacional, NUNCA cargo
+        estatutário (governança §4.7) — criar grupo não escreve em users."""
+        from models import ProjectCreate
+
+        await projects_route.create_project(
+            data=ProjectCreate(title="Grupo Z", tipo="grupo_trabalho"),
+            current_user=direcao_user,
+        )
+        mock_db.users.update_one.assert_not_awaited()
+
+    async def test_tipo_invalido_422(self):
+        """ProjectCreate.tipo é Literal — string fora do conjunto → ValidationError."""
+        from models import ProjectCreate
+
+        with pytest.raises(ValidationError):
+            ProjectCreate(title="X", tipo="inventado")
+
+
+# --------------------------------------------------------------------------- #
+# GET /projects?tipo= — filtro por tipo
+# --------------------------------------------------------------------------- #
+
+
+class TestProjectTipoFilter:
+    async def test_filter_passa_tipo_para_query(self, mock_db, admin_user):
+        captured = {}
+        cursor = mock_db.projects.find.return_value
+
+        def find(query, _projection):
+            captured["query"] = query
+            return cursor
+
+        mock_db.projects.find = MagicMock(side_effect=find)
+        mock_db.project_tasks = MagicMock()
+        mock_db.project_tasks.aggregate = MagicMock(return_value=_async_rows([]))
+
+        await projects_route.list_projects(tipo="grupo_trabalho", current_user=admin_user)
+
+        assert captured["query"].get("tipo") == "grupo_trabalho"
+
+    async def test_filter_tipo_invalido_400(self, mock_db, admin_user):
+        with pytest.raises(HTTPException) as exc:
+            await projects_route.list_projects(tipo="inexistente", current_user=admin_user)
+        assert exc.value.status_code == 400

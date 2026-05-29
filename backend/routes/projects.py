@@ -17,12 +17,14 @@ from models import (
     ProjectMilestoneCreate,
     ProjectMilestoneUpdate,
     PROJECT_STATUSES,
+    PROJECT_TIPOS,
     PROJECT_VISIBILITIES,
     TASK_PRIORITIES,
     TASK_STATUSES,
 )
 from database import db
 from auth import get_current_user
+from permissions import is_direcao
 from helpers import (
     create_audit_log,
     notify_users,
@@ -31,6 +33,9 @@ from helpers import (
     create_notification,
     enrich_author_photos,
 )
+
+# spec-fins-profissionais §4.2: grupos/comissões só por Direcção/admin (Art. 31.e).
+ORGANIZATIONAL_TIPOS = {"grupo_trabalho", "comissao"}
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -74,16 +79,21 @@ def can_view_project(user: User, project: dict) -> bool:
 async def list_projects(
     status: Optional[str] = None,
     visibility: Optional[str] = None,
+    tipo: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
     current_user: User = Depends(get_current_user),
 ):
     limit = min(limit, 100)
+    if tipo is not None and tipo not in PROJECT_TIPOS:
+        raise HTTPException(status_code=400, detail=f"Tipo invalido: {PROJECT_TIPOS}")
     query = {}
     if status:
         query["status"] = status
     if visibility:
         query["visibility"] = visibility
+    if tipo:
+        query["tipo"] = tipo
 
     # Non-admin: only see published public projects + own/responsible projects.
     if current_user.role != "admin":
@@ -128,20 +138,34 @@ async def create_project(
     if data.visibility not in PROJECT_VISIBILITIES:
         raise HTTPException(status_code=400, detail=f"Visibilidade invalida: {PROJECT_VISIBILITIES}")
 
+    # Cat 5 F1: grupos/comissões (Art. 31.e) são criados pela Direcção/admin e
+    # ficam logo `aprovado` — saltam o fluxo `proposta→aprovado` dos projetos comuns.
+    is_organizational = data.tipo in ORGANIZATIONAL_TIPOS
+    if is_organizational and current_user.role != "admin" and not is_direcao(current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Apenas a Direcao ou admin pode criar grupos de trabalho/comissoes",
+        )
+    initial_status = "aprovado" if (is_organizational or current_user.role == "admin") else "proposta"
+
     project = Project(
         **data.model_dump(),
-        status="proposta" if current_user.role != "admin" else "aprovado",
+        status=initial_status,
         created_by=current_user.id,
         created_by_name=current_user.name,
     )
     p_dict = project.model_dump()
 
     await db.projects.insert_one(p_dict)
-    await create_audit_log(current_user.id, f"Criou projeto '{project.title}'", project.id)
+    await create_audit_log(
+        current_user.id,
+        f"Criou {project.tipo.replace('_', ' ')} '{project.title}'",
+        project.id,
+    )
 
-    # Auto-notifications
-    link = f"/projetos/{project.id}"
-    if current_user.role != "admin":
+    # Auto-notifications: só projetos comuns submetidos a aprovação geram alerta.
+    if initial_status == "proposta":
+        link = f"/projetos/{project.id}"
         await notify_admins(
             "projeto",
             "Nova Proposta de Projeto",
