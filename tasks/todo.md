@@ -52,7 +52,7 @@
 
 - [x] `pytest` → 107 passed; `ruff check`/`ruff format --check` limpos.
 - [x] `eslint --max-warnings=0` (ficheiros F4) limpo; `craco build` → Compiled successfully.
-- [ ] PR (base = `feature/cat5-f3-defesa-relacoes` enquanto #138 não fundir).
+- [x] PR — **#140** (base = `feature/cat5-f3-defesa-relacoes` enquanto #138 não fundir).
 
 ## Fora de âmbito
 
