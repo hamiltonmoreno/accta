@@ -871,3 +871,207 @@ class TestSeedIfatca:
         wired_relacoes.find_one = AsyncMock(return_value={"id": "existente"})
         await prof_route.seed_ifatca()
         wired_relacoes.insert_one.assert_not_awaited()
+
+
+# ============================================================================
+# Cat 5 F3 — reforço pós-review: atomicidade (CAS/409), 404, audit, $set
+# ============================================================================
+
+
+class TestDefesaTransicaoConflito:
+    """Compare-and-swap: se o estado muda entre o find_one e o update_one,
+    matched_count==0 e a transição devolve 409 (sem publicar nem notificar)."""
+
+    async def test_submeter_conflito_409(self, wired_defesa, direcao_user, quiet_audit):
+        wired_defesa.find_one = AsyncMock(
+            return_value={
+                "id": "d1",
+                "status": "rascunho",
+                "created_by": direcao_user.id,
+                "titulo": "X",
+                "tipo": "tomada_posicao",
+            }
+        )
+        wired_defesa.update_one = AsyncMock(return_value=MagicMock(matched_count=0))
+        with pytest.raises(HTTPException) as exc:
+            await prof_route.submeter_defesa(defesa_id="d1", current_user=direcao_user)
+        assert exc.value.status_code == 409
+
+    async def test_aprovar_conflito_409(self, wired_defesa, direcao_user, direcao_user_2, quiet_audit, quiet_notify):
+        wired_defesa.find_one = AsyncMock(
+            return_value={
+                "id": "d1",
+                "status": "submetido",
+                "created_by": direcao_user.id,
+                "titulo": "X",
+                "tipo": "tomada_posicao",
+            }
+        )
+        wired_defesa.update_one = AsyncMock(return_value=MagicMock(matched_count=0))
+        with pytest.raises(HTTPException) as exc:
+            await prof_route.aprovar_defesa(defesa_id="d1", current_user=direcao_user_2)
+        assert exc.value.status_code == 409
+
+    async def test_rejeitar_conflito_409(self, wired_defesa, direcao_user, direcao_user_2, quiet_audit, quiet_notify):
+        from models import DefesaRejeicao
+
+        wired_defesa.find_one = AsyncMock(
+            return_value={
+                "id": "d1",
+                "status": "submetido",
+                "created_by": direcao_user.id,
+                "titulo": "X",
+                "tipo": "tomada_posicao",
+            }
+        )
+        wired_defesa.update_one = AsyncMock(return_value=MagicMock(matched_count=0))
+        with pytest.raises(HTTPException) as exc:
+            await prof_route.rejeitar_defesa(
+                defesa_id="d1", payload=DefesaRejeicao(motivo="x"), current_user=direcao_user_2
+            )
+        assert exc.value.status_code == 409
+
+    async def test_arquivar_conflito_409(self, wired_defesa, direcao_user, quiet_audit):
+        wired_defesa.find_one = AsyncMock(
+            return_value={
+                "id": "d1",
+                "status": "publicado",
+                "created_by": "x",
+                "titulo": "X",
+                "tipo": "comunicado",
+            }
+        )
+        wired_defesa.update_one = AsyncMock(return_value=MagicMock(matched_count=0))
+        with pytest.raises(HTTPException) as exc:
+            await prof_route.arquivar_defesa(defesa_id="d1", current_user=direcao_user)
+        assert exc.value.status_code == 409
+
+
+class TestDefesaTransicao404:
+    """Transição sobre registo inexistente -> 404 (utilizador autorizado)."""
+
+    async def test_submeter_404(self, wired_defesa, direcao_user, quiet_audit):
+        wired_defesa.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await prof_route.submeter_defesa(defesa_id="x", current_user=direcao_user)
+        assert exc.value.status_code == 404
+
+    async def test_aprovar_404(self, wired_defesa, direcao_user_2, quiet_audit, quiet_notify):
+        wired_defesa.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await prof_route.aprovar_defesa(defesa_id="x", current_user=direcao_user_2)
+        assert exc.value.status_code == 404
+
+    async def test_rejeitar_404(self, wired_defesa, direcao_user_2, quiet_audit, quiet_notify):
+        from models import DefesaRejeicao
+
+        wired_defesa.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await prof_route.rejeitar_defesa(
+                defesa_id="x", payload=DefesaRejeicao(motivo="x"), current_user=direcao_user_2
+            )
+        assert exc.value.status_code == 404
+
+    async def test_arquivar_404(self, wired_defesa, direcao_user, quiet_audit):
+        wired_defesa.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await prof_route.arquivar_defesa(defesa_id="x", current_user=direcao_user)
+        assert exc.value.status_code == 404
+
+
+class TestDefesaAuditEConteudo:
+    """Rede de segurança para 'audit em cada escrita' e para o conteúdo do $set."""
+
+    async def test_submeter_regista_audit(self, wired_defesa, direcao_user, monkeypatch):
+        first = {
+            "id": "d1",
+            "status": "rascunho",
+            "created_by": direcao_user.id,
+            "titulo": "X",
+            "tipo": "tomada_posicao",
+        }
+        wired_defesa.find_one = AsyncMock(side_effect=[first, {**first, "status": "submetido"}])
+        audit_mock = AsyncMock()
+        monkeypatch.setattr(prof_route, "create_audit_log", audit_mock)
+        await prof_route.submeter_defesa(defesa_id="d1", current_user=direcao_user)
+        audit_mock.assert_awaited_once()
+        assert audit_mock.call_args[0][2] == "d1"  # resource_id
+
+    async def test_rejeitar_limpa_submetido_e_grava_motivo(
+        self, wired_defesa, direcao_user, direcao_user_2, quiet_audit, quiet_notify
+    ):
+        from models import DefesaRejeicao
+
+        first = {
+            "id": "d1",
+            "status": "submetido",
+            "created_by": direcao_user.id,
+            "titulo": "X",
+            "tipo": "tomada_posicao",
+        }
+        wired_defesa.find_one = AsyncMock(side_effect=[first, {**first, "status": "rascunho"}])
+        await prof_route.rejeitar_defesa(
+            defesa_id="d1",
+            payload=DefesaRejeicao(motivo="Falta base legal"),
+            current_user=direcao_user_2,
+        )
+        set_data = wired_defesa.update_one.call_args[0][1]["$set"]
+        assert set_data["status"] == "rascunho"
+        assert set_data["motivo_rejeicao"] == "Falta base legal"
+        assert set_data["submetido_em"] is None
+        assert set_data["submetido_por"] is None
+
+    async def test_arquiva_submetido_grava_metadados(self, wired_defesa, direcao_user, quiet_audit):
+        first = {
+            "id": "d1",
+            "status": "submetido",
+            "created_by": "x",
+            "titulo": "X",
+            "tipo": "comunicado",
+        }
+        wired_defesa.find_one = AsyncMock(side_effect=[first, {**first, "status": "arquivado"}])
+        result = await prof_route.arquivar_defesa(defesa_id="d1", current_user=direcao_user)
+        assert result["status"] == "arquivado"
+        set_data = wired_defesa.update_one.call_args[0][1]["$set"]
+        assert set_data["status"] == "arquivado"
+        assert set_data["arquivado_por"] == direcao_user.id
+        assert "arquivado_em" in set_data
+
+
+class TestDefesaVisibilityGate:
+    """Visibility='publico' não contorna o gate de status: um rascunho público
+    alheio continua invisível para o sócio comum."""
+
+    async def test_rascunho_publico_alheio_403(self, wired_defesa, socio_user):
+        wired_defesa.find_one = AsyncMock(
+            return_value={
+                "id": "d1",
+                "status": "rascunho",
+                "visibility": "publico",
+                "created_by": "outro",
+                "titulo": "X",
+            }
+        )
+        with pytest.raises(HTTPException) as exc:
+            await prof_route.get_defesa(defesa_id="d1", current_user=socio_user)
+        assert exc.value.status_code == 403
+
+
+class TestRelacaoVisibility:
+    async def test_default_visibility_socios(self, wired_relacoes, direcao_user, quiet_audit):
+        from models import RelacaoExternaCreate
+
+        result = await prof_route.create_relacao(
+            data=RelacaoExternaCreate(nome="Org", tipo="parceiro"),
+            current_user=direcao_user,
+        )
+        assert result["visibility"] == "socios"
+
+    async def test_visibility_publico_persistido(self, wired_relacoes, direcao_user, quiet_audit):
+        from models import RelacaoExternaCreate
+
+        result = await prof_route.create_relacao(
+            data=RelacaoExternaCreate(nome="Org", tipo="parceiro", visibility="publico"),
+            current_user=direcao_user,
+        )
+        assert result["visibility"] == "publico"

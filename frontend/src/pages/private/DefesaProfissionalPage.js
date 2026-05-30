@@ -342,7 +342,14 @@ const RejeicaoModal = ({ defesa, onClose }) => {
             className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none resize-none"
             data-testid="defesa-motivo-input"
           />
-          <button type="submit" disabled={saving} className="w-full btn-primary py-3 text-sm font-semibold">
+          {!motivo.trim() && (
+            <p className="text-xs text-gray-500">O motivo é obrigatório para rejeitar.</p>
+          )}
+          <button
+            type="submit"
+            disabled={saving || !motivo.trim()}
+            className="w-full btn-primary py-3 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             {saving ? 'A enviar...' : 'Rejeitar'}
           </button>
         </form>

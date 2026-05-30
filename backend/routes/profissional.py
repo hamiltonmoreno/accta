@@ -488,8 +488,10 @@ async def submeter_defesa(
         raise HTTPException(status_code=403, detail="So o autor ou a Direcao pode submeter")
 
     now = datetime.now(timezone.utc).isoformat()
-    await db.defesa_profissional.update_one(
-        {"id": defesa_id},
+    # Compare-and-swap: o status esperado entra no filtro para tornar a
+    # transicao atomica (evita a janela TOCTOU entre o find_one e o update).
+    result = await db.defesa_profissional.update_one(
+        {"id": defesa_id, "status": "rascunho"},
         {
             "$set": {
                 "status": "submetido",
@@ -499,6 +501,11 @@ async def submeter_defesa(
             }
         },
     )
+    if not result.matched_count:
+        raise HTTPException(
+            status_code=409,
+            detail="O estado mudou entretanto; recarregue e tente de novo",
+        )
     await create_audit_log(
         current_user.id,
         f"Submeteu para aprovacao: {defesa['tipo']} '{defesa['titulo']}'",
@@ -531,8 +538,10 @@ async def aprovar_defesa(
         )
 
     now = datetime.now(timezone.utc).isoformat()
-    await db.defesa_profissional.update_one(
-        {"id": defesa_id},
+    # Compare-and-swap: garante que so se publica se ainda estiver 'submetido'
+    # no momento da escrita (evita dupla-publicacao em pedidos concorrentes).
+    result = await db.defesa_profissional.update_one(
+        {"id": defesa_id, "status": "submetido"},
         {
             "$set": {
                 "status": "publicado",
@@ -543,6 +552,11 @@ async def aprovar_defesa(
             }
         },
     )
+    if not result.matched_count:
+        raise HTTPException(
+            status_code=409,
+            detail="O estado mudou entretanto; recarregue e tente de novo",
+        )
     await create_audit_log(
         current_user.id,
         f"Aprovou e publicou: {defesa['tipo']} '{defesa['titulo']}'",
@@ -587,8 +601,9 @@ async def rejeitar_defesa(
         )
 
     now = datetime.now(timezone.utc).isoformat()
-    await db.defesa_profissional.update_one(
-        {"id": defesa_id},
+    # Compare-and-swap: so rejeita se ainda estiver 'submetido' (atomicidade).
+    result = await db.defesa_profissional.update_one(
+        {"id": defesa_id, "status": "submetido"},
         {
             "$set": {
                 "status": "rascunho",
@@ -599,6 +614,11 @@ async def rejeitar_defesa(
             }
         },
     )
+    if not result.matched_count:
+        raise HTTPException(
+            status_code=409,
+            detail="O estado mudou entretanto; recarregue e tente de novo",
+        )
     await create_audit_log(
         current_user.id,
         f"Rejeitou submissao: {defesa['tipo']} '{defesa['titulo']}' (motivo: {payload.motivo[:80]})",
@@ -636,8 +656,9 @@ async def arquivar_defesa(
         )
 
     now = datetime.now(timezone.utc).isoformat()
-    await db.defesa_profissional.update_one(
-        {"id": defesa_id},
+    # Compare-and-swap: so arquiva a partir de um estado nao-arquivado (atomicidade).
+    result = await db.defesa_profissional.update_one(
+        {"id": defesa_id, "status": {"$in": ["publicado", "rascunho", "submetido"]}},
         {
             "$set": {
                 "status": "arquivado",
@@ -647,6 +668,11 @@ async def arquivar_defesa(
             }
         },
     )
+    if not result.matched_count:
+        raise HTTPException(
+            status_code=409,
+            detail="O estado mudou entretanto; recarregue e tente de novo",
+        )
     await create_audit_log(
         current_user.id,
         f"Arquivou {defesa['tipo']} '{defesa['titulo']}'",
