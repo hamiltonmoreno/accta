@@ -68,6 +68,9 @@ const HonorariosPage = lazy(() => import('./pages/private/HonorariosPage').then(
 // Cat 5 F2 — spec-fins-profissionais §6/§8
 const FormacoesPage = lazy(() => import('./pages/private/FormacoesPage').then((m) => ({ default: m.FormacoesPage })));
 const PublicacoesPage = lazy(() => import('./pages/private/PublicacoesPage').then((m) => ({ default: m.PublicacoesPage })));
+// Cat 5 F3 — spec-fins-profissionais §5/§7
+const DefesaProfissionalPage = lazy(() => import('./pages/private/DefesaProfissionalPage').then((m) => ({ default: m.DefesaProfissionalPage })));
+const RelacoesPage = lazy(() => import('./pages/private/RelacoesPage').then((m) => ({ default: m.RelacoesPage })));
 const NoticiaDetailPage = lazy(() => import('./pages/public/NoticiaDetailPage').then((m) => ({ default: m.NoticiaDetailPage })));
 const MfaSetupPage = lazy(() => import('./pages/MfaSetupPage').then((m) => ({ default: m.MfaSetupPage })));
 
@@ -241,6 +244,22 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <PrivateLayout><PublicacoesPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/defesa-profissional"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><DefesaProfissionalPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/relacoes-externas"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><RelacoesPage /></PrivateLayout>
             </ProtectedRoute>
           }
         />

@@ -580,3 +580,26 @@ export const publicacoesAPI = {
   update: (id, data) => api.patch(`/publicacoes/${id}`, data),
   delete: (id) => api.delete(`/publicacoes/${id}`),
 };
+
+// Cat 5 F3 — Defesa Profissional (com workflow de aprovação Direcção)
+export const defesaAPI = {
+  getAll: (params) => api.get('/defesa-profissional', { params }),
+  getOne: (id) => api.get(`/defesa-profissional/${id}`),
+  create: (data) => api.post('/defesa-profissional', data),
+  update: (id, data) => api.patch(`/defesa-profissional/${id}`, data),
+  delete: (id) => api.delete(`/defesa-profissional/${id}`),
+  submeter: (id) => api.post(`/defesa-profissional/${id}/submeter`),
+  aprovar: (id) => api.post(`/defesa-profissional/${id}/aprovar`),
+  rejeitar: (id, motivo) =>
+    api.post(`/defesa-profissional/${id}/rejeitar`, { motivo }),
+  arquivar: (id) => api.post(`/defesa-profissional/${id}/arquivar`),
+};
+
+// Cat 5 F3 — Relações externas / IFATCA
+export const relacoesAPI = {
+  getAll: (params) => api.get('/relacoes-externas', { params }),
+  getOne: (id) => api.get(`/relacoes-externas/${id}`),
+  create: (data) => api.post('/relacoes-externas', data),
+  update: (id, data) => api.patch(`/relacoes-externas/${id}`, data),
+  delete: (id) => api.delete(`/relacoes-externas/${id}`),
+};

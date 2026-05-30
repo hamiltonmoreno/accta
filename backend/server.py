@@ -241,6 +241,13 @@ async def startup_event():
         await seed_default_regulamentos()
     except Exception as e:  # noqa: BLE001 - seed non-fatal
         logger.warning(f"seed_default_regulamentos warning (non-fatal): {e}")
+    # Semente idempotente da IFATCA (spec-fins-profissionais §7.1, Cat 5 F3).
+    try:
+        from routes.profissional import seed_ifatca
+
+        await seed_ifatca()
+    except Exception as e:  # noqa: BLE001 - seed non-fatal
+        logger.warning(f"seed_ifatca warning (non-fatal): {e}")
 
 
 @app.on_event("shutdown")

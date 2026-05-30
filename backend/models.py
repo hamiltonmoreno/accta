@@ -2268,17 +2268,19 @@ class ExercicioAprovar(BaseModel):
 
 class RankingAjuste(BaseModel):
     """Delta manual auditável (o "registar" do que o sistema não infere)."""
+
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: str                       # membro pontuado
-    period_key: str                    # "2026" | "all"
-    delta: float                       # +/-; pode ser negativo
-    reason: str                        # obrigatório, auditável
-    created_by: str                    # admin/Direcção que registou
+    user_id: str  # membro pontuado
+    period_key: str  # "2026" | "all"
+    delta: float  # +/-; pode ser negativo
+    reason: str  # obrigatório, auditável
+    created_by: str  # admin/Direcção que registou
     created_at: str
 
 
 class RankingAjusteCreate(BaseModel):
     """Body do registo de ajuste manual (F4)."""
+
     user_id: str
     period_key: str = Field(min_length=1, max_length=16)
     delta: float
@@ -2294,24 +2296,26 @@ class RankingAjusteCreate(BaseModel):
 
 class MemberScore(BaseModel):
     """Cache materializada (derivada/descartável) — uma linha do leaderboard."""
+
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
     period_key: str
     score: float
-    rank: int                          # 1 = topo (dentro do período)
-    breakdown: dict                    # {chave: {"count": int, "points": float}}
+    rank: int  # 1 = topo (dentro do período)
+    breakdown: dict  # {chave: {"count": int, "points": float}}
     # snapshot de display (evita join no leaderboard)
     member_name: str
     member_id: Optional[str] = None
     cargo: Optional[str] = None
     photo_url: Optional[str] = None
-    status: str                        # ativo/inativo
-    ranking_opt_out: bool = False      # denormalizado p/ filtrar listas públicas (§2.5)
+    status: str  # ativo/inativo
+    ranking_opt_out: bool = False  # denormalizado p/ filtrar listas públicas (§2.5)
     computed_at: str
 
 
 class RankingSettings(BaseModel):
     """Doc único de configuração do ranking (editável por admin na F4)."""
+
     weights: dict = Field(default_factory=dict)  # defaults aplicados por load_settings()
     max_like_points_per_period: int = 50
     visibility: Literal["all_members", "direcao_only"] = "all_members"
@@ -2324,6 +2328,7 @@ class RankingSettings(BaseModel):
 
 class RankingSettingsUpdate(BaseModel):
     """Body parcial de edição de definições (F4)."""
+
     weights: Optional[dict] = None
     max_like_points_per_period: Optional[int] = Field(default=None, ge=0)
     visibility: Optional[Literal["all_members", "direcao_only"]] = None
@@ -2333,6 +2338,7 @@ class RankingSettingsUpdate(BaseModel):
 
 class RankingOptOut(BaseModel):
     """Body do opt-out do próprio membro (F5, §2.5)."""
+
     opt_out: bool
 
 
@@ -2348,6 +2354,7 @@ FORMACAO_TIPOS = ["formacao", "certificacao", "material"]
 class Formacao(BaseModel):
     """Catálogo de formações, certificações e materiais para desenvolvimento
     técnico-profissional dos sócios (spec-fins-profissionais §6.1)."""
+
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     titulo: str
@@ -2400,6 +2407,7 @@ PUBLICACAO_VISIBILITIES = ["publico", "socios"]
 class Publicacao(BaseModel):
     """Publicações formais da associação — revista, boletim, artigo, relatório
     técnico (spec-fins-profissionais §8.1). Venda fica para F5 (Cat. 4)."""
+
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     titulo: str
@@ -2442,3 +2450,125 @@ class PublicacaoUpdate(BaseModel):
     a_venda: Optional[bool] = None
     preco: Optional[float] = Field(default=None, ge=0)
     # tipo é imutável após criação (define listagem/filtros); não está aqui.
+
+
+# ============================================================================
+# Cat 5 F3 — Defesa Profissional + Relações/IFATCA
+# (spec-fins-profissionais §5/§7)
+# ============================================================================
+
+# 5.2 Defesa Profissional (Art. 2.a)
+# Fluxo com aprovação da Direcção (decisão dono 2026-05-29, §14 #3):
+#   rascunho -> submetido -> publicado | rascunho (rejeitado) -> arquivado
+DEFESA_TIPOS = ["representacao", "tomada_posicao", "comunicado"]
+DEFESA_STATUSES = ["rascunho", "submetido", "publicado", "arquivado"]
+DEFESA_VISIBILITIES = ["socios", "publico"]
+
+
+class DefesaProfissional(BaseModel):
+    """Registo de representações e tomadas de posição em defesa dos interesses
+    profissionais dos controladores (spec-fins-profissionais §5.1)."""
+
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    titulo: str
+    tipo: Literal["representacao", "tomada_posicao", "comunicado"]
+    descricao: str = ""
+    entidade_destino: Optional[str] = None
+    data: str  # ISO 8601, data do facto/representação
+    status: Literal["rascunho", "submetido", "publicado", "arquivado"] = "rascunho"
+    document_id: Optional[str] = None
+    visibility: Literal["socios", "publico"] = "socios"
+    # Workflow de aprovação (segregação criador != aprovador)
+    submetido_em: Optional[str] = None
+    submetido_por: Optional[str] = None
+    aprovado_em: Optional[str] = None
+    aprovado_por: Optional[str] = None
+    motivo_rejeicao: Optional[str] = None
+    arquivado_em: Optional[str] = None
+    arquivado_por: Optional[str] = None
+    created_by: str = ""
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    source_article: str = "2.a"
+
+
+class DefesaProfissionalCreate(BaseModel):
+    titulo: str = Field(min_length=1)
+    tipo: Literal["representacao", "tomada_posicao", "comunicado"]
+    descricao: str = ""
+    entidade_destino: Optional[str] = None
+    data: str = Field(min_length=1)
+    document_id: Optional[str] = None
+    visibility: Literal["socios", "publico"] = "socios"
+
+
+class DefesaProfissionalUpdate(BaseModel):
+    titulo: Optional[str] = Field(default=None, min_length=1)
+    descricao: Optional[str] = None
+    entidade_destino: Optional[str] = None
+    data: Optional[str] = None
+    document_id: Optional[str] = None
+    visibility: Optional[Literal["socios", "publico"]] = None
+    # tipo e status NÃO editáveis aqui — status muda só por endpoints de transição.
+
+
+class DefesaRejeicao(BaseModel):
+    motivo: str = Field(min_length=1)
+
+
+# 5.4 Cooperação e filiação IFATCA (Art. 2.f, 31.g, 53)
+RELACAO_TIPOS = ["federacao_internacional", "associacao_congenere", "parceiro"]
+ESTADOS_FILIACAO = ["filiado", "em_negociacao", "nao_filiado", "suspenso"]
+RELACAO_VISIBILITIES = ["socios", "publico"]
+
+
+class RelacaoExterna(BaseModel):
+    """Diretório de relações com a IFATCA e associações congéneres, com o
+    estado da filiação (spec-fins-profissionais §7.1)."""
+
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    nome: str
+    tipo: Literal["federacao_internacional", "associacao_congenere", "parceiro"]
+    descricao: Optional[str] = None
+    website: Optional[str] = None
+    contacto: Optional[str] = None
+    estado_filiacao: Literal["filiado", "em_negociacao", "nao_filiado", "suspenso"] = "nao_filiado"
+    desde: Optional[str] = None  # ISO 8601, data inicial da filiação
+    quota_anual: Optional[float] = Field(default=None, ge=0)
+    logo_url: Optional[str] = None
+    documentos: list[str] = Field(default_factory=list)  # document_ids de acordos
+    visibility: Literal["socios", "publico"] = "socios"
+    created_by: str = ""
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    source_article: str = "2.f"
+
+
+class RelacaoExternaCreate(BaseModel):
+    nome: str = Field(min_length=1)
+    tipo: Literal["federacao_internacional", "associacao_congenere", "parceiro"]
+    descricao: Optional[str] = None
+    website: Optional[str] = None
+    contacto: Optional[str] = None
+    estado_filiacao: Literal["filiado", "em_negociacao", "nao_filiado", "suspenso"] = "nao_filiado"
+    desde: Optional[str] = None
+    quota_anual: Optional[float] = Field(default=None, ge=0)
+    logo_url: Optional[str] = None
+    documentos: list[str] = Field(default_factory=list)
+    visibility: Literal["socios", "publico"] = "socios"
+
+
+class RelacaoExternaUpdate(BaseModel):
+    nome: Optional[str] = Field(default=None, min_length=1)
+    descricao: Optional[str] = None
+    website: Optional[str] = None
+    contacto: Optional[str] = None
+    estado_filiacao: Optional[Literal["filiado", "em_negociacao", "nao_filiado", "suspenso"]] = None
+    desde: Optional[str] = None
+    quota_anual: Optional[float] = Field(default=None, ge=0)
+    logo_url: Optional[str] = None
+    documentos: Optional[list[str]] = None
+    visibility: Optional[Literal["socios", "publico"]] = None
+    # tipo é imutável após criação.
