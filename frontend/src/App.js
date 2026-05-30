@@ -29,6 +29,8 @@ const ContactosPage = lazy(() => import('./pages/public/ContactosPage').then((m)
 const EventosPublicoPage = lazy(() => import('./pages/public/EventosPublicoPage').then((m) => ({ default: m.EventosPublicoPage })));
 const GaleriaPage = lazy(() => import('./pages/public/GaleriaPage').then((m) => ({ default: m.GaleriaPage })));
 const CriarContaPage = lazy(() => import('./pages/public/CriarContaPage').then((m) => ({ default: m.CriarContaPage })));
+// Cat 5 F4 — catálogo público de publicações
+const PublicacoesPublicoPage = lazy(() => import('./pages/public/PublicacoesPublicoPage').then((m) => ({ default: m.PublicacoesPublicoPage })));
 
 // Private pages — lazy. They're only loaded after a user logs in, so we
 // don't want their bundle weight on the public landing page.
@@ -133,6 +135,7 @@ function AppRoutes() {
         <Route path="/contactos" element={<PublicLayout><ContactosPage /></PublicLayout>} />
         <Route path="/eventos-publico" element={<PublicLayout><EventosPublicoPage /></PublicLayout>} />
         <Route path="/galeria" element={<PublicLayout><GaleriaPage /></PublicLayout>} />
+        <Route path="/publicacoes-publico" element={<PublicLayout><PublicacoesPublicoPage /></PublicLayout>} />
         <Route path="/validador" element={<PublicLayout><ValidadorPage /></PublicLayout>} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />

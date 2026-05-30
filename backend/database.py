@@ -949,6 +949,8 @@ _INDEX_DDL: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS ix_formacoes_tipo ON \"formacoes\" ((doc->>'tipo'))",
     "CREATE INDEX IF NOT EXISTS ix_formacoes_ativo ON \"formacoes\" ((doc->>'ativo'))",
     "CREATE INDEX IF NOT EXISTS ix_formacoes_categoria ON \"formacoes\" ((doc->>'categoria'))",
+    # F4 — recorte público (visibility, ativo)
+    "CREATE INDEX IF NOT EXISTS ix_formacoes_vis_ativo ON \"formacoes\" ((doc->>'visibility'), (doc->>'ativo'))",
     # fins profissionais Cat 5 F2 — publicacoes (spec-fins-profissionais §8/§9)
     "CREATE INDEX IF NOT EXISTS ix_publicacoes_tipo ON \"publicacoes\" ((doc->>'tipo'))",
     'CREATE INDEX IF NOT EXISTS ix_publicacoes_vis_data ON "publicacoes" '

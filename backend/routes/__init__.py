@@ -31,6 +31,7 @@ from routes.prestacao_contas import router as prestacao_contas_router
 from routes.comunicados import router as comunicados_router
 from routes.ranking import router as ranking_router
 from routes.profissional import router as profissional_router
+from routes.public_profissional import router as public_profissional_router
 
 api_router = APIRouter(prefix="/api")
 
@@ -66,3 +67,4 @@ api_router.include_router(prestacao_contas_router)
 api_router.include_router(comunicados_router)
 api_router.include_router(ranking_router)
 api_router.include_router(profissional_router)
+api_router.include_router(public_profissional_router)
