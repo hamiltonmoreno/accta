@@ -59,7 +59,7 @@
 - [x] `pytest tests/test_profissional_routes.py` → **86 passed**.
 - [x] `ruff check . && ruff format --check .` → limpo.
 - [x] `eslint src/ --max-warnings=60` → limpo; `craco build` → Compiled successfully.
-- [ ] PR para `develop` (a abrir).
+- [x] PR para `develop` — **#138**.
 
 ## Revisão multi-agente (pré-PR) — resultado
 
