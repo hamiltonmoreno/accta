@@ -45,17 +45,22 @@ confortáveis; (d) verificar nas 7 larguras de teste.
 
 | ID | Severidade | Classe | Magnitude / localização | Risco |
 |----|-----------|--------|--------------------------|-------|
-| **R1** | 🟠 ALTO | Larguras fixas em `px` que podem estourar a 360–390px | **29** ocorrências `w-[…px]`/`min-w-[…px]`. Subconjunto de risco real (texto/filtro, não célula de tabela): `EventosPage.js:191` `w-[200px]`, `financeiro/CashFlowTab.js:259` `w-[200px]`, `AdminMarcaPage.js:21` `w-[200px]`, `BrandLogo.js:38` `w-[180px]` | seletor/filtro/logo mais largo que metade de um ecrã estreito |
+| **R1** | ✅ VERIFICADO (sem defeito) | Larguras fixas em `px` | Só **5** `w-[…px]` reais, todos legítimos: `NotificationBell.js:73` (`w-[400px] max-w-[90vw]` já protegido), `drawer.jsx:38`/`separator.jsx:16` (primitivos shadcn), `PrivateLayout.js:367/439` (`w-[18px]/[20px]` ícones). Os `max-w-[…px]` em `EventosPage:191`, `CashFlowTab:259`, `AdminMarcaPage:21`, `BrandLogo:38` são **tetos** + `truncate`/`object-contain` = padrão correto | nenhum — **não mexer** (ver nota de revisão abaixo) |
 | **R2** | 🟡 MÉDIO | Grids que saltam 1→3/4 sem passo `sm:`/`md:` | `CarteiraPage.js:335` `grid-cols-1 md:grid-cols-3`; `AdminComunicadosPage.js:458` `grid-cols-1 xl:grid-cols-3` | salto brusco; tablet (768/1024) subaproveitado |
 | **R3** | 🟡 MÉDIO | Páginas densas sem escala responsiva | ~58 ficheiros sem prefixos `sm:/md:/lg:`; priorizar **páginas** (não átomos UI): varrer `pages/private/*` e `pages/public/*` | conteúdo apertado ou esticado em larguras intermédias |
-| **R4** | 🟡 MÉDIO | `min-w-[…px]` em colunas de tabela | `ProjectDetailPage.js:101/333/441/592`, `ProjectsPage.js:321`, `AssembleiaSalaPage.js:272/850`, `AdminDisciplinarPage.js:262/274`, `CashFlowTab.js:160` | **aceitável** se a tabela tem wrapper `overflow-x-auto`; **defeito** se a tabela é o layout e empurra a página → overflow horizontal global |
+| **R4** | ✅ VERIFICADO (sem defeito) | `min-w-[…px]` (**não são colunas de tabela**) | Dois grupos, ambos corretos: **(a) alvos de toque** `min-w-[44px]/[48px]` (`AdminNoticiasPage:170/179`, `NotificacoesPage:326`, `MuralPage:522/532`, `PrivateLayout:293/365/438`) → desejável, suporta a Fase 5; **(b) filtros/campos em `flex flex-wrap`** com `flex-1`/`max-w-xs` (`ProjectsPage:321`, `CashFlowTab:160`, `AdminDisciplinarPage:262/274`, `ProjectDetailPage:101/333/441/592`, `AssembleiaSalaPage:272/850`) → padrão de wrapping correto | nenhum — só **verificar** fallback fluido (ver nota abaixo) |
 | **R5** | 🟢 BAIXO | `style={{…}}` inline (convenção: só Tailwind) | **37** ocorrências; maioria **legítima e fora de escopo** (flip 3D do cartão `CarteiraPage.js:213-280`, cor de série de gráfico `FinanceCharts.jsx:17`, tamanho dinâmico do logo `ACCTALogo.js:18`, largura dinâmica da sidebar `PrivateLayout.js:458`) | só migrar para Tailwind os que forem **espaçamento/largura estáticos** |
 
-> **Nota de triagem (R4):** `min-w-[…px]` **dentro** de `<Table>` ou de um
-> `div.overflow-x-auto` é o padrão **correto** (a tabela rola, a página não).
-> Só é defeito quando a largura mínima vive fora de um contentor com scroll e
-> propaga para o `<body>`. A Fase 2 classifica cada ocorrência por este
-> critério — não remover `min-w-[…px]` de tabela cegamente.
+> **Nota de revisão (correção à v1 desta spec):** a auditoria inicial reportou
+> "29 larguras fixas em px" e tratou os `min-w-[…px]` como colunas de tabela —
+> ambos **incorretos** (artefacto de grep que apanhou o `w-[…px]` interno de
+> `max-w-[…px]`; revisão do Codex na PR #139). Verificado linha-a-linha:
+> **não há larguras fixas problemáticas** (R1) e **nenhum `min-w-[…px]` é
+> coluna de tabela** (R4) — os maiores são filtros em `flex flex-wrap`
+> (já responsivos) e os de 44/48px são alvos de toque (desejáveis). **Não
+> envolver estes controlos em `overflow-x-auto` nem trocar `max-w-` por
+> `w-full`** — mudaria comportamento sem reduzir risco. O trabalho real
+> concentra-se em R2 (grids) e R3 (escala de páginas).
 
 ---
 
@@ -168,26 +173,30 @@ Antes de tocar páginas, instalar a rede de segurança contra overflow horizonta
 - [ ] **Aceitação:** a 360px, nenhuma página tem barra de scroll horizontal;
   `yarn build` OK.
 
-### Fase 1 — 🟠 R1: eliminar larguras fixas perigosas
-Substituir `w-[…px]` de filtros/seletores/logos por largura fluida com teto.
+### Fase 1 — ✅ R1: larguras fixas (verificação, sem alteração esperada)
+A v1 sobre-reportou `w-[…px]` (artefacto de grep sobre `max-w-[…px]`).
+Verificado: não há larguras fixas problemáticas. Esta fase **guarda contra
+regressão**, não altera código.
 
-- [ ] `EventosPage.js:191`, `financeiro/CashFlowTab.js:259`, `AdminMarcaPage.js:21`
-  (`w-[200px]`) → `w-full sm:w-[200px]` (full no mobile, fixo só a partir de sm).
-- [ ] `BrandLogo.js:38` (`w-[180px]`) → `w-full max-w-[180px]` (ou manter se for
-  logo de tamanho intencional — verificar contexto antes).
-- [ ] Reavaliar `NotificationBell.js:73` — já tem `max-w-[90vw]` ✅, manter.
-- [ ] **Aceitação:** nenhum `w-[…px]` sem fallback fluido fora de tabela;
-  filtros usáveis a 360px sem overflow.
+- [ ] Confirmar que os 5 `w-[…px]` reais permanecem legítimos: `NotificationBell.js:73`
+  (`max-w-[90vw]`), `drawer.jsx`/`separator.jsx` (primitivos), `PrivateLayout.js:367/439`
+  (ícones). **Não alterar.**
+- [ ] Confirmar que os `max-w-[…px]` (tetos + `truncate`/`object-contain`) permanecem
+  como caps. **Não trocar por `w-full`** — removeria o teto.
+- [ ] **Aceitação:** nenhum `w-[…px]` **novo** sem `max-w`/fallback fluido
+  introduzido; 360px sem overflow.
 
-### Fase 2 — 🟡 R4: classificar `min-w-[…px]` de tabela
-Aplicar o critério de triagem (R4) a cada ocorrência.
+### Fase 2 — ✅ R4: `min-w-[…px]` (verificação, sem alteração esperada)
+Verificado: **nenhum** é coluna de tabela. (a) touch-targets 44/48px → manter
+(suportam a Fase 5); (b) filtros/campos em `flex flex-wrap` → padrão correto.
 
-- [ ] Para cada `min-w-[…px]` em `ProjectDetailPage.js`, `ProjectsPage.js`,
-  `AssembleiaSalaPage.js`, `AdminDisciplinarPage.js`, `CashFlowTab.js`:
-  confirmar que está dentro de `<Table>`/`overflow-x-auto`. Se sim → **manter**
-  (padrão correto). Se não → envolver num wrapper `overflow-x-auto`.
-- [ ] **Aceitação:** toda largura mínima de coluna vive sob um contentor com
-  scroll; varredura a 360–768px sem overflow global causado por tabela.
+- [ ] Para cada filtro/campo com `min-w-[…px]` em `flex-wrap` (`ProjectsPage:321`,
+  `CashFlowTab:160`, `AdminDisciplinarPage:262/274`, `ProjectDetailPage:101/333/441/592`,
+  `AssembleiaSalaPage:272/850`), confirmar que tem `flex-1` ou `w-full` para
+  embrulhar limpo a 360px; só ajustar **se faltar** o fallback fluido. **Não**
+  envolver em `overflow-x-auto`.
+- [ ] **Aceitação:** filtros embrulham (não cortam nem causam overflow) a
+  360–768px; alvos de toque ≥44px preservados.
 
 ### Fase 3 — 🟡 R2: suavizar grids com salto
 - [ ] `CarteiraPage.js:335` `grid-cols-1 md:grid-cols-3` →
@@ -259,16 +268,19 @@ listar ficheiros sem `sm:/md:/lg:` e propor o diff mínimo.
 
 ```
 Fase 0 ─► Fase 1 ─► Fase 2 ─► Fase 3 ─► Fase 4 ─► Fase 5 ─► Fase 6
-(guarda)  (R1 px)   (R4 tbl)  (R2 grid) (R3 esc.) (a11y)    (QA 7w)
+(guarda)  (R1 ✅verif)(R4 ✅verif)(R2 grid)(R3 esc.) (a11y)    (QA 7w)
 ```
 
 - **Fase 0 primeiro** (guarda anti-overflow) torna qualquer regressão de scroll-x
   imediatamente visível nas fases seguintes.
+- **Fases 1–2 são apenas verificação** (R1/R4 confirmados como não-defeito) — o
+  trabalho real de remediação está em **R2 (Fase 3)** e **R3 (Fase 4)**.
 - Fases 1–5 são largamente independentes após a 0 → podem ser PRs paralelos,
-  mas a ordem por severidade é a recomendada.
+  mas a ordem é a recomendada.
 - **Risco baixo**: nenhuma mudança de backend, dados, auth ou tokens de design.
-  O maior risco é remover um `min-w-[…px]` legítimo de tabela (Fase 2) — sempre
-  classificar antes de remover.
+  O risco a evitar é **introduzir** alterações onde não há defeito (trocar
+  `max-w-` por `w-full`, ou embrulhar filtros em `overflow-x-auto`) — Fases 1–2
+  existem para travar isso.
 - **Stop condition:** se uma fase exceder 3 ficheiros não previstos, ou um build
   quebrar de forma não óbvia, parar e re-planear (CLAUDE.md).
 
@@ -286,6 +298,9 @@ Fase 0 ─► Fase 1 ─► Fase 2 ─► Fase 3 ─► Fase 4 ─► Fase 5 ─
 _Spec gerada a partir de auditoria de `frontend/src/` (129 ficheiros de
 página/componente; 71 já com prefixos responsivos; breakpoints já alinhados em
 `tailwind.config.js:11-18`; nav mobile presente em ambos os layouts; `<img>`
-todas com `object-*`; 29 larguras fixas em px e 2 grids com salto identificados)
-contra `.claude/skills/frontend-design/SKILL.md` e as diretrizes mobile-first do
-pedido. Nenhum código de frontend foi alterado na criação desta spec._
+todas com `object-*`) contra `.claude/skills/frontend-design/SKILL.md` e as
+diretrizes mobile-first do pedido. Revista após o code-review do Codex na PR
+#139: confirmado que **não há larguras fixas em px problemáticas** (R1) e que
+**nenhum `min-w-[…px]` é coluna de tabela** (R4) — o trabalho real concentra-se
+em 2 grids com salto (R2) e na escala responsiva de páginas densas (R3).
+Nenhum código de frontend foi alterado na criação/revisão desta spec._
