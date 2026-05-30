@@ -30,7 +30,7 @@
   (status esperado no filtro do `update_one` + `matched_count` → 409) para
   fechar a janela TOCTOU entre `find_one` e `update_one`.
 
-## Testes backend (86 no total, +14 pós-review)
+## Testes backend (90 no total, +18 pós-review)
 
 - [x] CRUD + RBAC (sócio comum 403 em escritas).
 - [x] Fluxo: rascunho→submetido (autor); submetido→publicado (Direcção ≠ autor);
@@ -56,7 +56,7 @@
 
 ## Verificação
 
-- [x] `pytest tests/test_profissional_routes.py` → **86 passed**.
+- [x] `pytest tests/test_profissional_routes.py` → **90 passed**.
 - [x] `ruff check . && ruff format --check .` → limpo.
 - [x] `eslint src/ --max-warnings=60` → limpo; `craco build` → Compiled successfully.
 - [x] PR para `develop` — **#138**.
@@ -73,15 +73,16 @@ consolidados:
   backend **rejeita** o autor a aprovar a própria submissão, `profissional.py`
   L527-531; o frontend espelha com `!isAuthor`); achados sobre código-fantasma.
 
-### A confirmar com o dono (NÃO alterado — decisões de máquina de estados)
+### Decisões de máquina de estados — RESOLVIDAS (alinhadas com a spec)
 
-1. **`arquivar` a partir de `submetido`/`rascunho`** — hoje um único membro da
-   Direcção pode arquivar (descartar) uma submissão pendente sem 2.º aprovador,
-   e `arquivado` é terminal (sem reabertura). Restringir a `publicado`? Permitir
-   reabrir?
-2. **Editar enquanto `submetido`** — `update_defesa` permite editar conteúdo em
-   `submetido`; o aprovador poderia aprovar conteúdo diferente do revisto.
-   Restringir edição a `rascunho` (ou re-armar para `rascunho` ao editar)?
+1. **`arquivar` → só a partir de `publicado`** (`publicado → arquivado`, como na
+   spec). Remove o *bypass* de segregação (um membro sozinho não descarta um
+   `submetido`). Saídas limpas por estado: `rascunho`→`delete`/`submeter`;
+   `submetido`→`rejeitar` (volta a rascunho)/`aprovar`; `arquivado` pode ser
+   apagado (`delete` só bloqueia `publicado`). Backend + frontend + testes.
+2. **Editar → só em `rascunho`** — garante que o conteúdo aprovado é o que foi
+   submetido. Para alterar um `submetido`: `rejeitar` → `rascunho` → editar →
+   re-submeter → re-aprovar. Backend + frontend (`canEdit`) + testes.
 
 ### Latente para F4 (sem fuga hoje — todas as leituras exigem auth)
 

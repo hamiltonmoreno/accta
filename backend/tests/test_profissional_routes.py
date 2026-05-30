@@ -532,7 +532,33 @@ class TestDefesaGet:
 
 
 class TestDefesaUpdate:
-    async def test_so_edita_rascunho_ou_submetido(self, wired_defesa, direcao_user, quiet_audit):
+    async def test_edita_rascunho(self, wired_defesa, direcao_user, quiet_audit):
+        from models import DefesaProfissionalUpdate
+
+        first = {"id": "d1", "status": "rascunho", "titulo": "X", "tipo": "comunicado"}
+        wired_defesa.find_one = AsyncMock(side_effect=[first, {**first, "titulo": "Novo"}])
+        result = await prof_route.update_defesa(
+            defesa_id="d1",
+            data=DefesaProfissionalUpdate(titulo="Novo"),
+            current_user=direcao_user,
+        )
+        assert result["titulo"] == "Novo"
+
+    async def test_nao_edita_submetido(self, wired_defesa, direcao_user, quiet_audit):
+        from models import DefesaProfissionalUpdate
+
+        wired_defesa.find_one = AsyncMock(
+            return_value={"id": "d1", "status": "submetido", "titulo": "X", "tipo": "comunicado"}
+        )
+        with pytest.raises(HTTPException) as exc:
+            await prof_route.update_defesa(
+                defesa_id="d1",
+                data=DefesaProfissionalUpdate(titulo="Novo"),
+                current_user=direcao_user,
+            )
+        assert exc.value.status_code == 400
+
+    async def test_nao_edita_publicado(self, wired_defesa, direcao_user, quiet_audit):
         from models import DefesaProfissionalUpdate
 
         wired_defesa.find_one = AsyncMock(
@@ -728,6 +754,23 @@ class TestDefesaArquivar:
     async def test_nao_re_arquiva(self, wired_defesa, direcao_user, quiet_audit):
         wired_defesa.find_one = AsyncMock(
             return_value={"id": "d1", "status": "arquivado", "titulo": "X", "tipo": "comunicado"}
+        )
+        with pytest.raises(HTTPException) as exc:
+            await prof_route.arquivar_defesa(defesa_id="d1", current_user=direcao_user)
+        assert exc.value.status_code == 400
+
+    async def test_nao_arquiva_submetido(self, wired_defesa, direcao_user, quiet_audit):
+        # Arquivar so a partir de publicado: um submetido nao salta a aprovacao.
+        wired_defesa.find_one = AsyncMock(
+            return_value={"id": "d1", "status": "submetido", "titulo": "X", "tipo": "comunicado"}
+        )
+        with pytest.raises(HTTPException) as exc:
+            await prof_route.arquivar_defesa(defesa_id="d1", current_user=direcao_user)
+        assert exc.value.status_code == 400
+
+    async def test_nao_arquiva_rascunho(self, wired_defesa, direcao_user, quiet_audit):
+        wired_defesa.find_one = AsyncMock(
+            return_value={"id": "d1", "status": "rascunho", "titulo": "X", "tipo": "comunicado"}
         )
         with pytest.raises(HTTPException) as exc:
             await prof_route.arquivar_defesa(defesa_id="d1", current_user=direcao_user)
@@ -1021,10 +1064,10 @@ class TestDefesaAuditEConteudo:
         assert set_data["submetido_em"] is None
         assert set_data["submetido_por"] is None
 
-    async def test_arquiva_submetido_grava_metadados(self, wired_defesa, direcao_user, quiet_audit):
+    async def test_arquiva_publicado_grava_metadados(self, wired_defesa, direcao_user, quiet_audit):
         first = {
             "id": "d1",
-            "status": "submetido",
+            "status": "publicado",
             "created_by": "x",
             "titulo": "X",
             "tipo": "comunicado",

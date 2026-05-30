@@ -37,12 +37,14 @@ const DefesaCard = ({ defesa, canManage, currentUserId, onEdit, onDelete, onSubm
   const VisIcon = defesa.visibility === 'publico' ? Globe : Lock;
 
   // Ações contextuais por status × papel × autor.
-  const canEdit = canManage && (defesa.status === 'rascunho' || defesa.status === 'submetido');
+  // Editar só em rascunho (o que é aprovado tem de ser o que foi submetido);
+  // arquivar só a partir de publicado (publicado → arquivado).
+  const canEdit = canManage && defesa.status === 'rascunho';
   const canDelete = canManage && defesa.status !== 'publicado' && defesa.status !== 'arquivado';
   const canSubmeter = defesa.status === 'rascunho' && (isAuthor || canManage);
   const canAprovar = canManage && defesa.status === 'submetido' && !isAuthor;
   const canRejeitar = canManage && defesa.status === 'submetido' && !isAuthor;
-  const canArquivar = canManage && (defesa.status === 'publicado' || defesa.status === 'rascunho' || defesa.status === 'submetido');
+  const canArquivar = canManage && defesa.status === 'publicado';
 
   return (
     <div

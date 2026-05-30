@@ -417,10 +417,13 @@ async def update_defesa(
     defesa = await db.defesa_profissional.find_one({"id": defesa_id}, {"_id": 0})
     if not defesa:
         raise HTTPException(status_code=404, detail="Registo nao encontrado")
-    if defesa["status"] not in ("rascunho", "submetido"):
+    # Editar so em rascunho: garante que o conteudo aprovado e o que foi submetido
+    # (a aprovacao nao pode incidir sobre conteudo alterado apos a submissao).
+    # Para alterar um submetido: rejeitar (volta a rascunho) -> editar -> re-submeter.
+    if defesa["status"] != "rascunho":
         raise HTTPException(
             status_code=400,
-            detail=f"So e possivel editar enquanto rascunho/submetido (status actual: {defesa['status']})",
+            detail=f"So e possivel editar enquanto rascunho (status actual: {defesa['status']})",
         )
 
     updates = {k: v for k, v in data.model_dump().items() if v is not None}
@@ -649,16 +652,19 @@ async def arquivar_defesa(
     defesa = await db.defesa_profissional.find_one({"id": defesa_id}, {"_id": 0})
     if not defesa:
         raise HTTPException(status_code=404, detail="Registo nao encontrado")
-    if defesa["status"] not in ("publicado", "rascunho", "submetido"):
+    # So registos publicados sao arquivados (publicado -> arquivado): evita que um
+    # unico membro da Direccao descarte uma submissao pendente sem o 2.o aprovador.
+    # rascunho descarta-se via delete; submetido rejeita-se (volta a rascunho).
+    if defesa["status"] != "publicado":
         raise HTTPException(
             status_code=400,
-            detail=f"Ja arquivado (status: {defesa['status']})",
+            detail=f"So registos publicados podem ser arquivados (status: {defesa['status']})",
         )
 
     now = datetime.now(timezone.utc).isoformat()
-    # Compare-and-swap: so arquiva a partir de um estado nao-arquivado (atomicidade).
+    # Compare-and-swap: so arquiva se ainda estiver 'publicado' (atomicidade).
     result = await db.defesa_profissional.update_one(
-        {"id": defesa_id, "status": {"$in": ["publicado", "rascunho", "submetido"]}},
+        {"id": defesa_id, "status": "publicado"},
         {
             "$set": {
                 "status": "arquivado",
