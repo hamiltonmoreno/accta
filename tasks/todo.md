@@ -1,59 +1,61 @@
-# Cat 5 F4 — Superfícies públicas (ProfissaoPage + Publicações)
+# Cat 5 F5 — Venda de publicações (integra Cat. 4)
 
-> Origem: `tasks/spec-fins-profissionais.md` §8.2, §10, §11 (F4), §12.
-> Ramo: `feature/cat5-f4-superficies-publicas` (empilhado sobre F3 / PR #138).
-> Depende de F1–F3 (F2 #135 em develop; F3 #138 aberto).
+> Origem: `tasks/spec-fins-profissionais.md` §8.2, §11 (F5), §14.5.
+> Ramo: `feature/cat5-f5-venda-publicacoes` (empilhado sobre F4 / PR #140).
+> Depende de F2 (publicações, develop) + Cat. 4 (invoices/receitas, develop) + F4
+> (superfície pública, PR #140, para mostrar o preço ao público).
 
-## Decisões (recomendadas, alinhadas à spec — autorizado pelo dono)
+## Decisões confirmadas com o dono (2026-05-30)
 
-- **Router público dedicado** `routes/public_profissional.py` com prefixo
-  `/public/...` (evita colisão com as rotas `/{id}` autenticadas; sem auth).
-- **Recorte público** no query do DAO + **projeção** que exclui campos internos
-  (`created_by`, workflow `submetido_*`/`aprovado_*`/`motivo_rejeicao`,
-  `contacto`, `quota_anual`, `a_venda`, `preco`):
-  - defesa: `status="publicado"` AND `visibility="publico"`.
-  - relações: `visibility="publico"`.
-  - publicações: `visibility="publico"` (download via `/documents/public/{id}`).
-  - formações: `visibility="publico"` AND `ativo=true`.
-- **Formacao ganha `visibility`** (aditivo/opcional, default `socios`; §13).
-- Página pública em **`/publicacoes-publico`** (`/publicacoes` já é a rota privada
-  do catálogo de sócios — não reutilizar).
+- **Pagamento = faturas internas** (não gateway externo). A receita externa
+  regista-se em **Cat. 4** com `category="venda_publicacoes"` (já existente em
+  `models.py`); sem integração de pagamentos online.
+- **Sócios não pagam** — descarregam grátis; a venda aplica-se a não-sócios.
+
+## Consequência de desenho (honesta)
+
+Como **só sócios têm conta** no portal e **não pagam**, não há comprador
+in-portal: não se cria um endpoint `comprar` vestigial. F5 = **permitir marcar à
+venda + preço**, **mostrar o preço** (público) e **proteger o conteúdo pago**;
+a receita regista-se pela via financeira existente (`venda_publicacoes`).
 
 ## Backend
 
-- [x] `models.py`: `Formacao`/Create/Update ganham `visibility` + `FORMACAO_VISIBILITIES`.
-- [x] `database.py`: índice `ix_formacoes_vis_ativo`.
-- [x] `routes/public_profissional.py`: 4 GET públicos (defesa/relacoes/formacoes/
-  publicacoes) + GET-by-id (defesa/publicacoes), filtro no DAO + projeção.
-- [x] `routes/__init__.py`: router registado.
+- [x] `routes/profissional.py`: remover o bloqueio de `a_venda` em
+  `create_publicacao`/`update_publicacao`; validar que `a_venda` exige `preco>0`
+  (estado efetivo após merge no update).
+- [x] `routes/public_profissional.py`: expor `a_venda`/`preco` na projeção pública
+  (catálogo público mostra o preço). Campos internos continuam ocultos.
+- [x] Sem novo endpoint de transação (respeita a fronteira de domínio; a receita
+  cria-se no módulo Financeiro com a categoria já existente).
 
-## Testes backend (17 novos)
+## Testes backend
 
-- [x] Público só vê defesa `publicado`+`publico`; relações/publicações `publico`;
-  formações `publico`+`ativo`. Filtro aplicado no query; sem auth (sem `current_user`).
-- [x] Projeção esconde campos internos (`created_by`, workflow, `contacto`,
-  `quota_anual`, `a_venda`, `preco`).
-- [x] GET-by-id aplica o mesmo recorte (404 fora dele); `tipo`/`estado` inválidos → 400.
-- [x] **107 passed** (90 profissional + 17 público); F2 não regrediu com o campo novo.
+- [x] `create`: `a_venda=True`+`preco>0` → ok; `a_venda=True` sem preço → 400.
+- [x] `update`: tornar `a_venda` sem preço → 400; com preço → ok.
+- [x] Projeção pública expõe `a_venda`/`preco` e oculta `created_by`. **109 passed.**
 
 ## Frontend
 
-- [x] `utils/api.js`: `getPublic()` em defesa/relacoes/formacoes/publicacoes
-  (+ `getPublicOne`); `/publicacoes-publico` na lista de rotas públicas do interceptor.
-- [x] `components/ProfissaoDestaques.js`: secções de defesa publicada + relações +
-  formações públicas (useQuery; secção escondida quando vazia).
-- [x] `pages/public/ProfissaoPage.js`: monta `<ProfissaoDestaques />` antes do CTA.
-- [x] `pages/public/PublicacoesPublicoPage.js`: catálogo + filtro por tipo + download.
-- [x] `App.js`: rota pública `/publicacoes-publico` (lazy).
-- [x] `layouts/PublicLayout.js`: link "Publicações" na nav.
-- [x] `FormacoesPage`: select de `visibility` no form de gestão.
+- [x] `PublicacoesPage` (gestão): checkbox **À venda** + campo **Preço (CVE)**
+  (validação preço>0); nota a explicar grátis-para-sócios + manter documento
+  privado + registar receita no Financeiro. Badge "À venda · X CVE" no card.
+- [x] `PublicacoesPublicoPage` (público): itens à venda mostram preço + CTA
+  "Adquirir — contactar ACCTA" e **não** mostram download (conteúdo pago).
 
 ## Verificação
 
-- [x] `pytest` → 107 passed; `ruff check`/`ruff format --check` limpos.
-- [x] `eslint --max-warnings=0` (ficheiros F4) limpo; `craco build` → Compiled successfully.
-- [x] PR — **#140** (base = `feature/cat5-f3-defesa-relacoes` enquanto #138 não fundir).
+- [x] `pytest` → 109 passed; `ruff check`/`ruff format --check` limpos.
+- [x] `eslint --max-warnings=0` (ficheiros F5) limpo; `craco build` → Compiled successfully.
+- [x] PR — **#141** (base = `feature/cat5-f4-superficies-publicas` — stack: develop ← F3 #138 ← F4 #140 ← F5 #141).
 
-## Fora de âmbito
+## Operação (não-código)
 
-- F5 venda (stop condition — §13; §14.5 em aberto). Tratada a seguir, com confirmação.
+- O admin que marca à venda deve manter o **documento** com visibilidade `Sócios`
+  (senão o público descarrega grátis via `/documents/public`). A publicação pode
+  ser `publico` (aparece no catálogo com preço) com o documento `socios`.
+
+## Estado da spec
+
+- Com F5, a `spec-fins-profissionais` fica **completa (F1–F5)** assim que os PRs
+  #138/#140/F5 fundirem em `develop` → renomear para `-concluido`.

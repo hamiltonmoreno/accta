@@ -74,6 +74,11 @@ const PublicacaoCard = ({ publicacao, canManage, onEdit, onDelete }) => {
             <Calendar className="w-3 h-3" />
             {publicacao.data_publicacao}
           </span>
+          {publicacao.a_venda && publicacao.preco != null && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-grafite border border-gray-200">
+              À venda · {Number(publicacao.preco).toLocaleString('pt-PT')} CVE
+            </span>
+          )}
           {downloadUrl && (
             <a
               href={downloadUrl}
@@ -120,6 +125,8 @@ const PublicacaoModal = ({ publicacao, onClose }) => {
     capa_url: publicacao?.capa_url || '',
     data_publicacao: publicacao?.data_publicacao || '',
     visibility: publicacao?.visibility || 'socios',
+    a_venda: publicacao?.a_venda || false,
+    preco: publicacao?.preco ?? '',
   });
 
   const mutation = useMutation({
@@ -142,12 +149,19 @@ const PublicacaoModal = ({ publicacao, onClose }) => {
     if (!form.titulo.trim()) { toast.error('Título é obrigatório'); return; }
     if (!form.document_id.trim()) { toast.error('Document ID é obrigatório'); return; }
     if (!form.data_publicacao) { toast.error('Data de publicação é obrigatória'); return; }
-    const payload = { ...form };
+    // F5: à venda exige preço positivo.
+    const precoNum = form.preco === '' ? null : Number(form.preco);
+    if (form.a_venda && (!precoNum || precoNum <= 0)) {
+      toast.error('Publicação à venda exige um preço positivo (CVE)');
+      return;
+    }
+    const payload = { ...form, preco: precoNum };
     Object.keys(payload).forEach((k) => {
       if (payload[k] === '' && !['titulo', 'document_id', 'data_publicacao'].includes(k)) {
         delete payload[k];
       }
     });
+    if (payload.preco === null) delete payload.preco;
     // Em edição não se envia o tipo (imutável).
     if (isEdit) delete payload.tipo;
     mutation.mutate(payload);
@@ -251,9 +265,38 @@ const PublicacaoModal = ({ publicacao, onClose }) => {
               </select>
             </div>
           </div>
-          <p className="text-[11px] text-gray-500">
-            Venda de publicações está em <strong>Fase 2</strong> (Cat. 4) — apenas distribuição agora.
-          </p>
+          <div className="rounded-lg border border-gray-200 p-3 space-y-3">
+            <label className="inline-flex items-center gap-2 text-sm text-grafite cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.a_venda}
+                onChange={(e) => setForm({ ...form, a_venda: e.target.checked })}
+                className="accent-carmesim"
+                data-testid="publicacao-avenda-check"
+              />
+              À venda
+            </label>
+            {form.a_venda && (
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Preço (CVE) *</label>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={form.preco}
+                  onChange={(e) => setForm({ ...form, preco: e.target.value })}
+                  placeholder="ex.: 1500"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
+                  data-testid="publicacao-preco-input"
+                />
+                <p className="text-[11px] text-gray-500 mt-1.5">
+                  Sócios descarregam grátis. Mantenha o documento com visibilidade
+                  <strong> Sócios</strong> para que o público não o descarregue sem comprar.
+                  A receita externa regista-se no Financeiro (categoria “Venda de Publicações”).
+                </p>
+              </div>
+            )}
+          </div>
           <button type="submit" disabled={saving} className="w-full btn-primary py-3 text-sm font-semibold">
             {saving ? 'A guardar...' : isEdit ? 'Guardar Alterações' : 'Publicar'}
           </button>
