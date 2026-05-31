@@ -123,7 +123,7 @@ export const BeneficiosPage = () => {
               data-testid={`benefit-${benefit.id}`}>
               {benefit.logo_url && (
                 <div className="h-48 bg-gray-100 flex items-center justify-center p-6">
-                  <img src={benefit.logo_url} alt={benefit.name} className="max-h-full max-w-full object-contain" />
+                  <img src={benefit.logo_url} alt={benefit.name} loading="lazy" className="max-h-full max-w-full object-contain" />
                 </div>
               )}
 

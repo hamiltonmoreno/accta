@@ -427,8 +427,12 @@ export const DashboardPage = () => {
                 {upcomingEvents.map((event, i) => (
                   <tr
                     key={event.id}
-                    className="border-t border-gray-50 hover:bg-gray-50/50 cursor-pointer transition-colors"
+                    className="border-t border-gray-50 hover:bg-gray-50/50 cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#C7202F]/40"
                     onClick={() => navigate('/eventos')}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Ver todos os eventos"
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/eventos'); } }}
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">

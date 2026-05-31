@@ -136,7 +136,10 @@ export const NotificationBell = () => {
                                 {notification.title}
                               </h4>
                               {!notification.read && (
-                                <div className="w-2 h-2 bg-carmesim rounded-full flex-shrink-0 mt-2" />
+                                <>
+                                  <div className="w-2 h-2 bg-carmesim rounded-full flex-shrink-0 mt-2" aria-hidden="true" />
+                                  <span className="sr-only">Não lida</span>
+                                </>
                               )}
                             </div>
                             <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
