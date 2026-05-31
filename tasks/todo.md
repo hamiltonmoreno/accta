@@ -47,7 +47,7 @@ a receita regista-se pela via financeira existente (`venda_publicacoes`).
 
 - [x] `pytest` → 109 passed; `ruff check`/`ruff format --check` limpos.
 - [x] `eslint --max-warnings=0` (ficheiros F5) limpo; `craco build` → Compiled successfully.
-- [ ] PR (base = `feature/cat5-f4-superficies-publicas` — stack: develop ← F3 #138 ← F4 #140 ← F5).
+- [x] PR — **#141** (base = `feature/cat5-f4-superficies-publicas` — stack: develop ← F3 #138 ← F4 #140 ← F5 #141).
 
 ## Operação (não-código)
 
