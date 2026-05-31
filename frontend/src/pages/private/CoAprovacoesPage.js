@@ -248,7 +248,7 @@ export const CoAprovacoesPage = () => {
               <label className="block text-xs font-medium text-[#6B7280] mb-1">Descrição *</label>
               <textarea value={form.descricao} maxLength={2000} rows={3} onChange={(e) => setForm({ ...form, descricao: e.target.value })} className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid="ato-descricao" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-[#6B7280] mb-1">Valor (CVE){form.tipo === 'pagamento' ? ' *' : ''}</label>
                 <input type="number" min="0" step="1" value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid="ato-valor" />
