@@ -195,11 +195,12 @@ async def create_publicacao(
         raise HTTPException(status_code=403, detail="Apenas a Direcao ou admin pode gerir publicacoes")
     if data.visibility not in PUBLICACAO_VISIBILITIES:
         raise HTTPException(status_code=400, detail=f"Visibilidade invalida: {PUBLICACAO_VISIBILITIES}")
-    # F2 não suporta venda — fica bloqueada e desenhada para F5 (Cat. 4).
-    if data.a_venda:
+    # F5: venda permitida. Exige preço positivo quando a_venda; a receita externa
+    # regista-se em Cat. 4 (category="venda_publicacoes"); sócios descarregam grátis.
+    if data.a_venda and (data.preco is None or data.preco <= 0):
         raise HTTPException(
             status_code=400,
-            detail="Venda de publicacoes esta em FASE 2 (F5) — usar a_venda=False",
+            detail="Publicacao a venda exige um preco positivo (CVE)",
         )
     await _ensure_document_exists(data.document_id)
 
@@ -269,10 +270,14 @@ async def update_publicacao(
     updates = {k: v for k, v in data.model_dump().items() if v is not None}
     if "visibility" in updates and updates["visibility"] not in PUBLICACAO_VISIBILITIES:
         raise HTTPException(status_code=400, detail=f"Visibilidade invalida: {PUBLICACAO_VISIBILITIES}")
-    if updates.get("a_venda") is True:
+    # F5: venda permitida. Valida o estado efetivo após o merge — uma publicação
+    # que fica a_venda tem de ter um preço positivo.
+    efetivo_a_venda = updates.get("a_venda", publicacao.get("a_venda", False))
+    efetivo_preco = updates.get("preco", publicacao.get("preco"))
+    if efetivo_a_venda and (efetivo_preco is None or efetivo_preco <= 0):
         raise HTTPException(
             status_code=400,
-            detail="Venda de publicacoes esta em FASE 2 (F5) — usar a_venda=False",
+            detail="Publicacao a venda exige um preco positivo (CVE)",
         )
     if "document_id" in updates:
         await _ensure_document_exists(updates["document_id"])

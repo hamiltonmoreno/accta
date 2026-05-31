@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { BookOpen, Download, FileText, Calendar, User } from 'lucide-react';
 import { publicacoesAPI, documentsAPI } from '../../utils/api';
@@ -129,16 +130,35 @@ export const PublicacoesPublicoPage = () => {
                         )}
                       </div>
                       {p.descricao && <p className="text-sm text-gray-600 line-clamp-3 flex-1">{p.descricao}</p>}
-                      {p.document_id && (
-                        <a
-                          href={documentsAPI.publicDownloadUrl(p.document_id)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-4 inline-flex items-center justify-center gap-2 w-full border border-[#D1D5DB] text-grafite rounded-lg py-2.5 text-sm font-semibold hover:bg-gray-50 transition-colors"
-                        >
-                          <Download className="w-4 h-4" />
-                          Descarregar
-                        </a>
+                      {p.a_venda ? (
+                        // F5: conteúdo à venda — mostra o preço e remete para aquisição
+                        // (sócios descarregam grátis no portal; o documento fica privado).
+                        <div className="mt-4">
+                          <div className="flex items-baseline gap-1 mb-2">
+                            <span className="text-lg font-bold text-grafite">
+                              {Number(p.preco).toLocaleString('pt-PT')}
+                            </span>
+                            <span className="text-xs text-gray-500">CVE</span>
+                          </div>
+                          <Link
+                            to="/contactos"
+                            className="inline-flex items-center justify-center gap-2 w-full bg-carmesim text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-carmesim-dark transition-colors"
+                          >
+                            Adquirir — contactar ACCTA
+                          </Link>
+                        </div>
+                      ) : (
+                        p.document_id && (
+                          <a
+                            href={documentsAPI.publicDownloadUrl(p.document_id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-4 inline-flex items-center justify-center gap-2 w-full border border-[#D1D5DB] text-grafite rounded-lg py-2.5 text-sm font-semibold hover:bg-gray-50 transition-colors"
+                          >
+                            <Download className="w-4 h-4" />
+                            Descarregar
+                          </a>
+                        )
                       )}
                     </div>
                   </article>

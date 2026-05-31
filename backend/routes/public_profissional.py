@@ -51,12 +51,12 @@ _RELACAO_PUBLIC_FIELDS = {
     "contacto": 0,
     "quota_anual": 0,
 }
+# F5: `a_venda`/`preco` SÃO expostos publicamente — o catálogo público mostra o
+# preço e suprime o download dos itens à venda (conteúdo pago).
 _PUBLICACAO_PUBLIC_FIELDS = {
     "_id": 0,
     "created_by": 0,
     "updated_at": 0,
-    "a_venda": 0,
-    "preco": 0,
 }
 _FORMACAO_PUBLIC_FIELDS = {
     "_id": 0,

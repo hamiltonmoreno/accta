@@ -259,7 +259,26 @@ class TestPublicacaoCreate:
         assert result["a_venda"] is False
         assert result["visibility"] == "socios"
 
-    async def test_a_venda_true_bloqueado_400(self, wired_publicacoes, direcao_user, quiet_audit, wired_documents):
+    async def test_a_venda_com_preco_ok(self, wired_publicacoes, direcao_user, quiet_audit, wired_documents):
+        # F5: venda permitida com preço positivo.
+        from models import PublicacaoCreate
+
+        result = await prof_route.create_publicacao(
+            data=PublicacaoCreate(
+                titulo="Revista (à venda)",
+                tipo="revista",
+                document_id="doc-1",
+                data_publicacao="2026-05-01",
+                a_venda=True,
+                preco=1500,
+            ),
+            current_user=direcao_user,
+        )
+        assert result["a_venda"] is True
+        assert result["preco"] == 1500
+
+    async def test_a_venda_sem_preco_400(self, wired_publicacoes, direcao_user, quiet_audit, wired_documents):
+        # F5: a_venda exige preço positivo.
         from models import PublicacaoCreate
 
         with pytest.raises(HTTPException) as exc:
@@ -270,12 +289,11 @@ class TestPublicacaoCreate:
                     document_id="doc-1",
                     data_publicacao="2026-05-01",
                     a_venda=True,
-                    preco=1000,
                 ),
                 current_user=direcao_user,
             )
         assert exc.value.status_code == 400
-        assert "FASE 2" in exc.value.detail
+        assert "preco" in exc.value.detail.lower()
 
     async def test_document_id_inexistente_400(self, wired_publicacoes, direcao_user, quiet_audit, mock_db):
         from models import PublicacaoCreate
@@ -361,7 +379,8 @@ class TestPublicacaoUpdate:
         assert set_data["titulo"] == "Novo"
         assert set_data["descricao"] == "Atualizado"
 
-    async def test_a_venda_true_bloqueado_400(self, wired_publicacoes, direcao_user, quiet_audit):
+    async def test_a_venda_sem_preco_400(self, wired_publicacoes, direcao_user, quiet_audit):
+        # F5: tornar a_venda sem um preço (nem no update nem no doc) -> 400.
         from models import PublicacaoUpdate
 
         wired_publicacoes.find_one = AsyncMock(
@@ -374,6 +393,23 @@ class TestPublicacaoUpdate:
                 current_user=direcao_user,
             )
         assert exc.value.status_code == 400
+        assert "preco" in exc.value.detail.lower()
+
+    async def test_a_venda_com_preco_ok(self, wired_publicacoes, direcao_user, quiet_audit):
+        # F5: a_venda + preço positivo no mesmo update -> ok.
+        from models import PublicacaoUpdate
+
+        first = {"id": "p1", "titulo": "X", "tipo": "revista", "a_venda": False}
+        wired_publicacoes.find_one = AsyncMock(side_effect=[first, {**first, "a_venda": True, "preco": 2000}])
+        result = await prof_route.update_publicacao(
+            publicacao_id="p1",
+            data=PublicacaoUpdate(a_venda=True, preco=2000),
+            current_user=direcao_user,
+        )
+        assert result["a_venda"] is True
+        set_data = wired_publicacoes.update_one.call_args[0][1]["$set"]
+        assert set_data["a_venda"] is True
+        assert set_data["preco"] == 2000
 
     async def test_visibility_invalida_400(self, wired_publicacoes, direcao_user, quiet_audit):
         """Pydantic não captura porque na update é Optional[Literal], mas a rota

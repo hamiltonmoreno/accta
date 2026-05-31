@@ -132,11 +132,13 @@ class TestPublicPublicacoes:
         await public_route.public_list_publicacoes()
         assert wired_publicacoes.find.call_args[0][0]["visibility"] == "publico"
 
-    async def test_projecao_esconde_venda(self, wired_publicacoes):
+    async def test_projecao_expoe_preco_esconde_interno(self, wired_publicacoes):
+        # F5: o catálogo público mostra a_venda/preco; campos internos ficam ocultos.
         await public_route.public_list_publicacoes()
         proj = wired_publicacoes.find.call_args[0][1]
-        assert proj.get("a_venda") == 0
-        assert proj.get("preco") == 0
+        assert proj.get("a_venda") != 0
+        assert proj.get("preco") != 0
+        assert proj.get("created_by") == 0
 
     async def test_get_aplica_recorte(self, wired_publicacoes):
         wired_publicacoes.find_one = AsyncMock(return_value=None)
