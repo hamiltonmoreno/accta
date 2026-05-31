@@ -332,7 +332,7 @@ Re-auditoria multi-agente do `frontend/src/` atual (pós-Cat 5) antes de impleme
   coerência de grid (`sm:grid-cols-2 lg:grid-cols-3`) e container `px-4 sm:px-6 lg:px-8`;
   `PublicacoesPublicoPage.js` container progressivo.
 - **Fase 5 (a11y/toque)** — pendente (touch-targets já presentes em vários sítios).
-- **Fase 6 (QA 7 larguras)** — pendente (verificação visual manual).
+- **Fase 6 (QA visual no browser)** — ✅ **feito** (ver bloco "Fase 6" abaixo).
 
 **Sweep `grid grid-cols-2` (além da spec) — ✅ feito com triagem caso-a-caso.**
 Auditadas as ~19 ocorrências na app. **11 grids de FORMULÁRIO** corrigidos para
@@ -344,6 +344,28 @@ stats/badges/códigos legítimos a 360px): `CarteiraPage:252`,
 `financeiro/MemberFinanceView:49`, `ContactosPage:212`, `ValidadorPage:117`,
 `SetupMFA:233`; e os `grid-cols-2 sm:grid-cols-4` (já responsivos).
 
-**Pendente:** Fase 5 (a11y/toque) e Fase 6 (QA visual nas 7 larguras — manual).
+**Pendente:** Fase 5 (a11y/toque).
 Verificação: `craco build` → Compiled successfully (warnings de imports não-usados
 são pré-existentes, dentro do `--max-warnings=60` do projeto).
+
+### Fase 6 — QA visual no browser (✅ feito, 2026-05-31)
+
+Stack levantada localmente (backend `:8001` + frontend `:3000`); Chrome via
+DevTools MCP com **emulação de viewport** (o `resize` da janela não desce abaixo
+de ~500px). Critério principal **zero scroll horizontal** verificado por script
+(`scrollWidth` vs viewport):
+
+- **Públicas** — Home (360), ProfissaoPage (360/768/1280/1536, secção F4 da IFATCA
+  renderiza), PublicacoesPublicoPage (360, F5, chips a embrulhar + empty state):
+  **0 overflow** em todas.
+- **Privadas** (login `dev@accta.cv` + **enrolment de MFA TOTP** concluído):
+  Carteira (360, grid R2 = 1 coluna ✓), `/admin/usuarios` (360, tabela em wrapper
+  `overflow-x-auto`, 0 overflow de página).
+
+**Achado da QA (corrigido):** o modal "Convidar Sócio" mostrava os campos em pares
+de 2 colunas estreitas a 360px — o filho `col-span-2` (Nome/Email) forçava uma
+**coluna implícita** que anulava o `grid-cols-1` base. Corrigido `col-span-2` →
+`sm:col-span-2` em `AdminUsuariosPage.js:664,674`; reconfirmado no browser que o
+formulário passa a **empilhar em 1 coluna** a 360px (e volta a 2 colunas em `sm:`).
+Lição: um `grid-cols-1 sm:grid-cols-2` não empilha no mobile se tiver filhos
+`col-span-2` — o span tem de ser responsivo (`sm:col-span-2`).
