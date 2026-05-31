@@ -661,7 +661,7 @@ export const AdminUsuariosPage = () => {
               ) : (
                 <div className="p-6 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="col-span-2">
+                    <div className="sm:col-span-2">
                       <label className="block text-xs font-medium text-gray-600 mb-1">Nome Completo *</label>
                       <input
                         value={inviteData.name}
@@ -671,7 +671,7 @@ export const AdminUsuariosPage = () => {
                         data-testid="invite-name"
                       />
                     </div>
-                    <div className="col-span-2">
+                    <div className="sm:col-span-2">
                       <label className="block text-xs font-medium text-gray-600 mb-1">Email *</label>
                       <input
                         type="email"
