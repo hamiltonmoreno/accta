@@ -19,6 +19,7 @@ import {
   FileText
 } from 'lucide-react';
 import { PageBanner } from '../../components/PageBanner';
+import { ProfissaoDestaques } from '../../components/ProfissaoDestaques';
 import {
   definicaoCTA,
   responsabilidades,
@@ -460,6 +461,9 @@ export const ProfissaoPage = () => {
           </div>
         </div>
       </section>
+
+      {/* Cat 5 F4 — destaques dinâmicos: defesa publicada, relações, formações públicas */}
+      <ProfissaoDestaques />
 
       {/* CTA Section */}
       <section className="py-12 sm:py-20 lg:py-24 bg-white">

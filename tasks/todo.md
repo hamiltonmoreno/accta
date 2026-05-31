@@ -1,96 +1,59 @@
-# Cat 5 F3 — Defesa Profissional (5.2) + Relações/IFATCA (5.4)
+# Cat 5 F4 — Superfícies públicas (ProfissaoPage + Publicações)
 
-> Origem: `tasks/spec-fins-profissionais.md` §5, §7, F3 do roadmap §11.
-> Ramo: `feature/cat5-f3-defesa-relacoes` (parte de `develop`).
-> Antecedentes: F1 (#134) e F2 (#135) já em `develop`.
+> Origem: `tasks/spec-fins-profissionais.md` §8.2, §10, §11 (F4), §12.
+> Ramo: `feature/cat5-f4-superficies-publicas` (empilhado sobre F3 / PR #138).
+> Depende de F1–F3 (F2 #135 em develop; F3 #138 aberto).
 
-## Decisões confirmadas com o dono (2026-05-29)
+## Decisões (recomendadas, alinhadas à spec — autorizado pelo dono)
 
-- **§14 #3** — tomadas de posição passam por **aprovação interna da Direcção**.
-  Fluxo: `rascunho → submetido → publicado` (ou de volta a `rascunho` se rejeitado) → `arquivado`.
-- **Segregação de funções** — quem cria não pode aprovar a sua própria tomada
-  de posição (mitigar abuso). Direcção ≠ criador para o passo `aprovar`.
-- **§14 #4** — `RelacaoExterna.visibility` por instância (`socios`/`publico`,
-  default `socios`); IFATCA seedada com `publico` (faz sentido editorial).
+- **Router público dedicado** `routes/public_profissional.py` com prefixo
+  `/public/...` (evita colisão com as rotas `/{id}` autenticadas; sem auth).
+- **Recorte público** no query do DAO + **projeção** que exclui campos internos
+  (`created_by`, workflow `submetido_*`/`aprovado_*`/`motivo_rejeicao`,
+  `contacto`, `quota_anual`, `a_venda`, `preco`):
+  - defesa: `status="publicado"` AND `visibility="publico"`.
+  - relações: `visibility="publico"`.
+  - publicações: `visibility="publico"` (download via `/documents/public/{id}`).
+  - formações: `visibility="publico"` AND `ativo=true`.
+- **Formacao ganha `visibility`** (aditivo/opcional, default `socios`; §13).
+- Página pública em **`/publicacoes-publico`** (`/publicacoes` já é a rota privada
+  do catálogo de sócios — não reutilizar).
 
 ## Backend
 
-- [x] `models.py`: `DefesaProfissional` + Create/Update + constantes
-  `DEFESA_TIPOS`, `DEFESA_STATUSES`. Campos extras: `submetido_em`/`_por`,
-  `aprovado_em`/`_por`, `motivo_rejeicao`.
-- [x] `models.py`: `RelacaoExterna` + Create/Update + constantes `RELACAO_TIPOS`,
-  `ESTADOS_FILIACAO`.
-- [x] `database.py`: 2 coleções + 4 índices + seed idempotente da IFATCA.
-- [x] `routes/profissional.py`: CRUD `defesa-profissional` + transições
-  `submeter` (autor) · `aprovar` (Direcção ≠ autor) · `rejeitar` (Direcção, com
-  `motivo`) · `arquivar` (Direcção).
-- [x] `routes/profissional.py`: CRUD `relacoes-externas`.
-- [x] Audit em todas as escritas + notificação ao autor em aprovado/rejeitado.
-- [x] **Atomicidade (pós-review)**: as 4 transições usam **compare-and-swap**
-  (status esperado no filtro do `update_one` + `matched_count` → 409) para
-  fechar a janela TOCTOU entre `find_one` e `update_one`.
+- [x] `models.py`: `Formacao`/Create/Update ganham `visibility` + `FORMACAO_VISIBILITIES`.
+- [x] `database.py`: índice `ix_formacoes_vis_ativo`.
+- [x] `routes/public_profissional.py`: 4 GET públicos (defesa/relacoes/formacoes/
+  publicacoes) + GET-by-id (defesa/publicacoes), filtro no DAO + projeção.
+- [x] `routes/__init__.py`: router registado.
 
-## Testes backend (90 no total, +18 pós-review)
+## Testes backend (17 novos)
 
-- [x] CRUD + RBAC (sócio comum 403 em escritas).
-- [x] Fluxo: rascunho→submetido (autor); submetido→publicado (Direcção ≠ autor);
-  submetido→rascunho com motivo (rejeitar); publicado→arquivado.
-- [x] **Segregação**: autor tenta aprovar/rejeitar a sua submissão → 403.
-- [x] Visibilidade: rascunhos não vazam; rascunho `publico` alheio → 403 (gate de status).
-- [x] IFATCA seedada (idempotente).
-- [x] **Pós-review**: conflito CAS → 409 (4 transições); 404 nas 4 transições;
-  asserção de audit-log no `submeter`; `$set` do `rejeitar` (limpa `submetido_*`,
-  grava `motivo`); `arquivar` a partir de `submetido` grava `arquivado_*`;
-  `relacoes` default `visibility=socios` + `publico` persistido.
+- [x] Público só vê defesa `publicado`+`publico`; relações/publicações `publico`;
+  formações `publico`+`ativo`. Filtro aplicado no query; sem auth (sem `current_user`).
+- [x] Projeção esconde campos internos (`created_by`, workflow, `contacto`,
+  `quota_anual`, `a_venda`, `preco`).
+- [x] GET-by-id aplica o mesmo recorte (404 fora dele); `tipo`/`estado` inválidos → 400.
+- [x] **107 passed** (90 profissional + 17 público); F2 não regrediu com o campo novo.
 
 ## Frontend
 
-- [x] `utils/api.js`: `defesaAPI` + `relacoesAPI`.
-- [x] `DefesaProfissionalPage.js`: tabs por status + ações contextuais
-  (autor/Direcção × status).
-- [x] **Pós-review**: `RejeicaoModal` com validação inline + `disabled` quando
-  `motivo` vazio (paridade com `DefesaModal`).
-- [x] `RelacoesPage.js`: diretório com cards + badges de `estado_filiacao`.
-- [x] `PrivateLayout.js`: 2 novas entradas em "Profissional".
-- [x] `App.js`: rotas lazy.
+- [x] `utils/api.js`: `getPublic()` em defesa/relacoes/formacoes/publicacoes
+  (+ `getPublicOne`); `/publicacoes-publico` na lista de rotas públicas do interceptor.
+- [x] `components/ProfissaoDestaques.js`: secções de defesa publicada + relações +
+  formações públicas (useQuery; secção escondida quando vazia).
+- [x] `pages/public/ProfissaoPage.js`: monta `<ProfissaoDestaques />` antes do CTA.
+- [x] `pages/public/PublicacoesPublicoPage.js`: catálogo + filtro por tipo + download.
+- [x] `App.js`: rota pública `/publicacoes-publico` (lazy).
+- [x] `layouts/PublicLayout.js`: link "Publicações" na nav.
+- [x] `FormacoesPage`: select de `visibility` no form de gestão.
 
 ## Verificação
 
-- [x] `pytest tests/test_profissional_routes.py` → **90 passed**.
-- [x] `ruff check . && ruff format --check .` → limpo.
-- [x] `eslint src/ --max-warnings=60` → limpo; `craco build` → Compiled successfully.
-- [x] PR para `develop` — **#138**.
-
-## Revisão multi-agente (pré-PR) — resultado
-
-Duas passagens (a 1.ª com agentes `Explore` falhou na saída estruturada em 5/6
-dimensões; re-corrida só do backend com o agente por omissão). 24 achados brutos,
-consolidados:
-
-- **Aplicado**: compare-and-swap nas 4 transições (TOCTOU — invariante explícito
-  do projeto); +14 testes de reforço; validação inline no `RejeicaoModal`.
-- **Refutado na verificação adversarial**: alegada falha de RBAC na aprovação (o
-  backend **rejeita** o autor a aprovar a própria submissão, `profissional.py`
-  L527-531; o frontend espelha com `!isAuthor`); achados sobre código-fantasma.
-
-### Decisões de máquina de estados — RESOLVIDAS (alinhadas com a spec)
-
-1. **`arquivar` → só a partir de `publicado`** (`publicado → arquivado`, como na
-   spec). Remove o *bypass* de segregação (um membro sozinho não descarta um
-   `submetido`). Saídas limpas por estado: `rascunho`→`delete`/`submeter`;
-   `submetido`→`rejeitar` (volta a rascunho)/`aprovar`; `arquivado` pode ser
-   apagado (`delete` só bloqueia `publicado`). Backend + frontend + testes.
-2. **Editar → só em `rascunho`** — garante que o conteúdo aprovado é o que foi
-   submetido. Para alterar um `submetido`: `rejeitar` → `rascunho` → editar →
-   re-submeter → re-aprovar. Backend + frontend (`canEdit`) + testes.
-
-### Latente para F4 (sem fuga hoje — todas as leituras exigem auth)
-
-- O recorte público (`status=publicado` + `visibility=publico`) **não** está nos
-  handlers atuais; **não reutilizar** `list_defesa`/`list_relacoes`/`get_*` para a
-  superfície pública sem acrescentar o predicado de `visibility` no query do DAO.
-- `ix_defesa_visibility` é peso morto até a query pública da F4 o usar.
+- [x] `pytest` → 107 passed; `ruff check`/`ruff format --check` limpos.
+- [x] `eslint --max-warnings=0` (ficheiros F4) limpo; `craco build` → Compiled successfully.
+- [x] PR — **#140** (base = `feature/cat5-f3-defesa-relacoes` enquanto #138 não fundir).
 
 ## Fora de âmbito
 
-- F4 superfícies públicas; F5 venda (gates abertos).
+- F5 venda (stop condition — §13; §14.5 em aberto). Tratada a seguir, com confirmação.

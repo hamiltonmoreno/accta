@@ -15,6 +15,7 @@ export const PublicLayout = ({ children }) => {
     { label: 'A Profissão', path: '/profissao' },
     { label: 'Benefícios', path: '/beneficios-publico' },
     { label: 'Transparência', path: '/transparencia' },
+    { label: 'Publicações', path: '/publicacoes-publico' },
     { label: 'Contactos', path: '/contactos' },
     { label: 'Galeria', path: '/galeria' },
   ];

@@ -25,7 +25,7 @@ api.interceptors.response.use(
     const status = error.response?.status;
     const detail = error.response?.data?.detail;
     const currentPath = window.location.pathname;
-    const publicPaths = ['/login', '/validador', '/profissao', '/noticias', '/transparencia', '/sobre', '/beneficios-publico', '/contactos', '/eventos-publico', '/galeria', '/forgot-password', '/reset-password', '/criar-conta'];
+    const publicPaths = ['/login', '/validador', '/profissao', '/noticias', '/transparencia', '/sobre', '/beneficios-publico', '/contactos', '/eventos-publico', '/galeria', '/publicacoes-publico', '/forgot-password', '/reset-password', '/criar-conta'];
     const isPublic = currentPath === '/' || publicPaths.some(p => currentPath.startsWith(p));
 
     if (status === 401) {
@@ -571,6 +571,8 @@ export const formacoesAPI = {
   create: (data) => api.post('/formacoes', data),
   update: (id, data) => api.patch(`/formacoes/${id}`, data),
   delete: (id) => api.delete(`/formacoes/${id}`),
+  // F4 — superfície pública (sem auth): só formações publico+ativo.
+  getPublic: (params) => api.get('/public/formacoes', { params }),
 };
 
 export const publicacoesAPI = {
@@ -579,6 +581,9 @@ export const publicacoesAPI = {
   create: (data) => api.post('/publicacoes', data),
   update: (id, data) => api.patch(`/publicacoes/${id}`, data),
   delete: (id) => api.delete(`/publicacoes/${id}`),
+  // F4 — superfície pública (sem auth): só publicações publico.
+  getPublic: (params) => api.get('/public/publicacoes', { params }),
+  getPublicOne: (id) => api.get(`/public/publicacoes/${id}`),
 };
 
 // Cat 5 F3 — Defesa Profissional (com workflow de aprovação Direcção)
@@ -593,6 +598,9 @@ export const defesaAPI = {
   rejeitar: (id, motivo) =>
     api.post(`/defesa-profissional/${id}/rejeitar`, { motivo }),
   arquivar: (id) => api.post(`/defesa-profissional/${id}/arquivar`),
+  // F4 — superfície pública (sem auth): só defesa publicado+publico.
+  getPublic: (params) => api.get('/public/defesa-profissional', { params }),
+  getPublicOne: (id) => api.get(`/public/defesa-profissional/${id}`),
 };
 
 // Cat 5 F3 — Relações externas / IFATCA
@@ -602,4 +610,6 @@ export const relacoesAPI = {
   create: (data) => api.post('/relacoes-externas', data),
   update: (id, data) => api.patch(`/relacoes-externas/${id}`, data),
   delete: (id) => api.delete(`/relacoes-externas/${id}`),
+  // F4 — superfície pública (sem auth): só relações publico.
+  getPublic: (params) => api.get('/public/relacoes-externas', { params }),
 };

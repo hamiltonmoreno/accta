@@ -113,6 +113,7 @@ const FormacaoModal = ({ formacao, onClose }) => {
     data: formacao?.data || '',
     validade: formacao?.validade || '',
     ativo: formacao?.ativo ?? true,
+    visibility: formacao?.visibility || 'socios',
   });
 
   const mutation = useMutation({
@@ -251,6 +252,18 @@ const FormacaoModal = ({ formacao, onClose }) => {
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               />
             </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Visibilidade</label>
+            <select
+              value={form.visibility}
+              onChange={(e) => setForm({ ...form, visibility: e.target.value })}
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none bg-white"
+              data-testid="formacao-visibility-select"
+            >
+              <option value="socios">Só sócios</option>
+              <option value="publico">Público (página da profissão)</option>
+            </select>
           </div>
           <label className="inline-flex items-center gap-2 text-sm text-grafite cursor-pointer">
             <input

@@ -2349,6 +2349,8 @@ class RankingOptOut(BaseModel):
 
 # 5.3 Formações / Certificações / Materiais (Art. 2.c)
 FORMACAO_TIPOS = ["formacao", "certificacao", "material"]
+# F4: visibilidade por instância para o recorte público (default socios).
+FORMACAO_VISIBILITIES = ["publico", "socios"]
 
 
 class Formacao(BaseModel):
@@ -2367,6 +2369,7 @@ class Formacao(BaseModel):
     data: Optional[str] = None  # ISO 8601
     validade: Optional[str] = None  # ISO 8601, certificações
     ativo: bool = True
+    visibility: Literal["publico", "socios"] = "socios"  # F4 — recorte público
     created_by: str = ""
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -2384,6 +2387,7 @@ class FormacaoCreate(BaseModel):
     data: Optional[str] = None
     validade: Optional[str] = None
     ativo: bool = True
+    visibility: Literal["publico", "socios"] = "socios"
 
 
 class FormacaoUpdate(BaseModel):
@@ -2396,6 +2400,7 @@ class FormacaoUpdate(BaseModel):
     data: Optional[str] = None
     validade: Optional[str] = None
     ativo: Optional[bool] = None
+    visibility: Optional[Literal["publico", "socios"]] = None
     # tipo é imutável após criação (define indexação e UI); não está aqui.
 
 
