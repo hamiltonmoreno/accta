@@ -42,7 +42,7 @@ export const PublicacoesPublicoPage = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Cabeçalho */}
       <section className="bg-grafite py-16 sm:py-20">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl animate-fade-up">
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-white rounded-full text-xs uppercase tracking-wider font-semibold mb-4">
               <BookOpen className="w-3.5 h-3.5" aria-hidden="true" />
@@ -59,7 +59,7 @@ export const PublicacoesPublicoPage = () => {
       </section>
 
       <section className="py-12 sm:py-16">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Filtros por tipo */}
           <div className="flex flex-wrap gap-2 mb-10">
             {FILTROS.map((f) => (

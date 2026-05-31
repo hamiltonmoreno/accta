@@ -67,20 +67,20 @@ export const ProfissaoDestaques = () => {
       {/* Tomadas de posição / Defesa profissional publicada */}
       {defesa.length > 0 && (
         <section className="py-12 sm:py-20 lg:py-24 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
                 Defesa Profissional
               </span>
-              <h2 className="font-sans font-bold text-4xl text-grafite mb-4">
+              <h2 className="font-sans font-bold text-2xl md:text-4xl text-grafite mb-4">
                 Posições públicas da ACCTA
               </h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              <p className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
                 Representações e tomadas de posição em defesa dos interesses dos controladores
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {defesa.map((d) => {
                 const data = fmtData(d.data);
                 return (
@@ -116,15 +116,15 @@ export const ProfissaoDestaques = () => {
       {/* Relações / IFATCA */}
       {relacoes.length > 0 && (
         <section className="py-12 sm:py-20 lg:py-24 bg-white">
-          <div className="max-w-7xl mx-auto px-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-6">
                 Cooperação Internacional
               </span>
-              <h2 className="font-sans font-bold text-4xl text-grafite mb-4">
+              <h2 className="font-sans font-bold text-2xl md:text-4xl text-grafite mb-4">
                 Relações e filiações
               </h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              <p className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
                 A ACCTA coopera com a IFATCA e congéneres na defesa da profissão
               </p>
             </div>
@@ -181,17 +181,17 @@ export const ProfissaoDestaques = () => {
       {/* Formações / Certificações públicas */}
       {formacoes.length > 0 && (
         <section className="py-12 sm:py-20 lg:py-24 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
                 Desenvolvimento Profissional
               </span>
-              <h2 className="font-sans font-bold text-4xl text-grafite mb-4">
+              <h2 className="font-sans font-bold text-2xl md:text-4xl text-grafite mb-4">
                 Formação e certificação
               </h2>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {formacoes.map((f) => {
                 const url = safeUrl(f.url);
                 return (

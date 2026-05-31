@@ -304,3 +304,46 @@ diretrizes mobile-first do pedido. Revista após o code-review do Codex na PR
 **nenhum `min-w-[…px]` é coluna de tabela** (R4) — o trabalho real concentra-se
 em 2 grids com salto (R2) e na escala responsiva de páginas densas (R3).
 Nenhum código de frontend foi alterado na criação/revisão desta spec._
+
+---
+
+## 8. Estado de implementação (2026-05-31, ramo `feature/design-responsivo`)
+
+Re-auditoria multi-agente do `frontend/src/` atual (pós-Cat 5) antes de implementar:
+
+- **Fase 0 (guarda anti-overflow)** — ✅ **já existia**: `index.css:8-14`
+  (`html{min-width:320px}` + `html,body{overflow-x:hidden}`). Sem alteração.
+- **Fase 1 (R1 larguras fixas)** — ✅ **verificado, sem defeito**: exatamente 5
+  `w-[…px]`, todos legítimos (incl. os ficheiros novos da Cat 5: 0 novos). Sem alteração.
+- **Fase 2 (R4 `min-w-[…px]`)** — ✅ **verificado, sem defeito**: 20 ocorrências,
+  nenhuma é coluna de tabela (touch-targets 44/48px + filtros em `flex-wrap`).
+  Cat 5: 0 novos. Sem alteração.
+- **Fase 3 (R2 grids com salto)** — ✅ **corrigido**: os 2 únicos saltos reais —
+  `CarteiraPage.js:335` (→ `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`) e
+  `AdminComunicadosPage.js:458` (→ `grid-cols-1 md:grid-cols-2 xl:grid-cols-3`).
+- **Fase 4 (R3 escala de páginas)** — a contagem da spec (~58/129) estava **stale**
+  e misturava componentes; ao nível de **páginas** são **12** sem prefixos, na
+  maioria single-column que funcionam (não mexer onde não há defeito). Defeitos
+  reais encontrados e **corrigidos**: grids de formulário fixos `grid-cols-2` →
+  `grid-cols-1 sm:grid-cols-2` em `AdminCargosPage.js:42,64` e `CoAprovacoesPage.js:251`.
+- **Drift da Cat 5** (ficheiros que a spec não cobria) — **corrigido**: 6 sub-grids
+  de formulário `grid-cols-2`→`grid-cols-1 sm:grid-cols-2` (Defesa/Relacoes/Formacoes/
+  Publicacoes); `ProfissaoDestaques.js` com tipografia fluida (`text-2xl md:text-4xl`),
+  coerência de grid (`sm:grid-cols-2 lg:grid-cols-3`) e container `px-4 sm:px-6 lg:px-8`;
+  `PublicacoesPublicoPage.js` container progressivo.
+- **Fase 5 (a11y/toque)** — pendente (touch-targets já presentes em vários sítios).
+- **Fase 6 (QA 7 larguras)** — pendente (verificação visual manual).
+
+**Sweep `grid grid-cols-2` (além da spec) — ✅ feito com triagem caso-a-caso.**
+Auditadas as ~19 ocorrências na app. **11 grids de FORMULÁRIO** corrigidos para
+`grid-cols-1 sm:grid-cols-2` (empilham a 360px): `AdminEleicoesPage:90,115`,
+`AdminUsuariosPage:663`, `DocumentosPage:240`, `EventosPage:343,372`,
+`financeiro/BalancetesTab:153,166`, `financeiro/TransactionModal:114`,
+`ProjectsPage:192`, `RegulamentosPage:195`. **5 deixados intactos** (pares de
+stats/badges/códigos legítimos a 360px): `CarteiraPage:252`,
+`financeiro/MemberFinanceView:49`, `ContactosPage:212`, `ValidadorPage:117`,
+`SetupMFA:233`; e os `grid-cols-2 sm:grid-cols-4` (já responsivos).
+
+**Pendente:** Fase 5 (a11y/toque) e Fase 6 (QA visual nas 7 larguras — manual).
+Verificação: `craco build` → Compiled successfully (warnings de imports não-usados
+são pré-existentes, dentro do `--max-warnings=60` do projeto).

@@ -39,7 +39,7 @@ const MandateFields = ({ form, setForm, privileges }) => (
     </div>
     <div>
       <label className="block text-xs font-medium text-gray-600 mb-1.5">Privilégios</label>
-      <div className="grid grid-cols-2 gap-1.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
         {privileges.map((p) => {
           const checked = form.privileges.includes(p);
           return (
@@ -61,7 +61,7 @@ const MandateFields = ({ form, setForm, privileges }) => (
         })}
       </div>
     </div>
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div>
         <label className="block text-xs font-medium text-gray-600 mb-1.5">Data efetiva</label>
         <input
