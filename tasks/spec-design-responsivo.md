@@ -331,7 +331,7 @@ Re-auditoria multi-agente do `frontend/src/` atual (pós-Cat 5) antes de impleme
   Publicacoes); `ProfissaoDestaques.js` com tipografia fluida (`text-2xl md:text-4xl`),
   coerência de grid (`sm:grid-cols-2 lg:grid-cols-3`) e container `px-4 sm:px-6 lg:px-8`;
   `PublicacoesPublicoPage.js` container progressivo.
-- **Fase 5 (a11y/toque)** — pendente (touch-targets já presentes em vários sítios).
+- **Fase 5 (a11y/toque)** — ✅ **feito** (ver bloco "Fase 5" abaixo).
 - **Fase 6 (QA visual no browser)** — ✅ **feito** (ver bloco "Fase 6" abaixo).
 
 **Sweep `grid grid-cols-2` (além da spec) — ✅ feito com triagem caso-a-caso.**
@@ -344,9 +344,33 @@ stats/badges/códigos legítimos a 360px): `CarteiraPage:252`,
 `financeiro/MemberFinanceView:49`, `ContactosPage:212`, `ValidadorPage:117`,
 `SetupMFA:233`; e os `grid-cols-2 sm:grid-cols-4` (já responsivos).
 
-**Pendente:** Fase 5 (a11y/toque).
 Verificação: `craco build` → Compiled successfully (warnings de imports não-usados
 são pré-existentes, dentro do `--max-warnings=60` do projeto).
+
+### Fase 5 — a11y / toque (✅ feito, 2026-05-31)
+
+Auditoria a11y multi-agente (5 dimensões) → corrigidos só os **defeitos reais**
+(a base já cumpria a maioria: focus-rings padrão, `min-w-[44px]` nas ações-chave,
+convenção ícone+texto+cor em `lib/statusConfig.js`). Fixes aplicados:
+
+- **Acesso por teclado** (clicáveis sem `role`/`tabIndex`/`onKeyDown`/foco):
+  cartão flip da Carteira (`CarteiraPage:214`, revela o QR), card de álbum
+  (`GaleriaAdminPage:469`), linha de evento do Dashboard (`DashboardPage:428`) —
+  `role="button" tabIndex={0} onKeyDown(Enter/Space)` + focus-ring (sem converter
+  para `<button>`, p/ não partir o transform 3D/layout).
+- **Foco visível**: input do Command Palette (`ui/command.jsx`) ganhou
+  `focus-visible:ring`. (`PublicLayout <main tabIndex=-1>` deixado: alvo de
+  skip-link, anel do tamanho da página seria pior — padrão defensável.)
+- **Lazy-loading** (imagens abaixo da dobra): `BeneficiosPage:126`,
+  `PublicacoesPage:38`, `RelacoesPage:49`, `GaleriaAdminPage:275`. (Heros/banners
+  above-fold mantidos sem lazy.)
+- **Estado só-por-cor**: ponto "não lida" do `NotificationBell` e badge colapsado
+  de "pedidos pendentes" do `PrivateLayout` ganharam `sr-only`/`aria-label`.
+- **Alvo de toque**: botão Fechar do lightbox (`GaleriaAdminPage:37`) → `min-w/h-[44px]`.
+
+Nota: o agente de auditoria de **touch-targets** entrou em stall (ambiente lento);
+cobri a dimensão por grep direto — as ações inline principais já usavam
+`min-w-[44px]` (auditoria original), restando só o Fechar do lightbox.
 
 ### Fase 6 — QA visual no browser (✅ feito, 2026-05-31)
 

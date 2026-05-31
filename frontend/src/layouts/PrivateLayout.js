@@ -378,7 +378,7 @@ export const PrivateLayout = ({ children }) => {
                         </span>
                         {item.badge === 'registration' && registrationBadgeCount > 0 && (
                           collapsed && !isMobile ? (
-                            <span className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-carmesim" aria-hidden="true" />
+                            <span className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-carmesim" role="status" aria-label={`${registrationBadgeCount} pedidos pendentes`} />
                           ) : (
                             <span
                               className={`ml-auto mr-2 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center ${

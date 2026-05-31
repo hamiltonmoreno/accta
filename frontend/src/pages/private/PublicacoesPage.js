@@ -38,6 +38,7 @@ const PublicacaoCard = ({ publicacao, canManage, onEdit, onDelete }) => {
         <img
           src={publicacao.capa_url}
           alt={`Capa de ${publicacao.titulo}`}
+          loading="lazy"
           className="w-20 h-28 object-cover rounded-lg border border-gray-200 flex-shrink-0"
         />
       ) : (

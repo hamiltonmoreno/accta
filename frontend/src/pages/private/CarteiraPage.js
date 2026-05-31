@@ -212,9 +212,14 @@ export const CarteiraPage = () => {
       <div className="relative animate-fade-up"
         style={{ perspective: '1000px' }}>
         <div
-          className={`relative w-full cursor-pointer`}
+          className={`relative w-full cursor-pointer rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2`}
           style={{ transformStyle: 'preserve-3d', transition: 'transform 0.7s', transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}
           onClick={() => setFlipped(!flipped)}
+          role="button"
+          tabIndex={0}
+          aria-pressed={flipped}
+          aria-label={flipped ? 'Ver frente do cartão' : 'Ver QR Code do cartão'}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setFlipped(!flipped); } }}
           data-testid="wallet-card"
         >
           {/* Front */}

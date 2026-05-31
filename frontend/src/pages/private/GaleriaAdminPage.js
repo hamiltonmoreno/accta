@@ -34,7 +34,7 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
   if (!photo) return null;
   return (
     <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center animate-fade-up" onClick={onClose} data-testid="lightbox">
-      <button onClick={onClose} className="absolute top-4 right-4 z-50 p-2 bg-white/10 hover:bg-white/20 rounded-full" aria-label="Fechar" data-testid="lightbox-close">
+      <button onClick={onClose} className="absolute top-4 right-4 z-50 min-w-[44px] min-h-[44px] flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full" aria-label="Fechar" data-testid="lightbox-close">
         <X className="w-6 h-6 text-white" aria-hidden="true" />
       </button>
       <div className="absolute top-4 left-4 z-50 px-3 py-1.5 bg-white/10 rounded-full text-white text-sm font-mono">{currentIndex + 1}/{photos.length}</div>
@@ -272,7 +272,7 @@ const PendingPanel = () => {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-4">
           {pending.map(photo => (
             <div key={photo.id} className="relative group rounded-lg overflow-hidden" data-testid={`pending-photo-${photo.id}`}>
-              <img src={photo.url} alt={photo.caption} className="w-full aspect-square object-cover" />
+              <img src={photo.url} alt={photo.caption} loading="lazy" className="w-full aspect-square object-cover" />
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                 <p className="text-white text-xs text-center px-2 truncate w-full">{photo.uploaded_by_name}</p>
                 <p className="text-white/70 text-xs truncate w-full text-center">{photo.album_title}</p>
@@ -467,7 +467,12 @@ export const GaleriaAdminPage = () => {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {albums.map((album, i) => (
               <div key={album.id}
-                className="card-technical overflow-hidden group cursor-pointer animate-fade-up" onClick={() => openAlbum(album)}
+                className="card-technical overflow-hidden group cursor-pointer animate-fade-up rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                onClick={() => openAlbum(album)}
+                role="button"
+                tabIndex={0}
+                aria-label={`Abrir álbum ${album.title}`}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openAlbum(album); } }}
                 data-testid={`album-card-${album.id}`}>
                 <div className="relative aspect-[16/10] overflow-hidden">
                   {album.cover_url ? (
