@@ -340,7 +340,7 @@ const CreateEventModal = ({ onClose }) => {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label className="block font-mono text-xs uppercase tracking-wider text-[#6B7280] mb-1.5">Tipo *</label>
                 <select
@@ -369,7 +369,7 @@ const CreateEventModal = ({ onClose }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label className="block font-mono text-xs uppercase tracking-wider text-[#6B7280] mb-1.5">Data *</label>
                 <input

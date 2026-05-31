@@ -87,7 +87,7 @@ const CriarEleicaoModal = ({ open, onClose, onSubmit, pending }) => {
           <DialogDescription>Defina o ano, o mandato e o modo de votação dos órgãos sociais.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelClass} htmlFor="ele-ano">Ano</label>
               <input
@@ -112,7 +112,7 @@ const CriarEleicaoModal = ({ open, onClose, onSubmit, pending }) => {
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelClass} htmlFor="ele-inicio">Início do mandato</label>
               <input

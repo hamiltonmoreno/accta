@@ -334,10 +334,16 @@ Re-auditoria multi-agente do `frontend/src/` atual (pós-Cat 5) antes de impleme
 - **Fase 5 (a11y/toque)** — pendente (touch-targets já presentes em vários sítios).
 - **Fase 6 (QA 7 larguras)** — pendente (verificação visual manual).
 
-**Follow-up identificado (além da spec):** ~19 `grid grid-cols-2` em toda a app;
-a maioria são pares de estatísticas/conteúdo curto **legítimos** a 360px (Home,
-MFA, bloco FIR). Alguns são grids de formulário (ex.: `TransactionModal`,
-`AdminEleicoesPage`, `AdminUsuariosPage`) que beneficiariam do mesmo
-`grid-cols-1 sm:grid-cols-2` — triagem caso-a-caso recomendada (não fazer blanket
-para não empilhar os pares de stats). Verificação: `eslint --max-warnings=0` limpo,
-`craco build` → Compiled successfully.
+**Sweep `grid grid-cols-2` (além da spec) — ✅ feito com triagem caso-a-caso.**
+Auditadas as ~19 ocorrências na app. **11 grids de FORMULÁRIO** corrigidos para
+`grid-cols-1 sm:grid-cols-2` (empilham a 360px): `AdminEleicoesPage:90,115`,
+`AdminUsuariosPage:663`, `DocumentosPage:240`, `EventosPage:343,372`,
+`financeiro/BalancetesTab:153,166`, `financeiro/TransactionModal:114`,
+`ProjectsPage:192`, `RegulamentosPage:195`. **5 deixados intactos** (pares de
+stats/badges/códigos legítimos a 360px): `CarteiraPage:252`,
+`financeiro/MemberFinanceView:49`, `ContactosPage:212`, `ValidadorPage:117`,
+`SetupMFA:233`; e os `grid-cols-2 sm:grid-cols-4` (já responsivos).
+
+**Pendente:** Fase 5 (a11y/toque) e Fase 6 (QA visual nas 7 larguras — manual).
+Verificação: `craco build` → Compiled successfully (warnings de imports não-usados
+são pré-existentes, dentro do `--max-warnings=60` do projeto).

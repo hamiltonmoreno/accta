@@ -660,7 +660,7 @@ export const AdminUsuariosPage = () => {
                 </div>
               ) : (
                 <div className="p-6 space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="col-span-2">
                       <label className="block text-xs font-medium text-gray-600 mb-1">Nome Completo *</label>
                       <input

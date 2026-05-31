@@ -192,7 +192,7 @@ export const RegulamentosPage = () => {
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Novo regulamento</DialogTitle><DialogDescription>Define a competência de aprovação (Direção ou Assembleia Geral).</DialogDescription></DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-[#6B7280] mb-1">Slug *</label>
                 <input type="text" value={form.slug || ''} placeholder="regulamento-x" maxLength={80} onChange={(e) => setForm({ ...form, slug: e.target.value })} className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid="reg-slug" />
