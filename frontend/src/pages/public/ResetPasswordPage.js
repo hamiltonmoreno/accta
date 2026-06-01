@@ -39,7 +39,7 @@ export const ResetPasswordPage = () => {
           <p className="text-gray-500 mb-6">O link de recuperação é inválido ou não contém um token.</p>
           <Link
             to="/forgot-password"
-            className="inline-flex items-center gap-2 bg-carmesim text-white px-6 py-3 rounded-lg font-bold text-sm hover:bg-carmesim-dark transition-colors"
+            className="inline-flex items-center gap-2 bg-floresta text-white px-6 py-3 rounded-lg font-bold text-sm hover:bg-floresta-dark transition-colors"
           >
             Solicitar novo link
           </Link>
@@ -131,7 +131,7 @@ export const ResetPasswordPage = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-carmesim text-white hover:bg-carmesim-dark h-11 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full bg-floresta text-white hover:bg-floresta-dark h-11 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   data-testid="reset-submit"
                 >
                   {isSubmitting ? (
@@ -159,7 +159,7 @@ export const ResetPasswordPage = () => {
             </p>
             <button
               onClick={() => navigate('/login')}
-              className="w-full bg-carmesim text-white hover:bg-carmesim-dark h-11 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-floresta text-white hover:bg-floresta-dark h-11 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2"
               data-testid="go-to-login-after-reset"
             >
               Ir para o login

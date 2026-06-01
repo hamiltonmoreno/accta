@@ -37,7 +37,7 @@ const InstallPrompt = ({ deferredPrompt, onInstall }) => {
         </div>
         <button
           onClick={onInstall}
-          className="bg-carmesim text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-carmesim-dark transition-colors"
+          className="bg-floresta text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-floresta-dark transition-colors"
           data-testid="install-pwa-btn"
         >
           Instalar

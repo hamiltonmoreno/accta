@@ -134,7 +134,7 @@ export const PrestacaoContasTab = () => {
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-[#6B7280]">Ciclo anual: Relatório e Contas → Parecer do CF → aprovação na AG ordinária do 1.º trimestre (Art. 19.1, 31.k, 37).</p>
         {podeDirecao && (
-          <button onClick={() => { setForm({ ano: anoAtual - 1 }); setDialog('abrir'); }} className="flex items-center gap-2 bg-carmesim text-white px-4 py-2 rounded-lg hover:bg-carmesim-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="abrir-exercicio-btn">
+          <button onClick={() => { setForm({ ano: anoAtual - 1 }); setDialog('abrir'); }} className="flex items-center gap-2 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="abrir-exercicio-btn">
             <Plus className="w-4 h-4" aria-hidden="true" /> Abrir exercício
           </button>
         )}
@@ -184,7 +184,7 @@ export const PrestacaoContasTab = () => {
                   <ActionBtn onClick={() => { setForm({ assembleia_id: '' }); setDialog('ag'); }} testId="act-ag">Submeter à AG</ActionBtn>
                 )}
                 {podeMesa && selected.status === 'em_aprovacao_ag' && (
-                  <button onClick={() => { setForm({ deliberacao_id: '', aprovado: true }); setDialog('aprovar'); }} className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="act-aprovar">
+                  <button onClick={() => { setForm({ deliberacao_id: '', aprovado: true }); setDialog('aprovar'); }} className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="act-aprovar">
                     <Landmark className="w-4 h-4" aria-hidden="true" /> Registar deliberação da AG
                   </button>
                 )}
@@ -397,7 +397,7 @@ const ActionBtn = ({ onClick, children, testId }) => (
 const DialogActions = ({ onCancel, onConfirm, pending, disabled, label, testId }) => (
   <div className="flex justify-end gap-2">
     <button onClick={onCancel} className="px-4 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer">Cancelar</button>
-    <button onClick={onConfirm} disabled={pending || disabled} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid={testId}>
+    <button onClick={onConfirm} disabled={pending || disabled} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid={testId}>
       {pending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : null} {label}
     </button>
   </div>

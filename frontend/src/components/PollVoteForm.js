@@ -53,7 +53,7 @@ export const PollVoteForm = ({ poll, isAtivo, onVoteSuccess }) => {
       <button
         onClick={handleVote}
         disabled={selectedOption === null || voting}
-        className="bg-carmesim text-white hover:bg-carmesim-dark h-12 px-6 rounded-lg font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="bg-floresta text-white hover:bg-floresta-dark h-12 px-6 rounded-lg font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         data-testid="vote-button"
       >
         {voting ? (

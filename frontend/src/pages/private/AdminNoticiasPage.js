@@ -81,7 +81,7 @@ export const AdminNoticiasPage = () => {
         </div>
         <button
           onClick={() => setEditing({})}
-          className="flex items-center gap-2 bg-carmesim text-white px-4 py-2 rounded-lg hover:bg-carmesim-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+          className="flex items-center gap-2 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
           data-testid="new-post-btn"
         >
           <Plus className="w-4 h-4" aria-hidden="true" /> Novo post
@@ -410,7 +410,7 @@ const PostFormModal = ({ post, onClose }) => {
               Cancelar
             </button>
             <button type="submit" disabled={mutation.isPending}
-              className="flex-1 inline-flex items-center justify-center gap-2 bg-carmesim text-white px-4 py-2.5 rounded-md hover:bg-carmesim-dark transition-colors font-semibold cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+              className="flex-1 inline-flex items-center justify-center gap-2 bg-floresta text-white px-4 py-2.5 rounded-md hover:bg-floresta-dark transition-colors font-semibold cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
               data-testid="submit-post-btn">
               {mutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> A guardar…</> : <><Check className="w-4 h-4" aria-hidden="true" /> {isEdit ? 'Guardar' : 'Criar'}</>}
             </button>

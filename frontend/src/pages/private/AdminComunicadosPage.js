@@ -669,12 +669,12 @@ export function AdminComunicadosPage() {
                 <p className="text-xs text-[#B91C1C]" data-testid="comunicado-validation">{validationError}</p>
               )}
 
-              {/* O ÚNICO botão primário (Carmesim) da vista */}
+              {/* O ÚNICO botão primário (ação positiva, Floresta) da vista */}
               <button
                 type="button"
                 onClick={handleSubmitClick}
                 disabled={!canSubmit}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-carmesim text-white font-semibold hover:bg-[#A51B27] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-floresta text-white font-semibold hover:bg-floresta-dark transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
                 data-testid="comunicado-submit"
               >
                 {createMutation.isPending ? (
@@ -715,7 +715,7 @@ export function AdminComunicadosPage() {
             <AlertDialogCancel data-testid="comunicado-confirm-cancel">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmSend}
-              className="bg-carmesim text-white hover:bg-[#A51B27]"
+              className="bg-floresta text-white hover:bg-floresta-dark"
               data-testid="comunicado-confirm-send"
             >
               Enviar

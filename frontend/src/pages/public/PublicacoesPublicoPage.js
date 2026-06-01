@@ -142,7 +142,7 @@ export const PublicacoesPublicoPage = () => {
                           </div>
                           <Link
                             to="/contactos"
-                            className="inline-flex items-center justify-center gap-2 w-full bg-carmesim text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-carmesim-dark transition-colors"
+                            className="inline-flex items-center justify-center gap-2 w-full bg-floresta text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-floresta-dark transition-colors"
                           >
                             Adquirir — contactar ACCTA
                           </Link>

@@ -69,7 +69,7 @@ export const ReclamacoesPage = () => {
           <h1 className="page-title" data-testid="reclamacoes-title">Reclamações e recursos</h1>
           <p className="page-subtitle">Reclame à Direcção de actos que considere lesivos; se não for resolvido, pode recorrer à Assembleia (Art. 9.i). Conteúdo visível só ao autor e à Direcção.</p>
         </div>
-        <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-carmesim text-white px-4 py-2 rounded-lg hover:bg-carmesim-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="new-reclamacao-btn">
+        <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="new-reclamacao-btn">
           <Plus className="w-4 h-4" aria-hidden="true" /> Nova reclamação
         </button>
       </div>
@@ -115,7 +115,7 @@ export const ReclamacoesPage = () => {
                   <div className="flex flex-col sm:flex-row gap-2 pt-1">
                     <input type="text" value={resp[r.id]?.texto || ''} onChange={(e) => setResp({ ...resp, [r.id]: { ...resp[r.id], texto: e.target.value } })} placeholder="Resposta da Direcção…" className="flex-1 px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`rec-resp-${r.id}`} />
                     <label className="flex items-center gap-1.5 text-xs text-[#6B7280] whitespace-nowrap"><input type="checkbox" checked={!!resp[r.id]?.resolvida} onChange={(e) => setResp({ ...resp, [r.id]: { ...resp[r.id], resolvida: e.target.checked } })} className="h-4 w-4 rounded border-gray-300 text-carmesim" /> Resolvida</label>
-                    <button onClick={() => respMut.mutate({ id: r.id, texto: resp[r.id]?.texto, resolvida: !!resp[r.id]?.resolvida })} disabled={respMut.isPending || !(resp[r.id]?.texto || '').trim()} className="inline-flex items-center gap-1.5 bg-carmesim text-white px-3 py-2 rounded-md text-sm font-semibold hover:bg-carmesim-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`rec-resp-btn-${r.id}`}>
+                    <button onClick={() => respMut.mutate({ id: r.id, texto: resp[r.id]?.texto, resolvida: !!resp[r.id]?.resolvida })} disabled={respMut.isPending || !(resp[r.id]?.texto || '').trim()} className="inline-flex items-center gap-1.5 bg-floresta text-white px-3 py-2 rounded-md text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`rec-resp-btn-${r.id}`}>
                       <Send className="w-4 h-4" aria-hidden="true" /> Responder
                     </button>
                   </div>
@@ -136,7 +136,7 @@ export const ReclamacoesPage = () => {
                         {assembleias.map((a) => <option key={a.id} value={a.id}>{a.titulo}</option>)}
                       </select>
                       <input type="text" value={dec[r.id]?.deliberacao_id || ''} onChange={(e) => setDec({ ...dec, [r.id]: { ...dec[r.id], deliberacao_id: e.target.value } })} placeholder="ID deliberação (opcional)" className="px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`rec-dec-delib-${r.id}`} />
-                      <button onClick={() => decMut.mutate({ id: r.id, data: { decisao: dec[r.id]?.decisao, assembleia_id: dec[r.id]?.assembleia_id || null, deliberacao_id: dec[r.id]?.deliberacao_id || null } })} disabled={decMut.isPending || !(dec[r.id]?.decisao || '').trim()} className="inline-flex items-center gap-1.5 bg-carmesim text-white px-3 py-2 rounded-md text-sm font-semibold hover:bg-carmesim-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`rec-dec-btn-${r.id}`}>
+                      <button onClick={() => decMut.mutate({ id: r.id, data: { decisao: dec[r.id]?.decisao, assembleia_id: dec[r.id]?.assembleia_id || null, deliberacao_id: dec[r.id]?.deliberacao_id || null } })} disabled={decMut.isPending || !(dec[r.id]?.decisao || '').trim()} className="inline-flex items-center gap-1.5 bg-floresta text-white px-3 py-2 rounded-md text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`rec-dec-btn-${r.id}`}>
                         <Gavel className="w-4 h-4" aria-hidden="true" /> Decidir
                       </button>
                     </div>
@@ -162,7 +162,7 @@ export const ReclamacoesPage = () => {
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer">Cancelar</button>
-              <button onClick={() => createMut.mutate()} disabled={createMut.isPending || form.assunto.trim().length < 3 || !form.descricao.trim()} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid="rec-submit">
+              <button onClick={() => createMut.mutate()} disabled={createMut.isPending || form.assunto.trim().length < 3 || !form.descricao.trim()} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid="rec-submit">
                 {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />} Submeter
               </button>
             </div>

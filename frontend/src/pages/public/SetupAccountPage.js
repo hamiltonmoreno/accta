@@ -170,7 +170,7 @@ export const SetupAccountPage = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3 bg-carmesim hover:bg-carmesim/90 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-floresta hover:bg-floresta-dark text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             data-testid="setup-submit"
           >
             {isSubmitting ? 'A ativar...' : 'Ativar Conta'}

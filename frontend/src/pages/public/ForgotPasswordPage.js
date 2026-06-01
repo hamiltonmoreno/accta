@@ -95,7 +95,7 @@ export const ForgotPasswordPage = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-carmesim text-white hover:bg-carmesim-dark h-11 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full bg-floresta text-white hover:bg-floresta-dark h-11 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   data-testid="forgot-submit"
                 >
                   {isSubmitting ? (
@@ -149,7 +149,7 @@ export const ForgotPasswordPage = () => {
 
                 <Link
                   to={`/reset-password?token=${submitted.token}`}
-                  className="mt-4 w-full bg-carmesim text-white hover:bg-carmesim-dark h-11 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                  className="mt-4 w-full bg-floresta text-white hover:bg-floresta-dark h-11 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2"
                   data-testid="go-to-reset-btn"
                 >
                   <ExternalLink className="w-4 h-4" />

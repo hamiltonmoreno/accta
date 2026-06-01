@@ -151,7 +151,7 @@ export const HomePage = () => {
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <Link
                   to="/profissao"
-                  className="group inline-flex items-center justify-center gap-2 bg-carmesim text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-lg font-bold text-sm sm:text-base hover:bg-carmesim-dark transition-all shadow-lg shadow-carmesim/25"
+                  className="group inline-flex items-center justify-center gap-2 bg-floresta text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-lg font-bold text-sm sm:text-base hover:bg-floresta-dark transition-all shadow-lg shadow-floresta/25"
                   data-testid="hero-cta-primary"
                 >
                   Conheça a Profissão
@@ -625,7 +625,7 @@ export const HomePage = () => {
           <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
             <Link
               to="/sobre"
-              className="inline-flex items-center justify-center gap-2 bg-carmesim text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-lg hover:bg-carmesim-dark transition-all"
+              className="inline-flex items-center justify-center gap-2 bg-floresta text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-lg hover:bg-floresta-dark transition-all"
             >
               Conheça a Associação
             </Link>

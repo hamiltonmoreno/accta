@@ -69,8 +69,13 @@ const GENDER_OPTIONS = [
 const labelCls = 'block text-xs uppercase tracking-widest text-gray-500 font-semibold mb-1';
 const inputCls =
   'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/30 outline-none';
-// Botões: Carmesim como acento único (1 primário por contexto); restantes neutros.
+// Botões: ação positiva a Floresta (acento único de marca fica nos realces/anel).
 const btnPrimaryCls =
+  'inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-floresta text-white ' +
+  'hover:bg-floresta-dark font-semibold text-sm transition-colors disabled:opacity-50 ' +
+  'disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 outline-none';
+// Confirmação destrutiva dentro de diálogo (Desativar 2FA) — Carmesim cheio.
+const btnDestructiveSolidCls =
   'inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg bg-carmesim text-white ' +
   'hover:bg-carmesim-dark font-semibold text-sm transition-colors disabled:opacity-50 ' +
   'disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 outline-none';
@@ -367,7 +372,7 @@ const SecuritySection = () => {
               <button type="button" onClick={() => setDisableOpen(false)} className={btnSecondaryCls}>
                 Cancelar
               </button>
-              <button type="submit" disabled={!password || disableMutation.isPending} className={btnPrimaryCls}>
+              <button type="submit" disabled={!password || disableMutation.isPending} className={btnDestructiveSolidCls}>
                 {disableMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
                 Desativar
               </button>
@@ -568,7 +573,7 @@ export const PerfilPage = () => {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={photoMutation.isPending || user.status !== 'ativo'}
                 aria-label="Alterar foto de perfil"
-                className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-carmesim text-white shadow-md hover:bg-carmesim-dark transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50"
+                className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-floresta text-white shadow-md hover:bg-floresta-dark transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50"
                 data-testid="change-photo-btn"
               >
                 <Camera className="w-3.5 h-3.5" aria-hidden="true" />
@@ -701,7 +706,7 @@ export const PerfilPage = () => {
           <button
             onClick={handleSave}
             disabled={loading}
-            className="inline-flex items-center gap-2 bg-carmesim text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-carmesim-dark transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 bg-floresta text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-floresta-dark transition-colors disabled:opacity-50"
             data-testid="profile-save-btn"
           >
             <Save className="w-4 h-4" />

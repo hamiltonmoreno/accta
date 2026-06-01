@@ -196,7 +196,7 @@ export const BeneficiosPage = () => {
                   <button
                     type="button"
                     onClick={() => setConfirmId(benefit.id)}
-                    className="mt-4 w-full bg-carmesim text-white text-sm font-semibold py-2.5 rounded-lg hover:bg-carmesim/90 transition-colors disabled:opacity-50"
+                    className="mt-4 w-full bg-floresta text-white text-sm font-semibold py-2.5 rounded-lg hover:bg-floresta-dark transition-colors disabled:opacity-50"
                     data-testid={`validate-benefit-${benefit.id}`}
                   >
                     Registar Utilização

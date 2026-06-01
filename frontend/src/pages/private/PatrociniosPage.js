@@ -59,7 +59,7 @@ export const PatrociniosPage = () => {
                   <button
                     onClick={() => respond.mutate({ candidateId: p.candidate_id, action: 'confirmar' })}
                     disabled={busy}
-                    className="inline-flex items-center gap-1.5 bg-carmesim text-white px-3 py-2 rounded-md text-sm font-semibold hover:bg-carmesim-dark transition-colors cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                    className="inline-flex items-center gap-1.5 bg-floresta text-white px-3 py-2 rounded-md text-sm font-semibold hover:bg-floresta-dark transition-colors cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
                     data-testid={`confirmar-${p.candidate_id}`}
                   >
                     {busy ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Check className="w-4 h-4" aria-hidden="true" />}

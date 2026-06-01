@@ -18,8 +18,8 @@ import { Alert, AlertDescription } from './ui/alert';
 // Neutral-led + Carmesim como acento único: ≤1 botão primário (o de avanço) por
 // passo; restantes neutros.
 const btnPrimary =
-  'inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-carmesim text-white ' +
-  'hover:bg-carmesim-dark font-semibold text-sm transition-colors disabled:opacity-50 ' +
+  'inline-flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-floresta text-white ' +
+  'hover:bg-floresta-dark font-semibold text-sm transition-colors disabled:opacity-50 ' +
   'disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 ' +
   'focus-visible:ring-offset-2 outline-none';
 const btnSecondary =

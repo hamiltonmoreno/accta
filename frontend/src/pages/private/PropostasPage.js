@@ -74,7 +74,7 @@ export const PropostasPage = () => {
           <h1 className="page-title" data-testid="propostas-title">Propostas para a ordem de trabalhos</h1>
           <p className="page-subtitle">Submeta medidas, pontos ou temas para a Assembleia Geral. A Mesa e a Direcção triam e podem incluí-los na ordem de trabalhos (Art. 9.g/9.h).</p>
         </div>
-        <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-carmesim text-white px-4 py-2 rounded-lg hover:bg-carmesim-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="new-proposta-btn">
+        <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="new-proposta-btn">
           <Plus className="w-4 h-4" aria-hidden="true" /> Nova proposta
         </button>
       </div>
@@ -170,7 +170,7 @@ export const PropostasPage = () => {
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer">Cancelar</button>
-              <button onClick={() => createMut.mutate()} disabled={createMut.isPending || form.titulo.trim().length < 3 || !form.descricao.trim()} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid="prop-submit">
+              <button onClick={() => createMut.mutate()} disabled={createMut.isPending || form.titulo.trim().length < 3 || !form.descricao.trim()} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid="prop-submit">
                 {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />} Submeter
               </button>
             </div>
