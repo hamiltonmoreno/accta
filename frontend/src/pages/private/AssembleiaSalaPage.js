@@ -20,10 +20,9 @@ import {
   MAIORIA_LABELS,
   EXPEDIENTE_TIPO_LABELS,
 } from '../../lib/governanceLabels';
+import { primaryBtn } from '../../lib/buttonStyles';
 // ---------- Tokens & helpers ----------------------------------------------- //
 
-const primaryBtn =
-  'inline-flex items-center gap-1.5 bg-carmesim text-white hover:bg-carmesim-dark rounded-md px-4 py-2 text-sm font-semibold transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50';
 const secondaryBtn =
   'inline-flex items-center gap-1.5 bg-white border border-[#D1D5DB] text-[#3A3A3A] hover:bg-[#F5F5F5] rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50';
 const dangerBtn =

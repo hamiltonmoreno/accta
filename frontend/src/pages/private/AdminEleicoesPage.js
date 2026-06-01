@@ -15,6 +15,7 @@ import {
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
 import { MemberPicker as CandidatePicker } from '../../components/MemberPicker';
+import { primaryBtn } from '../../lib/buttonStyles';
 
 const MODO_LABELS = {
   presencial: 'Presencial',
@@ -67,7 +68,6 @@ const StatusBadge = ({ status }) => {
 const fieldClass ='w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none';
 const labelClass = 'block text-xs font-medium text-[#6B7280] mb-1.5';
 const secondaryBtn = 'px-4 py-2 rounded-md bg-white border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 disabled:opacity-50';
-const primaryBtn = 'px-4 py-2 rounded-md bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 ring-offset-2 disabled:opacity-50';
 
 // ── Modal: criar eleição ────────────────────────────────────────────────────
 const CriarEleicaoModal = ({ open, onClose, onSubmit, pending }) => {

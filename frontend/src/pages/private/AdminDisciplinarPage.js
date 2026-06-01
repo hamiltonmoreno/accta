@@ -16,6 +16,7 @@ import {
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
 import { MemberPicker } from '../../components/MemberPicker';
+import { primaryBtn } from '../../lib/buttonStyles';
 
 const TIPO_OPTIONS = ['advertencia', 'multa', 'perda_direitos', 'expulsao'];
 const STATUS_OPTIONS = [
@@ -94,7 +95,6 @@ const inputCls = 'w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm fo
 const selectCls = `${inputCls} bg-white`;
 const secondaryBtn = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white border border-[#D1D5DB] text-grafite text-xs font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50';
 const cancelBtn = 'px-4 py-2 rounded-md bg-white border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2';
-const primaryBtn = 'px-4 py-2 rounded-md bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50';
 
 const emptyCreateForm = {
   visado: null,

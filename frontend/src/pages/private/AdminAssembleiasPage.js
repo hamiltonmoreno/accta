@@ -18,6 +18,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '../../components/ui/dialog';
 import { EmptyState } from '../../components/EmptyState';
+import { primaryBtn } from '../../lib/buttonStyles';
 import { Skeleton } from '../../components/ui/skeleton';
 import { MemberPicker } from '../../components/MemberPicker';
 
@@ -64,7 +65,6 @@ const TipoBadge = ({ tipo }) => (
 const fieldCls ='w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none';
 const labelCls = 'block text-xs font-medium text-[#6B7280] mb-1.5';
 const secondaryBtn = 'inline-flex items-center gap-1.5 bg-white border border-[#D1D5DB] text-[#3A3A3A] hover:bg-[#F5F5F5] rounded-md px-4 py-2 text-sm font-medium transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50';
-const primaryBtn = 'inline-flex items-center gap-1.5 bg-carmesim text-white hover:bg-carmesim-dark rounded-md px-4 py-2 text-sm font-semibold transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50';
 
 // Linha de contagem de votos no detalhe de uma deliberação.
 const VoteStat = ({ label, value, color }) => (
