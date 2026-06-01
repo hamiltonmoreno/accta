@@ -1,5 +1,13 @@
 # Spec — Verificação de Segurança "SaaS Production-Ready" (adaptada ao Portal ACCTA)
 
+> ✅ **CONCLUÍDA (2026-05-31)** — código completo e provado: **F0–F4 merged em `develop`**,
+> **169 testes de segurança/RBAC verdes**, **F1 cancelada** por decisão de produto (mínimo de
+> password mantém-se em 6). Restam apenas **gates operacionais F5** (backups/PITR, TLS, restauro
+> de staging — runbook em `tasks/runbook-seguranca-f5-infra.md`) e a **stop condition D6**
+> (rotação de `SECRET_KEY`), ambos **fora do código da app**. As tabelas de diagnóstico §1–§11
+> abaixo refletem o estado **inicial** (as-found); o estado de **fecho** está na secção **Review**
+> no fim do ficheiro. _As ❌/⚠️ nas tabelas eram lacunas iniciais e foram fechadas — ver Review._
+
 > **Origem**: prompt genérico de "build a production-ready SaaS with secure-by-design
 > principles" (brute-force, MFA, sessões seguras, SQLi/XSS/CSRF, IDOR, RBAC/ABAC, API
 > segura, headers, monitorização/logging, backup/DR, arquitetura limpa). **Adaptado** ao
@@ -322,21 +330,21 @@ frontend → verificação manual.
 ## 13. Checklist executável (cole no PR)
 
 **P0 — verificação (sem mudar comportamento, só provar):**
-- [ ] `grep -rn "dangerouslySetInnerHTML" frontend/src` → 0 (ou justificado)
-- [ ] grep por `@router.(get|post|put|patch|delete)` em rotas protegidas sem `Depends(get_current_user)` → 0
-- [ ] `pytest tests/test_auth_hardening.py tests/test_permissions.py tests/test_rbac_matrix.py` verde
-- [x] novos: `test_idor`, `test_security_headers`, `test_csrf_middleware`, `test_rate_limit`, `test_lockout_integration`, `test_sql_injection_fuzz` verdes (38 testes — ramo `feature/seguranca-testes-regressao`)
-- [ ] `curl -I` confirma `Set-Cookie` httpOnly/Secure/SameSite e os headers de segurança
+- [x] `grep -rn "dangerouslySetInnerHTML" frontend/src` → **0 ocorrências** (verificado 2026-05-31)
+- [x] grep por rotas protegidas sem `Depends(get_current_user)` → **0**: as únicas rotas sem auth são públicas por design (`/documents/public`, `/events/public`, `/events/featured`, `/posts` blog, `/users/meta/{cargos,privileges}`) (verificado 2026-05-31)
+- [x] `pytest tests/test_auth_hardening.py tests/test_permissions.py tests/test_rbac_matrix.py` verde (2026-05-31)
+- [x] novos: `test_idor`, `test_security_headers`, `test_csrf_middleware`, `test_rate_limit`, `test_lockout_integration`, `test_sql_injection_fuzz` (+ `test_audit_integrity`, `test_mfa`) verdes — **169 testes de segurança/RBAC verdes** no total (re-verificado 2026-05-31)
+- [x] headers de segurança + cookie httpOnly/Secure/SameSite provados in-process por `test_security_headers` + `test_auth_hardening`; spot-check `curl -I` em runtime fica para o operador
 
 **P1 — lacunas reais:**
-- [ ] password mínimo ≥ 8 (D2)
-- [ ] MFA TOTP obrigatório p/ admin/financeiro (D1)
+- 🚫 password mínimo ≥ 8 (D2) — **cancelada pelo dono**: o mínimo fica em **6 caracteres** (decisão de produto)
+- [x] MFA TOTP obrigatório p/ admin/financeiro (D1) — `backend/mfa.py` + `auth_routes.py` (enroll/verify/disable + gate no login + backup codes uso-único); `test_mfa` verde
 
 **P2/P3 — defesa em profundidade / infra:**
-- [ ] alertas de anomalia (lockout, escalada de privilégio)
-- [ ] retenção/imutabilidade de audit log
-- [ ] TLS≥1.2 + redireção + backups/PITR + runbook DR (operador)
-- [ ] rotação de `SECRET_KEY` (D6, stop condition)
+- [x] alertas de anomalia (lockout, escalada de privilégio) — `notify_admins` (F3)
+- [x] retenção/imutabilidade de audit log — cadeia HMAC encadeada (F4) + `test_audit_integrity` verde
+- [ ] TLS≥1.2 + redireção + backups/PITR + runbook DR — **runbook escrito** (`tasks/runbook-seguranca-f5-infra.md`); execução = **operador** (gate de prontidão)
+- [ ] rotação de `SECRET_KEY` (D6) — **stop condition**, adiada até decisão do dono (suporte multi-chave)
 
 ---
 
@@ -374,7 +382,7 @@ frontend → verificação manual.
   (`test_update_milestone_no_cross_project_disclosure`). `delete_milestone`
   harmonizado para 404 (escopado por `project_id`), com teste dedicado.
   Restantes controlos provados sem alteração de produção.
-- [ ] F1/F2 concluídas — password policy + MFA atrás de gates D1/D2 confirmados.
-- [ ] F3/F4 concluídas ou explicitamente adiadas.
-- [ ] F5 (infra) confirmada com o operador e documentada.
-- **Conclusão**: _(resumo do estado de prontidão de segurança para produção)_
+- [x] F1/F2 concluídas (2026-05-31): **F1 cancelada** (o dono manteve o mínimo de 6 chars — D2 resolvido por decisão de produto); **F2 MFA TOTP feita e merged** (`mfa.py`, enroll/verify/disable, gate obrigatório p/ admin+financeiro — D1 confirmado, backup codes uso-único; `test_mfa` verde).
+- [x] F3/F4 concluídas (2026-05-31): **F3 alertas** (`notify_admins` em lockout/escalada) e **F4 hardening de audit log** (cadeia HMAC encadeada + `test_audit_integrity`) feitas e merged.
+- [ ] F5 (infra) — runbook escrito (`tasks/runbook-seguranca-f5-infra.md`); execução pelo **operador** pendente (backups/PITR, TLS≥1.2 + redireção 80→443, teste de restauro em staging). **D6** (rotação de `SECRET_KEY`) adiada como **stop condition**.
+- **Conclusão (2026-05-31)**: **prontidão de segurança ao nível de código atingida** — todo o checklist de código está implementado e provado (**169 testes de segurança/RBAC verdes**; F0–F4 merged em `develop`; F1 cancelada por decisão de produto). Restam apenas **gates operacionais (F5)** e a **decisão de stop condition D6 (rotação de `SECRET_KEY`)**, ambos **fora do código da app**. Spec fechada e renomeada `-concluido`.
