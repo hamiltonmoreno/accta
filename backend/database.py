@@ -1139,86 +1139,103 @@ async def transfer_cargo(from_user_id: str, to_user_id: str, from_update: dict, 
                 )
 
 
-async def _cast_secret_ballot(
-    receipt_table: str, ballot_table: str, dup_filter: dict, receipt_doc: dict, ballot_doc: dict
+async def _cast_secret_ballot_locked(
+    *,
+    parent_table: str,
+    parent_id: str,
+    expected_status: str,
+    receipt_table: str,
+    ballot_table: str,
+    dup_field: str,
+    dup_value: str,
+    parent_id_field_in_receipt: str,
+    receipt_doc: dict,
+    ballot_doc: dict,
 ) -> None:
-    """Voto secreto genérico: insere o recibo do eleitor e o boletim numa ÚNICA
-    transação. O recibo prova (por HMAC) que o eleitor votou; o boletim não tem
-    qualquer ligação ao eleitor. Levanta ValueError em voto duplicado (também
-    garantido pelo índice único do recibo).
+    """Voto secreto genérico SOB lock da linha-pai. Numa única transação:
+    1. `SELECT … FOR UPDATE` da linha-pai (`parent_table`/`parent_id`) com
+       `lock_timeout=2s` — bloqueia voters concorrentes; `apurar` que faça CAS
+       `update_one({id, status:expected_status}, …)` segura o mesmo lock.
+    2. Re-verifica `status == expected_status` SOB o lock → fecha a janela
+       TOCTOU contra o `apurar` (sem isto, um voter podia inserir o boletim
+       imediatamente depois do `apurar` ler/fechar).
+    3. Verifica recibo duplicado por `(parent_id_field_in_receipt, dup_field)`.
+    4. Insere recibo + boletim atomicamente.
 
-    O raw SQL fica no DAO (regra api.md). As rotas chamam só os wrappers."""
+    Levanta `ValueError("not_found"|"not_open"|"duplicate")`; em contenção
+    extrema do pool levanta `asyncpg.exceptions.LockNotAvailableError`.
+
+    Helpers `cast_ballot` (eleições) e `cast_assembleia_ballot` (assembleias)
+    delegam aqui — o raw SQL fica no DAO (regra api.md)."""
     pool = await get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
-            wb = _WhereBuilder()
-            where = wb.build(dup_filter)
+            await conn.execute("SET LOCAL lock_timeout = '2s'")
+            row = await conn.fetchrow(
+                f"SELECT pk, doc FROM {_quote_ident(parent_table)} "
+                "WHERE doc->>'id' = $1 LIMIT 1 FOR UPDATE",
+                parent_id,
+            )
+            if row is None:
+                raise ValueError("not_found")
+            if (row["doc"] or {}).get("status") != expected_status:
+                raise ValueError("not_open")
             existing = await conn.fetchrow(
-                f"SELECT pk FROM {_quote_ident(receipt_table)} WHERE {where} LIMIT 1",
-                *wb.params,
+                f"SELECT pk FROM {_quote_ident(receipt_table)} "
+                f"WHERE doc->>'{parent_id_field_in_receipt}' = $1 AND doc->>'{dup_field}' = $2 LIMIT 1",
+                parent_id,
+                dup_value,
             )
             if existing is not None:
-                raise ValueError("voto duplicado")
-            await conn.execute(f"INSERT INTO {_quote_ident(receipt_table)} (doc) VALUES ($1)", receipt_doc)
-            await conn.execute(f"INSERT INTO {_quote_ident(ballot_table)} (doc) VALUES ($1)", ballot_doc)
+                raise ValueError("duplicate")
+            await conn.execute(
+                f"INSERT INTO {_quote_ident(receipt_table)} (doc) VALUES ($1)",
+                receipt_doc,
+            )
+            await conn.execute(
+                f"INSERT INTO {_quote_ident(ballot_table)} (doc) VALUES ($1)",
+                ballot_doc,
+            )
 
 
 async def cast_ballot(eleicao_id: str, voter_hash: str, receipt_doc: dict, ballot_doc: dict) -> None:
-    """Voto secreto de eleição (spec-governanca §7). Ver `_cast_secret_ballot`."""
-    await _cast_secret_ballot(
-        "eleicao_voter_receipts",
-        "eleicao_ballots",
-        {"eleicao_id": eleicao_id, "voter_hash": voter_hash},
-        receipt_doc,
-        ballot_doc,
+    """Voto secreto de eleição (spec-governanca §7).
+
+    Fecha a janela TOCTOU contra `apurar_eleicao` via `_cast_secret_ballot_locked`:
+    `SELECT FOR UPDATE` em `eleicoes` + recheck `status="votacao"` na mesma
+    transação onde o recibo+boletim são inseridos. Ver helper para detalhes."""
+    await _cast_secret_ballot_locked(
+        parent_table="eleicoes",
+        parent_id=eleicao_id,
+        expected_status="votacao",
+        receipt_table="eleicao_voter_receipts",
+        ballot_table="eleicao_ballots",
+        dup_field="voter_hash",
+        dup_value=voter_hash,
+        parent_id_field_in_receipt="eleicao_id",
+        receipt_doc=receipt_doc,
+        ballot_doc=ballot_doc,
     )
 
 
 async def cast_assembleia_ballot(deliberacao_id: str, voter_hash: str, receipt_doc: dict, ballot_doc: dict) -> None:
     """Voto secreto de uma deliberação de assembleia (spec-sessao-assembleia §7).
 
-    Em relação ao genérico `_cast_secret_ballot` (usado pelas eleições),
-    aqui FECHAMOS a janela TOCTOU entre `votar_deliberacao` e
-    `apurar_deliberacao`: bloqueamos a linha da deliberação (`FOR UPDATE`)
-    e re-verificamos `status="aberta"` DENTRO da mesma transação onde se
-    inserem o recibo e o boletim. Apurar usa `update_one(filter+status="aberta")`
-    que segura o mesmo lock (DAO `_update`), pelo que voto e fecho serializam
-    na linha — o eleitor que chegue depois do fecho vê `encerrada` e é
-    rejeitado com `ValueError("not_open")`, sem voto perdido.
-
-    Levanta `ValueError` com sentinelas: `not_found` (deliberação inexistente),
-    `not_open` (já encerrada ou anulada), `duplicate` (voto repetido — pelo
-    recibo). A rota mapeia para 404/400/409. `lock_timeout=2s` previne pool
-    starvation; um voter excedente erguerá `LockNotAvailableError`."""
-    pool = await get_pool()
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            await conn.execute("SET LOCAL lock_timeout = '2s'")
-            row = await conn.fetchrow(
-                f"SELECT pk, doc FROM {_quote_ident('assembleia_deliberacoes')} "
-                "WHERE doc->>'id' = $1 LIMIT 1 FOR UPDATE",
-                deliberacao_id,
-            )
-            if row is None:
-                raise ValueError("not_found")
-            if (row["doc"] or {}).get("status") != "aberta":
-                raise ValueError("not_open")
-            existing = await conn.fetchrow(
-                f"SELECT pk FROM {_quote_ident('assembleia_voto_receipts')} "
-                "WHERE doc->>'deliberacao_id' = $1 AND doc->>'voter_hash' = $2 LIMIT 1",
-                deliberacao_id,
-                voter_hash,
-            )
-            if existing is not None:
-                raise ValueError("duplicate")
-            await conn.execute(
-                f"INSERT INTO {_quote_ident('assembleia_voto_receipts')} (doc) VALUES ($1)",
-                receipt_doc,
-            )
-            await conn.execute(
-                f"INSERT INTO {_quote_ident('assembleia_voto_ballots')} (doc) VALUES ($1)",
-                ballot_doc,
-            )
+    Fecha a janela TOCTOU contra `apurar_deliberacao` via `_cast_secret_ballot_locked`:
+    `SELECT FOR UPDATE` em `assembleia_deliberacoes` + recheck `status="aberta"`
+    na mesma transação onde o recibo+boletim são inseridos."""
+    await _cast_secret_ballot_locked(
+        parent_table="assembleia_deliberacoes",
+        parent_id=deliberacao_id,
+        expected_status="aberta",
+        receipt_table="assembleia_voto_receipts",
+        ballot_table="assembleia_voto_ballots",
+        dup_field="voter_hash",
+        dup_value=voter_hash,
+        parent_id_field_in_receipt="deliberacao_id",
+        receipt_doc=receipt_doc,
+        ballot_doc=ballot_doc,
+    )
 
 
 async def cast_assembleia_nominal_vote(deliberacao_id: str, user_id: str, voto_doc: dict) -> None:

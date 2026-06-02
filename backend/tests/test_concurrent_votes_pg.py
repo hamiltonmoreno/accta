@@ -37,11 +37,18 @@ import database
 from database import (
     cast_assembleia_ballot,
     cast_assembleia_nominal_vote,
+    cast_ballot,
     db,
     ensure_schema,
     get_pool,
 )
-from models import AssembleiaVoto, AssembleiaVotoBallot, AssembleiaVotoReceipt
+from models import (
+    AssembleiaVoto,
+    AssembleiaVotoBallot,
+    AssembleiaVotoReceipt,
+    EleicaoBallot,
+    EleicaoVoterReceipt,
+)
 
 
 pytestmark = [pytest.mark.integration, pytest.mark.asyncio]
@@ -306,3 +313,161 @@ class TestRegistarContagemCAS:
             assert d["status"] == "encerrada"
         finally:
             await _cleanup(did)
+
+
+# =============================================================================
+# Eleições (issue #151) — mesmo padrão que assembleias
+# =============================================================================
+
+
+async def _seed_eleicao() -> str:
+    """Cria uma eleição em status="votacao" e devolve `eleicao_id`."""
+    eid = f"e-{uuid.uuid4().hex[:8]}"
+    await db.eleicoes.insert_one({
+        "id": eid,
+        "ano": 2030,
+        "status": "votacao",
+        "direcao_titulares": 5,
+        "comissao_eleitoral": [],
+        "mesa_voto": [],
+        "mandato_inicio": "2030-04-01",
+        "mandato_fim": "2033-04-01",
+        "assembleia_id": None,
+        "created_at": "2030-01-01T00:00:00+00:00",
+    })
+    return eid
+
+
+async def _cleanup_eleicao(eid: str) -> None:
+    await db.eleicao_voter_receipts.delete_many({"eleicao_id": eid})
+    await db.eleicao_ballots.delete_many({"eleicao_id": eid})
+    await db.eleicoes.delete_many({"id": eid})
+
+
+class TestEleicaoLockOrdering:
+    async def test_apurar_primeiro_voter_recusado(self):
+        eid = await _seed_eleicao()
+        try:
+            # Mesa fecha a eleição ANTES do voter chegar ao helper.
+            res = await db.eleicoes.update_one(
+                {"id": eid, "status": "votacao"}, {"$set": {"status": "apurada"}}
+            )
+            assert res.modified_count == 1
+
+            voter_hash = "h" * 64
+            receipt = EleicaoVoterReceipt(eleicao_id=eid, voter_hash=voter_hash, modo="digital").model_dump()
+            ballot = EleicaoBallot(eleicao_id=eid, voto="branco", modo="digital").model_dump()
+            with pytest.raises(ValueError) as exc:
+                await cast_ballot(eid, voter_hash, receipt, ballot)
+            assert exc.value.args[0] == "not_open"
+
+            # Nem recibo nem boletim ficaram (tx atómica).
+            assert await db.eleicao_voter_receipts.find({"eleicao_id": eid}).to_list(None) == []
+            assert await db.eleicao_ballots.find({"eleicao_id": eid}).to_list(None) == []
+        finally:
+            await _cleanup_eleicao(eid)
+
+    async def test_voter_primeiro_recibo_e_boletim_persistem(self):
+        eid = await _seed_eleicao()
+        try:
+            voter_hash = "k" * 64
+            receipt = EleicaoVoterReceipt(eleicao_id=eid, voter_hash=voter_hash, modo="digital").model_dump()
+            ballot = EleicaoBallot(eleicao_id=eid, voto="L1", modo="digital").model_dump()
+            await cast_ballot(eid, voter_hash, receipt, ballot)
+
+            # Apurar fecha; o boletim continua visível.
+            res = await db.eleicoes.update_one(
+                {"id": eid, "status": "votacao"}, {"$set": {"status": "apurada"}}
+            )
+            assert res.modified_count == 1
+
+            recibos = await db.eleicao_voter_receipts.find({"eleicao_id": eid}).to_list(None)
+            boletins = await db.eleicao_ballots.find({"eleicao_id": eid}).to_list(None)
+            assert len(recibos) == 1
+            assert recibos[0]["voter_hash"] == voter_hash
+            assert len(boletins) == 1
+            assert boletins[0]["voto"] == "L1"
+            # Anonimato preservado.
+            assert "user_id" not in boletins[0]
+            assert "voter_hash" not in boletins[0]
+        finally:
+            await _cleanup_eleicao(eid)
+
+    async def test_duplicate_recibo(self):
+        eid = await _seed_eleicao()
+        try:
+            voter_hash = "m" * 64
+            receipt = EleicaoVoterReceipt(eleicao_id=eid, voter_hash=voter_hash, modo="digital").model_dump()
+            ballot = EleicaoBallot(eleicao_id=eid, voto="L1", modo="digital").model_dump()
+            await cast_ballot(eid, voter_hash, receipt, ballot)
+
+            r2 = EleicaoVoterReceipt(eleicao_id=eid, voter_hash=voter_hash, modo="digital").model_dump()
+            b2 = EleicaoBallot(eleicao_id=eid, voto="L2", modo="digital").model_dump()
+            with pytest.raises(ValueError) as exc:
+                await cast_ballot(eid, voter_hash, r2, b2)
+            assert exc.value.args[0] == "duplicate"
+        finally:
+            await _cleanup_eleicao(eid)
+
+    async def test_helper_respeita_for_update(self):
+        # Mesmo teste de lock-blocking que para assembleias — prova que o
+        # helper toma `FOR UPDATE` na linha de eleicoes. Sem este lock, o
+        # recheck sob lock não tinha valor.
+        eid = await _seed_eleicao()
+        try:
+            pool = await get_pool()
+            release = asyncio.Event()
+            t1_acquired = asyncio.Event()
+
+            async def hold_lock():
+                async with pool.acquire() as conn:
+                    async with conn.transaction():
+                        await conn.fetchrow(
+                            'SELECT pk FROM "eleicoes" '
+                            "WHERE doc->>'id' = $1 LIMIT 1 FOR UPDATE",
+                            eid,
+                        )
+                        t1_acquired.set()
+                        try:
+                            await asyncio.wait_for(release.wait(), timeout=6.0)
+                        except asyncio.TimeoutError:
+                            pass
+
+            holder = asyncio.create_task(hold_lock())
+            await t1_acquired.wait()
+
+            voter_hash = "z" * 64
+            receipt = EleicaoVoterReceipt(eleicao_id=eid, voter_hash=voter_hash, modo="digital").model_dump()
+            ballot = EleicaoBallot(eleicao_id=eid, voto="L1", modo="digital").model_dump()
+            try:
+                with pytest.raises(asyncpg.exceptions.LockNotAvailableError):
+                    await cast_ballot(eid, voter_hash, receipt, ballot)
+            finally:
+                release.set()
+                await holder
+
+            # Nada residual.
+            assert await db.eleicao_voter_receipts.find({"eleicao_id": eid}).to_list(None) == []
+            assert await db.eleicao_ballots.find({"eleicao_id": eid}).to_list(None) == []
+        finally:
+            await _cleanup_eleicao(eid)
+
+
+class TestApurarEleicaoCAS:
+    async def test_segundo_apurar_idempotente(self):
+        # Duas Mesas em concorrência: a primeira CAS fecha; a segunda vê
+        # modified_count=0 e a rota devolverá 409. Sem este filtro, a segunda
+        # esmagaria o resultado da primeira.
+        eid = await _seed_eleicao()
+        try:
+            res1 = await db.eleicoes.update_one(
+                {"id": eid, "status": "votacao"}, {"$set": {"status": "apurada"}}
+            )
+            assert res1.modified_count == 1
+
+            res2 = await db.eleicoes.update_one(
+                {"id": eid, "status": "votacao"}, {"$set": {"status": "apurada"}}
+            )
+            assert res2.modified_count == 0
+        finally:
+            await _cleanup_eleicao(eid)

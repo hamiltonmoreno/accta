@@ -14,6 +14,7 @@ import hmac
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
+import asyncpg
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 
 import comunicados_service
@@ -320,6 +321,8 @@ async def votar(
     """Voto digital do próprio eleitor. Recibo + boletim atómicos; o boletim não
     tem ligação ao eleitor."""
     eleicao = await _get_eleicao(eleicao_id)
+    # Fast-path: evita uma transação inútil quando já está claramente fora de
+    # janela. A garantia autoritativa do estado vem do helper DAO sob lock.
     if eleicao["status"] != "votacao":
         raise HTTPException(status_code=400, detail="A votação não está aberta")
     if not is_voting_member(current_user):
@@ -329,9 +332,19 @@ async def votar(
     vh = _voter_hash(eleicao_id, current_user.id)
     receipt = EleicaoVoterReceipt(eleicao_id=eleicao_id, voter_hash=vh, modo="digital").model_dump()
     ballot = EleicaoBallot(eleicao_id=eleicao_id, voto=data.voto, modo="digital").model_dump()
+    # `cast_ballot` toma `FOR UPDATE` em `eleicoes` e re-verifica
+    # `status="votacao"` na MESMA transação onde o recibo+boletim são inseridos
+    # — fecha a janela TOCTOU contra `apurar` (issue #151).
     try:
         await cast_ballot(eleicao_id, vh, receipt, ballot)
-    except ValueError:
+    except asyncpg.exceptions.LockNotAvailableError:
+        raise HTTPException(status_code=503, detail="Sistema sob carga. Tente novamente.")
+    except ValueError as e:
+        sentinel = e.args[0] if e.args else ""
+        if sentinel == "not_found":
+            raise HTTPException(status_code=404, detail="Eleição não encontrada")
+        if sentinel == "not_open":
+            raise HTTPException(status_code=400, detail="A votação não está aberta")
         raise HTTPException(status_code=409, detail="Já votou nesta eleição")
     # Auditoria regista PARTICIPAÇÃO, nunca o sentido de voto.
     await create_audit_log(
@@ -369,9 +382,17 @@ async def voto_correspondencia(
         registado_por=current_user.id,
     ).model_dump()
     ballot = EleicaoBallot(eleicao_id=eleicao_id, voto=data.voto, modo="correspondencia").model_dump()
+    # Ver `votar`: helper DAO segura `FOR UPDATE` + recheck status (issue #151).
     try:
         await cast_ballot(eleicao_id, vh, receipt, ballot)
-    except ValueError:
+    except asyncpg.exceptions.LockNotAvailableError:
+        raise HTTPException(status_code=503, detail="Sistema sob carga. Tente novamente.")
+    except ValueError as e:
+        sentinel = e.args[0] if e.args else ""
+        if sentinel == "not_found":
+            raise HTTPException(status_code=404, detail="Eleição não encontrada")
+        if sentinel == "not_open":
+            raise HTTPException(status_code=400, detail="A votação não está aberta")
         raise HTTPException(status_code=409, detail="Este eleitor já votou")
     await create_audit_log(
         current_user.id,
@@ -396,6 +417,18 @@ async def apurar(eleicao_id: str, request: Request, current_user: User = Depends
     _require_manage(current_user, eleicao)
     if eleicao["status"] != "votacao":
         raise HTTPException(status_code=400, detail="Só se apura após a votação")
+
+    # Fecha a janela ANTES de ler os boletins (mesmo padrão de
+    # `apurar_deliberacao`): o filtro `status="votacao"` no `update_one` toma
+    # `FOR UPDATE` no DAO; voters concorrentes (também sob `FOR UPDATE` via
+    # `cast_ballot`) serializam — quem entrar depois vê `status="votacao"`
+    # já trocado e o helper levanta `ValueError("not_open")`. Duas chamadas
+    # concorrentes a `apurar` ficam idempotentes: só uma fecha.
+    pre_close = await db.eleicoes.update_one(
+        {"id": eleicao_id, "status": "votacao"}, {"$set": {"status": "apurada"}}
+    )
+    if pre_close.modified_count == 0:
+        raise HTTPException(status_code=409, detail="Eleição já apurada.")
 
     ballots = await db.eleicao_ballots.find({"eleicao_id": eleicao_id}, {"_id": 0, "voto": 1}).to_list(None)
     counts = Counter(b.get("voto") for b in ballots)
@@ -425,7 +458,8 @@ async def apurar(eleicao_id: str, request: Request, current_user: User = Depends
     if empate:
         resultado["nova_eleicao_ate"] = (datetime.now(timezone.utc) + timedelta(days=15)).isoformat()
 
-    await db.eleicoes.update_one({"id": eleicao_id}, {"$set": {"status": "apurada", "resultado": resultado}})
+    # Status já fechado acima; aqui só anexamos o resultado.
+    await db.eleicoes.update_one({"id": eleicao_id}, {"$set": {"resultado": resultado}})
     await create_audit_log(
         current_user.id,
         "eleicao_apurada",
