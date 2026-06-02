@@ -1176,11 +1176,82 @@ async def cast_ballot(eleicao_id: str, voter_hash: str, receipt_doc: dict, ballo
 
 async def cast_assembleia_ballot(deliberacao_id: str, voter_hash: str, receipt_doc: dict, ballot_doc: dict) -> None:
     """Voto secreto de uma deliberação de assembleia (spec-sessao-assembleia §7).
-    Ver `_cast_secret_ballot`."""
-    await _cast_secret_ballot(
-        "assembleia_voto_receipts",
-        "assembleia_voto_ballots",
-        {"deliberacao_id": deliberacao_id, "voter_hash": voter_hash},
-        receipt_doc,
-        ballot_doc,
-    )
+
+    Em relação ao genérico `_cast_secret_ballot` (usado pelas eleições),
+    aqui FECHAMOS a janela TOCTOU entre `votar_deliberacao` e
+    `apurar_deliberacao`: bloqueamos a linha da deliberação (`FOR UPDATE`)
+    e re-verificamos `status="aberta"` DENTRO da mesma transação onde se
+    inserem o recibo e o boletim. Apurar usa `update_one(filter+status="aberta")`
+    que segura o mesmo lock (DAO `_update`), pelo que voto e fecho serializam
+    na linha — o eleitor que chegue depois do fecho vê `encerrada` e é
+    rejeitado com `ValueError("not_open")`, sem voto perdido.
+
+    Levanta `ValueError` com sentinelas: `not_found` (deliberação inexistente),
+    `not_open` (já encerrada ou anulada), `duplicate` (voto repetido — pelo
+    recibo). A rota mapeia para 404/400/409. `lock_timeout=2s` previne pool
+    starvation; um voter excedente erguerá `LockNotAvailableError`."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute("SET LOCAL lock_timeout = '2s'")
+            row = await conn.fetchrow(
+                f"SELECT pk, doc FROM {_quote_ident('assembleia_deliberacoes')} "
+                "WHERE doc->>'id' = $1 LIMIT 1 FOR UPDATE",
+                deliberacao_id,
+            )
+            if row is None:
+                raise ValueError("not_found")
+            if (row["doc"] or {}).get("status") != "aberta":
+                raise ValueError("not_open")
+            existing = await conn.fetchrow(
+                f"SELECT pk FROM {_quote_ident('assembleia_voto_receipts')} "
+                "WHERE doc->>'deliberacao_id' = $1 AND doc->>'voter_hash' = $2 LIMIT 1",
+                deliberacao_id,
+                voter_hash,
+            )
+            if existing is not None:
+                raise ValueError("duplicate")
+            await conn.execute(
+                f"INSERT INTO {_quote_ident('assembleia_voto_receipts')} (doc) VALUES ($1)",
+                receipt_doc,
+            )
+            await conn.execute(
+                f"INSERT INTO {_quote_ident('assembleia_voto_ballots')} (doc) VALUES ($1)",
+                ballot_doc,
+            )
+
+
+async def cast_assembleia_nominal_vote(deliberacao_id: str, user_id: str, voto_doc: dict) -> None:
+    """Voto nominal de uma deliberação de assembleia. Análogo a
+    `cast_assembleia_ballot` mas para `assembleia_votos`: trava a linha da
+    deliberação (`FOR UPDATE`), re-confirma `status="aberta"` e insere o voto
+    na mesma transação — fecha a janela TOCTOU contra `apurar_deliberacao`.
+
+    Levanta `ValueError("not_found"|"not_open"|"duplicate")`. Voto duplicado
+    está coberto duas vezes: in-tx (`EXISTS`) e pelo índice único
+    `ux_assembvoto_delib_user`. `lock_timeout=2s` evita pool starvation."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute("SET LOCAL lock_timeout = '2s'")
+            row = await conn.fetchrow(
+                f"SELECT pk, doc FROM {_quote_ident('assembleia_deliberacoes')} "
+                "WHERE doc->>'id' = $1 LIMIT 1 FOR UPDATE",
+                deliberacao_id,
+            )
+            if row is None:
+                raise ValueError("not_found")
+            if (row["doc"] or {}).get("status") != "aberta":
+                raise ValueError("not_open")
+            dup = await conn.fetchrow(
+                f"SELECT pk FROM {_quote_ident('assembleia_votos')} "
+                "WHERE doc->>'deliberacao_id' = $1 AND doc->>'user_id' = $2 LIMIT 1",
+                deliberacao_id,
+                user_id,
+            )
+            if dup is not None:
+                raise ValueError("duplicate")
+            await conn.execute(
+                f"INSERT INTO {_quote_ident('assembleia_votos')} (doc) VALUES ($1)",
+                voto_doc,
+            )
