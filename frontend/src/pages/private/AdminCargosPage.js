@@ -284,7 +284,7 @@ export const AdminCargosPage = () => {
                     data: { cargo: assigning.cargo, role: form.role, privileges: form.privileges, elected_by: form.electedBy || null, notes: form.notes || null, effective_date: isoOrNull(form.effectiveDate) },
                   })}
                   disabled={!form.toUser || promoteMutation.isPending}
-                  className="px-4 py-2 rounded-lg bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark transition-colors disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark transition-colors disabled:opacity-50"
                   data-testid="assign-confirm"
                 >
                   {promoteMutation.isPending ? 'A atribuir...' : 'Confirmar atribuição'}
@@ -332,7 +332,7 @@ export const AdminCargosPage = () => {
                     effective_date: isoOrNull(form.effectiveDate),
                   })}
                   disabled={!form.toUser || transferMutation.isPending}
-                  className="px-4 py-2 rounded-lg bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark transition-colors disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark transition-colors disabled:opacity-50"
                   data-testid="transfer-confirm"
                 >
                   {transferMutation.isPending ? 'A transferir...' : 'Confirmar transferência'}

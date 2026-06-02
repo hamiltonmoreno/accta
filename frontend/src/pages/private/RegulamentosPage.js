@@ -133,7 +133,7 @@ export const RegulamentosPage = () => {
           <p className="page-subtitle">Repositório versionado de regulamentos internos. O Regimento da AG e outros de competência da Assembleia exigem deliberação para entrar em vigor (Art. 31.j, 56).</p>
         </div>
         {podeGerir && (
-          <button onClick={() => { setForm({ competencia_aprovacao: 'direcao' }); setDialog('criar'); }} className="flex items-center gap-2 bg-carmesim text-white px-4 py-2 rounded-lg hover:bg-carmesim-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="novo-regulamento-btn">
+          <button onClick={() => { setForm({ competencia_aprovacao: 'direcao' }); setDialog('criar'); }} className="flex items-center gap-2 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="novo-regulamento-btn">
             <Plus className="w-4 h-4" aria-hidden="true" /> Novo regulamento
           </button>
         )}
@@ -215,7 +215,7 @@ export const RegulamentosPage = () => {
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={closeDialog} className="px-4 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer">Cancelar</button>
-              <button onClick={() => criarMut.mutate()} disabled={criarMut.isPending || !form.slug?.trim() || !form.titulo?.trim()} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="reg-submit">
+              <button onClick={() => criarMut.mutate()} disabled={criarMut.isPending || !form.slug?.trim() || !form.titulo?.trim()} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="reg-submit">
                 {criarMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />} Criar
               </button>
             </div>
@@ -238,7 +238,7 @@ export const RegulamentosPage = () => {
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={closeDialog} className="px-4 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer">Cancelar</button>
-              <button onClick={() => versaoMut.mutate()} disabled={versaoMut.isPending || !form.document_id?.trim()} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="versao-submit">
+              <button onClick={() => versaoMut.mutate()} disabled={versaoMut.isPending || !form.document_id?.trim()} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="versao-submit">
                 {versaoMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <FilePlus2 className="w-4 h-4" aria-hidden="true" />} Criar versão
               </button>
             </div>
@@ -257,7 +257,7 @@ export const RegulamentosPage = () => {
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={closeDialog} className="px-4 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer">Cancelar</button>
-              <button onClick={() => aprovarMut.mutate({ vid: aprovarCtx?.vid, competencia: 'assembleia_geral' })} disabled={aprovarMut.isPending || !form.deliberacao_id?.trim()} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="aprovar-ag-submit">
+              <button onClick={() => aprovarMut.mutate({ vid: aprovarCtx?.vid, competencia: 'assembleia_geral' })} disabled={aprovarMut.isPending || !form.deliberacao_id?.trim()} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="aprovar-ag-submit">
                 {aprovarMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <CheckCircle2 className="w-4 h-4" aria-hidden="true" />} Aprovar
               </button>
             </div>

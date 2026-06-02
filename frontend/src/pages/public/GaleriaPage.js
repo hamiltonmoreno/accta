@@ -235,7 +235,7 @@ export const GaleriaPage = () => {
           <div className="flex flex-col sm:flex-row justify-center gap-3">
             <Link
               to="/sobre"
-              className="inline-flex items-center justify-center gap-2 bg-carmesim text-white px-6 py-3 rounded-lg font-bold text-sm hover:bg-carmesim-dark transition-colors"
+              className="inline-flex items-center justify-center gap-2 bg-floresta text-white px-6 py-3 rounded-lg font-bold text-sm hover:bg-floresta-dark transition-colors"
             >
               Sobre a ACCTA
             </Link>

@@ -68,7 +68,7 @@ export const PeticoesPage = () => {
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 bg-carmesim text-white px-4 py-2 rounded-lg hover:bg-carmesim-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+          className="flex items-center gap-2 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
           data-testid="new-peticao-btn"
         >
           <Plus className="w-4 h-4" aria-hidden="true" /> Nova petição
@@ -113,7 +113,7 @@ export const PeticoesPage = () => {
                     <button
                       onClick={() => signMut.mutate({ id: p.id, signed: p.viewer_has_signed })}
                       disabled={busy || (p.viewer_has_signed && p.status !== 'aberta')}
-                      className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50 ${p.viewer_has_signed ? 'bg-white border border-[#D1D5DB] text-grafite hover:bg-[#F5F5F5]' : 'bg-carmesim text-white hover:bg-carmesim-dark'}`}
+                      className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50 ${p.viewer_has_signed ? 'bg-white border border-[#D1D5DB] text-grafite hover:bg-[#F5F5F5]' : 'bg-floresta text-white hover:bg-floresta-dark'}`}
                       data-testid={`assinar-${p.id}`}
                     >
                       {busy ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Check className="w-4 h-4" aria-hidden="true" />}
@@ -182,7 +182,7 @@ export const PeticoesPage = () => {
               <button
                 onClick={() => createMut.mutate()}
                 disabled={createMut.isPending || form.titulo.trim().length < 3 || !form.fundamentacao.trim()}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
                 data-testid="peticao-submit"
               >
                 {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />} Criar

@@ -44,7 +44,7 @@ export const EsclarecimentosPage = () => {
           <h1 className="page-title" data-testid="esclarecimentos-title">Pedidos de esclarecimento</h1>
           <p className="page-subtitle">Faça uma pergunta formal a um órgão (Direcção, Mesa da AG ou Conselho Fiscal) e receba resposta escrita (Art. 9.j).</p>
         </div>
-        <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-carmesim text-white px-4 py-2 rounded-lg hover:bg-carmesim-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="new-esclarecimento-btn">
+        <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="new-esclarecimento-btn">
           <Plus className="w-4 h-4" aria-hidden="true" /> Nova pergunta
         </button>
       </div>
@@ -74,7 +74,7 @@ export const EsclarecimentosPage = () => {
               {canAnswer(e.orgao_destino) && e.status !== 'respondido' && (
                 <div className="flex gap-2 pt-1">
                   <input type="text" value={respText[e.id] || ''} onChange={(ev) => setRespText({ ...respText, [e.id]: ev.target.value })} placeholder="Escreva a resposta…" className="flex-1 px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`resp-input-${e.id}`} />
-                  <button onClick={() => respMut.mutate({ id: e.id, texto: respText[e.id] })} disabled={respMut.isPending || !(respText[e.id] || '').trim()} className="inline-flex items-center gap-1.5 bg-carmesim text-white px-3 py-2 rounded-md text-sm font-semibold hover:bg-carmesim-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`resp-btn-${e.id}`}>
+                  <button onClick={() => respMut.mutate({ id: e.id, texto: respText[e.id] })} disabled={respMut.isPending || !(respText[e.id] || '').trim()} className="inline-flex items-center gap-1.5 bg-floresta text-white px-3 py-2 rounded-md text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`resp-btn-${e.id}`}>
                     <Send className="w-4 h-4" aria-hidden="true" /> Responder
                   </button>
                 </div>
@@ -106,7 +106,7 @@ export const EsclarecimentosPage = () => {
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer">Cancelar</button>
-              <button onClick={() => createMut.mutate()} disabled={createMut.isPending || form.assunto.trim().length < 3 || !form.pergunta.trim()} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid="esc-submit">
+              <button onClick={() => createMut.mutate()} disabled={createMut.isPending || form.assunto.trim().length < 3 || !form.pergunta.trim()} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid="esc-submit">
                 {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />} Enviar
               </button>
             </div>

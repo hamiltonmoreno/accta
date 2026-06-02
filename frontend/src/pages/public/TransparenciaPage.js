@@ -234,7 +234,7 @@ export const TransparenciaPage = () => {
           </p>
           <Link
             to="/contactos"
-            className="inline-flex items-center gap-2 bg-carmesim text-white px-8 py-4 rounded-lg font-bold hover:bg-carmesim/90 transition-all"
+            className="inline-flex items-center gap-2 bg-floresta text-white px-8 py-4 rounded-lg font-bold hover:bg-floresta-dark transition-all"
           >
             Fale Conosco
             <ExternalLink className="w-5 h-5" />

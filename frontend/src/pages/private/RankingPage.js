@@ -77,7 +77,7 @@ const RecalcularButton = ({ onClick, isPending }) => (
     type="button"
     onClick={onClick}
     disabled={isPending}
-    className="inline-flex items-center gap-2 bg-carmesim text-white hover:bg-carmesim-dark rounded-md px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+    className="inline-flex items-center gap-2 bg-floresta text-white hover:bg-floresta-dark rounded-md px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
     data-testid="ranking-recalcular"
   >
     <RefreshCw className={`w-4 h-4 ${isPending ? 'animate-spin' : ''}`} />
@@ -547,7 +547,7 @@ export const RankingPage = () => {
                   Cancelar
                 </button>
                 <button type="button" onClick={submitSettings} disabled={settingsMutation.isPending}
-                  className="bg-carmesim text-white hover:bg-carmesim-dark rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                  className="bg-floresta text-white hover:bg-floresta-dark rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
                   data-testid="settings-save">
                   {settingsMutation.isPending ? 'A guardar…' : 'Guardar'}
                 </button>
@@ -598,7 +598,7 @@ export const RankingPage = () => {
                   Cancelar
                 </button>
                 <button type="button" onClick={submitAdjust} disabled={!adjustValid || adjustMutation.isPending}
-                  className="bg-carmesim text-white hover:bg-carmesim-dark rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                  className="bg-floresta text-white hover:bg-floresta-dark rounded-md px-4 py-2 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
                   data-testid="adjust-save">
                   {adjustMutation.isPending ? 'A registar…' : 'Registar'}
                 </button>

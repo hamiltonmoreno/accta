@@ -173,7 +173,7 @@ export const CoAprovacoesPage = () => {
                 <select value={execCat[ato.id] || 'operacional'} onChange={(e) => setExecCat({ ...execCat, [ato.id]: e.target.value })} className="px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`exec-cat-${ato.id}`}>
                   {expenseCats.map((c) => <option key={c} value={c}>{catLabel(c)}</option>)}
                 </select>
-                <button onClick={() => executarMut.mutate({ id: ato.id, category: execCat[ato.id] || 'operacional' })} disabled={executarMut.isPending} className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid={`executar-${ato.id}`}>
+                <button onClick={() => executarMut.mutate({ id: ato.id, category: execCat[ato.id] || 'operacional' })} disabled={executarMut.isPending} className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid={`executar-${ato.id}`}>
                   {executarMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Play className="w-4 h-4" aria-hidden="true" />} Executar pagamento
                 </button>
               </>
@@ -197,7 +197,7 @@ export const CoAprovacoesPage = () => {
           <p className="page-subtitle">Actos que vinculam a ACCTA exigem 2 membros da Direcção (incluindo o Presidente); os pagamentos exigem também o Tesoureiro (Art. 54).</p>
         </div>
         {canCreate && (
-          <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-carmesim text-white px-4 py-2 rounded-lg hover:bg-carmesim-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="novo-ato-btn">
+          <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="novo-ato-btn">
             <Plus className="w-4 h-4" aria-hidden="true" /> Novo acto
           </button>
         )}
@@ -263,7 +263,7 @@ export const CoAprovacoesPage = () => {
               <button
                 onClick={() => createMut.mutate()}
                 disabled={createMut.isPending || form.descricao.trim().length < 3 || (form.tipo === 'pagamento' && (form.valor === '' || Number(form.valor) <= 0))}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
                 data-testid="ato-submit"
               >
                 {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />} Criar acto

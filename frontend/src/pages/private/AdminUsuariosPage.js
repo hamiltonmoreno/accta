@@ -184,7 +184,7 @@ export const AdminUsuariosPage = () => {
         </div>
         <button
           onClick={() => setShowInviteModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-carmesim hover:bg-carmesim/90 text-white rounded-lg text-sm font-semibold transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 bg-floresta hover:bg-floresta-dark text-white rounded-lg text-sm font-semibold transition-colors"
           data-testid="invite-user-btn"
         >
           <UserPlus className="w-4 h-4" />
@@ -595,7 +595,7 @@ export const AdminUsuariosPage = () => {
                   </button>
                   <button
                     onClick={handleSaveUser}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-carmesim text-white rounded-lg text-sm font-semibold hover:bg-carmesim-dark transition-colors"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-floresta text-white rounded-lg text-sm font-semibold hover:bg-floresta-dark transition-colors"
                     data-testid="modal-save-btn"
                   >
                     <Save className="w-4 h-4" />
@@ -745,7 +745,7 @@ export const AdminUsuariosPage = () => {
                   <button
                     onClick={handleInvite}
                     disabled={inviting || !inviteData.name || !inviteData.email}
-                    className="w-full py-2.5 bg-carmesim hover:bg-carmesim/90 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full py-2.5 bg-floresta hover:bg-floresta-dark text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     data-testid="send-invite-btn"
                   >
                     {inviting ? (

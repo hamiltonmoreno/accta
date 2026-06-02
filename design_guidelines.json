@@ -1,11 +1,11 @@
 {
   "project_name": "ACCTA Portal & Management System",
   "canonical_source": ".claude/skills/frontend-design/SKILL.md",
-  "note": "This file mirrors the /frontend-design skill. The skill is the single source of truth — if they ever differ, the skill wins. ACCTA design = professional, accessible, NEUTRAL-LED with a single restrained Carmesim accent. Light mode only.",
+  "note": "This file mirrors the /frontend-design skill. The skill is the single source of truth — if they ever differ, the skill wins. ACCTA design = professional, accessible, NEUTRAL-LED; action color is semantic (Floresta #166534 = positive primary, Carmesim #C7202F = brand identity + destructive). Light mode only.",
   "design_philosophy": {
     "identity": "ACCTA — institutional, professional, accessible (Swiss Modernism: strict hierarchy, one accent, high contrast, no decoration for its own sake)",
     "core_principles": [
-      "Neutral foundation carries ~90% of the UI; Carmesim #C7202F is the brand logo color and the SINGLE accent, used sparingly",
+      "Neutral foundation carries ~90% of the UI; action color is semantic — Floresta #166534 is the positive primary, Carmesim #C7202F is brand identity + destructive, both used sparingly",
       "Most buttons and surfaces are neutral; red is an event, not a background",
       "WCAG 2.1 AA is a hard floor (AAA for body text where achievable)",
       "Clarity over conversion — internal portal, strict visual hierarchy",
@@ -14,7 +14,7 @@
     "anti_patterns": [
       "No dark mode (disabled by design decision) and no flat black backgrounds",
       "No Carmesim/red text on dark, Navy, colored or photographic backgrounds — the legibility bug",
-      "No making every button red — Primary is rare; everything else is neutral",
+      "No making every button red — red = destructive only; the positive Primary is Floresta green and rare; everything else is neutral; never Carmesim as a positive primary",
       "No accent on large surfaces; no color used as the only signal (pair with icon/text)",
       "No text lighter than #6B7280; no more than 2 font weights per section",
       "No font other than Open Sans (JetBrains Mono only for code/IDs)",
@@ -45,11 +45,17 @@
     ]
   },
   "colors": {
+    "action_positive": {
+      "floresta": "#166534",
+      "floresta_hover": "#14532D",
+      "floresta_tint": "#F0FDF4",
+      "usage": "Positive primary action. The ONE primary positive button per view (Guardar, Confirmar, Criar, Aprovar, Entrar, Votar), white text 6.2:1. <Button variant='primary'> / primaryBtn."
+    },
     "brand_accent": {
       "carmesim": "#C7202F",
       "carmesim_hover": "#A51B27",
       "carmesim_tint": "#FBEAEC",
-      "usage": "SINGLE accent. Allowed ONLY: the one primary button per view, active/selected nav indicator, links on white (underlined), destructive primary button, focus ring, logo. FORBIDDEN: body text, the fill of secondary/every button, text on any dark/colored/photo surface, large background areas."
+      "usage": "Brand identity + destructive. Allowed: active/selected nav indicator, links on white (underlined), focus ring, logo, error highlights, and destructive actions (outline by default: bg-white border-[#C7202F] text-[#C7202F] hover:bg-[#FBEAEC]; solid #C7202F only inside an irreversible confirm dialog). FORBIDDEN: a positive primary (use Floresta), body text, the fill of secondary/every button, text on any dark/colored/photo surface, large background areas."
     },
     "neutral": {
       "text_primary": "#3A3A3A",
@@ -77,7 +83,7 @@
     "allowed_contrast_pairs": [
       "Grafite #3A3A3A on white / #F5F5F5 / #FBEAEC (primary text)",
       "#6B7280 on white / #F5F5F5 (secondary text)",
-      "White #FFFFFF on #C7202F / #A51B27 / #1e3a5f / semantic solids",
+      "White #FFFFFF on #166534 / #14532D (positive primary) / #C7202F / #A51B27 / #1e3a5f / semantic solids",
       "Carmesim #C7202F on white only (links/emphasis, underlined)",
       "Semantic -700 text on its matching tint or white"
     ],
@@ -128,11 +134,11 @@
   },
   "components": {
     "buttons": {
-      "rule": "Never more than one Primary (Carmesim-filled) button visible per view/section. Default to Secondary; promote only the single main action to Primary.",
-      "primary": "bg-[#C7202F] text-white hover:bg-[#A51B27] rounded-md px-4 py-2 font-semibold",
+      "rule": "Action color is semantic: green = positive, red = destructive. Never more than one Primary (Floresta-filled) button per view/section. Default to Secondary; promote only the single main positive action to Primary. Carmesim is no longer a positive primary.",
+      "primary": "bg-[#166534] text-white hover:bg-[#14532D] rounded-md px-4 py-2 font-semibold (positive: Guardar/Confirmar/Criar/Aprovar/Entrar/Votar; variant='primary' / primaryBtn)",
       "secondary": "bg-white border border-[#D1D5DB] text-[#3A3A3A] hover:bg-[#F5F5F5] rounded-md px-4 py-2",
       "tertiary": "text-[#3A3A3A] hover:bg-[#F5F5F5] (ghost); link-style = Carmesim underline",
-      "destructive": "bg-[#C7202F] text-white (or secondary-destructive: border border-[#B91C1C] text-[#B91C1C]); always a confirm dialog",
+      "destructive": "default outline: bg-white border border-[#C7202F] text-[#C7202F] hover:bg-[#FBEAEC] (variant='destructive' / destructiveBtn). Solid bg-[#C7202F] text-white (variant='destructiveSolid') ONLY inside an irreversible confirm dialog.",
       "disabled": "opacity-50 cursor-not-allowed, no hover"
     },
     "cards": {
@@ -161,7 +167,7 @@
   },
   "accessibility": {
     "standard": "WCAG 2.1 AA (AAA for body text where achievable)",
-    "contrast_check": "Every text/bg pair must be an allowed_contrast_pair and >=4.5:1 (3:1 large). White text on #C7202F/#1e3a5f/semantic solids. Never red text on dark.",
+    "contrast_check": "Every text/bg pair must be an allowed_contrast_pair and >=4.5:1 (3:1 large). White text on #166534/#C7202F/#1e3a5f/semantic solids. Never red text on dark.",
     "focus_states": "Visible focus-visible ring on ALL interactive elements (ring-2 ring-[#C7202F]/40 ring-offset-2). Never outline-none without a replacement.",
     "color_independence": "Status/meaning must use icon + text in addition to color"
   },
@@ -174,7 +180,7 @@
     "Strictly separate Public Layout (marketing) and Private Layout (dashboard/sidebar)."
   ],
   "universal_guidelines": [
-    "Default every control to neutral; promote only the single main action to the Carmesim Primary.",
+    "Default every control to neutral; promote only the single main positive action to the Floresta Primary (#166534); destructive = outline Carmesim, solid only in a confirm dialog.",
     "Verify every text/background pair against allowed_contrast_pairs before delivering.",
     "Never use Carmesim/red as text on dark, Navy, colored or photographic backgrounds.",
     "Create depth through layered neutral surfaces + subtle shadow, not heavy color.",

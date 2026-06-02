@@ -99,7 +99,7 @@ export const HonorariosPage = () => {
           <p className="page-subtitle">A Direcção nomeia; a Assembleia Geral vota e elege com maioria de 2/3 (Art. 8.4). O membro honorário não tem direito a voto.</p>
         </div>
         {canNominate && (
-          <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-carmesim text-white px-4 py-2 rounded-lg hover:bg-carmesim-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="new-honorario-btn">
+          <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="new-honorario-btn">
             <Plus className="w-4 h-4" aria-hidden="true" /> Nomear honorário
           </button>
         )}
@@ -207,7 +207,7 @@ export const HonorariosPage = () => {
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer">Cancelar</button>
-              <button onClick={() => createMut.mutate()} disabled={createMut.isPending || form.nominee_name.trim().length < 2 || !form.justificacao.trim()} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid="hon-submit">
+              <button onClick={() => createMut.mutate()} disabled={createMut.isPending || form.nominee_name.trim().length < 2 || !form.justificacao.trim()} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid="hon-submit">
                 {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />} Nomear
               </button>
             </div>

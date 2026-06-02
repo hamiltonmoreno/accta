@@ -128,7 +128,7 @@ export const BalancetesTab = () => {
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-[#6B7280]">Balancetes periódicos e balanço anual publicados pelo Tesoureiro; o Conselho Fiscal audita (Art. 34, 37).</p>
         {podePublicar && (
-          <button onClick={() => setShowPublish(true)} className="flex items-center gap-2 bg-carmesim text-white px-4 py-2 rounded-lg hover:bg-carmesim-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="publicar-balancete-btn">
+          <button onClick={() => setShowPublish(true)} className="flex items-center gap-2 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="publicar-balancete-btn">
             <Plus className="w-4 h-4" aria-hidden="true" /> Publicar balancete
           </button>
         )}
@@ -184,7 +184,7 @@ export const BalancetesTab = () => {
             />
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowPublish(false)} className="px-4 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer">Cancelar</button>
-              <button onClick={() => publishMut.mutate()} disabled={publishMut.isPending || form.periodo.trim().length < 4} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="balancete-submit">
+              <button onClick={() => publishMut.mutate()} disabled={publishMut.isPending || form.periodo.trim().length < 4} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="balancete-submit">
                 {publishMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />} Publicar
               </button>
             </div>
@@ -210,7 +210,7 @@ export const BalancetesTab = () => {
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setAuditTarget(null)} className="px-4 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer">Cancelar</button>
-              <button onClick={() => auditMut.mutate()} disabled={auditMut.isPending} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="audit-submit">
+              <button onClick={() => auditMut.mutate()} disabled={auditMut.isPending} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="audit-submit">
                 {auditMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <ShieldCheck className="w-4 h-4" aria-hidden="true" />} Registar auditoria
               </button>
             </div>

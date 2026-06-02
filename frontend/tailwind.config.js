@@ -56,6 +56,13 @@ module.exports = {
           dark: "#2A2A2A",
           50: "#F7F7F7",
         },
+        // Ação primária positiva (Guardar/Aprovar/Submeter…). Carmesim continua
+        // a ser identidade de marca + destrutivo. Ver tasks/spec-botoes-cor-acao.md.
+        floresta: {
+          DEFAULT: "#166534", // verde-800; 6.2:1 com texto branco (AA)
+          dark: "#14532D",    // hover
+          50: "#F0FDF4",      // tint (badges de sucesso podem reutilizar)
+        },
         alert: {
           DEFAULT: "#C7202F",
           foreground: "#FFFFFF",

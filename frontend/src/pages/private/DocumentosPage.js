@@ -40,7 +40,7 @@ export const DocumentosPage = () => {
         {isAdmin && (
           <button
             onClick={() => setShowUploadModal(true)}
-            className="flex items-center gap-2 bg-carmesim text-white px-4 py-2 rounded-lg hover:bg-carmesim-dark transition-all text-sm font-semibold"
+            className="flex items-center gap-2 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-all text-sm font-semibold"
             data-testid="upload-document-btn"
           >
             <Upload className="w-4 h-4" />
@@ -369,7 +369,7 @@ const UploadDocumentModal = ({ onClose }) => {
               <button
                 type="submit"
                 disabled={uploading || !file || !title}
-                className="flex-1 flex items-center justify-center gap-2 bg-carmesim text-white px-4 py-3 rounded-lg hover:bg-carmesim-dark transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 bg-floresta text-white px-4 py-3 rounded-lg hover:bg-floresta-dark transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 data-testid="submit-document-btn"
               >
                 {uploading ? (

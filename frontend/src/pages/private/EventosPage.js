@@ -94,7 +94,7 @@ export const EventosPage = () => {
         {isAdmin && (
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center justify-center gap-2 bg-carmesim text-white px-4 py-2.5 rounded-lg hover:bg-carmesim-dark transition-all text-sm font-semibold touch-target"
+            className="flex items-center justify-center gap-2 bg-floresta text-white px-4 py-2.5 rounded-lg hover:bg-floresta-dark transition-all text-sm font-semibold touch-target"
             data-testid="create-event-btn"
           >
             <Plus className="w-4 h-4" />
@@ -428,7 +428,7 @@ const CreateEventModal = ({ onClose }) => {
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex-1 flex items-center justify-center gap-2 bg-carmesim text-white px-4 py-2.5 rounded-lg hover:bg-carmesim-dark transition-colors text-sm font-semibold disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 bg-floresta text-white px-4 py-2.5 rounded-lg hover:bg-floresta-dark transition-colors text-sm font-semibold disabled:opacity-50"
               >
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 Criar

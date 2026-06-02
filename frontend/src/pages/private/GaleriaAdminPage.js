@@ -433,7 +433,7 @@ export const GaleriaAdminPage = () => {
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors pointer-events-none" />
                   {(isAdmin || photo.uploaded_by === undefined) && (
                     <button onClick={() => setConfirmDeletePhoto(photo.id)}
-                      className="absolute top-2 right-2 p-1.5 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 text-white hover:bg-carmesim transition-all"
+                      className="absolute top-2 right-2 p-1.5 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 text-white hover:bg-carmesim/80 transition-all"
                       aria-label="Apagar foto"
                       data-testid={`delete-photo-${photo.id}`}>
                       <Trash2 className="w-3 h-3" aria-hidden="true" />

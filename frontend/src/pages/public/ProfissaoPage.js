@@ -477,7 +477,7 @@ export const ProfissaoPage = () => {
           <div className="flex flex-wrap justify-center gap-4">
             <Link
               to="/sobre"
-              className="inline-flex items-center gap-2 bg-carmesim text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-carmesim-dark transition-all"
+              className="inline-flex items-center gap-2 bg-floresta text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-floresta-dark transition-all"
             >
               Sobre a ACCTA
               <ArrowRight className="w-5 h-5" />

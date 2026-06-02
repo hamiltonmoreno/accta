@@ -26,17 +26,21 @@ The most common past mistake — and the rule that overrides instinct:
 
 ## Color System
 
-### 1. Brand accent (use sparingly — ≤1 prominent instance per view)
+### 1. Action & brand accents (use sparingly — ≤1 prominent instance per view)
+
+Action color is **semantic**: green = positive, red = destructive.
 
 | Token | Hex | Where it is ALLOWED |
 |-------|-----|---------------------|
-| Carmesim | `#C7202F` | The single primary button per view · active/selected nav indicator · links on white (underlined) · destructive primary button · focus ring tint · logo |
-| Carmesim hover/active | `#A51B27` | Hover/pressed state of the above |
-| Carmesim tint surface | `#FBEAEC` | Selected row / subtle highlight — **only** with Grafite text on top |
+| Floresta (positive action) | `#166534` | The single **primary positive** button per view (Guardar, Confirmar, Criar, Aprovar, Entrar, Votar…) · white text (6.2:1) |
+| Floresta hover/active | `#14532D` | Hover/pressed state of the positive primary |
+| Carmesim (brand + destructive) | `#C7202F` | Active/selected nav indicator · links on white (underlined) · **destructive** action (outline by default; solid only inside an irreversible confirm dialog) · focus ring tint · logo · error highlights |
+| Carmesim hover/active | `#A51B27` | Hover/pressed state of a solid carmesim (dialog-confirm destructive) |
+| Carmesim tint surface | `#FBEAEC` | Selected row / subtle highlight — **only** with Grafite text on top; also the hover tint of an outline-destructive button (`carmesim-50`) |
 
-**Carmesim is FORBIDDEN as:** body text · the fill of secondary/every button ·
-text on any dark/colored/photographic surface · large background areas · borders
-of non-active elements.
+**Carmesim is FORBIDDEN as:** a positive primary button (use Floresta) · body
+text · the fill of secondary/every button · text on any dark/colored/photographic
+surface · large background areas · borders of non-active elements.
 
 ### 2. Neutral foundation (carries ~90% of the UI)
 
@@ -77,7 +81,7 @@ Only these foreground/background combinations are permitted for text:
 
 - Grafite `#3A3A3A` **on** white / `#F5F5F5` / `#FBEAEC` — primary text
 - `#6B7280` **on** white / `#F5F5F5` — secondary text
-- White `#FFFFFF` **on** `#C7202F` / `#A51B27` / `#1e3a5f` / semantic solids
+- White `#FFFFFF` **on** `#166534` / `#14532D` (positive primary) / `#C7202F` / `#A51B27` / `#1e3a5f` / semantic solids
 - Carmesim `#C7202F` **on** white only — links/emphasis (underline links)
 - Semantic -700 **on** its matching tint or white
 
@@ -108,19 +112,29 @@ text/bg pair reaches **4.5:1** (3:1 for ≥24px or ≥18.66px bold).
 
 ---
 
-## Buttons (taxonomy — the fix for "everything is red")
+## Buttons (taxonomy — semantic color of action)
 
-**Never more than one Primary (Carmesim-filled) button visible in the same
-view/section.** Default to Secondary; promote to Primary only the single main
-action.
+**Action color is semantic: green = positive, red = destructive.** Never more
+than one Primary (Floresta-filled) button visible in the same view/section.
+Default to Secondary; promote to Primary only the single main positive action.
+Carmesim is **no longer a positive primary** — it now means *destructive* or
+*brand identity* only.
 
 | Tier | Use for | Spec |
 |------|---------|------|
-| **Primary** | The ONE main action (Salvar, Confirmar) | `bg-[#C7202F] text-white hover:bg-[#A51B27] rounded-md px-4 py-2 font-semibold` |
-| **Secondary** | Neutral / alternative (Cancelar, Voltar) | `bg-white border border-[#D1D5DB] text-[#3A3A3A] hover:bg-[#F5F5F5] rounded-md px-4 py-2` |
-| **Tertiary / Ghost** | Low-emphasis, toolbars, inline | no bg/border, `text-[#3A3A3A] hover:bg-[#F5F5F5]`; link-style = Carmesim underline |
-| **Destructive** | Irreversible (Excluir) | primary: `bg-[#C7202F] text-white`; secondary destructive: `border border-[#B91C1C] text-[#B91C1C]`; **always** a confirm dialog |
+| **Primary (positive)** | The ONE main positive action (Guardar, Confirmar, Criar, Aprovar, Entrar, Votar) | `bg-[#166534] text-white hover:bg-[#14532D] rounded-md px-4 py-2 font-semibold` — or `<Button variant="primary">` / `primaryBtn` |
+| **Secondary** | Neutral / alternative (Cancelar, Voltar, Filtrar, Exportar) | `bg-white border border-[#D1D5DB] text-[#3A3A3A] hover:bg-[#F5F5F5] rounded-md px-4 py-2` |
+| **Tertiary / Ghost** | Low-emphasis, toolbars, inline (Logout) | no bg/border, `text-[#3A3A3A] hover:bg-[#F5F5F5]`; link-style = Carmesim underline |
+| **Destructive (default)** | Negative / data-loss (Apagar, Rejeitar, Suspender, Bloquear) | outline: `bg-white border border-[#C7202F] text-[#C7202F] hover:bg-[#FBEAEC]` — or `<Button variant="destructive">` / `destructiveBtn` |
+| **Destructive (solid)** | Irreversible confirm **inside a dialog only** | `bg-[#C7202F] text-white hover:bg-[#A51B27]` (`variant="destructiveSolid"`) — never outside a confirm dialog |
 | **Disabled** | — | `opacity-50 cursor-not-allowed`, no hover |
+
+Verbs → color: **green** = Guardar/Salvar/Submeter/Confirmar/Criar/Adicionar/
+Novo/Enviar/Convidar/Aprovar/Publicar/Registar/Entrar/Votar/Gerar/Aplicar/
+Concluir/Avançar (and public CTAs like "Tornar-me sócio"). **red (outline)** =
+Apagar/Eliminar/Remover/Anular/Revogar/Rejeitar/Reprovar/Recusar/Suspender/
+Indeferir/Bloquear/Desativar. **neutral** = Cancelar/Fechar/Voltar/Limpar/
+Filtrar/Exportar/Ver detalhes.
 
 All clickable elements: `cursor-pointer`. All interactive elements:
 `focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2`
@@ -159,7 +173,8 @@ All clickable elements: `cursor-pointer`. All interactive elements:
 
 - ❌ Dark mode (disabled by design) · flat black backgrounds
 - ❌ Carmesim as text on dark/colored/photo backgrounds — **the legibility bug**
-- ❌ Make every button red — Primary is rare; the rest are neutral
+- ❌ Make every button red — red = destructive only; the positive Primary is Floresta green and rare; the rest are neutral
+- ❌ Use Carmesim as a positive primary button (Guardar/Confirmar/Aprovar) — that is Floresta `#166534`
 - ❌ Any color outside this system; accent on large surfaces
 - ❌ Text lighter than `#6B7280`; more than 2 font weights per section
 - ❌ Convey state by color alone (always pair with icon/text)
@@ -169,7 +184,7 @@ All clickable elements: `cursor-pointer`. All interactive elements:
 
 ## Acceptance checklist (verify before delivering UI)
 
-- [ ] ≤1 Primary/Carmesim button per view; others neutral
+- [ ] ≤1 Primary (Floresta) button per view; destructive = outline Carmesim (solid only in dialog); others neutral
 - [ ] Every text/bg pair is an allowed contrast pair and ≥4.5:1 (3:1 large)
 - [ ] No red text on dark/Navy/photo anywhere
 - [ ] Visible `focus-visible` ring on all interactive elements

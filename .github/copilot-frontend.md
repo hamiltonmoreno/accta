@@ -239,10 +239,12 @@ Text muted:              #6B7280   // never use text lighter than this
 Surface:                 #FFFFFF / #F5F5F5
 Border:                  #E5E7EB / #D1D5DB
 
-// Single accent — sparingly
+// Positive action — the ONE primary positive button/view
+Floresta:                #166534 (hover #14532D)   // Guardar/Confirmar/Criar/Aprovar/Entrar/Votar; white text 6.2:1
+// Brand identity + destructive — sparingly
 Carmesim:                #C7202F (hover #A51B27)
-// ONLY: 1 primary button/view, active nav, links-on-white, destructive, focus ring
-// NEVER: body text, every button, or text on dark/colored backgrounds
+// ONLY: active nav, links-on-white, focus ring, logo, error highlights, destructive (outline; solid only in confirm dialog)
+// NEVER: a positive primary (use Floresta), body text, every button, or text on dark/colored backgrounds
 
 Navy (restricted):       #1e3a5f   // marketing hero only, white text
 Semantic text/solid:     Success #15803D/#16A34A · Warn #B45309/#D97706
@@ -263,14 +265,17 @@ Semantic text/solid:     Success #15803D/#16A34A · Warn #B45309/#D97706
 
 **Button taxonomy** (≤1 Primary per view — default to Secondary):
 ```jsx
-// Primary — the ONE main action per view
-<button className="bg-[#C7202F] text-white hover:bg-[#A51B27] rounded-md px-4 py-2 font-semibold">Salvar</button>
+// Primary (positive) — the ONE main positive action per view
+<button className="bg-[#166534] text-white hover:bg-[#14532D] rounded-md px-4 py-2 font-semibold">Guardar</button>
 
 // Secondary — neutral, the default for most actions
 <button className="bg-white border border-[#D1D5DB] text-[#3A3A3A] hover:bg-[#F5F5F5] rounded-md px-4 py-2">Cancelar</button>
 
 // Tertiary / ghost — low emphasis
 <button className="text-[#3A3A3A] hover:bg-[#F5F5F5] rounded-md px-4 py-2">Voltar</button>
+
+// Destructive (default = outline); solid bg-[#C7202F] only inside a confirm dialog
+<button className="bg-white border border-[#C7202F] text-[#C7202F] hover:bg-[#FBEAEC] rounded-md px-4 py-2">Apagar</button>
 ```
 
 **Surface Patterns:**
@@ -305,8 +310,11 @@ Semantic text/solid:     Success #15803D/#16A34A · Warn #B45309/#D97706
 // ❌ Red/Carmesim text on dark or colored background — the legibility bug
 <div className="bg-[#1e3a5f]"><p className="text-[#C7202F]">Texto</p></div>
 
-// ❌ Every button red — Primary is rare; the rest are neutral
+// ❌ Every button red — red = destructive only; positive Primary is Floresta green, the rest neutral
 <button className="bg-[#C7202F] text-white">Cancelar</button>
+
+// ❌ Carmesim as a positive primary — Guardar/Confirmar/Aprovar are Floresta #166534
+<button className="bg-[#C7202F] text-white">Guardar</button>
 
 // ❌ Accent on large surfaces / state by color alone
 <section className="bg-[#C7202F]">...</section>
@@ -314,7 +322,7 @@ Semantic text/solid:     Success #15803D/#16A34A · Warn #B45309/#D97706
 // ❌ Muted text lighter than #6B7280, or a font other than Open Sans
 <p className="text-gray-400 font-serif">...</p>
 
-// ❌ Non-brand CTAs — Primary is Carmesim #C7202F only (no purple/teal/green)
+// ❌ Non-brand CTAs — positive Primary is Floresta #166534, destructive is Carmesim #C7202F (no purple/teal/other greens)
 <button className="bg-purple-600">Action</button>
 ```
 

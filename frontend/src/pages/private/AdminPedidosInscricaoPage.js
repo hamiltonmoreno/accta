@@ -197,7 +197,7 @@ export const AdminPedidosInscricaoPage = () => {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => openApprove(req)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-carmesim text-white text-xs font-semibold hover:bg-carmesim-dark transition-colors"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-floresta text-white text-xs font-semibold hover:bg-floresta-dark transition-colors"
                           data-testid="approve-btn"
                         >
                           <Check className="w-3.5 h-3.5" />Aprovar
@@ -297,7 +297,7 @@ export const AdminPedidosInscricaoPage = () => {
               <button
                 onClick={() => approveMutation.mutate({ id: approving.id, data: { role: approveForm.role, cargo: approveForm.cargo || null, waive_sponsorship: approveForm.waive, cta_qualified_since: approveForm.cta_qualified_since || null } })}
                 disabled={approveMutation.isPending || (!approveForm.waive && (approving?.confirmed_count || 0) < 2)}
-                className="px-4 py-2 rounded-lg bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 rounded-lg bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 data-testid="approve-confirm"
               >
                 {approveMutation.isPending ? 'A aprovar...' : 'Confirmar aprovação'}

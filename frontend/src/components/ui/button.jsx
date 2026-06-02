@@ -11,10 +11,19 @@ const buttonVariants = cva(
       variant: {
         default:
           "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+        // Ação primária POSITIVA (Guardar/Aprovar/Submeter/Criar/Entrar…).
+        primary:
+          "bg-floresta text-white shadow hover:bg-floresta-dark",
+        // Ação DESTRUTIVA/negativa (Apagar/Rejeitar/Suspender…) → outline Carmesim.
+        destructive:
+          "bg-white border border-carmesim text-carmesim shadow-sm hover:bg-carmesim-50",
+        // Só para confirmação IRREVERSÍVEL dentro de diálogo ("Apagar definitivamente").
+        destructiveSolid:
+          "bg-carmesim text-white shadow-sm hover:bg-carmesim-dark",
+        // DEPRECADA para botões: usar `primary` (positiva) ou `destructive`/`destructiveSolid`.
+        // Mantida só para não partir usos existentes; não usar como CTA genérico.
         brand:
           "bg-carmesim text-white shadow hover:bg-carmesim-dark",
-        destructive:
-          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
         outline:
           "border border-input shadow-sm hover:bg-accent hover:text-accent-foreground",
         secondary:
