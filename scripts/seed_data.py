@@ -42,7 +42,9 @@ async def seed_database():
         "documents",
         "benefits",
         "wall_posts",
-        "audit_logs",
+        # NOTA: "audit_logs" NÃO é limpo — é append-only por design (trigger
+        # trg_audit_logs_immutable, spec-verificacao-seguranca-saas §8.1 F5.1).
+        # DELETE é rejeitado pelo Postgres quando há linhas; o seed nunca o toca.
     ]
     for collection in collections:
         await db[collection].delete_many({})
