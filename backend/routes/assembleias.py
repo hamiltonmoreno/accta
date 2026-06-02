@@ -22,7 +22,7 @@ from fastapi.responses import StreamingResponse
 
 import comunicados_service
 from auth import SECRET_KEY, _extract_token, get_current_user, get_user_from_token
-from database import cast_assembleia_ballot, db
+from database import cast_assembleia_ballot, cast_assembleia_nominal_vote, db
 from governance import (
     is_voting_member,
     required_absolute_majority,
@@ -1032,18 +1032,28 @@ async def votar_deliberacao(
     if current_user.id in set(d.get("conflitos_excluidos", [])):
         raise HTTPException(status_code=403, detail="Está excluído desta votação por conflito de interesses.")
 
+    # Os helpers DAO `cast_assembleia_nominal_vote` / `cast_assembleia_ballot`
+    # trancam a linha da deliberação (`FOR UPDATE`), re-verificam `status="aberta"`
+    # e inserem o voto na MESMA transação. Apurar usa `update_one(status="aberta")`
+    # que segura o mesmo lock — voto e fecho serializam, sem voto perdido.
+    # Sentinelas: not_found→404, not_open→400 (mesma msg do fast-path), duplicate→409.
     if mode == "nominal":
-        existing = await db.assembleia_votos.find_one(
-            {"deliberacao_id": did, "user_id": current_user.id}, {"_id": 0, "id": 1}
-        )
-        if existing:
-            raise HTTPException(status_code=409, detail="Já votou nesta deliberação.")
         voto = AssembleiaVoto(
             deliberacao_id=did, assembleia_id=assembleia_id, user_id=current_user.id, escolha=data.escolha
         )
         try:
-            await db.assembleia_votos.insert_one(voto.model_dump())
+            await cast_assembleia_nominal_vote(did, current_user.id, voto.model_dump())
+        except asyncpg.exceptions.LockNotAvailableError:
+            raise HTTPException(status_code=503, detail="Sistema sob carga. Tente novamente.")
+        except ValueError as e:
+            sentinel = e.args[0] if e.args else ""
+            if sentinel == "not_found":
+                raise HTTPException(status_code=404, detail="Deliberação não encontrada")
+            if sentinel == "not_open":
+                raise HTTPException(status_code=400, detail="A deliberação não está aberta a votos.")
+            raise HTTPException(status_code=409, detail="Já votou nesta deliberação.")
         except asyncpg.UniqueViolationError:
+            # Defesa em profundidade — ux_assembvoto_delib_user no schema.
             raise HTTPException(status_code=409, detail="Já votou nesta deliberação.")
         # Nominal: o sentido fica registado por nome — pode constar da auditoria.
         await create_audit_log(
@@ -1059,7 +1069,14 @@ async def votar_deliberacao(
         ballot = AssembleiaVotoBallot(deliberacao_id=did, escolha=data.escolha).model_dump()
         try:
             await cast_assembleia_ballot(did, vh, receipt, ballot)
-        except ValueError:
+        except asyncpg.exceptions.LockNotAvailableError:
+            raise HTTPException(status_code=503, detail="Sistema sob carga. Tente novamente.")
+        except ValueError as e:
+            sentinel = e.args[0] if e.args else ""
+            if sentinel == "not_found":
+                raise HTTPException(status_code=404, detail="Deliberação não encontrada")
+            if sentinel == "not_open":
+                raise HTTPException(status_code=400, detail="A deliberação não está aberta a votos.")
             raise HTTPException(status_code=409, detail="Já votou nesta deliberação.")
         # Secreto: NUNCA registar o sentido ligado ao eleitor (só que votou).
         await create_audit_log(
@@ -1101,7 +1118,13 @@ async def registar_contagem(
         raise HTTPException(status_code=400, detail="Contagem excede o poder de voto presente (excluídos os conflitos).")
 
     update = {"votos_favor": data.votos_favor, "votos_contra": data.votos_contra, "abstencoes": data.abstencoes}
-    await db.assembleia_deliberacoes.update_one({"id": did}, {"$set": update})
+    # Filtrar por status="aberta" para não sobrescrever uma deliberação já
+    # encerrada por `apurar` (mesma protecção CAS que existe lá).
+    res = await db.assembleia_deliberacoes.update_one(
+        {"id": did, "status": "aberta"}, {"$set": update}
+    )
+    if res.modified_count == 0:
+        raise HTTPException(status_code=409, detail="A deliberação já foi apurada.")
     await _bump_session(assembleia_id)
     await create_audit_log(
         current_user.id, "assembleia_contagem", assembleia_id, request=request, details={"deliberacao_id": did, **update}

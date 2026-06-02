@@ -98,6 +98,8 @@ def gov_env(mock_db, monkeypatch):
     monkeypatch.setattr(a_route, "create_audit_log", AsyncMock())
     monkeypatch.setattr(a_route, "notify_all_active_users", AsyncMock())
     monkeypatch.setattr(a_route, "cast_assembleia_ballot", AsyncMock())
+    # Voto nominal passou para DAO helper (TOCTOU fix) — default success.
+    monkeypatch.setattr(a_route, "cast_assembleia_nominal_vote", AsyncMock())
     return mock_db
 
 
@@ -1307,9 +1309,12 @@ class TestVotarNominal:
             )
         assert exc.value.status_code == 400
 
-    async def test_voto_duplicado_409(self, gov_env, socio_user):
+    async def test_voto_duplicado_409(self, gov_env, socio_user, monkeypatch):
         await self._setup(gov_env, presence={"can_vote": True})
-        gov_env.assembleia_votos.find_one = AsyncMock(return_value={"id": "v0"})
+        monkeypatch.setattr(
+            a_route, "cast_assembleia_nominal_vote",
+            AsyncMock(side_effect=ValueError("duplicate")),
+        )
         with pytest.raises(HTTPException) as exc:
             await a_route.votar_deliberacao(
                 assembleia_id="a1",
@@ -1320,10 +1325,85 @@ class TestVotarNominal:
             )
         assert exc.value.status_code == 409
 
-    async def test_voto_registado_e_audita_escolha(self, gov_env, socio_user):
+    async def test_helper_not_open_400(self, gov_env, socio_user, monkeypatch):
+        # Race TOCTOU: o status-check de fast-path passa (status="aberta" no
+        # find_one outer), mas o helper DAO, sob lock, vê a deliberação já
+        # encerrada por `apurar`. Tem de devolver 400, não 5xx.
+        await self._setup(gov_env, presence={"can_vote": True})
+        monkeypatch.setattr(
+            a_route, "cast_assembleia_nominal_vote",
+            AsyncMock(side_effect=ValueError("not_open")),
+        )
+        with pytest.raises(HTTPException) as exc:
+            await a_route.votar_deliberacao(
+                assembleia_id="a1",
+                did="d1",
+                request=_request(),
+                data=a_route.AssembleiaVotoCast(escolha="favor"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 400
+        # Não escreve audit em rejeição (vote nunca aconteceu).
+        a_route.create_audit_log.assert_not_awaited()
+
+    async def test_helper_not_found_404(self, gov_env, socio_user, monkeypatch):
+        await self._setup(gov_env, presence={"can_vote": True})
+        monkeypatch.setattr(
+            a_route, "cast_assembleia_nominal_vote",
+            AsyncMock(side_effect=ValueError("not_found")),
+        )
+        with pytest.raises(HTTPException) as exc:
+            await a_route.votar_deliberacao(
+                assembleia_id="a1",
+                did="d1",
+                request=_request(),
+                data=a_route.AssembleiaVotoCast(escolha="favor"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 404
+
+    async def test_lock_timeout_503(self, gov_env, socio_user, monkeypatch):
+        await self._setup(gov_env, presence={"can_vote": True})
+        monkeypatch.setattr(
+            a_route, "cast_assembleia_nominal_vote",
+            AsyncMock(side_effect=asyncpg.exceptions.LockNotAvailableError()),
+        )
+        with pytest.raises(HTTPException) as exc:
+            await a_route.votar_deliberacao(
+                assembleia_id="a1",
+                did="d1",
+                request=_request(),
+                data=a_route.AssembleiaVotoCast(escolha="favor"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 503
+
+    async def test_unique_violation_409_belt_and_braces(self, gov_env, socio_user, monkeypatch):
+        # Mesmo se o helper falhasse o check in-tx, o índice único do schema
+        # (ux_assembvoto_delib_user) ainda salvaguarda → 409.
+        await self._setup(gov_env, presence={"can_vote": True})
+        monkeypatch.setattr(
+            a_route, "cast_assembleia_nominal_vote",
+            AsyncMock(side_effect=asyncpg.UniqueViolationError()),
+        )
+        with pytest.raises(HTTPException) as exc:
+            await a_route.votar_deliberacao(
+                assembleia_id="a1",
+                did="d1",
+                request=_request(),
+                data=a_route.AssembleiaVotoCast(escolha="favor"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 409
+
+    async def test_voto_registado_e_audita_escolha(self, gov_env, socio_user, monkeypatch):
         await self._setup(gov_env, presence={"can_vote": True})
         captured = {}
-        gov_env.assembleia_votos.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+
+        async def _fake_cast(did, user_id, voto_doc):
+            captured.update({"did": did, "user_id": user_id, **voto_doc})
+
+        monkeypatch.setattr(a_route, "cast_assembleia_nominal_vote", _fake_cast)
         result = await a_route.votar_deliberacao(
             assembleia_id="a1",
             did="d1",
@@ -1333,6 +1413,7 @@ class TestVotarNominal:
         )
         assert captured["user_id"] == socio_user.id
         assert captured["escolha"] == "favor"
+        assert captured["did"] == "d1"
         assert result["status"] == "registado"
         # Nominal: a auditoria inclui o sentido do voto (atribuível).
         a_route.create_audit_log.assert_awaited()
@@ -1370,7 +1451,10 @@ class TestVotarSecreto:
 
     async def test_voto_duplicado_409(self, gov_env, socio_user, monkeypatch):
         await self._setup(gov_env)
-        monkeypatch.setattr(a_route, "cast_assembleia_ballot", AsyncMock(side_effect=ValueError("voto duplicado")))
+        monkeypatch.setattr(
+            a_route, "cast_assembleia_ballot",
+            AsyncMock(side_effect=ValueError("duplicate")),
+        )
         with pytest.raises(HTTPException) as exc:
             await a_route.votar_deliberacao(
                 assembleia_id="a1",
@@ -1380,6 +1464,56 @@ class TestVotarSecreto:
                 current_user=socio_user,
             )
         assert exc.value.status_code == 409
+
+    async def test_helper_not_open_400(self, gov_env, socio_user, monkeypatch):
+        # Secreto: mesma race que nominal. O helper DAO, sob lock, recusa.
+        await self._setup(gov_env)
+        monkeypatch.setattr(
+            a_route, "cast_assembleia_ballot",
+            AsyncMock(side_effect=ValueError("not_open")),
+        )
+        with pytest.raises(HTTPException) as exc:
+            await a_route.votar_deliberacao(
+                assembleia_id="a1",
+                did="d1",
+                request=_request(),
+                data=a_route.AssembleiaVotoCast(escolha="favor"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 400
+        a_route.create_audit_log.assert_not_awaited()
+
+    async def test_helper_not_found_404(self, gov_env, socio_user, monkeypatch):
+        await self._setup(gov_env)
+        monkeypatch.setattr(
+            a_route, "cast_assembleia_ballot",
+            AsyncMock(side_effect=ValueError("not_found")),
+        )
+        with pytest.raises(HTTPException) as exc:
+            await a_route.votar_deliberacao(
+                assembleia_id="a1",
+                did="d1",
+                request=_request(),
+                data=a_route.AssembleiaVotoCast(escolha="favor"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 404
+
+    async def test_lock_timeout_503(self, gov_env, socio_user, monkeypatch):
+        await self._setup(gov_env)
+        monkeypatch.setattr(
+            a_route, "cast_assembleia_ballot",
+            AsyncMock(side_effect=asyncpg.exceptions.LockNotAvailableError()),
+        )
+        with pytest.raises(HTTPException) as exc:
+            await a_route.votar_deliberacao(
+                assembleia_id="a1",
+                did="d1",
+                request=_request(),
+                data=a_route.AssembleiaVotoCast(escolha="favor"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 503
 
     async def test_audit_nao_inclui_escolha(self, gov_env, socio_user):
         await self._setup(gov_env)
@@ -1449,6 +1583,22 @@ class TestRegistarContagem:
         )
         assert captured == {"votos_favor": 3, "votos_contra": 1, "abstencoes": 1}
         assert result["votos_favor"] == 3
+
+    async def test_409_se_encerrada(self, gov_env):
+        # CAS: se a deliberação já foi apurada entre o find_one e o update_one,
+        # o filtro status="aberta" impede a sobrescrita e devolvemos 409.
+        gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value=_delib(voting_mode="braco_no_ar"))
+        gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_rows([{"user_id": "u1", "voting_power": 5}]))
+        gov_env.assembleia_deliberacoes.update_one = AsyncMock(return_value=MagicMock(modified_count=0))
+        with pytest.raises(HTTPException) as exc:
+            await a_route.registar_contagem(
+                assembleia_id="a1",
+                did="d1",
+                request=_request(),
+                data=a_route.AssembleiaContagem(votos_favor=1, votos_contra=0, abstencoes=0),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 409
 
 
 def _capturing_update(captured):
