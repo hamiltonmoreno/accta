@@ -137,23 +137,24 @@ Casos-limite: **Cancelar** = neutro (aborta, sem perda). **Aprovar** = verde.
       só os **botões** mudam.
 
 ### F3 — Docs canónicas (D6)
-- [ ] `.claude/skills/frontend-design/SKILL.md`: cor de ação = Floresta;
+- [x] `.claude/skills/frontend-design/SKILL.md`: cor de ação = Floresta;
       taxonomia de botões; Carmesim = identidade + destrutivo-outline.
-- [ ] Espelhos reconciliados: `.claude/rules/frontend.md`,
+- [x] Espelhos reconciliados: `.claude/rules/frontend.md`,
       `.github/copilot-instructions.md`, `.github/copilot-frontend.md`,
       `design_guidelines.json` (cada um defere à skill).
-- [ ] Atualizar `CLAUDE.md` (secção Conventions/Styling) se referir "Carmesim
+- [x] Atualizar `CLAUDE.md` (secção Conventions/Styling) se referir "Carmesim
       como acento único" — passar a "Carmesim = identidade/destrutivo; Floresta
       = ação positiva".
 
 ### F4 — Verificação
-- [ ] `npx eslint src/ --ext .js,.jsx --max-warnings=60` limpo.
-- [ ] Verificação de contraste AA dos pares novos.
-- [ ] Suite de testes FE (`craco test`) — ajustar asserts que dependam de cor de
-      botão (a maioria seleciona por role/texto, não por classe; confirmar).
-- [ ] Varrimento manual: nenhum botão de ação positiva vermelho remanescente;
-      nenhum destrutivo verde; identidade Carmesim intacta.
-- [ ] Grep de sanidade: `bg-carmesim` restante só em contextos de
+- [x] `npx eslint src/ --ext .js,.jsx --max-warnings=60` limpo (exit 0).
+- [x] Verificação de contraste AA dos pares novos (Floresta 6.2:1, outline Carmesim 4.7:1).
+- [x] Suite de testes FE (`craco test`) — nenhum teste seleciona por classe de cor
+      de botão (grep em `*.test.js*` = 0 asserts a `bg-carmesim`/`bg-floresta`); suite verde.
+- [x] Varrimento manual (multi-agente, 180 ocorrências em 58 ficheiros): nenhum
+      botão de ação positiva vermelho remanescente; nenhum destrutivo verde;
+      identidade Carmesim intacta. 1 desvio menor corrigido (GaleriaAdminPage:436).
+- [x] Grep de sanidade: `bg-carmesim` restante só em contextos de
       identidade/destrutivo-outline.
 
 ---
@@ -163,4 +164,28 @@ tokens/primitivo → módulo partilhado → auditoria+refactor por área → esl
 testes → varrimento manual.
 
 ## Review
-_(a preencher no fim de cada fase: ficheiros tocados, contraste, testes)_
+
+**Estado: CONCLUÍDA** (F0–F4, 2026-06-01).
+
+- **F0** — token `floresta` (DEFAULT `#166534` / dark `#14532D` / 50 `#F0FDF4`) em
+  `tailwind.config.js`; primitivo `button.jsx` com `primary` (floresta),
+  `destructive` (outline carmesim), `destructiveSolid` (carmesim cheio),
+  `brand` deprecado; módulo `lib/buttonStyles.js`; as 4 `primaryBtn` ad-hoc
+  importam de lá. (commit 5c01c15)
+- **F1+F2** — auditoria por-instância: 44 botões positivos Carmesim→Floresta,
+  CTAs públicos incluídos; banners/nav/badges/avatares Carmesim mantidos como
+  identidade. (commit d18f3a6, 48 ficheiros)
+- **F3** — doutrina de cor reescrita nas 6 docs canónicas (com OK do dono p/
+  editar a SKILL.md): `SKILL.md` (fonte-de-verdade) + espelhos
+  `.claude/rules/frontend.md`, `.github/copilot-instructions.md`,
+  `.github/copilot-frontend.md`, `design_guidelines.json`, e `CLAUDE.md`.
+  Doutrina: **Floresta `#166534` = ação positiva primária; Carmesim `#C7202F` =
+  identidade + destrutivo (outline por defeito, cheio só em diálogo)**.
+- **F4** — eslint limpo; contraste AA (Floresta 6.2:1 / outline Carmesim 4.7:1);
+  verificação multi-agente (180 ocorrências / 58 ficheiros, revisão adversarial):
+  0 botões positivos vermelhos, 0 destrutivos verdes; 1 desvio menor corrigido
+  (`GaleriaAdminPage.js:436` — hover destrutivo sólido fora de diálogo → tinta
+  `bg-carmesim/80`, ícone mantém-se branco p/ não violar "sem vermelho sobre
+  escuro"). Pegada `bg-carmesim` restante = só identidade / destrutivo-outline.
+- **Pendente operacional:** nenhum. (`brand` mantém-se no primitivo, deprecado,
+  por compatibilidade — sem usos como CTA.)

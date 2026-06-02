@@ -21,11 +21,16 @@ paths:
 - Tailwind CSS exclusively — no inline styles, no CSS modules
 - **Neutral-led**: white `#FFFFFF` / `#F5F5F5` surfaces, Grafite `#3A3A3A` text,
   muted never lighter than `#6B7280`. Neutral carries ~90% of the UI.
-- **Carmesim `#C7202F` is the single accent** (hover `#A51B27`): only the ONE
-  primary button per view, active nav, links on white, destructive, focus ring.
-  Default every other control to neutral (Secondary = `border-[#D1D5DB]`).
+- **Action color is semantic**: the ONE primary positive button per view is
+  **Floresta `#166534`** (hover `#14532D`; Guardar/Confirmar/Criar/Aprovar/
+  Entrar/Votar). **Carmesim `#C7202F`** (hover `#A51B27`) is brand identity +
+  destructive: active nav, links on white, focus ring, logo — and destructive
+  actions as **outline by default** (`bg-white border-[#C7202F] text-[#C7202F]
+  hover:bg-[#FBEAEC]`), solid carmesim only inside an irreversible confirm
+  dialog. Default every other control to neutral (Secondary = `border-[#D1D5DB]`).
 - ❌ **Never Carmesim/red text on dark, Navy or colored backgrounds** — the
-  legibility bug. ❌ Never make every button red.
+  legibility bug. ❌ Never make every button red (red = destructive only).
+  ❌ Never Carmesim as a positive primary (that is Floresta).
 - Every text/bg pair must reach ≥4.5:1; status = icon + text (never color alone)
 - Focus: `focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 ring-offset-2`
 - Font: Open Sans (body + headings), JetBrains Mono (code) — max 2 weights/section
