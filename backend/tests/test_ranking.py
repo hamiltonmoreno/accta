@@ -659,7 +659,14 @@ class TestVisibilityAndOptOut:
     async def test_opt_out_syncs_user_and_snapshot(self, mock_db, socio_user):
         mock_db.users = _wcoll()
         mock_db.member_scores = _wcoll()
-        res = await ranking_route.set_ranking_opt_out(payload=RankingOptOut(opt_out=True), current_user=socio_user)
+
+        class _R:
+            client = type("C", (), {"host": "127.0.0.1"})
+            headers = {"User-Agent": "test", "origin": "https://accta.cv"}
+
+        res = await ranking_route.set_ranking_opt_out(
+            payload=RankingOptOut(opt_out=True), request=_R(), current_user=socio_user,
+        )
         assert res == {"opt_out": True}
         assert mock_db.users.update_one.call_args.args[1]["$set"]["ranking_opt_out"] is True
         # sincroniza o snapshot de imediato (sem esperar rebuild)

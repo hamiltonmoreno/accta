@@ -41,6 +41,17 @@ def _user(role="socio", cargo="socio", privileges=None, uid=None) -> User:
     )
 
 
+def _request():
+    """Fake Request para satisfazer assinaturas dos endpoints atos. O
+    create_audit_log lê client.host + headers via extract_request_meta."""
+
+    class _R:
+        client = type("C", (), {"host": "127.0.0.1"})
+        headers = {"User-Agent": "test", "origin": "https://accta.cv"}
+
+    return _R()
+
+
 def _sig(cargo, decisao="aprovado", user_id=None) -> dict:
     return {
         "user_id": user_id or str(uuid.uuid4()),
@@ -131,7 +142,7 @@ class TestCreateAto:
         _wire_atos(mock_db)
         with pytest.raises(HTTPException) as e:
             await atos_route.create_ato(
-                AtoCreate(tipo="vinculativo", descricao="X"), current_user=_user("socio", "socio")
+                AtoCreate(tipo="vinculativo", descricao="X"), _request(), current_user=_user("socio", "socio")
             )
         assert e.value.status_code == 403
 
@@ -139,6 +150,7 @@ class TestCreateAto:
         coll = _wire_atos(mock_db)
         ato = await atos_route.create_ato(
             AtoCreate(tipo="vinculativo", descricao="Contrato de fornecimento"),
+            _request(),
             current_user=_user("socio", "dir_vogal"),
         )
         assert ato.status == "pendente"
@@ -149,14 +161,14 @@ class TestCreateAto:
         _wire_atos(mock_db)
         with pytest.raises(HTTPException) as e:
             await atos_route.create_ato(
-                AtoCreate(tipo="pagamento", descricao="Pagamento"), current_user=_user("admin", "dir_presidente")
+                AtoCreate(tipo="pagamento", descricao="Pagamento"), _request(), current_user=_user("admin", "dir_presidente")
             )
         assert e.value.status_code == 400
 
     async def test_tipo_invalido_400(self, mock_db):
         _wire_atos(mock_db)
         with pytest.raises(HTTPException) as e:
-            await atos_route.create_ato(AtoCreate(tipo="xpto", descricao="Y"), current_user=_user("admin"))
+            await atos_route.create_ato(AtoCreate(tipo="xpto", descricao="Y"), _request(), current_user=_user("admin"))
         assert e.value.status_code == 400
 
 
@@ -176,14 +188,14 @@ class TestSignAto:
         _wire_atos(mock_db, doc=self._pendente())
         with pytest.raises(HTTPException) as e:
             await atos_route.sign_ato(
-                "a1", AtoSign(decisao="aprovado"), current_user=_user("financeiro", "socio", ["manage_finances"])
+                "a1", AtoSign(decisao="aprovado"), _request(), current_user=_user("financeiro", "socio", ["manage_finances"])
             )
         assert e.value.status_code == 403
 
     async def test_decisao_invalida_400(self, mock_db):
         _wire_atos(mock_db, doc=self._pendente())
         with pytest.raises(HTTPException) as e:
-            await atos_route.sign_ato("a1", AtoSign(decisao="talvez"), current_user=_user("socio", "dir_vogal"))
+            await atos_route.sign_ato("a1", AtoSign(decisao="talvez"), _request(), current_user=_user("socio", "dir_vogal"))
         assert e.value.status_code == 400
 
     async def test_status_nao_pendente_400(self, mock_db):
@@ -191,7 +203,7 @@ class TestSignAto:
         doc["status"] = "aprovado"
         _wire_atos(mock_db, doc=doc)
         with pytest.raises(HTTPException) as e:
-            await atos_route.sign_ato("a1", AtoSign(decisao="aprovado"), current_user=_user("socio", "dir_vogal"))
+            await atos_route.sign_ato("a1", AtoSign(decisao="aprovado"), _request(), current_user=_user("socio", "dir_vogal"))
         assert e.value.status_code == 400
 
     async def test_assinante_duplicado_400(self, mock_db):
@@ -199,7 +211,7 @@ class TestSignAto:
         _wire_atos(mock_db, doc=doc)
         with pytest.raises(HTTPException) as e:
             await atos_route.sign_ato(
-                "a1", AtoSign(decisao="aprovado"), current_user=_user("socio", "dir_presidente", uid="dup")
+                "a1", AtoSign(decisao="aprovado"), _request(), current_user=_user("socio", "dir_presidente", uid="dup")
             )
         assert e.value.status_code == 400
 
@@ -208,7 +220,7 @@ class TestSignAto:
         doc = self._pendente(assinaturas=[_sig("dir_vogal", user_id="v1")])
         coll = _wire_atos(mock_db, doc=doc)
         await atos_route.sign_ato(
-            "a1", AtoSign(decisao="aprovado"), current_user=_user("socio", "dir_presidente", uid="pres")
+            "a1", AtoSign(decisao="aprovado"), _request(), current_user=_user("socio", "dir_presidente", uid="pres")
         )
         update = coll.update_one.call_args.args[1]["$set"]
         assert update["status"] == "aprovado"
@@ -218,7 +230,7 @@ class TestSignAto:
         doc = self._pendente()
         coll = _wire_atos(mock_db, doc=doc)
         await atos_route.sign_ato(
-            "a1", AtoSign(decisao="rejeitado"), current_user=_user("socio", "dir_presidente")
+            "a1", AtoSign(decisao="rejeitado"), _request(), current_user=_user("socio", "dir_presidente")
         )
         assert coll.update_one.call_args.args[1]["$set"]["status"] == "rejeitado"
 
@@ -241,25 +253,25 @@ class TestExecuteAto:
     async def test_nao_tesoureiro_403(self, mock_db):
         _wire_atos(mock_db, doc=self._aprovado_pagamento())
         with pytest.raises(HTTPException) as e:
-            await atos_route.execute_ato("a1", AtoExecute(), current_user=_user("socio", "dir_vogal"))
+            await atos_route.execute_ato("a1", AtoExecute(), _request(), current_user=_user("socio", "dir_vogal"))
         assert e.value.status_code == 403
 
     async def test_nao_aprovado_400(self, mock_db):
         _wire_atos(mock_db, doc=self._aprovado_pagamento(status="pendente"))
         with pytest.raises(HTTPException) as e:
-            await atos_route.execute_ato("a1", AtoExecute(), current_user=_user("socio", "dir_tesoureiro"))
+            await atos_route.execute_ato("a1", AtoExecute(), _request(), current_user=_user("socio", "dir_tesoureiro"))
         assert e.value.status_code == 400
 
     async def test_vinculativo_nao_executavel_400(self, mock_db):
         _wire_atos(mock_db, doc=self._aprovado_pagamento(tipo="vinculativo", valor=None))
         with pytest.raises(HTTPException) as e:
-            await atos_route.execute_ato("a1", AtoExecute(), current_user=_user("admin"))
+            await atos_route.execute_ato("a1", AtoExecute(), _request(), current_user=_user("admin"))
         assert e.value.status_code == 400
 
     async def test_executa_cria_despesa_ligada(self, mock_db):
         coll = _wire_atos(mock_db, doc=self._aprovado_pagamento())
         await atos_route.execute_ato(
-            "a1", AtoExecute(category="operacional"), current_user=_user("socio", "dir_tesoureiro", uid="tes")
+            "a1", AtoExecute(category="operacional"), _request(), current_user=_user("socio", "dir_tesoureiro", uid="tes")
         )
         mock_db.transactions.insert_one.assert_awaited_once()
         tx = mock_db.transactions.insert_one.call_args.args[0]
@@ -271,7 +283,7 @@ class TestExecuteAto:
         _wire_atos(mock_db, doc=self._aprovado_pagamento())
         with pytest.raises(HTTPException) as e:
             await atos_route.execute_ato(
-                "a1", AtoExecute(category="inexistente"), current_user=_user("admin")
+                "a1", AtoExecute(category="inexistente"), _request(), current_user=_user("admin")
             )
         assert e.value.status_code == 400
 
@@ -283,18 +295,18 @@ class TestCancelAto:
 
     async def test_proponente_cancela(self, mock_db):
         coll = _wire_atos(mock_db, doc=self._pendente())
-        await atos_route.cancel_ato("a1", current_user=_user("socio", "socio", uid="prop"))
+        await atos_route.cancel_ato("a1", _request(), current_user=_user("socio", "socio", uid="prop"))
         assert coll.update_one.call_args.args[1]["$set"]["status"] == "cancelado"
 
     async def test_outro_socio_403(self, mock_db):
         _wire_atos(mock_db, doc=self._pendente())
         with pytest.raises(HTTPException) as e:
-            await atos_route.cancel_ato("a1", current_user=_user("socio", "socio", uid="outro"))
+            await atos_route.cancel_ato("a1", _request(), current_user=_user("socio", "socio", uid="outro"))
         assert e.value.status_code == 403
 
     async def test_admin_cancela(self, mock_db):
         coll = _wire_atos(mock_db, doc=self._pendente())
-        await atos_route.cancel_ato("a1", current_user=_user("admin"))
+        await atos_route.cancel_ato("a1", _request(), current_user=_user("admin"))
         assert coll.update_one.call_args.args[1]["$set"]["status"] == "cancelado"
 
     async def test_nao_pendente_400(self, mock_db):
@@ -302,7 +314,7 @@ class TestCancelAto:
         doc["status"] = "aprovado"
         _wire_atos(mock_db, doc=doc)
         with pytest.raises(HTTPException) as e:
-            await atos_route.cancel_ato("a1", current_user=_user("admin"))
+            await atos_route.cancel_ato("a1", _request(), current_user=_user("admin"))
         assert e.value.status_code == 400
 
 

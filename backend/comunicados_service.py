@@ -176,6 +176,18 @@ async def dispatch_oficial_auto(*, subject: str, body: str, cta_label: str = Non
         "created_at": datetime.now(timezone.utc).isoformat(),
         "sent_at": None, "error": None,
     }
-    await db.comunicados.insert_one(doc)
+    try:
+        await db.comunicados.insert_one(doc)
+    except Exception:  # noqa: BLE001
+        # Race vs outra tarefa concorrente (mesmo source_kind/ref_id): o UNIQUE
+        # parcial ux_comunicados_source_ref bloqueia ao nível da BD. Tratamos
+        # como no-op idempotente — o vencedor da corrida já enviou o email.
+        # Re-confirma via find_one para distinguir UniqueViolation de outras
+        # falhas (DB indisponível, payload inválido) que devem propagar.
+        loser = await db.comunicados.find_one(
+            {"source_kind": source_kind, "source_ref_id": ref_id}, {"_id": 0, "id": 1})
+        if loser:
+            return None
+        raise
     await dispatch_comunicado(cid)
     return cid
