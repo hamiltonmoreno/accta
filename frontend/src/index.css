@@ -140,7 +140,7 @@ html, body {
 
     /* Buttons */
     .btn-primary {
-        @apply bg-carmesim text-white hover:bg-carmesim-dark h-10 sm:h-11 px-5 sm:px-6 rounded-lg font-semibold text-sm transition-colors;
+        @apply bg-floresta text-white hover:bg-floresta-dark h-10 sm:h-11 px-5 sm:px-6 rounded-lg font-semibold text-sm transition-colors;
     }
     .btn-secondary {
         @apply h-10 sm:h-11 px-5 sm:px-6 rounded-lg font-semibold text-sm transition-colors;
