@@ -17,7 +17,7 @@ RBAC:
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from auth import can_view_finances, get_current_user
 from database import db
@@ -66,7 +66,7 @@ def _has_signed(ato: dict, user_id: str) -> bool:
 
 
 @router.post("")
-async def create_ato(data: AtoCreate, current_user: User = Depends(get_current_user)):
+async def create_ato(data: AtoCreate, request: Request, current_user: User = Depends(get_current_user)):
     _require_create(current_user)
 
     if data.tipo not in ATO_TIPOS:
@@ -91,6 +91,7 @@ async def create_ato(data: AtoCreate, current_user: User = Depends(get_current_u
         current_user.id,
         f"Criou acto de co-aprovacao {ato.id} ({data.tipo})",
         ato.id,
+        request=request,
         details={"tipo": data.tipo, "valor": data.valor},
     )
 
@@ -138,7 +139,7 @@ async def get_ato(ato_id: str, current_user: User = Depends(get_current_user)):
 
 
 @router.post("/{ato_id}/assinar")
-async def sign_ato(ato_id: str, data: AtoSign, current_user: User = Depends(get_current_user)):
+async def sign_ato(ato_id: str, data: AtoSign, request: Request, current_user: User = Depends(get_current_user)):
     _require_sign(current_user)
     if data.decisao not in ATO_DECISOES:
         raise HTTPException(status_code=400, detail=f"Decisao invalida. Use: {ATO_DECISOES}")
@@ -165,11 +166,12 @@ async def sign_ato(ato_id: str, data: AtoSign, current_user: User = Depends(get_
         current_user.id,
         f"Assinou acto {ato_id} ({data.decisao})",
         ato_id,
+        request=request,
         details={"decisao": data.decisao, "status": novo_status},
     )
 
     if novo_status in ("aprovado", "rejeitado"):
-        await create_audit_log(current_user.id, f"Acto {ato_id} {novo_status}", ato_id)
+        await create_audit_log(current_user.id, f"Acto {ato_id} {novo_status}", ato_id, request=request)
         label = "aprovado" if novo_status == "aprovado" else "rejeitado"
         await notify_users(
             [ato["created_by"]],
@@ -184,7 +186,7 @@ async def sign_ato(ato_id: str, data: AtoSign, current_user: User = Depends(get_
 
 
 @router.post("/{ato_id}/executar")
-async def execute_ato(ato_id: str, data: AtoExecute, current_user: User = Depends(get_current_user)):
+async def execute_ato(ato_id: str, data: AtoExecute, request: Request, current_user: User = Depends(get_current_user)):
     _require_execute(current_user)
 
     ato = await db.atos.find_one({"id": ato_id}, {"_id": 0})
@@ -221,6 +223,7 @@ async def execute_ato(ato_id: str, data: AtoExecute, current_user: User = Depend
         current_user.id,
         f"Executou acto {ato_id} -> despesa {transaction.id} ({valor} CVE)",
         ato_id,
+        request=request,
         details={"transaction_id": transaction.id, "amount": valor},
     )
     await notify_users(
@@ -235,7 +238,7 @@ async def execute_ato(ato_id: str, data: AtoExecute, current_user: User = Depend
 
 
 @router.post("/{ato_id}/cancelar")
-async def cancel_ato(ato_id: str, current_user: User = Depends(get_current_user)):
+async def cancel_ato(ato_id: str, request: Request, current_user: User = Depends(get_current_user)):
     ato = await db.atos.find_one({"id": ato_id}, {"_id": 0})
     if not ato:
         raise HTTPException(status_code=404, detail="Acto nao encontrado")
@@ -245,5 +248,5 @@ async def cancel_ato(ato_id: str, current_user: User = Depends(get_current_user)
         raise HTTPException(status_code=400, detail="So actos pendentes podem ser cancelados")
 
     await db.atos.update_one({"id": ato_id}, {"$set": {"status": "cancelado"}})
-    await create_audit_log(current_user.id, f"Cancelou acto {ato_id}", ato_id)
+    await create_audit_log(current_user.id, f"Cancelou acto {ato_id}", ato_id, request=request)
     return await db.atos.find_one({"id": ato_id}, {"_id": 0})
