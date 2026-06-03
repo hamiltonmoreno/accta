@@ -632,6 +632,10 @@ export function AdminComunicadosPage() {
                     ))}
                 </div>
                 {ctaLabel && ctaUrl && ctaUrlValid && (
+                  // Mock visual do botão do EMAIL (pré-visualização), não um botão
+                  // da página: o Carmesim sólido é intencional — replica o CTA tal
+                  // como aparece no email enviado, fora da taxonomia de cor de ação
+                  // das páginas (ver lib/buttonStyles.js / spec-botoes-cor-acao).
                   <a
                     href={ctaUrl}
                     target="_blank"

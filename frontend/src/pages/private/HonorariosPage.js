@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
+import { primaryBtn } from '../../lib/buttonStyles';
 
 const STATUS = {
   proposta: { label: 'Proposta', cls: 'bg-[#FFFBEB] text-[#B45309]' },
@@ -207,7 +208,7 @@ export const HonorariosPage = () => {
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer">Cancelar</button>
-              <button onClick={() => createMut.mutate()} disabled={createMut.isPending || form.nominee_name.trim().length < 2 || !form.justificacao.trim()} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid="hon-submit">
+              <button onClick={() => createMut.mutate()} disabled={createMut.isPending || form.nominee_name.trim().length < 2 || !form.justificacao.trim()} className={primaryBtn} data-testid="hon-submit">
                 {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />} Nomear
               </button>
             </div>

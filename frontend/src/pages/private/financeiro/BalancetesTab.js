@@ -11,6 +11,7 @@ import { EmptyState } from '../../../components/EmptyState';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../../components/ui/dialog';
 import { DocumentUploadField } from '../../../components/DocumentUploadField';
+import { primaryBtn } from '../../../lib/buttonStyles';
 
 const TIPO_LABEL = { periodico: 'Balancete periódico', balanco_anual: 'Balanço anual' };
 const fmtCve = (v) => `${Number(v || 0).toLocaleString('pt-PT')} CVE`;
@@ -184,7 +185,7 @@ export const BalancetesTab = () => {
             />
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowPublish(false)} className="px-4 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer">Cancelar</button>
-              <button onClick={() => publishMut.mutate()} disabled={publishMut.isPending || form.periodo.trim().length < 4} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="balancete-submit">
+              <button onClick={() => publishMut.mutate()} disabled={publishMut.isPending || form.periodo.trim().length < 4} className={primaryBtn} data-testid="balancete-submit">
                 {publishMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />} Publicar
               </button>
             </div>
@@ -210,7 +211,7 @@ export const BalancetesTab = () => {
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setAuditTarget(null)} className="px-4 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer">Cancelar</button>
-              <button onClick={() => auditMut.mutate()} disabled={auditMut.isPending} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="audit-submit">
+              <button onClick={() => auditMut.mutate()} disabled={auditMut.isPending} className={primaryBtn} data-testid="audit-submit">
                 {auditMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <ShieldCheck className="w-4 h-4" aria-hidden="true" />} Registar auditoria
               </button>
             </div>

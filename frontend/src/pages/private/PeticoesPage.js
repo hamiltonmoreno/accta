@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
+import { primaryBtn } from '../../lib/buttonStyles';
 
 const PETICOES_KEY = ['peticoes'];
 const STATUS_LABEL = {
@@ -182,7 +183,7 @@ export const PeticoesPage = () => {
               <button
                 onClick={() => createMut.mutate()}
                 disabled={createMut.isPending || form.titulo.trim().length < 3 || !form.fundamentacao.trim()}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                className={primaryBtn}
                 data-testid="peticao-submit"
               >
                 {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />} Criar
