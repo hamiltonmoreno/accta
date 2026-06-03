@@ -949,6 +949,16 @@ _INDEX_DDL: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS ix_comunicados_created_by ON \"comunicados\" ((doc->>'created_by'))",
     'CREATE INDEX IF NOT EXISTS ix_comunicados_source ON "comunicados" '
     "((doc->>'source_kind'), (doc->>'source_ref_id'))",
+    # Anti-duplicado (race) entre dispatch_oficial_auto chamado pelo registo e
+    # pelo apuramento da mesma deliberação: se duas tarefas correrem o find_one
+    # antes de qualquer insert_one, ambas inseriam — enviando 2× o email oficial
+    # para todos os activos. Este UNIQUE parcial bloqueia ao nível da BD; o
+    # serviço captura a violação e trata como no-op (issue #157). Tolerante a
+    # duplicados pré-existentes: ensure_schema só emite warning se a criação
+    # falhar, e o ix_comunicados_source acima mantém a performance de lookup.
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_comunicados_source_ref ON "comunicados" '
+    "((doc->>'source_kind'), (doc->>'source_ref_id')) "
+    "WHERE doc->>'source_kind' IS NOT NULL",
     # ranking de atuação do sócio (spec-ranking-socio)
     'CREATE UNIQUE INDEX IF NOT EXISTS ux_mscores_user_period ON "member_scores" '
     "((doc->>'user_id'), (doc->>'period_key'))",
