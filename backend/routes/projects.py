@@ -17,13 +17,25 @@ from models import (
     ProjectMilestoneCreate,
     ProjectMilestoneUpdate,
     PROJECT_STATUSES,
+    PROJECT_TIPOS,
     PROJECT_VISIBILITIES,
     TASK_PRIORITIES,
     TASK_STATUSES,
 )
 from database import db
 from auth import get_current_user
-from helpers import create_audit_log, notify_users, notify_admins, get_project_stakeholder_ids, create_notification
+from permissions import is_direcao
+from helpers import (
+    create_audit_log,
+    notify_users,
+    notify_admins,
+    get_project_stakeholder_ids,
+    create_notification,
+    enrich_author_photos,
+)
+
+# spec-fins-profissionais §4.2: grupos/comissões só por Direcção/admin (Art. 31.e).
+ORGANIZATIONAL_TIPOS = {"grupo_trabalho", "comissao"}
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -55,17 +67,9 @@ def can_manage_project(user: User, project: dict) -> bool:
 
 
 def can_view_project(user: User, project: dict) -> bool:
-    if project.get("visibility") == "publico":
+    if project.get("visibility") == "publico" and project.get("status") != "proposta":
         return True
     return user.role == "admin" or project.get("created_by") == user.id or project.get("responsible_id") == user.id
-
-
-def serialize_doc(d: dict) -> dict:
-    for k in ["created_at", "updated_at", "completed_at"]:
-        v = d.get(k)
-        if isinstance(v, datetime):
-            d[k] = v.isoformat()
-    return d
 
 
 # ===== PROJECT CRUD =====
@@ -75,21 +79,26 @@ def serialize_doc(d: dict) -> dict:
 async def list_projects(
     status: Optional[str] = None,
     visibility: Optional[str] = None,
+    tipo: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
     current_user: User = Depends(get_current_user),
 ):
     limit = min(limit, 100)
+    if tipo is not None and tipo not in PROJECT_TIPOS:
+        raise HTTPException(status_code=400, detail=f"Tipo invalido: {PROJECT_TIPOS}")
     query = {}
     if status:
         query["status"] = status
     if visibility:
         query["visibility"] = visibility
+    if tipo:
+        query["tipo"] = tipo
 
-    # Non-admin: only see public + own private projects
+    # Non-admin: only see published public projects + own/responsible projects.
     if current_user.role != "admin":
         query["$or"] = [
-            {"visibility": "publico"},
+            {"visibility": "publico", "status": {"$ne": "proposta"}},
             {"created_by": current_user.id},
             {"responsible_id": current_user.id},
         ]
@@ -129,22 +138,34 @@ async def create_project(
     if data.visibility not in PROJECT_VISIBILITIES:
         raise HTTPException(status_code=400, detail=f"Visibilidade invalida: {PROJECT_VISIBILITIES}")
 
+    # Cat 5 F1: grupos/comissões (Art. 31.e) são criados pela Direcção/admin e
+    # ficam logo `aprovado` — saltam o fluxo `proposta→aprovado` dos projetos comuns.
+    is_organizational = data.tipo in ORGANIZATIONAL_TIPOS
+    if is_organizational and current_user.role != "admin" and not is_direcao(current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Apenas a Direcao ou admin pode criar grupos de trabalho/comissoes",
+        )
+    initial_status = "aprovado" if (is_organizational or current_user.role == "admin") else "proposta"
+
     project = Project(
         **data.model_dump(),
-        status="proposta" if current_user.role != "admin" else "aprovado",
+        status=initial_status,
         created_by=current_user.id,
         created_by_name=current_user.name,
     )
     p_dict = project.model_dump()
-    p_dict["created_at"] = p_dict["created_at"].isoformat()
-    p_dict["updated_at"] = p_dict["updated_at"].isoformat()
 
     await db.projects.insert_one(p_dict)
-    await create_audit_log(current_user.id, f"Criou projeto '{project.title}'", project.id)
+    await create_audit_log(
+        current_user.id,
+        f"Criou {project.tipo.replace('_', ' ')} '{project.title}'",
+        project.id,
+    )
 
-    # Auto-notifications
-    link = f"/projetos/{project.id}"
-    if current_user.role != "admin":
+    # Auto-notifications: só projetos comuns submetidos a aprovação geram alerta.
+    if initial_status == "proposta":
+        link = f"/projetos/{project.id}"
         await notify_admins(
             "projeto",
             "Nova Proposta de Projeto",
@@ -173,6 +194,7 @@ async def get_project(
     comments = (
         await db.project_comments.find({"project_id": project_id}, {"_id": 0}).sort("created_at", -1).to_list(200)
     )
+    await enrich_author_photos(comments)
     expenses = await db.project_expenses.find({"project_id": project_id}, {"_id": 0}).sort("date", -1).to_list(200)
     milestones = await db.project_milestones.find({"project_id": project_id}, {"_id": 0}).sort("date", 1).to_list(100)
 
@@ -340,7 +362,6 @@ async def create_task(
         assignee_name=assignee_name,
     )
     t_dict = task.model_dump()
-    t_dict["created_at"] = t_dict["created_at"].isoformat()
     await db.project_tasks.insert_one(t_dict)
 
     # Notify assignee
@@ -457,7 +478,6 @@ async def add_comment(
         content=content,
     )
     c_dict = comment.model_dump()
-    c_dict["created_at"] = c_dict["created_at"].isoformat()
     await db.project_comments.insert_one(c_dict)
 
     # Notify project stakeholders about the new comment
@@ -521,7 +541,6 @@ async def add_expense(
         created_by_name=current_user.name,
     )
     e_dict = expense.model_dump()
-    e_dict["created_at"] = e_dict["created_at"].isoformat()
     await db.project_expenses.insert_one(e_dict)
 
     # Update project spent — usa aggregation em vez de carregar todas as despesas para memoria
@@ -610,7 +629,6 @@ async def add_milestone(
         date=date,
     )
     m_dict = milestone.model_dump()
-    m_dict["created_at"] = m_dict["created_at"].isoformat()
     await db.project_milestones.insert_one(m_dict)
     return m_dict
 
@@ -628,6 +646,15 @@ async def update_milestone(
     if not can_manage_project(current_user, project):
         raise HTTPException(status_code=403, detail="Sem permissao")
 
+    # Confirma que o milestone pertence a ESTE projeto antes de tocar/devolver
+    # (evita IDOR de divulgacao cruzada: a re-leitura tem de ficar escopada
+    # por project_id, tal como em update_task).
+    milestone = await db.project_milestones.find_one(
+        {"id": milestone_id, "project_id": project_id}, {"_id": 0}
+    )
+    if not milestone:
+        raise HTTPException(status_code=404, detail="Milestone nao encontrado")
+
     updates = {}
     if data.completed is not None:
         updates["completed"] = data.completed
@@ -639,7 +666,7 @@ async def update_milestone(
     if updates:
         await db.project_milestones.update_one({"id": milestone_id, "project_id": project_id}, {"$set": updates})
 
-    updated = await db.project_milestones.find_one({"id": milestone_id}, {"_id": 0})
+    updated = await db.project_milestones.find_one({"id": milestone_id, "project_id": project_id}, {"_id": 0})
     return updated
 
 
@@ -655,7 +682,9 @@ async def delete_milestone(
     if not can_manage_project(current_user, project):
         raise HTTPException(status_code=403, detail="Sem permissao")
 
-    await db.project_milestones.delete_one({"id": milestone_id, "project_id": project_id})
+    result = await db.project_milestones.delete_one({"id": milestone_id, "project_id": project_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Milestone nao encontrado")
     return {"message": "Milestone removido"}
 
 

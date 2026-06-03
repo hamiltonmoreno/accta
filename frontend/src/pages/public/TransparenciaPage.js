@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { documentsAPI } from '../../utils/api';
 import {
@@ -12,29 +13,17 @@ import {
   CheckCircle,
   Scale
 } from 'lucide-react';
-import { unsplashSrcSet } from '../../utils/unsplash';
 import { legislacao } from '../../content/cta';
 import { EmptyState } from '../../components/EmptyState';
+import { PageBanner } from '../../components/PageBanner';
 
 export const TransparenciaPage = () => {
-  const [documents, setDocuments] = useState([]);
-  const [reports, setReports] = useState([]);
-
-  useEffect(() => {
-    loadPublicDocuments();
-  }, []);
-
-  const loadPublicDocuments = async () => {
-    try {
-      const res = await documentsAPI.getPublic();
-      const all = res.data || [];
-      setDocuments(all.filter(d => d.type !== 'balancete' && d.type !== 'plano'));
-      setReports(all.filter(d => d.type === 'balancete' || d.type === 'plano'));
-    } catch {
-      setDocuments([]);
-      setReports([]);
-    }
-  };
+  const { data: allDocs = [] } = useQuery({
+    queryKey: ['publicDocuments'],
+    queryFn: async () => (await documentsAPI.getPublic()).data || [],
+  });
+  const documents = allDocs.filter((d) => d.type !== 'balancete' && d.type !== 'plano');
+  const reports = allDocs.filter((d) => d.type === 'balancete' || d.type === 'plano');
 
   const getDocIcon = (type) => {
     switch (type) {
@@ -48,33 +37,12 @@ export const TransparenciaPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative py-20 sm:py-28 overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1618506060789-b63788b0cecd?q=80&w=1280&auto=format&fit=crop"
-          srcSet={unsplashSrcSet('https://images.unsplash.com/photo-1618506060789-b63788b0cecd?q=80&auto=format&fit=crop')}
-          sizes="100vw"
-          alt=""
-          aria-hidden="true"
-          loading="lazy"
-          decoding="async"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/85 to-grafite/50" />
-        <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6">
-          <div className="max-w-2xl animate-fade-up">
-            <span className="inline-block px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-white rounded-full text-xs uppercase tracking-wider font-semibold mb-5">
-              Governança
-            </span>
-            <h1 className="font-bold text-3xl sm:text-5xl lg:text-6xl text-white mb-4" data-testid="transparency-title">
-              Transparência e{' '}
-              <span className="text-white">Prestação de Contas</span>
-            </h1>
-            <p className="text-base sm:text-xl text-white/80 max-w-xl leading-relaxed">
-              A credibilidade da ACCTA baseia-se na transparência com os seus associados e com a sociedade
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageBanner
+        pageKey="transparencia"
+        badge="Governança"
+        title="Transparência e Prestação de Contas"
+        subtitle="A credibilidade da ACCTA baseia-se na transparência com os seus associados e com a sociedade"
+      />
 
       {/* Intro */}
       <section className="py-16">
@@ -155,7 +123,7 @@ export const TransparenciaPage = () => {
                 return (
                   <div key={report.id}
                     className="card-technical rounded-xl overflow-hidden animate-fade-up">
-                    <div className="h-24 bg-gradient-to-r from-primary to-[#1e3a5f] flex items-center px-6">
+                    <div className="h-24 bg-gradient-to-r from-grafite to-[#1e3a5f] flex items-center px-6">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-carmesim rounded-lg flex items-center justify-center">
                           <IconComponent className="w-6 h-6 text-white" />
@@ -266,7 +234,7 @@ export const TransparenciaPage = () => {
           </p>
           <Link
             to="/contactos"
-            className="inline-flex items-center gap-2 bg-carmesim text-white px-8 py-4 rounded-lg font-bold hover:bg-carmesim/90 transition-all"
+            className="inline-flex items-center gap-2 bg-floresta text-white px-8 py-4 rounded-lg font-bold hover:bg-floresta-dark transition-all"
           >
             Fale Conosco
             <ExternalLink className="w-5 h-5" />

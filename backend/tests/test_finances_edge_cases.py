@@ -6,6 +6,7 @@ without hitting MongoDB. They guard against silent data corruption:
 negative amounts, invalid types/categories, decimal-precision rounding,
 and partial update semantics.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -35,6 +36,7 @@ pytestmark = pytest.mark.unit
 # Constants — guard against silent renames
 # --------------------------------------------------------------------------- #
 
+
 class TestFinanceConstants:
     def test_transaction_types_are_exactly_two(self):
         assert TRANSACTION_TYPES == ["receita", "despesa"]
@@ -42,19 +44,22 @@ class TestFinanceConstants:
     def test_income_categories_include_quotas(self):
         assert "quotas" in INCOME_CATEGORIES
 
-    def test_income_and_expense_categories_have_distinct_terminal_suffixes(self):
-        # "eventos" deliberately appears in both lists (an event can produce
-        # both revenue and expense). Ensure the *_receita / _despesa terminals
-        # remain separated so reporting code can distinguish them.
-        assert any(c.endswith("_receita") for c in INCOME_CATEGORIES)
+    def test_income_and_expense_categories_are_disjoint(self):
+        # Categorias estatutárias (Art. 5): a receita deixa de partilhar
+        # "eventos" com a despesa — passam a ser conjuntos disjuntos.
+        assert set(INCOME_CATEGORIES).isdisjoint(EXPENSE_CATEGORIES)
+        # As receitas seguem a nomenclatura estatutária (sem terminal _receita).
+        assert "joias" in INCOME_CATEGORIES
+        assert "extraordinarias" in INCOME_CATEGORIES
+        # A despesa mantém o terminal _despesa.
         assert any(c.endswith("_despesa") for c in EXPENSE_CATEGORIES)
         assert not any(c.endswith("_despesa") for c in INCOME_CATEGORIES)
-        assert not any(c.endswith("_receita") for c in EXPENSE_CATEGORIES)
 
 
 # --------------------------------------------------------------------------- #
 # TransactionCreate validation
 # --------------------------------------------------------------------------- #
+
 
 class TestTransactionCreate:
     def _valid(self, **overrides):
@@ -100,6 +105,7 @@ class TestTransactionCreate:
 # TransactionUpdate — partial updates
 # --------------------------------------------------------------------------- #
 
+
 class TestTransactionUpdate:
     def test_all_fields_optional(self):
         u = TransactionUpdate()
@@ -123,13 +129,14 @@ class TestTransactionUpdate:
 # Invoice model — quota & status
 # --------------------------------------------------------------------------- #
 
+
 class TestInvoice:
     def test_default_status_is_pendente(self):
         inv = Invoice(
             user_id="u1",
             type="quota_mensal",
             amount=2000.0,
-            due_date=datetime.now(timezone.utc),
+            due_date=datetime.now(timezone.utc).isoformat(),
         )
         assert inv.status == "pendente"
         assert inv.confirmed_by_admin is False
@@ -139,7 +146,7 @@ class TestInvoice:
             user_id="u1",
             type="quota_mensal",
             amount=2000.0,
-            due_date=datetime.now(timezone.utc),
+            due_date=datetime.now(timezone.utc).isoformat(),
         )
         # Per CLAUDE.md: quotas are payroll-deducted, never marked inadimplente.
         assert inv.source == "folha_salarial"
@@ -149,14 +156,43 @@ class TestInvoice:
             user_id="u1",
             type="quota_mensal",
             amount=2000.0,
-            due_date=datetime.now(timezone.utc),
+            due_date=datetime.now(timezone.utc).isoformat(),
         )
         assert ic.amount == 2000.0
 
 
 # --------------------------------------------------------------------------- #
+# Empty-string date rejection (regressão Lote 6)
+# --------------------------------------------------------------------------- #
+
+
+class TestEmptyStringDateRejected:
+    """Uma string vazia num campo de data tem de falhar a validação, não ser
+    guardada. Antes do Lote 6 o tipo `datetime` rejeitava ""; ao migrar para
+    `str` o validador tem de continuar a rejeitar — caso contrário a data vazia
+    é persistida, parte `.sort("date")`/`$gte` e crasha `_parse_dt("")`."""
+
+    def test_transaction_create_rejects_empty_date(self):
+        with pytest.raises(ValidationError):
+            TransactionCreate(type="receita", category="quotas", description="x", amount=1.0, date="")
+
+    def test_transaction_update_rejects_empty_date(self):
+        # Optional no update: limpar é via None; "" continua inválido.
+        with pytest.raises(ValidationError):
+            TransactionUpdate(date="")
+
+    def test_transaction_update_allows_none_date(self):
+        assert TransactionUpdate(date=None).date is None
+
+    def test_invoice_create_rejects_empty_due_date(self):
+        with pytest.raises(ValidationError):
+            InvoiceCreate(user_id="u1", type="quota_mensal", amount=1.0, due_date="")
+
+
+# --------------------------------------------------------------------------- #
 # FinanceSettings — quota amount sanity
 # --------------------------------------------------------------------------- #
+
 
 class TestFinanceSettings:
     def test_default_quota_is_2000(self):
@@ -175,6 +211,7 @@ class TestFinanceSettings:
 # (spec-identidade-cargos: leitura aceita view_finances_readonly; escrita não)
 # --------------------------------------------------------------------------- #
 
+
 class TestFinanceGateways:
     def test_admin_passes_both(self, admin_user):
         require_view_finances(admin_user)  # must not raise
@@ -186,6 +223,7 @@ class TestFinanceGateways:
 
     def test_socio_blocked_on_both(self, socio_user):
         from fastapi import HTTPException
+
         for gate in (require_view_finances, require_manage_finances):
             with pytest.raises(HTTPException) as exc_info:
                 gate(socio_user)
@@ -193,6 +231,7 @@ class TestFinanceGateways:
 
     def test_moderador_blocked_on_both(self, moderador_user):
         from fastapi import HTTPException
+
         for gate in (require_view_finances, require_manage_finances):
             with pytest.raises(HTTPException) as exc_info:
                 gate(moderador_user)
@@ -202,6 +241,7 @@ class TestFinanceGateways:
 # --------------------------------------------------------------------------- #
 # Decimal precision — guard against float drift across serialization round-trip
 # --------------------------------------------------------------------------- #
+
 
 class TestPrecision:
     @pytest.mark.parametrize("amount", [0.01, 0.1, 1.23, 99.99, 1000.50, 12345.67])

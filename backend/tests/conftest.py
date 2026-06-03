@@ -64,7 +64,7 @@ def _make_user_dict(role: str, **overrides) -> dict:
         "cargo": "Sócio",
         "privileges": [],
         "consent_data": True,
-        "created_at": datetime.now(timezone.utc),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
     base.update(overrides)
     return base
@@ -126,6 +126,8 @@ def moderador_user(moderador_user_dict):
 @pytest.fixture
 def make_token():
     """Return a callable that produces a JWT for a given user_id with custom expiry."""
+    import uuid
+
     from jose import jwt
 
     secret = os.environ["SECRET_KEY"]
@@ -133,7 +135,8 @@ def make_token():
     def _make(user_id: str, expires_delta: timedelta | None = None, extra_claims: dict | None = None) -> str:
         now = datetime.now(timezone.utc)
         exp = now + (expires_delta if expires_delta is not None else timedelta(minutes=60))
-        payload = {"sub": user_id, "exp": exp}
+        # jti por defeito: tokens reais (create_access_token) sempre o incluem.
+        payload = {"sub": user_id, "exp": exp, "jti": str(uuid.uuid4())}
         if extra_claims:
             payload.update(extra_claims)
         return jwt.encode(payload, secret, algorithm="HS256")
@@ -160,6 +163,7 @@ def mock_db(monkeypatch):
         "audit_logs",
         "notifications",
         "password_resets",
+        "posts",
         "wall_posts",
         "wall_comments",
         "invoices",
@@ -177,6 +181,7 @@ def mock_db(monkeypatch):
         "benefit_partners",
         "tokens_revoked",
         "failed_logins",
+        "comunicados",
     ):
         coll = MagicMock(name=collection)
         coll.find_one = AsyncMock(return_value=None)
@@ -200,10 +205,18 @@ def mock_db(monkeypatch):
     import database
     import auth
     import helpers
+    import ranking
 
     monkeypatch.setattr(database, "db", fake_db)
     monkeypatch.setattr(auth, "db", fake_db)
     monkeypatch.setattr(helpers, "db", fake_db)
+    # ranking.py faz `from database import db` no topo (fonte única do score,
+    # usada por report.personal e pela rota de ranking) — patch explícito.
+    monkeypatch.setattr(ranking, "db", fake_db)
+
+    # comunicados_service faz `from database import db` no topo — patch explícito
+    if "comunicados_service" in sys.modules:
+        monkeypatch.setattr(sys.modules["comunicados_service"], "db", fake_db)
 
     # routes/*.py fazem `from database import db` no top-level — referencia
     # ja foi capturada antes do monkeypatch. Patch cada module ja importado

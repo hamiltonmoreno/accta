@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from database import db
 from auth import get_current_user
 from models import User
+from ranking import gather_signal_counts
 
 router = APIRouter(tags=["report"])
 
@@ -11,46 +12,19 @@ async def get_personal_report(current_user: User = Depends(get_current_user)):
     """Aggregate personal activity stats for the current user."""
     uid = current_user.id
 
-    # Events attended
-    events_attended = await db.events.count_documents({"attendees": uid})
+    # Sinais de atuação partilhados com o ranking — fonte única de contagem
+    # (`ranking.gather_signal_counts`), período "all" = histórico completo. A
+    # comparência eleitoral fica de fora (não é exibida aqui). O contrato de
+    # saída deste endpoint mantém-se EXACTAMENTE igual (o dashboard usa-o).
+    signals = await gather_signal_counts(uid, "all", include_turnout=False)
 
-    # Total events available
+    # Denominadores e sinais não pontuados (locais — não fazem parte do score).
     total_events = await db.events.count_documents({"visibility": {"$in": ["publico", "socios"]}})
-
-    # Polls voted in (votes guardados na coleção user_votes)
-    polls_voted = await db.user_votes.count_documents({"user_id": uid})
-
-    # Total polls
     total_polls = await db.polls.count_documents({"status": {"$in": ["aberta", "encerrada"]}})
-
-    # Wall posts by user
-    wall_posts = await db.wall_posts.count_documents({"user_id": uid, "approved": True})
-
-    # Wall likes received
-    likes_received = 0
-    user_posts = db.wall_posts.find({"user_id": uid, "approved": True}, {"_id": 0, "likes": 1})
-    async for p in user_posts:
-        likes_received += len(p.get("likes", []))
-
-    # Wall comments made
-    wall_comments = await db.wall_comments.count_documents({"user_id": uid})
-
-    # Project participations: creator, responsible, or assigned to at least one task.
-    assigned_tasks = await db.project_tasks.find({"assignee_id": uid}, {"_id": 0, "project_id": 1}).to_list(1000)
-    assigned_project_ids = sorted({t.get("project_id") for t in assigned_tasks if t.get("project_id")})
-    project_filters = [{"created_by": uid}, {"responsible_id": uid}]
-    if assigned_project_ids:
-        project_filters.append({"id": {"$in": assigned_project_ids}})
-    projects_member = await db.projects.count_documents({"$or": project_filters})
-
-    # Benefits used (count from validation log if exists, otherwise 0)
     benefits_used = await db.benefit_validations.count_documents({"user_id": uid})
-
-    # Gallery photos submitted
     photos_submitted = await db.gallery_photos.count_documents({"uploaded_by": uid})
-    photos_approved = await db.gallery_photos.count_documents({"uploaded_by": uid, "status": "approved"})
 
-    # Documentos disponiveis para o utilizador.
+    # Documentos disponíveis para o utilizador.
     document_visibilities = ["publico", "socios"]
     if current_user.role == "admin" or "manage_documents" in (current_user.privileges or []):
         document_visibilities.extend(["direcao", "privado"])
@@ -68,17 +42,17 @@ async def get_personal_report(current_user: User = Depends(get_current_user)):
     document_access_events = await db.document_accesses.count_documents({"user_id": uid})
 
     return {
-        "events_attended": events_attended,
+        "events_attended": signals["evento_presenca"],
         "total_events": total_events,
-        "polls_voted": polls_voted,
+        "polls_voted": signals["votacao_voto"],
         "total_polls": total_polls,
-        "wall_posts": wall_posts,
-        "likes_received": likes_received,
-        "wall_comments": wall_comments,
-        "projects_member": projects_member,
+        "wall_posts": signals["mural_post"],
+        "likes_received": signals["mural_like_recebido"],
+        "wall_comments": signals["mural_comentario"],
+        "projects_member": signals["projeto_participacao"],
         "benefits_used": benefits_used,
         "photos_submitted": photos_submitted,
-        "photos_approved": photos_approved,
+        "photos_approved": signals["galeria_foto"],
         "documents_available": documents_count,
         "documents_accessed": documents_accessed,
         "document_access_events": document_access_events,

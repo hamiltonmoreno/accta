@@ -34,7 +34,7 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
   if (!photo) return null;
   return (
     <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center animate-fade-up" onClick={onClose} data-testid="lightbox">
-      <button onClick={onClose} className="absolute top-4 right-4 z-50 p-2 bg-white/10 hover:bg-white/20 rounded-full" aria-label="Fechar" data-testid="lightbox-close">
+      <button onClick={onClose} className="absolute top-4 right-4 z-50 min-w-[44px] min-h-[44px] flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full" aria-label="Fechar" data-testid="lightbox-close">
         <X className="w-6 h-6 text-white" aria-hidden="true" />
       </button>
       <div className="absolute top-4 left-4 z-50 px-3 py-1.5 bg-white/10 rounded-full text-white text-sm font-mono">{currentIndex + 1}/{photos.length}</div>
@@ -106,27 +106,27 @@ const UploadModal = ({ albums, onClose }) => {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Album *</label>
-            <select value={albumId} onChange={(e) => setAlbumId(e.target.value)} data-testid="upload-album-select"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none">
+            <label htmlFor="upload-album" className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Album *</label>
+            <select id="upload-album" value={albumId} onChange={(e) => setAlbumId(e.target.value)} data-testid="upload-album-select"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none">
               {albums.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Legenda</label>
-            <input type="text" value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Descricao da foto..."
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+            <label htmlFor="upload-caption" className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Legenda</label>
+            <input id="upload-caption" type="text" value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Descricao da foto..."
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="upload-caption-input" />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Fotos * (JPG, PNG, WEBP)</label>
+            <label htmlFor="upload-files" className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Fotos * (JPG, PNG, WEBP)</label>
             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-carmesim/50 transition-colors"
               data-testid="upload-file-input">
               <Upload className="w-8 h-8 text-gray-300 mb-2" />
               <span className="text-sm text-muted-auto">
                 {files.length > 0 ? `${files.length} foto${files.length > 1 ? 's' : ''} selecionada${files.length > 1 ? 's' : ''}` : 'Clique para selecionar'}
               </span>
-              <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
+              <input id="upload-files" type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
                 onChange={(e) => setFiles(Array.from(e.target.files))} />
             </label>
           </div>
@@ -188,14 +188,14 @@ const AlbumModal = ({ album, onClose }) => {
             <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Titulo *</label>
             <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="Ex: Aeroportos de Cabo Verde"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="album-title-input" />
           </div>
           <div>
             <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Descricao</label>
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Descricao do album..." rows={2}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none resize-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none resize-none"
               data-testid="album-desc-input" />
           </div>
           <div>
@@ -257,8 +257,8 @@ const PendingPanel = () => {
 
   return (
     <div className="card-technical overflow-hidden" data-testid="pending-photos-panel">
-      <div className="flex items-center gap-3 p-4" style={{ borderBottom: '1px solid var(--surface-border)' }}>
-        <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center">
+      <div className="flex items-center gap-3 p-4 border-b border-[var(--surface-border)]">
+        <div className="w-9 h-9 bg-[#D97706] rounded-lg flex items-center justify-center">
           <Clock className="w-4 h-4 text-white" />
         </div>
         <div>
@@ -272,12 +272,12 @@ const PendingPanel = () => {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-4">
           {pending.map(photo => (
             <div key={photo.id} className="relative group rounded-lg overflow-hidden" data-testid={`pending-photo-${photo.id}`}>
-              <img src={photo.url} alt={photo.caption} className="w-full aspect-square object-cover" />
+              <img src={photo.url} alt={photo.caption} loading="lazy" className="w-full aspect-square object-cover" />
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                 <p className="text-white text-xs text-center px-2 truncate w-full">{photo.uploaded_by_name}</p>
                 <p className="text-white/70 text-xs truncate w-full text-center">{photo.album_title}</p>
                 <div className="flex gap-2 mt-1">
-                  <button onClick={() => handleApprove(photo.id)} className="p-2 bg-green-600 rounded-full text-white hover:bg-green-700" aria-label="Aprovar foto" data-testid={`approve-photo-${photo.id}`}>
+                  <button onClick={() => handleApprove(photo.id)} className="p-2 bg-[#16A34A] rounded-full text-white hover:bg-[#15803D]" aria-label="Aprovar foto" data-testid={`approve-photo-${photo.id}`}>
                     <CheckCircle className="w-4 h-4" aria-hidden="true" />
                   </button>
                   <button onClick={() => handleReject(photo.id)} className="p-2 bg-white border border-[#D1D5DB] rounded-full text-[#3A3A3A] hover:bg-[#F5F5F5]" aria-label="Rejeitar foto" data-testid={`reject-photo-${photo.id}`}>
@@ -433,7 +433,7 @@ export const GaleriaAdminPage = () => {
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors pointer-events-none" />
                   {(isAdmin || photo.uploaded_by === undefined) && (
                     <button onClick={() => setConfirmDeletePhoto(photo.id)}
-                      className="absolute top-2 right-2 p-1.5 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 text-white hover:bg-carmesim transition-all"
+                      className="absolute top-2 right-2 p-1.5 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 text-white hover:bg-carmesim/80 transition-all"
                       aria-label="Apagar foto"
                       data-testid={`delete-photo-${photo.id}`}>
                       <Trash2 className="w-3 h-3" aria-hidden="true" />
@@ -467,13 +467,18 @@ export const GaleriaAdminPage = () => {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {albums.map((album, i) => (
               <div key={album.id}
-                className="card-technical overflow-hidden group cursor-pointer animate-fade-up" onClick={() => openAlbum(album)}
+                className="card-technical overflow-hidden group cursor-pointer animate-fade-up rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                onClick={() => openAlbum(album)}
+                role="button"
+                tabIndex={0}
+                aria-label={`Abrir álbum ${album.title}`}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openAlbum(album); } }}
                 data-testid={`album-card-${album.id}`}>
                 <div className="relative aspect-[16/10] overflow-hidden">
                   {album.cover_url ? (
                     <img src={album.cover_url} alt={album.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: 'var(--surface-card-hover)' }}>
+                    <div className="w-full h-full flex items-center justify-center bg-[var(--surface-card-hover)]">
                       <Images className="w-12 h-12 text-muted-auto" />
                     </div>
                   )}
@@ -525,7 +530,7 @@ export const GaleriaAdminPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-[#C7202F] hover:bg-[#B91C1C]"
+              className="bg-[#C7202F] hover:bg-[#A51B27]"
               onClick={() => { handleDeleteAlbum(confirmDeleteAlbum); setConfirmDeleteAlbum(null); }}
             >
               Remover álbum
@@ -545,7 +550,7 @@ export const GaleriaAdminPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-[#C7202F] hover:bg-[#B91C1C]"
+              className="bg-[#C7202F] hover:bg-[#A51B27]"
               onClick={() => { handleDeletePhoto(confirmDeletePhoto); setConfirmDeletePhoto(null); }}
             >
               Remover foto

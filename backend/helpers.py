@@ -1,10 +1,37 @@
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
+import hashlib
+import hmac
 import ipaddress
+import json
 import os
 from fastapi import Request
-from database import db, UPLOAD_DIR
+from database import db, UPLOAD_DIR, _json_default
 from models import AuditLog, Notification
+
+
+async def enrich_author_photos(docs, id_field: str = "user_id", out_field: str = "user_photo_url"):
+    """Injeta a foto ATUAL do autor em cada doc de uma listagem, resolvida na
+    leitura (sempre fresca e cobre conteúdo antigo, sem denormalizar nem migrar).
+
+    Custo: 1 query agregada por listagem (`find {id: {$in: [...]}}`). Tolerante —
+    autor sem foto ou inexistente → `out_field=None` (fallback iniciais no UI).
+    Muta os dicts in-place e devolve a mesma lista.
+    """
+    if not docs:
+        return docs
+    ids = {d.get(id_field) for d in docs if d.get(id_field)}
+    if not ids:
+        for d in docs:
+            d[out_field] = None
+        return docs
+    rows = await db.users.find(
+        {"id": {"$in": list(ids)}}, {"_id": 0, "id": 1, "photo_url": 1}
+    ).to_list(len(ids))
+    photo_by_id = {r["id"]: r.get("photo_url") for r in rows}
+    for d in docs:
+        d[out_field] = photo_by_id.get(d.get(id_field))
+    return docs
 
 
 def delete_upload_file(url: str) -> bool:
@@ -75,13 +102,21 @@ LOCKOUT_THRESHOLD = 5
 LOCKOUT_WINDOW_MINUTES = 15
 
 
-async def record_failed_login(email: str, ip: Optional[str] = None) -> None:
-    """Insere uma entry de tentativa falhada. A contagem na janela é feita
-    por `is_account_locked` quando necessário — não recontamos aqui (a
-    contagem era descartada pelo call-site = query desperdiçada por falha).
+async def record_failed_login(email: str, ip: Optional[str] = None) -> bool:
+    """Insere uma entry de tentativa falhada e devolve `True` se ESTA falha
+    acabou de **cruzar** o threshold de lockout (count == LOCKOUT_THRESHOLD na
+    janela) — para os call-sites alertarem os admins **uma vez** na transição
+    para trancada (F3 §8.2.a). Falhas subsequentes já-trancadas devolvem `False`
+    (count > threshold) e não re-alertam. Aditivo: callers que ignoram o retorno
+    mantêm-se válidos (a contagem extra é index-backed e o login é rate-limited).
     """
     now = datetime.now(timezone.utc)
     await db.login_attempts.insert_one({"email": email, "ip": ip, "attempted_at": now})
+    window_start = now - timedelta(minutes=LOCKOUT_WINDOW_MINUTES)
+    count = await db.login_attempts.count_documents(
+        {"email": email, "attempted_at": {"$gte": window_start}}
+    )
+    return count == LOCKOUT_THRESHOLD
 
 
 async def reset_failed_logins(email: str) -> None:
@@ -129,6 +164,50 @@ def extract_request_meta(request: Optional[Request]) -> dict:
     return {"ip": ip, "user_agent": ua or None}
 
 
+# === AUDIT LOG TAMPER-EVIDENCE (spec-verificacao-seguranca-saas §8.1, F4) ====
+# Cada entrada leva um HMAC-SHA256 do seu conteúdo imutável. A chave é derivada
+# do SECRET_KEY — que vive no env da app, NUNCA na BD. Logo quem tenha escrita
+# direta na BD (mas não o SECRET_KEY) não consegue FORJAR o HMAC: uma alteração
+# que mantenha o hash antigo é apanhada pelo /verify. Essa pessoa pode REMOVER o
+# hash ao alterar a linha — aí a entrada fica "não verificável" (o /verify
+# reflete-o e nega o `ok`), e a resistência completa a remoção/apagamento fica
+# no role do Postgres: revogar UPDATE/DELETE em audit_logs ao role da app
+# (runbook/F5). A app já é append-only por construção.
+_AUDIT_HASH_FIELDS = ("id", "user_id", "action", "target_id", "ip", "user_agent", "details", "created_at")
+
+
+def _audit_hmac_key() -> bytes:
+    # Chave dedicada e namespaced, derivada do SECRET_KEY (não o reutiliza cru).
+    return hashlib.sha256(b"accta-audit-integrity:" + os.environ.get("SECRET_KEY", "").encode()).digest()
+
+
+def audit_entry_hash(doc: dict) -> str:
+    """HMAC-SHA256 determinístico do conteúdo imutável da entrada (exclui o
+    próprio entry_hash). Normaliza pela MESMA via que a BD serializa (jsonb)
+    para casar no round-trip, depois ordena/compacta.
+
+    Nota (round-trip): casa o intervalo de valores realista deste domínio
+    (strings, datas ISO, montantes em CVE, contagens, índices). Floats de
+    magnitude ≥ ~1e16 em `details` (que o Python serializa em notação
+    exponencial mas o jsonb expande para decimal e relê como int) NÃO são
+    round-trip-estáveis e dariam um falso `tampered` — fora do alcance dos
+    dados de auditoria do ACCTA."""
+    payload = {k: doc.get(k) for k in _AUDIT_HASH_FIELDS}
+    normalized = json.loads(json.dumps(payload, default=_json_default))
+    canonical = json.dumps(normalized, sort_keys=True, separators=(",", ":"))
+    return hmac.new(_audit_hmac_key(), canonical.encode(), hashlib.sha256).hexdigest()
+
+
+def verify_audit_entry(doc: dict) -> bool:
+    """True se o entry_hash guardado bate com o recomputado (entrada íntegra).
+    False se foi adulterada. Entradas legadas sem entry_hash → False aqui; o
+    chamador deve classificá-las como 'não verificáveis' antes de chamar."""
+    stored = doc.get("entry_hash")
+    if not stored:
+        return False
+    return hmac.compare_digest(stored, audit_entry_hash(doc))
+
+
 async def create_audit_log(
     user_id: str,
     action: str,
@@ -158,14 +237,13 @@ async def create_audit_log(
         details=details,
     )
     log_dict = log.model_dump()
-    log_dict["created_at"] = log_dict["created_at"].isoformat()
+    log_dict["entry_hash"] = audit_entry_hash(log_dict)
     await db.audit_logs.insert_one(log_dict)
 
 
 async def create_notification(user_id: str, type: str, title: str, message: str, link: Optional[str] = None):
     notification = Notification(user_id=user_id, type=type, title=title, message=message, link=link)
     notif_dict = notification.model_dump()
-    notif_dict["created_at"] = notif_dict["created_at"].isoformat()
     await db.notifications.insert_one(notif_dict)
 
 
@@ -186,7 +264,6 @@ async def notify_users(
     for uid in unique_ids:
         notification = Notification(user_id=uid, type=type, title=title, message=message, link=link)
         notif_dict = notification.model_dump()
-        notif_dict["created_at"] = notif_dict["created_at"].isoformat()
         notifications.append(notif_dict)
     await db.notifications.insert_many(notifications)
 
@@ -201,7 +278,6 @@ async def notify_all_active_users(type: str, title: str, message: str, link: Opt
     for user in users:
         notification = Notification(user_id=user["id"], type=type, title=title, message=message, link=link)
         notif_dict = notification.model_dump()
-        notif_dict["created_at"] = notif_dict["created_at"].isoformat()
         notifications.append(notif_dict)
     if notifications:
         await db.notifications.insert_many(notifications)
@@ -215,6 +291,58 @@ async def notify_admins(
     await notify_users(admin_ids, type, title, message, link, exclude_id)
 
 
+# --------------------------------------------------------------------------- #
+# Alertas de anomalia de segurança (spec-verificacao-seguranca-saas §8.2, F3).
+# Canal in-app/SSE via `notify_admins` (sem email — defesa-em-profundidade de
+# baixo ruído, evita a stop condition de emails reais). Só (a) lockout e (c)
+# escalada de privilégio; (b) IPs distintos e (d) picos 4xx/429 ficam diferidos.
+# --------------------------------------------------------------------------- #
+
+_ELEVATED_ROLES = frozenset({"admin", "financeiro", "moderador"})
+
+
+async def alert_admins_account_locked(email: str) -> None:
+    """Alerta os admins quando uma conta é trancada por excesso de tentativas
+    de login (§8.2.a). Chamado só na transição (ver `record_failed_login`)."""
+    await notify_admins(
+        "system",
+        "Conta bloqueada por tentativas de login",
+        f"A conta {email} atingiu {LOCKOUT_THRESHOLD} tentativas falhadas em "
+        f"{LOCKOUT_WINDOW_MINUTES} min e foi bloqueada. Verifique os registos de auditoria.",
+        "/admin",
+    )
+
+
+async def alert_admins_privilege_escalation(
+    actor_id: str,
+    target_name: str,
+    old_role: Optional[str],
+    new_role: Optional[str],
+    old_privileges: Optional[List[str]] = None,
+    new_privileges: Optional[List[str]] = None,
+) -> None:
+    """Alerta os admins (exceto o ator) quando uma conta GANHA acesso elevado —
+    `role` para {admin,financeiro,moderador} ou novos `privileges` (§8.2.c).
+    Defesa contra escalada (admin comprometido a promover cúmplice; abuso de
+    poder). De-escalada (demote/expulsão) não alerta."""
+    gained = sorted(set(new_privileges or []) - set(old_privileges or []))
+    role_up = new_role != old_role and new_role in _ELEVATED_ROLES
+    if not role_up and not gained:
+        return
+    parts = []
+    if role_up:
+        parts.append(f"role {old_role or 'socio'} → {new_role}")
+    if gained:
+        parts.append("privilégios +" + ", ".join(gained))
+    await notify_admins(
+        "system",
+        "Escalada de privilégio",
+        f"{target_name} recebeu acesso elevado ({'; '.join(parts)}).",
+        "/admin",
+        exclude_id=actor_id,
+    )
+
+
 def get_project_stakeholder_ids(project: dict) -> List[str]:
     ids = []
     if project.get("created_by"):
@@ -222,3 +350,56 @@ def get_project_stakeholder_ids(project: dict) -> List[str]:
     if project.get("responsible_id"):
         ids.append(project["responsible_id"])
     return ids
+
+
+# --------------------------------------------------------------------------- #
+# Participação do sócio (spec-voz-participacao-socio §2.3) — contagem de
+# elegíveis e resolução de membros de um órgão. Import local de permissions
+# para evitar qualquer ciclo no import-order (helpers é carregado cedo).
+# --------------------------------------------------------------------------- #
+
+
+async def voting_member_ids() -> List[str]:
+    """IDs dos sócios com direito a voto (fundador/ordinário, activo, sem direitos
+    suspensos). Avalia em Python via `is_voting_member` para respeitar a regra
+    time-based de suspensão. Base para notificar votantes (ex.: abertura de
+    votação de honorário) e para a contagem de elegíveis."""
+    from permissions import is_voting_member
+
+    users = await db.users.find(
+        {"status": "ativo"},
+        {
+            "_id": 0,
+            "id": 1,
+            "account_type": 1,
+            "status": 1,
+            "member_category": 1,
+            "rights_suspended_until": 1,
+            "cargo": 1,
+        },
+    ).to_list(None)
+    return [u["id"] for u in users if is_voting_member(u)]
+
+
+async def count_voting_members() -> int:
+    """Nº de sócios com direito a voto. Base de limiares (petição 1/4) e maiorias."""
+    return len(await voting_member_ids())
+
+
+async def members_of_orgao(orgao: str) -> List[str]:
+    """IDs de utilizadores activos com cargo no órgão (`direcao`/`mesa_ag`/
+    `conselho_fiscal`). Fallback: se nenhum titular estiver definido, devolve os
+    admins activos — para não perder notificações antes da governança estar
+    povoada. Nunca falha silenciosamente."""
+    from permissions import is_conselho_fiscal, is_direcao, is_mesa_ag
+
+    matcher = {"direcao": is_direcao, "mesa_ag": is_mesa_ag, "conselho_fiscal": is_conselho_fiscal}.get(orgao)
+    if matcher is not None:
+        users = await db.users.find(
+            {"status": "ativo", "account_type": "member"}, {"_id": 0, "id": 1, "cargo": 1}
+        ).to_list(None)
+        matched = [u["id"] for u in users if matcher(u)]
+        if matched:
+            return matched
+    admins = await db.users.find({"role": "admin", "status": "ativo"}, {"_id": 0, "id": 1}).to_list(100)
+    return [a["id"] for a in admins]

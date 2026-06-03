@@ -18,6 +18,7 @@ export const PRIVILEGE_LABELS = {
   manage_benefits: 'Gerir Benefícios',
   view_audit_logs: 'Ver Audit Logs',
   view_finances_readonly: 'Ver Finanças (leitura)',
+  manage_ranking: 'Gerir Ranking',
 };
 
 export const roleLabel = (role) => ROLE_LABELS[role] || role || '—';

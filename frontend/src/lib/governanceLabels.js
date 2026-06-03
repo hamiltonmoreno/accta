@@ -62,8 +62,44 @@ export const ELEICAO_STATUS_LABELS = {
 
 export const MAIORIA_LABELS = {
   absoluta: 'Maioria absoluta dos presentes',
+  qualificada_2_3: 'Qualificada (2/3 dos presentes)',
   qualificada_3_4_presentes: 'Qualificada (3/4 dos presentes)',
   qualificada_3_4_universo: 'Qualificada (3/4 do universo)',
+};
+
+// Camada ao vivo (spec-sessao-assembleia §2.1)
+export const SESSION_PHASE_LABELS = {
+  fechada: 'Fechada',
+  checkin: 'Check-in',
+  antes_ot: 'Antes da Ordem de Trabalhos',
+  ordem_trabalhos: 'Ordem de Trabalhos',
+  encerramento: 'Encerramento',
+};
+
+export const VOTING_MODE_LABELS = {
+  braco_no_ar: 'Braço no ar (Mesa regista contagem)',
+  nominal: 'Nominal (registado por nome)',
+  secreto: 'Secreto (boletim anónimo)',
+};
+
+export const PALAVRA_TIPO_LABELS = {
+  intervencao: 'Intervenção',
+  protesto: 'Protesto',
+  esclarecimento: 'Esclarecimento',
+  defesa_honra: 'Defesa da honra',
+};
+
+export const MOCAO_TIPO_LABELS = {
+  mocao: 'Moção',
+  requerimento: 'Requerimento (voto imediato)',
+  recomendacao: 'Recomendação',
+};
+
+export const EXPEDIENTE_TIPO_LABELS = {
+  correspondencia: 'Correspondência',
+  voto_louvor: 'Voto de louvor',
+  voto_congratulacao: 'Voto de congratulação',
+  voto_pesar: 'Voto de pesar',
 };
 
 export const SANCAO_TIPO_LABELS = {

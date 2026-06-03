@@ -123,7 +123,7 @@ export const BeneficiosPage = () => {
               data-testid={`benefit-${benefit.id}`}>
               {benefit.logo_url && (
                 <div className="h-48 bg-gray-100 flex items-center justify-center p-6">
-                  <img src={benefit.logo_url} alt={benefit.name} className="max-h-full max-w-full object-contain" />
+                  <img src={benefit.logo_url} alt={benefit.name} loading="lazy" className="max-h-full max-w-full object-contain" />
                 </div>
               )}
 
@@ -196,7 +196,7 @@ export const BeneficiosPage = () => {
                   <button
                     type="button"
                     onClick={() => setConfirmId(benefit.id)}
-                    className="mt-4 w-full bg-carmesim text-white text-sm font-semibold py-2.5 rounded-lg hover:bg-carmesim/90 transition-colors disabled:opacity-50"
+                    className="mt-4 w-full bg-floresta text-white text-sm font-semibold py-2.5 rounded-lg hover:bg-floresta-dark transition-colors disabled:opacity-50"
                     data-testid={`validate-benefit-${benefit.id}`}
                   >
                     Registar Utilização

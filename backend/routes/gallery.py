@@ -91,7 +91,6 @@ async def create_gallery_album(album_data: GalleryAlbumCreate, current_user: Use
         raise HTTPException(status_code=403, detail="Sem permissão para moderar conteúdo")
     album = GalleryAlbum(**album_data.model_dump())
     album_dict = album.model_dump()
-    album_dict["created_at"] = album_dict["created_at"].isoformat()
     await db.gallery_albums.insert_one(album_dict)
     await create_audit_log(current_user.id, f"Criou álbum de galeria {album.id}", album.id)
     return album_dict
@@ -206,7 +205,6 @@ async def upload_gallery_photo(
         uploaded_by_name=current_user.name,
     )
     photo_dict = photo.model_dump()
-    photo_dict["created_at"] = photo_dict["created_at"].isoformat()
     await db.gallery_photos.insert_one(photo_dict)
 
     if is_admin:
@@ -283,12 +281,13 @@ async def delete_gallery_photo(photo_id: str, current_user: User = Depends(get_c
     if not photo:
         raise HTTPException(status_code=404, detail="Foto nao encontrada")
 
-    is_admin = current_user.role == "admin"
+    is_staff = has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content")
     is_owner = photo.get("uploaded_by") == current_user.id
-    if not is_admin and not is_owner:
+    if not is_staff and not is_owner:
         raise HTTPException(status_code=403, detail="Sem permissao")
 
     delete_upload_file(photo.get("url", ""))
 
     await db.gallery_photos.delete_one({"id": photo_id})
+    await create_audit_log(current_user.id, "gallery_photo_deleted", photo_id)
     return {"message": "Foto removida"}

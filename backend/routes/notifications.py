@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
-from datetime import datetime
 from typing import List, Optional
 from models import User, Notification, NotificationCreate, AuditLog
 from database import db
 from auth import _extract_token, get_current_user, get_user_from_token, has_role_or_privilege
-from helpers import create_audit_log, notify_all_active_users
+from helpers import create_audit_log, notify_all_active_users, verify_audit_entry
 import asyncio
 import json
 
@@ -31,10 +30,6 @@ async def get_notifications(
         await db.notifications.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     )
 
-    for notif in notifications:
-        if isinstance(notif.get("created_at"), str):
-            notif["created_at"] = datetime.fromisoformat(notif["created_at"])
-
     return {"items": notifications, "total": total}
 
 
@@ -45,15 +40,14 @@ async def get_unread_count(current_user: User = Depends(get_current_user)):
 
 
 @router.get("/notifications/stream")
-async def notification_stream(request: Request, token: Optional[str] = Query(None)):
+async def notification_stream(request: Request):
     """Server-Sent Events stream para count de nao-lidas em tempo-real.
 
-    Auth: cookie httpOnly (Sprint 10) ou Authorization header (clientes
-    browser usam EventSource com {withCredentials: true}); fallback para
-    `?token=` query param para clientes legados — sera removido em v2.
+    Auth: cookie httpOnly (Sprint 10) ou Authorization header — o browser usa
+    EventSource com {withCredentials: true}. O fallback `?token=` foi removido
+    (o token aparecia em logs de Nginx/proxy); clientes usam cookie/header.
     """
-    extracted = _extract_token(request)
-    final_token = extracted or token
+    final_token = _extract_token(request)
     if not final_token:
         raise HTTPException(status_code=401, detail="Nao autenticado")
     user = await get_user_from_token(final_token)
@@ -130,7 +124,6 @@ async def create_notification_route(notif_data: NotificationCreate, current_user
 
     notification = Notification(**notif_data.model_dump())
     notif_dict = notification.model_dump()
-    notif_dict["created_at"] = notif_dict["created_at"].isoformat()
 
     await db.notifications.insert_one(notif_dict)
     await create_audit_log(
@@ -146,6 +139,7 @@ async def get_notification_types(current_user: User = Depends(get_current_user))
     return {
         "types": [
             {"value": "geral", "label": "Geral"},
+            {"value": "comunicado", "label": "Comunicado"},
             {"value": "financeiro", "label": "Financeiro"},
             {"value": "evento", "label": "Evento"},
             {"value": "projeto", "label": "Projeto"},
@@ -159,12 +153,66 @@ async def get_notification_types(current_user: User = Depends(get_current_user))
 
 # AUDIT LOGS
 @router.get("/audit-logs", response_model=List[AuditLog])
-async def get_audit_logs(current_user: User = Depends(get_current_user)):
+async def get_audit_logs(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=500),
+    current_user: User = Depends(get_current_user),
+):
     if not has_role_or_privilege(current_user, ("admin",), "view_audit_logs"):
         raise HTTPException(status_code=403, detail="Sem permissao")
 
-    logs = await db.audit_logs.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
-    for log in logs:
-        if isinstance(log.get("created_at"), str):
-            log["created_at"] = datetime.fromisoformat(log["created_at"])
+    logs = await db.audit_logs.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     return logs
+
+
+@router.get("/audit-logs/verify")
+async def verify_audit_logs(current_user: User = Depends(get_current_user)):
+    """Reverifica o tamper-evidence (HMAC) das entradas de audit log (F4 §8.1).
+
+    A chave HMAC deriva do SECRET_KEY (fora da BD): quem tem escrita na BD mas
+    não o SECRET_KEY **não consegue forjar** um hash válido, logo uma entrada
+    alterada que mantenha o hash antigo é apanhada (`tampered`). Essa pessoa
+    pode, porém, **remover** o `entry_hash` ao alterar a linha → a entrada passa
+    a *não verificável* e cai em `legacy_unhashed`. Por isso `ok` exige **zero
+    adulteradas E zero não-verificáveis**: numa instalação pós-F4
+    `legacy_unhashed` devia ser 0; > 0 é sinal a reconciliar contra o baseline
+    de entradas pré-F4. A resistência *completa* a remoção/apagamento fica no
+    role do Postgres (revogar UPDATE/DELETE ao role da app — F5/operador).
+
+    Itera em lotes: memória limitada + cede o event loop entre lotes (não
+    bloquear os workers numa tabela de retenção indefinida).
+    """
+    if not has_role_or_privilege(current_user, ("admin",), "view_audit_logs"):
+        raise HTTPException(status_code=403, detail="Sem permissao")
+
+    BATCH = 1000
+    total = legacy = 0
+    tampered: List[str] = []
+    offset = 0
+    while True:
+        rows = await (
+            db.audit_logs.find({}, {"_id": 0})
+            .sort("created_at", 1)
+            .skip(offset)
+            .limit(BATCH)
+            .to_list(BATCH)
+        )
+        if not rows:
+            break
+        for log in rows:
+            total += 1
+            if not log.get("entry_hash"):
+                legacy += 1
+            elif not verify_audit_entry(log):
+                tampered.append(log.get("id"))
+        offset += len(rows)
+        await asyncio.sleep(0)  # cede o event loop entre lotes
+
+    return {
+        "ok": len(tampered) == 0 and legacy == 0,
+        "total": total,
+        "verified": total - legacy,
+        "legacy_unhashed": legacy,
+        "tampered_count": len(tampered),
+        "tampered_ids": tampered[:50],
+    }

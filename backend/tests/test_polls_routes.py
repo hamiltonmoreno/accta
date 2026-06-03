@@ -1,4 +1,5 @@
 """Unit tests for routes/polls.py — RBAC, vote dedup, results aggregation."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone, timedelta
@@ -24,6 +25,7 @@ def _cursor(items):
 
 def _make_inactive(user_dict):
     from models import User
+
     return User(**{**user_dict, "status": "inativo"})
 
 
@@ -41,6 +43,27 @@ def _open_poll(poll_id: str = "p1") -> dict:
 
 
 # --------------------------------------------------------------------------- #
+# Datas vazias/ilegíveis (regressão Lote 6)
+# --------------------------------------------------------------------------- #
+
+
+class TestEmptyDateSafety:
+    async def test_parse_dt_empty_or_garbage_is_none_not_crash(self):
+        # "" outrora -> datetime.fromisoformat("") -> ValueError -> 500 no voto.
+        assert polls_route._parse_dt("") is None
+        assert polls_route._parse_dt(None) is None
+        assert polls_route._parse_dt("not-a-date") is None
+
+    async def test_poll_create_rejects_empty_start_date(self):
+        from models import PollCreate
+        from pydantic import ValidationError
+
+        now = datetime.now(timezone.utc).isoformat()
+        with pytest.raises(ValidationError):
+            PollCreate(title="t", description="d", options=[{"id": 1, "text": "A"}], start_date="", end_date=now)
+
+
+# --------------------------------------------------------------------------- #
 # GET /polls
 # --------------------------------------------------------------------------- #
 
@@ -50,6 +73,12 @@ class TestGetPolls:
         mock_db.polls.find = MagicMock(return_value=_cursor([]))
         result = await polls_route.get_polls(current_user=socio_user)
         assert result == []
+        mock_db.polls.find.assert_called_once_with({"status": {"$ne": "rascunho"}}, {"_id": 0})
+
+    async def test_admin_can_list_drafts(self, mock_db, admin_user):
+        mock_db.polls.find = MagicMock(return_value=_cursor([]))
+        await polls_route.get_polls(current_user=admin_user)
+        mock_db.polls.find.assert_called_once_with({}, {"_id": 0})
 
     async def test_limit_capped_at_100(self, mock_db, socio_user):
         captured = {}
@@ -180,9 +209,7 @@ class TestVote:
     async def test_poll_not_open_400(self, mock_db, socio_user):
         from models import VoteCreate
 
-        mock_db.polls.find_one = AsyncMock(
-            return_value={**_open_poll(), "status": "rascunho"}
-        )
+        mock_db.polls.find_one = AsyncMock(return_value={**_open_poll(), "status": "rascunho"})
         with pytest.raises(HTTPException) as exc:
             await polls_route.vote(
                 vote_data=VoteCreate(poll_id="p1", vote_option=1),
@@ -247,7 +274,7 @@ class TestGetResults:
         assert exc.value.status_code == 404
 
     async def test_aggregates_votes_per_option(self, mock_db, socio_user):
-        mock_db.polls.find_one = AsyncMock(return_value={"id": "p1"})
+        mock_db.polls.find_one = AsyncMock(return_value={"id": "p1", "status": "encerrada"})
         votes = [
             {"vote_option": 1},
             {"vote_option": 1},
@@ -261,11 +288,23 @@ class TestGetResults:
         assert result["results"][2] == 1
 
     async def test_empty_returns_empty_results(self, mock_db, socio_user):
-        mock_db.polls.find_one = AsyncMock(return_value={"id": "p1"})
+        mock_db.polls.find_one = AsyncMock(return_value={"id": "p1", "status": "encerrada"})
         mock_db.user_votes.find = MagicMock(return_value=_cursor([]))
         result = await polls_route.get_poll_results(poll_id="p1", current_user=socio_user)
         assert result["total_votes"] == 0
         assert result["results"] == {}
+
+    async def test_socio_403_while_poll_open(self, mock_db, socio_user):
+        mock_db.polls.find_one = AsyncMock(return_value={"id": "p1", "status": "aberta"})
+        with pytest.raises(HTTPException) as exc:
+            await polls_route.get_poll_results(poll_id="p1", current_user=socio_user)
+        assert exc.value.status_code == 403
+
+    async def test_admin_sees_results_while_poll_open(self, mock_db, admin_user):
+        mock_db.polls.find_one = AsyncMock(return_value={"id": "p1", "status": "aberta"})
+        mock_db.user_votes.find = MagicMock(return_value=_cursor([{"vote_option": 1}]))
+        result = await polls_route.get_poll_results(poll_id="p1", current_user=admin_user)
+        assert result["total_votes"] == 1
 
 
 # --------------------------------------------------------------------------- #
@@ -300,9 +339,7 @@ class TestUpdatePollStatus:
     async def test_admin_opens_draft_and_broadcasts(self, mock_db, admin_user):
         from models import PollStatusUpdate
 
-        mock_db.polls.find_one = AsyncMock(
-            return_value={**_open_poll(), "status": "rascunho"}
-        )
+        mock_db.polls.find_one = AsyncMock(return_value={**_open_poll(), "status": "rascunho"})
         mock_db.users.find = MagicMock(return_value=_cursor([]))
         result = await polls_route.update_poll_status(
             poll_id="p1",
@@ -317,9 +354,7 @@ class TestUpdatePollStatus:
         """encerrada -> aberta não é permitido."""
         from models import PollStatusUpdate
 
-        mock_db.polls.find_one = AsyncMock(
-            return_value={**_open_poll(), "status": "encerrada"}
-        )
+        mock_db.polls.find_one = AsyncMock(return_value={**_open_poll(), "status": "encerrada"})
         with pytest.raises(HTTPException) as exc:
             await polls_route.update_poll_status(
                 poll_id="p1",

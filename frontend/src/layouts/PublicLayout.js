@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ArrowRight } from 'lucide-react';
-import { ACCTALogoHorizontal } from '../components/ACCTALogo';
+import { BrandLogo } from '../components/BrandLogo';
 import { ASSOCIACAO_NOME } from '../content/cta';
 
 export const PublicLayout = ({ children }) => {
@@ -15,18 +15,25 @@ export const PublicLayout = ({ children }) => {
     { label: 'A Profissão', path: '/profissao' },
     { label: 'Benefícios', path: '/beneficios-publico' },
     { label: 'Transparência', path: '/transparencia' },
+    { label: 'Publicações', path: '/publicacoes-publico' },
     { label: 'Contactos', path: '/contactos' },
     { label: 'Galeria', path: '/galeria' },
   ];
 
   return (
     <div className="min-h-screen flex flex-col">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[60] focus:px-4 focus:py-2 focus:bg-white focus:text-grafite focus:rounded-lg focus:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40"
+      >
+        Saltar para o conteúdo
+      </a>
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex-shrink-0">
-              <ACCTALogoHorizontal />
+              <BrandLogo />
             </Link>
 
             {/* Desktop Nav */}
@@ -50,7 +57,7 @@ export const PublicLayout = ({ children }) => {
               })}
               <Link
                 to="/login"
-                className="ml-3 bg-carmesim text-white hover:bg-carmesim-dark h-9 px-5 rounded-lg font-semibold text-xs transition-colors flex items-center gap-2"
+                className="ml-3 bg-floresta text-white hover:bg-floresta-dark h-9 px-5 rounded-lg font-semibold text-xs transition-colors flex items-center gap-2"
                 data-testid="nav-login-button"
               >
                 Entrar
@@ -107,7 +114,7 @@ export const PublicLayout = ({ children }) => {
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 py-3 px-4 bg-carmesim text-white rounded-lg font-semibold text-sm"
+                  className="flex items-center justify-center gap-2 py-3 px-4 bg-floresta text-white rounded-lg font-semibold text-sm"
                 >
                   Entrar
                   <ArrowRight className="w-4 h-4" />
@@ -119,7 +126,7 @@ export const PublicLayout = ({ children }) => {
       </header>
 
       {/* Page Content */}
-      <main className="flex-grow pt-16 lg:pt-[60px]">
+      <main id="main-content" tabIndex={-1} className="flex-grow pt-16 lg:pt-navbar outline-none">
         {children}
       </main>
 
@@ -128,7 +135,7 @@ export const PublicLayout = ({ children }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-8">
             <div className="col-span-2 sm:col-span-2 md:col-span-2">
-              <ACCTALogoHorizontal dark className="mb-4" />
+              <BrandLogo dark className="mb-4" />
               <p className="text-sm text-white/70 mb-3 max-w-sm">
                 {ASSOCIACAO_NOME}
               </p>

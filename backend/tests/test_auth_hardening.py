@@ -58,10 +58,10 @@ async def test_is_token_revoked_returns_true_for_known_jti(mock_db):
 
 
 @pytest.mark.asyncio
-async def test_is_token_revoked_returns_false_for_legacy_token_without_jti(mock_db):
-    """Tokens emitidos antes de Sprint 4 nao tem jti — devem continuar validos
-    (backward-compat) ate ao exp natural."""
-    assert await auth.is_token_revoked(None) is False
+async def test_is_token_revoked_treats_missing_jti_as_revoked(mock_db):
+    """Sem jti não há como verificar a blocklist: tratado como revogado.
+    Todos os tokens emitidos agora incluem jti; os legados pré-jti expiram em <=24h."""
+    assert await auth.is_token_revoked(None) is True
 
 
 @pytest.mark.asyncio
@@ -142,23 +142,25 @@ async def test_is_account_locked_returns_unlock_at_above_threshold(mock_db):
 
 
 @pytest.mark.asyncio
-async def test_record_failed_login_inserts_attempt_and_returns_none(mock_db):
-    """record_failed_login agora só insere a tentativa. A contagem na janela
-    é responsabilidade de is_account_locked — não recontamos no call-site
-    (a query de count era descartada = desperdício por cada falha)."""
+async def test_record_failed_login_inserts_attempt_and_signals_threshold(mock_db):
+    """record_failed_login insere a tentativa e devolve True só quando ESTA falha
+    cruza o threshold de lockout (count == LOCKOUT_THRESHOLD) — para alertar os
+    admins uma vez na transição (F3 §8.2.a). Abaixo do threshold → False."""
     mock_db.login_attempts = MagicMock()
     mock_db.login_attempts.insert_one = AsyncMock()
-    mock_db.login_attempts.count_documents = AsyncMock(return_value=3)
+    mock_db.login_attempts.count_documents = AsyncMock(return_value=3)  # < 5
 
     result = await helpers.record_failed_login("user@example.com", ip="1.2.3.4")
 
-    assert result is None
-    # Não desperdiça uma query de count que ninguém usava.
-    mock_db.login_attempts.count_documents.assert_not_called()
+    assert result is False  # ainda não trancou
     mock_db.login_attempts.insert_one.assert_awaited_once()
     doc = mock_db.login_attempts.insert_one.call_args[0][0]
     assert doc["email"] == "user@example.com"
     assert doc["ip"] == "1.2.3.4"
+
+    # A falha que cruza o threshold sinaliza a transição.
+    mock_db.login_attempts.count_documents = AsyncMock(return_value=helpers.LOCKOUT_THRESHOLD)
+    assert await helpers.record_failed_login("user@example.com") is True
     assert isinstance(doc["attempted_at"], datetime)
 
 

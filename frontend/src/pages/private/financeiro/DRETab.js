@@ -3,6 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { financesAPI } from '../../../utils/api';
 import { toast } from 'sonner';
 import { Download, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { Skeleton } from '../../../components/ui/skeleton';
 import { CATEGORY_LABELS, MONTH_NAMES } from './constants';
 
 export const DRETab = () => {
@@ -33,7 +34,15 @@ export const DRETab = () => {
   const handleExportPDF = () => exportMutation.mutate();
 
   if (loading) {
-    return <div className="p-10 text-center"><div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" /></div>;
+    return (
+      <div className="space-y-5">
+        <Skeleton className="h-10 w-40 rounded-lg" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+        </div>
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
+    );
   }
   if (!dre) return null;
 
@@ -45,7 +54,7 @@ export const DRETab = () => {
       <div className="flex items-center gap-3">
         <label className="text-sm font-semibold text-secondary-auto">Ano:</label>
         <select value={year} onChange={(e) => setYear(parseInt(e.target.value))}
-          className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+          className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
           data-testid="dre-year-select">
           {[2024, 2025, 2026, 2027].map((y) => <option key={y} value={y}>{y}</option>)}
         </select>
@@ -94,7 +103,22 @@ export const DRETab = () => {
             </div>
           ))}
         </div>
-        <div className="flex items-center gap-4 mt-4 pt-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
+        <table className="sr-only">
+          <caption>Evolução mensal de receitas e despesas</caption>
+          <thead>
+            <tr><th scope="col">Mês</th><th scope="col">Receitas (CVE)</th><th scope="col">Despesas (CVE)</th></tr>
+          </thead>
+          <tbody>
+            {Object.entries(dre.monthly).map(([month, data]) => (
+              <tr key={month}>
+                <th scope="row">{MONTH_NAMES[parseInt(month) - 1]}</th>
+                <td>{data.receitas}</td>
+                <td>{data.despesas}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="flex items-center gap-4 mt-4 pt-3 border-t border-[var(--surface-border)]">
           <span className="flex items-center gap-1.5 text-xs text-muted-auto">
             <span className="w-3 h-3 bg-[#16A34A] rounded-sm" /> Receitas
           </span>

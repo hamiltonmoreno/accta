@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timezone
 from typing import List, Optional
 from models import User, Event, EventCreate, EventUpdate
-from database import db
+from database import db, register_event_attendee
 from auth import get_current_user, has_role_or_privilege
 from helpers import create_audit_log, create_notification, notify_all_active_users
 
@@ -32,6 +32,20 @@ def ensure_can_view_event(user: User, event: dict):
         raise HTTPException(status_code=403, detail="Sem permissao para aceder a este evento")
 
 
+def _event_datetime(value) -> Optional[datetime]:
+    if value is None:
+        return None
+    dt = value if isinstance(value, datetime) else datetime.fromisoformat(value)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+def event_registration_has_ended(event: dict) -> bool:
+    event_end = _event_datetime(event.get("end_date") or event.get("date"))
+    return event_end is not None and event_end <= datetime.now(timezone.utc)
+
+
 def build_event_visibility_filter(user: User, requested_visibility: Optional[str] = None):
     allowed = get_allowed_event_visibilities(user)
     if requested_visibility:
@@ -54,13 +68,6 @@ async def get_events(visibility: Optional[str] = None, current_user: User = Depe
         query["visibility"] = visibility_filter
 
     events = await db.events.find(query, {"_id": 0}).sort("date", 1).to_list(100)
-    for e in events:
-        if isinstance(e.get("date"), str):
-            e["date"] = datetime.fromisoformat(e["date"])
-        if isinstance(e.get("end_date"), str):
-            e["end_date"] = datetime.fromisoformat(e["end_date"])
-        if isinstance(e.get("created_at"), str):
-            e["created_at"] = datetime.fromisoformat(e["created_at"])
     return events
 
 
@@ -68,12 +75,6 @@ async def get_events(visibility: Optional[str] = None, current_user: User = Depe
 async def get_public_events():
     events = await db.events.find({"visibility": "publico"}, {"_id": 0}).sort("date", 1).to_list(100)
     for e in events:
-        if isinstance(e.get("date"), str):
-            e["date"] = datetime.fromisoformat(e["date"])
-        if isinstance(e.get("end_date"), str):
-            e["end_date"] = datetime.fromisoformat(e["end_date"])
-        if isinstance(e.get("created_at"), str):
-            e["created_at"] = datetime.fromisoformat(e["created_at"])
         e.pop("attendees", None)
     return events
 
@@ -89,12 +90,6 @@ async def get_featured_event():
     )
     if not event:
         return None
-    if isinstance(event.get("date"), str):
-        event["date"] = datetime.fromisoformat(event["date"])
-    if isinstance(event.get("end_date"), str):
-        event["end_date"] = datetime.fromisoformat(event["end_date"])
-    if isinstance(event.get("created_at"), str):
-        event["created_at"] = datetime.fromisoformat(event["created_at"])
     attendee_count = await db.events.find_one({"id": event["id"]}, {"_id": 0, "attendees": 1})
     event["attendee_count"] = len(attendee_count.get("attendees", [])) if attendee_count else 0
     return event
@@ -109,13 +104,6 @@ async def get_upcoming_events(current_user: User = Depends(get_current_user)):
         query["visibility"] = visibility_filter
 
     events = await db.events.find(query, {"_id": 0}).sort("date", 1).limit(5).to_list(None)
-    for e in events:
-        if isinstance(e.get("date"), str):
-            e["date"] = datetime.fromisoformat(e["date"])
-        if isinstance(e.get("end_date"), str):
-            e["end_date"] = datetime.fromisoformat(e["end_date"])
-        if isinstance(e.get("created_at"), str):
-            e["created_at"] = datetime.fromisoformat(e["created_at"])
     return events
 
 
@@ -127,12 +115,6 @@ async def get_event(event_id: str, current_user: User = Depends(get_current_user
 
     ensure_can_view_event(current_user, event)
 
-    if isinstance(event.get("date"), str):
-        event["date"] = datetime.fromisoformat(event["date"])
-    if isinstance(event.get("end_date"), str):
-        event["end_date"] = datetime.fromisoformat(event["end_date"])
-    if isinstance(event.get("created_at"), str):
-        event["created_at"] = datetime.fromisoformat(event["created_at"])
     return event
 
 
@@ -144,10 +126,6 @@ async def create_event(event_data: EventCreate, current_user: User = Depends(get
 
     event = Event(created_by=current_user.id, **event_data.model_dump())
     event_dict = event.model_dump()
-    event_dict["date"] = event_dict["date"].isoformat()
-    if event_dict.get("end_date"):
-        event_dict["end_date"] = event_dict["end_date"].isoformat()
-    event_dict["created_at"] = event_dict["created_at"].isoformat()
 
     await db.events.insert_one(event_dict)
     await create_audit_log(current_user.id, f"Criou evento {event.title}", event.id)
@@ -169,21 +147,11 @@ async def update_event(event_id: str, event_data: EventUpdate, current_user: Use
     update_data = {k: v for k, v in event_data.model_dump().items() if v is not None}
     if "visibility" in update_data:
         ensure_valid_event_visibility(update_data["visibility"])
-    if "date" in update_data:
-        update_data["date"] = update_data["date"].isoformat()
-    if "end_date" in update_data:
-        update_data["end_date"] = update_data["end_date"].isoformat()
 
     await db.events.update_one({"id": event_id}, {"$set": update_data})
     await create_audit_log(current_user.id, f"Atualizou evento {event_id}", event_id)
 
     updated_event = await db.events.find_one({"id": event_id}, {"_id": 0})
-    if isinstance(updated_event.get("date"), str):
-        updated_event["date"] = datetime.fromisoformat(updated_event["date"])
-    if isinstance(updated_event.get("end_date"), str):
-        updated_event["end_date"] = datetime.fromisoformat(updated_event["end_date"])
-    if isinstance(updated_event.get("created_at"), str):
-        updated_event["created_at"] = datetime.fromisoformat(updated_event["created_at"])
     return updated_event
 
 
@@ -210,13 +178,23 @@ async def register_for_event(event_id: str, current_user: User = Depends(get_cur
         raise HTTPException(status_code=404, detail="Evento não encontrado")
     ensure_can_view_event(current_user, event)
 
+    if event_registration_has_ended(event):
+        raise HTTPException(status_code=400, detail="Evento ja terminou")
+
     if current_user.id in event.get("attendees", []):
         raise HTTPException(status_code=400, detail="Já está inscrito neste evento")
 
     if event.get("max_attendees") and len(event.get("attendees", [])) >= event["max_attendees"]:
         raise HTTPException(status_code=400, detail="Evento já está lotado")
 
-    await db.events.update_one({"id": event_id}, {"$push": {"attendees": current_user.id}})
+    registration = await register_event_attendee(event_id, current_user.id)
+    if registration == "missing":
+        raise HTTPException(status_code=404, detail="Evento não encontrado")
+    if registration == "already_registered":
+        raise HTTPException(status_code=400, detail="Já está inscrito neste evento")
+    if registration == "full":
+        raise HTTPException(status_code=400, detail="Evento já está lotado")
+
     await create_notification(
         current_user.id,
         "event_registered",

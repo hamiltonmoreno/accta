@@ -64,4 +64,11 @@ describe('queryKeys conventions', () => {
       5,
     ]);
   });
+
+  test('posts keys: all is prefix, list normalizes params, detail keys by id/slug', () => {
+    expect(queryKeys.posts.all()).toEqual(['posts']);
+    expect(queryKeys.posts.list()).toEqual(['posts', {}]);
+    expect(queryKeys.posts.list({ status: 'rascunho' })).toEqual(['posts', { status: 'rascunho' }]);
+    expect(queryKeys.posts.detail('minha-noticia')).toEqual(['posts', 'detail', 'minha-noticia']);
+  });
 });

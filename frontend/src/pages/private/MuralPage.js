@@ -11,6 +11,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
 import { EmptyState } from '../../components/EmptyState';
+import { UserAvatar } from '../../components/UserAvatar';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -76,7 +77,7 @@ const CommentSection = ({ postId, commentCount, user }) => {
   };
 
   return (
-    <div className="mt-4 pt-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
+    <div className="mt-4 pt-3 border-t border-[var(--surface-border)]">
       <button
         onClick={() => setExpanded((p) => !p)}
         className="flex items-center gap-2 text-sm transition-colors text-muted-auto"
@@ -99,11 +100,13 @@ const CommentSection = ({ postId, commentCount, user }) => {
               ) : (
                 comments.map((comment) => (
                   <div key={comment.id} className="flex gap-3 group" data-testid={`comment-${comment.id}`}>
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 text-grafite-auto"
-                      style={{ backgroundColor: 'var(--surface-border)' }}>
-                      {comment.user_name?.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 rounded-lg px-3 py-2" style={{ backgroundColor: 'var(--surface-card-hover)' }}>
+                    <UserAvatar
+                      size="xs"
+                      name={comment.user_name}
+                      photoUrl={comment.user_photo_url}
+                      fallbackClassName="bg-[var(--surface-border)] text-grafite-auto"
+                    />
+                    <div className="flex-1 rounded-lg px-3 py-2 bg-[var(--surface-card-hover)]">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-semibold text-grafite-auto">{comment.user_name}</span>
                         <div className="flex items-center gap-2">
@@ -133,7 +136,7 @@ const CommentSection = ({ postId, commentCount, user }) => {
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="Escreva um comentario..."
-                  className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-carmesim/50 focus:border-carmesim/50 transition-all"
+                  className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/50 transition-all"
                   data-testid={`comment-input-${postId}`}
                 />
                 <button
@@ -209,9 +212,12 @@ const PendingPostsPanel = () => {
                   <div key={post.id} className="border border-[#FDE68A] rounded-lg p-4 bg-[#FFFBEB]/50" data-testid={`pending-post-${post.id}`}>
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-[#FEF3C7] rounded-full flex items-center justify-center text-sm font-bold text-[#B45309]">
-                          {post.user_name?.charAt(0).toUpperCase()}
-                        </div>
+                        <UserAvatar
+                          size="xs"
+                          name={post.user_name}
+                          photoUrl={post.user_photo_url}
+                          fallbackClassName="bg-[#FEF3C7] text-[#B45309] text-sm"
+                        />
                         <div>
                           <span className="font-semibold text-sm text-grafite-auto">{post.user_name}</span>
                           <span className="text-xs ml-2 text-muted-auto">
@@ -231,7 +237,7 @@ const PendingPostsPanel = () => {
                         <XCircle className="w-4 h-4" /> Rejeitar
                       </button>
                       <button onClick={() => approveMutation.mutate(post.id)}
-                        className="flex items-center gap-1 px-3 py-1.5 text-sm text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm text-white bg-[#16A34A] rounded-lg hover:bg-[#15803D] transition-colors"
                         data-testid={`approve-post-${post.id}`}>
                         <CheckCircle className="w-4 h-4" /> Aprovar
                       </button>
@@ -372,26 +378,28 @@ export const MuralPage = () => {
         <div className="card-technical rounded-xl p-5 sm:p-6 animate-fade-up">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block font-mono text-xs uppercase tracking-widest mb-2 text-muted-auto">
+              <label htmlFor="post-content" className="block font-mono text-xs uppercase tracking-widest mb-2 text-muted-auto">
                 Nova Mensagem
               </label>
               <textarea
+                id="post-content"
                 value={newPost}
                 onChange={(e) => setNewPost(e.target.value)}
                 placeholder="Compartilhe as suas ideias, sugestoes ou mensagens com a comunidade..."
                 rows={4}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-carmesim/50 focus:border-carmesim/50 transition-all resize-none"
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/50 transition-all resize-none"
                 data-testid="post-textarea"
               />
             </div>
 
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-2">
-                <label className="text-xs uppercase tracking-wider font-mono text-muted-auto">Categoria:</label>
+                <label htmlFor="post-category" className="text-xs uppercase tracking-wider font-mono text-muted-auto">Categoria:</label>
                 <select
+                  id="post-category"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-carmesim/50"
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
                   data-testid="post-category-select"
                 >
                   {CATEGORIES.filter(c => c.value !== 'todos').map(c => (
@@ -434,7 +442,7 @@ export const MuralPage = () => {
             placeholder="Pesquisar no mural..."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+            className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
             data-testid="mural-search-input"
           />
         </div>
@@ -486,9 +494,12 @@ export const MuralPage = () => {
                 )}
 
                 <div className="flex items-start gap-3 sm:gap-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-carmesim rounded-full flex items-center justify-center font-bold text-white flex-shrink-0 text-sm sm:text-base">
-                    {post.user_name?.charAt(0).toUpperCase()}
-                  </div>
+                  <UserAvatar
+                    name={post.user_name}
+                    photoUrl={post.user_photo_url}
+                    className="w-10 h-10 sm:w-12 sm:h-12"
+                    fallbackClassName="text-sm sm:text-base"
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between mb-2">
                       <div>
@@ -508,7 +519,7 @@ export const MuralPage = () => {
                           {canModerate && (
                             <button
                               onClick={() => pinMutation.mutate(post.id)}
-                              className={`p-1.5 rounded-lg transition-colors ${post.pinned ? 'text-carmesim bg-carmesim/10' : 'text-gray-400 hover:text-carmesim hover:bg-carmesim/10'}`}
+                              className={`rounded-lg transition-colors min-w-[44px] min-h-[44px] inline-flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 ${post.pinned ? 'text-carmesim bg-carmesim/10' : 'text-gray-400 hover:text-carmesim hover:bg-carmesim/10'}`}
                               title={post.pinned ? 'Desfixar' : 'Fixar'}
                               aria-label={post.pinned ? 'Desfixar post' : 'Fixar post'}
                               data-testid={`pin-post-${post.id}`}
@@ -518,7 +529,7 @@ export const MuralPage = () => {
                           )}
                           <button
                             onClick={() => setConfirmDeletePost(post.id)}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-carmesim hover:bg-carmesim/10 transition-colors"
+                            className="rounded-lg text-gray-400 hover:text-carmesim hover:bg-carmesim/10 transition-colors min-w-[44px] min-h-[44px] inline-flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40"
                             title="Remover"
                             aria-label="Apagar post"
                             data-testid={`delete-post-${post.id}`}
@@ -565,7 +576,7 @@ export const MuralPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-[#C7202F] hover:bg-[#B91C1C]"
+              className="bg-[#C7202F] hover:bg-[#A51B27]"
               onClick={() => { deleteMutation.mutate(confirmDeletePost); setConfirmDeletePost(null); }}
             >
               Remover

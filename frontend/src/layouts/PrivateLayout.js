@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { registrationAPI } from '../utils/api';
 import { queryKeys } from '../lib/queryClient';
 import { NotificationBell } from '../components/NotificationBell';
-import { ACCTALogoHorizontal } from '../components/ACCTALogo';
+import { BrandLogo } from '../components/BrandLogo';
+import { UserAvatar } from '../components/UserAvatar';
+import { USER_STATUS_CONFIG, USER_STATUS_FALLBACK, getStatusConfig } from '../lib/statusConfig';
 import {
   LayoutDashboard,
   CreditCard,
@@ -31,6 +33,21 @@ import {
   Landmark,
   ListChecks,
   Gavel,
+  Palette,
+  Newspaper,
+  Handshake,
+  FileSignature,
+  HelpCircle,
+  ShieldAlert,
+  Lightbulb,
+  Medal,
+  FileCheck,
+  ScrollText,
+  Megaphone,
+  Trophy,
+  GraduationCap,
+  BookOpen,
+  Network,
 } from 'lucide-react';
 
 const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
@@ -41,6 +58,7 @@ const menuSections = [
     title: 'Painel',
     items: [
       { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['all'] },
+      { label: 'Ranking', path: '/ranking', icon: Trophy, roles: ['all'] },
       { label: 'Meu Perfil', path: '/perfil', icon: UserCircle, roles: ['all'] },
       { label: 'Carteira Digital', path: '/carteira', icon: CreditCard, roles: ['socio'] },
     ],
@@ -49,6 +67,7 @@ const menuSections = [
     title: 'Gestão',
     items: [
       { label: 'Financeiro', path: '/financeiro', icon: DollarSign, roles: ['admin', 'financeiro'], privileges: ['view_finances_readonly', 'manage_finances'] },
+      { label: 'Co-aprovações', path: '/financeiro/co-aprovacoes', icon: FileCheck, roles: ['admin', 'financeiro'], privileges: ['view_finances_readonly', 'manage_finances'], match: 'direcao' },
       { label: 'Projetos', path: '/projetos', icon: FolderKanban, roles: ['all'] },
       { label: 'Votações', path: '/votacoes', icon: Vote, roles: ['all'] },
       { label: 'Eventos', path: '/eventos', icon: Calendar, roles: ['all'] },
@@ -60,7 +79,19 @@ const menuSections = [
     items: [
       { label: 'Assembleias', path: '/admin/assembleias', icon: Landmark, roles: ['all'] },
       { label: 'Eleições', path: '/admin/eleicoes', icon: ListChecks, roles: ['all'] },
+      { label: 'Honorários', path: '/governanca/honorarios', icon: Medal, roles: ['admin'], match: 'governanca' },
+      { label: 'Regulamentos', path: '/regulamentos', icon: ScrollText, roles: ['all'] },
       { label: 'Disciplina', path: '/admin/disciplinar', icon: Gavel, roles: ['admin'], match: 'direcao' },
+    ],
+  },
+  {
+    title: 'Participação',
+    items: [
+      { label: 'Patrocínios', path: '/participacao/patrocinios', icon: Handshake, roles: ['all'] },
+      { label: 'Petições', path: '/participacao/peticoes', icon: FileSignature, roles: ['all'] },
+      { label: 'Propostas', path: '/participacao/propostas', icon: Lightbulb, roles: ['all'] },
+      { label: 'Esclarecimentos', path: '/participacao/esclarecimentos', icon: HelpCircle, roles: ['all'] },
+      { label: 'Reclamações', path: '/participacao/reclamacoes', icon: ShieldAlert, roles: ['all'] },
     ],
   },
   {
@@ -68,7 +99,21 @@ const menuSections = [
     items: [
       { label: 'Mural', path: '/mural', icon: MessageSquare, roles: ['all'] },
       { label: 'Galeria', path: '/galeria-admin', icon: Camera, roles: ['all'] },
+      { label: 'Notícias', path: '/admin/noticias', icon: Newspaper, roles: ['admin', 'moderador'] },
+      { label: 'Aparência', path: '/admin/aparencia', icon: Palette, roles: ['admin', 'moderador'] },
       { label: 'Benefícios', path: '/beneficios', icon: Gift, roles: ['all'] },
+    ],
+  },
+  {
+    // Cat 5 (spec-fins-profissionais §10) — Grupos/Comissões já vivem em
+    // /projetos via Project.tipo (F1). F3 acrescenta Defesa profissional e
+    // Relações/IFATCA.
+    title: 'Profissional',
+    items: [
+      { label: 'Formações', path: '/formacoes', icon: GraduationCap, roles: ['all'] },
+      { label: 'Publicações', path: '/publicacoes', icon: BookOpen, roles: ['all'] },
+      { label: 'Defesa Profissional', path: '/defesa-profissional', icon: Megaphone, roles: ['all'] },
+      { label: 'Relações Externas', path: '/relacoes-externas', icon: Network, roles: ['all'] },
     ],
   },
   {
@@ -79,12 +124,65 @@ const menuSections = [
       { label: 'Utilizadores', path: '/admin/usuarios', icon: Users, roles: ['admin'], privileges: ['manage_users'] },
       { label: 'Cargos & Mandatos', path: '/admin/cargos', icon: Award, roles: ['admin'], privileges: ['manage_users'] },
       { label: 'Audit Logs', path: '/admin/logs', icon: ClipboardList, roles: ['admin'], privileges: ['view_audit_logs'] },
+      { label: 'Comunicados', path: '/admin/comunicados', icon: Megaphone, roles: ['admin'], privileges: ['send_comunicados'] },
     ],
   },
 ];
 
+// Título do cabeçalho por rota. Match exacto via lookup; rotas com :id usam o
+// fallback por prefixo (PAGE_TITLE_PREFIXES); default 'Portal'.
+const PAGE_TITLES = {
+  '/dashboard': 'Dashboard',
+  '/perfil': 'Meu Perfil',
+  '/carteira': 'Carteira Digital',
+  '/financeiro': 'Financeiro',
+  '/financeiro/co-aprovacoes': 'Co-aprovações',
+  '/regulamentos': 'Regulamentos',
+  '/projetos': 'Projetos',
+  '/votacoes': 'Votações',
+  '/eventos': 'Eventos',
+  '/documentos': 'Documentos',
+  '/mural': 'Mural',
+  '/galeria-admin': 'Galeria',
+  '/beneficios': 'Benefícios',
+  '/notificacoes': 'Notificações',
+  '/admin/pedidos-inscricao': 'Pedidos de Inscrição',
+  '/admin/cargos': 'Cargos & Mandatos',
+  '/admin/assembleias': 'Assembleias',
+  '/admin/eleicoes': 'Eleições',
+  '/admin/disciplinar': 'Disciplina',
+  '/admin/aparencia': 'Aparência do Site',
+  '/admin/comunicados': 'Comunicados',
+  '/admin/noticias': 'Notícias / Blog',
+  '/participacao/patrocinios': 'Patrocínios',
+  '/participacao/peticoes': 'Petições',
+  '/participacao/propostas': 'Propostas para a ordem de trabalhos',
+  '/participacao/esclarecimentos': 'Pedidos de esclarecimento',
+  '/participacao/reclamacoes': 'Reclamações e recursos',
+  '/governanca/honorarios': 'Membros Honorários',
+  '/admin/usuarios': 'Utilizadores',
+  '/admin/logs': 'Audit Logs',
+  '/formacoes': 'Formações & Certificações',
+  '/publicacoes': 'Publicações',
+  '/defesa-profissional': 'Defesa Profissional',
+  '/relacoes-externas': 'Relações Externas',
+};
+
+// Rotas dinâmicas (com :id) — verificadas por prefixo só depois do match exacto.
+const PAGE_TITLE_PREFIXES = [
+  ['/projetos/', 'Detalhe do Projeto'],
+  ['/admin/assembleias/', 'Assembleia'],
+  ['/admin/eleicoes/', 'Eleição'],
+];
+
+const getPageTitle = (pathname) => {
+  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
+  const prefixMatch = PAGE_TITLE_PREFIXES.find(([prefix]) => pathname.startsWith(prefix));
+  return prefixMatch ? prefixMatch[1] : 'Portal';
+};
+
 export const PrivateLayout = ({ children }) => {
-  const { user, logout, isAdmin, isFinanceiro, isModerador, isDirecao } = useAuth();
+  const { user, logout, isAdmin, isFinanceiro, isModerador, isDirecao, isMesaAG } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const pathname = location.pathname;
@@ -125,31 +223,37 @@ export const PrivateLayout = ({ children }) => {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
-  const currentPageTitle = (() => {
-    if (pathname === '/dashboard') return 'Dashboard';
-    if (pathname === '/perfil') return 'Meu Perfil';
-    if (pathname === '/carteira') return 'Carteira Digital';
-    if (pathname === '/financeiro') return 'Financeiro';
-    if (pathname === '/projetos') return 'Projetos';
-    if (pathname.startsWith('/projetos/')) return 'Detalhe do Projeto';
-    if (pathname === '/votacoes') return 'Votações';
-    if (pathname === '/eventos') return 'Eventos';
-    if (pathname === '/documentos') return 'Documentos';
-    if (pathname === '/mural') return 'Mural';
-    if (pathname === '/galeria-admin') return 'Galeria';
-    if (pathname === '/beneficios') return 'Benefícios';
-    if (pathname === '/notificacoes') return 'Notificações';
-    if (pathname === '/admin/pedidos-inscricao') return 'Pedidos de Inscrição';
-    if (pathname === '/admin/cargos') return 'Cargos & Mandatos';
-    if (pathname === '/admin/assembleias') return 'Assembleias';
-    if (pathname.startsWith('/admin/assembleias/')) return 'Assembleia';
-    if (pathname === '/admin/eleicoes') return 'Eleições';
-    if (pathname.startsWith('/admin/eleicoes/')) return 'Eleição';
-    if (pathname === '/admin/disciplinar') return 'Disciplina';
-    if (pathname === '/admin/usuarios') return 'Utilizadores';
-    if (pathname === '/admin/logs') return 'Audit Logs';
-    return 'Portal';
-  })();
+  const mobileNavRef = useRef(null);
+  const menuBtnRef = useRef(null);
+
+  // Drawer mobile: prende o foco, fecha com Escape e devolve o foco ao botão
+  // que o abriu — sem isto o teclado escapava para o conteúdo por trás (a11y).
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const node = mobileNavRef.current;
+    if (!node) return;
+    const getItems = () =>
+      node.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])');
+    getItems()[0]?.focus();
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') { setMobileOpen(false); return; }
+      if (e.key !== 'Tab') return;
+      const items = getItems();
+      if (!items.length) return;
+      const firstEl = items[0];
+      const lastEl = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === firstEl) { e.preventDefault(); lastEl.focus(); }
+      else if (!e.shiftKey && document.activeElement === lastEl) { e.preventDefault(); firstEl.focus(); }
+    };
+    const trigger = menuBtnRef.current;
+    node.addEventListener('keydown', onKeyDown);
+    return () => {
+      node.removeEventListener('keydown', onKeyDown);
+      trigger?.focus();
+    };
+  }, [mobileOpen]);
+
+  const currentPageTitle = getPageTitle(pathname);
 
   const handleLogout = () => {
     logout();
@@ -165,6 +269,7 @@ export const PrivateLayout = ({ children }) => {
   const filterItem = (item) => {
     // Gating por cargo/órgão (extensão ao RBAC por role/privilégio).
     if (item.match === 'direcao' && (isAdmin || isDirecao)) return true;
+    if (item.match === 'governanca' && (isAdmin || isDirecao || isMesaAG)) return true;
     if (item.roles.includes('all')) return true;
     if (item.roles.includes('admin') && isAdmin) return true;
     if (item.roles.includes('financeiro') && (isFinanceiro || isAdmin)) return true;
@@ -181,19 +286,18 @@ export const PrivateLayout = ({ children }) => {
   const sidebarInner = ({ isMobile = false }) => (
     <div className="flex flex-col h-full">
       {/* ---- Logo row ---- */}
-      <div className="flex items-center gap-2 px-3 py-4 min-h-[64px]" style={{ borderBottom: '1px solid var(--surface-border)' }}>
-        <span className="flex items-center justify-center min-w-[48px]">
-          <div className="w-9 h-9 bg-carmesim rounded-lg flex items-center justify-center">
-            <span className="text-white font-extrabold text-sm tracking-tight">AC</span>
-          </div>
-        </span>
-        <span
-          className={`font-bold text-[15px] whitespace-nowrap transition-opacity duration-300 ${
-            collapsed && !isMobile ? 'opacity-0 pointer-events-none w-0' : 'opacity-100'
-          } text-grafite-auto`}
-        >
-          ACCTA
-        </span>
+      <div className="flex items-center gap-2 px-3 py-4 min-h-[64px] border-b border-[var(--surface-border)]">
+        {/* Recolhida: mark compacto "AC". Expandida: marca gerida (BrandLogo /
+            SVG fallback) — spec-gestao-logo-marca §4.2. */}
+        {collapsed && !isMobile ? (
+          <span className="flex items-center justify-center min-w-[48px]">
+            <div className="w-9 h-9 bg-carmesim rounded-lg flex items-center justify-center">
+              <span className="text-white font-extrabold text-sm tracking-tight">AC</span>
+            </div>
+          </span>
+        ) : (
+          <BrandLogo className="h-9" />
+        )}
 
         {/* Toggle expand/collapse — only on desktop */}
         {!isMobile && (
@@ -274,7 +378,7 @@ export const PrivateLayout = ({ children }) => {
                         </span>
                         {item.badge === 'registration' && registrationBadgeCount > 0 && (
                           collapsed && !isMobile ? (
-                            <span className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-carmesim" aria-hidden="true" />
+                            <span className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-carmesim" role="status" aria-label={`${registrationBadgeCount} pedidos pendentes`} />
                           ) : (
                             <span
                               className={`ml-auto mr-2 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center ${
@@ -297,12 +401,10 @@ export const PrivateLayout = ({ children }) => {
       </nav>
 
       {/* ---- Profile & Logout ---- */}
-      <div className="px-2 py-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
+      <div className="px-2 py-3 border-t border-[var(--surface-border)]">
         {/* User profile */}
         <div className="flex items-center gap-3 px-1 mb-2">
-          <div className="w-9 h-9 bg-carmesim rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-            {user?.name?.charAt(0).toUpperCase()}
-          </div>
+          <UserAvatar size="sm" name={user?.name} photoUrl={user?.photo_url} />
           <div
             className={`min-w-0 flex-1 transition-opacity duration-300 ${
               collapsed && !isMobile ? 'opacity-0 pointer-events-none w-0' : 'opacity-100'
@@ -313,16 +415,23 @@ export const PrivateLayout = ({ children }) => {
           </div>
         </div>
 
-        {/* Status badge */}
-        {user?.status !== 'ativo' && !collapsed && (
-          <div className="mx-1 mb-2 px-2 py-1 bg-carmesim/10 border border-carmesim/30 rounded-md text-xs text-carmesim uppercase tracking-wider font-semibold text-center">
-            {user?.status}
-          </div>
-        )}
+        {/* Status badge — só para estados não-'ativo'; tom semântico por estado
+            (pendente_* warning · inativo neutro · rejeitado erro) via statusConfig */}
+        {user?.status && user.status !== 'ativo' && !collapsed && (() => {
+          const sc = getStatusConfig(USER_STATUS_CONFIG, user.status, USER_STATUS_FALLBACK);
+          const StatusIcon = sc.icon;
+          return (
+            <div className={`mx-1 mb-2 px-2 py-1 rounded-md text-xs uppercase tracking-wider font-semibold text-center flex items-center justify-center gap-1 ${sc.className}`}>
+              {StatusIcon && <StatusIcon className="h-3 w-3" />}
+              {sc.label}
+            </div>
+          );
+        })()}
 
         {/* Logout button */}
         <button
           onClick={handleLogout}
+          aria-label="Sair"
           className="w-full flex items-center rounded-lg transition-colors text-secondary-auto"
           data-testid="logout-button"
         >
@@ -342,11 +451,11 @@ export const PrivateLayout = ({ children }) => {
   );
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: 'var(--surface-bg)' }}>
+    <div className="min-h-screen flex bg-[var(--surface-bg)]">
       {/* ======= Desktop Sidebar ======= */}
       <aside
-        className="hidden md:flex md:flex-col fixed h-screen z-30 transition-all duration-300 ease-in-out"
-        style={{ width: sidebarWidth, backgroundColor: 'var(--surface-sidebar)', boxShadow: '0 0 6px rgba(0,0,0,0.06)' }}
+        className="hidden md:flex md:flex-col fixed h-screen z-30 transition-all duration-300 ease-in-out bg-[var(--surface-sidebar)] shadow-[0_0_6px_rgba(0,0,0,0.06)]"
+        style={{ width: sidebarWidth }}
         data-testid="desktop-sidebar"
       >
         {sidebarInner({ isMobile: false })}
@@ -363,11 +472,13 @@ export const PrivateLayout = ({ children }) => {
         aria-hidden={!mobileOpen}
       />
       <aside
-        className={`fixed left-0 top-0 bottom-0 z-50 md:hidden flex flex-col shadow-xl transition-transform duration-[280ms] ease-spring will-change-transform ${
+        ref={mobileNavRef}
+        className={`fixed left-0 top-0 bottom-0 z-50 md:hidden flex flex-col shadow-xl transition-transform duration-[280ms] ease-spring will-change-transform bg-[var(--surface-sidebar)] ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
-        style={{ width: SIDEBAR_W, backgroundColor: 'var(--surface-sidebar)' }}
+        style={{ width: SIDEBAR_W }}
         aria-hidden={!mobileOpen}
+        aria-label="Menu de navegação"
       >
         {sidebarInner({ isMobile: true })}
       </aside>
@@ -375,10 +486,11 @@ export const PrivateLayout = ({ children }) => {
       {/* ======= Main Content ======= */}
       <div className="flex-1 min-w-0">
         {/* Mobile Header */}
-        <header className="md:hidden sticky top-0 z-30 backdrop-blur-md px-4 py-3" style={{ backgroundColor: 'var(--surface-header)', borderBottom: '1px solid var(--surface-border)' }}>
+        <header className="md:hidden sticky top-0 z-30 backdrop-blur-md px-4 py-3 bg-[var(--surface-header)] border-b border-[var(--surface-border)]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
+                ref={menuBtnRef}
                 onClick={() => setMobileOpen(true)}
                 className="p-2 -ml-2 rounded-lg transition-colors touch-target text-grafite-auto"
                 aria-label="Abrir menu"
@@ -390,26 +502,22 @@ export const PrivateLayout = ({ children }) => {
             </div>
             <div className="flex items-center gap-2">
               <NotificationBell />
-              <div className="w-8 h-8 bg-carmesim rounded-full flex items-center justify-center text-white text-xs font-bold">
-                {user?.name?.charAt(0).toUpperCase()}
-              </div>
+              <UserAvatar size="xs" name={user?.name} photoUrl={user?.photo_url} />
             </div>
           </div>
         </header>
 
         {/* Desktop Top Bar */}
         <header
-          className="hidden md:block sticky top-0 z-20 backdrop-blur-md py-3 transition-all duration-300"
-          style={{ paddingLeft: isDesktop ? `calc(${sidebarWidth}px + 1.5rem)` : undefined, paddingRight: '1.5rem', backgroundColor: 'var(--surface-header)', borderBottom: '1px solid var(--surface-border)' }}
+          className="hidden md:block sticky top-0 z-30 backdrop-blur-md py-3 pr-6 transition-all duration-300 bg-[var(--surface-header)] border-b border-[var(--surface-border)]"
+          style={{ paddingLeft: isDesktop ? `calc(${sidebarWidth}px + 1.5rem)` : undefined }}
         >
           <div className="flex items-center justify-between">
             <h1 className="font-semibold text-base text-grafite-auto">{currentPageTitle}</h1>
             <div className="flex items-center gap-3">
               <NotificationBell />
-              <div className="flex items-center gap-2 pl-3" style={{ borderLeft: '1px solid var(--surface-border)' }}>
-                <div className="w-8 h-8 bg-carmesim rounded-full flex items-center justify-center text-white text-xs font-bold">
-                  {user?.name?.charAt(0).toUpperCase()}
-                </div>
+              <div className="flex items-center gap-2 pl-3 border-l border-[var(--surface-border)]">
+                <UserAvatar size="xs" name={user?.name} photoUrl={user?.photo_url} />
                 <span className="text-sm font-medium hidden lg:block text-grafite-auto">{user?.name}</span>
               </div>
             </div>

@@ -6,6 +6,7 @@ from models import User, Poll, PollCreate, PollStatusUpdate, UserVote, VoteCreat
 from database import db
 from auth import get_current_user
 from helpers import create_audit_log, notify_all_active_users
+from permissions import is_voting_member
 
 router = APIRouter(tags=["polls"])
 
@@ -18,32 +19,30 @@ _ALLOWED_TRANSITIONS: dict[str, set[str]] = {
 
 
 def _parse_dt(value) -> Optional[datetime]:
-    """ISO string (ou datetime) -> datetime tz-aware (assume UTC se naive)."""
-    if value is None:
+    """ISO string (ou datetime) -> datetime tz-aware (assume UTC se naive).
+    Vazio/ilegível -> None (tratado como "sem limite") em vez de crashar o voto."""
+    if not value:
         return None
-    dt = value if isinstance(value, datetime) else datetime.fromisoformat(value)
+    try:
+        dt = value if isinstance(value, datetime) else datetime.fromisoformat(value)
+    except (ValueError, TypeError):
+        return None
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt
 
 
-def _hydrate_poll_dates(p: dict) -> dict:
-    for field in ("start_date", "end_date", "created_at"):
-        if isinstance(p.get(field), str):
-            p[field] = datetime.fromisoformat(p[field])
-    return p
-
-
 def _poll_option_ids(poll: dict) -> set[int]:
-    return {option["id"] for option in poll.get("options", []) if isinstance(option, dict) and option.get("id") is not None}
+    return {
+        option["id"] for option in poll.get("options", []) if isinstance(option, dict) and option.get("id") is not None
+    }
 
 
 @router.get("/polls", response_model=List[Poll])
 async def get_polls(skip: int = 0, limit: int = 100, current_user: User = Depends(get_current_user)):
     limit = min(limit, 100)
-    polls = await db.polls.find({}, {"_id": 0}).skip(skip).limit(limit).to_list(None)
-    for p in polls:
-        _hydrate_poll_dates(p)
+    query = {} if current_user.role == "admin" else {"status": {"$ne": "rascunho"}}
+    polls = await db.polls.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(None)
     return polls
 
 
@@ -54,9 +53,6 @@ async def create_poll(poll_data: PollCreate, current_user: User = Depends(get_cu
 
     poll = Poll(**poll_data.model_dump())
     poll_dict = poll.model_dump()
-    poll_dict['start_date'] = poll_dict['start_date'].isoformat()
-    poll_dict['end_date'] = poll_dict['end_date'].isoformat()
-    poll_dict['created_at'] = poll_dict['created_at'].isoformat()
 
     await db.polls.insert_one(poll_dict)
     await create_audit_log(current_user.id, f"Criou votação {poll.id}", poll.id)
@@ -94,18 +90,22 @@ async def update_poll_status(
 
     if data.status == "aberta":
         await notify_all_active_users(
-            "poll_opened", "Nova Votação Aberta",
-            f"{poll.get('title', 'Votação')} - Participe agora!", "/votacoes",
+            "poll",
+            "Nova Votação Aberta",
+            f"{poll.get('title', 'Votação')} - Participe agora!",
+            "/votacoes",
         )
 
     poll["status"] = data.status
-    return _hydrate_poll_dates(poll)
+    return poll
 
 
 @router.post("/polls/vote", response_model=UserVote)
 async def vote(vote_data: VoteCreate, current_user: User = Depends(get_current_user)):
-    if current_user.status != "ativo":
-        raise HTTPException(status_code=403, detail="Apenas sócios ativos podem votar")
+    # Elegibilidade de voto: sócio votante (exclui honorário/técnico/inactivo/
+    # suspenso) — spec-voz-participacao §2.2.
+    if not is_voting_member(current_user):
+        raise HTTPException(status_code=403, detail="Apenas sócios com direito a voto podem votar")
 
     poll = await db.polls.find_one({"id": vote_data.poll_id}, {"_id": 0})
     if not poll:
@@ -123,15 +123,12 @@ async def vote(vote_data: VoteCreate, current_user: User = Depends(get_current_u
     if not option_ids or vote_data.vote_option not in option_ids:
         raise HTTPException(status_code=400, detail="Opcao de voto invalida")
 
-    existing_vote = await db.user_votes.find_one(
-        {"user_id": current_user.id, "poll_id": vote_data.poll_id}
-    )
+    existing_vote = await db.user_votes.find_one({"user_id": current_user.id, "poll_id": vote_data.poll_id})
     if existing_vote:
         raise HTTPException(status_code=400, detail="Você já votou nesta votação")
 
     user_vote = UserVote(user_id=current_user.id, **vote_data.model_dump())
     vote_dict = user_vote.model_dump()
-    vote_dict['created_at'] = vote_dict['created_at'].isoformat()
 
     try:
         await db.user_votes.insert_one(vote_dict)
@@ -148,10 +145,15 @@ async def get_poll_results(poll_id: str, current_user: User = Depends(get_curren
     if not poll:
         raise HTTPException(status_code=404, detail="Votação não encontrada")
 
+    # Sigilo: totais parciais só após o encerramento (ou para admin). Ver
+    # resultados durante a votação aberta permitiria voto estratégico informado.
+    if poll.get("status") != "encerrada" and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Resultados disponíveis após o encerramento da votação")
+
     votes = await db.user_votes.find({"poll_id": poll_id}, {"_id": 0}).to_list(1000)
     results = {}
     for v in votes:
-        option = v['vote_option']
+        option = v["vote_option"]
         results[option] = results.get(option, 0) + 1
 
     return {"poll_id": poll_id, "total_votes": len(votes), "results": results}

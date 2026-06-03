@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -29,13 +29,18 @@ const ContactosPage = lazy(() => import('./pages/public/ContactosPage').then((m)
 const EventosPublicoPage = lazy(() => import('./pages/public/EventosPublicoPage').then((m) => ({ default: m.EventosPublicoPage })));
 const GaleriaPage = lazy(() => import('./pages/public/GaleriaPage').then((m) => ({ default: m.GaleriaPage })));
 const CriarContaPage = lazy(() => import('./pages/public/CriarContaPage').then((m) => ({ default: m.CriarContaPage })));
+// Cat 5 F4 — catálogo público de publicações
+const PublicacoesPublicoPage = lazy(() => import('./pages/public/PublicacoesPublicoPage').then((m) => ({ default: m.PublicacoesPublicoPage })));
 
 // Private pages — lazy. They're only loaded after a user logs in, so we
 // don't want their bundle weight on the public landing page.
 const NotificacoesPage = lazy(() => import('./pages/private/NotificacoesPage').then((m) => ({ default: m.NotificacoesPage })));
 const DashboardPage = lazy(() => import('./pages/private/DashboardPage').then((m) => ({ default: m.DashboardPage })));
+const RankingPage = lazy(() => import('./pages/private/RankingPage').then((m) => ({ default: m.RankingPage })));
 const CarteiraPage = lazy(() => import('./pages/private/CarteiraPage').then((m) => ({ default: m.CarteiraPage })));
 const FinanceiroPage = lazy(() => import('./pages/private/FinanceiroPage').then((m) => ({ default: m.FinanceiroPage })));
+const CoAprovacoesPage = lazy(() => import('./pages/private/CoAprovacoesPage').then((m) => ({ default: m.CoAprovacoesPage })));
+const RegulamentosPage = lazy(() => import('./pages/private/RegulamentosPage').then((m) => ({ default: m.RegulamentosPage })));
 const ProjectsPage = lazy(() => import('./pages/private/ProjectsPage'));
 const ProjectDetailPage = lazy(() => import('./pages/private/ProjectDetailPage'));
 const VotacoesPage = lazy(() => import('./pages/private/VotacoesPage').then((m) => ({ default: m.VotacoesPage })));
@@ -50,8 +55,26 @@ const AdminLogsPage = lazy(() => import('./pages/private/AdminLogsPage').then((m
 const AdminPedidosInscricaoPage = lazy(() => import('./pages/private/AdminPedidosInscricaoPage').then((m) => ({ default: m.AdminPedidosInscricaoPage })));
 const AdminCargosPage = lazy(() => import('./pages/private/AdminCargosPage').then((m) => ({ default: m.AdminCargosPage })));
 const AdminAssembleiasPage = lazy(() => import('./pages/private/AdminAssembleiasPage').then((m) => ({ default: m.AdminAssembleiasPage })));
+const AssembleiaSalaPage = lazy(() => import('./pages/private/AssembleiaSalaPage').then((m) => ({ default: m.AssembleiaSalaPage })));
 const AdminEleicoesPage = lazy(() => import('./pages/private/AdminEleicoesPage').then((m) => ({ default: m.AdminEleicoesPage })));
 const AdminDisciplinarPage = lazy(() => import('./pages/private/AdminDisciplinarPage').then((m) => ({ default: m.AdminDisciplinarPage })));
+const AdminAparenciaPage = lazy(() => import('./pages/private/AdminAparenciaPage').then((m) => ({ default: m.AdminAparenciaPage })));
+const AdminNoticiasPage = lazy(() => import('./pages/private/AdminNoticiasPage').then((m) => ({ default: m.AdminNoticiasPage })));
+const AdminComunicadosPage = lazy(() => import('./pages/private/AdminComunicadosPage').then((m) => ({ default: m.AdminComunicadosPage })));
+const PatrociniosPage = lazy(() => import('./pages/private/PatrociniosPage').then((m) => ({ default: m.PatrociniosPage })));
+const PeticoesPage = lazy(() => import('./pages/private/PeticoesPage').then((m) => ({ default: m.PeticoesPage })));
+const EsclarecimentosPage = lazy(() => import('./pages/private/EsclarecimentosPage').then((m) => ({ default: m.EsclarecimentosPage })));
+const ReclamacoesPage = lazy(() => import('./pages/private/ReclamacoesPage').then((m) => ({ default: m.ReclamacoesPage })));
+const PropostasPage = lazy(() => import('./pages/private/PropostasPage').then((m) => ({ default: m.PropostasPage })));
+const HonorariosPage = lazy(() => import('./pages/private/HonorariosPage').then((m) => ({ default: m.HonorariosPage })));
+// Cat 5 F2 — spec-fins-profissionais §6/§8
+const FormacoesPage = lazy(() => import('./pages/private/FormacoesPage').then((m) => ({ default: m.FormacoesPage })));
+const PublicacoesPage = lazy(() => import('./pages/private/PublicacoesPage').then((m) => ({ default: m.PublicacoesPage })));
+// Cat 5 F3 — spec-fins-profissionais §5/§7
+const DefesaProfissionalPage = lazy(() => import('./pages/private/DefesaProfissionalPage').then((m) => ({ default: m.DefesaProfissionalPage })));
+const RelacoesPage = lazy(() => import('./pages/private/RelacoesPage').then((m) => ({ default: m.RelacoesPage })));
+const NoticiaDetailPage = lazy(() => import('./pages/public/NoticiaDetailPage').then((m) => ({ default: m.NoticiaDetailPage })));
+const MfaSetupPage = lazy(() => import('./pages/MfaSetupPage').then((m) => ({ default: m.MfaSetupPage })));
 
 const RouteSpinner = () => (
   <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-live="polite">
@@ -61,7 +84,8 @@ const RouteSpinner = () => (
 );
 
 const ProtectedRoute = ({ children, allowedRoles = [], allowedPrivileges = [] }) => {
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated, user, loading, mfaSetupRequired } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -74,6 +98,13 @@ const ProtectedRoute = ({ children, allowedRoles = [], allowedPrivileges = [] })
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Enrolment obrigatório de MFA (spec-mfa-frontend-pr2 §7): admin/financeiro sem
+  // MFA ficam presos em /mfa-setup. Não redirecionar quando já lá estamos — senão
+  // a própria rota /mfa-setup entraria em loop.
+  if (mfaSetupRequired && location.pathname !== '/mfa-setup') {
+    return <Navigate to="/mfa-setup" replace />;
   }
 
   if (allowedRoles.length > 0) {
@@ -98,17 +129,29 @@ function AppRoutes() {
         <Route path="/sobre" element={<PublicLayout><SobrePage /></PublicLayout>} />
         <Route path="/profissao" element={<PublicLayout><ProfissaoPage /></PublicLayout>} />
         <Route path="/noticias" element={<PublicLayout><NoticiasPage /></PublicLayout>} />
+        <Route path="/noticias/:slug" element={<PublicLayout><NoticiaDetailPage /></PublicLayout>} />
         <Route path="/transparencia" element={<PublicLayout><TransparenciaPage /></PublicLayout>} />
         <Route path="/beneficios-publico" element={<PublicLayout><BeneficiosPublicoPage /></PublicLayout>} />
         <Route path="/contactos" element={<PublicLayout><ContactosPage /></PublicLayout>} />
         <Route path="/eventos-publico" element={<PublicLayout><EventosPublicoPage /></PublicLayout>} />
         <Route path="/galeria" element={<PublicLayout><GaleriaPage /></PublicLayout>} />
+        <Route path="/publicacoes-publico" element={<PublicLayout><PublicacoesPublicoPage /></PublicLayout>} />
         <Route path="/validador" element={<PublicLayout><ValidadorPage /></PublicLayout>} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/setup-account" element={<SetupAccountPage />} />
         <Route path="/criar-conta" element={<PublicLayout><CriarContaPage /></PublicLayout>} />
+
+        {/* Enrolment obrigatório de MFA — sem PrivateLayout (página bloqueante) */}
+        <Route
+          path="/mfa-setup"
+          element={
+            <ProtectedRoute>
+              <MfaSetupPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Private Routes */}
         <Route
@@ -132,6 +175,30 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={['admin', 'financeiro']} allowedPrivileges={['view_finances_readonly', 'manage_finances']}>
               <PrivateLayout><FinanceiroPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/financeiro/co-aprovacoes"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><CoAprovacoesPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/regulamentos"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><RegulamentosPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ranking"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><RankingPage /></PrivateLayout>
             </ProtectedRoute>
           }
         />
@@ -164,6 +231,38 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <PrivateLayout><ProjectDetailPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/formacoes"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><FormacoesPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/publicacoes"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><PublicacoesPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/defesa-profissional"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><DefesaProfissionalPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/relacoes-externas"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><RelacoesPage /></PrivateLayout>
             </ProtectedRoute>
           }
         />
@@ -258,6 +357,14 @@ function AppRoutes() {
           }
         />
         <Route
+          path="/assembleias/:id"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><AssembleiaSalaPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/admin/eleicoes"
           element={
             <ProtectedRoute>
@@ -273,6 +380,81 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin/aparencia"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'moderador']}>
+              <PrivateLayout><AdminAparenciaPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/noticias"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'moderador']}>
+              <PrivateLayout><AdminNoticiasPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/comunicados"
+          element={
+            <ProtectedRoute allowedRoles={['admin']} allowedPrivileges={['send_comunicados']}>
+              <PrivateLayout><AdminComunicadosPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participacao/patrocinios"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><PatrociniosPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participacao/peticoes"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><PeticoesPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participacao/esclarecimentos"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><EsclarecimentosPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participacao/reclamacoes"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><ReclamacoesPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participacao/propostas"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><PropostasPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/governanca/honorarios"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><HonorariosPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        {/* Consolidado em /admin/aparencia — redirects mantêm links antigos. */}
+        <Route path="/admin/banners" element={<Navigate to="/admin/aparencia?tab=banners" replace />} />
+        <Route path="/admin/marca" element={<Navigate to="/admin/aparencia?tab=logo" replace />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

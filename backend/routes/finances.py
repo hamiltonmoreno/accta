@@ -13,7 +13,11 @@ from models import (
     TRANSACTION_TYPES,
     INCOME_CATEGORIES,
     EXPENSE_CATEGORIES,
+    INCOME_CATEGORY_LABELS,
+    EXPENSE_CATEGORY_LABELS,
+    MFA_SECRET_FIELDS,
 )
+from finance_joia import joia_status
 from database import db
 from auth import get_current_user, can_view_finances, can_manage_finances
 from helpers import create_audit_log, notify_admins, notify_all_active_users
@@ -50,11 +54,18 @@ def require_manage_finances(user: User):
         raise HTTPException(status_code=403, detail="Sem permissao para gerir financas")
 
 
-def serialize_transaction(t: dict) -> dict:
-    for key in ["date", "created_at"]:
-        if isinstance(t.get(key), str):
-            t[key] = datetime.fromisoformat(t[key])
-    return t
+async def _coaprovacao_limiar() -> float:
+    """Limiar de co-aprovação em vigor (spec-controlos §4.1). 0.0 (default) = gate
+    desligado: o lançamento directo de despesas mantém-se. Acima de um limiar
+    positivo, despesas exigem um Ato de pagamento aprovado (via /atos/executar).
+    Leitura defensiva — tolera ausência de settings / mock_db (find_one→None)."""
+    s = await db.finance_settings.find_one({"id": "finance_settings"}, {"_id": 0})
+    if not isinstance(s, dict):
+        return 0.0
+    try:
+        return float(s.get("coaprovacao_limiar") or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
 
 
 # ===== TRANSACTION ENDPOINTS =====
@@ -90,8 +101,6 @@ async def list_transactions(
 
     total = await db.transactions.count_documents(query)
     transactions = await db.transactions.find(query, {"_id": 0}).sort("date", -1).skip(skip).limit(limit).to_list(None)
-    for t in transactions:
-        serialize_transaction(t)
     return {"items": transactions, "total": total, "skip": skip, "limit": limit}
 
 
@@ -128,10 +137,22 @@ async def create_transaction(
     if data.amount <= 0:
         raise HTTPException(status_code=400, detail="O valor deve ser positivo")
 
+    # Gate de co-aprovação (Art. 54): despesas acima do limiar só entram via um
+    # Ato de pagamento aprovado e executado (que cria a despesa com `ato_id`),
+    # não pelo lançamento directo. Limiar 0 = desligado (não-quebra).
+    if data.type == "despesa":
+        limiar = await _coaprovacao_limiar()
+        if limiar > 0 and data.amount > limiar:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Despesa de {data.amount:,.0f} CVE excede o limiar de co-aprovacao "
+                    f"({limiar:,.0f} CVE). Crie um Acto de pagamento e execute-o apos aprovacao."
+                ),
+            )
+
     transaction = Transaction(**data.model_dump(), created_by=current_user.id)
     t_dict = transaction.model_dump()
-    t_dict["date"] = t_dict["date"].isoformat()
-    t_dict["created_at"] = t_dict["created_at"].isoformat()
 
     await db.transactions.insert_one(t_dict)
     await create_audit_log(
@@ -177,15 +198,29 @@ async def update_transaction(
     if "amount" in updates and updates["amount"] <= 0:
         raise HTTPException(status_code=400, detail="O valor deve ser positivo")
 
-    if "date" in updates:
-        updates["date"] = updates["date"].isoformat()
+    # Gate de co-aprovação (Art. 54) — espelha create_transaction. Sem isto,
+    # lançava-se uma despesa abaixo do limiar e inflava-se por PATCH, contornando
+    # a dupla assinatura. Só barra quando o valor/tipo muda (edições de metadados
+    # ficam livres) e isenta despesas já co-aprovadas por um Acto (ato_id).
+    if ("amount" in updates or "type" in updates) and not existing.get("ato_id"):
+        eff_type = updates.get("type", existing["type"])
+        eff_amount = updates.get("amount", existing.get("amount") or 0)
+        if eff_type == "despesa":
+            limiar = await _coaprovacao_limiar()
+            if limiar > 0 and eff_amount > limiar:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Despesa de {eff_amount:,.0f} CVE excede o limiar de co-aprovacao "
+                        f"({limiar:,.0f} CVE). Crie um Acto de pagamento e execute-o apos aprovacao."
+                    ),
+                )
 
     if updates:
         await db.transactions.update_one({"id": transaction_id}, {"$set": updates})
         await create_audit_log(current_user.id, f"Atualizou transacao {transaction_id}", transaction_id)
 
     updated = await db.transactions.find_one({"id": transaction_id}, {"_id": 0})
-    serialize_transaction(updated)
     return updated
 
 
@@ -208,22 +243,34 @@ async def delete_transaction(
 # ===== SUMMARY & DRE ENDPOINTS =====
 
 
-@router.get("/summary")
-async def get_financial_summary(
+async def compute_financial_summary(
     year: Optional[int] = None,
     month: Optional[int] = None,
-    current_user: User = Depends(get_current_user),
-):
-    require_view_finances(current_user)
+    date_gte: Optional[str] = None,
+    date_lt: Optional[str] = None,
+) -> dict:
+    """Computa o resumo financeiro (totais + por categoria) para uma janela.
 
+    Fonte única reutilizada pelo endpoint `/finances/summary` e pelo snapshot
+    dos balancetes (spec-ciclo §5 — "reusar os números existentes, não
+    recalcular noutro sítio"). Janela: `date_gte`/`date_lt` (range explícito,
+    p/ trimestres) tem precedência; senão `year` (+ `month`); senão tudo.
+    """
     query = {}
-    if year:
+    if date_gte or date_lt:
+        rng = {}
+        if date_gte:
+            rng["$gte"] = date_gte
+        if date_lt:
+            rng["$lt"] = date_lt
+        query["date"] = rng
+    elif year:
         start = f"{year}-01-01T00:00:00"
         end = f"{year}-12-31T23:59:59"
         if month:
             start = f"{year}-{month:02d}-01T00:00:00"
             if month == 12:
-                end = f"{year}-12-31T23:59:59"
+                end = f"{year + 1}-01-01T00:00:00"
             else:
                 end = f"{year}-{month + 1:02d}-01T00:00:00"
         query["date"] = {"$gte": start, "$lt": end} if month else {"$gte": start, "$lte": end}
@@ -261,13 +308,20 @@ async def get_financial_summary(
     }
 
 
-@router.get("/dre")
-async def get_dre_report(
-    year: int = Query(..., description="Ano do relatorio"),
+@router.get("/summary")
+async def get_financial_summary(
+    year: Optional[int] = None,
+    month: Optional[int] = None,
     current_user: User = Depends(get_current_user),
 ):
     require_view_finances(current_user)
+    return await compute_financial_summary(year=year, month=month)
 
+
+async def compute_dre_report(year: int) -> dict:
+    """Computa o DRE anual (mensal + por categoria). Fonte única reutilizada pelo
+    endpoint `/finances/dre` e pelo `dre_snapshot` congelado no Relatório e Contas
+    (spec-ciclo §4.1) — os números não mudam depois da submissão."""
     start = f"{year}-01-01T00:00:00"
     end = f"{year}-12-31T23:59:59"
     transactions = (
@@ -316,6 +370,15 @@ async def get_dre_report(
     }
 
 
+@router.get("/dre")
+async def get_dre_report(
+    year: int = Query(..., description="Ano do relatorio"),
+    current_user: User = Depends(get_current_user),
+):
+    require_view_finances(current_user)
+    return await compute_dre_report(year)
+
+
 # ===== SETTINGS ENDPOINTS =====
 
 
@@ -328,11 +391,8 @@ async def get_finance_settings(
     if not settings:
         default = FinanceSettings()
         d = default.model_dump()
-        d["updated_at"] = d["updated_at"].isoformat()
         await db.finance_settings.insert_one(d)
         return default
-    if isinstance(settings.get("updated_at"), str):
-        settings["updated_at"] = datetime.fromisoformat(settings["updated_at"])
     return FinanceSettings(**settings)
 
 
@@ -419,7 +479,6 @@ async def update_finance_settings(
         default = FinanceSettings()
         d = default.model_dump()
         d.update(updates)
-        d["updated_at"] = d["updated_at"] if isinstance(d["updated_at"], str) else d["updated_at"].isoformat()
         await db.finance_settings.insert_one(d)
     else:
         await db.finance_settings.update_one({"id": "finance_settings"}, {"$set": updates})
@@ -464,8 +523,11 @@ async def generate_monthly_quotas(
     quota_amount = settings["quota_amount"] if settings else 2000.0
     quota_desc = settings.get("quota_description", "Quota Mensal") if settings else "Quota Mensal"
 
-    # Get all active members
-    active_users = await db.users.find({"status": "ativo"}, {"_id": 0, "id": 1, "name": 1}).to_list(1000)
+    # Get all active members. Legacy member documents may not have account_type.
+    active_users = await db.users.find(
+        {"status": "ativo", "$or": [{"account_type": "member"}, {"account_type": {"$exists": False}}]},
+        {"_id": 0, "id": 1, "name": 1},
+    ).to_list(1000)
 
     # Check which users already have quota for this month — usar range query
     # ($gte/$lt) em vez de $regex, melhor para o indice composto (category, date).
@@ -487,14 +549,12 @@ async def generate_monthly_quotas(
             category="quotas",
             description=f"{quota_desc} - {month:02d}/{year} - {user.get('name', 'Socio')}",
             amount=quota_amount,
-            date=datetime.fromisoformat(f"{year}-{month:02d}-15T00:00:00"),
+            date=datetime(year, month, 15, tzinfo=timezone.utc).isoformat(),
             reference=f"FOLHA-{year}{month:02d}",
             user_id=user["id"],
             created_by=current_user.id,
         )
         t_dict = t.model_dump()
-        t_dict["date"] = t_dict["date"].isoformat()
-        t_dict["created_at"] = t_dict["created_at"].isoformat()
         await db.transactions.insert_one(t_dict)
         created_count += 1
 
@@ -521,12 +581,24 @@ async def generate_monthly_quotas(
     }
 
 
+# Labels ASCII-safe para CSV/DRE-PDF (FPDF/latin-1 rebenta com acentos). As
+# receitas estatutárias (Art. 5) + as legadas (mantidas até a migração correr,
+# para docs ainda não migrados renderizarem com nome em vez da key crua).
 CATEGORY_LABELS = {
+    # Receitas estatutárias (Art. 5).
     "quotas": "Quotas de Socios",
+    "joias": "Joias",
+    "subvencoes": "Subvencoes",
+    "donativos": "Donativos",
+    "venda_publicacoes": "Venda de Publicacoes",
+    "juros": "Juros",
+    "extraordinarias": "Receitas Extraordinarias",
+    # Legadas (até migrate_income_categories.py --apply correr).
     "patrocinios": "Patrocinios",
     "doacoes": "Doacoes",
-    "eventos": "Eventos",
     "outros_receita": "Outras Receitas",
+    # Despesas ("eventos" continua válida como despesa).
+    "eventos": "Eventos",
     "operacional": "Operacional",
     "juridico": "Juridico",
     "comunicacao": "Comunicacao",
@@ -870,8 +942,31 @@ async def export_dre_pdf(
 
 @router.get("/meta/categories")
 async def get_finance_categories(current_user: User = Depends(get_current_user)):
+    require_view_finances(current_user)
     return {
         "income": INCOME_CATEGORIES,
         "expense": EXPENSE_CATEGORIES,
         "types": TRANSACTION_TYPES,
+        "labels": {**INCOME_CATEGORY_LABELS, **EXPENSE_CATEGORY_LABELS},
     }
+
+
+@router.get("/joia/preview")
+async def preview_joia(
+    user_id: str,
+    cta_qualified_since: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+):
+    """Pré-visualiza a jóia (Art. 6) de um membro/candidato SEM gravar — para o
+    modal de aprovação. `cta_qualified_since` (opcional) sobrepõe o valor do doc,
+    para o admin ver o efeito da data que vai introduzir."""
+    require_view_finances(current_user)
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0, **dict.fromkeys(MFA_SECRET_FIELDS, 0)})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilizador nao encontrado")
+    if cta_qualified_since is not None:
+        user = {**user, "cta_qualified_since": cta_qualified_since}
+    settings = await db.finance_settings.find_one({"id": "finance_settings"}, {"_id": 0})
+    if not isinstance(settings, dict):
+        settings = FinanceSettings().model_dump()
+    return joia_status(user, settings)

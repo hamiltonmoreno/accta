@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { registrationAPI } from '../../utils/api';
+import { registrationAPI, financesAPI } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
 import { UserPlus, Check, X, Mail, Phone, Building2, BadgeCheck, Clock } from 'lucide-react';
@@ -36,7 +36,7 @@ export const AdminPedidosInscricaoPage = () => {
   const qc = useQueryClient();
   const [tab, setTab] = useState('pendente_aprovacao');
   const [approving, setApproving] = useState(null); // request a aprovar
-  const [approveForm, setApproveForm] = useState({ role: 'socio', cargo: '' });
+  const [approveForm, setApproveForm] = useState({ role: 'socio', cargo: '', waive: false, cta_qualified_since: '' });
   const [rejecting, setRejecting] = useState(null); // request a rejeitar
   const [rejectReason, setRejectReason] = useState('');
 
@@ -68,8 +68,22 @@ export const AdminPedidosInscricaoPage = () => {
     onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao rejeitar o pedido'),
   });
 
+  // Jóia (Art. 6): pré-visualiza sem gravar; reage à data de qualificação CTA.
+  const { data: joiaPreview } = useQuery({
+    queryKey: queryKeys.registration.joiaPreview(approving?.id, approveForm.cta_qualified_since),
+    queryFn: async () =>
+      (await financesAPI.getJoiaPreview(approving.id, approveForm.cta_qualified_since || undefined)).data,
+    enabled: !!approving,
+    staleTime: 0,
+  });
+
   const openApprove = (req) => {
-    setApproveForm({ role: 'socio', cargo: req.cargo_declarado || req.cargo || 'Sócio' });
+    setApproveForm({
+      role: 'socio',
+      cargo: req.cargo_declarado || req.cargo || 'Sócio',
+      waive: false,
+      cta_qualified_since: req.cta_qualified_since || '',
+    });
     setApproving(req);
   };
 
@@ -124,6 +138,7 @@ export const AdminPedidosInscricaoPage = () => {
                 <th className="px-4 py-3 font-semibold">Cargo declarado</th>
                 <th className="px-4 py-3 font-semibold">Nº associado</th>
                 <th className="px-4 py-3 font-semibold">Contacto</th>
+                <th className="px-4 py-3 font-semibold">Patrocínios</th>
                 <th className="px-4 py-3 font-semibold">Data</th>
                 {tab === 'pendente_aprovacao' && <th className="px-4 py-3 font-semibold text-right">Ações</th>}
               </tr>
@@ -148,6 +163,32 @@ export const AdminPedidosInscricaoPage = () => {
                     {req.department && <p className="flex items-center gap-1"><Building2 className="w-3 h-3" aria-hidden="true" />{req.department}</p>}
                     {!req.phone_number && !req.department && '—'}
                   </td>
+                  <td className="px-4 py-3">
+                    {(req.sponsors || []).length === 0 ? (
+                      <span className="text-xs text-[#6B7280]">—</span>
+                    ) : (
+                      <div className="space-y-1">
+                        <span className="text-xs font-medium text-grafite">{req.confirmed_count || 0}/2 confirmados</span>
+                        <div className="flex flex-wrap gap-1">
+                          {(req.sponsors || []).map((s, i) => (
+                            <span
+                              key={i}
+                              title={s.name || s.member_id || ''}
+                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[11px] ${
+                                s.status === 'confirmado'
+                                  ? 'bg-[#F0FDF4] text-[#15803D]'
+                                  : s.status === 'recusado'
+                                    ? 'bg-[#FEF2F2] text-[#B91C1C]'
+                                    : 'bg-[#FFFBEB] text-[#B45309]'
+                              }`}
+                            >
+                              {s.member_id || s.name || '—'}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-xs text-[#6B7280]">
                     <span className="flex items-center gap-1"><Clock className="w-3 h-3" aria-hidden="true" />{formatDate(req.registration_request_at)}</span>
                   </td>
@@ -156,7 +197,7 @@ export const AdminPedidosInscricaoPage = () => {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => openApprove(req)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-carmesim text-white text-xs font-semibold hover:bg-carmesim-dark transition-colors"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-floresta text-white text-xs font-semibold hover:bg-floresta-dark transition-colors"
                           data-testid="approve-btn"
                         >
                           <Check className="w-3.5 h-3.5" />Aprovar
@@ -193,7 +234,7 @@ export const AdminPedidosInscricaoPage = () => {
               <select
                 value={approveForm.role}
                 onChange={(e) => setApproveForm({ ...approveForm, role: e.target.value })}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none"
                 data-testid="approve-role"
               >
                 {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
@@ -205,10 +246,47 @@ export const AdminPedidosInscricaoPage = () => {
                 type="text"
                 value={approveForm.cargo}
                 onChange={(e) => setApproveForm({ ...approveForm, cargo: e.target.value })}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none"
                 data-testid="approve-cargo"
               />
             </div>
+            {/* Jóia de admissão (Art. 6): data de qualificação CTA + pré-visualização. */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1.5">Qualificado como CTA desde (Art. 6 — jóia)</label>
+              <input
+                type="date"
+                value={approveForm.cta_qualified_since}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => setApproveForm({ ...approveForm, cta_qualified_since: e.target.value })}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none"
+                data-testid="approve-cta-since"
+              />
+              {joiaPreview && (
+                <p className="mt-1.5 text-xs text-grafite bg-[#F5F5F5] rounded-md px-2.5 py-1.5" data-testid="joia-preview">
+                  {joiaPreview.joia_devida != null ? (
+                    <>Jóia devida: <strong>{joiaPreview.joia_devida.toLocaleString('pt-PT')} CVE</strong>. Cobrança manual pelo Tesoureiro.</>
+                  ) : (
+                    <>Sem jóia — {joiaPreview.motivo}.</>
+                  )}
+                </p>
+              )}
+            </div>
+            {/* Gate de patrocínio (Art. 8.3): aprovar exige 2 confirmados, salvo dispensa. */}
+            <div className={`rounded-lg px-3 py-2.5 text-xs ${(approving?.confirmed_count || 0) >= 2 ? 'bg-[#F0FDF4] text-[#15803D]' : 'bg-[#FFFBEB] text-[#B45309]'}`}>
+              Patrocínio (Art. 8.3): <strong>{approving?.confirmed_count || 0}/2</strong> confirmados.
+            </div>
+            {(approving?.confirmed_count || 0) < 2 && (
+              <label className="flex items-start gap-2 text-xs text-[#6B7280] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={approveForm.waive}
+                  onChange={(e) => setApproveForm({ ...approveForm, waive: e.target.checked })}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-carmesim focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                  data-testid="approve-waive"
+                />
+                <span>Dispensar patrocínio (Art. 8.3). A dispensa fica registada no audit log.</span>
+              </label>
+            )}
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setApproving(null)}
@@ -217,9 +295,9 @@ export const AdminPedidosInscricaoPage = () => {
                 Cancelar
               </button>
               <button
-                onClick={() => approveMutation.mutate({ id: approving.id, data: { role: approveForm.role, cargo: approveForm.cargo || null } })}
-                disabled={approveMutation.isPending}
-                className="px-4 py-2 rounded-lg bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark transition-colors disabled:opacity-50"
+                onClick={() => approveMutation.mutate({ id: approving.id, data: { role: approveForm.role, cargo: approveForm.cargo || null, waive_sponsorship: approveForm.waive, cta_qualified_since: approveForm.cta_qualified_since || null } })}
+                disabled={approveMutation.isPending || (!approveForm.waive && (approving?.confirmed_count || 0) < 2)}
+                className="px-4 py-2 rounded-lg bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 data-testid="approve-confirm"
               >
                 {approveMutation.isPending ? 'A aprovar...' : 'Confirmar aprovação'}
@@ -245,7 +323,7 @@ export const AdminPedidosInscricaoPage = () => {
               rows={3}
               maxLength={500}
               placeholder="Motivo (opcional)"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none resize-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none resize-none"
               data-testid="reject-reason"
             />
             <div className="flex justify-end gap-2">

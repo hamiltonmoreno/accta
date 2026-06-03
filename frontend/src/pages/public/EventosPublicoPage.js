@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { eventsAPI } from '../../utils/api';
 import { 
@@ -17,6 +18,7 @@ import { format, isFuture, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
+import { PageBanner } from '../../components/PageBanner';
 
 const eventTypeConfig = {
   assembleia: { icon: CalendarDays, label: 'Assembleia', color: 'bg-[#EFF6FF] text-[#1D4ED8]' },
@@ -27,24 +29,12 @@ const eventTypeConfig = {
 };
 
 export const EventosPublicoPage = () => {
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('upcoming'); // upcoming, past, all
 
-  useEffect(() => {
-    loadEvents();
-  }, []);
-
-  const loadEvents = async () => {
-    try {
-      const response = await eventsAPI.getPublic();
-      setEvents(response.data);
-    } catch (error) {
-      console.error('Erro ao carregar eventos:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: events = [], isLoading: loading } = useQuery({
+    queryKey: ['publicEvents'],
+    queryFn: async () => (await eventsAPI.getPublic()).data,
+  });
 
   const filteredEvents = events.filter(event => {
     const eventDate = new Date(event.date);
@@ -59,28 +49,12 @@ export const EventosPublicoPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative py-12 sm:py-20 lg:py-24 bg-grafite overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{ 
-            backgroundImage: 'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)',
-            backgroundSize: '40px 40px'
-          }} />
-        </div>
-        <div className="relative z-10 max-w-7xl mx-auto px-6">
-          <div className="text-center animate-fade-up">
-            <span className="inline-block px-4 py-2 bg-white/10 text-white rounded-full text-sm uppercase tracking-wider mb-6">
-              Agenda
-            </span>
-            <h1 className="font-sans font-bold text-5xl lg:text-6xl text-white mb-6" data-testid="events-title">
-              Eventos da{' '}
-              <span className="text-white">ACCTA</span>
-            </h1>
-            <p className="text-xl text-white/80 max-w-3xl mx-auto leading-relaxed">
-              Assembleias, formações, encontros e mais. Fique por dentro da agenda da associação.
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageBanner
+        pageKey="eventos"
+        badge="Agenda"
+        title="Eventos da ACCTA"
+        subtitle="Assembleias, formações, encontros e mais. Fique por dentro da agenda da associação."
+      />
 
       {/* Stats */}
       <section className="py-8 bg-white border-b border-gray-200">
@@ -217,7 +191,7 @@ export const EventosPublicoPage = () => {
           </p>
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 bg-carmesim text-white px-8 py-4 rounded-lg font-bold hover:bg-carmesim/90 transition-all"
+            className="inline-flex items-center gap-2 bg-floresta text-white px-8 py-4 rounded-lg font-bold hover:bg-floresta-dark transition-all"
           >
             Entrar na Área do Associado
             <ChevronRight className="w-5 h-5" />

@@ -234,6 +234,20 @@ async def startup_event():
     _validate_runtime_config()
     await ensure_schema()
     await _bootstrap_admin_if_requested()
+    # Semente idempotente do Regimento da AG (spec-ciclo §6.2, Art. 56).
+    try:
+        from routes.regulamentos import seed_default_regulamentos
+
+        await seed_default_regulamentos()
+    except Exception as e:  # noqa: BLE001 - seed non-fatal
+        logger.warning(f"seed_default_regulamentos warning (non-fatal): {e}")
+    # Semente idempotente da IFATCA (spec-fins-profissionais §7.1, Cat 5 F3).
+    try:
+        from routes.profissional import seed_ifatca
+
+        await seed_ifatca()
+    except Exception as e:  # noqa: BLE001 - seed non-fatal
+        logger.warning(f"seed_ifatca warning (non-fatal): {e}")
 
 
 @app.on_event("shutdown")

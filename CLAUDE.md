@@ -103,7 +103,7 @@ Conventional Commits with a scope (`feat(escopo): …`, `fix(escopo): …`).
 
 - **Frontend**: React 19 + Tailwind CSS 3 + shadcn/ui + Framer Motion + Recharts + Craco
 - **Backend**: FastAPI (Python 3.11) + asyncpg (PostgreSQL/Supabase via a Mongo-compatible async DAO in `database.py`)
-- **Database**: PostgreSQL (Supabase) — 36 tables `(pk bigserial, doc jsonb)`, one per logical collection: `users`, `transactions`, `projects`, `events`, `wall_posts`, `notifications`, `polls`, `invoices`, `documents`, `gallery_albums`, `gallery_photos`, `audit_logs`, `password_resets`, `finance_settings`, plus governança: `assembleias`, `assembleia_presencas`, `assembleia_deliberacoes`, `eleicoes`, `eleicao_listas`, `eleicao_voter_receipts`, `eleicao_ballots`, `sancoes`, `finance_settings_history`, …
+- **Database**: PostgreSQL (Supabase) — 51 tables `(pk bigserial, doc jsonb)`, one per logical collection: `users`, `transactions`, `projects`, `events`, `wall_posts`, `notifications`, `polls`, `invoices`, `documents`, `gallery_albums`, `gallery_photos`, `audit_logs`, `password_resets`, `finance_settings`, plus governança: `assembleias`, `assembleia_presencas`, `assembleia_deliberacoes`, `eleicoes`, `eleicao_listas`, `eleicao_voter_receipts`, `eleicao_ballots`, `sancoes`, `finance_settings_history`; prestação de contas: `exercicios`, `balancetes`, `regulamentos`, `regulamento_versoes`; comunicação: `comunicados`, …
 - **Auth**: JWT (HS256, 24h expiry) + RBAC (admin, socio, financeiro, moderador)
 - **Email**: Resend API
 - **Deploy**: GitHub Actions CI/CD → SSH → Nginx + Supervisord
@@ -137,9 +137,23 @@ python scripts/seed_gallery.py  # Seed gallery data
 
 ## Conventions
 
-- **Language**: Portuguese (PT) for all user-facing text; comments in PT or EN
+- **Language** — keep two axes separate; conflating them is what causes PT/EN drift:
+  - **Conversation** (chat replies / explanations to the user): **PT**. This is the
+    *communication* language and is **independent of the code** — "talk to me in
+    Portuguese" never means "write code in Portuguese".
+  - **User-facing text** (UI strings, HTTPException `detail`, notification
+    titles/bodies, emails): **PT**.
+  - **Identifiers** (functions, variables, jsonb fields): generic/technical names in
+    **EN** (`create_transaction`, `update`, `status`, `amount`, `category`,
+    `created_by`, `query`); **domain terms with no clean English equivalent stay PT**
+    (`joia`, `quota`, `socio`, `exercicio`, `balancete`, `assembleia`, `deliberacao`,
+    `sancao`, `aprovar`/`submeter`/`reabrir`). **Do NOT bulk-rename existing
+    identifiers** — they are tied to `jsonb` keys, indexes, the API and the frontend.
+  - **Comments & docstrings**: **PT** (already the majority — do not add EN ones).
+  - When editing a file, **match the surrounding code**; do not switch a file's
+    language to follow the chat language.
 - **Components**: Functional components + hooks only; shadcn/ui (New York style) for primitives
-- **Styling**: Tailwind CSS only — no inline styles. **Neutral-led**: white/`#F5F5F5` surfaces, Grafite `#3A3A3A` text; **Carmesim `#C7202F` is the single restrained accent** (≤1 primary button per view, active nav, links-on-white, destructive, focus ring) — neutral everywhere else, **never red text on dark/colored backgrounds**. The **`/frontend-design` skill** (`.claude/skills/frontend-design/SKILL.md`) is the single source of truth for the full design system (color/contrast rules, button taxonomy, typography, spacing, animation) — follow it, don't hardcode tokens from elsewhere
+- **Styling**: Tailwind CSS only — no inline styles. **Neutral-led**: white/`#F5F5F5` surfaces, Grafite `#3A3A3A` text. **Action color is semantic**: the single primary **positive** button per view is **Floresta `#166534`** (hover `#14532D`; Guardar/Confirmar/Criar/Aprovar/Entrar/Votar), and **Carmesim `#C7202F`** is brand identity + **destructive** (active nav, links-on-white, focus ring, logo; destructive = outline by default, solid only inside an irreversible confirm dialog) — neutral everywhere else, **never red text on dark/colored backgrounds**, never Carmesim as a positive primary. The **`/frontend-design` skill** (`.claude/skills/frontend-design/SKILL.md`) is the single source of truth for the full design system (color/contrast rules, button taxonomy, typography, spacing, animation) — follow it, don't hardcode tokens from elsewhere
 - **Backend**: Async/await everywhere; Pydantic models for all request/response validation
 - **Auth**: Role-based access check on every protected endpoint; audit log on every admin action
 - **Identity, cargos & governança** (spec-identidade-cargos, **superada na

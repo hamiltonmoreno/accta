@@ -1,121 +1,61 @@
-# TODO — Governança Estatutária da ACCTA (spec-governanca-estatutaria.md)
+# Cat 5 F5 — Venda de publicações (integra Cat. 4)
 
-Branch: `feature/governanca-estatutaria` (off `develop`).
-Âmbito desta sessão: **Backend completo (Fases 0–6)**. Exclui Frontend (Fase 7)
-e migração destrutiva de dados (Fase 8). Commit por fase.
+> Origem: `tasks/spec-fins-profissionais.md` §8.2, §11 (F5), §14.5.
+> Ramo: `feature/cat5-f5-venda-publicacoes` (empilhado sobre F4 / PR #140).
+> Depende de F2 (publicações, develop) + Cat. 4 (invoices/receitas, develop) + F4
+> (superfície pública, PR #140, para mostrar o preço ao público).
 
-## Fase 0 — Núcleo de governança (foundation, aditivo) ✅
-- [x] `backend/governance.py`: ORGAOS, CARGOS_CATALOG, MEMBER_CATEGORIES, PRIVILEGES, ROLES, LEGACY_CARGO_ALIASES
-- [x] Helpers: cargo_info, normalize_cargo, cargo_label, privileges_for_cargo, role_for_cargo, orgao_of_cargo, seats_for_cargo, is_estatutary_cargo, is_voting_member, is_eligible_for_office, required_quorum, required_absolute_majority, required_three_quarters, election_slots, governance_structure
-- [x] Re-exports derivados: CARGOS, CARGO_KEYS, CARGO_DEFAULTS, CARGO_SEATS
-- [x] `models.py` re-exporta de governance (sem quebrar imports)
-- [x] `routes/governance.py`: `GET /api/governance/structure`
-- [x] `/users/meta/cargos` + `/users/meta/privileges` viram aliases (deprecated)
-- [x] Testes unitários governance + structure (test_governance.py, 44)
+## Decisões confirmadas com o dono (2026-05-30)
 
-## Fase 1 — Normalização compatível (key canónica) ✅
-> Fundida na Fase 0: a mudança de taxonomia ripple-a já na validação dos
-> endpoints, logo tem de aterrar no mesmo commit para a suite ficar verde.
-- [x] UserBase: `member_category`, `orgao`, `rights_suspended_until`, `rights_suspension_reason`, `residence_island`; cargo default → `socio` key
-- [x] CargoMandate: campos novos (label, orgao, posse, mandato, suplente, seat_index, eleicao/assembleia ids, transition_id)
-- [x] promote/demote/transfer: aceitam key/label/alias, gravam key, setam orgao
-- [x] `/cargos`, `/cargos/candidates`, invite, approve_registration, admin_update_user adaptados a keys
-- [x] Actualizar test_cargos_routes.py + test_identidade_cargos_models.py + test_auto_registo.py p/ keys
-- [x] Commit (Fase 0+1)
-- NOTA: 2 falhas pré-existentes em test_users_routes (get_users $or search) — NÃO regressão, fora de âmbito.
+- **Pagamento = faturas internas** (não gateway externo). A receita externa
+  regista-se em **Cat. 4** com `category="venda_publicacoes"` (já existente em
+  `models.py`); sem integração de pagamentos online.
+- **Sócios não pagam** — descarregam grátis; a venda aplica-se a não-sócios.
 
-## Fase 2 — RBAC e elegibilidade ✅
-- [x] `backend/permissions.py`: user_can, is_mesa_ag, is_direcao, is_conselho_fiscal, is_tesoureiro, can_convene_assembleia
-- [x] is_voting_member / is_eligible_for_office wired (status, categoria, suspensão)
-- [x] Testes RBAC/elegibilidade (test_permissions.py, 17)
-- [x] Commit
+## Consequência de desenho (honesta)
 
-## Fase 3 — Assembleia Geral ✅
-- [x] Modelos: Assembleia, AssembleiaPresenca, AssembleiaDeliberacao (+ Create)
-- [x] Colecções + índices (assembleias, assembleia_presencas, assembleia_deliberacoes)
-- [x] `routes/assembleias.py`: convocar, presenças, deliberações (+ list), encerrar, quórum
-- [x] Testes (quórum 1ª/2ª, representação max 3, Mesa não representa, maiorias, RBAC) — 15
-- [x] Commit
+Como **só sócios têm conta** no portal e **não pagam**, não há comprador
+in-portal: não se cria um endpoint `comprar` vestigial. F5 = **permitir marcar à
+venda + preço**, **mostrar o preço** (público) e **proteger o conteúdo pago**;
+a receita regista-se pela via financeira existente (`venda_publicacoes`).
 
-## Fase 4 — Eleições + proclamação ✅
-- [x] Modelos: Eleicao, EleicaoLista, EleicaoVoterReceipt, EleicaoBallot (+ Create/Votar)
-- [x] Colecções + índices (voto secreto: receipt/ballot separados; ux_eleicao_receipt único)
-- [x] `database.py`: `cast_ballot` transaccional (receipt + ballot atómico) + voter_hash HMAC
-- [x] `routes/eleicoes.py`: ciclo completo (criar→listas→validar→abrir→votar→correspondência→apurar→proclamar); proclamação cria mandatos (serviço comum `_proclaim_list`)
-- [x] Testes (lista incompleta/duplicada/comissão, inelegível, boletim anónimo, voto duplo, apuramento, empate, proclamação) — 14
-- [x] Commit
+## Backend
 
-## Fase 5 — Disciplina ✅
-- [x] Modelo Sancao (+ Create/Comissao/Decidir/Recurso) + colecção sancoes + índices
-- [x] `routes/sancoes.py`: propor, comissão, decidir, recurso, aplicar, get/list; `/users/{id}/sancoes` (users.py)
-- [x] Regras: multa ≤ 3x quota, expulsão exige deliberação AG aprovada, perda de direitos seta rights_suspended_until (mantém ativo), expulsão inactiva+encerra mandato, redacção de dados sensíveis
-- [x] Testes (12)
-- [x] Commit
+- [x] `routes/profissional.py`: remover o bloqueio de `a_venda` em
+  `create_publicacao`/`update_publicacao`; validar que `a_venda` exige `preco>0`
+  (estado efetivo após merge no update).
+- [x] `routes/public_profissional.py`: expor `a_venda`/`preco` na projeção pública
+  (catálogo público mostra o preço). Campos internos continuam ocultos.
+- [x] Sem novo endpoint de transação (respeita a fronteira de domínio; a receita
+  cria-se no módulo Financeiro com a categoria já existente).
 
-## Fase 6 — Quotas e jóias ✅
-- [x] FinanceSettings estendido (joia_multiplier/amount, quota_fixed_by_*, effective_from) + finance_settings_history
-- [x] Alteração de quota/jóia exige deliberação AG aprovada por 3/4; regista versão anterior; jóia = mult × quota; quota_description não exige deliberação
-- [x] GET /finances/settings/history (view-finances)
-- [x] Testes (6) + finances existentes verdes (29)
-- [x] Commit
+## Testes backend
 
-## Fase 7 — Frontend (em curso)
-- [x] Transversal: `governanceAPI`/`assembleiasAPI`/`eleicoesAPI`/`sancoesAPI` em api.js; `lib/governanceLabels.js` (labels + cargoLabelFrom, fallback leve); queryKeys (governance/assembleias/eleicoes/sancoes)
-- [x] `AuthContext`: `can(p)`, `isMesaAG`, `isDirecao`, `isConselhoFiscal`, `isTesoureiro`, `isVotingMember`
-- [x] `PrivateLayout`: secção "Órgãos Sociais" (Assembleias, Eleições; Disciplina gated Direcção/admin) + títulos
-- [x] `App.js`: rotas + lazy imports das novas páginas
-- [x] `/admin/cargos`: keys + órgão (label, não key)
-- [x] `/perfil`: "Os Meus Cargos e Mandatos" (labels + suplente), categoria, banner de suspensão de direitos
-- [x] `/admin/assembleias`: convocar, presenças/representação, quórum, deliberações, encerrar (subagent)
-- [x] `/admin/eleicoes`: ciclo + listas/slots + votar (membro) + apuramento/proclamação; resultados só agregados (subagent)
-- [x] `/admin/disciplinar`: processos, comissão, decidir, recurso, aplicar; access-gate Direcção/admin (subagent)
-- [x] eslint limpo (0 erros; 2 warnings pré-existentes, < threshold 60)
-- [x] `craco build` verde — "Compiled successfully" (corrigido: AdminAssembleiasPage importava framer-motion, que não é dependência → trocado por CSS `animate-fade-up`)
-- [x] Commit
+- [x] `create`: `a_venda=True`+`preco>0` → ok; `a_venda=True` sem preço → 400.
+- [x] `update`: tornar `a_venda` sem preço → 400; com preço → ok.
+- [x] Projeção pública expõe `a_venda`/`preco` e oculta `created_by`. **109 passed.**
 
-## Fase 8 — Migração de dados (script criado; --apply NÃO corrido)
-- [x] `scripts/migrate_governance_cargos.py`: `plan_user_changes` (pura, idempotente) — cargo→key, orgao denormalizado, account_type/member_category default, cargo_history (key+label+orgao); contas técnicas fora do catálogo
-- [x] `--dry-run` (default, só leitura) + `--apply --confirm` (duplo guard; AVISO STOP condition); UTF-8 stdout p/ Windows
-- [x] test_migrate_governance.py (7) — transform verificado sem DB
-- [ ] **`--apply` por correr** — STOP condition (§20): exige confirmação do utilizador + DB acessível + backup. Não há `DATABASE_URL` neste ambiente (dry-run live não corre aqui).
-- [x] Commit
+## Frontend
 
-## Verificação final
-- [x] `cd backend && ruff check .` — All checks passed
-- [x] `ruff format` aplicado aos ficheiros tocados (commit style)
-- [x] Suite unitária completa (29 ficheiros, sem integração): **579 passed, 2 failed**
-  (as 2 falhas — test_users_routes get_users `$or` search — são PRÉ-EXISTENTES na
-  branch base, confirmado por `git stash`; fora de âmbito)
-- [x] Revisão de critérios de aceitação §19 — ver abaixo
+- [x] `PublicacoesPage` (gestão): checkbox **À venda** + campo **Preço (CVE)**
+  (validação preço>0); nota a explicar grátis-para-sócios + manter documento
+  privado + registar receita no Financeiro. Badge "À venda · X CVE" no card.
+- [x] `PublicacoesPublicoPage` (público): itens à venda mostram preço + CTA
+  "Adquirir — contactar ACCTA" e **não** mostram download (conteúdo pago).
 
-## Review
+## Verificação
 
-Branch `feature/governanca-estatutaria` (off `develop`). 7 commits:
-0+1 núcleo/taxonomia · 2 RBAC · 3 Assembleia · 4 Eleições · 5 Disciplina ·
-6 Quotas/jóias · style (ruff format).
+- [x] `pytest` → 109 passed; `ruff check`/`ruff format --check` limpos.
+- [x] `eslint --max-warnings=0` (ficheiros F5) limpo; `craco build` → Compiled successfully.
+- [x] PR — **#141** (base = `feature/cat5-f4-superficies-publicas` — stack: develop ← F3 #138 ← F4 #140 ← F5 #141).
 
-Entregue (Fases 0-6, backend): `governance.py` (fonte única) + `permissions.py`,
-4 grupos de rotas novos (`/api/governance`, `/api/assembleias`, `/api/eleicoes`,
-`/api/sancoes`) = 28 endpoints de governança, 9 colecções novas + índices,
-`database.cast_ballot` (voto atómico), FinanceSettings estendido. ~120 testes
-unitários novos de governança.
+## Operação (não-código)
 
-Critérios §19: ✅ governance.py fonte única · ✅ models.py só re-exporta · ✅ 3
-órgãos + Relator + Secretário (sem -Geral) · ✅ sem Coordenações/Comissões · ✅
-cargo/cargo_history em keys canónicas · ✅ honorário/técnico/inactivo/suspenso não
-votam · ✅ quórum/maiorias por helpers testados · ✅ boletim sem user_id/voter_hash
-· ✅ proclamação cria mandatos (posse/cessantes) · ✅ expulsão exige deliberação AG
-· ✅ quota/jóia exigem 3/4.
+- O admin que marca à venda deve manter o **documento** com visibilidade `Sócios`
+  (senão o público descarrega grátis via `/documents/public`). A publicação pode
+  ser `publico` (aparece no catálogo com preço) com o documento `socios`.
 
-FORA DE ÂMBITO (não pedido nesta sessão): Fase 7 (frontend) e Fase 8 (migração
-destrutiva `scripts/migrate_governance_cargos.py --apply` — STOP condition).
+## Estado da spec
 
-Notas de seguimento para o owner (não bloqueantes):
-- Docs com contagens agora desactualizadas: `.claude/rules/database.md` ("27
-  tables" → +9 colecções de governança) e CLAUDE.md menciona spec-identidade-cargos
-  (a taxonomia foi superada por spec-governanca). Não editei (políticas de doc
-  canónica) — sinalizo para revisão.
-- 2 falhas pré-existentes em `test_users_routes` (get_users `$or` search) merecem
-  fix à parte.
-- Decisões em aberto §21 que afectam fases futuras: voto digital vinculativo?,
-  Direcção 5 vs 7 (default 5), representação de honorário, residência no Sal.
+- Com F5, a `spec-fins-profissionais` fica **completa (F1–F5)** assim que os PRs
+  #138/#140/F5 fundirem em `develop` → renomear para `-concluido`.

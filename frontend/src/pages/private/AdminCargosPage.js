@@ -1,15 +1,16 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cargosAPI, governanceAPI } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
 import { ROLE_LABELS, PRIVILEGE_LABELS, orgaoLabel } from '../../lib/governanceLabels';
 import { toast } from 'sonner';
-import { Award, UserPlus, ArrowRightLeft, UserMinus, Search, Hash } from 'lucide-react';
+import { Award, UserPlus, ArrowRightLeft, UserMinus, Hash } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '../../components/ui/dialog';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
+import { MemberPicker as CandidatePicker } from '../../components/MemberPicker';
 
 const ROLE_OPTIONS = ['admin', 'financeiro', 'moderador', 'socio'];
 
@@ -22,74 +23,6 @@ const formatDate = (iso) => {
   }
 };
 
-// Procura de sócios elegíveis (debounced) para atribuir/transferir um cargo.
-const CandidatePicker = ({ excludeCargo, value, onSelect, testId }) => {
-  const [search, setSearch] = useState('');
-  const [debounced, setDebounced] = useState('');
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(search), 300);
-    return () => clearTimeout(t);
-  }, [search]);
-
-  const { data: candidates = [], isFetching, isError } = useQuery({
-    queryKey: queryKeys.cargos.candidates({ q: debounced, excludeCargo }),
-    queryFn: async () => (await cargosAPI.candidates({ q: debounced, exclude_cargo: excludeCargo || undefined })).data.candidates,
-    staleTime: 30 * 1000,
-  });
-
-  return (
-    <div>
-      {value ? (
-        <div className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-[#D1D5DB] bg-[#F5F5F5]">
-          <span className="text-sm text-grafite">
-            {value.name} <span className="font-mono text-xs text-[#6B7280]">{value.member_id || ''}</span>
-          </span>
-          <button onClick={() => onSelect(null)} className="text-xs text-carmesim font-semibold hover:underline">
-            Alterar
-          </button>
-        </div>
-      ) : (
-        <>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Procurar por nome, email ou nº associado..."
-              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none"
-              data-testid={testId}
-            />
-          </div>
-          <div className="mt-1.5 max-h-44 overflow-y-auto rounded-lg border border-gray-100 divide-y divide-gray-50">
-            {isFetching && candidates.length === 0 ? (
-              <div className="px-3 py-3"><Skeleton className="h-4 w-40" /></div>
-            ) : isError ? (
-              <p className="px-3 py-3 text-xs text-carmesim font-medium">Não foi possível carregar os sócios. Tente novamente.</p>
-            ) : candidates.length === 0 ? (
-              <p className="px-3 py-3 text-xs text-[#6B7280]">Nenhum sócio encontrado.</p>
-            ) : (
-              candidates.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => onSelect(c)}
-                  className="w-full text-left px-3 py-2 hover:bg-[#F5F5F5] transition-colors"
-                  data-testid={`candidate-${c.id}`}
-                >
-                  <span className="text-sm text-grafite">{c.name}</span>
-                  <span className="ml-2 font-mono text-xs text-[#6B7280]">{c.member_id || ''}</span>
-                  <span className="block text-xs text-[#6B7280]">{c.email} · {c.cargo}</span>
-                </button>
-              ))
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
-
 // Campos partilhados pelos modais de atribuir/transferir: role + privilégios + meta.
 const MandateFields = ({ form, setForm, privileges }) => (
   <>
@@ -98,7 +31,7 @@ const MandateFields = ({ form, setForm, privileges }) => (
       <select
         value={form.role}
         onChange={(e) => setForm({ ...form, role: e.target.value })}
-        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none"
+        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none"
         data-testid="mandate-role"
       >
         {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
@@ -106,7 +39,7 @@ const MandateFields = ({ form, setForm, privileges }) => (
     </div>
     <div>
       <label className="block text-xs font-medium text-gray-600 mb-1.5">Privilégios</label>
-      <div className="grid grid-cols-2 gap-1.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
         {privileges.map((p) => {
           const checked = form.privileges.includes(p);
           return (
@@ -128,14 +61,14 @@ const MandateFields = ({ form, setForm, privileges }) => (
         })}
       </div>
     </div>
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div>
         <label className="block text-xs font-medium text-gray-600 mb-1.5">Data efetiva</label>
         <input
           type="date"
           value={form.effectiveDate}
           onChange={(e) => setForm({ ...form, effectiveDate: e.target.value })}
-          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none"
+          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none"
         />
       </div>
       <div>
@@ -145,7 +78,7 @@ const MandateFields = ({ form, setForm, privileges }) => (
           value={form.electedBy}
           onChange={(e) => setForm({ ...form, electedBy: e.target.value })}
           placeholder="AGA 2026"
-          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none"
+          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none"
         />
       </div>
     </div>
@@ -156,13 +89,14 @@ const MandateFields = ({ form, setForm, privileges }) => (
         onChange={(e) => setForm({ ...form, notes: e.target.value })}
         rows={2}
         maxLength={500}
-        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none resize-none"
+        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none resize-none"
       />
     </div>
   </>
 );
 
-const isoOrNull = (dateStr) => (dateStr ? `${dateStr}T00:00:00.000Z` : null);
+// Meio-dia UTC evita o desvio de dia em fusos negativos (campo só-data).
+const isoOrNull = (dateStr) => (dateStr ? `${dateStr}T12:00:00.000Z` : null);
 
 export const AdminCargosPage = () => {
   const qc = useQueryClient();
@@ -350,7 +284,7 @@ export const AdminCargosPage = () => {
                     data: { cargo: assigning.cargo, role: form.role, privileges: form.privileges, elected_by: form.electedBy || null, notes: form.notes || null, effective_date: isoOrNull(form.effectiveDate) },
                   })}
                   disabled={!form.toUser || promoteMutation.isPending}
-                  className="px-4 py-2 rounded-lg bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark transition-colors disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark transition-colors disabled:opacity-50"
                   data-testid="assign-confirm"
                 >
                   {promoteMutation.isPending ? 'A atribuir...' : 'Confirmar atribuição'}
@@ -398,7 +332,7 @@ export const AdminCargosPage = () => {
                     effective_date: isoOrNull(form.effectiveDate),
                   })}
                   disabled={!form.toUser || transferMutation.isPending}
-                  className="px-4 py-2 rounded-lg bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark transition-colors disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark transition-colors disabled:opacity-50"
                   data-testid="transfer-confirm"
                 >
                   {transferMutation.isPending ? 'A transferir...' : 'Confirmar transferência'}
@@ -425,7 +359,7 @@ export const AdminCargosPage = () => {
               rows={2}
               maxLength={500}
               placeholder="Notas (opcional)"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none resize-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none resize-none"
               data-testid="end-notes"
             />
             <div className="flex justify-end gap-2">

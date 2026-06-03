@@ -78,7 +78,13 @@ class TestConstantes:
 
     def test_privileges_inclui_view_finances_readonly(self):
         assert "view_finances_readonly" in PRIVILEGES
-        assert len(PRIVILEGES) == 8
+        # emit_cf_parecer foi acrescentado no ciclo de prestação de contas (Art. 34/37).
+        assert "emit_cf_parecer" in PRIVILEGES
+        # send_comunicados (spec-comunicados-email) e manage_ranking
+        # (spec-ranking-socio §7) são overlays aditivos posteriores.
+        assert "send_comunicados" in PRIVILEGES
+        assert "manage_ranking" in PRIVILEGES
+        assert len(PRIVILEGES) == 11
         assert len(PRIVILEGES) == len(set(PRIVILEGES))
 
     def test_cargo_defaults_e_seats_keyed_by_key(self):

@@ -9,7 +9,10 @@ from models import (
     PasswordResetConfirm,
     SetupAccount,
     RegistrationRequest,
+    Patrocinio,
     CARGOS_DECLARADOS,
+    MfaVerifyRequest,
+    MfaDisableRequest,
 )
 from database import db, next_member_id
 from auth import (
@@ -28,12 +31,24 @@ from auth import (
 from email_service import send_welcome_email, send_password_reset_email
 from helpers import (
     LOCKOUT_WINDOW_MINUTES,
+    alert_admins_account_locked,
     create_audit_log,
     is_account_locked,
     notify_admins,
+    notify_users,
     record_failed_login,
     reset_failed_logins,
     resolve_link_base,
+)
+from permissions import is_voting_member
+from mfa import (
+    encrypt_secret,
+    generate_backup_codes,
+    generate_totp_secret,
+    hash_backup_code,
+    is_mfa_mandatory,
+    provisioning_uri,
+    verify_totp_encrypted,
 )
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -67,13 +82,15 @@ async def login(request: Request, response: Response, credentials: UserLogin):
     user_doc = await db.users.find_one({"email": credentials.email}, {"_id": 0})
     if not user_doc or not user_doc.get("password") or not verify_password(credentials.password, user_doc["password"]):
         # Conta tentativa falhada para futuro lockout (avaliado por is_account_locked).
-        await record_failed_login(credentials.email, ip=request.client.host if request.client else None)
+        just_locked = await record_failed_login(credentials.email, ip=request.client.host if request.client else None)
         await create_audit_log(
             user_doc["id"] if user_doc else "anonymous",
             "login_failed",
             request=request,
             details={"email": credentials.email, "reason": "invalid_credentials"},
         )
+        if just_locked:
+            await alert_admins_account_locked(credentials.email)
         raise HTTPException(status_code=401, detail="Credenciais invalidas")
 
     if user_doc.get("status") == "pendente_convite":
@@ -81,6 +98,34 @@ async def login(request: Request, response: Response, credentials: UserLogin):
         raise HTTPException(
             status_code=403, detail="Conta pendente de ativacao. Use o link de convite para definir a sua senha."
         )
+
+    # MFA (spec-mfa-f2): se ativo, exige 2.º fator (TOTP ou backup code) antes
+    # de emitir a sessão. OTP errado conta para o lockout (anti brute-force).
+    if user_doc.get("mfa_enabled"):
+        if not credentials.otp:
+            await create_audit_log(user_doc["id"], "login_mfa_challenge", request=request)
+            raise HTTPException(status_code=401, detail="mfa_required")
+        totp_ok = verify_totp_encrypted(user_doc["mfa_secret"], credentials.otp)
+        backup_ok = False
+        if not totp_ok:
+            # Consumo ATÓMICO: o $pull remove o hash só se presente; modified_count
+            # reflete a alteração real, logo uma corrida concorrente vê 0 → uso único
+            # garantido ao nível da BD. O filtro é só por `id` (escalar): o DAO
+            # Mongo-compatível NÃO emula match de pertença em array
+            # (`{"mfa_backup_codes": code_hash}` num campo-array nunca casa → o login
+            # por backup code ficava sempre 401 mfa_invalido).
+            code_hash = hash_backup_code(credentials.otp)
+            res = await db.users.update_one(
+                {"id": user_doc["id"]},
+                {"$pull": {"mfa_backup_codes": code_hash}},
+            )
+            backup_ok = res.modified_count == 1
+        if not totp_ok and not backup_ok:
+            just_locked = await record_failed_login(credentials.email, ip=request.client.host if request.client else None)
+            await create_audit_log(user_doc["id"], "login_mfa_failed", request=request)
+            if just_locked:
+                await alert_admins_account_locked(credentials.email)
+            raise HTTPException(status_code=401, detail="mfa_invalido")
 
     # Login sucesso — limpa contador de falhas para que utilizador legitimo
     # nao seja afectado por tentativas anteriores erradas/atacante.
@@ -90,21 +135,19 @@ async def login(request: Request, response: Response, credentials: UserLogin):
     )
     await create_audit_log(user_doc["id"], "login_success", request=request)
 
-    user_doc.pop("password", None)
-    user_doc.pop("invite_token", None)
-    if isinstance(user_doc.get("created_at"), str):
-        user_doc["created_at"] = datetime.fromisoformat(user_doc["created_at"])
-    if user_doc.get("admission_date") and isinstance(user_doc["admission_date"], str):
-        user_doc["admission_date"] = datetime.fromisoformat(user_doc["admission_date"])
-    if user_doc.get("last_login_at") and isinstance(user_doc["last_login_at"], str):
-        user_doc["last_login_at"] = datetime.fromisoformat(user_doc["last_login_at"])
+    mfa_setup_required = is_mfa_mandatory(user_doc["role"]) and not user_doc.get("mfa_enabled")
+    for _k in ("password", "invite_token", "mfa_secret", "mfa_pending_secret", "mfa_backup_codes"):
+        user_doc.pop(_k, None)
 
     user = User(**user_doc)
-    token = create_access_token({"sub": user.id})
+    claims = {"sub": user.id}
+    if mfa_setup_required:
+        claims["mfa_pending"] = True  # sessão limitada aos endpoints de enrolment
+    token = create_access_token(claims)
     # Sprint 10 — set httpOnly cookie. Token ainda e devolvido no body para
     # compat com testes legados / clientes nao-browser. Frontend novo nao usa.
     set_session_cookie(response, token)
-    return Token(access_token=token, token_type="bearer", user=user)
+    return Token(access_token=token, token_type="bearer", user=user, mfa_setup_required=mfa_setup_required)
 
 
 @router.get("/me", response_model=User)
@@ -139,6 +182,74 @@ async def logout(
     clear_session_cookie(response)
     await create_audit_log(current_user.id, "logout", request=request)
     return {"message": "Sessão encerrada"}
+
+
+@router.post("/mfa/setup")
+@limiter.limit("5/minute")
+async def mfa_setup(request: Request, current_user: User = Depends(get_current_user)):
+    """Inicia enrolment: gera segredo TOTP, guarda-o cifrado como PENDING
+    (não mexe no ativo) e devolve segredo + otpauth URI para o QR."""
+    secret = generate_totp_secret()
+    await db.users.update_one(
+        {"id": current_user.id}, {"$set": {"mfa_pending_secret": encrypt_secret(secret)}}
+    )
+    await create_audit_log(current_user.id, "mfa_setup_initiated", request=request)
+    return {"secret": secret, "otpauth_uri": provisioning_uri(secret, current_user.email)}
+
+
+@router.post("/mfa/verify")
+async def mfa_verify(request: Request, data: MfaVerifyRequest, response: Response, current_user: User = Depends(get_current_user)):
+    """Confirma o primeiro OTP, ativa o MFA e devolve os backup codes (1x)."""
+    doc = await db.users.find_one({"id": current_user.id}, {"_id": 0})
+    pending = (doc or {}).get("mfa_pending_secret")
+    if not pending:
+        raise HTTPException(status_code=400, detail="Inicie a configuracao de MFA primeiro")
+    if not verify_totp_encrypted(pending, data.otp):
+        raise HTTPException(status_code=400, detail="Codigo invalido")
+    codes = generate_backup_codes()
+    await db.users.update_one(
+        {"id": current_user.id},
+        {
+            "$set": {
+                "mfa_secret": pending,
+                "mfa_enabled": True,
+                "mfa_backup_codes": [hash_backup_code(c) for c in codes],
+            },
+            "$unset": {"mfa_pending_secret": ""},
+        },
+    )
+    await create_audit_log(current_user.id, "mfa_enabled", request=request)
+    # Upgrade da sessão limitada → token completo (sem mfa_pending).
+    full_token = create_access_token({"sub": current_user.id})
+    set_session_cookie(response, full_token)
+    return {"backup_codes": codes, "access_token": full_token, "token_type": "bearer"}
+
+
+@router.post("/mfa/disable")
+async def mfa_disable(request: Request, data: MfaDisableRequest, current_user: User = Depends(get_current_user)):
+    """Desativa MFA após re-autenticação por password."""
+    doc = await db.users.find_one({"id": current_user.id}, {"_id": 0})
+    if not doc or not doc.get("password") or not verify_password(data.password, doc["password"]):
+        raise HTTPException(status_code=403, detail="Password incorreta")
+    await db.users.update_one(
+        {"id": current_user.id},
+        {
+            "$set": {"mfa_enabled": False},
+            "$unset": {"mfa_secret": "", "mfa_pending_secret": "", "mfa_backup_codes": ""},
+        },
+    )
+    await create_audit_log(current_user.id, "mfa_disabled", request=request)
+    return {"message": "MFA desativado"}
+
+
+@router.get("/mfa/status")
+async def mfa_status(current_user: User = Depends(get_current_user)):
+    doc = await db.users.find_one({"id": current_user.id}, {"_id": 0}) or {}
+    return {
+        "enabled": bool(doc.get("mfa_enabled")),
+        "mandatory": is_mfa_mandatory(current_user.role),
+        "backup_codes_remaining": len(doc.get("mfa_backup_codes") or []),
+    }
 
 
 @router.get("/registration-options")
@@ -176,6 +287,33 @@ async def register(request: Request, data: RegistrationRequest):
             raise HTTPException(status_code=409, detail="Não foi possível processar este pedido.")
         raise HTTPException(status_code=409, detail="Já existe uma conta com este email.")
 
+    # Patrocínio de admissão (Art. 8.3): 2 padrinhos sócios activos distintos.
+    # Mensagens neutras (anti-enumeração) — não revelam quem existe.
+    sponsors = data.sponsors or []
+    if len(sponsors) != 2:
+        raise HTTPException(status_code=422, detail="Indique 2 padrinhos (sócios activos) — Art. 8.3.")
+    resolved_sponsors = []
+    for ident in sponsors:
+        ident = (ident or "").strip()
+        q = {"email": ident} if "@" in ident else {"member_id": ident}
+        s = await db.users.find_one(
+            {**q, "status": "ativo"},
+            {
+                "_id": 0,
+                "id": 1,
+                "member_id": 1,
+                "account_type": 1,
+                "status": 1,
+                "member_category": 1,
+                "rights_suspended_until": 1,
+            },
+        )
+        if not s or not is_voting_member(s):
+            raise HTTPException(status_code=422, detail="Padrinho inválido. Indique 2 sócios activos.")
+        resolved_sponsors.append(s)
+    if resolved_sponsors[0]["id"] == resolved_sponsors[1]["id"]:
+        raise HTTPException(status_code=422, detail="Os 2 padrinhos têm de ser distintos.")
+
     user_id = str(uuid.uuid4())
     member_id = await next_member_id()
     now = datetime.now(timezone.utc).isoformat()
@@ -202,6 +340,23 @@ async def register(request: Request, data: RegistrationRequest):
         "registration_request_at": now,
     }
     await db.users.insert_one(user_doc)
+
+    # Cria 2 pedidos de patrocínio (pendente) e notifica cada padrinho (Art. 8.3).
+    for s in resolved_sponsors:
+        patrocinio = Patrocinio(
+            candidate_id=user_id,
+            sponsor_user_id=s["id"],
+            sponsor_member_id=s.get("member_id"),
+            created_at=now,
+        )
+        await db.patrocinios.insert_one(patrocinio.model_dump())
+    await notify_users(
+        [s["id"] for s in resolved_sponsors],
+        "system",
+        "Pedido de patrocínio",
+        f"{data.name} indicou-o como padrinho de admissão (Art. 8.3). Confirme no portal.",
+        link="/participacao/patrocinios",
+    )
 
     await notify_admins(
         "system",
@@ -257,17 +412,17 @@ async def setup_account(request: Request, response: Response, background_tasks: 
         },
     )
 
-    # Parse dates for Token response
     user_doc["password"] = ""
     user_doc["status"] = "ativo"
     user_doc.pop("invite_token", None)
-    for field in ["created_at", "admission_date", "last_login_at"]:
-        if user_doc.get(field) and isinstance(user_doc[field], str):
-            user_doc[field] = datetime.fromisoformat(user_doc[field])
-    user_doc["last_login_at"] = datetime.now(timezone.utc)
+    user_doc["last_login_at"] = datetime.now(timezone.utc).isoformat()
 
     user = User(**user_doc)
-    token = create_access_token({"sub": user.id})
+    mfa_setup_required = is_mfa_mandatory(user.role) and not user_doc.get("mfa_enabled")
+    claims = {"sub": user.id}
+    if mfa_setup_required:
+        claims["mfa_pending"] = True
+    token = create_access_token(claims)
 
     await create_audit_log(user.id, "account_activated", request=request)
 
@@ -282,6 +437,7 @@ async def setup_account(request: Request, response: Response, background_tasks: 
         "access_token": token,
         "token_type": "bearer",
         "user": user.model_dump(),
+        "mfa_setup_required": mfa_setup_required,
     }
 
 

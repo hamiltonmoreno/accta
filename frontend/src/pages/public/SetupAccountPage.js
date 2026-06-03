@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Shield, Lock, Eye, EyeOff, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { authAPI } from '../../utils/api';
 import { toast } from 'sonner';
-import { ACCTALogoHorizontal } from '../../components/ACCTALogo';
+import { BrandLogo } from '../../components/BrandLogo';
 import { setupAccountSchema } from '../../utils/authSchemas';
 
 export const SetupAccountPage = () => {
@@ -65,7 +65,7 @@ export const SetupAccountPage = () => {
           <div className="w-14 h-14 bg-[#FEF2F2] rounded-2xl flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-7 h-7 text-carmesim" />
           </div>
-          <h1 className="text-xl font-bold text-grafite mb-2">Convite Invalido</h1>
+          <h1 className="text-xl font-bold text-grafite mb-2">Convite Inválido</h1>
           <p className="text-sm text-gray-500 mb-6">
             Este link de convite e invalido ou ja foi utilizado. Contacte o administrador da ACCTA.
           </p>
@@ -104,14 +104,14 @@ export const SetupAccountPage = () => {
         data-testid="setup-account-form"
       >
         <div className="flex justify-center mb-6">
-          <ACCTALogoHorizontal className="h-8" />
+          <BrandLogo className="h-8" />
         </div>
 
         <div className="text-center mb-6">
           <div className="w-12 h-12 bg-carmesim/10 rounded-2xl flex items-center justify-center mx-auto mb-3">
             <Shield className="w-6 h-6 text-carmesim" />
           </div>
-          <h1 className="text-xl font-bold text-grafite mb-1">Bem-vindo a ACCTA</h1>
+          <h1 className="text-xl font-bold text-grafite mb-1">Bem-vindo à ACCTA</h1>
           <p className="text-sm text-gray-500">
             {inviteData?.name}, defina a sua senha para ativar a conta.
           </p>
@@ -129,8 +129,8 @@ export const SetupAccountPage = () => {
                 autoComplete="new-password"
                 aria-invalid={errors.password ? 'true' : 'false'}
                 {...register('password')}
-                placeholder="Minimo 6 caracteres"
-                className="w-full pl-9 pr-10 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none aria-[invalid=true]:border-carmesim/60"
+                placeholder="Mínimo 6 caracteres"
+                className="w-full pl-9 pr-10 py-3 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none aria-[invalid=true]:border-carmesim/60"
                 data-testid="setup-password"
               />
               <button
@@ -158,7 +158,7 @@ export const SetupAccountPage = () => {
                 aria-invalid={errors.confirmPassword ? 'true' : 'false'}
                 {...register('confirmPassword')}
                 placeholder="Repetir a senha"
-                className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none aria-[invalid=true]:border-carmesim/60"
+                className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none aria-[invalid=true]:border-carmesim/60"
                 data-testid="setup-confirm-password"
               />
             </div>
@@ -170,7 +170,7 @@ export const SetupAccountPage = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3 bg-carmesim hover:bg-carmesim/90 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-floresta hover:bg-floresta-dark text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             data-testid="setup-submit"
           >
             {isSubmitting ? 'A ativar...' : 'Ativar Conta'}

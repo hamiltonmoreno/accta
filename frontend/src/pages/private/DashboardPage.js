@@ -1,20 +1,21 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
-import { statsAPI, pollsAPI, eventsAPI, financesAPI, activityAPI, reportAPI } from '../../utils/api';
+import { statsAPI, pollsAPI, eventsAPI, financesAPI, activityAPI, reportAPI, rankingAPI } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
 import {
   Users, DollarSign, Vote, CheckCircle, Bell,
   Calendar, MapPin, Clock, ArrowRight, TrendingUp, TrendingDown,
   Wallet, ArrowUpRight, ArrowDownRight, BarChart3, MessageSquare,
-  FolderKanban, Trophy, Activity, Image, FileText, Heart, ThumbsUp,
+  FolderKanban, Trophy, Activity, Image, FileText, Heart, ThumbsUp, Medal,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
+import { CARGO_LABELS_FALLBACK } from '../../lib/governanceLabels';
 
 // Recharts (~334KB) só carregado para utilizadores com finance, via Suspense.
 const FinanceCharts = lazy(() => import('./dashboard/FinanceCharts'));
@@ -143,6 +144,24 @@ export const DashboardPage = () => {
     queryFn: async () => (await reportAPI.getPersonal()).data,
   });
 
+  // Ranking de atuação do próprio (ao vivo): score + posição + pontos por tile.
+  const myRankingQuery = useQuery({
+    queryKey: queryKeys.ranking.me(String(currentYear)),
+    queryFn: async () => (await rankingAPI.me(String(currentYear))).data,
+  });
+
+  // Leaderboard Top-N (lê o snapshot). `enabled` só depois de sabermos que o
+  // ranking está ligado — evita um request quando a feature está desativada.
+  const leaderboardEnabled = !!myRankingQuery.data?.enabled;
+  const leaderboardQuery = useQuery({
+    queryKey: queryKeys.ranking.leaderboard(String(currentYear)),
+    // limit 50 (máximo) cobre `top_n_dashboard` configurável (até 50) e dá folga
+    // para filtrar inativos client-side sem ficar abaixo do Top-N.
+    queryFn: async () => (await rankingAPI.leaderboard({ period: String(currentYear), limit: 50 })).data,
+    enabled: leaderboardEnabled,
+    retry: false, // 403 (visibility=direcao_only) → esconde o widget sem 3 retries
+  });
+
   // Queries gated por hasFinance — `enabled` evita request desnecessario
   // para socios. Quando false, isLoading=false e data=undefined.
   const statsQuery = useQuery({
@@ -167,6 +186,15 @@ export const DashboardPage = () => {
   const upcomingEvents = (upcomingEventsQuery.data || []).slice(0, 3);
   const recentActivity = recentActivityQuery.data || [];
   const personalReport = personalReportQuery.data;
+  const myRanking = myRankingQuery.data;
+  const rankingOn = !!myRanking?.enabled;
+  const rankBreakdown = myRanking?.breakdown || {};
+  const leaderboard = leaderboardQuery.data;
+  const topN = leaderboard?.top_n_dashboard || 5;
+  // D3: membros `inativo` entram no ranking geral mas ficam FORA do Top-N do
+  // dashboard (enquadramento positivo) — filtrados antes do slice.
+  const topEntries = (leaderboard?.entries || []).filter((e) => e.status !== 'inativo').slice(0, topN);
+  const maxScore = topEntries.length ? Math.max(...topEntries.map((e) => e.score || 0), 1) : 1;
   const stats = statsQuery.data;
   const financeSummary = financeSummaryQuery.data;
   const dreData = dreQuery.data;
@@ -179,19 +207,23 @@ export const DashboardPage = () => {
     recentActivityQuery.isLoading ||
     (hasFinance && (statsQuery.isLoading || financeSummaryQuery.isLoading || dreQuery.isLoading));
 
-  // Prepare chart data
-  const monthlyChartData = dreData ? Object.entries(dreData.monthly).map(([month, d]) => ({
-    name: MONTH_LABELS[parseInt(month) - 1],
-    Receitas: d.receitas,
-    Despesas: d.despesas,
-  })) : [];
+  // Prepare chart data — memoizado por dreData (evita recriar arrays a cada render).
+  const monthlyChartData = useMemo(() => (
+    dreData ? Object.entries(dreData.monthly).map(([month, d]) => ({
+      name: MONTH_LABELS[parseInt(month) - 1],
+      Receitas: d.receitas,
+      Despesas: d.despesas,
+    })) : []
+  ), [dreData]);
 
-  const expensePieData = dreData ? Object.entries(dreData.despesas_por_categoria)
-    .filter(([, v]) => v > 0)
-    .map(([cat, val]) => ({
-      name: CATEGORY_LABELS[cat] || cat,
-      value: val,
-    })) : [];
+  const expensePieData = useMemo(() => (
+    dreData ? Object.entries(dreData.despesas_por_categoria)
+      .filter(([, v]) => v > 0)
+      .map(([cat, val]) => ({
+        name: CATEGORY_LABELS[cat] || cat,
+        value: val,
+      })) : []
+  ), [dreData]);
 
   if (loading) {
     return (
@@ -277,8 +309,12 @@ export const DashboardPage = () => {
 
       {/* ===== Financial Summary Banner (for admin) ===== */}
       {hasFinance && financeSummary && (
-        <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 cursor-pointer hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all animate-fade-up"
+        <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 cursor-pointer hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all animate-fade-up outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
           onClick={() => navigate('/financeiro')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/financeiro'); } }}
+          aria-label={`Ver Financeiro ${currentYear}`}
           data-testid="finance-summary-widget">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-grafite flex items-center gap-2">
@@ -391,8 +427,12 @@ export const DashboardPage = () => {
                 {upcomingEvents.map((event, i) => (
                   <tr
                     key={event.id}
-                    className="border-t border-gray-50 hover:bg-gray-50/50 cursor-pointer transition-colors"
+                    className="border-t border-gray-50 hover:bg-gray-50/50 cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#C7202F]/40"
                     onClick={() => navigate('/eventos')}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Ver todos os eventos"
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/eventos'); } }}
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -466,7 +506,27 @@ export const DashboardPage = () => {
               <BarChart3 className="w-4 h-4 text-carmesim" />
               <h2 className="text-lg font-semibold text-grafite">A Minha Participacao</h2>
             </div>
-            <span className="text-xs text-[#6B7280] uppercase tracking-wider hidden sm:block">Relatorio pessoal</span>
+            {rankingOn ? (
+              <div className="flex items-center gap-2.5" data-testid="ranking-score-header">
+                {myRanking.rank && myRanking.rank <= 3 && (
+                  <Medal
+                    className={`w-5 h-5 ${myRanking.rank === 1 ? 'text-carmesim' : 'text-[#6B7280]'}`}
+                    aria-hidden="true"
+                  />
+                )}
+                <div className="text-right">
+                  <div className="font-bold text-lg text-grafite leading-none">
+                    {myRanking.score}
+                    <span className="text-xs font-normal text-[#6B7280] ml-1">pts</span>
+                  </div>
+                  <div className="text-xs text-[#6B7280] mt-0.5">
+                    {myRanking.rank ? `#${myRanking.rank} de ${myRanking.total_members}` : 'Atuacao'}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <span className="text-xs text-[#6B7280] uppercase tracking-wider hidden sm:block">Relatorio pessoal</span>
+            )}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-gray-100">
@@ -477,6 +537,7 @@ export const DashboardPage = () => {
                 value: personalReport.events_attended,
                 total: personalReport.total_events,
                 color: 'bg-carmesim/10 text-carmesim',
+                signalKey: 'evento_presenca',
               },
               {
                 icon: Vote,
@@ -484,6 +545,7 @@ export const DashboardPage = () => {
                 value: personalReport.polls_voted,
                 total: personalReport.total_polls,
                 color: 'bg-[#EFF6FF] text-[#1D4ED8]',
+                signalKey: 'votacao_voto',
               },
               {
                 icon: MessageSquare,
@@ -491,6 +553,7 @@ export const DashboardPage = () => {
                 value: personalReport.wall_posts,
                 total: null,
                 color: 'bg-[#F0FDF4] text-[#15803D]',
+                signalKey: 'mural_post',
               },
               {
                 icon: ThumbsUp,
@@ -498,6 +561,7 @@ export const DashboardPage = () => {
                 value: personalReport.likes_received,
                 total: null,
                 color: 'bg-[#F5F5F5] text-[#3A3A3A]',
+                signalKey: 'mural_like_recebido',
               },
               {
                 icon: FolderKanban,
@@ -505,6 +569,7 @@ export const DashboardPage = () => {
                 value: personalReport.projects_member,
                 total: null,
                 color: 'bg-[#F5F5F5] text-[#3A3A3A]',
+                signalKey: 'projeto_participacao',
               },
               {
                 icon: Image,
@@ -512,6 +577,7 @@ export const DashboardPage = () => {
                 value: personalReport.photos_approved,
                 total: personalReport.photos_submitted,
                 color: 'bg-[#FFFBEB] text-[#B45309]',
+                signalKey: 'galeria_foto',
               },
               {
                 icon: Heart,
@@ -537,9 +603,104 @@ export const DashboardPage = () => {
                   <div className="text-xs text-[#6B7280] font-mono mt-0.5">de {item.total}</div>
                 )}
                 <div className="text-xs text-gray-500 mt-1">{item.label}</div>
+                {rankingOn && item.signalKey && rankBreakdown[item.signalKey]?.points > 0 && (
+                  <div className="text-[11px] font-semibold text-[#6B7280] mt-1">
+                    +{rankBreakdown[item.signalKey].points} pts
+                  </div>
+                )}
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* ===== RANKING TOP-N (Atuacao do socio) ===== */}
+      {/* isError esconde o widget quando o leaderboard e restrito (direcao_only → 403). */}
+      {rankingOn && !leaderboardQuery.isError && (
+        <div className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden animate-fade-up" data-testid="ranking-widget">
+          <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-carmesim" />
+              <h2 className="text-lg font-semibold text-grafite">Ranking de Atuacao</h2>
+            </div>
+            <span className="text-xs text-[#6B7280] uppercase tracking-wider hidden sm:block">Top {topN}</span>
+          </div>
+
+          {leaderboardQuery.isLoading ? (
+            <div className="p-5 sm:p-6 space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 rounded-xl" />
+              ))}
+            </div>
+          ) : topEntries.length === 0 ? (
+            <EmptyState
+              icon={Trophy}
+              title="Ranking ainda nao calculado"
+              description="A atuacao dos socios aparece aqui apos o primeiro calculo."
+              testId="ranking-empty"
+              className="border-0 shadow-none p-0 py-10"
+            />
+          ) : (
+            <>
+              <div className="divide-y divide-gray-50">
+                {topEntries.map((entry) => {
+                  const isMe = entry.user_id === user?.id;
+                  const cargoLabel = entry.cargo && entry.cargo !== 'socio' ? CARGO_LABELS_FALLBACK[entry.cargo] : null;
+                  const barPct = Math.max(4, Math.round(((entry.score || 0) / maxScore) * 100));
+                  return (
+                    <div
+                      key={entry.user_id}
+                      className={`flex items-center gap-3 px-5 sm:px-6 py-3 ${isMe ? 'bg-carmesim/5' : ''}`}
+                      data-testid={`ranking-row-${entry.rank}`}
+                    >
+                      <div className="w-8 flex items-center justify-center flex-shrink-0">
+                        {entry.rank <= 3 ? (
+                          <Medal
+                            className={`w-5 h-5 ${entry.rank === 1 ? 'text-carmesim' : 'text-[#6B7280]'}`}
+                            aria-hidden="true"
+                          />
+                        ) : (
+                          <span className="text-sm font-semibold text-[#6B7280] font-mono">{entry.rank}</span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm text-grafite truncate">
+                            {entry.member_name}{isMe && ' (voce)'}
+                          </span>
+                        </div>
+                        {cargoLabel && <div className="text-xs text-[#6B7280] truncate">{cargoLabel}</div>}
+                        <div className="mt-1.5 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${entry.rank === 1 ? 'bg-carmesim' : 'bg-gray-300'}`}
+                            style={{ width: `${barPct}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="font-bold text-base text-grafite leading-none">{entry.score}</div>
+                        <div className="text-[10px] text-[#6B7280] mt-0.5">pts</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-3 border-t border-gray-100">
+                <span className="text-xs text-[#6B7280]" data-testid="ranking-computed-at">
+                  {leaderboard?.computed_at
+                    ? `Atualizado ${format(new Date(leaderboard.computed_at), "dd 'de' MMMM, HH:mm", { locale: ptBR })}`
+                    : ''}
+                </span>
+                <button
+                  onClick={() => navigate('/ranking')}
+                  className="text-xs text-carmesim hover:text-carmesim-dark font-semibold flex items-center gap-1 flex-shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-1"
+                  data-testid="ranking-ver-completo"
+                >
+                  Ver ranking completo <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
 

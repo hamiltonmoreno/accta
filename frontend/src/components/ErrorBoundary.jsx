@@ -54,7 +54,7 @@ export class ErrorBoundary extends React.Component {
             <button
               type="button"
               onClick={this.handleReset}
-              className="inline-flex items-center justify-center gap-2 bg-carmesim text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-carmesim/90 transition-colors"
+              className="inline-flex items-center justify-center gap-2 bg-floresta text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-floresta-dark transition-colors"
             >
               <RotateCw className="w-4 h-4" aria-hidden="true" />
               Tentar novamente

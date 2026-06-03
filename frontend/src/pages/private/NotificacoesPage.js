@@ -99,8 +99,7 @@ const BroadcastPanel = ({ onSent }) => {
     <div className="card-technical overflow-hidden" data-testid="broadcast-panel">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-4 hover:opacity-90 transition-colors"
-        style={{ backgroundColor: 'var(--surface-card)' }}
+        className="w-full flex items-center justify-between p-4 hover:opacity-90 transition-colors bg-[var(--surface-card)]"
       >
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-carmesim rounded-lg flex items-center justify-center">
@@ -116,12 +115,12 @@ const BroadcastPanel = ({ onSent }) => {
 
       {expanded && (
           <div className="overflow-hidden animate-fade-up">
-            <form onSubmit={handleSend} className="p-4 space-y-3" style={{ borderTop: '1px solid var(--surface-border)' }}>
+            <form onSubmit={handleSend} className="p-4 space-y-3 border-t border-[var(--surface-border)]">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-wider mb-1 block text-muted-auto">Tipo</label>
                   <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
                     data-testid="broadcast-type-select">
                     <option value="geral">Geral</option>
                     <option value="financeiro">Financeiro</option>
@@ -134,7 +133,7 @@ const BroadcastPanel = ({ onSent }) => {
                   <label className="text-xs font-semibold uppercase tracking-wider mb-1 block text-muted-auto">Link (opcional)</label>
                   <input type="text" value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })}
                     placeholder="/financeiro, /eventos..."
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
                     data-testid="broadcast-link-input" />
                 </div>
               </div>
@@ -142,7 +141,7 @@ const BroadcastPanel = ({ onSent }) => {
                 <label className="text-xs font-semibold uppercase tracking-wider mb-1 block text-muted-auto">Titulo *</label>
                 <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
                   placeholder="Ex: Assembleia Geral Extraordinaria"
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
                   data-testid="broadcast-title-input" />
               </div>
               <div>
@@ -150,7 +149,7 @@ const BroadcastPanel = ({ onSent }) => {
                 <textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })}
                   placeholder="Detalhes da notificacao..."
                   rows={3}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none resize-none"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none resize-none"
                   data-testid="broadcast-message-input" />
               </div>
               <div className="flex items-center justify-between">
@@ -194,10 +193,9 @@ export const NotificacoesPage = () => {
     }
   };
 
-  const handleDelete = async (e, notificationId) => {
+  const handleDelete = (e, notificationId) => {
     e.stopPropagation();
-    await deleteNotification(notificationId);
-    toast.success('Notificacao removida');
+    deleteNotification(notificationId);
   };
 
   const getIcon = (type) => {
@@ -248,7 +246,7 @@ export const NotificacoesPage = () => {
           <div className="text-xs uppercase tracking-wider mt-1 text-muted-auto">Nao lidas</div>
         </div>
         <div className="card-technical p-4">
-          <div className="font-mono text-2xl font-bold text-green-600">{readCount}</div>
+          <div className="font-mono text-2xl font-bold text-[#15803D]">{readCount}</div>
           <div className="text-xs uppercase tracking-wider mt-1 text-muted-auto">Lidas</div>
         </div>
         <div className="card-technical p-4">
@@ -301,7 +299,10 @@ export const NotificacoesPage = () => {
             return (
               <div key={notification.id}
                 onClick={() => handleNotificationClick(notification)}
-                className={`card-technical rounded-xl p-4 sm:p-5 cursor-pointer hover:shadow-md transition-all group ${
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNotificationClick(notification); } }}
+                className={`card-technical rounded-xl p-4 sm:p-5 cursor-pointer hover:shadow-md transition-all group outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 ${
                   !notification.read ? 'border-l-4 border-l-carmesim' : ''
                 } animate-fade-up`}
                 data-testid={`notification-item-${notification.id}`}>
@@ -314,14 +315,18 @@ export const NotificacoesPage = () => {
                       <h3 className="font-semibold text-sm sm:text-base text-grafite-auto">{notification.title}</h3>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         {!notification.read && (
-                          <span className="w-2 h-2 bg-carmesim rounded-full" />
+                          <>
+                            <span className="w-2 h-2 bg-carmesim rounded-full" aria-hidden="true" />
+                            <span className="sr-only">Não lida</span>
+                          </>
                         )}
                         <button
                           onClick={(e) => handleDelete(e, notification.id)}
-                          className="p-1 rounded-md opacity-0 group-hover:opacity-100 text-gray-400 hover:text-carmesim hover:bg-carmesim/10 transition-all"
+                          aria-label="Apagar notificação"
+                          className="rounded-md opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-gray-400 hover:text-carmesim hover:bg-carmesim/10 transition-all min-w-[44px] min-h-[44px] inline-flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40"
                           data-testid={`delete-notif-${notification.id}`}
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>

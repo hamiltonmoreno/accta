@@ -4,6 +4,7 @@ import { eventsAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { queryKeys } from '../../lib/queryClient';
+import { Skeleton } from '../../components/ui/skeleton';
 import { toast } from 'sonner';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -87,13 +88,13 @@ export const EventosPage = () => {
           <h1 className="page-title" data-testid="events-title">
             Eventos & Agenda
           </h1>
-          <p className="page-subtitle">Assembleias, formacoes e encontros da associacao</p>
+          <p className="page-subtitle">Assembleias, formações e encontros da associação</p>
         </div>
         
         {isAdmin && (
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center justify-center gap-2 bg-carmesim text-white px-4 py-2.5 rounded-lg hover:bg-carmesim-dark transition-all text-sm font-semibold touch-target"
+            className="flex items-center justify-center gap-2 bg-floresta text-white px-4 py-2.5 rounded-lg hover:bg-floresta-dark transition-all text-sm font-semibold touch-target"
             data-testid="create-event-btn"
           >
             <Plus className="w-4 h-4" />
@@ -117,8 +118,8 @@ export const EventosPage = () => {
       </div>
 
       {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-56 rounded-xl" />)}
         </div>
       ) : filteredEvents.length === 0 ? (
         <EmptyState
@@ -253,7 +254,7 @@ export const EventosPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-[#C7202F] hover:bg-[#B91C1C]"
+              className="bg-[#C7202F] hover:bg-[#A51B27]"
               onClick={() => { handleDelete(confirmDelete); setConfirmDelete(null); }}
             >
               Eliminar
@@ -322,7 +323,7 @@ const CreateEventModal = ({ onClose }) => {
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-3 sm:px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-carmesim/40"
+                className="w-full px-3 sm:px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
                 placeholder="Ex: Assembleia Geral Ordinaria"
                 required
               />
@@ -333,19 +334,19 @@ const CreateEventModal = ({ onClose }) => {
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 sm:px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-carmesim/40 resize-none"
+                className="w-full px-3 sm:px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 resize-none"
                 rows={3}
                 placeholder="Detalhes do evento..."
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label className="block font-mono text-xs uppercase tracking-wider text-[#6B7280] mb-1.5">Tipo *</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-carmesim/40"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
                 >
                   <option value="assembleia">Assembleia</option>
                   <option value="formacao">Formacao</option>
@@ -359,7 +360,7 @@ const CreateEventModal = ({ onClose }) => {
                 <select
                   value={formData.visibility}
                   onChange={(e) => setFormData({ ...formData, visibility: e.target.value })}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-carmesim/40"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
                 >
                   <option value="publico">Público</option>
                   <option value="socios">Sócios</option>
@@ -368,14 +369,14 @@ const CreateEventModal = ({ onClose }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label className="block font-mono text-xs uppercase tracking-wider text-[#6B7280] mb-1.5">Data *</label>
                 <input
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-carmesim/40"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
                   required
                 />
               </div>
@@ -385,7 +386,7 @@ const CreateEventModal = ({ onClose }) => {
                   type="time"
                   value={formData.time}
                   onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-carmesim/40"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
                   required
                 />
               </div>
@@ -397,7 +398,7 @@ const CreateEventModal = ({ onClose }) => {
                 type="text"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                className="w-full px-3 sm:px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-carmesim/40"
+                className="w-full px-3 sm:px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
                 placeholder="Ex: Sede da ACCTA, Praia"
                 required
               />
@@ -410,7 +411,7 @@ const CreateEventModal = ({ onClose }) => {
                 inputMode="numeric"
                 value={formData.max_attendees}
                 onChange={(e) => setFormData({ ...formData, max_attendees: e.target.value })}
-                className="w-full px-3 sm:px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-carmesim/40"
+                className="w-full px-3 sm:px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
                 placeholder="Deixe vazio para ilimitado"
                 min="1"
               />
@@ -427,7 +428,7 @@ const CreateEventModal = ({ onClose }) => {
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex-1 flex items-center justify-center gap-2 bg-carmesim text-white px-4 py-2.5 rounded-lg hover:bg-carmesim-dark transition-colors text-sm font-semibold disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 bg-floresta text-white px-4 py-2.5 rounded-lg hover:bg-floresta-dark transition-colors text-sm font-semibold disabled:opacity-50"
               >
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 Criar

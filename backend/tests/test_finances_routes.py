@@ -1,4 +1,5 @@
 """Unit tests for routes/finances.py — RBAC, transaction CRUD, summary calc."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -114,8 +115,11 @@ class TestCreateTransaction:
         from models import TransactionCreate
 
         data = TransactionCreate(
-            type="receita", category="quotas", description="x",
-            amount=100, date=datetime.now(timezone.utc),
+            type="receita",
+            category="quotas",
+            description="x",
+            amount=100,
+            date=datetime.now(timezone.utc),
         )
         with pytest.raises(HTTPException) as exc:
             await finances_route.create_transaction(data=data, current_user=socio_user)
@@ -125,8 +129,11 @@ class TestCreateTransaction:
         from models import TransactionCreate
 
         data = TransactionCreate(
-            type="receita", category="quotas", description="x",
-            amount=-50, date=datetime.now(timezone.utc),
+            type="receita",
+            category="quotas",
+            description="x",
+            amount=-50,
+            date=datetime.now(timezone.utc),
         )
         with pytest.raises(HTTPException) as exc:
             await finances_route.create_transaction(data=data, current_user=admin_user)
@@ -136,8 +143,11 @@ class TestCreateTransaction:
         from models import TransactionCreate
 
         data = TransactionCreate(
-            type="receita", category="quotas", description="x",
-            amount=0, date=datetime.now(timezone.utc),
+            type="receita",
+            category="quotas",
+            description="x",
+            amount=0,
+            date=datetime.now(timezone.utc),
         )
         with pytest.raises(HTTPException) as exc:
             await finances_route.create_transaction(data=data, current_user=admin_user)
@@ -148,8 +158,11 @@ class TestCreateTransaction:
         from models import TransactionCreate
 
         data = TransactionCreate(
-            type="receita", category="operacional",  # operacional e categoria de despesa
-            description="x", amount=100, date=datetime.now(timezone.utc),
+            type="receita",
+            category="operacional",  # operacional e categoria de despesa
+            description="x",
+            amount=100,
+            date=datetime.now(timezone.utc),
         )
         with pytest.raises(HTTPException) as exc:
             await finances_route.create_transaction(data=data, current_user=admin_user)
@@ -161,13 +174,98 @@ class TestCreateTransaction:
         # find users for notify_admins
         mock_db.users.find = MagicMock(return_value=_cursor([]))
         data = TransactionCreate(
-            type="receita", category="quotas", description="quota mar/2026",
-            amount=5000, date=datetime.now(timezone.utc),
+            type="receita",
+            category="quotas",
+            description="quota mar/2026",
+            amount=5000,
+            date=datetime.now(timezone.utc),
         )
         result = await finances_route.create_transaction(data=data, current_user=admin_user)
         assert result.type == "receita"
         assert result.amount == 5000
         mock_db.transactions.insert_one.assert_awaited_once()
+
+
+# --------------------------------------------------------------------------- #
+# PATCH /transactions/{id} — update + co-approval gate (Art. 54)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.asyncio
+class TestUpdateTransaction:
+    async def test_socio_403(self, mock_db, socio_user):
+        from models import TransactionUpdate
+
+        with pytest.raises(HTTPException) as exc:
+            await finances_route.update_transaction(
+                transaction_id="tx1", data=TransactionUpdate(description="x"), current_user=socio_user
+            )
+        assert exc.value.status_code == 403
+
+    async def test_404_not_found(self, mock_db, admin_user):
+        from models import TransactionUpdate
+
+        mock_db.transactions.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await finances_route.update_transaction(
+                transaction_id="missing", data=TransactionUpdate(description="x"), current_user=admin_user
+            )
+        assert exc.value.status_code == 404
+
+    async def test_coaprovacao_gate_blocks_raising_despesa_above_limiar(self, mock_db, admin_user):
+        """Regressão: criava-se uma despesa abaixo do limiar e inflava-se por PATCH,
+        contornando a co-aprovação (Art. 54)."""
+        from models import TransactionUpdate
+
+        existing = {"id": "tx1", "type": "despesa", "amount": 100, "category": "operacional"}
+        mock_db.transactions.find_one = AsyncMock(return_value=existing)
+        mock_db.finance_settings.find_one = AsyncMock(return_value={"coaprovacao_limiar": 10000})
+        with pytest.raises(HTTPException) as exc:
+            await finances_route.update_transaction(
+                transaction_id="tx1", data=TransactionUpdate(amount=500000), current_user=admin_user
+            )
+        assert exc.value.status_code == 400
+        assert "limiar" in exc.value.detail.lower()
+        mock_db.transactions.update_one.assert_not_awaited()
+
+    async def test_metadata_edit_allowed_on_above_limiar_despesa(self, mock_db, admin_user):
+        """Editar só metadados (sem mexer no valor/tipo) de uma despesa acima do
+        limiar continua livre — o gate não dispara."""
+        from models import TransactionUpdate
+
+        existing = {"id": "tx1", "type": "despesa", "amount": 500000, "category": "operacional"}
+        mock_db.transactions.find_one = AsyncMock(side_effect=[existing, {**existing, "description": "nova"}])
+        mock_db.finance_settings.find_one = AsyncMock(return_value={"coaprovacao_limiar": 10000})
+        result = await finances_route.update_transaction(
+            transaction_id="tx1", data=TransactionUpdate(description="nova"), current_user=admin_user
+        )
+        assert result["description"] == "nova"
+        mock_db.transactions.update_one.assert_awaited_once()
+
+    async def test_ato_linked_despesa_exempt(self, mock_db, admin_user):
+        """Despesa já co-aprovada por um Acto (ato_id) está isenta do gate."""
+        from models import TransactionUpdate
+
+        existing = {"id": "tx1", "type": "despesa", "amount": 100, "category": "operacional", "ato_id": "a1"}
+        mock_db.transactions.find_one = AsyncMock(side_effect=[existing, {**existing, "amount": 500000}])
+        mock_db.finance_settings.find_one = AsyncMock(return_value={"coaprovacao_limiar": 10000})
+        result = await finances_route.update_transaction(
+            transaction_id="tx1", data=TransactionUpdate(amount=500000), current_user=admin_user
+        )
+        assert result["amount"] == 500000
+        mock_db.transactions.update_one.assert_awaited_once()
+
+    async def test_below_limiar_update_passes(self, mock_db, admin_user):
+        from models import TransactionUpdate
+
+        existing = {"id": "tx1", "type": "despesa", "amount": 100, "category": "operacional"}
+        mock_db.transactions.find_one = AsyncMock(side_effect=[existing, {**existing, "amount": 5000}])
+        mock_db.finance_settings.find_one = AsyncMock(return_value={"coaprovacao_limiar": 10000})
+        result = await finances_route.update_transaction(
+            transaction_id="tx1", data=TransactionUpdate(amount=5000), current_user=admin_user
+        )
+        assert result["amount"] == 5000
+        mock_db.transactions.update_one.assert_awaited_once()
 
 
 # --------------------------------------------------------------------------- #
@@ -179,24 +277,18 @@ class TestCreateTransaction:
 class TestDeleteTransaction:
     async def test_socio_403(self, mock_db, socio_user):
         with pytest.raises(HTTPException) as exc:
-            await finances_route.delete_transaction(
-                transaction_id="any", current_user=socio_user
-            )
+            await finances_route.delete_transaction(transaction_id="any", current_user=socio_user)
         assert exc.value.status_code == 403
 
     async def test_404_not_found(self, mock_db, admin_user):
         mock_db.transactions.find_one = AsyncMock(return_value=None)
         with pytest.raises(HTTPException) as exc:
-            await finances_route.delete_transaction(
-                transaction_id="missing", current_user=admin_user
-            )
+            await finances_route.delete_transaction(transaction_id="missing", current_user=admin_user)
         assert exc.value.status_code == 404
 
     async def test_admin_deletes(self, mock_db, admin_user):
         mock_db.transactions.find_one = AsyncMock(return_value={"id": "tx1"})
-        result = await finances_route.delete_transaction(
-            transaction_id="tx1", current_user=admin_user
-        )
+        result = await finances_route.delete_transaction(transaction_id="tx1", current_user=admin_user)
         assert "removida" in result["message"].lower()
         mock_db.transactions.delete_one.assert_awaited_with({"id": "tx1"})
 
@@ -216,7 +308,7 @@ class TestSummary:
     async def test_calculates_totals_correctly(self, mock_db, admin_user):
         txs = [
             {"type": "receita", "amount": 1000, "category": "quotas", "date": "2026-01-15T00:00:00"},
-            {"type": "receita", "amount": 500, "category": "doacoes", "date": "2026-02-01T00:00:00"},
+            {"type": "receita", "amount": 500, "category": "donativos", "date": "2026-02-01T00:00:00"},
             {"type": "despesa", "amount": 300, "category": "operacional", "date": "2026-01-20T00:00:00"},
         ]
         mock_db.transactions.find = MagicMock(return_value=_cursor(txs))
@@ -225,7 +317,7 @@ class TestSummary:
         assert result["total_despesas"] == 300
         assert result["resultado_liquido"] == 1200
         assert result["receitas_por_categoria"]["quotas"] == 1000
-        assert result["receitas_por_categoria"]["doacoes"] == 500
+        assert result["receitas_por_categoria"]["donativos"] == 500
         assert result["despesas_por_categoria"]["operacional"] == 300
         assert result["total_transacoes"] == 3
 
@@ -295,3 +387,34 @@ class TestFinanceSettings:
                 data=FinanceSettingsUpdate(quota_amount=5000), current_user=socio_user
             )
         assert exc.value.status_code == 403
+
+
+# --------------------------------------------------------------------------- #
+# POST /generate-quotas
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.asyncio
+class TestGenerateQuotas:
+    async def test_only_active_member_accounts_receive_quotas(self, mock_db, admin_user, monkeypatch):
+        captured = {}
+
+        def find_users(query, projection):
+            captured["query"] = query
+            captured["projection"] = projection
+            return _cursor([{"id": "member-1", "name": "Socio"}])
+
+        mock_db.users.find = MagicMock(side_effect=find_users)
+        mock_db.transactions.find = MagicMock(return_value=_cursor([]))
+        mock_db.finance_settings.find_one = AsyncMock(return_value={"quota_amount": 2000.0})
+        monkeypatch.setattr(finances_route, "create_audit_log", AsyncMock())
+        monkeypatch.setattr(finances_route, "notify_all_active_users", AsyncMock())
+
+        result = await finances_route.generate_monthly_quotas(month=5, year=2026, current_user=admin_user)
+
+        assert captured["query"] == {
+            "status": "ativo",
+            "$or": [{"account_type": "member"}, {"account_type": {"$exists": False}}],
+        }
+        assert result["created"] == 1
+        mock_db.transactions.insert_one.assert_awaited_once()

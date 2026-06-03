@@ -3,6 +3,13 @@ import axios from 'axios';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API_BASE = `${BACKEND_URL}/api`;
 
+// Ficheiros enviados (/uploads/...) são servidos na RAIZ do backend (fora de
+// /api). Em produção é a mesma origem (Nginx) e o caminho relativo bastaria,
+// mas em dev (portas diferentes) é preciso prefixar BACKEND_URL. URLs já
+// absolutas (http/https) passam intactas; vazio devolve ''.
+export const mediaUrl = (path) =>
+  !path ? '' : /^https?:\/\//.test(path) ? path : `${BACKEND_URL}${path}`;
+
 // Sprint 10 — JWT em httpOnly cookie em vez de localStorage. withCredentials
 // faz o axios incluir o cookie cross-origin (requer backend CORS allow_credentials
 // + cookie SameSite=None;Secure em prod).
@@ -11,19 +18,32 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Handle 401 errors — dispatch event for AuthContext to handle
+// Handle 401/403 errors — dispatch event for AuthContext to handle
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      const currentPath = window.location.pathname;
-      const publicPaths = ['/login', '/validador', '/profissao', '/noticias', '/transparencia', '/sobre', '/beneficios-publico', '/contactos', '/eventos-publico', '/galeria', '/forgot-password', '/reset-password', '/criar-conta'];
-      const isPublic = currentPath === '/' || publicPaths.some(p => currentPath.startsWith(p));
-      if (!isPublic) {
+    const status = error.response?.status;
+    const detail = error.response?.data?.detail;
+    const currentPath = window.location.pathname;
+    const publicPaths = ['/login', '/validador', '/profissao', '/noticias', '/transparencia', '/sobre', '/beneficios-publico', '/contactos', '/eventos-publico', '/galeria', '/publicacoes-publico', '/forgot-password', '/reset-password', '/criar-conta'];
+    const isPublic = currentPath === '/' || publicPaths.some(p => currentPath.startsWith(p));
+
+    if (status === 401) {
+      // MFA (spec-mfa-frontend-pr2 §9): os 401 do desafio de 2.º fator pertencem
+      // ao fluxo de login (rota pública, já isenta) — nunca forçar logout.
+      const isMfaLoginChallenge = detail === 'mfa_required' || detail === 'mfa_invalido';
+      if (!isPublic && !isMfaLoginChallenge) {
         // Cookie e httpOnly — JS nao consegue limpa-lo. Backend ja invalida
         // server-side em /logout; aqui so disparamos o evento + redirect.
         window.dispatchEvent(new Event('accta:force-logout'));
         window.location.replace('/login');
+      }
+    } else if (status === 403 && detail === 'mfa_setup_required') {
+      // Sessão mfa_pending (admin/financeiro sem MFA): o backend recusa tudo
+      // fora do enrolment. Rede de segurança caso a guarda proativa não apanhe;
+      // não faz logout e não recarrega se já estamos na página de setup (loop).
+      if (!isPublic && currentPath !== '/mfa-setup') {
+        window.location.replace('/mfa-setup');
       }
     }
     return Promise.reject(error);
@@ -43,6 +63,14 @@ export const authAPI = {
   resetPassword: (data) => api.post('/auth/reset-password', data),
 };
 
+// MFA / 2FA (spec-mfa-frontend-pr2). Backend já impõe; isto é só a camada de UI.
+export const mfaAPI = {
+  setup: () => api.post('/auth/mfa/setup'),
+  verify: (otp) => api.post('/auth/mfa/verify', { otp }),
+  disable: (password) => api.post('/auth/mfa/disable', { password }),
+  status: () => api.get('/auth/mfa/status'),
+};
+
 // Admin API
 export const adminAPI = {
   invite: (data) => api.post('/admin/invite', data),
@@ -57,6 +85,71 @@ export const registrationAPI = {
   listPending: (params) => api.get('/admin/registration-requests', { params }),
   approve: (userId, data) => api.post(`/admin/registration-requests/${userId}/approve`, data),
   reject: (userId, reason) => api.post(`/admin/registration-requests/${userId}/reject`, { reason }),
+};
+
+// Patrocínio de admissão (spec-voz-participacao §3, Art. 8.3)
+export const patrociniosAPI = {
+  pendentes: () => api.get('/participacao/patrocinios/pendentes'),
+  confirmar: (candidateId, note) => api.post(`/participacao/patrocinios/${candidateId}/confirmar`, { note }),
+  recusar: (candidateId, note) => api.post(`/participacao/patrocinios/${candidateId}/recusar`, { note }),
+};
+
+// Petição para AG extraordinária (spec-voz-participacao §5, Art. 9.f/19.2.d)
+export const peticoesAPI = {
+  list: () => api.get('/peticoes'),
+  get: (id) => api.get(`/peticoes/${id}`),
+  create: (data) => api.post('/peticoes', data),
+  assinar: (id) => api.post(`/peticoes/${id}/assinar`),
+  retirar: (id) => api.delete(`/peticoes/${id}/assinar`),
+  encaminhar: (id, assembleiaId) => api.post(`/peticoes/${id}/encaminhar`, { assembleia_id: assembleiaId }),
+};
+
+// Pedidos de esclarecimento (spec-voz-participacao §8, Art. 9.j)
+export const esclarecimentosAPI = {
+  list: () => api.get('/esclarecimentos'),
+  get: (id) => api.get(`/esclarecimentos/${id}`),
+  create: (data) => api.post('/esclarecimentos', data),
+  responder: (id, texto) => api.post(`/esclarecimentos/${id}/responder`, { texto }),
+};
+
+// Comunicados e preferências de email (spec-comunicados-email)
+export const comunicadosAPI = {
+  list: (params) => api.get('/comunicados', { params }),
+  get: (id) => api.get(`/comunicados/${id}`),
+  create: (data) => api.post('/comunicados', data),
+  recipientsCount: (data) => api.post('/comunicados/recipients/count', data),
+  segments: () => api.get('/comunicados/segments'),
+  updateEmailPreferences: (data) => api.patch('/me/email-preferences', data),
+};
+
+// Reclamações e recursos (spec-voz-participacao §7, Art. 9.i)
+export const reclamacoesAPI = {
+  list: () => api.get('/reclamacoes'),
+  get: (id) => api.get(`/reclamacoes/${id}`),
+  create: (data) => api.post('/reclamacoes', data),
+  responder: (id, data) => api.post(`/reclamacoes/${id}/responder`, data),
+  recurso: (id) => api.post(`/reclamacoes/${id}/recurso`),
+  decidirRecurso: (id, data) => api.post(`/reclamacoes/${id}/decidir-recurso`, data),
+};
+
+// Propostas e temas para a ordem de trabalhos (spec-voz-participacao §6, Art. 9.g/9.h)
+export const propostasAgAPI = {
+  list: (status) => api.get('/propostas-ag', { params: status ? { status } : {} }),
+  get: (id) => api.get(`/propostas-ag/${id}`),
+  create: (data) => api.post('/propostas-ag', data),
+  triar: (id, data) => api.post(`/propostas-ag/${id}/triagem`, data),
+  incluir: (id, data) => api.post(`/propostas-ag/${id}/incluir`, data),
+};
+
+// Membros honorários (spec-voz-participacao §4, Art. 8.4): nomeação + votação 2/3
+export const honorariosAPI = {
+  list: (status) => api.get('/honorarios', { params: status ? { status } : {} }),
+  get: (id) => api.get(`/honorarios/${id}`),
+  create: (data) => api.post('/honorarios', data),
+  abrirVotacao: (id) => api.post(`/honorarios/${id}/abrir-votacao`),
+  apurar: (id) => api.post(`/honorarios/${id}/apurar`),
+  // F6 — reconciliação §2.4: ligar nomeação apurada à deliberação da AG.
+  ligar: (id, data) => api.post(`/honorarios/${id}/ligar-assembleia`, data),
 };
 
 // Cargos / mandatos (spec-identidade-cargos / spec-governanca)
@@ -75,16 +168,86 @@ export const governanceAPI = {
   structure: () => api.get('/governance/structure'),
 };
 
-// Assembleia Geral (spec-governanca §11)
+// Banners de página (spec-padronizacao-banners)
+export const bannersAPI = {
+  getPublic: () => api.get('/banners/public'),
+  getAll: () => api.get('/banners'),
+  update: (key, data) => api.put(`/banners/${key}`, data),
+};
+
+// Marca / logo (spec-gestao-logo-marca)
+export const brandAPI = {
+  getPublic: () => api.get('/brand/public'),
+  getAll: () => api.get('/brand'),
+  update: (data) => api.patch('/brand', data),
+};
+
+// Assembleia Geral (spec-governanca §11 + spec-sessao-assembleia-ao-vivo F0–F6)
+//
+// O grupo divide-se em (a) gestão (lista/criar/encerrar), (b) núcleo da governança
+// (quórum/presenças/deliberações one-shot), e (c) camada ao vivo F0–F6:
+// fase, check-in self/scan/abrir/fechar/2ª chamada, fila de palavra, ciclo de
+// voto (abrir/votar/registar-contagem/apurar), moções, expediente, documentos
+// e convidados. URL do SSE é exposto para o EventSource consumir.
 export const assembleiasAPI = {
+  // Gestão
   list: (params) => api.get('/assembleias', { params }),
   get: (id) => api.get(`/assembleias/${id}`),
   create: (data) => api.post('/assembleias', data),
+  encerrar: (id, params) => api.post(`/assembleias/${id}/encerrar`, null, { params }),
+
+  // Governança (núcleo já existente)
   quorum: (id) => api.get(`/assembleias/${id}/quorum`),
   addPresenca: (id, data) => api.post(`/assembleias/${id}/presencas`, data),
+  presencas: (id) => api.get(`/assembleias/${id}/presencas`),
   deliberacoes: (id) => api.get(`/assembleias/${id}/deliberacoes`),
   addDeliberacao: (id, data) => api.post(`/assembleias/${id}/deliberacoes`, data),
-  encerrar: (id, params) => api.post(`/assembleias/${id}/encerrar`, null, { params }),
+
+  // F0 — sessão ao vivo: fase e SSE
+  setFase: (id, data) => api.post(`/assembleias/${id}/fase`, data),
+  streamUrl: (id) => `${process.env.REACT_APP_BACKEND_URL}/api/assembleias/${id}/stream`,
+
+  // F1 — check-in ao vivo + quórum
+  checkin: (id, data) => api.post(`/assembleias/${id}/checkin`, data),
+  checkinScan: (id, data) => api.post(`/assembleias/${id}/checkin/scan`, data),
+  abrirCheckin: (id) => api.post(`/assembleias/${id}/checkin/abrir`),
+  fecharCheckin: (id) => api.post(`/assembleias/${id}/checkin/fechar`),
+  segundaConvocatoria: (id) => api.post(`/assembleias/${id}/segunda-convocatoria`),
+
+  // F2 — fila de uso da palavra
+  pedirPalavra: (id, data) => api.post(`/assembleias/${id}/palavra`, data),
+  retirarPalavra: (id, qid) => api.delete(`/assembleias/${id}/palavra/${qid}`),
+  ordenarPalavra: (id, qid, data) => api.post(`/assembleias/${id}/palavra/${qid}/ordenar`, data),
+  iniciarPalavra: (id, qid, data) => api.post(`/assembleias/${id}/palavra/${qid}/iniciar`, data),
+  terminarPalavra: (id, qid) => api.post(`/assembleias/${id}/palavra/${qid}/terminar`),
+  palavra: (id) => api.get(`/assembleias/${id}/palavra`),
+
+  // F3 — modos de voto ao vivo (ciclo novo; o `addDeliberacao` continua disponível
+  // para o batch one-shot que já existia)
+  abrirDeliberacao: (id, data) => api.post(`/assembleias/${id}/deliberacoes/abrir`, data),
+  votarDeliberacao: (id, did, data) => api.post(`/assembleias/${id}/deliberacoes/${did}/votar`, data),
+  registarContagem: (id, did, data) =>
+    api.post(`/assembleias/${id}/deliberacoes/${did}/registar-contagem`, data),
+  apurarDeliberacao: (id, did) => api.post(`/assembleias/${id}/deliberacoes/${did}/apurar`),
+  getDeliberacao: (id, did) => api.get(`/assembleias/${id}/deliberacoes/${did}`),
+
+  // F4 — moções / requerimentos / recomendações
+  submeterMocao: (id, data) => api.post(`/assembleias/${id}/mocoes`, data),
+  colocarMocaoAVoto: (id, mid, data) => api.post(`/assembleias/${id}/mocoes/${mid}/colocar-a-voto`, data),
+  retirarMocao: (id, mid) => api.post(`/assembleias/${id}/mocoes/${mid}/retirar`),
+  mocoes: (id) => api.get(`/assembleias/${id}/mocoes`),
+
+  // F5 — antes da OT: expediente
+  addExpediente: (id, data) => api.post(`/assembleias/${id}/expediente`, data),
+  expediente: (id) => api.get(`/assembleias/${id}/expediente`),
+
+  // F6 — documentos da sessão (≥3 dias) + convidados
+  anexarDocumento: (id, data) => api.post(`/assembleias/${id}/documentos`, data),
+  documentos: (id) => api.get(`/assembleias/${id}/documentos`),
+  addConvidado: (id, data) => api.post(`/assembleias/${id}/convidados`, data),
+  convidados: (id) => api.get(`/assembleias/${id}/convidados`),
+  checkinConvidado: (id, cid) => api.post(`/assembleias/${id}/convidados/${cid}/checkin`),
+  pedirPalavraConvidado: (id, data) => api.post(`/assembleias/${id}/palavra/convidado`, data),
 };
 
 // Eleições (spec-governanca §12)
@@ -122,6 +285,7 @@ export const usersAPI = {
   adminUpdate: (userId, data) => api.patch(`/users/${userId}`, data),
   updateStatus: (userId, status) => api.patch(`/users/${userId}/status`, null, { params: { status } }),
   delete: (userId) => api.delete(`/users/${userId}`),
+  removePhoto: (userId) => api.delete(`/users/${userId}/photo`),
   getCargos: () => api.get('/users/meta/cargos'),
   getPrivileges: () => api.get('/users/meta/privileges'),
 };
@@ -148,6 +312,68 @@ export const financesAPI = {
   updateSettings: (data) => api.patch('/finances/settings', data),
   generateQuotas: (month, year) => api.post(`/finances/generate-quotas?month=${month}&year=${year}`),
   getCategories: () => api.get('/finances/meta/categories'),
+  getJoiaPreview: (userId, ctaQualifiedSince) =>
+    api.get('/finances/joia/preview', {
+      params: { user_id: userId, ...(ctaQualifiedSince ? { cta_qualified_since: ctaQualifiedSince } : {}) },
+    }),
+};
+
+// Atos (co-aprovação / dupla assinatura — Art. 54). Módulo próprio (/atos).
+export const atosAPI = {
+  list: (params) => api.get('/atos', { params }),
+  get: (id) => api.get(`/atos/${id}`),
+  create: (data) => api.post('/atos', data),
+  assinar: (id, decisao) => api.post(`/atos/${id}/assinar`, { decisao }),
+  executar: (id, data) => api.post(`/atos/${id}/executar`, data || {}),
+  cancelar: (id) => api.post(`/atos/${id}/cancelar`),
+};
+
+// Ciclo de prestação de contas — exercícios (spec-ciclo §4). Módulo /exercicios.
+export const exerciciosAPI = {
+  list: () => api.get('/exercicios'),
+  get: (ano) => api.get(`/exercicios/${ano}`),
+  abrir: (data) => api.post('/exercicios', data),
+  submeterRelatorio: (ano, data) => api.post(`/exercicios/${ano}/relatorio`, data),
+  submeterOrcamento: (ano, data) => api.post(`/exercicios/${ano}/orcamento`, data),
+  submeterPlano: (ano, data) => api.post(`/exercicios/${ano}/plano`, data),
+  emitirParecer: (ano, data) => api.post(`/exercicios/${ano}/parecer`, data),
+  submeterAG: (ano, data) => api.post(`/exercicios/${ano}/submeter-ag`, data),
+  aprovar: (ano, data) => api.post(`/exercicios/${ano}/aprovar`, data),
+  reabrir: (ano) => api.post(`/exercicios/${ano}/reabrir`),
+  execucaoOrcamento: (ano) => api.get(`/exercicios/${ano}/orcamento/execucao`),
+};
+
+// Balancetes periódicos / balanço anual (spec-ciclo §5). Módulo /balancetes.
+export const balancetesAPI = {
+  list: (params) => api.get('/balancetes', { params }),
+  get: (id) => api.get(`/balancetes/${id}`),
+  publicar: (data) => api.post('/balancetes', data),
+  auditar: (id, data) => api.post(`/balancetes/${id}/auditar`, data),
+};
+
+// Regulamentos internos versionados (spec-ciclo §6). Módulo /regulamentos.
+export const regulamentosAPI = {
+  list: () => api.get('/regulamentos'),
+  get: (id) => api.get(`/regulamentos/${id}`),
+  create: (data) => api.post('/regulamentos', data),
+  criarVersao: (id, data) => api.post(`/regulamentos/${id}/versoes`, data),
+  submeterVersao: (id, vid) => api.post(`/regulamentos/${id}/versoes/${vid}/submeter`),
+  aprovarVersao: (id, vid, data) => api.post(`/regulamentos/${id}/versoes/${vid}/aprovar`, data || {}),
+  revogarVersao: (id, vid, data) => api.post(`/regulamentos/${id}/versoes/${vid}/revogar`, data || {}),
+};
+
+// Documentos de prestação de contas (multipart). Cria o registo `documents`
+// com visibilidade/título por política server-side a partir de `kind`.
+export const prestacaoContasAPI = {
+  uploadDocumento: (file, { kind, title } = {}) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('kind', kind);
+    if (title) formData.append('title', title);
+    return api.post('/prestacao-contas/documentos', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };
 
 // Polls API
@@ -160,8 +386,15 @@ export const pollsAPI = {
 
 // Posts API
 export const postsAPI = {
-  getAll: (visibility) => api.get('/posts', { params: { visibility } }),
+  // Compat: chamadas antigas passam string `getAll('publico')`; novas passam
+  // objeto de params `{ visibility, type, status, q, skip, limit }`.
+  getAll: (params) => api.get('/posts', {
+    params: typeof params === 'string' ? { visibility: params } : (params || {}),
+  }),
+  getOne: (idOrSlug) => api.get(`/posts/${idOrSlug}`),
   create: (data) => api.post('/posts', data),
+  update: (id, data) => api.patch(`/posts/${id}`, data),
+  remove: (id) => api.delete(`/posts/${id}`),
 };
 
 // Documents API
@@ -222,7 +455,7 @@ export const validatorAPI = {
 
 // Audit Logs API
 export const auditAPI = {
-  getLogs: () => api.get('/audit-logs'),
+  getLogs: (params = {}) => api.get('/audit-logs', { params }),
 };
 
 // Statistics API
@@ -314,6 +547,69 @@ export const projectsAPI = {
 
 
 // Personal Report API
+export const rankingAPI = {
+  leaderboard: (params) => api.get('/ranking/leaderboard', { params }),
+  me: (period) => api.get('/ranking/me', { params: { period } }),
+  getUser: (userId, period) => api.get(`/ranking/users/${userId}`, { params: { period } }),
+  getSettings: () => api.get('/ranking/settings'),
+  updateSettings: (data) => api.put('/ranking/settings', data),
+  addAdjustment: (data) => api.post('/ranking/adjustments', data),
+  listAdjustments: (params) => api.get('/ranking/adjustments', { params }),
+  rebuild: (period) => api.post('/ranking/rebuild', null, { params: { period } }),
+  setOptOut: (optOut) => api.put('/ranking/opt-out', { opt_out: optOut }),
+};
+
 export const reportAPI = {
   getPersonal: () => api.get('/report/personal'),
+};
+
+
+// Cat 5 F2 — fins profissionais (formações + publicações)
+export const formacoesAPI = {
+  getAll: (params) => api.get('/formacoes', { params }),
+  getOne: (id) => api.get(`/formacoes/${id}`),
+  create: (data) => api.post('/formacoes', data),
+  update: (id, data) => api.patch(`/formacoes/${id}`, data),
+  delete: (id) => api.delete(`/formacoes/${id}`),
+  // F4 — superfície pública (sem auth): só formações publico+ativo.
+  getPublic: (params) => api.get('/public/formacoes', { params }),
+};
+
+export const publicacoesAPI = {
+  getAll: (params) => api.get('/publicacoes', { params }),
+  getOne: (id) => api.get(`/publicacoes/${id}`),
+  create: (data) => api.post('/publicacoes', data),
+  update: (id, data) => api.patch(`/publicacoes/${id}`, data),
+  delete: (id) => api.delete(`/publicacoes/${id}`),
+  // F4 — superfície pública (sem auth): só publicações publico.
+  getPublic: (params) => api.get('/public/publicacoes', { params }),
+  getPublicOne: (id) => api.get(`/public/publicacoes/${id}`),
+};
+
+// Cat 5 F3 — Defesa Profissional (com workflow de aprovação Direcção)
+export const defesaAPI = {
+  getAll: (params) => api.get('/defesa-profissional', { params }),
+  getOne: (id) => api.get(`/defesa-profissional/${id}`),
+  create: (data) => api.post('/defesa-profissional', data),
+  update: (id, data) => api.patch(`/defesa-profissional/${id}`, data),
+  delete: (id) => api.delete(`/defesa-profissional/${id}`),
+  submeter: (id) => api.post(`/defesa-profissional/${id}/submeter`),
+  aprovar: (id) => api.post(`/defesa-profissional/${id}/aprovar`),
+  rejeitar: (id, motivo) =>
+    api.post(`/defesa-profissional/${id}/rejeitar`, { motivo }),
+  arquivar: (id) => api.post(`/defesa-profissional/${id}/arquivar`),
+  // F4 — superfície pública (sem auth): só defesa publicado+publico.
+  getPublic: (params) => api.get('/public/defesa-profissional', { params }),
+  getPublicOne: (id) => api.get(`/public/defesa-profissional/${id}`),
+};
+
+// Cat 5 F3 — Relações externas / IFATCA
+export const relacoesAPI = {
+  getAll: (params) => api.get('/relacoes-externas', { params }),
+  getOne: (id) => api.get(`/relacoes-externas/${id}`),
+  create: (data) => api.post('/relacoes-externas', data),
+  update: (id, data) => api.patch(`/relacoes-externas/${id}`, data),
+  delete: (id) => api.delete(`/relacoes-externas/${id}`),
+  // F4 — superfície pública (sem auth): só relações publico.
+  getPublic: (params) => api.get('/public/relacoes-externas', { params }),
 };

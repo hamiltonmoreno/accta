@@ -24,6 +24,7 @@ import {
 } from '../../lib/statusConfig';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
+import { UserAvatar } from '../../components/UserAvatar';
 
 // CARGOS e PRIVILEGES vêm do backend (GET /users/meta/cargos). Aqui só os
 // conjuntos pequenos e estáveis; rótulos PT em lib/cargoLabels.
@@ -48,7 +49,7 @@ export const AdminUsuariosPage = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [inviteData, setInviteData] = useState({ name: '', email: '', role: 'socio', cargo: 'Socio', member_id: '', license_number: '', department: '', phone_number: '' });
+  const [inviteData, setInviteData] = useState({ name: '', email: '', role: 'socio', member_id: '', license_number: '', department: '', phone_number: '' });
   const [inviteResult, setInviteResult] = useState(null);
 
   // Debounce search 300ms — evita re-fetch a cada tecla.
@@ -76,7 +77,6 @@ export const AdminUsuariosPage = () => {
     queryFn: async () => (await cargosAPI.getMeta()).data,
     staleTime: 60 * 60 * 1000,
   });
-  const CARGOS = meta?.cargos || [];
   const PRIVILEGES = meta?.privileges || Object.keys(PRIVILEGE_LABELS);
 
   // Histórico de mandatos do utilizador em edição (timeline só-leitura).
@@ -107,6 +107,18 @@ export const AdminUsuariosPage = () => {
       invalidateUsers();
     },
     onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao remover'),
+  });
+
+  // Moderação reativa da foto: admin/moderador removem (não definem) — o backend
+  // notifica o utilizador. Atualiza o editingUser localmente para refletir já.
+  const removePhotoMutation = useMutation({
+    mutationFn: (userId) => usersAPI.removePhoto(userId),
+    onSuccess: () => {
+      toast.success('Foto removida');
+      setEditingUser((u) => (u ? { ...u, photo_url: null } : u));
+      invalidateUsers();
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao remover a foto'),
   });
 
   const inviteMutation = useMutation({
@@ -160,19 +172,19 @@ export const AdminUsuariosPage = () => {
   const resetInviteModal = () => {
     setShowInviteModal(false);
     setInviteResult(null);
-    setInviteData({ name: '', email: '', role: 'socio', cargo: 'Socio', member_id: '', license_number: '', department: '', phone_number: '' });
+    setInviteData({ name: '', email: '', role: 'socio', member_id: '', license_number: '', department: '', phone_number: '' });
   };
 
   return (
     <div className="space-y-6" data-testid="admin-users-page">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="page-title" data-testid="admin-users-title">Gestao de Membros</h1>
+          <h1 className="page-title" data-testid="admin-users-title">Gestão de Membros</h1>
           <p className="page-subtitle">{users.length} membro{users.length !== 1 ? 's' : ''} registado{users.length !== 1 ? 's' : ''}</p>
         </div>
         <button
           onClick={() => setShowInviteModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-carmesim hover:bg-carmesim/90 text-white rounded-lg text-sm font-semibold transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 bg-floresta hover:bg-floresta-dark text-white rounded-lg text-sm font-semibold transition-colors"
           data-testid="invite-user-btn"
         >
           <UserPlus className="w-4 h-4" />
@@ -189,7 +201,7 @@ export const AdminUsuariosPage = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Pesquisar por nome, email ou n.º sócio..."
-              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none"
+              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/30 outline-none"
               data-testid="users-search-input"
             />
           </div>
@@ -197,7 +209,7 @@ export const AdminUsuariosPage = () => {
             <select
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
-              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none bg-white"
+              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 outline-none bg-white"
               data-testid="filter-role"
             >
               <option value="">Todas as funções</option>
@@ -208,7 +220,7 @@ export const AdminUsuariosPage = () => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none bg-white"
+              className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 outline-none bg-white"
               data-testid="filter-status"
             >
               <option value="">Todos os estados</option>
@@ -265,9 +277,13 @@ export const AdminUsuariosPage = () => {
                     <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-carmesim rounded-lg flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                            {u.name?.charAt(0).toUpperCase()}
-                          </div>
+                          <UserAvatar
+                            size="sm"
+                            className="rounded-lg"
+                            name={u.name}
+                            photoUrl={u.photo_url}
+                            fallbackClassName="rounded-lg bg-[#F5F5F5] text-grafite"
+                          />
                           <div className="min-w-0">
                             <div className="font-semibold text-grafite truncate">{u.name}</div>
                             <div className="text-xs text-[#6B7280] truncate">{u.email}</div>
@@ -331,9 +347,12 @@ export const AdminUsuariosPage = () => {
               <div key={u.id} className="card-technical p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-carmesim rounded-lg flex items-center justify-center text-white font-bold flex-shrink-0">
-                      {u.name?.charAt(0).toUpperCase()}
-                    </div>
+                    <UserAvatar
+                      className="rounded-lg"
+                      name={u.name}
+                      photoUrl={u.photo_url}
+                      fallbackClassName="rounded-lg bg-[#F5F5F5] text-grafite"
+                    />
                     <div className="min-w-0">
                       <div className="font-semibold text-grafite text-sm truncate">{u.name}</div>
                       <div className="text-xs text-[#6B7280]">{u.cargo || 'Sócio'}</div>
@@ -371,13 +390,28 @@ export const AdminUsuariosPage = () => {
               {/* Modal Header */}
               <DialogHeader className="px-5 py-4 border-b border-gray-100 text-left space-y-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-carmesim rounded-lg flex items-center justify-center text-white font-bold shrink-0">
-                    {editingUser.name?.charAt(0).toUpperCase()}
-                  </div>
+                  <UserAvatar
+                    className="rounded-lg"
+                    name={editingUser.name}
+                    photoUrl={editingUser.photo_url}
+                    fallbackClassName="rounded-lg bg-[#F5F5F5] text-grafite"
+                  />
                   <div className="min-w-0">
                     <DialogTitle className="font-bold text-grafite text-sm truncate">{editingUser.name}</DialogTitle>
                     <DialogDescription className="text-xs text-[#6B7280] truncate">{editingUser.email}</DialogDescription>
                   </div>
+                  {editingUser.photo_url && (
+                    <button
+                      type="button"
+                      onClick={() => removePhotoMutation.mutate(editingUser.id)}
+                      disabled={removePhotoMutation.isPending}
+                      className="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold text-[#6B7280] hover:text-carmesim transition-colors disabled:opacity-50 shrink-0"
+                      data-testid="admin-remove-photo-btn"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                      Remover foto
+                    </button>
+                  )}
                 </div>
               </DialogHeader>
 
@@ -390,7 +424,7 @@ export const AdminUsuariosPage = () => {
                     <input
                       value={editingUser.name || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
-                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 outline-none"
                       data-testid="modal-edit-name"
                     />
                   </div>
@@ -415,7 +449,7 @@ export const AdminUsuariosPage = () => {
                     <select
                       value={editingUser.role}
                       onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
-                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none bg-white"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 outline-none bg-white"
                       data-testid="modal-edit-role"
                     >
                       {ROLES.map((r) => (
@@ -431,7 +465,7 @@ export const AdminUsuariosPage = () => {
                     <select
                       value={editingUser.status}
                       onChange={(e) => setEditingUser({ ...editingUser, status: e.target.value })}
-                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none bg-white"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 outline-none bg-white"
                       data-testid="modal-edit-status"
                     >
                       {STATUSES.map((s) => (
@@ -527,7 +561,7 @@ export const AdminUsuariosPage = () => {
                       autoComplete="tel"
                       value={editingUser.phone_number || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, phone_number: e.target.value })}
-                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 outline-none"
                     />
                   </div>
                   <div>
@@ -536,7 +570,7 @@ export const AdminUsuariosPage = () => {
                       value={editingUser.department || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, department: e.target.value })}
                       placeholder="Ex: Torre de Controlo Sal"
-                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 outline-none"
                     />
                   </div>
                 </div>
@@ -561,7 +595,7 @@ export const AdminUsuariosPage = () => {
                   </button>
                   <button
                     onClick={handleSaveUser}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-carmesim text-white rounded-lg text-sm font-semibold hover:bg-carmesim-dark transition-colors"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-floresta text-white rounded-lg text-sm font-semibold hover:bg-floresta-dark transition-colors"
                     data-testid="modal-save-btn"
                   >
                     <Save className="w-4 h-4" />
@@ -583,7 +617,7 @@ export const AdminUsuariosPage = () => {
             <AlertDialogCancel onClick={() => setDeleteConfirm(null)}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => handleDelete(deleteConfirm)}
-              className="bg-[#C7202F] text-white hover:bg-[#B91C1C]"
+              className="bg-[#C7202F] text-white hover:bg-[#A51B27]"
               data-testid="confirm-delete-btn"
             >
               Sim, remover
@@ -626,18 +660,18 @@ export const AdminUsuariosPage = () => {
                 </div>
               ) : (
                 <div className="p-6 space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="col-span-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="sm:col-span-2">
                       <label className="block text-xs font-medium text-gray-600 mb-1">Nome Completo *</label>
                       <input
                         value={inviteData.name}
                         onChange={(e) => setInviteData({ ...inviteData, name: e.target.value })}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/30 outline-none"
                         placeholder="Nome do novo socio"
                         data-testid="invite-name"
                       />
                     </div>
-                    <div className="col-span-2">
+                    <div className="sm:col-span-2">
                       <label className="block text-xs font-medium text-gray-600 mb-1">Email *</label>
                       <input
                         type="email"
@@ -645,7 +679,7 @@ export const AdminUsuariosPage = () => {
                         autoComplete="email"
                         value={inviteData.email}
                         onChange={(e) => setInviteData({ ...inviteData, email: e.target.value })}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/30 outline-none"
                         placeholder="email@controlador.cv"
                         data-testid="invite-email"
                       />
@@ -655,7 +689,7 @@ export const AdminUsuariosPage = () => {
                       <select
                         value={inviteData.role}
                         onChange={(e) => setInviteData({ ...inviteData, role: e.target.value })}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 outline-none"
                         data-testid="invite-role"
                       >
                         <option value="socio">Socio</option>
@@ -664,22 +698,11 @@ export const AdminUsuariosPage = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Cargo</label>
-                      <select
-                        value={inviteData.cargo}
-                        onChange={(e) => setInviteData({ ...inviteData, cargo: e.target.value })}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 outline-none"
-                        data-testid="invite-cargo"
-                      >
-                        {CARGOS.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </div>
-                    <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">N. Membro</label>
                       <input
                         value={inviteData.member_id}
                         onChange={(e) => setInviteData({ ...inviteData, member_id: e.target.value })}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/30 outline-none"
                         placeholder="ACCTA-XXX"
                         data-testid="invite-member-id"
                       />
@@ -689,7 +712,7 @@ export const AdminUsuariosPage = () => {
                       <input
                         value={inviteData.license_number}
                         onChange={(e) => setInviteData({ ...inviteData, license_number: e.target.value })}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/30 outline-none"
                         placeholder="ATC-CV-XXXX-XXX"
                         data-testid="invite-license"
                       />
@@ -699,7 +722,7 @@ export const AdminUsuariosPage = () => {
                       <input
                         value={inviteData.department}
                         onChange={(e) => setInviteData({ ...inviteData, department: e.target.value })}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/30 outline-none"
                         placeholder="Ex: Torre, Aproximacao"
                         data-testid="invite-department"
                       />
@@ -712,7 +735,7 @@ export const AdminUsuariosPage = () => {
                         autoComplete="tel"
                         value={inviteData.phone_number}
                         onChange={(e) => setInviteData({ ...inviteData, phone_number: e.target.value })}
-                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/30 outline-none"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/30 outline-none"
                         placeholder="+238 xxxxxxx"
                         data-testid="invite-phone"
                       />
@@ -722,7 +745,7 @@ export const AdminUsuariosPage = () => {
                   <button
                     onClick={handleInvite}
                     disabled={inviting || !inviteData.name || !inviteData.email}
-                    className="w-full py-2.5 bg-carmesim hover:bg-carmesim/90 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full py-2.5 bg-floresta hover:bg-floresta-dark text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     data-testid="send-invite-btn"
                   >
                     {inviting ? (

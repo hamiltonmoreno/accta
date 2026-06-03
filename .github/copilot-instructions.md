@@ -180,7 +180,8 @@ is the brand logo color and the **single accent — used sparingly**.
 
 | Name | Hex | Usage |
 |------|-----|-------|
-| Carmesim (single accent) | #C7202F (hover #A51B27) | ONLY: the one primary button per view, active nav, links on white, destructive, focus ring — **never body text, never on dark** |
+| Floresta (positive action) | #166534 (hover #14532D) | The ONE primary positive button per view (Guardar/Confirmar/Criar/Aprovar/Entrar/Votar) · white text (6.2:1) |
+| Carmesim (brand + destructive) | #C7202F (hover #A51B27) | active nav, links on white, focus ring, logo, error highlights — and destructive (outline by default; solid only in a confirm dialog). **Never body text, never on dark, never a positive primary** |
 | Grafite (text primary) | #3A3A3A | body/heading text (~9:1 on white) |
 | Text muted | #6B7280 | secondary text — never use text lighter than this |
 | Surface | #FFFFFF / #F5F5F5 | base / sunken — neutral foundation |
@@ -190,10 +191,11 @@ is the brand logo color and the **single accent — used sparingly**.
 
 ### Component Patterns
 
-- **Button taxonomy** (≤1 Primary per view; default to Secondary):
-  - Primary: `bg-[#C7202F] text-white hover:bg-[#A51B27] rounded-md px-4 py-2 font-semibold`
+- **Button taxonomy** (≤1 positive Primary per view; default to Secondary):
+  - Primary (positive): `bg-[#166534] text-white hover:bg-[#14532D] rounded-md px-4 py-2 font-semibold` (Guardar/Confirmar/Criar/Aprovar/Entrar/Votar)
   - Secondary: `bg-white border border-[#D1D5DB] text-[#3A3A3A] hover:bg-[#F5F5F5] rounded-md px-4 py-2`
-  - Tertiary: ghost `text-[#3A3A3A] hover:bg-[#F5F5F5]`; Destructive: brand red + confirm dialog
+  - Tertiary: ghost `text-[#3A3A3A] hover:bg-[#F5F5F5]`
+  - Destructive (default): outline `bg-white border border-[#C7202F] text-[#C7202F] hover:bg-[#FBEAEC]`; solid `bg-[#C7202F] text-white` only inside an irreversible confirm dialog
 - **Glass effect**: `bg-white/80 backdrop-blur-sm border border-white/30`
 - **Active item**: `bg-[#F5F5F5] border-l-4 border-[#C7202F]`
 - **Focus ring** (CRITICAL): `focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2`
@@ -202,7 +204,7 @@ is the brand logo color and the **single accent — used sparingly**.
 
 - No dark mode (disabled by design); no flat black backgrounds
 - **No Carmesim/red text on dark, Navy, colored or photo backgrounds** — the legibility bug
-- **No making every button red** — Primary is rare; everything else is neutral
+- **No making every button red** — red = destructive only; the positive Primary is Floresta green and rare; everything else is neutral. Never Carmesim as a positive primary
 - No accent on large surfaces; no state conveyed by color alone (pair with icon/text)
 - No text lighter than `#6B7280`; no font other than Open Sans (JetBrains Mono for code/IDs); max 2 weights/section
 - No colors outside the system above; every text/bg pair must reach ≥4.5:1

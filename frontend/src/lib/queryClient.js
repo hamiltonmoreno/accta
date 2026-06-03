@@ -52,7 +52,7 @@ export const queryClient = new QueryClient({
  */
 export const queryKeys = {
   audit: {
-    logs: () => ['audit', 'logs'],
+    logs: (params) => (params ? ['audit', 'logs', params] : ['audit', 'logs']),
   },
   benefits: {
     list: () => ['benefits'],
@@ -67,8 +67,15 @@ export const queryKeys = {
     list: (filters) => ['users', filters || {}],
     byId: (id) => ['users', id],
   },
+  mfa: {
+    // Key scoped por userId — sem isto o status (fresco 30s) vazaria entre
+    // contas no mesmo browser após logout/login (logout só limpa o user, não
+    // o cache). Mesmo padrão do NotificationContext.
+    status: (userId) => ['mfa', 'status', userId || null],
+  },
   registration: {
     requests: (status) => ['registration', 'requests', status || 'pendente_aprovacao'],
+    joiaPreview: (userId, since) => ['registration', 'joia-preview', userId || null, since || null],
   },
   cargos: {
     meta: () => ['cargos', 'meta'],
@@ -78,6 +85,19 @@ export const queryKeys = {
   },
   governance: {
     structure: () => ['governance', 'structure'],
+  },
+  banners: {
+    public: () => ['banners', 'public'],
+    all: () => ['banners', 'all'],
+  },
+  comunicados: {
+    list: (params) => ['comunicados', params || {}],
+    segments: () => ['comunicados', 'segments'],
+    recipientsCount: (key) => ['comunicados', 'recipients-count', key],
+  },
+  brand: {
+    public: () => ['brand', 'public'],
+    all: () => ['brand', 'all'],
   },
   assembleias: {
     list: (filters) => ['assembleias', filters || {}],
@@ -99,6 +119,30 @@ export const queryKeys = {
     list: (filters) => ['transactions', filters || {}],
     summary: (year, month) => ['transactions', 'summary', year, month],
   },
+  finances: {
+    // Meta de categorias (income/expense/types/labels) — fonte unica do que
+    // esta seleccionavel hoje, em lockstep com INCOME_CATEGORIES no backend.
+    // Categorias legadas (anteriores a migracao Cat 4 §5.2) NAO entram aqui;
+    // o display historico usa o fallback CATEGORY_LABELS em financeiro/constants.
+    metaCategories: () => ['finances', 'meta', 'categories'],
+  },
+  atos: {
+    list: (filters) => ['atos', filters || {}],
+    byId: (id) => ['atos', id],
+  },
+  exercicios: {
+    list: () => ['exercicios'],
+    byAno: (ano) => ['exercicios', ano],
+    execucao: (ano) => ['exercicios', ano, 'execucao'],
+  },
+  balancetes: {
+    list: (filters) => ['balancetes', filters || {}],
+    byId: (id) => ['balancetes', id],
+  },
+  regulamentos: {
+    list: () => ['regulamentos'],
+    byId: (id) => ['regulamentos', id],
+  },
   invoices: {
     list: () => ['invoices'],
   },
@@ -118,6 +162,11 @@ export const queryKeys = {
   documents: {
     list: () => ['documents'],
   },
+  posts: {
+    all: () => ['posts'], // prefixo p/ invalidação abrangente (prefix match)
+    list: (params) => ['posts', params ?? {}], // { visibility, type, status, q, limit }
+    detail: (idOrSlug) => ['posts', 'detail', idOrSlug],
+  },
   gallery: {
     albums: () => ['gallery', 'albums'],
     photos: (albumId) => ['gallery', 'photos', albumId],
@@ -132,5 +181,10 @@ export const queryKeys = {
   },
   report: {
     personal: () => ['report', 'personal'],
+  },
+  ranking: {
+    leaderboard: (period) => ['ranking', 'leaderboard', period],
+    me: (period) => ['ranking', 'me', period],
+    settings: () => ['ranking', 'settings'],
   },
 };

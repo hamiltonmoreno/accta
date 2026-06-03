@@ -164,3 +164,30 @@ _Origem: auditoria de arquitetura + segurança + qualidade (3 subagentes paralel
 - C2 adiciona índice único → confirmar ausência de duplicados pré-existentes.
 - Qualquer push para `main` → confirmar antes.
 - Se um "item simples" passar a tocar >3 arquivos → parar e replanejar.
+
+---
+
+## Execução (registo)
+
+> Auditado item-a-item contra o código em 2026-05-21. As correções (Fases 1–4)
+> já estavam implementadas — em larga medida pela track paralela
+> `spec-correcoes-2-codex` (concluída) e por trabalho subsequente.
+
+- **Fase 1** — ✅ C1 (`PATCH /api/polls/{id}/status` + guard de janela/status no
+  `vote()`), C2 (índice único `ux_votes_user_poll` em `database.py`).
+- **Fase 2** — ✅ A3 (`asyncio.to_thread` na escrita de upload/galeria), A4
+  (`resolve_link_base` fail-closed contra `CORS_ORIGINS`), A5 (SVG rejeitado em
+  `logos` — raster-only), A6 (audit logs em galeria/mural/notificações), A7
+  (eventos futuros por `date >= now`).
+- **Fase 3** — ✅ M8 (`status not in USER_STATUSES`), M9 (token fora do body),
+  M10 (`@limiter.limit("5/minute")` em contacto), M11 (XFF só atrás de proxy),
+  M12 (`.get()` em finanças), M13 (`Project*Create` Pydantic), M14 (broadcast
+  sem cap).
+- **Fase 4** — ✅ B16 (CSP), B18 (email de boas-vindas em `BackgroundTasks`).
+  **B15 (password 6→8) — CANCELADO** por decisão do dono: o mínimo fica em **6**.
+  B17 (parar de devolver JWT no body) — adiado por design (depende de depreciar
+  o Bearer legado), B19 — higiene menor.
+- **Fase 5 (AR1–AR5, dívida arquitetural)** — **NÃO feita**; track separado de
+  épicos (cada um com plano/PR próprio), explicitamente não-bloqueante.
+- **Decisões**: D1 = ciclo manual (sem scheduler) ✅; D2 = endpoint legado
+  `/users/{id}/status` mantido e a validar ✅; D3 = rejeitar SVG ✅.

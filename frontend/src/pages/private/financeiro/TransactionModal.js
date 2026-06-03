@@ -3,10 +3,13 @@ import { useMutation } from '@tanstack/react-query';
 import { financesAPI } from '../../../utils/api';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
-import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from './constants';
+import { useFinanceCategories } from '../../../hooks/useFinanceCategories';
 
 export const TransactionModal = ({ tx, onClose, onSaved }) => {
   const isEdit = !!tx;
+  // Categorias vem do endpoint /finances/meta/categories (Cat 4 §5.4); o hook
+  // cai num fallback offline durante o load para nao render dropdown vazio.
+  const { income, expense } = useFinanceCategories();
   const [form, setForm] = useState({
     type: tx?.type || 'receita',
     category: tx?.category || 'quotas',
@@ -16,7 +19,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
     reference: tx?.reference || '',
   });
 
-  const categories = form.type === 'receita' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const categories = form.type === 'receita' ? income : expense;
 
   useEffect(() => {
     if (!isEdit) {
@@ -31,7 +34,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
         ? financesAPI.updateTransaction(tx.id, payload)
         : financesAPI.createTransaction(payload),
     onSuccess: () => {
-      toast.success(isEdit ? 'Transacao atualizada' : 'Transacao criada');
+      toast.success(isEdit ? 'Transação atualizada' : 'Transação criada');
       // onSaved: parent invalida ['transactions']. onClose: o modal fecha-se a
       // si proprio, sem depender do parent para o fechar.
       onSaved();
@@ -59,7 +62,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-md rounded-xl p-0 gap-0 max-h-[90vh] overflow-y-auto" data-testid="transaction-modal">
         <DialogHeader className="p-5 border-b border-gray-200 text-left space-y-0">
-          <DialogTitle className="font-bold text-lg text-grafite">{isEdit ? 'Editar Transacao' : 'Nova Transacao'}</DialogTitle>
+          <DialogTitle className="font-bold text-lg text-grafite">{isEdit ? 'Editar Transação' : 'Nova Transação'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
@@ -87,7 +90,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
             <select
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="category-select"
             >
               {categories.map((c) => (
@@ -103,12 +106,12 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Ex: Quota mensal Janeiro 2026"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="description-input"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Valor (CVE) *</label>
               <input
@@ -119,7 +122,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
                 placeholder="2000"
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
                 data-testid="amount-input"
               />
             </div>
@@ -129,7 +132,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
                 type="date"
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
                 data-testid="date-input"
               />
             </div>
@@ -142,7 +145,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
               value={form.reference}
               onChange={(e) => setForm({ ...form, reference: e.target.value })}
               placeholder="Ex: FOLHA-202601"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="reference-input"
             />
           </div>
@@ -153,7 +156,7 @@ export const TransactionModal = ({ tx, onClose, onSaved }) => {
             className="w-full btn-primary py-3 text-sm font-semibold"
             data-testid="save-transaction-btn"
           >
-            {saving ? 'A guardar...' : isEdit ? 'Atualizar' : 'Criar Transacao'}
+            {saving ? 'A guardar...' : isEdit ? 'Atualizar' : 'Criar Transação'}
           </button>
         </form>
       </DialogContent>

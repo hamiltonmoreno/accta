@@ -1,12 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { sancoesAPI, cargosAPI } from '../../utils/api';
+import { sancoesAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { queryKeys } from '../../lib/queryClient';
 import { SANCAO_TIPO_LABELS, SANCAO_STATUS_LABELS } from '../../lib/governanceLabels';
 import { toast } from 'sonner';
 import {
-  Gavel, Scale, ShieldOff, Search, Users, FileText,
+  Gavel, Scale, ShieldOff, Users, FileText,
   AlertTriangle, Ban, CircleDollarSign, CheckCircle2, Clock, Archive,
   XCircle, Undo2, ShieldAlert,
 } from 'lucide-react';
@@ -15,6 +15,8 @@ import {
 } from '../../components/ui/dialog';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
+import { MemberPicker } from '../../components/MemberPicker';
+import { primaryBtn } from '../../lib/buttonStyles';
 
 const TIPO_OPTIONS = ['advertencia', 'multa', 'perda_direitos', 'expulsao'];
 const STATUS_OPTIONS = [
@@ -56,7 +58,8 @@ const formatEscudo = (v) => {
   return `${n.toLocaleString('pt-PT')} CVE`;
 };
 
-const isoOrNull = (dateStr) => (dateStr ? `${dateStr}T00:00:00.000Z` : null);
+// Meio-dia UTC evita o desvio de dia em fusos negativos (campo só-data).
+const isoOrNull = (dateStr) => (dateStr ? `${dateStr}T12:00:00.000Z` : null);
 
 const TipoBadge = ({ tipo }) => {
   const meta = TIPO_META[tipo] || TIPO_META.advertencia;
@@ -80,75 +83,6 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-// Procura de membros (debounced) reutilizando o endpoint de candidatos a cargo.
-const MemberPicker = ({ value, onSelect, testId, placeholder = 'Procurar por nome, email ou nº associado...' }) => {
-  const [search, setSearch] = useState('');
-  const [debounced, setDebounced] = useState('');
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(search), 300);
-    return () => clearTimeout(t);
-  }, [search]);
-
-  const { data: candidates = [], isFetching } = useQuery({
-    queryKey: queryKeys.cargos.candidates({ q: debounced }),
-    queryFn: async () => (await cargosAPI.candidates({ q: debounced || undefined })).data.candidates,
-    staleTime: 30 * 1000,
-  });
-
-  return (
-    <div>
-      {value ? (
-        <div className="flex items-center justify-between px-3 py-2.5 rounded-md border border-[#D1D5DB] bg-[#F5F5F5]">
-          <span className="text-sm text-grafite">
-            {value.name} <span className="font-mono text-xs text-[#6B7280]">{value.member_id || ''}</span>
-          </span>
-          <button
-            onClick={() => onSelect(null)}
-            className="text-xs text-carmesim font-semibold hover:underline focus:outline-none focus:ring-2 focus:ring-carmesim/40 rounded px-1"
-          >
-            Alterar
-          </button>
-        </div>
-      ) : (
-        <>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={placeholder}
-              className="w-full pl-9 pr-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none"
-              data-testid={testId}
-            />
-          </div>
-          <div className="mt-1.5 max-h-44 overflow-y-auto rounded-md border border-gray-100 divide-y divide-gray-50">
-            {isFetching && candidates.length === 0 ? (
-              <div className="px-3 py-3"><Skeleton className="h-4 w-40" /></div>
-            ) : candidates.length === 0 ? (
-              <p className="px-3 py-3 text-xs text-[#6B7280]">Nenhum membro encontrado.</p>
-            ) : (
-              candidates.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => onSelect(c)}
-                  className="w-full text-left px-3 py-2 hover:bg-[#F5F5F5] transition-colors cursor-pointer focus:outline-none focus:bg-[#F5F5F5]"
-                  data-testid={`disc-candidate-${c.id}`}
-                >
-                  <span className="text-sm text-grafite">{c.name}</span>
-                  <span className="ml-2 font-mono text-xs text-[#6B7280]">{c.member_id || ''}</span>
-                  <span className="block text-xs text-[#6B7280]">{c.email}{c.cargo ? ` · ${c.cargo}` : ''}</span>
-                </button>
-              ))
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
-
 const Field = ({ label, children, hint }) => (
   <div>
     <label className="block text-xs font-medium text-gray-600 mb-1.5">{label}</label>
@@ -157,11 +91,10 @@ const Field = ({ label, children, hint }) => (
   </div>
 );
 
-const inputCls = 'w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none';
+const inputCls = 'w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none';
 const selectCls = `${inputCls} bg-white`;
-const secondaryBtn = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white border border-[#D1D5DB] text-grafite text-xs font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-carmesim/40 disabled:opacity-50';
-const cancelBtn = 'px-4 py-2 rounded-md bg-white border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-carmesim/40';
-const primaryBtn = 'px-4 py-2 rounded-md bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-carmesim/40 disabled:opacity-50';
+const secondaryBtn = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white border border-[#D1D5DB] text-grafite text-xs font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50';
+const cancelBtn = 'px-4 py-2 rounded-md bg-white border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2';
 
 const emptyCreateForm = {
   visado: null,
@@ -280,7 +213,7 @@ export const AdminDisciplinarPage = () => {
   const canComissao = (s) => ['proposta', 'inquerito'].includes(s.status);
   const canDecidir = (s) => ['proposta', 'inquerito', 'recurso'].includes(s.status);
   const canRecurso = (s) => s.status === 'decidida' && ['multa', 'perda_direitos'].includes(s.tipo);
-  const canAplicar = (s) => ['decidida', 'recurso'].includes(s.status);
+  const canAplicar = (s) => s.status === 'decidida';
 
   const openDecidir = (s) => {
     setDecidirForm({ aprovado: true, fundamentacao: '', assembleia_id: '', deliberacao_id: '' });
@@ -433,7 +366,7 @@ export const AdminDisciplinarPage = () => {
                   {canAplicar(s) && (
                     <button
                       onClick={() => setAplicarFor(s)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white border border-[#FECACA] text-[#B91C1C] text-xs font-medium hover:bg-[#FEF2F2] transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-carmesim/40"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white border border-[#FECACA] text-[#B91C1C] text-xs font-medium hover:bg-[#FEF2F2] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
                       data-testid={`aplicar-${s.id}`}
                     >
                       <ShieldOff className="w-3.5 h-3.5" aria-hidden="true" />Aplicar
@@ -459,6 +392,7 @@ export const AdminDisciplinarPage = () => {
                 value={createForm.visado}
                 onSelect={(u) => setCreateForm({ ...createForm, visado: u })}
                 testId="create-visado-search"
+                emptyLabel="Nenhum membro encontrado."
               />
             </Field>
             <Field label="Tipo de sanção">
@@ -556,6 +490,7 @@ export const AdminDisciplinarPage = () => {
                     setComissaoForm({ ...comissaoForm, m: next });
                   }}
                   testId={`comissao-member-${idx}`}
+                  emptyLabel="Nenhum membro encontrado."
                 />
               </Field>
             ))}

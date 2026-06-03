@@ -46,7 +46,7 @@ module.exports = {
         carmesim: {
           DEFAULT: "#C7202F",
           light: "#E8444F",
-          dark: "#9E1925",
+          dark: "#A51B27",
           50: "#FEF2F2",
           100: "#FEE2E4",
         },
@@ -55,6 +55,13 @@ module.exports = {
           light: "#5A5A5A",
           dark: "#2A2A2A",
           50: "#F7F7F7",
+        },
+        // Ação primária positiva (Guardar/Aprovar/Submeter…). Carmesim continua
+        // a ser identidade de marca + destrutivo. Ver tasks/spec-botoes-cor-acao.md.
+        floresta: {
+          DEFAULT: "#166534", // verde-800; 6.2:1 com texto branco (AA)
+          dark: "#14532D",    // hover
+          50: "#F0FDF4",      // tint (badges de sucesso podem reutilizar)
         },
         alert: {
           DEFAULT: "#C7202F",
@@ -81,6 +88,10 @@ module.exports = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      spacing: {
+        // Altura da navbar pública fixa — usada no padding-top do <main>.
+        navbar: '60px',
       },
       fontFamily: {
         sans: ['Open Sans', 'sans-serif'],

@@ -70,6 +70,10 @@ def is_conselho_fiscal(user) -> bool:
     return orgao_of_cargo(_cargo_key(user)) == CONSELHO_FISCAL
 
 
+def is_presidente(user) -> bool:
+    return _cargo_key(user) == "dir_presidente"
+
+
 def is_tesoureiro(user) -> bool:
     return _cargo_key(user) == "dir_tesoureiro"
 
@@ -82,6 +86,14 @@ def is_assembleia_geral(user) -> bool:
 def can_convene_assembleia(user) -> bool:
     """Pode convocar/gerir assembleias: Mesa da AG ou admin (spec §11)."""
     return _attr(user, "role") == "admin" or is_mesa_ag(user)
+
+
+def can_emit_parecer_cf(user) -> bool:
+    """Emitir parecer do CF / auditar balancetes: Conselho Fiscal (por cargo)
+    OU detentor do privilégio `emit_cf_parecer` (spec-ciclo §3.3). Distinto de
+    `manage_finances` — o CF audita mas NÃO escreve transacções (separação de
+    poderes). `user_can` já inclui o admin."""
+    return is_conselho_fiscal(user) or user_can(user, "emit_cf_parecer")
 
 
 # --------------------------------------------------------------------------- #

@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from datetime import datetime
 from typing import List, Optional
 import re
 from models import (
@@ -10,6 +9,7 @@ from models import (
     CARGOS_ORGAOS_SOCIAIS,
     CARGO_DEFAULTS,
     CARGO_SEATS,
+    MFA_SECRET_FIELDS,
     PRIVILEGES,
     USER_STATUSES,
 )
@@ -25,11 +25,29 @@ from helpers import create_audit_log, create_notification, delete_upload_file
 router = APIRouter(tags=["users"])
 
 
-def parse_user_dates(u: dict):
-    """Parse ISO date strings to datetime objects."""
-    for field in ["created_at", "admission_date", "last_login_at"]:
-        if u.get(field) and isinstance(u[field], str):
-            u[field] = datetime.fromisoformat(u[field])
+# PII sensível do perfil (feature/perfil): dados pessoais/saúde/morada/contacto
+# de emergência que NÃO devem sair em listagens nem para terceiros (staff).
+# Só o próprio (via /auth/me ou GET /users/{self}) os recebe — minimização de
+# dados. Excluídos da listagem em massa e das leituras por terceiros.
+SENSITIVE_PROFILE_FIELDS = [
+    "blood_type",
+    "nif",
+    "date_of_birth",
+    "address",
+    "postal_code",
+    "city",
+    "emergency_contact_name",
+    "emergency_contact_phone",
+    "emergency_contact_relationship",
+]
+
+
+def _user_projection(include_sensitive: bool) -> dict:
+    """Projeção base (sem _id/password); oculta a PII sensível salvo para o próprio."""
+    proj = {"_id": 0, "password": 0, **dict.fromkeys(MFA_SECRET_FIELDS, 0)}
+    if not include_sensitive:
+        proj.update({f: 0 for f in SENSITIVE_PROFILE_FIELDS})
+    return proj
 
 
 # ===== LIST USERS =====
@@ -79,9 +97,8 @@ async def get_users(
         query["$and"] = and_clauses
 
     limit = min(limit, 100)
-    users = await db.users.find(query, {"_id": 0, "password": 0}).skip(skip).limit(limit).to_list(limit)
-    for u in users:
-        parse_user_dates(u)
+    # Listagem em massa nunca expõe PII sensível (saúde/morada/contacto de emergência).
+    users = await db.users.find(query, _user_projection(include_sensitive=False)).skip(skip).limit(limit).to_list(limit)
     return users
 
 
@@ -94,26 +111,58 @@ async def get_user(user_id: str, current_user: User = Depends(get_current_user))
     if not (is_self or is_staff):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
-    user_doc = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+    # Só o próprio vê a PII sensível; staff a ver terceiros recebe a vista reduzida.
+    user_doc = await db.users.find_one({"id": user_id}, _user_projection(include_sensitive=is_self))
     if not user_doc:
         raise HTTPException(status_code=404, detail="Utilizador não encontrado")
-    parse_user_dates(user_doc)
     return user_doc
 
 
 # ===== UPDATE OWN PROFILE =====
 @router.patch("/users/me/profile")
 async def update_own_profile(data: UserProfileUpdate, current_user: User = Depends(get_current_user)):
-    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
-    if not update_data:
+    dumped = data.model_dump()
+
+    # Convenção de "limpar" da foto: photo_url == "" remove (grava None) e apaga
+    # o ficheiro antigo; uma URL nova substitui (apaga a antiga); None/ausente
+    # mantém. Tratada à parte do filtro de None (que descartaria o "").
+    new_photo = dumped.get("photo_url")
+    if new_photo == "":
+        photo_op = "clear"
+    elif isinstance(new_photo, str) and new_photo:
+        photo_op = "set"
+    else:
+        photo_op = None
+
+    update_data = {k: v for k, v in dumped.items() if v is not None and k != "photo_url"}
+    if not update_data and photo_op is None:
         raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
+
+    old_photo = None
+    if photo_op is not None:
+        existing = await db.users.find_one({"id": current_user.id}, {"_id": 0, "photo_url": 1})
+        old_photo = (existing or {}).get("photo_url")
+        update_data["photo_url"] = new_photo if photo_op == "set" else None
 
     await db.users.update_one({"id": current_user.id}, {"$set": update_data})
 
+    # Higiene de ficheiros: ao trocar/remover, apaga o avatar antigo se mudou.
+    if photo_op is not None and old_photo and old_photo != update_data.get("photo_url"):
+        delete_upload_file(old_photo)
+
     # Return updated user
-    updated = await db.users.find_one({"id": current_user.id}, {"_id": 0, "password": 0})
-    parse_user_dates(updated)
-    await create_audit_log(current_user.id, "Atualizou o próprio perfil")
+    updated = await db.users.find_one(
+        {"id": current_user.id}, {"_id": 0, "password": 0, **dict.fromkeys(MFA_SECRET_FIELDS, 0)}
+    )
+    # Audit específico para a foto quando essa foi a única acção; genérico caso
+    # contrário (edição mista de campos do perfil).
+    if photo_op and not (update_data.keys() - {"photo_url"}):
+        await create_audit_log(
+            current_user.id,
+            "profile_photo_removed" if photo_op == "clear" else "profile_photo_updated",
+        )
+    else:
+        await create_audit_log(current_user.id, "Atualizou o próprio perfil")
     return updated
 
 
@@ -190,8 +239,7 @@ async def admin_update_user(
             "/perfil",
         )
 
-    updated = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
-    parse_user_dates(updated)
+    updated = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0, **dict.fromkeys(MFA_SECRET_FIELDS, 0)})
     return updated
 
 
@@ -205,7 +253,7 @@ async def update_user_status(user_id: str, status: str, current_user: User = Dep
         raise HTTPException(status_code=400, detail=f"Status inválido. Opções: {', '.join(USER_STATUSES)}")
 
     await db.users.update_one({"id": user_id}, {"$set": {"status": status}})
-    await create_audit_log(current_user.id, f"Alterou status de {user_id} para {status}", user_id)
+    await create_audit_log(current_user.id, "user_status_updated", user_id, details={"status": status})
     return {"message": "Status atualizado"}
 
 
@@ -227,6 +275,42 @@ async def delete_user(user_id: str, current_user: User = Depends(get_current_use
     delete_upload_file(existing.get("photo_url") or "")
     await create_audit_log(current_user.id, f"Removeu utilizador {existing.get('name', user_id)}", user_id)
     return {"message": "Utilizador removido com sucesso"}
+
+
+# ===== REMOVE USER PHOTO (moderação reativa) =====
+@router.delete("/users/{user_id}/photo")
+async def remove_user_photo(
+    user_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    """Admin/moderador removem a foto de perfil de um membro (foto inadequada).
+    Apenas REMOVEM — não definem fotos (spec-foto-de-perfil §5.2). Volta às
+    iniciais, apaga o ficheiro, regista audit e notifica o utilizador."""
+    if not has_role_or_privilege(current_user, ("admin", "moderador"), "manage_users"):
+        raise HTTPException(status_code=403, detail="Sem permissão")
+
+    existing = await db.users.find_one({"id": user_id}, {"_id": 0, "photo_url": 1, "name": 1})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Utilizador não encontrado")
+
+    await db.users.update_one({"id": user_id}, {"$set": {"photo_url": None}})
+    delete_upload_file(existing.get("photo_url") or "")
+    await create_audit_log(
+        current_user.id,
+        "profile_photo_removed",
+        user_id,
+        request=request,
+        details={"target_name": existing.get("name")},
+    )
+    await create_notification(
+        user_id,
+        "admin",
+        "Foto removida",
+        "A sua foto de perfil foi removida pela moderação.",
+        "/perfil",
+    )
+    return {"message": "Foto removida"}
 
 
 # ===== CARGO HISTORY =====

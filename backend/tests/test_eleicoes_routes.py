@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
 
+import asyncpg
 import pytest
 from fastapi import HTTPException
 
@@ -17,7 +18,9 @@ from governance import election_slots
 from models import (
     EleicaoCreate,
     EleicaoListaCreate,
+    EleicaoListaValidar,
     VotarRequest,
+    VotoCorrespondenciaRequest,
     User,
 )
 
@@ -84,6 +87,8 @@ def gov_env(mock_db, monkeypatch):
     mock_db.eleicao_ballots = _coll()
     monkeypatch.setattr(e_route, "create_audit_log", AsyncMock())
     monkeypatch.setattr(e_route, "notify_users", AsyncMock())
+    # cast_ballot foi promovido a tomar lock (#151) — default success.
+    monkeypatch.setattr(e_route, "cast_ballot", AsyncMock())
     return mock_db
 
 
@@ -205,6 +210,19 @@ class TestListas:
         # cada candidato tem cargo derivado do slot
         assert all("cargo" in c and "suplente" in c for c in captured["candidatos"])
 
+    async def test_validar_lista_fora_de_candidaturas_400(self, gov_env):
+        gov_env.eleicoes.find_one = AsyncMock(return_value=_eleicao(status="votacao"))
+        with pytest.raises(HTTPException) as exc:
+            await e_route.validar_lista(
+                eleicao_id="el1",
+                lista_id="l1",
+                request=_request(),
+                data=EleicaoListaValidar(aceite=True),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 400
+        gov_env.eleicao_listas.find_one.assert_not_awaited()
+
 
 # --------------------------------------------------------------------------- #
 # Voto secreto
@@ -259,7 +277,7 @@ class TestVoto:
 
     async def test_voto_duplo_409(self, gov_env, socio_user, monkeypatch):
         gov_env.eleicoes.find_one = AsyncMock(return_value=_eleicao(status="votacao"))
-        monkeypatch.setattr(e_route, "cast_ballot", AsyncMock(side_effect=ValueError("voto duplicado")))
+        monkeypatch.setattr(e_route, "cast_ballot", AsyncMock(side_effect=ValueError("duplicate")))
         with pytest.raises(HTTPException) as exc:
             await e_route.votar(
                 eleicao_id="el1",
@@ -268,6 +286,131 @@ class TestVoto:
                 current_user=socio_user,
             )
         assert exc.value.status_code == 409
+
+    async def test_helper_not_open_400(self, gov_env, socio_user, monkeypatch):
+        # Race TOCTOU: o status-check de fast-path passa, mas o helper DAO, sob
+        # lock, vê a eleição já em "apurada" (issue #151). 400, sem audit.
+        gov_env.eleicoes.find_one = AsyncMock(return_value=_eleicao(status="votacao"))
+        monkeypatch.setattr(e_route, "cast_ballot", AsyncMock(side_effect=ValueError("not_open")))
+        with pytest.raises(HTTPException) as exc:
+            await e_route.votar(
+                eleicao_id="el1",
+                request=_request(),
+                data=VotarRequest(voto="branco"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 400
+        e_route.create_audit_log.assert_not_awaited()
+
+    async def test_helper_not_found_404(self, gov_env, socio_user, monkeypatch):
+        gov_env.eleicoes.find_one = AsyncMock(return_value=_eleicao(status="votacao"))
+        monkeypatch.setattr(e_route, "cast_ballot", AsyncMock(side_effect=ValueError("not_found")))
+        with pytest.raises(HTTPException) as exc:
+            await e_route.votar(
+                eleicao_id="el1",
+                request=_request(),
+                data=VotarRequest(voto="branco"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 404
+
+    async def test_lock_timeout_503(self, gov_env, socio_user, monkeypatch):
+        gov_env.eleicoes.find_one = AsyncMock(return_value=_eleicao(status="votacao"))
+        monkeypatch.setattr(
+            e_route, "cast_ballot",
+            AsyncMock(side_effect=asyncpg.exceptions.LockNotAvailableError()),
+        )
+        with pytest.raises(HTTPException) as exc:
+            await e_route.votar(
+                eleicao_id="el1",
+                request=_request(),
+                data=VotarRequest(voto="branco"),
+                current_user=socio_user,
+            )
+        assert exc.value.status_code == 503
+
+
+# --------------------------------------------------------------------------- #
+# Voto por correspondência (mesma race, escrita registada pela Mesa)
+# --------------------------------------------------------------------------- #
+
+
+def _voter_dict(uid: str = "voter-1") -> dict:
+    return {
+        "id": uid,
+        "name": "Eleitor",
+        "email": f"{uid}@x.cv",
+        "role": "socio",
+        "status": "ativo",
+        "cargo": "socio",
+        "account_type": "member",
+        "member_category": "ordinario",
+    }
+
+
+class TestVotoCorrespondencia:
+    async def _setup(self, gov_env, *, status="votacao"):
+        gov_env.eleicoes.find_one = AsyncMock(return_value=_eleicao(status=status))
+        gov_env.users.find_one = AsyncMock(return_value=_voter_dict())
+        gov_env.eleicao_listas.find_one = AsyncMock(return_value={"estado": "aceite"})
+
+    async def test_happy_registado(self, gov_env, monkeypatch):
+        await self._setup(gov_env)
+        captured = {}
+
+        async def fake_cast(eleicao_id, voter_hash, receipt_doc, ballot_doc):
+            captured["receipt"] = receipt_doc
+            captured["ballot"] = ballot_doc
+
+        monkeypatch.setattr(e_route, "cast_ballot", AsyncMock(side_effect=fake_cast))
+        result = await e_route.voto_correspondencia(
+            eleicao_id="el1",
+            request=_request(),
+            data=VotoCorrespondenciaRequest(user_id="voter-1", voto="L1", justificacao="ausente"),
+            current_user=_mesa_ag(),
+        )
+        assert "registado" in result["message"].lower()
+        assert captured["ballot"]["modo"] == "correspondencia"
+        assert "user_id" not in captured["ballot"]
+
+    async def test_helper_not_open_400(self, gov_env, monkeypatch):
+        await self._setup(gov_env)
+        monkeypatch.setattr(e_route, "cast_ballot", AsyncMock(side_effect=ValueError("not_open")))
+        with pytest.raises(HTTPException) as exc:
+            await e_route.voto_correspondencia(
+                eleicao_id="el1",
+                request=_request(),
+                data=VotoCorrespondenciaRequest(user_id="voter-1", voto="L1", justificacao="ausente"),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 400
+
+    async def test_helper_duplicate_409(self, gov_env, monkeypatch):
+        await self._setup(gov_env)
+        monkeypatch.setattr(e_route, "cast_ballot", AsyncMock(side_effect=ValueError("duplicate")))
+        with pytest.raises(HTTPException) as exc:
+            await e_route.voto_correspondencia(
+                eleicao_id="el1",
+                request=_request(),
+                data=VotoCorrespondenciaRequest(user_id="voter-1", voto="L1", justificacao="ausente"),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 409
+
+    async def test_lock_timeout_503(self, gov_env, monkeypatch):
+        await self._setup(gov_env)
+        monkeypatch.setattr(
+            e_route, "cast_ballot",
+            AsyncMock(side_effect=asyncpg.exceptions.LockNotAvailableError()),
+        )
+        with pytest.raises(HTTPException) as exc:
+            await e_route.voto_correspondencia(
+                eleicao_id="el1",
+                request=_request(),
+                data=VotoCorrespondenciaRequest(user_id="voter-1", voto="L1", justificacao="ausente"),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 503
 
 
 # --------------------------------------------------------------------------- #
@@ -293,6 +436,18 @@ class TestApurar:
         assert result["empate"] is True
         assert result["vencedora"] is None
         assert "nova_eleicao_ate" in result
+
+    async def test_apurar_concorrente_409(self, gov_env):
+        # Duas chamadas concorrentes a apurar: a primeira fecha (CAS); a segunda
+        # vê modified_count=0 e devolve 409 — idempotência sem re-apurar/duplicar
+        # auditoria. Sem o filtro status="votacao", a segunda esmagaria o resultado.
+        gov_env.eleicoes.find_one = AsyncMock(return_value=_eleicao(status="votacao"))
+        gov_env.eleicoes.update_one = AsyncMock(return_value=MagicMock(modified_count=0))
+        with pytest.raises(HTTPException) as exc:
+            await e_route.apurar(eleicao_id="el1", request=_request(), current_user=_mesa_ag())
+        assert exc.value.status_code == 409
+        # Ballots nunca foram lidos (pre_close falhou primeiro).
+        e_route.create_audit_log.assert_not_awaited()
 
 
 # --------------------------------------------------------------------------- #

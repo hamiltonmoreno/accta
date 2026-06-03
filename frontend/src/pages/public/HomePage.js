@@ -1,7 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { postsAPI, eventsAPI } from '../../utils/api';
+import { postsAPI, eventsAPI, bannersAPI } from '../../utils/api';
 import { unsplashSrcSet } from '../../utils/unsplash';
+import { queryKeys } from '../../lib/queryClient';
+import { bannerDefault } from '../../lib/bannerDefaults';
 import {
   Plane,
   Shield,
@@ -56,13 +59,26 @@ const CAMINHO_RESUMO = {
 };
 
 export const HomePage = () => {
-  const [news, setNews] = useState([]);
-  const [loadingNews, setLoadingNews] = useState(true);
+  // Imagem do hero editável via config (chave "home"), com fallback embebido
+  // (spec-padronizacao-banners §4.2). A Home mantém o seu tamanho próprio.
+  const { data: bannerCfg } = useQuery({
+    queryKey: queryKeys.banners.public(),
+    queryFn: async () => (await bannersAPI.getPublic()).data,
+    staleTime: 30 * 60 * 1000,
+  });
+  const heroImg = bannerCfg?.home?.image_url || bannerDefault('home');
+  const heroIsUnsplash = heroImg.includes('images.unsplash.com');
+
   const [featuredEvent, setFeaturedEvent] = useState(null);
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
+  // Últimas 3 notícias públicas — pedidas com limit=3 (não cortadas no browser).
+  const { data: news = [], isLoading: loadingNews } = useQuery({
+    queryKey: queryKeys.posts.list({ visibility: 'publico', status: 'publicado', limit: 3 }),
+    queryFn: async () => (await postsAPI.getAll({ visibility: 'publico', status: 'publicado', limit: 3 })).data,
+  });
+
   useEffect(() => {
-    loadNews();
     loadFeaturedEvent();
   }, []);
 
@@ -94,30 +110,20 @@ export const HomePage = () => {
     } catch (err) { /* no featured event */ }
   };
 
-  const loadNews = async () => {
-    try {
-      const response = await postsAPI.getAll('publico');
-      setNews(response.data.slice(0, 3));
-    } catch (error) {
-      console.error('Erro ao carregar notícias:', error);
-    } finally {
-      setLoadingNews(false);
-    }
-  };
-
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="relative min-h-[600px] sm:min-h-[85vh] lg:min-h-[90vh] flex items-center overflow-hidden">
         <div className="absolute inset-0">
           <img
-            src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1280&auto=format&fit=crop"
-            srcSet={unsplashSrcSet('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&auto=format&fit=crop')}
+            src={heroImg}
+            srcSet={heroIsUnsplash ? unsplashSrcSet(heroImg) : undefined}
             sizes="100vw"
-            alt=""
-            aria-hidden="true"
+            alt={bannerCfg?.home?.alt || ''}
+            aria-hidden={bannerCfg?.home?.alt ? undefined : 'true'}
             className="absolute inset-0 w-full h-full object-cover"
             loading="eager"
+            fetchpriority="high"
             decoding="async"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/90 to-grafite/50 sm:from-grafite sm:via-grafite/85 sm:to-grafite/50" />
@@ -145,7 +151,7 @@ export const HomePage = () => {
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <Link
                   to="/profissao"
-                  className="group inline-flex items-center justify-center gap-2 bg-carmesim text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-lg font-bold text-sm sm:text-base hover:bg-carmesim-dark transition-all shadow-lg shadow-carmesim/25"
+                  className="group inline-flex items-center justify-center gap-2 bg-floresta text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-lg font-bold text-sm sm:text-base hover:bg-floresta-dark transition-all shadow-lg shadow-floresta/25"
                   data-testid="hero-cta-primary"
                 >
                   Conheça a Profissão
@@ -184,7 +190,7 @@ export const HomePage = () => {
                 className="text-center animate-fade-up">
                 <stat.icon className="w-6 sm:w-8 h-6 sm:h-8 text-white mx-auto mb-2 sm:mb-3" />
                 <div className="font-bold text-2xl sm:text-3xl lg:text-4xl text-white mb-0.5">{stat.value}</div>
-                <div className="text-xs text-white/60 tracking-wider">{stat.label}</div>
+                <div className="text-xs text-white/80 tracking-wider">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -558,7 +564,7 @@ export const HomePage = () => {
                   <div className="card-technical overflow-hidden hover:shadow-lg transition-all">
                     <div className="h-36 sm:h-48 relative overflow-hidden">
                       <img
-                        src={NEWS_IMAGES[index % NEWS_IMAGES.length]}
+                        src={post.cover_url || NEWS_IMAGES[index % NEWS_IMAGES.length]}
                         alt={post.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         loading="lazy"
@@ -573,9 +579,9 @@ export const HomePage = () => {
                       <h3 className="font-semibold text-base sm:text-lg text-grafite mb-2 sm:mb-3 group-hover:text-carmesim transition-colors">
                         {post.title}
                       </h3>
-                      <p className="text-gray-600 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 line-clamp-3">{post.content}</p>
+                      <p className="text-gray-600 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 line-clamp-3">{post.excerpt || post.content}</p>
                       <Link
-                        to="/noticias"
+                        to={`/noticias/${post.slug ?? post.id}`}
                         className="inline-flex items-center gap-2 text-xs sm:text-sm text-carmesim font-semibold hover:text-carmesim-dark transition-colors"
                       >
                         Ler mais
@@ -619,7 +625,7 @@ export const HomePage = () => {
           <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
             <Link
               to="/sobre"
-              className="inline-flex items-center justify-center gap-2 bg-carmesim text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-lg hover:bg-carmesim-dark transition-all"
+              className="inline-flex items-center justify-center gap-2 bg-floresta text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-lg hover:bg-floresta-dark transition-all"
             >
               Conheça a Associação
             </Link>

@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { assembleiasAPI, cargosAPI } from '../../utils/api';
+import { assembleiasAPI } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
 import {
   ASSEMBLEIA_TIPO_LABELS,
@@ -11,16 +12,18 @@ import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import {
   Landmark, Calendar, MapPin, Users, Gavel, CheckCircle2, XCircle,
-  Search, PlusCircle, UserPlus, Lock, ChevronRight, ShieldCheck, X,
+  PlusCircle, UserPlus, Lock, ChevronRight, ShieldCheck, X, FileText,
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '../../components/ui/dialog';
 import { EmptyState } from '../../components/EmptyState';
+import { primaryBtn } from '../../lib/buttonStyles';
 import { Skeleton } from '../../components/ui/skeleton';
+import { MemberPicker } from '../../components/MemberPicker';
 
 const TIPO_OPTIONS = ['ordinaria', 'extraordinaria', 'eleitoral'];
-const MAIORIA_OPTIONS = ['absoluta', 'qualificada_3_4_presentes', 'qualificada_3_4_universo'];
+const MAIORIA_OPTIONS = ['absoluta', 'qualificada_2_3', 'qualificada_3_4_presentes', 'qualificada_3_4_universo'];
 
 const formatDateTime = (iso) => {
   if (!iso) return '—';
@@ -59,79 +62,9 @@ const TipoBadge = ({ tipo }) => (
   </span>
 );
 
-// Procura de sócios (debounced) — reutilizada para presença e representados.
-const MemberPicker = ({ value, onSelect, testId, placeholder = 'Procurar por nome, email ou nº associado...' }) => {
-  const [search, setSearch] = useState('');
-  const [debounced, setDebounced] = useState('');
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(search), 300);
-    return () => clearTimeout(t);
-  }, [search]);
-
-  const { data: candidates = [], isFetching } = useQuery({
-    queryKey: queryKeys.cargos.candidates({ q: debounced }),
-    queryFn: async () => (await cargosAPI.candidates({ q: debounced || undefined })).data.candidates,
-    staleTime: 30 * 1000,
-  });
-
-  if (value) {
-    return (
-      <div className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-[#D1D5DB] bg-[#F5F5F5]">
-        <span className="text-sm text-grafite">
-          {value.name} <span className="font-mono text-xs text-[#6B7280]">{value.member_id || ''}</span>
-        </span>
-        <button
-          onClick={() => onSelect(null)}
-          className="text-xs text-carmesim font-semibold hover:underline cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 rounded"
-        >
-          Alterar
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={placeholder}
-          className="w-full pl-9 pr-3 py-2.5 border border-[#E5E7EB] rounded-md text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none"
-          data-testid={testId}
-        />
-      </div>
-      <div className="mt-1.5 max-h-44 overflow-y-auto rounded-lg border border-gray-100 divide-y divide-gray-50">
-        {isFetching && candidates.length === 0 ? (
-          <div className="px-3 py-3"><Skeleton className="h-4 w-40" /></div>
-        ) : candidates.length === 0 ? (
-          <p className="px-3 py-3 text-xs text-[#6B7280]">Nenhum sócio encontrado.</p>
-        ) : (
-          candidates.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => onSelect(c)}
-              className="w-full text-left px-3 py-2 hover:bg-[#F5F5F5] transition-colors cursor-pointer"
-              data-testid={`candidate-${c.id}`}
-            >
-              <span className="text-sm text-grafite">{c.name}</span>
-              <span className="ml-2 font-mono text-xs text-[#6B7280]">{c.member_id || ''}</span>
-              <span className="block text-xs text-[#6B7280]">{c.email} · {c.cargo}</span>
-            </button>
-          ))
-        )}
-      </div>
-    </>
-  );
-};
-
-const fieldCls = 'w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none';
+const fieldCls ='w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none';
 const labelCls = 'block text-xs font-medium text-[#6B7280] mb-1.5';
 const secondaryBtn = 'inline-flex items-center gap-1.5 bg-white border border-[#D1D5DB] text-[#3A3A3A] hover:bg-[#F5F5F5] rounded-md px-4 py-2 text-sm font-medium transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50';
-const primaryBtn = 'inline-flex items-center gap-1.5 bg-carmesim text-white hover:bg-carmesim-dark rounded-md px-4 py-2 text-sm font-semibold transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50';
 
 // Linha de contagem de votos no detalhe de uma deliberação.
 const VoteStat = ({ label, value, color }) => (
@@ -327,23 +260,36 @@ export const AdminAssembleiasPage = () => {
             assembleias.map((a) => {
               const active = a.id === selectedId;
               return (
-                <button
-                  key={a.id}
-                  onClick={() => setSelectedId(a.id)}
-                  className={`w-full text-left bg-white rounded-lg border shadow-sm p-4 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 ${active ? 'border-carmesim ring-1 ring-carmesim/30' : 'border-[#E5E7EB] hover:bg-[#F5F5F5]'}`}
-                  data-testid={`assembleia-row-${a.id}`}
-                  aria-current={active ? 'true' : undefined}
-                >
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <TipoBadge tipo={a.tipo} />
-                    <StatusBadge status={a.status} />
-                  </div>
-                  <p className="font-semibold text-grafite leading-snug">{a.titulo}</p>
-                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#6B7280]">
-                    <span className="inline-flex items-center gap-1"><Calendar className="w-3.5 h-3.5" aria-hidden="true" />{formatDateTime(a.data)}</span>
-                    {a.local && <span className="inline-flex items-center gap-1"><MapPin className="w-3.5 h-3.5" aria-hidden="true" />{a.local}</span>}
-                  </div>
-                </button>
+                <div key={a.id} className="relative">
+                  <button
+                    onClick={() => setSelectedId(a.id)}
+                    className={`w-full text-left bg-white rounded-lg border shadow-sm p-4 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 ${active ? 'border-carmesim ring-1 ring-carmesim/30' : 'border-[#E5E7EB] hover:bg-[#F5F5F5]'}`}
+                    data-testid={`assembleia-row-${a.id}`}
+                    aria-current={active ? 'true' : undefined}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <TipoBadge tipo={a.tipo} />
+                      <StatusBadge status={a.status} />
+                    </div>
+                    <p className="font-semibold text-grafite leading-snug">{a.titulo}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#6B7280]">
+                      <span className="inline-flex items-center gap-1"><Calendar className="w-3.5 h-3.5" aria-hidden="true" />{formatDateTime(a.data)}</span>
+                      {a.local && <span className="inline-flex items-center gap-1"><MapPin className="w-3.5 h-3.5" aria-hidden="true" />{a.local}</span>}
+                    </div>
+                  </button>
+                  {/* Entrada para a sala "ao vivo" (camada participativa) — sai do
+                      botão pai p/ permitir click próprio sem `button-in-button`. */}
+                  {(a.status === 'convocada' || a.status === 'em_curso') && (
+                    <Link
+                      to={`/assembleias/${a.id}`}
+                      className="absolute right-3 bottom-3 text-xs text-carmesim hover:underline inline-flex items-center gap-1"
+                      data-testid={`assembleia-sala-${a.id}`}
+                    >
+                      Sala ao vivo
+                      <ChevronRight className="w-3 h-3" aria-hidden="true" />
+                    </Link>
+                  )}
+                </div>
               );
             })
           )}
@@ -388,6 +334,19 @@ export const AdminAssembleiasPage = () => {
                         <li key={i}>{typeof p === 'string' ? p : (p?.titulo || p?.ponto || '—')}</li>
                       ))}
                     </ol>
+                  </div>
+                )}
+
+                {detail.acta_document_id && (
+                  <div className="mt-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#6B7280] mb-1.5">Acta</p>
+                    <Link
+                      to="/documentos"
+                      className="inline-flex items-center gap-1.5 text-sm text-carmesim font-medium hover:underline focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 rounded"
+                      data-testid="acta-link"
+                    >
+                      <FileText className="w-4 h-4" aria-hidden="true" /> Acta registada — ver na biblioteca de documentos
+                    </Link>
                   </div>
                 )}
 
@@ -514,8 +473,9 @@ export const AdminAssembleiasPage = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className={labelCls}>Tipo</label>
+              <label htmlFor="convocar-tipo" className={labelCls}>Tipo</label>
               <select
+                id="convocar-tipo"
                 value={convocarForm.tipo}
                 onChange={(e) => setConvocarForm({ ...convocarForm, tipo: e.target.value })}
                 className={`${fieldCls} bg-white`}
@@ -525,8 +485,9 @@ export const AdminAssembleiasPage = () => {
               </select>
             </div>
             <div>
-              <label className={labelCls}>Título</label>
+              <label htmlFor="convocar-titulo" className={labelCls}>Título</label>
               <input
+                id="convocar-titulo"
                 type="text"
                 value={convocarForm.titulo}
                 onChange={(e) => setConvocarForm({ ...convocarForm, titulo: e.target.value })}
@@ -540,8 +501,9 @@ export const AdminAssembleiasPage = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className={labelCls}>Data e hora</label>
+                <label htmlFor="convocar-data" className={labelCls}>Data e hora</label>
                 <input
+                  id="convocar-data"
                   type="datetime-local"
                   value={convocarForm.data}
                   onChange={(e) => setConvocarForm({ ...convocarForm, data: e.target.value })}
@@ -550,8 +512,9 @@ export const AdminAssembleiasPage = () => {
                 />
               </div>
               <div>
-                <label className={labelCls}>Local</label>
+                <label htmlFor="convocar-local" className={labelCls}>Local</label>
                 <input
+                  id="convocar-local"
                   type="text"
                   value={convocarForm.local}
                   onChange={(e) => setConvocarForm({ ...convocarForm, local: e.target.value })}
@@ -563,8 +526,9 @@ export const AdminAssembleiasPage = () => {
             </div>
             {convocarForm.tipo === 'extraordinaria' && (
               <div>
-                <label className={labelCls}>Requerente (opcional)</label>
+                <label htmlFor="convocar-requerente" className={labelCls}>Requerente (opcional)</label>
                 <select
+                  id="convocar-requerente"
                   value={convocarForm.requerente_tipo}
                   onChange={(e) => setConvocarForm({ ...convocarForm, requerente_tipo: e.target.value })}
                   className={`${fieldCls} bg-white`}

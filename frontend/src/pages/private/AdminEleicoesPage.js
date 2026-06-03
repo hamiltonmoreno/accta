@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { eleicoesAPI, cargosAPI, governanceAPI } from '../../utils/api';
+import { eleicoesAPI, governanceAPI } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
 import { ELEICAO_STATUS_LABELS, cargoLabelFrom, orgaoLabel } from '../../lib/governanceLabels';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import {
-  Vote, ListChecks, Search, Plus, Trophy, AlertTriangle, CheckCircle2, XCircle,
+  Vote, ListChecks, Plus, Trophy, AlertTriangle, CheckCircle2, XCircle,
   Clock, FileSignature, Layers, CalendarRange, Hash,
 } from 'lucide-react';
 import {
@@ -14,6 +14,8 @@ import {
 } from '../../components/ui/dialog';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
+import { MemberPicker as CandidatePicker } from '../../components/MemberPicker';
+import { primaryBtn } from '../../lib/buttonStyles';
 
 const MODO_LABELS = {
   presencial: 'Presencial',
@@ -63,83 +65,9 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-// Procura de sócios elegíveis (debounced) para preencher um slot de candidatura.
-const CandidatePicker = ({ value, onSelect, testId }) => {
-  const [search, setSearch] = useState('');
-  const [debounced, setDebounced] = useState('');
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(search), 300);
-    return () => clearTimeout(t);
-  }, [search]);
-
-  const { data: candidates = [], isFetching } = useQuery({
-    queryKey: queryKeys.cargos.candidates({ q: debounced }),
-    queryFn: async () => (await cargosAPI.candidates({ q: debounced || undefined })).data.candidates,
-    staleTime: 30 * 1000,
-  });
-
-  if (value) {
-    return (
-      <div className="flex items-center justify-between px-3 py-2 rounded-md border border-[#D1D5DB] bg-[#F5F5F5]">
-        <span className="text-sm text-grafite truncate">
-          {value.name} <span className="font-mono text-xs text-[#6B7280]">{value.member_id || ''}</span>
-        </span>
-        <button
-          type="button"
-          onClick={() => onSelect(null)}
-          className="text-xs text-carmesim font-semibold hover:underline cursor-pointer ml-2 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 rounded"
-        >
-          Alterar
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Procurar sócio por nome, email ou nº..."
-          className="w-full pl-9 pr-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none"
-          data-testid={testId}
-        />
-      </div>
-      {debounced && (
-        <div className="mt-1.5 max-h-40 overflow-y-auto rounded-md border border-gray-100 divide-y divide-gray-50">
-          {isFetching && candidates.length === 0 ? (
-            <div className="px-3 py-2.5"><Skeleton className="h-4 w-40" /></div>
-          ) : candidates.length === 0 ? (
-            <p className="px-3 py-2.5 text-xs text-[#6B7280]">Nenhum sócio encontrado.</p>
-          ) : (
-            candidates.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => onSelect(c)}
-                className="w-full text-left px-3 py-2 hover:bg-[#F5F5F5] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40"
-                data-testid={`candidate-${c.id}`}
-              >
-                <span className="text-sm text-grafite">{c.name}</span>
-                <span className="ml-2 font-mono text-xs text-[#6B7280]">{c.member_id || ''}</span>
-                <span className="block text-xs text-[#6B7280]">{c.email}</span>
-              </button>
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const fieldClass = 'w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 outline-none';
+const fieldClass ='w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none';
 const labelClass = 'block text-xs font-medium text-[#6B7280] mb-1.5';
 const secondaryBtn = 'px-4 py-2 rounded-md bg-white border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 disabled:opacity-50';
-const primaryBtn = 'px-4 py-2 rounded-md bg-carmesim text-white text-sm font-semibold hover:bg-carmesim-dark transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 ring-offset-2 disabled:opacity-50';
 
 // ── Modal: criar eleição ────────────────────────────────────────────────────
 const CriarEleicaoModal = ({ open, onClose, onSubmit, pending }) => {
@@ -159,7 +87,7 @@ const CriarEleicaoModal = ({ open, onClose, onSubmit, pending }) => {
           <DialogDescription>Defina o ano, o mandato e o modo de votação dos órgãos sociais.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelClass} htmlFor="ele-ano">Ano</label>
               <input
@@ -184,7 +112,7 @@ const CriarEleicaoModal = ({ open, onClose, onSubmit, pending }) => {
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelClass} htmlFor="ele-inicio">Início do mandato</label>
               <input
@@ -307,6 +235,9 @@ const SubmeterListaModal = ({ open, onClose, onSubmit, pending, slots, structure
                     value={picks[s.slot_key] || null}
                     onSelect={(u) => setPicks((prev) => ({ ...prev, [s.slot_key]: u }))}
                     testId={`slot-picker-${s.slot_key}`}
+                    placeholder="Procurar sócio por nome, email ou nº..."
+                    showCargo={false}
+                    gateOnQuery
                   />
                 </div>
               ))}
@@ -392,19 +323,34 @@ const VotarModal = ({ open, onClose, onSubmit, pending, listas }) => {
 };
 
 // ── Modal: validar / rejeitar lista ───────────────────────────────────────────
-const ValidarListaModal = ({ lista, onClose, onSubmit, pending }) => {
+export const ValidarListaModal = ({ lista, structure, onClose, onSubmit, pending }) => {
   const [motivo, setMotivo] = useState('');
 
   useEffect(() => { setMotivo(''); }, [lista]);
+
+  const candidatos = lista?.candidatos || [];
 
   return (
     <Dialog open={!!lista} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Validar lista {lista?.letra}</DialogTitle>
-          <DialogDescription>Aceite a lista ou rejeite-a indicando o motivo.</DialogDescription>
+          <DialogDescription>Confira os cargos cobertos e aceite a lista, ou rejeite-a indicando o motivo.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
+          {candidatos.length > 0 && (
+            <div>
+              <p className={labelClass}>Cargos na lista ({candidatos.length})</p>
+              <ul className="max-h-44 overflow-y-auto rounded-md border border-[#E5E7EB] divide-y divide-[#F5F5F5] text-sm" data-testid="validar-candidatos">
+                {candidatos.map((c, i) => (
+                  <li key={c.user_id || c.slot_key || i} className="px-3 py-1.5 flex items-center justify-between gap-2">
+                    <span className="text-grafite truncate">{cargoLabelFrom(structure, c.cargo)}</span>
+                    {c.suplente && <span className="text-xs text-[#6B7280] shrink-0">suplente</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div>
             <label className={labelClass} htmlFor="rejeicao-motivo">Motivo (em caso de rejeição)</label>
             <textarea
@@ -436,6 +382,74 @@ const ValidarListaModal = ({ lista, onClose, onSubmit, pending }) => {
               data-testid="aceitar-lista-confirm"
             >
               {pending ? 'A validar...' : 'Aceitar lista'}
+            </button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// ── Modal: voto por correspondência (Comissão/Mesa/admin) ─────────────────────
+// Registo administrativo de um boletim recebido por correspondência. SEGREDO: o
+// sentido do voto nunca é confirmado associado ao eleitor após submissão.
+export const VotoCorrespondenciaModal = ({ open, onClose, onSubmit, pending, listas }) => {
+  const [voter, setVoter] = useState(null);
+  const [voto, setVoto] = useState(null);
+  const [justificacao, setJustificacao] = useState('');
+
+  useEffect(() => { if (open) { setVoter(null); setVoto(null); setJustificacao(''); } }, [open]);
+
+  const aceites = listas.filter((l) => l.estado === 'aceite');
+  const Option = ({ id, children }) => (
+    <label className={`flex items-center gap-3 px-3 py-2.5 rounded-md border cursor-pointer transition-colors ${voto === id ? 'border-carmesim bg-carmesim/5' : 'border-[#E5E7EB] hover:bg-[#F5F5F5]'}`}>
+      <input type="radio" name="voto-corr" checked={voto === id} onChange={() => setVoto(id)} className="text-carmesim focus:ring-carmesim/40" />
+      <span className="text-sm text-grafite">{children}</span>
+    </label>
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Voto por correspondência</DialogTitle>
+          <DialogDescription>Registo administrativo de um boletim recebido por correspondência. O sentido do voto não fica associado ao eleitor.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <label className={labelClass}>Eleitor</label>
+            <CandidatePicker value={voter} onSelect={setVoter} testId="corr-voter" />
+          </div>
+          <div className="space-y-2">
+            {aceites.map((l) => (
+              <Option key={l.id} id={l.id}><span className="font-semibold mr-1">Lista {l.letra}</span>{l.nome || ''}</Option>
+            ))}
+            <Option id="branco">Voto em branco</Option>
+            <Option id="nulo">Voto nulo</Option>
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="corr-just">Justificação</label>
+            <textarea
+              id="corr-just"
+              value={justificacao}
+              onChange={(e) => setJustificacao(e.target.value)}
+              rows={2}
+              maxLength={500}
+              placeholder="Ex.: boletim recebido por correio em DD/MM/AAAA"
+              className={`${fieldClass} resize-none`}
+              data-testid="corr-justificacao"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={onClose} className={secondaryBtn}>Cancelar</button>
+            <button
+              type="button"
+              onClick={() => onSubmit({ user_id: voter.id, voto, justificacao: justificacao.trim() })}
+              disabled={!voter || !voto || justificacao.trim().length < 3 || pending}
+              className={primaryBtn}
+              data-testid="corr-confirm"
+            >
+              {pending ? 'A registar...' : 'Registar voto'}
             </button>
           </div>
         </div>
@@ -518,6 +532,7 @@ const ResultadoPanel = ({ resultado, listas }) => {
 const EleicaoDetail = ({ eleicaoId, structure, canManage, isVotingMember, qc }) => {
   const [submeterOpen, setSubmeterOpen] = useState(false);
   const [votarOpen, setVotarOpen] = useState(false);
+  const [corrOpen, setCorrOpen] = useState(false);
   const [validarLista, setValidarLista] = useState(null);
 
   const { data: detail, isLoading } = useQuery({
@@ -562,6 +577,12 @@ const EleicaoDetail = ({ eleicaoId, structure, canManage, isVotingMember, qc }) 
   const votarMutation = useMutation({
     mutationFn: (data) => eleicoesAPI.votar(eleicaoId, data),
     onSuccess: () => { toast.success('Voto registado.'); setVotarOpen(false); invalidate(); },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao registar o voto'),
+  });
+
+  const corrMutation = useMutation({
+    mutationFn: (data) => eleicoesAPI.votoCorrespondencia(eleicaoId, data),
+    onSuccess: () => { toast.success('Voto por correspondência registado.'); setCorrOpen(false); invalidate(); },
     onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao registar o voto'),
   });
 
@@ -622,12 +643,17 @@ const EleicaoDetail = ({ eleicaoId, structure, canManage, isVotingMember, qc }) 
                 </button>
               </>
             )}
+            {canManage && status === 'votacao' && (detail.modo_votacao === 'correspondencia' || detail.modo_votacao === 'hibrido') && (
+              <button type="button" onClick={() => setCorrOpen(true)} className={secondaryBtn} data-testid="voto-corr-btn">
+                Voto por correspondência
+              </button>
+            )}
             {canManage && status === 'votacao' && (
               <button
                 type="button"
                 onClick={() => apurarMutation.mutate()}
                 disabled={apurarMutation.isPending}
-                className={primaryBtn}
+                className={secondaryBtn}
                 data-testid="apurar-btn"
               >
                 {apurarMutation.isPending ? 'A apurar...' : 'Apurar'}
@@ -738,8 +764,16 @@ const EleicaoDetail = ({ eleicaoId, structure, canManage, isVotingMember, qc }) 
         pending={votarMutation.isPending}
         listas={listas}
       />
+      <VotoCorrespondenciaModal
+        open={corrOpen}
+        onClose={() => setCorrOpen(false)}
+        onSubmit={(data) => corrMutation.mutate(data)}
+        pending={corrMutation.isPending}
+        listas={listas}
+      />
       <ValidarListaModal
         lista={validarLista}
+        structure={structure}
         onClose={() => setValidarLista(null)}
         onSubmit={(data) => validarMutation.mutate({ listaId: validarLista.id, data })}
         pending={validarMutation.isPending}

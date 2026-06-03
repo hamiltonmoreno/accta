@@ -1,27 +1,21 @@
+// Labels APENAS para display historico de transaccoes (Cat 4 §5.4). Mantem
+// as keys estatutarias canonicas (Art. 5) + as legadas (`patrocinios`,
+// `doacoes`, `outros_receita`) para que rows antigas continuem a render um
+// label legivel enquanto `scripts/migrate_income_categories.py --apply` nao
+// corre. NAO usar para construir o dropdown de seleccao — esse vem do hook
+// `useFinanceCategories` (endpoint GET /finances/meta/categories).
 export const CATEGORY_LABELS = {
-  quotas: 'Quotas', patrocinios: 'Patrocinios', doacoes: 'Doacoes',
-  eventos: 'Eventos', outros_receita: 'Outros',
-  operacional: 'Operacional', juridico: 'Juridico',
-  comunicacao: 'Comunicacao', viagens: 'Viagens', outros_despesa: 'Outros',
+  // Receitas estatutarias (Art. 5)
+  quotas: 'Quotas', joias: 'Jóias', subvencoes: 'Subvenções',
+  donativos: 'Donativos', venda_publicacoes: 'Venda de Publicações',
+  juros: 'Juros', extraordinarias: 'Receitas Extraordinárias',
+  // Receitas legadas (ate a migracao --apply)
+  patrocinios: 'Patrocínios', doacoes: 'Doações', outros_receita: 'Outras Receitas',
+  // Despesas
+  operacional: 'Operacional', juridico: 'Jurídico',
+  comunicacao: 'Comunicação', viagens: 'Viagens', eventos: 'Eventos', outros_despesa: 'Outras Despesas',
 };
 
 export const MONTH_NAMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 export const PAGE_SIZE = 20;
-
-export const INCOME_CATEGORIES = [
-  { value: 'quotas', label: 'Quotas' },
-  { value: 'patrocinios', label: 'Patrocinios' },
-  { value: 'doacoes', label: 'Doacoes' },
-  { value: 'eventos', label: 'Eventos' },
-  { value: 'outros_receita', label: 'Outros' },
-];
-
-export const EXPENSE_CATEGORIES = [
-  { value: 'operacional', label: 'Operacional' },
-  { value: 'eventos', label: 'Eventos' },
-  { value: 'juridico', label: 'Juridico' },
-  { value: 'comunicacao', label: 'Comunicacao' },
-  { value: 'viagens', label: 'Viagens' },
-  { value: 'outros_despesa', label: 'Outros' },
-];

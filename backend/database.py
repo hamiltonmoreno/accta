@@ -51,7 +51,7 @@ if not DATABASE_URL:
 UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
-# All logical collections -> tables. 29 with Pydantic models + 7 without.
+# All logical collections -> tables. 30 with Pydantic models + 7 without.
 COLLECTIONS: tuple[str, ...] = (
     "users",
     "invoices",
@@ -78,12 +78,49 @@ COLLECTIONS: tuple[str, ...] = (
     "assembleias",
     "assembleia_presencas",
     "assembleia_deliberacoes",
+    # sessão da AG "ao vivo" (spec-sessao-assembleia-ao-vivo):
+    "assembleia_palavra",
+    "assembleia_votos",  # voto nominal (registado por nome)
+    "assembleia_voto_receipts",  # voto secreto: recibo (HMAC)
+    "assembleia_voto_ballots",  # voto secreto: boletim (sem user_id)
+    "assembleia_mocoes",  # F4 — moções/requerimentos/recomendações em sessão
+    "assembleia_expediente",  # F5 — antes da OT (correspondência + votos de louvor/etc)
+    "assembleia_convidados",  # F6 — não-membros autorizados a assistir/intervir
     "eleicoes",
     "eleicao_listas",
     "eleicao_voter_receipts",
     "eleicao_ballots",
     "sancoes",
     "finance_settings_history",
+    # controlos financeiros estatutários (spec-controlos §4.1): co-aprovação
+    "atos",
+    "page_banners",
+    "brand_settings",
+    # voz e participação do sócio (spec-voz-participacao-socio):
+    "patrocinios",
+    "honorarios_nominations",
+    "peticoes",
+    "peticao_assinaturas",
+    "propostas_ag",
+    "reclamacoes",
+    "esclarecimentos",
+    # ciclo anual de prestação de contas (spec-ciclo-prestacao-contas):
+    "exercicios",
+    "balancetes",
+    "regulamentos",
+    "regulamento_versoes",
+    # comunicados (spec-comunicados-email):
+    "comunicados",
+    # ranking de atuação do sócio (spec-ranking-socio):
+    "member_scores",
+    "ranking_ajustes",
+    "ranking_settings",
+    # fins profissionais Cat 5 F2 (spec-fins-profissionais §6/§8):
+    "formacoes",
+    "publicacoes",
+    # fins profissionais Cat 5 F3 (spec-fins-profissionais §5/§7):
+    "defesa_profissional",
+    "relacoes_externas",
     # no Pydantic model — schema derived from usage:
     "password_resets",
     "tokens_revoked",
@@ -191,6 +228,17 @@ def _quote_ident(name: str) -> str:
     return f'"{name}"'
 
 
+def _safe_jsonb_key(key: str) -> str:
+    """Valida uma chave de campo jsonb antes de a interpolar num literal
+    `doc->>'<key>'`. Hoje estas chaves são constantes internas (nunca
+    controladas pelo utilizador), mas validar — em vez de confiar — espelha a
+    defesa de `_quote_ident` contra um futuro chamador descuidado. Devolve a
+    chave inalterada (as plicas vêm do f-string em redor)."""
+    if not re.fullmatch(r"[a-z_][a-z0-9_]*", key):
+        raise ValueError(f"Invalid jsonb key: {key!r}")
+    return key
+
+
 def _to_scalar_text(value: Any) -> Optional[str]:
     """Render a Python scalar the same way Postgres `jsonb ->> 'k'` would."""
     if value is None:
@@ -269,7 +317,14 @@ class _WhereBuilder:
             return f"(NOT (doc ? {key}) OR doc->>{key} IS NULL)"
         scalar = self._cmp(field, "=", value)
         # Mongo: {field: v} also matches if doc.field is an array containing v.
-        arr = f"(jsonb_typeof(doc->{key}) = 'array' AND doc->{key} @> {self._ph(_dumps([value]))}::jsonb)"
+        # Membership via the `?` existence operator with a *text* parameter — NOT
+        # `@> $n::jsonb`: asyncpg binds a jsonb parameter such that `col @> $n::jsonb`
+        # never matches (a jsonb literal does), so that branch was dead and any
+        # {arrayField: scalar} filter silently returned nothing. `?` tests whether
+        # the value is a top-level string element of the array; consistent with the
+        # `$in` branch (which uses `?|`). Covers the string arrays in the schema
+        # (attendees, team_members, likes, privileges, …).
+        arr = f"(jsonb_typeof(doc->{key}) = 'array' AND doc->{key} ? {self._ph(_to_scalar_text(value))})"
         return f"({scalar} OR {arr})"
 
     def _field_clause(self, field: str, cond: Any) -> str:
@@ -787,6 +842,10 @@ _INDEX_DDL: tuple[str, ...] = (
     # documents / posts
     "CREATE INDEX IF NOT EXISTS ix_docs_vis ON \"documents\" ((doc->>'visibility'))",
     "CREATE INDEX IF NOT EXISTS ix_posts_vis_created ON \"posts\" ((doc->>'visibility'), (doc->>'created_at') DESC)",
+    # blog/notícias (spec-blog-noticias §4.4): lookup por slug + listas públicas/gestão
+    "CREATE INDEX IF NOT EXISTS ix_posts_slug ON \"posts\" ((doc->>'slug'))",
+    'CREATE INDEX IF NOT EXISTS ix_posts_status_vis_pub ON "posts" '
+    "((doc->>'status'), (doc->>'visibility'), (doc->>'published_at') DESC)",
     # invoices
     "CREATE INDEX IF NOT EXISTS ix_inv_user_status ON \"invoices\" ((doc->>'user_id'), (doc->>'status'))",
     "CREATE INDEX IF NOT EXISTS ix_inv_status_created ON \"invoices\" ((doc->>'status'), (doc->>'created_at') DESC)",
@@ -807,10 +866,34 @@ _INDEX_DDL: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS ix_assemb_status ON \"assembleias\" ((doc->>'status'))",
     "CREATE INDEX IF NOT EXISTS ix_assemb_tipo ON \"assembleias\" ((doc->>'tipo'))",
     "CREATE INDEX IF NOT EXISTS ix_assemb_data ON \"assembleias\" ((doc->>'data') DESC)",
-    'CREATE INDEX IF NOT EXISTS ix_assembpres_assemb_user ON "assembleia_presencas" '
+    # UNIQUE: um membro só pode ter UMA presença própria por assembleia — backstop
+    # de integridade à verificação aplicacional (corrida de dois check-ins
+    # simultâneos do mesmo sócio inflaria o poder de voto presente / quórum).
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_assembpres_assemb_user ON "assembleia_presencas" '
     "((doc->>'assembleia_id'), (doc->>'user_id'))",
     'CREATE INDEX IF NOT EXISTS ix_assembdelib_assemb ON "assembleia_deliberacoes" '
     "((doc->>'assembleia_id'), (doc->>'created_at') DESC)",
+    # sessão "ao vivo" — fila de uso da palavra
+    "CREATE INDEX IF NOT EXISTS ix_assembpalavra_assemb ON \"assembleia_palavra\" ((doc->>'assembleia_id'))",
+    'CREATE INDEX IF NOT EXISTS ix_assembpalavra_assemb_status ON "assembleia_palavra" '
+    "((doc->>'assembleia_id'), (doc->>'status'))",
+    # sessão "ao vivo" — modos de votação (spec-sessao-assembleia §7/§9)
+    # voto nominal: um voto por (deliberação, membro)
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_assembvoto_delib_user ON "assembleia_votos" '
+    "((doc->>'deliberacao_id'), (doc->>'user_id'))",
+    "CREATE INDEX IF NOT EXISTS ix_assembvoto_delib ON \"assembleia_votos\" ((doc->>'deliberacao_id'))",
+    # voto secreto: recibo prova que votou (único por eleitor); boletim é anónimo
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_assembvotoreceipt_delib_hash ON "assembleia_voto_receipts" '
+    "((doc->>'deliberacao_id'), (doc->>'voter_hash'))",
+    "CREATE INDEX IF NOT EXISTS ix_assembvotoballot_delib ON \"assembleia_voto_ballots\" ((doc->>'deliberacao_id'))",
+    # sessão "ao vivo" — moções/requerimentos/recomendações (F4)
+    "CREATE INDEX IF NOT EXISTS ix_assembmocoes_assemb ON \"assembleia_mocoes\" ((doc->>'assembleia_id'))",
+    'CREATE INDEX IF NOT EXISTS ix_assembmocoes_assemb_status ON "assembleia_mocoes" '
+    "((doc->>'assembleia_id'), (doc->>'status'))",
+    # sessão "ao vivo" — expediente do antes-OT (F5)
+    "CREATE INDEX IF NOT EXISTS ix_assembexpediente_assemb ON \"assembleia_expediente\" ((doc->>'assembleia_id'))",
+    # sessão "ao vivo" — convidados (F6)
+    "CREATE INDEX IF NOT EXISTS ix_assembconvidados_assemb ON \"assembleia_convidados\" ((doc->>'assembleia_id'))",
     # governança — eleições
     "CREATE INDEX IF NOT EXISTS ix_eleicoes_status_ano ON \"eleicoes\" ((doc->>'status'), (doc->>'ano'))",
     "CREATE INDEX IF NOT EXISTS ix_eleicoes_assemb ON \"eleicoes\" ((doc->>'assembleia_id'))",
@@ -827,6 +910,80 @@ _INDEX_DDL: tuple[str, ...] = (
     # governança — histórico de quota/jóia
     "CREATE INDEX IF NOT EXISTS ix_finsetthist_eff ON \"finance_settings_history\" ((doc->>'effective_from') DESC)",
     "CREATE INDEX IF NOT EXISTS ix_finsetthist_assemb ON \"finance_settings_history\" ((doc->>'assembleia_id'))",
+    # controlos financeiros — actos de co-aprovação (spec-controlos §7)
+    "CREATE INDEX IF NOT EXISTS ix_atos_status_created ON \"atos\" ((doc->>'status'), (doc->>'created_at') DESC)",
+    "CREATE INDEX IF NOT EXISTS ix_atos_tipo ON \"atos\" ((doc->>'tipo'))",
+    # voz e participação do sócio (spec-voz-participacao-socio §9)
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_patrocinio_cand_sponsor ON "patrocinios" '
+    "((doc->>'candidate_id'), (doc->>'sponsor_user_id'))",
+    "CREATE INDEX IF NOT EXISTS ix_patrocinio_sponsor ON \"patrocinios\" ((doc->>'sponsor_user_id'), (doc->>'status'))",
+    "CREATE INDEX IF NOT EXISTS ix_patrocinio_candidate ON \"patrocinios\" ((doc->>'candidate_id'), (doc->>'status'))",
+    "CREATE INDEX IF NOT EXISTS ix_honorarios_status ON \"honorarios_nominations\" ((doc->>'status'))",
+    "CREATE INDEX IF NOT EXISTS ix_honorarios_nominee ON \"honorarios_nominations\" ((doc->>'nominee_user_id'))",
+    "CREATE INDEX IF NOT EXISTS ix_peticoes_status_created ON \"peticoes\" ((doc->>'status'), (doc->>'created_at') DESC)",
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_peticao_assinatura ON "peticao_assinaturas" '
+    "((doc->>'peticao_id'), (doc->>'user_id'))",
+    "CREATE INDEX IF NOT EXISTS ix_peticao_assinatura_pet ON \"peticao_assinaturas\" ((doc->>'peticao_id'))",
+    'CREATE INDEX IF NOT EXISTS ix_propostas_status_created ON "propostas_ag" '
+    "((doc->>'status'), (doc->>'created_at') DESC)",
+    "CREATE INDEX IF NOT EXISTS ix_propostas_autor ON \"propostas_ag\" ((doc->>'created_by'))",
+    "CREATE INDEX IF NOT EXISTS ix_reclamacoes_autor ON \"reclamacoes\" ((doc->>'created_by'), (doc->>'status'))",
+    "CREATE INDEX IF NOT EXISTS ix_reclamacoes_status ON \"reclamacoes\" ((doc->>'status'))",
+    'CREATE INDEX IF NOT EXISTS ix_esclarecimentos_orgao ON "esclarecimentos" '
+    "((doc->>'orgao_destino'), (doc->>'status'))",
+    "CREATE INDEX IF NOT EXISTS ix_esclarecimentos_autor ON \"esclarecimentos\" ((doc->>'created_by'))",
+    # ciclo anual de prestação de contas (spec-ciclo §7)
+    "CREATE UNIQUE INDEX IF NOT EXISTS ux_exercicios_ano ON \"exercicios\" ((doc->>'ano'))",
+    "CREATE INDEX IF NOT EXISTS ix_exercicios_status ON \"exercicios\" ((doc->>'status'))",
+    "CREATE INDEX IF NOT EXISTS ix_balancetes_exercicio ON \"balancetes\" ((doc->>'exercicio_ano'))",
+    "CREATE INDEX IF NOT EXISTS ix_balancetes_tipo_periodo ON \"balancetes\" ((doc->>'tipo'), (doc->>'periodo'))",
+    "CREATE INDEX IF NOT EXISTS ix_balancetes_published ON \"balancetes\" ((doc->>'published'))",
+    "CREATE UNIQUE INDEX IF NOT EXISTS ux_regulamentos_slug ON \"regulamentos\" ((doc->>'slug'))",
+    "CREATE INDEX IF NOT EXISTS ix_regversoes_reg ON \"regulamento_versoes\" ((doc->>'regulamento_id'))",
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_regversoes_reg_versao ON "regulamento_versoes" '
+    "((doc->>'regulamento_id'), (doc->>'versao'))",
+    "CREATE INDEX IF NOT EXISTS ix_regversoes_status ON \"regulamento_versoes\" ((doc->>'status'))",
+    # comunicados (spec-comunicados-email)
+    "CREATE INDEX IF NOT EXISTS ix_comunicados_created ON \"comunicados\" ((doc->>'created_at') DESC)",
+    "CREATE INDEX IF NOT EXISTS ix_comunicados_status ON \"comunicados\" ((doc->>'status'))",
+    "CREATE INDEX IF NOT EXISTS ix_comunicados_created_by ON \"comunicados\" ((doc->>'created_by'))",
+    'CREATE INDEX IF NOT EXISTS ix_comunicados_source ON "comunicados" '
+    "((doc->>'source_kind'), (doc->>'source_ref_id'))",
+    # Anti-duplicado (race) entre dispatch_oficial_auto chamado pelo registo e
+    # pelo apuramento da mesma deliberação: se duas tarefas correrem o find_one
+    # antes de qualquer insert_one, ambas inseriam — enviando 2× o email oficial
+    # para todos os activos. Este UNIQUE parcial bloqueia ao nível da BD; o
+    # serviço captura a violação e trata como no-op (issue #157). Tolerante a
+    # duplicados pré-existentes: ensure_schema só emite warning se a criação
+    # falhar, e o ix_comunicados_source acima mantém a performance de lookup.
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_comunicados_source_ref ON "comunicados" '
+    "((doc->>'source_kind'), (doc->>'source_ref_id')) "
+    "WHERE doc->>'source_kind' IS NOT NULL",
+    # ranking de atuação do sócio (spec-ranking-socio)
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_mscores_user_period ON "member_scores" '
+    "((doc->>'user_id'), (doc->>'period_key'))",
+    "CREATE INDEX IF NOT EXISTS ix_mscores_period_rank ON \"member_scores\" ((doc->>'period_key'), (doc->>'rank'))",
+    'CREATE INDEX IF NOT EXISTS ix_rajustes_user_period ON "ranking_ajustes" '
+    "((doc->>'user_id'), (doc->>'period_key'))",
+    "CREATE INDEX IF NOT EXISTS ix_rajustes_created ON \"ranking_ajustes\" ((doc->>'created_at') DESC)",
+    # fins profissionais Cat 5 F2 — formacoes (spec-fins-profissionais §6/§9)
+    "CREATE INDEX IF NOT EXISTS ix_formacoes_tipo ON \"formacoes\" ((doc->>'tipo'))",
+    "CREATE INDEX IF NOT EXISTS ix_formacoes_ativo ON \"formacoes\" ((doc->>'ativo'))",
+    "CREATE INDEX IF NOT EXISTS ix_formacoes_categoria ON \"formacoes\" ((doc->>'categoria'))",
+    # F4 — recorte público (visibility, ativo)
+    "CREATE INDEX IF NOT EXISTS ix_formacoes_vis_ativo ON \"formacoes\" ((doc->>'visibility'), (doc->>'ativo'))",
+    # fins profissionais Cat 5 F2 — publicacoes (spec-fins-profissionais §8/§9)
+    "CREATE INDEX IF NOT EXISTS ix_publicacoes_tipo ON \"publicacoes\" ((doc->>'tipo'))",
+    'CREATE INDEX IF NOT EXISTS ix_publicacoes_vis_data ON "publicacoes" '
+    "((doc->>'visibility'), (doc->>'data_publicacao') DESC)",
+    # fins profissionais Cat 5 F3 — defesa_profissional (spec §5)
+    'CREATE INDEX IF NOT EXISTS ix_defesa_status_data ON "defesa_profissional" '
+    "((doc->>'status'), (doc->>'data') DESC)",
+    "CREATE INDEX IF NOT EXISTS ix_defesa_visibility ON \"defesa_profissional\" ((doc->>'visibility'))",
+    "CREATE INDEX IF NOT EXISTS ix_defesa_created_by ON \"defesa_profissional\" ((doc->>'created_by'))",
+    # fins profissionais Cat 5 F3 — relacoes_externas (spec §7)
+    "CREATE INDEX IF NOT EXISTS ix_relacoes_tipo ON \"relacoes_externas\" ((doc->>'tipo'))",
+    "CREATE INDEX IF NOT EXISTS ix_relacoes_estado ON \"relacoes_externas\" ((doc->>'estado_filiacao'))",
 )
 
 REQUIRED_INDEX_NAMES = {
@@ -851,6 +1008,29 @@ _PGCRON_DDL: tuple[str, ...] = (
     "SELECT cron.schedule('accta_purge_login_attempts', '0 * * * *', "
     "$$DELETE FROM \"login_attempts\" WHERE doc->>'attempted_at' "
     "< (now() - interval '24 hours')::text$$)",
+)
+
+
+# audit_logs append-only (spec-verificacao-seguranca-saas §8.1, F5.1) —
+# DEFESA EM PROFUNDIDADE, não garantia absoluta: trigger que rejeita
+# UPDATE/DELETE/TRUNCATE. Bloqueia mutação acidental (bugs da app, SQL
+# descuidado, acesso casual) e complementa o HMAC do F4 (HMAC deteta
+# modificação; o trigger impede-a). NÃO protege contra quem detém a credencial
+# runtime: o ensure_schema corre COM essa credencial e o role da app é DONO da
+# tabela, logo esse role pode DISABLE/DROP o trigger ou CREATE OR REPLACE a
+# função. A imutabilidade AUTORITATIVA exige separação de roles no operador
+# (owner/migração ≠ runtime) + REVOKE UPDATE/DELETE/TRUNCATE ao role runtime —
+# ver runbook F5.1. Seguro: a app só faz INSERT/SELECT; ensure_schema só cria;
+# _TTL_PURGE não inclui audit_logs. Idempotente e SEM janela destrutiva
+# (CREATE OR REPLACE TRIGGER, sem DROP — PG ≥ 14).
+_AUDIT_IMMUTABILITY_DDL: tuple[str, ...] = (
+    "CREATE OR REPLACE FUNCTION accta_audit_logs_immutable() "
+    "RETURNS trigger LANGUAGE plpgsql AS $$ "
+    "BEGIN RAISE EXCEPTION 'audit_logs is append-only: % not allowed', TG_OP; END; $$",
+    'CREATE OR REPLACE TRIGGER trg_audit_logs_immutable BEFORE UPDATE OR DELETE ON "audit_logs" '
+    "FOR EACH ROW EXECUTE FUNCTION accta_audit_logs_immutable()",
+    'CREATE OR REPLACE TRIGGER trg_audit_logs_no_truncate BEFORE TRUNCATE ON "audit_logs" '
+    "FOR EACH STATEMENT EXECUTE FUNCTION accta_audit_logs_immutable()",
 )
 
 
@@ -886,6 +1066,22 @@ async def ensure_schema() -> None:
                 await conn.execute(ddl)
             except Exception as e:  # noqa: BLE001 - pg_cron optional
                 logger.info(f"pg_cron not configured (using opportunistic purge): {e}")
+        # Instala atomicamente (transação) e sem janela destrutiva (CREATE OR
+        # REPLACE, sem DROP). Non-fatal de propósito: numa instalação endurecida
+        # com roles separados, o role runtime pode (e deve) não ter direito de
+        # criar o trigger — aí é o role de migração/owner que o instala e a
+        # imutabilidade autoritativa vem do REVOKE (runbook F5.1). A app arranca.
+        try:
+            async with conn.transaction():
+                for ddl in _AUDIT_IMMUTABILITY_DDL:
+                    await conn.execute(ddl)
+            logger.info("audit_logs immutability trigger (defesa em profundidade) instalado")
+        except Exception as e:  # noqa: BLE001
+            logger.warning(
+                "audit_logs immutability trigger (defesa em profundidade) NAO instalado — "
+                "a imutabilidade autoritativa e o REVOKE/role-separation do operador (runbook F5.1): %s",
+                e,
+            )
     logger.info("PostgreSQL schema and indexes ensured")
 
 
@@ -898,6 +1094,42 @@ async def next_member_id() -> str:
     async with pool.acquire() as conn:
         n = await conn.fetchval("SELECT nextval('member_id_seq')")
     return f"ACCTA-{int(n):04d}"
+
+
+async def register_event_attendee(event_id: str, user_id: str) -> str:
+    """Append one attendee while the event document is locked.
+
+    Returns one of: registered, missing, already_registered, full.
+    """
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            wb = _WhereBuilder()
+            where = wb.build({"id": event_id})
+            row = await conn.fetchrow(
+                f"SELECT pk, doc FROM {_quote_ident('events')} WHERE {where} ORDER BY pk LIMIT 1 FOR UPDATE",
+                *wb.params,
+            )
+            if row is None:
+                return "missing"
+
+            event = dict(row["doc"])
+            attendees = list(event.get("attendees") or [])
+            if user_id in attendees:
+                return "already_registered"
+
+            max_attendees = event.get("max_attendees")
+            if max_attendees and len(attendees) >= max_attendees:
+                return "full"
+
+            attendees.append(user_id)
+            event["attendees"] = attendees
+            await conn.execute(
+                f"UPDATE {_quote_ident('events')} SET doc=$1 WHERE pk=$2",
+                event,
+                row["pk"],
+            )
+    return "registered"
 
 
 async def transfer_cargo(from_user_id: str, to_user_id: str, from_update: dict, to_update: dict) -> None:
@@ -928,24 +1160,137 @@ async def transfer_cargo(from_user_id: str, to_user_id: str, from_update: dict, 
                 )
 
 
-async def cast_ballot(eleicao_id: str, voter_hash: str, receipt_doc: dict, ballot_doc: dict) -> None:
-    """Voto secreto (spec-governanca §7): insere o recibo do eleitor e o boletim
-    numa ÚNICA transação. O recibo prova (por HMAC) que o eleitor votou; o
-    boletim não tem qualquer ligação ao eleitor. Levanta ValueError em voto
-    duplicado (também garantido pelo índice único ux_eleicao_receipt).
+async def _cast_secret_ballot_locked(
+    *,
+    parent_table: str,
+    parent_id: str,
+    expected_status: str,
+    receipt_table: str,
+    ballot_table: str,
+    dup_field: str,
+    dup_value: str,
+    parent_id_field_in_receipt: str,
+    receipt_doc: dict,
+    ballot_doc: dict,
+) -> None:
+    """Voto secreto genérico SOB lock da linha-pai. Numa única transação:
+    1. `SELECT … FOR UPDATE` da linha-pai (`parent_table`/`parent_id`) com
+       `lock_timeout=2s` — bloqueia voters concorrentes; `apurar` que faça CAS
+       `update_one({id, status:expected_status}, …)` segura o mesmo lock.
+    2. Re-verifica `status == expected_status` SOB o lock → fecha a janela
+       TOCTOU contra o `apurar` (sem isto, um voter podia inserir o boletim
+       imediatamente depois do `apurar` ler/fechar).
+    3. Verifica recibo duplicado por `(parent_id_field_in_receipt, dup_field)`.
+    4. Insere recibo + boletim atomicamente.
 
-    O raw SQL fica no DAO (regra api.md). As rotas chamam só este helper.
-    """
+    Levanta `ValueError("not_found"|"not_open"|"duplicate")`; em contenção
+    extrema do pool levanta `asyncpg.exceptions.LockNotAvailableError`.
+
+    Helpers `cast_ballot` (eleições) e `cast_assembleia_ballot` (assembleias)
+    delegam aqui — o raw SQL fica no DAO (regra api.md)."""
     pool = await get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
-            wb = _WhereBuilder()
-            where = wb.build({"eleicao_id": eleicao_id, "voter_hash": voter_hash})
+            await conn.execute("SET LOCAL lock_timeout = '2s'")
+            row = await conn.fetchrow(
+                f"SELECT pk, doc FROM {_quote_ident(parent_table)} "
+                "WHERE doc->>'id' = $1 LIMIT 1 FOR UPDATE",
+                parent_id,
+            )
+            if row is None:
+                raise ValueError("not_found")
+            if (row["doc"] or {}).get("status") != expected_status:
+                raise ValueError("not_open")
             existing = await conn.fetchrow(
-                f"SELECT pk FROM {_quote_ident('eleicao_voter_receipts')} WHERE {where} LIMIT 1",
-                *wb.params,
+                f"SELECT pk FROM {_quote_ident(receipt_table)} "
+                f"WHERE doc->>'{_safe_jsonb_key(parent_id_field_in_receipt)}' = $1 "
+                f"AND doc->>'{_safe_jsonb_key(dup_field)}' = $2 LIMIT 1",
+                parent_id,
+                dup_value,
             )
             if existing is not None:
-                raise ValueError("voto duplicado")
-            await conn.execute(f"INSERT INTO {_quote_ident('eleicao_voter_receipts')} (doc) VALUES ($1)", receipt_doc)
-            await conn.execute(f"INSERT INTO {_quote_ident('eleicao_ballots')} (doc) VALUES ($1)", ballot_doc)
+                raise ValueError("duplicate")
+            await conn.execute(
+                f"INSERT INTO {_quote_ident(receipt_table)} (doc) VALUES ($1)",
+                receipt_doc,
+            )
+            await conn.execute(
+                f"INSERT INTO {_quote_ident(ballot_table)} (doc) VALUES ($1)",
+                ballot_doc,
+            )
+
+
+async def cast_ballot(eleicao_id: str, voter_hash: str, receipt_doc: dict, ballot_doc: dict) -> None:
+    """Voto secreto de eleição (spec-governanca §7).
+
+    Fecha a janela TOCTOU contra `apurar_eleicao` via `_cast_secret_ballot_locked`:
+    `SELECT FOR UPDATE` em `eleicoes` + recheck `status="votacao"` na mesma
+    transação onde o recibo+boletim são inseridos. Ver helper para detalhes."""
+    await _cast_secret_ballot_locked(
+        parent_table="eleicoes",
+        parent_id=eleicao_id,
+        expected_status="votacao",
+        receipt_table="eleicao_voter_receipts",
+        ballot_table="eleicao_ballots",
+        dup_field="voter_hash",
+        dup_value=voter_hash,
+        parent_id_field_in_receipt="eleicao_id",
+        receipt_doc=receipt_doc,
+        ballot_doc=ballot_doc,
+    )
+
+
+async def cast_assembleia_ballot(deliberacao_id: str, voter_hash: str, receipt_doc: dict, ballot_doc: dict) -> None:
+    """Voto secreto de uma deliberação de assembleia (spec-sessao-assembleia §7).
+
+    Fecha a janela TOCTOU contra `apurar_deliberacao` via `_cast_secret_ballot_locked`:
+    `SELECT FOR UPDATE` em `assembleia_deliberacoes` + recheck `status="aberta"`
+    na mesma transação onde o recibo+boletim são inseridos."""
+    await _cast_secret_ballot_locked(
+        parent_table="assembleia_deliberacoes",
+        parent_id=deliberacao_id,
+        expected_status="aberta",
+        receipt_table="assembleia_voto_receipts",
+        ballot_table="assembleia_voto_ballots",
+        dup_field="voter_hash",
+        dup_value=voter_hash,
+        parent_id_field_in_receipt="deliberacao_id",
+        receipt_doc=receipt_doc,
+        ballot_doc=ballot_doc,
+    )
+
+
+async def cast_assembleia_nominal_vote(deliberacao_id: str, user_id: str, voto_doc: dict) -> None:
+    """Voto nominal de uma deliberação de assembleia. Análogo a
+    `cast_assembleia_ballot` mas para `assembleia_votos`: trava a linha da
+    deliberação (`FOR UPDATE`), re-confirma `status="aberta"` e insere o voto
+    na mesma transação — fecha a janela TOCTOU contra `apurar_deliberacao`.
+
+    Levanta `ValueError("not_found"|"not_open"|"duplicate")`. Voto duplicado
+    está coberto duas vezes: in-tx (`EXISTS`) e pelo índice único
+    `ux_assembvoto_delib_user`. `lock_timeout=2s` evita pool starvation."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute("SET LOCAL lock_timeout = '2s'")
+            row = await conn.fetchrow(
+                f"SELECT pk, doc FROM {_quote_ident('assembleia_deliberacoes')} "
+                "WHERE doc->>'id' = $1 LIMIT 1 FOR UPDATE",
+                deliberacao_id,
+            )
+            if row is None:
+                raise ValueError("not_found")
+            if (row["doc"] or {}).get("status") != "aberta":
+                raise ValueError("not_open")
+            dup = await conn.fetchrow(
+                f"SELECT pk FROM {_quote_ident('assembleia_votos')} "
+                "WHERE doc->>'deliberacao_id' = $1 AND doc->>'user_id' = $2 LIMIT 1",
+                deliberacao_id,
+                user_id,
+            )
+            if dup is not None:
+                raise ValueError("duplicate")
+            await conn.execute(
+                f"INSERT INTO {_quote_ident('assembleia_votos')} (doc) VALUES ($1)",
+                voto_doc,
+            )

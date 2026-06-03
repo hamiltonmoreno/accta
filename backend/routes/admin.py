@@ -12,7 +12,10 @@ from models import (
     ROLES_VALID,
     PRIVILEGES,
     CARGO_SEATS,
+    FinanceSettings,
+    MFA_SECRET_FIELDS,
 )
+from finance_joia import compute_joia
 from governance import (
     CARGO_KEYS,
     normalize_cargo,
@@ -21,9 +24,9 @@ from governance import (
     privileges_for_cargo,
     is_estatutary_cargo,
 )
-from database import db, transfer_cargo
+from database import db, transfer_cargo, next_member_id
 from auth import get_current_user, generate_qr_hash, has_role_or_privilege
-from helpers import create_audit_log, resolve_link_base, notify_users
+from helpers import alert_admins_privilege_escalation, create_audit_log, resolve_link_base, notify_users
 from email_service import send_invite_email, send_registration_rejected_email
 import uuid
 import secrets
@@ -49,6 +52,15 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
     invite_token = secrets.token_urlsafe(32)
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(days=INVITE_TOKEN_TTL_DAYS)
+    cargo_key = normalize_cargo(data.cargo) if data.cargo else "socio"
+    if cargo_key not in CARGO_KEYS:
+        raise HTTPException(status_code=422, detail=f"Cargo inválido: {cargo_key}")
+    if is_estatutary_cargo(cargo_key):
+        raise HTTPException(
+            status_code=400,
+            detail="Convites directos criam sócios base; atribua cargos em Cargos & Mandatos após activação",
+        )
+    member_id = data.member_id or await next_member_id()
 
     user_doc = {
         "id": user_id,
@@ -57,9 +69,10 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
         "password": "",
         "role": data.role if data.role in ["socio", "financeiro", "moderador"] else "socio",
         "status": "pendente_convite",
-        "cargo": normalize_cargo(data.cargo) if data.cargo else "socio",
-        "orgao": orgao_of_cargo(normalize_cargo(data.cargo)) if data.cargo else None,
-        "member_id": data.member_id or f"ACCTA-{str(uuid.uuid4())[:4].upper()}",
+        "account_type": "member",
+        "cargo": cargo_key,
+        "orgao": orgao_of_cargo(cargo_key),
+        "member_id": member_id,
         "license_number": data.license_number or "",
         "department": data.department or "",
         "phone_number": data.phone_number or "",
@@ -73,6 +86,14 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
         "invite_token_expires_at": expires_at.isoformat(),
     }
 
+    # Jóia de admissão (Art. 6): assinalar joia_devida no convite directo
+    # (cobrança manual pelo Tesoureiro). cta_qualified_since é opcional.
+    if data.cta_qualified_since:
+        user_doc["cta_qualified_since"] = data.cta_qualified_since
+    fs_doc = await db.finance_settings.find_one({"id": "finance_settings"}, {"_id": 0})
+    fs = fs_doc if isinstance(fs_doc, dict) else FinanceSettings().model_dump()
+    user_doc["joia_devida"] = compute_joia(user_doc, fs)
+
     await db.users.insert_one(user_doc)
 
     await create_audit_log(
@@ -80,7 +101,13 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
         "user_invited",
         user_id,
         request=request,
-        details={"name": data.name, "email": data.email, "role": data.role, "cargo": data.cargo},
+        details={
+            "name": data.name,
+            "email": data.email,
+            "role": data.role,
+            "cargo": data.cargo,
+            "joia_devida": user_doc["joia_devida"],
+        },
     )
 
     # Base segura: FRONTEND_URL ou Origin/Referer só se na allowlist CORS
@@ -109,14 +136,10 @@ async def get_pending_invites(current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Sem permissao")
 
-    users = await db.users.find({"status": "pendente_convite"}, {"_id": 0, "password": 0, "invite_token": 0}).to_list(
-        100
-    )
-
-    for u in users:
-        for field in ["created_at", "admission_date", "last_login_at"]:
-            if u.get(field) and isinstance(u[field], str):
-                u[field] = datetime.fromisoformat(u[field])
+    users = await db.users.find(
+        {"status": "pendente_convite"},
+        {"_id": 0, "password": 0, "invite_token": 0, **dict.fromkeys(MFA_SECRET_FIELDS, 0)},
+    ).to_list(100)
 
     return users
 
@@ -163,13 +186,29 @@ async def list_registration_requests(
     requests = (
         await db.users.find(
             {"status": status},
-            {"_id": 0, "password": 0, "invite_token": 0, "qr_code_hash": 0},
+            {"_id": 0, "password": 0, "invite_token": 0, "qr_code_hash": 0, **dict.fromkeys(MFA_SECRET_FIELDS, 0)},
         )
         .sort("registration_request_at", -1)
         .skip(skip)
         .limit(limit)
         .to_list(limit)
     )
+
+    # Resumo de patrocínios por candidato (Art. 8.3) para a UI de aprovação.
+    for r in requests:
+        pats = await db.patrocinios.find({"candidate_id": r["id"]}, {"_id": 0}).to_list(10)
+        sponsors_summary = []
+        for p in pats:
+            su = await db.users.find_one({"id": p["sponsor_user_id"]}, {"_id": 0, "name": 1, "member_id": 1})
+            sponsors_summary.append(
+                {
+                    "name": (su or {}).get("name"),
+                    "member_id": p.get("sponsor_member_id") or (su or {}).get("member_id"),
+                    "status": p["status"],
+                }
+            )
+        r["sponsors"] = sponsors_summary
+        r["confirmed_count"] = sum(1 for p in pats if p["status"] == "confirmado")
     return requests
 
 
@@ -189,11 +228,31 @@ async def approve_registration(
     if not user:
         raise HTTPException(status_code=404, detail="Pedido nao encontrado ou ja processado")
 
+    # Gate de patrocínio (Art. 8.3): exige 2 patrocínios confirmados, salvo
+    # dispensa explícita e auditável (bootstrap de fundadores / excepção).
+    if data.waive_sponsorship:
+        await create_audit_log(
+            current_user.id,
+            "sponsorship_waived",
+            user_id,
+            request=request,
+            details={"reason": "dispensa de patrocínio na aprovação (Art. 8.3)"},
+        )
+    else:
+        confirmados = await db.patrocinios.count_documents({"candidate_id": user_id, "status": "confirmado"})
+        if confirmados < 2:
+            raise HTTPException(status_code=409, detail="Aprovação bloqueada: faltam patrocínios (Art. 8.3).")
+
     invite_token = secrets.token_urlsafe(32)
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(days=INVITE_TOKEN_TTL_DAYS)
     raw_cargo = data.cargo or user.get("cargo_declarado") or user.get("cargo") or "socio"
     cargo_key = normalize_cargo(raw_cargo) or "socio"
+    _validate_cargo_role_privs(cargo_key, data.role, None)
+
+    seats = CARGO_SEATS.get(cargo_key, 0)
+    if seats > 0 and await _count_cargo_holders(cargo_key, exclude_ids={user_id}) >= seats:
+        raise HTTPException(status_code=409, detail=f"Cargo '{cargo_label(cargo_key)}' já não tem vagas")
 
     set_fields = {
         "status": "pendente_convite",
@@ -217,6 +276,16 @@ async def approve_registration(
         )
         set_fields["cargo_history"] = [*(user.get("cargo_history") or []), mandate]
 
+    # Jóia de admissão (Art. 6): ASSINALAR joia_devida (não cobrar — cobrança
+    # manual pelo Tesoureiro). cta_qualified_since vem no payload ou já no doc.
+    if data.cta_qualified_since:
+        set_fields["cta_qualified_since"] = data.cta_qualified_since
+    fs_doc = await db.finance_settings.find_one({"id": "finance_settings"}, {"_id": 0})
+    fs = fs_doc if isinstance(fs_doc, dict) else FinanceSettings().model_dump()
+    joia_user = {**user, **set_fields}
+    joia = compute_joia(joia_user, fs)
+    set_fields["joia_devida"] = joia
+
     await db.users.update_one({"id": user_id}, {"$set": set_fields})
 
     await create_audit_log(
@@ -226,6 +295,15 @@ async def approve_registration(
         request=request,
         details={"role": data.role, "cargo": cargo_key, "member_id": user.get("member_id")},
     )
+
+    if joia is not None:
+        await create_audit_log(
+            current_user.id,
+            "joia_calculada",
+            user_id,
+            request=request,
+            details={"joia_devida": joia, "cta_qualified_since": joia_user.get("cta_qualified_since")},
+        )
 
     # Base segura: FRONTEND_URL ou Origin/Referer só se na allowlist CORS.
     origin = resolve_link_base(request)
@@ -393,6 +471,14 @@ async def promote_user(
         request=request,
         details={"cargo": cargo_key, "role": data.role, "mandate_id": mandate["id"], "privileges": privileges},
     )
+    await alert_admins_privilege_escalation(
+        current_user.id,
+        user.get("name", "Utilizador"),
+        user.get("role"),
+        data.role,
+        user.get("privileges"),
+        privileges,
+    )
     await notify_users([user_id], "system", "Novo cargo atribuído", f"Foi-lhe atribuído o cargo de {label}.", "/perfil")
     return {"message": f"{user.get('name', 'Utilizador')} promovido a {label}.", "cargo_history": history}
 
@@ -496,6 +582,14 @@ async def transfer_cargo_endpoint(
             "from_user_id": data.from_user_id,
             "mandate_id": mandate["id"],
         },
+    )
+    await alert_admins_privilege_escalation(
+        current_user.id,
+        to_user.get("name", "Utilizador"),
+        to_user.get("role"),
+        data.role,
+        to_user.get("privileges"),
+        privileges,
     )
     await notify_users(
         [data.from_user_id], "system", "Fim de mandato", f"O cargo de {label} foi transferido.", "/perfil"

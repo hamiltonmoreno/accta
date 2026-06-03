@@ -134,3 +134,69 @@ acceptance) para verificação cruzada. Casos exóticos (ex.: ternários
 sinalizados como resíduos para owner — não tentar inferi-los.
 **Context**: `tasks/frontend-consistency-spec.md` Fase 7.1 (4 subagents,
 97/97 substituições, 6 resíduos ternários documentados).
+
+### L11 — Confirmar "Decisões a confirmar" da spec antes de implementar
+**Mistake**: Em `spec-correcoes`, comecei a implementar o item B15 (subir o
+mínimo de password de 6 → 8) sem confirmar as "Decisões a confirmar" do topo
+da spec. O dono já tinha decidido que o mínimo fica em **6** — a mudança teve
+de ser revertida (backend `models.py` + zod `authSchemas.js` + test +
+placeholders dos 2 forms).
+**Rule**: Blocos "Decisões a confirmar antes da Fase 1" são **gates**.
+Confirmar com o dono antes de mexer nos itens afetados, mesmo que pareçam
+higiene trivial — sobretudo quando alteram um valor/política já decidido. Não
+assumir que a "Proposta/Recomendação" da spec está aprovada. (Memória:
+`password-min-6-owner-decision`, `confirm-spec-decisoes-before-implementing`.)
+**Context**: utilizador: "já tínhamos decidido que a password poderia ser
+mínimo 6". spec-correcoes está, de resto, ~toda implementada (Fases 1-3 feitas
+em código; B17 adiado por design; Fase 5 = épico separado).
+
+### L12 — Testar IDOR é provar divulgação cruzada, não só o 403 do não-dono
+**Mistake**: No F0 de segurança (PR #119), o teste IDOR de milestone cobria
+apenas "não-gestor → 403 no DELETE" e declarei "0 achados". Faltava o caso
+real, apanhado por um revisor: `update_milestone` (PATCH) autoriza pelo projeto
+da URL mas **relê o resultado só por `id`** (sem `project_id`) — um gestor do
+projeto B obtinha o milestone do projeto A. Endpoint análogo `update_task` já
+estava correto (lê o filho escopado + 404 antes do update); `update_milestone`
+não tinha esse check.
+**Rule**: Para cada endpoint que autoriza por um **pai** (ex. `project_id` da
+URL) mas opera sobre um **filho** (`milestone_id`/`task_id`/…), o teste IDOR
+tem de cobrir o caso **cross-parent de LEITURA/escrita** (B↛filho-de-A), não só
+o 403 do não-autorizado. E qualquer re-leitura/`find_one` pós-update tem de
+ficar **escopada pelo pai** (`{"id": child, "project_id": parent}`) + 404, igual
+ao update/delete. Um teste verde prova só o que afirma — "0 achados" exige que
+a matriz de casos esteja completa, não que os testes existentes passem.
+**Context**: `backend/routes/projects.py::update_milestone` (corrigido);
+`test_idor.py::test_update_milestone_no_cross_project_disclosure`. Auditar o
+padrão "authz no pai + re-read do filho por id só" noutros routers.
+
+### L13 — "Obrigatório" e "segredo" têm de ser garantidos no servidor, não no modelo/UI
+**Mistake**: No F2 MFA (PR #120), uma revisão apanhou 4 falhas que escaparam à
+implementação E à 1ª revisão: (1) MFA "obrigatório" era só uma flag
+`mfa_setup_required` no `Token` que o cliente podia ignorar — o backend emitia
+JWT normal e `get_current_user` aceitava-o → enforcement inexistente; (2) os
+campos secretos novos (`mfa_secret`/`mfa_pending_secret`/`mfa_backup_codes`)
+eram removidos só na resposta de login (+`extra="ignore"` no `User`), mas
+`GET /users/{id}`/`PATCH` devolvem o **doc cru** com projeção que só excluía
+`password` → vazavam; (3) backup codes com 32 bits; (4) consumo de backup code
+não-atómico (read-then-`$set` → aceita o mesmo código em logins concorrentes).
+**Rule**:
+- **"Obrigatório"/"mandatory" impõe-se no servidor**, nunca por flag de UI: ex.
+  sessão limitada via claim no token (`mfa_pending`) verificada na dependência
+  central de auth contra uma allowlist de endpoints de enrolment. Uma flag que o
+  cliente lê ≠ enforcement.
+- **Campo secreto novo = excluí-lo em TODAS as projeções de utilizador** (uma
+  constante partilhada, ex. `models.MFA_SECRET_FIELDS`) ou `response_model`
+  consistente. O `pop()` numa rota + `extra="ignore"` não chega: rotas que
+  devolvem o doc cru contornam o modelo. Auditar TODAS as leituras de `db.users`
+  devolvidas ao cliente.
+- **Credencial de uso único consome-se atomicamente** (`$pull` condicional +
+  `modified_count==1`), nunca read-then-write. Segredos/códigos ≥80 bits
+  (`secrets`).
+- **A revisão de auth tem de ser adversarial**: procurar caminhos de auth
+  alternativos (`get_user_from_token`/`get_optional_user`/SSE) e fugas residuais
+  noutros routers — não só o ficheiro do diff.
+**Context**: `spec-mfa-f2`, PR #120; `auth.py::MFA_PENDING_ALLOWED_PATHS` +
+gate em `get_current_user`; `models.MFA_SECRET_FIELDS`; `$pull` atómico em
+`auth_routes.py::login`. Itens menores diferidos p/ F3: SSE/`get_user_from_token`
+não honram `mfa_pending`; audit sem IP/UA em verify/disable; lockout
+partilhado password↔OTP.

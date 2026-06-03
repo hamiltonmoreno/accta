@@ -9,6 +9,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { EmptyState } from '../../components/EmptyState';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
+import { Skeleton } from '../../components/ui/skeleton';
 
 export const DocumentosPage = () => {
   const { isAdmin } = useAuth();
@@ -39,7 +40,7 @@ export const DocumentosPage = () => {
         {isAdmin && (
           <button
             onClick={() => setShowUploadModal(true)}
-            className="flex items-center gap-2 bg-carmesim text-white px-4 py-2 rounded-lg hover:bg-carmesim-dark transition-all text-sm font-semibold"
+            className="flex items-center gap-2 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-all text-sm font-semibold"
             data-testid="upload-document-btn"
           >
             <Upload className="w-4 h-4" />
@@ -80,8 +81,8 @@ export const DocumentosPage = () => {
 
       {/* Documents List */}
       {loading ? (
-        <div className="text-center py-12">
-          <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
         </div>
       ) : filteredDocuments.length === 0 ? (
         <EmptyState
@@ -236,7 +237,7 @@ const UploadDocumentModal = ({ onClose }) => {
             </div>
 
             {/* Type & Visibility */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block font-mono text-xs uppercase tracking-wider text-gray-500 mb-2">
                   Tipo
@@ -302,7 +303,7 @@ const UploadDocumentModal = ({ onClose }) => {
                 <div className="flex items-center justify-between p-4 bg-carmesim/5 border border-carmesim/20 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-carmesim rounded-lg flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-grafite" />
+                      <FileText className="w-5 h-5 text-white" />
                     </div>
                     <div>
                       <div className="font-sans font-semibold text-grafite text-sm">{file.name}</div>
@@ -368,7 +369,7 @@ const UploadDocumentModal = ({ onClose }) => {
               <button
                 type="submit"
                 disabled={uploading || !file || !title}
-                className="flex-1 flex items-center justify-center gap-2 bg-carmesim text-white px-4 py-3 rounded-lg hover:bg-carmesim-dark transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 bg-floresta text-white px-4 py-3 rounded-lg hover:bg-floresta-dark transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 data-testid="submit-document-btn"
               >
                 {uploading ? (

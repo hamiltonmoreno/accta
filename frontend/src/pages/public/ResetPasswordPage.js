@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Lock, ArrowLeft, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
-import { ACCTALogoHorizontal } from '../../components/ACCTALogo';
+import { BrandLogo } from '../../components/BrandLogo';
 import api from '../../utils/api';
 import { resetPasswordSchema } from '../../utils/authSchemas';
 
@@ -39,7 +39,7 @@ export const ResetPasswordPage = () => {
           <p className="text-gray-500 mb-6">O link de recuperação é inválido ou não contém um token.</p>
           <Link
             to="/forgot-password"
-            className="inline-flex items-center gap-2 bg-carmesim text-white px-6 py-3 rounded-lg font-bold text-sm hover:bg-carmesim-dark transition-colors"
+            className="inline-flex items-center gap-2 bg-floresta text-white px-6 py-3 rounded-lg font-bold text-sm hover:bg-floresta-dark transition-colors"
           >
             Solicitar novo link
           </Link>
@@ -53,7 +53,7 @@ export const ResetPasswordPage = () => {
       <div className="w-full max-w-md animate-fade-up">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex justify-center mb-5">
-            <ACCTALogoHorizontal />
+            <BrandLogo />
           </Link>
         </div>
 
@@ -90,7 +90,7 @@ export const ResetPasswordPage = () => {
                       autoComplete="new-password"
                       aria-invalid={errors.password ? 'true' : 'false'}
                       {...register('password')}
-                      className="w-full px-4 py-3 pr-11 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
+                      className="w-full px-4 py-3 pr-11 border border-gray-200 rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
                       placeholder="Mínimo 6 caracteres"
                       data-testid="reset-password-input"
                     />
@@ -119,7 +119,7 @@ export const ResetPasswordPage = () => {
                     autoComplete="new-password"
                     aria-invalid={errors.confirmPassword ? 'true' : 'false'}
                     {...register('confirmPassword')}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
                     placeholder="Repita a senha"
                     data-testid="reset-confirm-password-input"
                   />
@@ -131,7 +131,7 @@ export const ResetPasswordPage = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-carmesim text-white hover:bg-carmesim-dark h-11 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full bg-floresta text-white hover:bg-floresta-dark h-11 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   data-testid="reset-submit"
                 >
                   {isSubmitting ? (
@@ -159,7 +159,7 @@ export const ResetPasswordPage = () => {
             </p>
             <button
               onClick={() => navigate('/login')}
-              className="w-full bg-carmesim text-white hover:bg-carmesim-dark h-11 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-floresta text-white hover:bg-floresta-dark h-11 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2"
               data-testid="go-to-login-after-reset"
             >
               Ir para o login

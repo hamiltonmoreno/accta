@@ -18,6 +18,7 @@ export const NotificationProvider = ({ children }) => {
   const { isAuthenticated, user } = useAuth();
   const qc = useQueryClient();
   const eventSourceRef = useRef(null);
+  const fallbackIntervalRef = useRef(null);
 
   // Keys scoped to user.id para evitar cache leak entre contas no mesmo
   // browser (Codex P1 #21): se A faz logout e B faz login dentro de 60s
@@ -99,6 +100,7 @@ export const NotificationProvider = ({ children }) => {
         };
       });
     },
+    onSuccess: () => toast.success('Notificação removida'),
     onError: () => {
       toast.error('Não foi possível remover a notificação');
       qc.invalidateQueries({ queryKey: ['notifications'] });
@@ -133,10 +135,8 @@ export const NotificationProvider = ({ children }) => {
       return;
     }
 
-    let fallbackInterval = null;
-
     const startStream = () => {
-      if (eventSourceRef.current || fallbackInterval) return;
+      if (eventSourceRef.current || fallbackIntervalRef.current) return;
       const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
       // Sprint 10 — auth via httpOnly cookie. EventSource com withCredentials:true
       // inclui o cookie cross-origin. Sem ?token= query param (legacy path
@@ -155,13 +155,13 @@ export const NotificationProvider = ({ children }) => {
           es.close();
           eventSourceRef.current = null;
           // Fallback polling — invalida a query, TanStack faz o fetch.
-          fallbackInterval = setInterval(
+          fallbackIntervalRef.current = setInterval(
             () => qc.invalidateQueries({ queryKey: COUNT_KEY }),
             30000,
           );
         };
       } catch {
-        fallbackInterval = setInterval(
+        fallbackIntervalRef.current = setInterval(
           () => qc.invalidateQueries({ queryKey: COUNT_KEY }),
           30000,
         );
@@ -173,9 +173,9 @@ export const NotificationProvider = ({ children }) => {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
-      if (fallbackInterval) {
-        clearInterval(fallbackInterval);
-        fallbackInterval = null;
+      if (fallbackIntervalRef.current) {
+        clearInterval(fallbackIntervalRef.current);
+        fallbackIntervalRef.current = null;
       }
     };
 

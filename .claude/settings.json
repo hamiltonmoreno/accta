@@ -1,4 +1,8 @@
 {
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
   "permissions": {
     "allow": [
       "Bash(cd backend && ruff check *)",
@@ -18,10 +22,10 @@
       "Read(.env.*)",
       "Read(backend/.env)",
       "Bash(rm -rf *)",
-      "Bash(git push --force *)",
-      "Bash(mongosh * --eval 'db.dropDatabase()')"
+      "Bash(git push --force *)"
     ]
   },
+  "model": "claude-sonnet-4-6",
   "hooks": {
     "SessionStart": [
       {
@@ -66,10 +70,11 @@
       }
     ]
   },
-  "model": "claude-sonnet-4-6",
-  "autoMemoryEnabled": true,
-  "attribution": {
-    "commit": "",
-    "pr": ""
-  }
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true,
+    "notion@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "aikido@claude-plugins-official": true
+  },
+  "autoMemoryEnabled": true
 }

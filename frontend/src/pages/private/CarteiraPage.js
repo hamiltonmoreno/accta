@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import QRCode from 'react-qr-code';
-import { CreditCard, Download, Shield, Wifi, WifiOff, Smartphone, Share2 } from 'lucide-react';
+import { CreditCard, Download, Shield, Wifi, WifiOff, Smartphone, Share2, CheckCircle2, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -9,12 +9,12 @@ import { toast } from 'sonner';
 const OfflineBanner = ({ isOnline }) => {
   if (isOnline) return null;
   return (
-    <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center gap-3 animate-fade-up"
+    <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-xl p-4 flex items-center gap-3 animate-fade-up"
       data-testid="offline-banner">
-      <WifiOff className="w-5 h-5 text-orange-600 flex-shrink-0" />
+      <WifiOff className="w-5 h-5 text-[#D97706] flex-shrink-0" />
       <div>
-        <p className="text-sm font-semibold text-orange-800">Modo Offline</p>
-        <p className="text-xs text-orange-600">A exibir dados guardados localmente. QR Code disponivel.</p>
+        <p className="text-sm font-semibold text-[#B45309]">Modo Offline</p>
+        <p className="text-xs text-[#B45309]">A exibir dados guardados localmente. QR Code disponivel.</p>
       </div>
     </div>
   );
@@ -37,7 +37,7 @@ const InstallPrompt = ({ deferredPrompt, onInstall }) => {
         </div>
         <button
           onClick={onInstall}
-          className="bg-carmesim text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-carmesim-dark transition-colors"
+          className="bg-floresta text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-floresta-dark transition-colors"
           data-testid="install-pwa-btn"
         >
           Instalar
@@ -195,9 +195,9 @@ export const CarteiraPage = () => {
         </h1>
         <div className="flex items-center gap-2 text-gray-500 mt-1">
           {isOnline ? (
-            <Wifi className="w-4 h-4 text-green-500" />
+            <Wifi className="w-4 h-4 text-[#16A34A]" />
           ) : (
-            <WifiOff className="w-4 h-4 text-orange-500" />
+            <WifiOff className="w-4 h-4 text-[#D97706]" />
           )}
           <p className="text-sm">
             Sua identificacao digital de socio ACCTA
@@ -212,9 +212,14 @@ export const CarteiraPage = () => {
       <div className="relative animate-fade-up"
         style={{ perspective: '1000px' }}>
         <div
-          className={`relative w-full cursor-pointer`}
+          className={`relative w-full cursor-pointer rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2`}
           style={{ transformStyle: 'preserve-3d', transition: 'transform 0.7s', transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}
           onClick={() => setFlipped(!flipped)}
+          role="button"
+          tabIndex={0}
+          aria-pressed={flipped}
+          aria-label={flipped ? 'Ver frente do cartão' : 'Ver QR Code do cartão'}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setFlipped(!flipped); } }}
           data-testid="wallet-card"
         >
           {/* Front */}
@@ -257,11 +262,14 @@ export const CarteiraPage = () => {
                     <div>
                       <div className="font-mono text-xs uppercase tracking-widest opacity-80 mb-1">Status</div>
                       <div
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-mono uppercase tracking-wide ${
+                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-mono uppercase tracking-wide ${
                           isActive ? 'bg-carmesim text-white' : 'bg-white/20 text-white'
                         }`}
                         data-testid="wallet-status"
                       >
+                        {isActive
+                          ? <CheckCircle2 className="w-3 h-3" aria-hidden="true" />
+                          : <Clock className="w-3 h-3" aria-hidden="true" />}
                         {displayUser?.status}
                       </div>
                     </div>
@@ -329,7 +337,7 @@ export const CarteiraPage = () => {
       </div>
 
       {/* Features */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="card-technical rounded-xl p-5 animate-fade-up">
           <div className="w-10 h-10 bg-grafite rounded-lg flex items-center justify-center mb-3">
             <Shield className="w-5 h-5 text-white" />

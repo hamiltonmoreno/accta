@@ -1,4 +1,5 @@
 """Unit tests for routes/admin.py — invite flow, RBAC."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
@@ -70,16 +71,16 @@ class TestInviteUser:
         from models import InviteCreate
 
         mock_db.users.find_one = AsyncMock(return_value=None)
+
         # Mock send_invite_email to avoid trying to send.
         async def fake_send(*args, **kwargs):
             return {"status": "sent"}
 
         monkeypatch.setattr(admin_route, "send_invite_email", fake_send)
+        monkeypatch.setattr(admin_route, "next_member_id", AsyncMock(return_value="ACCTA-0042"))
 
         data = InviteCreate(name="João Silva", email="joao@x.cv", role="socio", cargo="Sócio")
-        result = await admin_route.invite_user(
-            request=_mock_request(), data=data, current_user=admin_user
-        )
+        result = await admin_route.invite_user(request=_mock_request(), data=data, current_user=admin_user)
 
         # Spec-2 fix: invite_token NAO devolvido na response NEM no path —
         # o token segue apenas no email ao convidado (evita leak por
@@ -109,11 +110,26 @@ class TestInviteUser:
             return {"status": "sent"}
 
         monkeypatch.setattr(admin_route, "send_invite_email", fake_send)
+        monkeypatch.setattr(admin_route, "next_member_id", AsyncMock(return_value="ACCTA-0042"))
 
         data = InviteCreate(name="X", email="x@y.com", role="admin")
         await admin_route.invite_user(request=_mock_request(), data=data, current_user=admin_user)
         # role admin nao consta na whitelist [socio/financeiro/moderador] -> fallback socio
         assert captured_doc["role"] == "socio"
+
+    async def test_direct_invite_rejects_statutory_cargo(self, mock_db, admin_user, monkeypatch):
+        from models import InviteCreate
+
+        mock_db.users.find_one = AsyncMock(return_value=None)
+        monkeypatch.setattr(admin_route, "next_member_id", AsyncMock(return_value="ACCTA-0042"))
+        with pytest.raises(HTTPException) as exc:
+            await admin_route.invite_user(
+                request=_mock_request(),
+                data=InviteCreate(name="X", email="x@y.com", cargo="Tesoureiro"),
+                current_user=admin_user,
+            )
+        assert exc.value.status_code == 400
+        mock_db.users.insert_one.assert_not_awaited()
 
     async def test_invite_token_has_expiry(self, mock_db, admin_user, monkeypatch):
         """Sprint 1+2 fix: invite_token tem TTL 7 dias."""
@@ -133,6 +149,7 @@ class TestInviteUser:
             return {"status": "sent"}
 
         monkeypatch.setattr(admin_route, "send_invite_email", fake_send)
+        monkeypatch.setattr(admin_route, "next_member_id", AsyncMock(return_value="ACCTA-0042"))
 
         data = InviteCreate(name="X", email="x@y.com")
         await admin_route.invite_user(request=_mock_request(), data=data, current_user=admin_user)
@@ -176,9 +193,7 @@ class TestGetPendingInvites:
 class TestRevokeInvite:
     async def test_socio_403(self, mock_db, socio_user):
         with pytest.raises(HTTPException) as exc:
-            await admin_route.revoke_invite(
-                user_id="any", request=_mock_request(), current_user=socio_user
-            )
+            await admin_route.revoke_invite(user_id="any", request=_mock_request(), current_user=socio_user)
         assert exc.value.status_code == 403
 
     async def test_404_when_already_active(self, mock_db, admin_user):
@@ -186,17 +201,13 @@ class TestRevokeInvite:
         activou, query retorna None."""
         mock_db.users.find_one = AsyncMock(return_value=None)
         with pytest.raises(HTTPException) as exc:
-            await admin_route.revoke_invite(
-                user_id="active-user", request=_mock_request(), current_user=admin_user
-            )
+            await admin_route.revoke_invite(user_id="active-user", request=_mock_request(), current_user=admin_user)
         assert exc.value.status_code == 404
 
     async def test_admin_revokes(self, mock_db, admin_user):
         mock_db.users.find_one = AsyncMock(
             return_value={"id": "u1", "name": "X", "email": "x@y.com", "status": "pendente_convite"}
         )
-        result = await admin_route.revoke_invite(
-            user_id="u1", request=_mock_request(), current_user=admin_user
-        )
+        result = await admin_route.revoke_invite(user_id="u1", request=_mock_request(), current_user=admin_user)
         assert "revogado" in result["message"].lower()
         mock_db.users.delete_one.assert_awaited_with({"id": "u1"})

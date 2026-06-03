@@ -195,6 +195,16 @@ PRIVILEGES = [
     "manage_benefits",
     "view_audit_logs",
     "view_finances_readonly",
+    # parecer do CF / auditoria de balancetes (spec-ciclo §3.3) — separado de
+    # manage_finances: o CF audita mas NÃO escreve transacções.
+    "emit_cf_parecer",
+    # disparo de comunicados (spec-comunicados-email) — overlay aditivo:
+    # admin OU este privilégio podem compor/enviar comunicados.
+    "send_comunicados",
+    # ranking de atuação (spec-ranking-socio §7) — overlay aditivo: configurar
+    # pesos/visibilidade, registar ajustes e recalcular o ranking sem dar admin
+    # (concedível à Direcção).
+    "manage_ranking",
 ]
 
 ROLES = ["admin", "financeiro", "moderador", "socio"]
@@ -397,6 +407,11 @@ def required_absolute_majority(voting_power_present: int) -> int:
 def required_three_quarters(base: int) -> int:
     """3/4 de uma base (alteração de estatutos, quota/jóia, dissolução)."""
     return math.ceil(base * 3 / 4)
+
+
+def required_two_thirds(base: int) -> int:
+    """2/3 de uma base (eleição de membro honorário — Art. 8.4)."""
+    return math.ceil(base * 2 / 3)
 
 
 # --------------------------------------------------------------------------- #

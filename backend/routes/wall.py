@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
-from datetime import datetime
 from typing import Optional
 from models import User, WallPost, WallPostCreate, WallComment, WallCommentCreate
 from database import db
 from auth import get_current_user, has_role_or_privilege
-from helpers import create_audit_log, create_notification
+from helpers import create_audit_log, create_notification, enrich_author_photos
 
 router = APIRouter(tags=["wall"])
 
@@ -20,13 +19,12 @@ async def get_wall_posts(category: Optional[str] = None, current_user: User = De
 
     posts = await db.wall_posts.find(query, {"_id": 0}).sort([("pinned", -1), ("created_at", -1)]).to_list(100)
     for p in posts:
-        if isinstance(p.get("created_at"), str):
-            p["created_at"] = datetime.fromisoformat(p["created_at"])
         p.setdefault("likes", [])
         p.setdefault("comment_count", 0)
         p.setdefault("category", "geral")
         p.setdefault("pinned", False)
 
+    await enrich_author_photos(posts)
     return posts
 
 
@@ -37,11 +35,10 @@ async def get_pending_wall_posts(current_user: User = Depends(get_current_user))
 
     posts = await db.wall_posts.find({"approved": False}, {"_id": 0}).sort("created_at", -1).to_list(100)
     for p in posts:
-        if isinstance(p.get("created_at"), str):
-            p["created_at"] = datetime.fromisoformat(p["created_at"])
         p.setdefault("likes", [])
         p.setdefault("comment_count", 0)
         p.setdefault("category", "geral")
+    await enrich_author_photos(posts)
     return posts
 
 
@@ -56,7 +53,6 @@ async def create_wall_post(post_data: WallPostCreate, current_user: User = Depen
         user_id=current_user.id, user_name=current_user.name, approved=auto_approve, **post_data.model_dump()
     )
     post_dict = post.model_dump()
-    post_dict["created_at"] = post_dict["created_at"].isoformat()
 
     await db.wall_posts.insert_one(post_dict)
 
@@ -159,10 +155,14 @@ async def toggle_like_wall_post(post_id: str, current_user: User = Depends(get_c
 
 @router.get("/wall/{post_id}/comments")
 async def get_wall_comments(post_id: str, current_user: User = Depends(get_current_user)):
+    post = await db.wall_posts.find_one({"id": post_id}, {"_id": 0, "approved": 1})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post não encontrado")
+    is_staff = has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content")
+    if not post.get("approved") and not is_staff:
+        raise HTTPException(status_code=403, detail="Sem permissão")
     comments = await db.wall_comments.find({"post_id": post_id}, {"_id": 0}).sort("created_at", 1).to_list(100)
-    for c in comments:
-        if isinstance(c.get("created_at"), str):
-            c["created_at"] = datetime.fromisoformat(c["created_at"])
+    await enrich_author_photos(comments)
     return comments
 
 
@@ -181,7 +181,6 @@ async def create_wall_comment(
         post_id=post_id, user_id=current_user.id, user_name=current_user.name, **comment_data.model_dump()
     )
     comment_dict = comment.model_dump()
-    comment_dict["created_at"] = comment_dict["created_at"].isoformat()
 
     await db.wall_comments.insert_one(comment_dict)
     await db.wall_posts.update_one({"id": post_id}, {"$inc": {"comment_count": 1}})
@@ -213,4 +212,5 @@ async def delete_wall_comment(post_id: str, comment_id: str, current_user: User 
 
     await db.wall_comments.delete_one({"id": comment_id})
     await db.wall_posts.update_one({"id": post_id}, {"$inc": {"comment_count": -1}})
+    await create_audit_log(current_user.id, "wall_comment_deleted", comment_id, details={"post_id": post_id})
     return {"message": "Comentário removido"}

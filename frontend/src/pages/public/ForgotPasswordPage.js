@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Mail, ArrowLeft, Copy, ExternalLink, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { ACCTALogoHorizontal } from '../../components/ACCTALogo';
+import { BrandLogo } from '../../components/BrandLogo';
 import api from '../../utils/api';
 import { forgotPasswordSchema } from '../../utils/authSchemas';
 
@@ -46,7 +46,7 @@ export const ForgotPasswordPage = () => {
       <div className="w-full max-w-md animate-fade-up">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex justify-center mb-5">
-            <ACCTALogoHorizontal />
+            <BrandLogo />
           </Link>
         </div>
 
@@ -83,7 +83,7 @@ export const ForgotPasswordPage = () => {
                     autoComplete="email"
                     aria-invalid={errors.email ? 'true' : 'false'}
                     {...register('email')}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
                     placeholder="seu@email.cv"
                     data-testid="forgot-email-input"
                   />
@@ -95,7 +95,7 @@ export const ForgotPasswordPage = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-carmesim text-white hover:bg-carmesim-dark h-11 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full bg-floresta text-white hover:bg-floresta-dark h-11 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   data-testid="forgot-submit"
                 >
                   {isSubmitting ? (
@@ -149,7 +149,7 @@ export const ForgotPasswordPage = () => {
 
                 <Link
                   to={`/reset-password?token=${submitted.token}`}
-                  className="mt-4 w-full bg-carmesim text-white hover:bg-carmesim-dark h-11 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                  className="mt-4 w-full bg-floresta text-white hover:bg-floresta-dark h-11 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2"
                   data-testid="go-to-reset-btn"
                 >
                   <ExternalLink className="w-4 h-4" />

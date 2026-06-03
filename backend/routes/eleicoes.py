@@ -14,8 +14,10 @@ import hmac
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+import asyncpg
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 
+import comunicados_service
 from auth import SECRET_KEY, get_current_user
 from database import cast_ballot, db
 from governance import (
@@ -243,6 +245,8 @@ async def validar_lista(
 ):
     eleicao = await _get_eleicao(eleicao_id)
     _require_manage(current_user, eleicao)
+    if eleicao["status"] != "candidaturas":
+        raise HTTPException(status_code=400, detail="As candidaturas não estão abertas")
     lista = await db.eleicao_listas.find_one({"id": lista_id, "eleicao_id": eleicao_id}, {"_id": 0})
     if not lista:
         raise HTTPException(status_code=404, detail="Lista não encontrada")
@@ -266,7 +270,12 @@ async def validar_lista(
 
 
 @router.post("/{eleicao_id}/abrir-votacao")
-async def abrir_votacao(eleicao_id: str, request: Request, current_user: User = Depends(get_current_user)):
+async def abrir_votacao(
+    eleicao_id: str,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+):
     eleicao = await _get_eleicao(eleicao_id)
     _require_manage(current_user, eleicao)
     if eleicao["status"] not in ("candidaturas", "campanha"):
@@ -276,6 +285,21 @@ async def abrir_votacao(eleicao_id: str, request: Request, current_user: User = 
         raise HTTPException(status_code=400, detail="Não há listas aceites para votar")
     await db.eleicoes.update_one({"id": eleicao_id}, {"$set": {"status": "votacao"}})
     await create_audit_log(current_user.id, "eleicao_votacao_aberta", eleicao_id, request=request, details={})
+    # Comunicado OFICIAL (in-app + email a todos os activos), fire-and-forget.
+    ano = eleicao.get("ano")
+    titulo = f"Eleições {ano}" if ano else "Eleições"
+    background_tasks.add_task(
+        comunicados_service.dispatch_oficial_auto,
+        subject=f"Abertura de votação — {titulo}",
+        body=(
+            "A votação está aberta. A sua participação é importante.\n\n"
+            "Aceda ao Portal ACCTA para votar dentro do prazo."
+        ),
+        cta_label="Votar agora",
+        cta_url=f"/eleicoes/{eleicao_id}",
+        source_kind="eleicao_abertura",
+        ref_id=eleicao_id,
+    )
     return {"message": "Votação aberta.", "status": "votacao"}
 
 
@@ -297,6 +321,8 @@ async def votar(
     """Voto digital do próprio eleitor. Recibo + boletim atómicos; o boletim não
     tem ligação ao eleitor."""
     eleicao = await _get_eleicao(eleicao_id)
+    # Fast-path: evita uma transação inútil quando já está claramente fora de
+    # janela. A garantia autoritativa do estado vem do helper DAO sob lock.
     if eleicao["status"] != "votacao":
         raise HTTPException(status_code=400, detail="A votação não está aberta")
     if not is_voting_member(current_user):
@@ -306,9 +332,19 @@ async def votar(
     vh = _voter_hash(eleicao_id, current_user.id)
     receipt = EleicaoVoterReceipt(eleicao_id=eleicao_id, voter_hash=vh, modo="digital").model_dump()
     ballot = EleicaoBallot(eleicao_id=eleicao_id, voto=data.voto, modo="digital").model_dump()
+    # `cast_ballot` toma `FOR UPDATE` em `eleicoes` e re-verifica
+    # `status="votacao"` na MESMA transação onde o recibo+boletim são inseridos
+    # — fecha a janela TOCTOU contra `apurar` (issue #151).
     try:
         await cast_ballot(eleicao_id, vh, receipt, ballot)
-    except ValueError:
+    except asyncpg.exceptions.LockNotAvailableError:
+        raise HTTPException(status_code=503, detail="Sistema sob carga. Tente novamente.")
+    except ValueError as e:
+        sentinel = e.args[0] if e.args else ""
+        if sentinel == "not_found":
+            raise HTTPException(status_code=404, detail="Eleição não encontrada")
+        if sentinel == "not_open":
+            raise HTTPException(status_code=400, detail="A votação não está aberta")
         raise HTTPException(status_code=409, detail="Já votou nesta eleição")
     # Auditoria regista PARTICIPAÇÃO, nunca o sentido de voto.
     await create_audit_log(
@@ -346,9 +382,17 @@ async def voto_correspondencia(
         registado_por=current_user.id,
     ).model_dump()
     ballot = EleicaoBallot(eleicao_id=eleicao_id, voto=data.voto, modo="correspondencia").model_dump()
+    # Ver `votar`: helper DAO segura `FOR UPDATE` + recheck status (issue #151).
     try:
         await cast_ballot(eleicao_id, vh, receipt, ballot)
-    except ValueError:
+    except asyncpg.exceptions.LockNotAvailableError:
+        raise HTTPException(status_code=503, detail="Sistema sob carga. Tente novamente.")
+    except ValueError as e:
+        sentinel = e.args[0] if e.args else ""
+        if sentinel == "not_found":
+            raise HTTPException(status_code=404, detail="Eleição não encontrada")
+        if sentinel == "not_open":
+            raise HTTPException(status_code=400, detail="A votação não está aberta")
         raise HTTPException(status_code=409, detail="Este eleitor já votou")
     await create_audit_log(
         current_user.id,
@@ -373,6 +417,18 @@ async def apurar(eleicao_id: str, request: Request, current_user: User = Depends
     _require_manage(current_user, eleicao)
     if eleicao["status"] != "votacao":
         raise HTTPException(status_code=400, detail="Só se apura após a votação")
+
+    # Fecha a janela ANTES de ler os boletins (mesmo padrão de
+    # `apurar_deliberacao`): o filtro `status="votacao"` no `update_one` toma
+    # `FOR UPDATE` no DAO; voters concorrentes (também sob `FOR UPDATE` via
+    # `cast_ballot`) serializam — quem entrar depois vê `status="votacao"`
+    # já trocado e o helper levanta `ValueError("not_open")`. Duas chamadas
+    # concorrentes a `apurar` ficam idempotentes: só uma fecha.
+    pre_close = await db.eleicoes.update_one(
+        {"id": eleicao_id, "status": "votacao"}, {"$set": {"status": "apurada"}}
+    )
+    if pre_close.modified_count == 0:
+        raise HTTPException(status_code=409, detail="Eleição já apurada.")
 
     ballots = await db.eleicao_ballots.find({"eleicao_id": eleicao_id}, {"_id": 0, "voto": 1}).to_list(None)
     counts = Counter(b.get("voto") for b in ballots)
@@ -402,7 +458,8 @@ async def apurar(eleicao_id: str, request: Request, current_user: User = Depends
     if empate:
         resultado["nova_eleicao_ate"] = (datetime.now(timezone.utc) + timedelta(days=15)).isoformat()
 
-    await db.eleicoes.update_one({"id": eleicao_id}, {"$set": {"status": "apurada", "resultado": resultado}})
+    # Status já fechado acima; aqui só anexamos o resultado.
+    await db.eleicoes.update_one({"id": eleicao_id}, {"$set": {"resultado": resultado}})
     await create_audit_log(
         current_user.id,
         "eleicao_apurada",
@@ -413,10 +470,11 @@ async def apurar(eleicao_id: str, request: Request, current_user: User = Depends
     return resultado
 
 
-async def _proclaim_list(eleicao: dict, lista: dict, by_id: str) -> list[dict]:
+async def _proclaim_list(eleicao: dict, lista: dict, by_id: str) -> tuple[str, list[dict]]:
     """Serviço comum de criação de mandatos na posse. Cessantes (titulares dos
     cargos eleitos que não foram reeleitos) são encerrados aqui — na posse, não
-    no apuramento. Suplentes ficam registados sem alterar o cargo activo."""
+    no apuramento. Suplentes ficam registados sem alterar o cargo activo.
+    Devolve (posse_iso, proclaimed) para o chamador reutilizar o mesmo instante."""
     posse = _now_iso()
     titulares = [c for c in lista.get("candidatos", []) if not c.get("suplente")]
     suplentes = [c for c in lista.get("candidatos", []) if c.get("suplente")]
@@ -503,7 +561,7 @@ async def _proclaim_list(eleicao: dict, lista: dict, by_id: str) -> list[dict]:
         await db.users.update_one({"id": c["user_id"]}, {"$set": {"cargo_history": hist}})
         proclaimed.append({"user_id": c["user_id"], "cargo": cargo_key, "suplente": True})
 
-    return proclaimed
+    return posse, proclaimed
 
 
 @router.post("/{eleicao_id}/proclamar")
@@ -522,8 +580,7 @@ async def proclamar(eleicao_id: str, request: Request, current_user: User = Depe
     if not lista:
         raise HTTPException(status_code=404, detail="Lista vencedora não encontrada")
 
-    proclaimed = await _proclaim_list(eleicao, lista, current_user.id)
-    posse = _now_iso()
+    posse, proclaimed = await _proclaim_list(eleicao, lista, current_user.id)
     await db.eleicoes.update_one(
         {"id": eleicao_id},
         {"$set": {"status": "proclamada", "resultado": {**resultado, "posse_em": posse, "proclaimed": proclaimed}}},

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -16,6 +16,7 @@ import {
   getStatusConfig,
 } from '../../lib/statusConfig';
 import { EmptyState } from '../../components/EmptyState';
+import { UserAvatar } from '../../components/UserAvatar';
 
 const TabBtn = ({ active, label, icon: Icon, onClick, badge, testId }) => (
   <button onClick={onClick} data-testid={testId}
@@ -91,25 +92,25 @@ const TasksTab = ({ project, tasks, members, canManage, onReload }) => {
         <div className="bg-white border border-gray-200/80 rounded-xl p-4 space-y-3 animate-fade-up">
           <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
             placeholder="Titulo da tarefa" data-testid="task-title-input"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none" />
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none" />
           <textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
             placeholder="Descricao (opcional)"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none resize-none" />
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none resize-none" />
           <div className="flex flex-wrap gap-2">
             <select value={form.assignee_id} onChange={(e) => setForm({ ...form, assignee_id: e.target.value })}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm flex-1 min-w-[140px] focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm flex-1 min-w-[140px] focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="task-assignee-select">
               <option value="">Sem responsavel</option>
               {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
             <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none">
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none">
               <option value="baixa">Baixa</option>
               <option value="media">Media</option>
               <option value="alta">Alta</option>
             </select>
             <input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none" />
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none" />
             <button onClick={handleAdd} disabled={saving} className="btn-primary text-sm px-5" data-testid="save-task-btn">
               {saving ? '...' : 'Adicionar'}
             </button>
@@ -198,13 +199,11 @@ const CommentsTab = ({ project, comments, onReload }) => {
     <div className="space-y-4">
       {/* Input */}
       <div className="bg-white border border-gray-200/80 rounded-xl p-3.5 flex items-start gap-3">
-        <div className="w-8 h-8 bg-carmesim rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-          {user?.name?.charAt(0).toUpperCase()}
-        </div>
+        <UserAvatar size="xs" name={user?.name} photoUrl={user?.photo_url} />
         <div className="flex-1">
           <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)}
             placeholder="Partilhe uma ideia ou comentario..."
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none resize-none"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none resize-none"
             data-testid="comment-input" />
           <div className="flex justify-end mt-2">
             <button onClick={handleSend} disabled={sending || !text.trim()}
@@ -223,9 +222,13 @@ const CommentsTab = ({ project, comments, onReload }) => {
           {comments.map((c) => (
             <div key={c.id} className="bg-white border border-gray-200/80 rounded-xl p-4" data-testid={`comment-${c.id}`}>
               <div className="flex items-center gap-2 mb-1.5">
-                <div className="w-7 h-7 bg-grafite rounded-full flex items-center justify-center text-white text-xs font-bold">
-                  {c.user_name?.charAt(0)?.toUpperCase() || '?'}
-                </div>
+                <UserAvatar
+                  size="xs"
+                  className="w-7 h-7"
+                  name={c.user_name}
+                  photoUrl={c.user_photo_url}
+                  fallbackClassName="bg-grafite"
+                />
                 <span className="font-semibold text-sm text-grafite">{c.user_name}</span>
                 <span className="text-xs text-[#6B7280] ml-auto">
                   {c.created_at ? new Date(c.created_at).toLocaleDateString('pt') : ''}
@@ -261,7 +264,7 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
       setForm({ description: '', amount: '', date: new Date().toISOString().split('T')[0] });
       setShowAdd(false);
       onReload();
-      toast.success('Despesa registrada');
+      toast.success('Despesa registada');
     },
     onError: (err) => toast.error(err.response?.data?.detail || 'Erro'),
   });
@@ -330,19 +333,19 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
           <div className="flex-1 min-w-[180px]">
             <label className="text-xs text-[#6B7280] uppercase tracking-wider block mb-1">Descricao</label>
             <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="expense-desc-input" />
           </div>
           <div className="w-28">
             <label className="text-xs text-[#6B7280] uppercase tracking-wider block mb-1">Valor (CVE)</label>
             <input type="number" inputMode="decimal" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="expense-amount-input" />
           </div>
           <div className="w-36">
             <label className="text-xs text-[#6B7280] uppercase tracking-wider block mb-1">Data</label>
             <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none" />
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none" />
           </div>
           <button onClick={handleAdd} disabled={saving} className="btn-primary text-sm px-5" data-testid="save-expense-btn">
             {saving ? '...' : 'Adicionar'}
@@ -351,7 +354,7 @@ const BudgetTab = ({ project, expenses, canManage, onReload }) => {
       )}
 
       {expenses.length === 0 ? (
-        <EmptyState icon={DollarSign} title="Nenhuma despesa registrada" className="p-6 sm:p-8" testId="no-expenses" />
+        <EmptyState icon={DollarSign} title="Nenhuma despesa registada" className="p-6 sm:p-8" testId="no-expenses" />
       ) : (
         <div className="bg-white border border-gray-200/80 rounded-xl overflow-hidden">
           <table className="w-full text-sm">
@@ -439,13 +442,13 @@ const TimelineTab = ({ project, milestones, canManage, onReload }) => {
             <label className="text-xs text-[#6B7280] uppercase tracking-wider block mb-1">Titulo</label>
             <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="Ex: Reservar local do evento"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="milestone-title-input" />
           </div>
           <div className="w-40">
             <label className="text-xs text-[#6B7280] uppercase tracking-wider block mb-1">Data</label>
             <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-carmesim/40 focus:border-carmesim outline-none"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="milestone-date-input" />
           </div>
           <button onClick={handleAdd} disabled={saving} className="btn-primary text-sm px-5" data-testid="save-milestone-btn">
@@ -502,15 +505,15 @@ const ProjectDetailPage = () => {
 
   const projectQuery = useQuery({
     queryKey: queryKeys.projects.byId(id),
-    queryFn: async () => {
-      try {
-        return (await projectsAPI.getOne(id)).data;
-      } catch (err) {
-        if (err.response?.status === 404) navigate('/projetos');
-        throw err;
-      }
-    },
+    queryFn: async () => (await projectsAPI.getOne(id)).data,
+    retry: (count, err) => err?.response?.status !== 404 && count < 3,
   });
+
+  // 404 → projeto inexistente: redireciona como efeito, não dentro do queryFn
+  // (chamar navigate durante o fetch faz setState num componente a desmontar).
+  useEffect(() => {
+    if (projectQuery.error?.response?.status === 404) navigate('/projetos');
+  }, [projectQuery.error, navigate]);
 
   const membersQuery = useQuery({
     queryKey: ['users', 'members'],
