@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
+import { primaryBtn } from '../../lib/buttonStyles';
 
 const TIPO_LABEL = { vinculativo: 'Acto vinculativo', pagamento: 'Pagamento' };
 const STATUS = {
@@ -263,7 +264,7 @@ export const CoAprovacoesPage = () => {
               <button
                 onClick={() => createMut.mutate()}
                 disabled={createMut.isPending || form.descricao.trim().length < 3 || (form.tipo === 'pagamento' && (form.valor === '' || Number(form.valor) <= 0))}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                className={primaryBtn}
                 data-testid="ato-submit"
               >
                 {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />} Criar acto

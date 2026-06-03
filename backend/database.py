@@ -228,6 +228,17 @@ def _quote_ident(name: str) -> str:
     return f'"{name}"'
 
 
+def _safe_jsonb_key(key: str) -> str:
+    """Valida uma chave de campo jsonb antes de a interpolar num literal
+    `doc->>'<key>'`. Hoje estas chaves são constantes internas (nunca
+    controladas pelo utilizador), mas validar — em vez de confiar — espelha a
+    defesa de `_quote_ident` contra um futuro chamador descuidado. Devolve a
+    chave inalterada (as plicas vêm do f-string em redor)."""
+    if not re.fullmatch(r"[a-z_][a-z0-9_]*", key):
+        raise ValueError(f"Invalid jsonb key: {key!r}")
+    return key
+
+
 def _to_scalar_text(value: Any) -> Optional[str]:
     """Render a Python scalar the same way Postgres `jsonb ->> 'k'` would."""
     if value is None:
@@ -1182,7 +1193,8 @@ async def _cast_secret_ballot_locked(
                 raise ValueError("not_open")
             existing = await conn.fetchrow(
                 f"SELECT pk FROM {_quote_ident(receipt_table)} "
-                f"WHERE doc->>'{parent_id_field_in_receipt}' = $1 AND doc->>'{dup_field}' = $2 LIMIT 1",
+                f"WHERE doc->>'{_safe_jsonb_key(parent_id_field_in_receipt)}' = $1 "
+                f"AND doc->>'{_safe_jsonb_key(dup_field)}' = $2 LIMIT 1",
                 parent_id,
                 dup_value,
             )

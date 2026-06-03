@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
+import { primaryBtn } from '../../lib/buttonStyles';
 
 const COMPETENCIA_LABEL = { direcao: 'Direção', assembleia_geral: 'Assembleia Geral' };
 const VERSAO_STATUS = {
@@ -215,7 +216,7 @@ export const RegulamentosPage = () => {
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={closeDialog} className="px-4 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer">Cancelar</button>
-              <button onClick={() => criarMut.mutate()} disabled={criarMut.isPending || !form.slug?.trim() || !form.titulo?.trim()} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="reg-submit">
+              <button onClick={() => criarMut.mutate()} disabled={criarMut.isPending || !form.slug?.trim() || !form.titulo?.trim()} className={primaryBtn} data-testid="reg-submit">
                 {criarMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />} Criar
               </button>
             </div>
@@ -238,7 +239,7 @@ export const RegulamentosPage = () => {
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={closeDialog} className="px-4 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer">Cancelar</button>
-              <button onClick={() => versaoMut.mutate()} disabled={versaoMut.isPending || !form.document_id?.trim()} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="versao-submit">
+              <button onClick={() => versaoMut.mutate()} disabled={versaoMut.isPending || !form.document_id?.trim()} className={primaryBtn} data-testid="versao-submit">
                 {versaoMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <FilePlus2 className="w-4 h-4" aria-hidden="true" />} Criar versão
               </button>
             </div>
@@ -257,7 +258,7 @@ export const RegulamentosPage = () => {
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={closeDialog} className="px-4 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer">Cancelar</button>
-              <button onClick={() => aprovarMut.mutate({ vid: aprovarCtx?.vid, competencia: 'assembleia_geral' })} disabled={aprovarMut.isPending || !form.deliberacao_id?.trim()} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="aprovar-ag-submit">
+              <button onClick={() => aprovarMut.mutate({ vid: aprovarCtx?.vid, competencia: 'assembleia_geral' })} disabled={aprovarMut.isPending || !form.deliberacao_id?.trim()} className={primaryBtn} data-testid="aprovar-ag-submit">
                 {aprovarMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <CheckCircle2 className="w-4 h-4" aria-hidden="true" />} Aprovar
               </button>
             </div>
