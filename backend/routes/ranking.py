@@ -288,12 +288,20 @@ async def list_ranking_adjustments(
 
 
 @router.put("/ranking/opt-out")
-async def set_ranking_opt_out(payload: RankingOptOut, current_user: User = Depends(get_current_user)):
+async def set_ranking_opt_out(payload: RankingOptOut, request: Request,
+                              current_user: User = Depends(get_current_user)):
     """O próprio membro decide se aparece nas LISTAS públicas do ranking (§2.5).
     Continua sempre a ver a sua posição em `/me`. Atualiza o `users` (fonte para
     o próximo rebuild) e sincroniza o snapshot de imediato (efeito instantâneo)."""
     await db.users.update_one({"id": current_user.id}, {"$set": {"ranking_opt_out": payload.opt_out}})
     await db.member_scores.update_many(
         {"user_id": current_user.id}, {"$set": {"ranking_opt_out": payload.opt_out}}
+    )
+    await create_audit_log(
+        current_user.id,
+        f"ranking_opt_out: {payload.opt_out}",
+        current_user.id,
+        request=request,
+        details={"opt_out": payload.opt_out},
     )
     return {"opt_out": payload.opt_out}
