@@ -1,91 +1,165 @@
-name: CD — Deploy to Production
+name: CD — Deploy Backend to Production
+
+# ──────────────────────────────────────────────────────────────────────────
+# Topologia REAL de produção (ver accta-prod-topology / HOSTINGER_DEPLOY.md):
+#
+#   Frontend  → Vercel (deploy automático no push para main; NÃO é tratado aqui)
+#   Edge      → nginx-proxy-manager (openresty) na rede docker `proxy`
+#               proxy host: api.controlador.cv → http://accta-backend:8000
+#   Backend   → container `accta-backend`, porta interna 8000 (decisão do dono),
+#               compose CANÓNICO em /docker/accta/docker-compose.yml
+#
+# Este workflow trata SÓ do backend. Estratégia: build da imagem no CI →
+# push para GHCR → o VPS faz `docker compose pull && up -d`. Imagens
+# versionadas por SHA = rollback limpo.
+#
+# ⚠️ NUNCA correr /opt/projetos/accta/deploy.sh nem o compose órfão desse
+#    diretório — buildam para 8001 e desligam o backend do NPM.
+#
+# ── Setup ÚNICO no VPS (uma vez, manual) ──────────────────────────────────
+#   1) Autenticar o host no GHCR (token com read:packages):
+#        echo <GHCR_TOKEN> | docker login ghcr.io -u <user> --password-stdin
+#      (ou tornar o package `accta-backend` público e dispensar o login)
+#   2) Em /docker/accta/docker-compose.yml, o serviço `backend` deve usar a
+#      imagem do GHCR em vez de `build:`, manter a porta 8000 e a rede proxy:
+#        services:
+#          backend:
+#            image: ghcr.io/hamiltonmoreno/accta-backend:latest
+#            container_name: accta-backend
+#            restart: unless-stopped
+#            env_file: [./backend/.env]
+#            networks: [proxy]
+#            command: ["uvicorn","server:app","--host","0.0.0.0","--port","8000","--workers","2"]
+#            healthcheck:
+#              test: ["CMD","curl","-fsS","http://localhost:8000/api/"]
+#              interval: 30s
+#              timeout: 5s
+#              retries: 3
+#            volumes:
+#              - /srv/accta/uploads:/app/uploads
+#        networks:
+#          proxy:
+#            external: true
+#
+# ── Secrets necessários (Settings → Secrets and variables → Actions) ───────
+#   DEPLOY_HOST      IP do VPS (194.164.76.72)
+#   DEPLOY_USER      utilizador SSH (ex.: deploy ou root)
+#   DEPLOY_SSH_KEY   chave PRIVADA SSH (inteira, com BEGIN/END)
+#   PRODUCTION_URL   https://api.controlador.cv
+#   DEPLOY_PORT      (opcional) porta SSH, default 22
+#   DEPLOY_APP_DIR   (opcional) diretório do compose canónico, default /docker/accta
+# GHCR usa o GITHUB_TOKEN automático — não é preciso secret para o push.
+# ──────────────────────────────────────────────────────────────────────────
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
+# Um deploy de cada vez; cancela um anterior ainda a decorrer.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 env:
-  NODE_VERSION: '20'
-  PYTHON_VERSION: '3.11'
+  IMAGE: ghcr.io/${{ github.repository_owner }}/accta-backend
 
 jobs:
   # ──────────────────────────────────────────────
-  # CI GATE — Lint + build must pass before deploy
+  # GATE — lint + testes unitários rápidos do backend (sem DB).
+  # A suite completa corre no ci.yml; aqui é só a rede de segurança do deploy.
   # ──────────────────────────────────────────────
-  backend-check:
-    name: Backend CI Gate
+  gate:
+    name: Backend Gate (lint + unit)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
-
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: '3.11'
 
       - name: Cache pip
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: pip-${{ runner.os }}-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: pip-${{ runner.os }}-
 
-      - name: Install & lint
+      - name: Install deps
         run: |
           pip install -r requirements.txt
           pip install ruff
-          ruff check .
 
-  frontend-check:
-    name: Frontend CI Gate
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Unit tests (mocked DB, no Postgres)
+        run: |
+          pytest \
+            tests/test_auth_unit.py \
+            tests/test_finances_edge_cases.py \
+            tests/test_rbac_matrix.py \
+            -W ignore::DeprecationWarning
+
+  # ──────────────────────────────────────────────
+  # BUILD & PUSH — imagem do backend para o GHCR
+  # ──────────────────────────────────────────────
+  build:
+    name: Build & Push Image
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-
-    env:
-      REACT_APP_BACKEND_URL: https://placeholder.example.com
-      CI: true
-
+    needs: [gate]
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-ref: ${{ steps.meta.outputs.image-ref }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Cache yarn
-        uses: actions/cache@v4
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
-          path: |
-            frontend/node_modules
-            ~/.cache/yarn
-          key: yarn-${{ runner.os }}-${{ hashFiles('frontend/yarn.lock') }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install, lint & build
+      - name: Compute tags
+        id: meta
         run: |
-          yarn install --frozen-lockfile
-          npx eslint src/ --ext .js,.jsx --max-warnings=60 --no-error-on-unmatched-pattern
-          yarn build
-        env:
-          GENERATE_SOURCEMAP: false
+          SHA_TAG="sha-${GITHUB_SHA::12}"
+          echo "image-ref=${IMAGE}:${SHA_TAG}" >> "$GITHUB_OUTPUT"
+          echo "sha-tag=${SHA_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          # Contexto = raiz do repo: o Dockerfile faz COPY backend/ e scripts/.
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ steps.meta.outputs.sha-tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   # ──────────────────────────────────────────────
-  # DEPLOY — Runs after CI gate passes
+  # DEPLOY — VPS faz pull da nova imagem e recria o container
   # ──────────────────────────────────────────────
   deploy:
-    name: Deploy to Production
+    name: Deploy to VPS
     runs-on: ubuntu-latest
-    needs: [backend-check, frontend-check]
+    needs: [build]
     environment: production
-
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy to server via SSH
+      - name: Pull & restart container via SSH
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -94,37 +168,39 @@ jobs:
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           script: |
             set -e
-            APP_DIR=${{ secrets.DEPLOY_APP_DIR || '/app' }}
-            cd $APP_DIR
+            APP_DIR=${{ secrets.DEPLOY_APP_DIR || '/docker/accta' }}
+            cd "$APP_DIR"
 
-            echo "── Pulling latest code ──"
-            git pull origin main
+            echo "── Pull da imagem mais recente do GHCR ──"
+            docker compose pull backend
 
-            echo "── Backend: Install dependencies ──"
-            cd $APP_DIR/backend
-            ./venv/bin/pip install -r requirements.txt --quiet
+            echo "── Recriar o container backend (sem tocar nos outros serviços) ──"
+            docker compose up -d --no-deps backend
 
-            echo "── Frontend: Build ──"
-            cd $APP_DIR/frontend
-            yarn install --frozen-lockfile
-            REACT_APP_BACKEND_URL=${{ secrets.PRODUCTION_URL }} yarn build
+            echo "── Limpar imagens antigas órfãs ──"
+            docker image prune -f
 
-            echo "── Restart services ──"
-            sudo supervisorctl restart backend
-
-            echo "── Reload Nginx (serves built frontend) ──"
-            sudo systemctl reload nginx
-
-            echo "── Health check ──"
+      - name: Health check (via NPM, ponta-a-ponta)
+        run: |
+          echo "A aguardar o arranque do backend…"
+          for i in $(seq 1 12); do
+            if curl -fsS "${{ secrets.PRODUCTION_URL }}/api/" > /dev/null; then
+              echo "Backend: OK"
+              exit 0
+            fi
+            echo "tentativa $i/12 falhou; nova tentativa em 5s…"
             sleep 5
-            curl -sf http://localhost:8001/api/ > /dev/null && echo "Backend: OK" || { echo "Backend: FAIL"; exit 1; }
-            echo "Deploy complete!"
+          done
+          echo "Backend: FAIL — health check não passou após 60s"
+          exit 1
 
       - name: Deploy summary
         if: success()
         run: |
-          echo "## Deployment Successful" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch:** main" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Deployed to:** ${{ secrets.PRODUCTION_URL }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## ✅ Deploy do backend concluído"
+            echo "- **Imagem:** \`${{ needs.build.outputs.image-ref }}\`"
+            echo "- **Commit:** ${{ github.sha }}"
+            echo "- **Destino:** ${{ secrets.PRODUCTION_URL }}"
+            echo "- **Frontend:** servido pela Vercel (deploy independente)"
+          } >> "$GITHUB_STEP_SUMMARY"
