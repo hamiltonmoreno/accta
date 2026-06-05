@@ -24,7 +24,7 @@ name: CD — Deploy Backend to Production
 #      imagem do GHCR em vez de `build:`, manter a porta 8000 e a rede proxy:
 #        services:
 #          backend:
-#            image: ghcr.io/hamiltonmoreno/accta-backend:latest
+#            image: ghcr.io/hamiltonmoreno/accta-backend:${TAG:-latest}
 #            container_name: accta-backend
 #            restart: unless-stopped
 #            env_file: [./backend/.env]
@@ -117,6 +117,7 @@ jobs:
       packages: write
     outputs:
       image-ref: ${{ steps.meta.outputs.image-ref }}
+      sha-tag: ${{ steps.meta.outputs.sha-tag }}
     steps:
       - uses: actions/checkout@v4
 
@@ -161,17 +162,23 @@ jobs:
     steps:
       - name: Pull & restart container via SSH
         uses: appleboy/ssh-action@v1
+        env:
+          # Fixa a SHA imutável no container que corre (não o :latest flutuante).
+          # O compose canónico usa `image: ...:${TAG:-latest}` — ver HOSTINGER_DEPLOY.md §2.1.
+          TAG: ${{ needs.build.outputs.sha-tag }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: TAG
           script: |
             set -e
             APP_DIR=${{ secrets.DEPLOY_APP_DIR || '/docker/accta' }}
             cd "$APP_DIR"
+            export TAG   # interpolado pelo docker compose em ${TAG:-latest}
 
-            echo "── Pull da imagem mais recente do GHCR ──"
+            echo "── Deploy da imagem ghcr.io/.../accta-backend:${TAG} ──"
             docker compose pull backend
 
             echo "── Recriar o container backend (sem tocar nos outros serviços) ──"

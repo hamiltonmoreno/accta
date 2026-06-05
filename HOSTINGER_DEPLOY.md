@@ -107,7 +107,9 @@ Esta pasta contém **só** o compose e o `.env`. A imagem vem do GHCR (não há
 ```yaml
 services:
   backend:
-    image: ghcr.io/hamiltonmoreno/accta-backend:latest
+    # ${TAG:-latest}: o CD exporta TAG=sha-<12> e fixa a imagem imutável no
+    # container que corre; sem TAG (deploy/rollback manual) cai em :latest.
+    image: ghcr.io/hamiltonmoreno/accta-backend:${TAG:-latest}
     container_name: accta-backend
     restart: unless-stopped
     env_file:
@@ -289,11 +291,12 @@ o que dá rollback limpo sem rebuild:
 
 ```bash
 cd /docker/accta
-# 1. Descobrir a tag boa anterior (GitHub → Packages, ou no histórico de deploys)
-# 2. Apontar o compose para essa tag (ou via override pontual):
-docker compose pull backend                      # garante a imagem em cache
-IMAGE_TAG=sha-XXXXXXXXXXXX docker compose up -d backend   # se parametrizado
-#   — em alternativa, editar `image:` para a tag sha-<12> e `up -d`.
+# 1. Descobrir a tag boa anterior (GitHub → Packages → accta-backend, ou no
+#    "Deploy summary" do deploy que correu).
+# 2. Fixar essa tag via a variável TAG (interpolada por ${TAG:-latest}):
+export TAG=sha-XXXXXXXXXXXX
+docker compose pull backend
+docker compose up -d --no-deps backend
 docker compose logs -f backend
 ```
 
