@@ -23,28 +23,15 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
-    const detail = error.response?.data?.detail;
     const currentPath = window.location.pathname;
     const publicPaths = ['/login', '/validador', '/profissao', '/noticias', '/transparencia', '/sobre', '/beneficios-publico', '/contactos', '/eventos-publico', '/galeria', '/publicacoes-publico', '/forgot-password', '/reset-password', '/criar-conta'];
     const isPublic = currentPath === '/' || publicPaths.some(p => currentPath.startsWith(p));
 
-    if (status === 401) {
-      // MFA (spec-mfa-frontend-pr2 §9): os 401 do desafio de 2.º fator pertencem
-      // ao fluxo de login (rota pública, já isenta) — nunca forçar logout.
-      const isMfaLoginChallenge = detail === 'mfa_required' || detail === 'mfa_invalido';
-      if (!isPublic && !isMfaLoginChallenge) {
-        // Cookie e httpOnly — JS nao consegue limpa-lo. Backend ja invalida
-        // server-side em /logout; aqui so disparamos o evento + redirect.
-        window.dispatchEvent(new Event('accta:force-logout'));
-        window.location.replace('/login');
-      }
-    } else if (status === 403 && detail === 'mfa_setup_required') {
-      // Sessão mfa_pending (admin/financeiro sem MFA): o backend recusa tudo
-      // fora do enrolment. Rede de segurança caso a guarda proativa não apanhe;
-      // não faz logout e não recarrega se já estamos na página de setup (loop).
-      if (!isPublic && currentPath !== '/mfa-setup') {
-        window.location.replace('/mfa-setup');
-      }
+    if (status === 401 && !isPublic) {
+      // Cookie e httpOnly — JS nao consegue limpa-lo. Backend ja invalida
+      // server-side em /logout; aqui so disparamos o evento + redirect.
+      window.dispatchEvent(new Event('accta:force-logout'));
+      window.location.replace('/login');
     }
     return Promise.reject(error);
   }
@@ -61,14 +48,6 @@ export const authAPI = {
   validateInvite: (token) => api.get('/auth/invite/validate', { params: { token } }),
   forgotPassword: (data) => api.post('/auth/forgot-password', data),
   resetPassword: (data) => api.post('/auth/reset-password', data),
-};
-
-// MFA / 2FA (spec-mfa-frontend-pr2). Backend já impõe; isto é só a camada de UI.
-export const mfaAPI = {
-  setup: () => api.post('/auth/mfa/setup'),
-  verify: (otp) => api.post('/auth/mfa/verify', { otp }),
-  disable: (password) => api.post('/auth/mfa/disable', { password }),
-  status: () => api.get('/auth/mfa/status'),
 };
 
 // Admin API

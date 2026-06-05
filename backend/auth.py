@@ -17,16 +17,6 @@ if not SECRET_KEY:
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
-# Endpoints permitidos a uma sessão "mfa_pending" (papel obrigatório ainda sem
-# MFA): só enrolment + sessão. Tudo o resto é bloqueado até o MFA estar ativo.
-MFA_PENDING_ALLOWED_PATHS = {
-    "/api/auth/mfa/setup",
-    "/api/auth/mfa/verify",
-    "/api/auth/mfa/status",
-    "/api/auth/me",
-    "/api/auth/logout",
-}
-
 # ===== Cookie config =====
 # Sprint 10 — JWT em httpOnly cookie em vez de localStorage. Mitigates XSS
 # token theft. Em prod (cross-site Vercel <-> Render): SameSite=None + Secure.
@@ -188,8 +178,6 @@ async def get_current_user(request: Request):
         user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
         if user_doc is None:
             raise HTTPException(status_code=401, detail="Usuário não encontrado")
-        if payload.get("mfa_pending") and request.url.path not in MFA_PENDING_ALLOWED_PATHS:
-            raise HTTPException(status_code=403, detail="mfa_setup_required")
         return User(**user_doc)
     except JWTError:
         raise HTTPException(status_code=401, detail="Token inválido")
@@ -219,12 +207,6 @@ async def get_user_from_token(token: str):
             return None
         # Honra blocklist para consistencia com get_current_user.
         if await is_token_revoked(payload.get("jti")):
-            return None
-        # Honra mfa_pending: uma sessão limitada (papel obrigatório ainda sem
-        # MFA) não acede a SSE/streams nem a conteúdo autenticado opcional — só
-        # aos endpoints de enrolment (servidos por get_current_user). Paridade
-        # com get_current_user; sem isto, o SSE era uma fuga ao enforcement.
-        if payload.get("mfa_pending"):
             return None
         user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
         if not user_doc:
