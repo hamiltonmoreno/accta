@@ -3,53 +3,65 @@
 ## Visão Geral da Pipeline
 
 ```
-Push para qualquer branch  →  CI (Lint + Build + Tests)
-Push para main             →  CI + Deploy automático
-Pull Request para main     →  CI (verificação antes de merge)
+Push/PR para qualquer branch  →  CI (ci.yml: lint + build + tests)
+Push para main                →  CD (deploy.yml): gate → build imagem → GHCR → VPS
+Frontend                      →  Vercel (deploy automático, independente)
 ```
+
+O **frontend** é servido pela **Vercel** (deploy automático no push para `main`;
+ver [VERCEL_DEPLOY.md](VERCEL_DEPLOY.md)). O **backend** corre em **Docker** no
+VPS Hostinger, atrás de um nginx-proxy-manager — ver
+[HOSTINGER_DEPLOY.md](HOSTINGER_DEPLOY.md) para a topologia e o setup do servidor.
+
+Este guia descreve o **CD do backend** (`.github/workflows/deploy.yml`):
+
+1. **gate** — `ruff check` + testes unitários sem DB (rede de segurança; a suite
+   completa corre no `ci.yml`).
+2. **build** — constrói a imagem (`backend/Dockerfile`) e publica no **GHCR**:
+   `ghcr.io/hamiltonmoreno/accta-backend` com as tags `:latest` e `:sha-<12>`.
+3. **deploy** — SSH ao VPS → `docker compose pull && up -d backend` em
+   `/docker/accta` → health-check ponta-a-ponta via `PRODUCTION_URL/api/`.
 
 ---
 
 ## 1. Secrets do GitHub (Obrigatórios)
 
-Aceda a: **Repository → Settings → Secrets and variables → Actions → New repository secret**
+**Repository → Settings → Secrets and variables → Actions → New repository secret**
 
 | Secret | Descrição | Onde obter |
 |--------|-----------|------------|
-| `DEPLOY_HOST` | IP ou hostname do servidor de produção | Painel do seu provedor (Hostinger, DigitalOcean, etc.) |
-| `DEPLOY_USER` | Utilizador SSH do servidor | Normalmente `deploy` (recomendado) ou `root` |
-| `DEPLOY_SSH_KEY` | Chave privada SSH (inteira, incluindo BEGIN/END) | Gere com `ssh-keygen -t ed25519 -C "github-deploy"` |
-| `DEPLOY_PORT` | Porta SSH (opcional, padrão: 22) | Configuração do servidor |
-| `DEPLOY_APP_DIR` | Diretório da aplicação no servidor (opcional, padrão: `/app`) | Onde o código está no servidor |
-| `PRODUCTION_URL` | URL pública da aplicação (ex: `https://controlador.cv`) | O domínio configurado no DNS |
+| `DEPLOY_HOST` | IP do VPS de produção | Painel Hostinger (`194.164.76.72`) |
+| `DEPLOY_USER` | Utilizador SSH do VPS | ex.: `deploy` ou `root` |
+| `DEPLOY_SSH_KEY` | Chave privada SSH (inteira, com BEGIN/END) | `ssh-keygen -t ed25519 -C "github-deploy"` |
+| `PRODUCTION_URL` | URL público do backend | `https://api.controlador.cv` |
+| `DEPLOY_PORT` | Porta SSH (opcional, default `22`) | Configuração do servidor |
+| `DEPLOY_APP_DIR` | Pasta do compose (opcional, default `/docker/accta`) | Onde está o `docker-compose.yml` |
 
-> Ver [SSH_SETUP.md](SSH_SETUP.md) para instruções detalhadas de geração e configuração de chaves SSH.
+> O **push da imagem para o GHCR** usa o `GITHUB_TOKEN` automático (permissão
+> `packages: write` já declarada no workflow) — **não** é preciso secret extra.
+> O que o **VPS** precisa é de estar autenticado no GHCR para o `pull`
+> (`docker login ghcr.io`, uma vez — ver HOSTINGER_DEPLOY.md §4).
+> Ver [SSH_SETUP.md](SSH_SETUP.md) para a configuração das chaves SSH.
 
 ### Variáveis de ambiente do servidor
 
-No servidor de produção, `/app/backend/.env` deve conter:
+Em `/docker/accta/backend/.env` (lido pelo container via `env_file`):
 
 ```env
 SECRET_KEY=<chave-secreta-forte — gere com: python3 -c "import secrets; print(secrets.token_urlsafe(64))">
 DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
-CORS_ORIGINS=https://controlador.cv
+CORS_ORIGINS=https://controlador.cv,https://www.controlador.cv
 FRONTEND_URL=https://controlador.cv
 RESEND_API_KEY=re_xxxxxxxxxxxxx
 SENDER_EMAIL=noreply@controlador.cv
 ```
 
-> **Base de dados**: a app usa PostgreSQL/Supabase via `asyncpg` (não MongoDB).
-> Em produção use o URI do **connection pooler** do Supabase (porta `6543`,
-> transaction mode). `DATABASE_URL` é **obrigatória** — se faltar, o backend
-> aborta no arranque com `RuntimeError: DATABASE_URL environment variable is required`.
+> **Base de dados**: PostgreSQL/Supabase via `asyncpg` (não MongoDB). Use o URI
+> do **connection pooler** (porta `6543`, modo *transaction*). `DATABASE_URL` é
+> **obrigatória** — se faltar, o backend aborta no arranque.
 
-E `/app/frontend/.env` (usado durante o build):
-
-```env
-REACT_APP_BACKEND_URL=https://controlador.cv
-```
-
-> O secret `PRODUCTION_URL` do GitHub é injetado em `REACT_APP_BACKEND_URL` durante o `yarn build` no workflow.
+> O frontend **não** lê um `.env` no servidor: o `REACT_APP_BACKEND_URL`
+> (`https://api.controlador.cv`) é definido no painel da **Vercel**.
 
 ---
 
@@ -57,19 +69,25 @@ REACT_APP_BACKEND_URL=https://controlador.cv
 
 ### Deploy Automático (recomendado)
 
-Basta fazer merge ou push para a branch `main`:
+Merge/push para `main` aciona o `CD — Deploy Backend to Production`:
 
 ```bash
 git checkout main
-git merge feature/minha-feature
+git merge release/minha-release    # main é alcançada via release/hotfix (ver CONTRIBUTING.md)
 git push origin main
 ```
 
-O workflow `CD — Deploy to Production` é acionado automaticamente.
-
 ### Deploy Manual
 
-Aceda a: **Repository → Actions → CD — Deploy to Production → Run workflow**
+**Repository → Actions → CD — Deploy Backend to Production → Run workflow**
+(gatilho `workflow_dispatch`).
+
+Ou diretamente no VPS:
+
+```bash
+cd /docker/accta
+docker compose pull backend && docker compose up -d backend
+```
 
 ---
 
@@ -77,70 +95,69 @@ Aceda a: **Repository → Actions → CD — Deploy to Production → Run workfl
 
 ### Via GitHub Actions
 
-1. Aceda a **Repository → Actions**
-2. Clique no workflow mais recente
-3. Verifique se todos os jobs estão verdes:
-   - `Backend CI` — Lint (ruff) + Tests (pytest)
-   - `Frontend CI` — Lint (eslint) + Build (yarn build)
-   - `Deploy to Production` — Deploy via SSH
+**Repository → Actions →** workflow mais recente. Jobs esperados verdes:
+`gate` (ruff + unit) → `build` (push GHCR) → `deploy` (SSH + health-check).
 
 ### Via Health Check direto
 
 ```bash
-curl https://controlador.cv/api/
+curl https://api.controlador.cv/api/
 # Esperado: {"message": "ACCTA Portal API v1.0"}
 ```
 
 ### Via Logs do servidor
 
 ```bash
-ssh deploy@SEU_IP
-sudo supervisorctl status
-sudo tail -f /var/log/supervisor/backend.err.log
+ssh <user>@194.164.76.72
+cd /docker/accta
+docker compose ps             # estado + health do container
+docker compose logs -f backend
 ```
 
 ---
 
-## 4. Pipeline CI em Detalhe
+## 4. Pipeline CI em Detalhe (`ci.yml`)
 
-### Backend (Python/FastAPI)
+Corre em **todos os pushes/PRs** (gate independente do deploy):
 
-| Passo | Comando | Descrição |
-|-------|---------|-----------|
-| Lint | `ruff check .` | Verifica erros de sintaxe e estilo |
-| Tests | `pytest tests/ -v` | Executa testes (DAO mockado / Postgres em serviço) |
+| Área | Passos |
+|------|--------|
+| Backend (FastAPI) | `ruff check` · smoke tests (Postgres em serviço) · unit tests + coverage |
+| Frontend (React) | `eslint` · `yarn test` · `yarn build` |
 
-### Frontend (React/Craco)
-
-| Passo | Comando | Descrição |
-|-------|---------|-----------|
-| Lint | `npx eslint src/ --ext .js,.jsx --max-warnings=60` | Verifica erros JS/JSX |
-| Build | `yarn build` | Compila para produção |
+> O `deploy.yml` tem o seu **próprio gate rápido** (ruff + unit sem DB) antes de
+> construir a imagem — não depende do `ci.yml`, mas cobre o essencial do backend.
 
 ---
 
 ## 5. Rollback
 
-Se o deploy falhar ou introduzir bugs:
+As imagens são **versionadas por SHA** no GHCR — rollback sem rebuild:
 
 ```bash
-# No servidor
-cd /app
-git log --oneline -5           # Ver commits recentes
-git revert HEAD                # Reverter último commit
-sudo supervisorctl restart backend
-sudo systemctl reload nginx
+cd /docker/accta
+# Apontar o compose para a tag boa anterior (GitHub → Packages → accta-backend):
+#   editar `image: ghcr.io/hamiltonmoreno/accta-backend:sha-XXXXXXXXXXXX`
+docker compose pull backend
+docker compose up -d backend
+docker compose logs -f backend
 ```
+
+> Alternativa: `git revert HEAD` em `main` → o CD reconstrói e publica a imagem
+> corrigida automaticamente.
 
 ---
 
 ## 6. Pressupostos
 
-- O servidor tem Python 3.11+, Node 20+, Yarn e Supervisor instalados
-- A base de dados é PostgreSQL/Supabase (gerida) — acessível via `DATABASE_URL`; **não** é necessário instalar um servidor de base de dados local
-- O repositório está clonado no servidor no diretório especificado em `DEPLOY_APP_DIR` (padrão `/app`)
-- A chave SSH pública está adicionada a `~/.ssh/authorized_keys` no utilizador `DEPLOY_USER`
-- O Supervisor está configurado para gerir `backend` (uvicorn porta 8001)
-- O Nginx está configurado para encaminhar `/api/*` → porta 8001 e `/` → frontend build estático
+- O VPS tem **Docker + Docker Compose** (Docker Manager do hPanel).
+- A borda é o **nginx-proxy-manager** (rede docker `proxy`, TLS Let's Encrypt),
+  com proxy host `api.controlador.cv → accta-backend:8000`.
+- A pasta de deploy canónica é **`/docker/accta`** (`docker-compose.yml` +
+  `backend/.env`); a imagem vem do **GHCR** (sem `build:` no host).
+- O VPS está **autenticado no GHCR** (`docker login ghcr.io`) para o `pull`.
+- A base de dados é PostgreSQL/Supabase (gerida) via `DATABASE_URL`.
+- ⚠️ **Nunca** correr `/opt/projetos/accta/deploy.sh` nem o compose órfão desse
+  diretório (buildam para 8001, fora da rede `proxy` → partem o routing do NPM).
 
-> Ver [HOSTINGER_DEPLOY.md](HOSTINGER_DEPLOY.md) para o guia completo de configuração do servidor.
+> Setup completo do servidor: [HOSTINGER_DEPLOY.md](HOSTINGER_DEPLOY.md).
