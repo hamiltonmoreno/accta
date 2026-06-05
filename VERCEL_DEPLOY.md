@@ -3,8 +3,8 @@
 > Opção para quem prefere plataformas cloud geridas em vez de VPS próprio.
 > Este guia foca-se no **frontend no Vercel** + **base de dados no Supabase**.
 > O backend (FastAPI/uvicorn) pode correr em qualquer host que alcance o
-> Supabase — para opções de hosting do backend ver [HOSTINGER_DEPLOY.md](HOSTINGER_DEPLOY.md)
-> (VPS: Docker/compose ou supervisord).
+> Supabase — para o hosting do backend ver [HOSTINGER_DEPLOY.md](HOSTINGER_DEPLOY.md)
+> (VPS Hostinger com Docker/Compose + nginx-proxy-manager).
 > Para o deploy recomendado (VPS Hostinger), ver [HOSTINGER_DEPLOY.md](HOSTINGER_DEPLOY.md).
 
 ## Arquitectura
@@ -41,8 +41,8 @@
 ## Passo 2: Backend (FastAPI)
 
 O backend é FastAPI/uvicorn e pode correr em **qualquer host com acesso ao
-Supabase**. Para instruções concretas de hosting do backend (VPS com
-Docker/compose ou supervisord), seguir [HOSTINGER_DEPLOY.md](HOSTINGER_DEPLOY.md).
+Supabase**. Para o hosting concreto de produção (VPS Hostinger com
+Docker/Compose + nginx-proxy-manager), seguir [HOSTINGER_DEPLOY.md](HOSTINGER_DEPLOY.md).
 
 Independentemente do host, configurar as variáveis de ambiente do backend:
 
