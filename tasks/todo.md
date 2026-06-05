@@ -1,61 +1,49 @@
-# Cat 5 F5 — Venda de publicações (integra Cat. 4)
+# Tarefa: Remover autenticação de dois fatores (2FA/MFA)
 
-> Origem: `tasks/spec-fins-profissionais.md` §8.2, §11 (F5), §14.5.
-> Ramo: `feature/cat5-f5-venda-publicacoes` (empilhado sobre F4 / PR #140).
-> Depende de F2 (publicações, develop) + Cat. 4 (invoices/receitas, develop) + F4
-> (superfície pública, PR #140, para mostrar o preço ao público).
-
-## Decisões confirmadas com o dono (2026-05-30)
-
-- **Pagamento = faturas internas** (não gateway externo). A receita externa
-  regista-se em **Cat. 4** com `category="venda_publicacoes"` (já existente em
-  `models.py`); sem integração de pagamentos online.
-- **Sócios não pagam** — descarregam grátis; a venda aplica-se a não-sócios.
-
-## Consequência de desenho (honesta)
-
-Como **só sócios têm conta** no portal e **não pagam**, não há comprador
-in-portal: não se cria um endpoint `comprar` vestigial. F5 = **permitir marcar à
-venda + preço**, **mostrar o preço** (público) e **proteger o conteúdo pago**;
-a receita regista-se pela via financeira existente (`venda_publicacoes`).
+Objetivo: remover por completo a funcionalidade de 2FA/MFA do Portal ACCTA e não
+a reimplementar. Ramo: `feature/remove-mfa` (a partir de `develop`).
 
 ## Backend
-
-- [x] `routes/profissional.py`: remover o bloqueio de `a_venda` em
-  `create_publicacao`/`update_publicacao`; validar que `a_venda` exige `preco>0`
-  (estado efetivo após merge no update).
-- [x] `routes/public_profissional.py`: expor `a_venda`/`preco` na projeção pública
-  (catálogo público mostra o preço). Campos internos continuam ocultos.
-- [x] Sem novo endpoint de transação (respeita a fronteira de domínio; a receita
-  cria-se no módulo Financeiro com a categoria já existente).
-
-## Testes backend
-
-- [x] `create`: `a_venda=True`+`preco>0` → ok; `a_venda=True` sem preço → 400.
-- [x] `update`: tornar `a_venda` sem preço → 400; com preço → ok.
-- [x] Projeção pública expõe `a_venda`/`preco` e oculta `created_by`. **109 passed.**
+- [x] Apagar `backend/mfa.py`
+- [x] Apagar `backend/tests/test_mfa.py`
+- [x] `models.py` — remover `UserBase.mfa_enabled`, `UserLogin.otp`,
+  `Token.mfa_setup_required`, `MfaVerifyRequest`, `MfaDisableRequest`
+- [x] `models.py` — MANTER `MFA_SECRET_FIELDS` (projeção defensiva de campos
+  legados ainda presentes em docs de utilizador antigos; comentário atualizado)
+- [x] `auth.py` — remover `MFA_PENDING_ALLOWED_PATHS` e os dois gates
+  `mfa_pending` (`get_current_user` + `get_user_from_token`)
+- [x] `routes/auth_routes.py` — remover import de `mfa`, o desafio MFA no login,
+  os 4 endpoints `/auth/mfa/*`, e a lógica `mfa_setup_required` em
+  `login` + `setup-account`
+- [x] `requirements.txt` — remover `pyotp` e `qrcode` (não usados fora do MFA;
+  o QR da carteira é frontend `react-qr-code`)
+- [x] `tests/test_anomaly_alerts.py` — remover testes específicos de MFA e
+  parâmetros MFA do helper `_user_doc`
 
 ## Frontend
-
-- [x] `PublicacoesPage` (gestão): checkbox **À venda** + campo **Preço (CVE)**
-  (validação preço>0); nota a explicar grátis-para-sócios + manter documento
-  privado + registar receita no Financeiro. Badge "À venda · X CVE" no card.
-- [x] `PublicacoesPublicoPage` (público): itens à venda mostram preço + CTA
-  "Adquirir — contactar ACCTA" e **não** mostram download (conteúdo pago).
+- [x] Apagar `pages/MfaSetupPage.jsx`, `components/SetupMFA.jsx`,
+  `components/ui/input-otp.jsx`
+- [x] `utils/api.js` — remover `mfaAPI` e os ramos do interceptor
+- [x] `contexts/AuthContext.js` — remover `mfaMandatory`/`mfaSetupRequired`
+- [x] `App.js` — remover lazy import + rota `/mfa-setup` + guarda no `ProtectedRoute`
+- [x] `pages/public/LoginPage.js` — remover o passo do 2.º fator
+- [x] `pages/private/PerfilPage.js` — remover `SecuritySection` e órfãos
+- [x] `lib/queryClient.js` — remover `queryKeys.mfa`
+- [x] `CarteiraPage.js` usa `react-qr-code` (carteira) → MANTÉM no package.json
 
 ## Verificação
+- [x] `ruff check .` — limpo
+- [x] AST parse dos ficheiros editados — OK
+- [x] `pytest tests/test_anomaly_alerts.py` — 7 passed
+- [x] `pytest tests/test_auth_routes.py tests/test_auth_hardening.py` — 17 passed
+- [ ] `pytest -m unit` — a correr
+- [ ] `eslint` frontend
 
-- [x] `pytest` → 109 passed; `ruff check`/`ruff format --check` limpos.
-- [x] `eslint --max-warnings=0` (ficheiros F5) limpo; `craco build` → Compiled successfully.
-- [x] PR — **#141** (base = `feature/cat5-f4-superficies-publicas` — stack: develop ← F3 #138 ← F4 #140 ← F5 #141).
-
-## Operação (não-código)
-
-- O admin que marca à venda deve manter o **documento** com visibilidade `Sócios`
-  (senão o público descarrega grátis via `/documents/public`). A publicação pode
-  ser `publico` (aparece no catálogo com preço) com o documento `socios`.
-
-## Estado da spec
-
-- Com F5, a `spec-fins-profissionais` fica **completa (F1–F5)** assim que os PRs
-  #138/#140/F5 fundirem em `develop` → renomear para `-concluido`.
+## Follow-ups (operacional, não bloqueiam o PR)
+- `input-otp` fica como dependência não usada no `package.json` (removê-la
+  exigiria atualizar o `yarn.lock`; fazer `yarn remove input-otp` quando
+  conveniente, para não arriscar `--frozen-lockfile` no Vercel).
+- Dados legados: docs de admin/financeiro (MFA era obrigatório) ainda contêm
+  `mfa_secret`/`mfa_pending_secret`/`mfa_backup_codes`. A projeção
+  `MFA_SECRET_FIELDS` impede a fuga; opcionalmente purgar com `$unset` em massa
+  (migração de dados → STOP condition, requer OK do dono).
