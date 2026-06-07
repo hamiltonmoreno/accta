@@ -1034,6 +1034,49 @@ _AUDIT_IMMUTABILITY_DDL: tuple[str, ...] = (
 )
 
 
+# RLS auto-enable (review Supabase 2026-06-07) — DEFESA EM PROFUNDIDADE contra a
+# superfície do Data API (PostgREST). A app fala direto com o Postgres como role
+# `postgres` (owner/bypassrls) e faz toda a autorização em Python; NÃO usa o Data
+# API. Mas o Supabase concede por omissão DML a `anon`/`authenticated` em todas as
+# tabelas de `public` — quem tiver a `anon` key poderia ler/escrever via REST. A
+# proteção é **RLS ON + 0 policies = deny-all** para esses roles; o role da app
+# (owner/bypassrls) não é afetado. Este bloco garante essa postura em código:
+#   (1) backfill — ativa RLS em qualquer tabela de `public` que ainda não a tenha;
+#   (2) event trigger `ensure_rls` — ativa RLS em cada tabela nova (idempotente;
+#       `CREATE EVENT TRIGGER` não tem OR REPLACE, daí o guard IF NOT EXISTS).
+# Como o trigger de audit, é **non-fatal**: criar event trigger exige superuser;
+# numa instalação endurecida (roles separados) é o operador que o instala e a
+# garantia autoritativa é dele — ver runbook **F5.6** (REVOKE/Data API off).
+_RLS_BACKFILL_DDL: str = (
+    "DO $$ DECLARE t record; BEGIN "
+    "FOR t IN SELECT c.oid::regclass AS ident FROM pg_class c "
+    "JOIN pg_namespace n ON n.oid = c.relnamespace "
+    "WHERE n.nspname = 'public' AND c.relkind = 'r' AND NOT c.relrowsecurity LOOP "
+    "EXECUTE format('alter table %s enable row level security', t.ident); "
+    "END LOOP; END $$"
+)
+_RLS_AUTO_ENABLE_DDL: tuple[str, ...] = (
+    # Corpo fiel ao já instalado em produção (pg_get_functiondef) — CREATE OR
+    # REPLACE é no-op contra a DB atual; só repõe a função se for reconstruída.
+    "CREATE OR REPLACE FUNCTION public.rls_auto_enable() "
+    "RETURNS event_trigger LANGUAGE plpgsql SECURITY DEFINER "
+    "SET search_path TO 'pg_catalog' AS $$ "
+    "DECLARE cmd record; BEGIN "
+    "FOR cmd IN SELECT * FROM pg_event_trigger_ddl_commands() "
+    "WHERE command_tag IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO') "
+    "AND object_type IN ('table','partitioned table') LOOP "
+    "IF cmd.schema_name = 'public' THEN BEGIN "
+    "EXECUTE format('alter table if exists %s enable row level security', cmd.object_identity); "
+    "EXCEPTION WHEN OTHERS THEN "
+    "RAISE LOG 'rls_auto_enable: failed to enable RLS on %', cmd.object_identity; "
+    "END; END IF; END LOOP; END; $$",
+    "DO $$ BEGIN "
+    "IF NOT EXISTS (SELECT 1 FROM pg_event_trigger WHERE evtname = 'ensure_rls') THEN "
+    "CREATE EVENT TRIGGER ensure_rls ON ddl_command_end EXECUTE FUNCTION public.rls_auto_enable(); "
+    "END IF; END $$",
+)
+
+
 async def ensure_schema() -> None:
     """Create all tables + indexes. Idempotent (safe to re-run on every
     startup) — same operational contract as the old ensure_indexes()."""
@@ -1082,6 +1125,21 @@ async def ensure_schema() -> None:
                 "a imutabilidade autoritativa e o REVOKE/role-separation do operador (runbook F5.1): %s",
                 e,
             )
+        # RLS em todas as tabelas de public (deny-all p/ o Data API) — ver nota em
+        # _RLS_AUTO_ENABLE_DDL. Backfill e trigger em try/except independentes: o
+        # backfill (precisa só de owner) protege as tabelas atuais mesmo que a
+        # criação do event trigger (precisa de superuser) não seja permitida.
+        try:
+            await conn.execute(_RLS_BACKFILL_DDL)
+        except Exception as e:  # noqa: BLE001 - non-fatal, ver runbook F5.6
+            logger.warning("RLS backfill (defesa em profundidade) NAO aplicado — autoritativo via operador (runbook F5.6): %s", e)
+        try:
+            async with conn.transaction():
+                for ddl in _RLS_AUTO_ENABLE_DDL:
+                    await conn.execute(ddl)
+            logger.info("RLS auto-enable event trigger (defesa em profundidade) instalado")
+        except Exception as e:  # noqa: BLE001 - non-fatal, ver runbook F5.6
+            logger.warning("RLS auto-enable event trigger NAO instalado — autoritativo via operador (runbook F5.6): %s", e)
     logger.info("PostgreSQL schema and indexes ensured")
 
 
