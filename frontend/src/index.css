@@ -46,6 +46,7 @@ html, body {
         --surface-card-hover: #f9fafb;
         --surface-sidebar: #ffffff;
         --surface-header: rgba(255,255,255,0.8);
+        --header-h: 64px;
         --surface-border: rgba(229,231,235,0.8);
         --surface-border-light: #f3f4f6;
         --text-primary: #3A3A3A;
