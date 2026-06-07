@@ -1003,11 +1003,15 @@ def _required_index_name(ddl: str) -> str | None:
 # purges opportunistically on insert so growth is bounded without pg_cron).
 _PGCRON_DDL: tuple[str, ...] = (
     "CREATE EXTENSION IF NOT EXISTS pg_cron",
+    # Compara como timestamptz, NÃO como texto: `now()::text` produz separador
+    # espaço ('2026-06-07 12:00:00+00') enquanto os valores são ISO-8601 com 'T',
+    # e 'T'(0x54) > ' '(0x20) faria a comparação lexicográfica falhar no dia
+    # corrente. O cast (doc->>'campo')::timestamptz torna a comparação correcta.
     "SELECT cron.schedule('accta_purge_tokens_revoked', '*/15 * * * *', "
-    "$$DELETE FROM \"tokens_revoked\" WHERE doc->>'expires_at' < now()::text$$)",
+    "$$DELETE FROM \"tokens_revoked\" WHERE (doc->>'expires_at')::timestamptz < now()$$)",
     "SELECT cron.schedule('accta_purge_login_attempts', '0 * * * *', "
-    "$$DELETE FROM \"login_attempts\" WHERE doc->>'attempted_at' "
-    "< (now() - interval '24 hours')::text$$)",
+    "$$DELETE FROM \"login_attempts\" WHERE (doc->>'attempted_at')::timestamptz "
+    "< now() - interval '24 hours'$$)",
 )
 
 
@@ -1193,8 +1197,7 @@ async def _cast_secret_ballot_locked(
         async with conn.transaction():
             await conn.execute("SET LOCAL lock_timeout = '2s'")
             row = await conn.fetchrow(
-                f"SELECT pk, doc FROM {_quote_ident(parent_table)} "
-                "WHERE doc->>'id' = $1 LIMIT 1 FOR UPDATE",
+                f"SELECT pk, doc FROM {_quote_ident(parent_table)} WHERE doc->>'id' = $1 LIMIT 1 FOR UPDATE",
                 parent_id,
             )
             if row is None:

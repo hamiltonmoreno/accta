@@ -178,6 +178,9 @@ async def upload_gallery_photo(
     if not album:
         raise HTTPException(status_code=404, detail="Album nao encontrado")
 
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Nome de ficheiro em falta")
+
     contents = await file.read()
     if len(contents) > GALLERY_MAX_SIZE:
         raise HTTPException(status_code=413, detail="Arquivo excede o limite de 10 MB")

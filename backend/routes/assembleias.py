@@ -887,8 +887,7 @@ async def register_deliberacao(
         comunicados_service.dispatch_oficial_auto,
         subject=f"Deliberações — {a.get('titulo', 'Assembleia Geral')}",
         body=(
-            "Foram publicadas novas deliberações da Assembleia Geral.\n\n"
-            "Consulte o detalhe e a ata no Portal ACCTA."
+            "Foram publicadas novas deliberações da Assembleia Geral.\n\nConsulte o detalhe e a ata no Portal ACCTA."
         ),
         cta_label="Ver deliberações",
         cta_url=f"/assembleias/{assembleia_id}",
@@ -1101,7 +1100,9 @@ async def registar_contagem(
 ):
     """A Mesa regista a contagem agregada do braço no ar (D5)."""
     _require_convene(current_user)
-    await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "id": 1})
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "id": 1})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
     d = await _get_deliberacao(assembleia_id, did)
     if d.get("status") != "aberta":
         raise HTTPException(status_code=400, detail="A deliberação não está aberta.")
@@ -1115,19 +1116,23 @@ async def registar_contagem(
     present_base = present_power - excluded_power
     total = data.votos_favor + data.votos_contra + data.abstencoes
     if total > present_base:
-        raise HTTPException(status_code=400, detail="Contagem excede o poder de voto presente (excluídos os conflitos).")
+        raise HTTPException(
+            status_code=400, detail="Contagem excede o poder de voto presente (excluídos os conflitos)."
+        )
 
     update = {"votos_favor": data.votos_favor, "votos_contra": data.votos_contra, "abstencoes": data.abstencoes}
     # Filtrar por status="aberta" para não sobrescrever uma deliberação já
     # encerrada por `apurar` (mesma protecção CAS que existe lá).
-    res = await db.assembleia_deliberacoes.update_one(
-        {"id": did, "status": "aberta"}, {"$set": update}
-    )
+    res = await db.assembleia_deliberacoes.update_one({"id": did, "status": "aberta"}, {"$set": update})
     if res.modified_count == 0:
         raise HTTPException(status_code=409, detail="A deliberação já foi apurada.")
     await _bump_session(assembleia_id)
     await create_audit_log(
-        current_user.id, "assembleia_contagem", assembleia_id, request=request, details={"deliberacao_id": did, **update}
+        current_user.id,
+        "assembleia_contagem",
+        assembleia_id,
+        request=request,
+        details={"deliberacao_id": did, **update},
     )
     return {"deliberacao_id": did, **update}
 
@@ -1173,9 +1178,7 @@ async def apurar_deliberacao(
         # Um-membro-um-boletim (anonimato): base = contagem de votantes presentes
         # não-excluídos; cada boletim conta 1 (peso de representação não se aplica).
         present_base = sum(1 for p in presencas if p.get("can_vote") and p["user_id"] not in excluded)
-        ballots = await db.assembleia_voto_ballots.find(
-            {"deliberacao_id": did}, {"_id": 0, "escolha": 1}
-        ).to_list(None)
+        ballots = await db.assembleia_voto_ballots.find({"deliberacao_id": did}, {"_id": 0, "escolha": 1}).to_list(None)
         favor = sum(1 for b in ballots if b.get("escolha") == "favor")
         contra = sum(1 for b in ballots if b.get("escolha") == "contra")
         abst = sum(1 for b in ballots if b.get("escolha") == "abstencao")
@@ -1241,9 +1244,9 @@ async def get_deliberacao(assembleia_id: str, did: str, current_user: User = Dep
     out = dict(d)
     mode = d.get("voting_mode", "braco_no_ar")
     if mode == "nominal":
-        votos = await db.assembleia_votos.find(
-            {"deliberacao_id": did}, {"_id": 0, "user_id": 1, "escolha": 1}
-        ).to_list(None)
+        votos = await db.assembleia_votos.find({"deliberacao_id": did}, {"_id": 0, "user_id": 1, "escolha": 1}).to_list(
+            None
+        )
         out["votes_cast"] = len(votos)
         if can_convene_assembleia(current_user):
             out["votos"] = votos
@@ -1394,9 +1397,7 @@ async def retirar_mocao(
         raise HTTPException(status_code=400, detail="A moção já não pode ser retirada.")
     await db.assembleia_mocoes.update_one({"id": mid}, {"$set": {"status": "retirada"}})
     await _bump_session(assembleia_id)
-    await create_audit_log(
-        current_user.id, "mocao_retirada", assembleia_id, request=request, details={"mocao_id": mid}
-    )
+    await create_audit_log(current_user.id, "mocao_retirada", assembleia_id, request=request, details={"mocao_id": mid})
     return {"mocao_id": mid, "status": "retirada"}
 
 
@@ -1591,9 +1592,7 @@ async def checkin_convidado(
 ):
     """A Mesa marca o convidado como presente (não conta p/ quórum nem vota)."""
     _require_convene(current_user)
-    conv = await db.assembleia_convidados.find_one(
-        {"id": cid, "assembleia_id": assembleia_id}, {"_id": 0, "id": 1}
-    )
+    conv = await db.assembleia_convidados.find_one({"id": cid, "assembleia_id": assembleia_id}, {"_id": 0, "id": 1})
     if not conv:
         raise HTTPException(status_code=404, detail="Convidado não encontrado")
     await db.assembleia_convidados.update_one({"id": cid}, {"$set": {"checked_in": True}})

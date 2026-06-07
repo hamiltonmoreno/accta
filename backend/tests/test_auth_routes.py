@@ -78,17 +78,17 @@ class TestPasswordMinLengthModels:
         from pydantic import ValidationError
         from models import SetupAccount
 
-        SetupAccount(token="t", password="abc123")  # 6 -> ok
+        SetupAccount(token="t", password="abcd1234")  # 8 -> ok
         with pytest.raises(ValidationError):
-            SetupAccount(token="t", password="abc12")  # 5 -> rejeitado
+            SetupAccount(token="t", password="abc1234")  # 7 -> rejeitado
 
     async def test_password_reset_confirm_rejects_short_password(self):
         from pydantic import ValidationError
         from models import PasswordResetConfirm
 
-        PasswordResetConfirm(token="t", new_password="abc123")
+        PasswordResetConfirm(token="t", new_password="abcd1234")
         with pytest.raises(ValidationError):
-            PasswordResetConfirm(token="t", new_password="12345")  # 5 -> rejeitado
+            PasswordResetConfirm(token="t", new_password="1234567")  # 7 -> rejeitado
 
 
 # --------------------------------------------------------------------------- #

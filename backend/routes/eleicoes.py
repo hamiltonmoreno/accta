@@ -394,12 +394,15 @@ async def voto_correspondencia(
         if sentinel == "not_open":
             raise HTTPException(status_code=400, detail="A votação não está aberta")
         raise HTTPException(status_code=409, detail="Este eleitor já votou")
+    # Regista a identidade do eleitor em nome de quem o voto foi lançado (NÃO o
+    # sentido do voto, que permanece secreto) — sem isto é impossível auditar
+    # abusos da Comissão/Mesa que registem votos sem consentimento do eleitor.
     await create_audit_log(
         current_user.id,
         "eleicao_voto_correspondencia",
         eleicao_id,
         request=request,
-        details={"modo": "correspondencia"},
+        details={"modo": "correspondencia", "user_id": data.user_id},
     )
     return {"message": "Voto por correspondência registado."}
 
@@ -424,9 +427,7 @@ async def apurar(eleicao_id: str, request: Request, current_user: User = Depends
     # `cast_ballot`) serializam — quem entrar depois vê `status="votacao"`
     # já trocado e o helper levanta `ValueError("not_open")`. Duas chamadas
     # concorrentes a `apurar` ficam idempotentes: só uma fecha.
-    pre_close = await db.eleicoes.update_one(
-        {"id": eleicao_id, "status": "votacao"}, {"$set": {"status": "apurada"}}
-    )
+    pre_close = await db.eleicoes.update_one({"id": eleicao_id, "status": "votacao"}, {"$set": {"status": "apurada"}})
     if pre_close.modified_count == 0:
         raise HTTPException(status_code=409, detail="Eleição já apurada.")
 
@@ -580,10 +581,19 @@ async def proclamar(eleicao_id: str, request: Request, current_user: User = Depe
     if not lista:
         raise HTTPException(status_code=404, detail="Lista vencedora não encontrada")
 
+    # CAS: reivindica a eleição (apurada→proclamada) ANTES de criar mandatos.
+    # Sem isto, duas proclamações concorrentes (dois membros da Mesa a clicar)
+    # corriam ambas _proclaim_list e duplicavam mandatos no cargo_history. Se
+    # modified==0, outra já reivindicou. (A recuperação de falha a meio do
+    # _proclaim_list ainda exigiria transação — fora do alcance do DAO.)
+    claimed = await db.eleicoes.update_one({"id": eleicao_id, "status": "apurada"}, {"$set": {"status": "proclamada"}})
+    if claimed.modified_count == 0:
+        raise HTTPException(status_code=409, detail="A eleição já foi (ou está a ser) proclamada.")
+
     posse, proclaimed = await _proclaim_list(eleicao, lista, current_user.id)
     await db.eleicoes.update_one(
         {"id": eleicao_id},
-        {"$set": {"status": "proclamada", "resultado": {**resultado, "posse_em": posse, "proclaimed": proclaimed}}},
+        {"$set": {"resultado": {**resultado, "posse_em": posse, "proclaimed": proclaimed}}},
     )
     await create_audit_log(
         current_user.id,

@@ -88,6 +88,18 @@ async def login(request: Request, response: Response, credentials: UserLogin):
             status_code=403, detail="Conta pendente de ativacao. Use o link de convite para definir a sua senha."
         )
 
+    # Qualquer status != "ativo" (inativo por suspensão/expulsão,
+    # pendente_aprovacao, rejeitado) não pode autenticar-se — caso contrário
+    # um sócio suspenso por deliberação continuaria a entrar no portal.
+    if user_doc.get("status") != "ativo":
+        await create_audit_log(
+            user_doc["id"],
+            "login_failed",
+            request=request,
+            details={"reason": "not_active", "status": user_doc.get("status")},
+        )
+        raise HTTPException(status_code=403, detail="Conta não activa. Contacte a administração.")
+
     # Login sucesso — limpa contador de falhas para que utilizador legitimo
     # nao seja afectado por tentativas anteriores erradas/atacante.
     await reset_failed_logins(credentials.email)
@@ -285,8 +297,8 @@ async def setup_account(request: Request, response: Response, background_tasks: 
         except (ValueError, TypeError):
             pass  # Token sem formato válido — trata como legado
 
-    if len(data.password) < 6:
-        raise HTTPException(status_code=400, detail="A senha deve ter pelo menos 6 caracteres")
+    if len(data.password) < 8:
+        raise HTTPException(status_code=400, detail="A senha deve ter pelo menos 8 caracteres")
 
     hashed = hash_password(data.password)
     now = datetime.now(timezone.utc).isoformat()
@@ -392,12 +404,18 @@ async def reset_password(request: Request, data: PasswordResetConfirm):
     if datetime.now(timezone.utc) > expires_at:
         raise HTTPException(status_code=400, detail="Token expirado. Solicite um novo.")
 
-    if len(data.new_password) < 6:
-        raise HTTPException(status_code=400, detail="A senha deve ter pelo menos 6 caracteres")
+    if len(data.new_password) < 8:
+        raise HTTPException(status_code=400, detail="A senha deve ter pelo menos 8 caracteres")
 
     hashed = hash_password(data.new_password)
+    # Invalida o token ANTES de aplicar a nova password (CAS used:False→True). Se
+    # algo falhar entre as duas escritas, o token fica inutilizável em vez de
+    # reutilizável; o CAS também impede dois pedidos concorrentes com o mesmo
+    # token de passarem ambos.
+    claimed = await db.password_resets.update_one({"token": data.token, "used": False}, {"$set": {"used": True}})
+    if claimed.modified_count == 0:
+        raise HTTPException(status_code=400, detail="Token invalido ou ja utilizado")
     await db.users.update_one({"email": reset_doc["email"]}, {"$set": {"password": hashed}})
-    await db.password_resets.update_one({"token": data.token}, {"$set": {"used": True}})
 
     # Audit log da reset bem-sucedida — util para investigacao de account takeover.
     user_doc = await db.users.find_one({"email": reset_doc["email"]}, {"_id": 0, "id": 1})

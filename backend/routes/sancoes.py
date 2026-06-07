@@ -157,6 +157,10 @@ async def set_comissao(
         raise HTTPException(
             status_code=400, detail=f"A Comissão de Inquérito tem {COMISSAO_INQUERITO_MEMBROS} elementos distintos"
         )
+    if s["user_id"] in data.membros:
+        raise HTTPException(
+            status_code=400, detail="O visado não pode integrar a Comissão de Inquérito que o investiga"
+        )
 
     prazo = (datetime.now(timezone.utc) + timedelta(days=data.prazo_dias or INQUERITO_PRAZO_DIAS)).isoformat()
     await db.sancoes.update_one(
@@ -270,6 +274,17 @@ async def aplicar_sancao(sancao_id: str, request: Request, current_user: User = 
         raise HTTPException(status_code=400, detail="A expulsão exige deliberação da Assembleia Geral")
 
     now = _now_iso()
+    # CAS: reivindica a sanção atomicamente (decidida -> aplicada) ANTES de tocar
+    # no utilizador. Se outra chamada concorrente já a aplicou, modified_count==0
+    # e abortamos — evita aplicar os efeitos (ex.: duplo _close_active no
+    # cargo_history numa expulsão) duas vezes. Mesmo padrão de apurar_deliberacao.
+    claimed = await db.sancoes.update_one(
+        {"id": sancao_id, "status": "decidida"},
+        {"$set": {"status": "aplicada", "aplicada_em": now}},
+    )
+    if claimed.modified_count == 0:
+        raise HTTPException(status_code=409, detail="A sanção já foi aplicada.")
+
     if tipo == "perda_direitos":
         await db.users.update_one(
             {"id": s["user_id"]},
@@ -297,7 +312,6 @@ async def aplicar_sancao(sancao_id: str, request: Request, current_user: User = 
             },
         )
 
-    await db.sancoes.update_one({"id": sancao_id}, {"$set": {"status": "aplicada", "aplicada_em": now}})
     await create_audit_log(
         current_user.id,
         "sancao_aplicada",

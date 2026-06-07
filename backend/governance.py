@@ -395,8 +395,9 @@ def required_quorum(total_voters: int, chamada: int) -> int:
     1.ª chamada: maioria (floor(total/2)+1). 2.ª chamada: pelo menos 1/3
     (ceil(total/3))."""
     if chamada <= 1:
-        return total_voters // 2 + 1
-    return math.ceil(total_voters / 3)
+        return max(1, total_voters // 2 + 1)
+    # ceil(0/3)==0 daria quórum nulo (AG válida sem ninguém presente) — garante >=1.
+    return max(1, math.ceil(total_voters / 3))
 
 
 def required_absolute_majority(voting_power_present: int) -> int:

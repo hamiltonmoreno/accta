@@ -307,7 +307,7 @@ class InviteCreate(BaseModel):
 
 class SetupAccount(BaseModel):
     token: str
-    password: str = Field(min_length=6, max_length=72)
+    password: str = Field(min_length=8, max_length=72)
 
 
 # ===== AUTO-REGISTO MODELS (spec-auto-registo) =====
@@ -827,8 +827,8 @@ class WallPost(BaseModel):
 
 
 class WallPostCreate(BaseModel):
-    content: str
-    category: str = "geral"
+    content: str = Field(min_length=1, max_length=5000)
+    category: str = Field(default="geral", max_length=50)
 
 
 class WallComment(BaseModel):
@@ -842,7 +842,7 @@ class WallComment(BaseModel):
 
 
 class WallCommentCreate(BaseModel):
-    content: str
+    content: str = Field(min_length=1, max_length=2000)
 
 
 # ===== GALLERY MODELS =====
@@ -1423,7 +1423,7 @@ class PasswordResetRequest(BaseModel):
 
 class PasswordResetConfirm(BaseModel):
     token: str
-    new_password: str = Field(min_length=6, max_length=72)
+    new_password: str = Field(min_length=8, max_length=72)
 
 
 # ===== GOVERNANÇA: ASSEMBLEIA GERAL (spec-governanca §11) =====

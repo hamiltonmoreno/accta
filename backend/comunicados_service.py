@@ -5,6 +5,7 @@ Resolve destinatários a partir de um segmento e faz o fan-out por canais
 Usado pelo endpoint manual (routes/comunicados.py) e pelos gatilhos automáticos
 de governança.
 """
+
 import logging
 import uuid
 from collections import Counter
@@ -18,8 +19,14 @@ from helpers import notify_users, members_of_orgao
 logger = logging.getLogger(__name__)
 
 _MEMBER_PROJECTION = {
-    "_id": 0, "id": 1, "name": 1, "email": 1, "role": 1,
-    "account_type": 1, "member_category": 1, "cargo": 1,
+    "_id": 0,
+    "id": 1,
+    "name": 1,
+    "email": 1,
+    "role": 1,
+    "account_type": 1,
+    "member_category": 1,
+    "cargo": 1,
     "email_opt_out_informativos": 1,
 }
 
@@ -68,8 +75,7 @@ async def get_segment_counts() -> dict:
     members = await _base_members()
     roles = Counter(u.get("role") for u in members)
     cats = Counter(u.get("member_category") for u in members)
-    orgaos = {o: len(await members_of_orgao(o))
-              for o in ("mesa_ag", "direcao", "conselho_fiscal")}
+    orgaos = {o: len(await members_of_orgao(o)) for o in ("mesa_ag", "direcao", "conselho_fiscal")}
     return {
         "all_active": len(members),
         "roles": dict(roles),
@@ -78,23 +84,29 @@ async def get_segment_counts() -> dict:
     }
 
 
-async def _persist_result(comunicado_id: str, *, status: str, inapp_created: int,
-                          email_sent: int, email_failed: int, error: Optional[str]) -> None:
+async def _persist_result(
+    comunicado_id: str, *, status: str, inapp_created: int, email_sent: int, email_failed: int, error: Optional[str]
+) -> None:
     """Grava o resultado final do dispatch. Tolerante a falhas: se a escrita
     falhar, regista mas não propaga (o dispatch nunca rebenta)."""
     # recipients_total: aproximação deliberada — em dual-canal um sócio pode
     # contar nos dois; usamos o maior fan-out, não a união exacta (spec §6).
     total = max(inapp_created, email_sent + email_failed)
     try:
-        await db.comunicados.update_one({"id": comunicado_id}, {"$set": {
-            "status": status,
-            "inapp_created": inapp_created,
-            "email_sent": email_sent,
-            "email_failed": email_failed,
-            "recipients_total": total,
-            "sent_at": datetime.now(timezone.utc).isoformat(),
-            "error": error,
-        }})
+        await db.comunicados.update_one(
+            {"id": comunicado_id},
+            {
+                "$set": {
+                    "status": status,
+                    "inapp_created": inapp_created,
+                    "email_sent": email_sent,
+                    "email_failed": email_failed,
+                    "recipients_total": total,
+                    "sent_at": datetime.now(timezone.utc).isoformat(),
+                    "error": error,
+                }
+            },
+        )
     except Exception:  # noqa: BLE001 — persistência best-effort
         logger.exception("Falha ao persistir resultado do comunicado %s", comunicado_id)
 
@@ -105,7 +117,15 @@ async def dispatch_comunicado(comunicado_id: str) -> dict:
     doc = await db.comunicados.find_one({"id": comunicado_id}, {"_id": 0})
     if not doc or doc.get("status") != "a_enviar":
         return {"skipped": True}
-    await db.comunicados.update_one({"id": comunicado_id}, {"$set": {"status": "enviando"}})
+    # CAS: a transição a_enviar→enviando tem de ser atómica. Sem o filtro de
+    # status, dois workers/dois cliques simultâneos liam ambos "a_enviar" e
+    # disparavam o fan-out duas vezes (email duplicado a todos). Se modified==0,
+    # outro processo já reivindicou o envio.
+    claimed = await db.comunicados.update_one(
+        {"id": comunicado_id, "status": "a_enviar"}, {"$set": {"status": "enviando"}}
+    )
+    if claimed.modified_count == 0:
+        return {"skipped": True}
 
     channels = doc.get("channels", [])
     tipo = doc.get("tipo", "informativo")
@@ -118,8 +138,10 @@ async def dispatch_comunicado(comunicado_id: str) -> dict:
             ids = [u["id"] for u in recips]
             if ids:
                 await notify_users(
-                    ids, type=doc.get("notification_type", "comunicado"),
-                    title=doc["subject"], message=(doc.get("body") or "")[:280],
+                    ids,
+                    type=doc.get("notification_type", "comunicado"),
+                    title=doc["subject"],
+                    message=(doc.get("body") or "")[:280],
                     link=doc.get("cta_url"),
                 )
                 inapp_created = len(ids)
@@ -128,8 +150,11 @@ async def dispatch_comunicado(comunicado_id: str) -> dict:
             emails = [u["email"] for u in recips]
             if emails:
                 html = comunicado_email_html(
-                    doc["subject"], doc.get("body") or "",
-                    doc.get("cta_label"), doc.get("cta_url"), tipo=tipo,
+                    doc["subject"],
+                    doc.get("body") or "",
+                    doc.get("cta_label"),
+                    doc.get("cta_url"),
+                    tipo=tipo,
                 )
                 res = await send_comunicado_batch(emails, doc["subject"], html)
                 email_sent = res.get("sent", 0)
@@ -146,35 +171,47 @@ async def dispatch_comunicado(comunicado_id: str) -> dict:
         error = str(e)
 
     await _persist_result(
-        comunicado_id, status=status, inapp_created=inapp_created,
-        email_sent=email_sent, email_failed=email_failed, error=error,
+        comunicado_id,
+        status=status,
+        inapp_created=inapp_created,
+        email_sent=email_sent,
+        email_failed=email_failed,
+        error=error,
     )
-    return {"status": status, "inapp_created": inapp_created,
-            "email_sent": email_sent, "email_failed": email_failed}
+    return {"status": status, "inapp_created": inapp_created, "email_sent": email_sent, "email_failed": email_failed}
 
 
-async def dispatch_oficial_auto(*, subject: str, body: str, cta_label: str = None,
-                                cta_url: str = None, source_kind: str,
-                                ref_id: str) -> Optional[str]:
+async def dispatch_oficial_auto(
+    *, subject: str, body: str, cta_label: str = None, cta_url: str = None, source_kind: str, ref_id: str
+) -> Optional[str]:
     """Cria e dispara um comunicado OFICIAL (in-app + email, todos os activos),
     a partir de um gatilho de governança. Anti-duplicado por (source_kind,
     source_ref_id). Devolve o id criado, ou None se já existia."""
-    existing = await db.comunicados.find_one(
-        {"source_kind": source_kind, "source_ref_id": ref_id}, {"_id": 0, "id": 1})
+    existing = await db.comunicados.find_one({"source_kind": source_kind, "source_ref_id": ref_id}, {"_id": 0, "id": 1})
     if existing:
         return None
     cid = str(uuid.uuid4())
     doc = {
-        "id": cid, "subject": subject, "body": body,
-        "cta_label": cta_label, "cta_url": cta_url,
-        "tipo": "oficial", "channels": ["in_app", "email"],
+        "id": cid,
+        "subject": subject,
+        "body": body,
+        "cta_label": cta_label,
+        "cta_url": cta_url,
+        "tipo": "oficial",
+        "channels": ["in_app", "email"],
         "segment": {"kind": "all_active", "value": None, "user_ids": None},
-        "notification_type": "comunicado", "status": "a_enviar",
-        "recipients_total": 0, "inapp_created": 0, "email_sent": 0, "email_failed": 0,
-        "source_kind": source_kind, "source_ref_id": ref_id,
+        "notification_type": "comunicado",
+        "status": "a_enviar",
+        "recipients_total": 0,
+        "inapp_created": 0,
+        "email_sent": 0,
+        "email_failed": 0,
+        "source_kind": source_kind,
+        "source_ref_id": ref_id,
         "created_by": "system",
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "sent_at": None, "error": None,
+        "sent_at": None,
+        "error": None,
     }
     try:
         await db.comunicados.insert_one(doc)
@@ -185,7 +222,8 @@ async def dispatch_oficial_auto(*, subject: str, body: str, cta_label: str = Non
         # Re-confirma via find_one para distinguir UniqueViolation de outras
         # falhas (DB indisponível, payload inválido) que devem propagar.
         loser = await db.comunicados.find_one(
-            {"source_kind": source_kind, "source_ref_id": ref_id}, {"_id": 0, "id": 1})
+            {"source_kind": source_kind, "source_ref_id": ref_id}, {"_id": 0, "id": 1}
+        )
         if loser:
             return None
         raise

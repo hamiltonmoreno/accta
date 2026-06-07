@@ -11,7 +11,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
 
 export const VotacoesPage = () => {
-  const { isAtivo } = useAuth();
+  const { isVotingMember } = useAuth();
   const qc = useQueryClient();
   const [results, setResults] = useState({});
   const [loadingResults, setLoadingResults] = useState({});
@@ -84,7 +84,7 @@ export const VotacoesPage = () => {
       </div>
 
       {/* Status Alert for Inactive Members */}
-      {!isAtivo && (
+      {!isVotingMember && (
         <div className="card-technical p-4 sm:p-6 border-l-4 border-l-[#D97706] bg-[#FFFBEB] animate-fade-up"
           data-testid="voting-restricted">
           <div className="flex items-start gap-3">
@@ -126,7 +126,7 @@ export const VotacoesPage = () => {
               <div className="animate-fade-up"
                 key={poll.id}>
                 <PollCard poll={poll} isActive={true}>
-                  {isAtivo ? (
+                  {isVotingMember ? (
                     <VotingInterface poll={poll} onVoteSuccess={onVoteSuccess} />
                   ) : (
                     <div className="border-t border-gray-200 pt-6 mt-6">
