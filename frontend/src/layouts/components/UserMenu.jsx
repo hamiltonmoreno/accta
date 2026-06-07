@@ -27,7 +27,7 @@ export const UserMenu = ({ user, isSocio, isMember, onLogout }) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="flex items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+        className="flex items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-carmesim/40 focus-visible:ring-offset-2"
         aria-label="Menu do utilizador"
         data-testid="user-menu-trigger"
       >
@@ -74,7 +74,7 @@ export const UserMenu = ({ user, isSocio, isMember, onLogout }) => {
         <DropdownMenuItem
           onClick={onLogout}
           data-testid="menu-sair"
-          className="text-[#C7202F] focus:text-[#C7202F] focus:bg-[#FBEAEC]"
+          className="text-carmesim focus:text-carmesim focus:bg-carmesim/10"
         >
           <LogOut className="w-4 h-4 mr-2" aria-hidden="true" />
           Sair

@@ -99,10 +99,10 @@ html, body {
 
 /* ===== Z-INDEX SCALE (documented) =====
  * 10  in-page elevation (cards on hover, sticky badges, hero overlays)
- * 20  sticky page chrome (PrivateLayout desktop header)
- * 30  fixed page chrome (PrivateLayout desktop sidebar, mobile header)
- * 40  backdrop overlays (NotificationBell backdrop, mobile sidebar backdrop)
- * 50  modals, drawers, sheets, public header (PublicLayout)
+ * 20  (livre)
+ * 30  fixed page chrome (PrivateLayout desktop sidebar — começa abaixo do header)
+ * 40  PrivateLayout header fixo full-width + backdrop overlays (NotificationBell, drawer mobile)
+ * 50  modals, drawers (drawer de navegação mobile), sheets, public header (PublicLayout)
  * 60  nested dialogs (delete confirm sobre edit modal — z-[60])
  * 100 toasts (sonner)
  * Não introduzir z-index arbitrários fora desta escala.
