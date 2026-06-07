@@ -1,49 +1,44 @@
-# Tarefa: Remover autenticação de dois fatores (2FA/MFA)
+# Sessão 2026-06-07 — Shell privado, service worker, segurança Supabase
 
-Objetivo: remover por completo a funcionalidade de 2FA/MFA do Portal ACCTA e não
-a reimplementar. Ramo: `feature/remove-mfa` (a partir de `develop`).
+Quatro frentes, todas implementadas, revistas (`/pr-review`) e **MERGED em `develop`**.
 
-## Backend
-- [x] Apagar `backend/mfa.py`
-- [x] Apagar `backend/tests/test_mfa.py`
-- [x] `models.py` — remover `UserBase.mfa_enabled`, `UserLogin.otp`,
-  `Token.mfa_setup_required`, `MfaVerifyRequest`, `MfaDisableRequest`
-- [x] `models.py` — MANTER `MFA_SECRET_FIELDS` (projeção defensiva de campos
-  legados ainda presentes em docs de utilizador antigos; comentário atualizado)
-- [x] `auth.py` — remover `MFA_PENDING_ALLOWED_PATHS` e os dois gates
-  `mfa_pending` (`get_current_user` + `get_user_from_token`)
-- [x] `routes/auth_routes.py` — remover import de `mfa`, o desafio MFA no login,
-  os 4 endpoints `/auth/mfa/*`, e a lógica `mfa_setup_required` em
-  `login` + `setup-account`
-- [x] `requirements.txt` — remover `pyotp` e `qrcode` (não usados fora do MFA;
-  o QR da carteira é frontend `react-qr-code`)
-- [x] `tests/test_anomaly_alerts.py` — remover testes específicos de MFA e
-  parâmetros MFA do helper `_user_doc`
+## 1. Redesenho do shell privado (cabeçalho + sidebar) — PR #169
+Plano: `docs/superpowers/plans/2026-06-07-sidebar-cabecalho-redesign.md`. Spec:
+`docs/superpowers/specs/2026-06-07-sidebar-cabecalho-redesign-design.md`.
+- [x] T1 `lib/account.js` — helper `isMemberAccount` (+ testes)
+- [x] T2 `layouts/components/UserMenu.jsx` — dropdown do avatar (perfil/carteira/ranking-mobile/sair) (+ testes)
+- [x] T3 `layouts/components/Header.jsx` — cabeçalho fixo full-width (logo, título, sino, ranking-desktop, UserMenu) (+ testes)
+- [x] T4 `index.css` — token `--header-h: 64px`
+- [x] T5 `PrivateLayout.js` — reordenar `menuSections` (Mural no topo, "Atividade & Gestão"), remover itens movidos
+- [x] T6 `PrivateLayout.js` — compor `<Header/>` + sidebar/`main` abaixo do cabeçalho (corrige colisão); rodapé perfil/logout removido; toggle no topo do sidebar
+- [x] T7 `layouts/__tests__/PrivateLayout.test.jsx` — teste de integração
+- [x] T8 verificação: suite frontend **109 testes** verdes, `eslint` 0 erros
+- [x] Validação no browser (dev-server, Chrome DevTools) **desktop + mobile**: cabeçalho não sobrepõe o sidebar (`headerBottom=sidebarTop=mainTop=64`); dropdown OK; Ranking some em conta técnica; drawer abre/fecha + Escape devolve foco ao hambúrguer; toggle colapsa e persiste
+- [x] Review (#169): WARNING z-index doc + SUGGESTION tokens carmesim → corrigidos em `ac31874`
 
-## Frontend
-- [x] Apagar `pages/MfaSetupPage.jsx`, `components/SetupMFA.jsx`,
-  `components/ui/input-otp.jsx`
-- [x] `utils/api.js` — remover `mfaAPI` e os ramos do interceptor
-- [x] `contexts/AuthContext.js` — remover `mfaMandatory`/`mfaSetupRequired`
-- [x] `App.js` — remover lazy import + rota `/mfa-setup` + guarda no `ProtectedRoute`
-- [x] `pages/public/LoginPage.js` — remover o passo do 2.º fator
-- [x] `pages/private/PerfilPage.js` — remover `SecuritySection` e órfãos
-- [x] `lib/queryClient.js` — remover `queryKeys.mfa`
-- [x] `CarteiraPage.js` usa `react-qr-code` (carteira) → MANTÉM no package.json
+## 2. Service worker preso em build antiga (dev) — PR #170
+- [x] Diagnóstico: `public/sw.js` serve JS/CSS **cache-first**; em dev o bundle é sempre `bundle.js` (sem hash) → app presa numa build antiga (reaparecia `/mfa-setup`)
+- [x] Fix `src/index.js`: registar SW **só em produção** + desregistar SW existente em dev
+- [x] Verificado live: 0 registos de SW em dev; bundle fresco contém a guarda
+- [x] Nota operacional documentada: máquinas já infetadas precisam de 1 limpeza manual
 
-## Verificação
-- [x] `ruff check .` — limpo
-- [x] AST parse dos ficheiros editados — OK
-- [x] `pytest tests/test_anomaly_alerts.py` — 7 passed
-- [x] `pytest tests/test_auth_routes.py tests/test_auth_hardening.py` — 17 passed
-- [ ] `pytest -m unit` — a correr
-- [ ] `eslint` frontend
+## 3. Review de segurança Supabase + endurecimento RLS/Data API — PR #171
+- [x] Auditoria read-only: app = Postgres puro (asyncpg, role `postgres`/bypassrls), **não** usa Data API/`supabase-js`; 65 tabelas `public` **RLS-ON + 0 policies = deny-all**; 0 views; 1 função SECURITY DEFINER benigna; sem chaves no repo
+- [x] `database.py`: `ensure_schema()` faz backfill de RLS + (re)cria `rls_auto_enable()`/event trigger `ensure_rls` (idempotente, non-fatal — padrão do trigger de imutabilidade do audit)
+- [x] Runbook **F5.6** (`tasks/runbook-seguranca-f5-infra.md`): camada autoritativa do operador (desativar Data API / `REVOKE` anon+authenticated), DDL, verificações, checklist
+- [x] Verificado: idempotente contra a DB dev (65 RLS-ON, 0 policies, trigger presente, 0 alterações); `ruff` limpo; 66 testes unitários verdes
 
-## Follow-ups (operacional, não bloqueiam o PR)
-- `input-otp` fica como dependência não usada no `package.json` (removê-la
-  exigiria atualizar o `yarn.lock`; fazer `yarn remove input-otp` quando
-  conveniente, para não arriscar `--frozen-lockfile` no Vercel).
-- Dados legados: docs de admin/financeiro (MFA era obrigatório) ainda contêm
-  `mfa_secret`/`mfa_pending_secret`/`mfa_backup_codes`. A projeção
-  `MFA_SECRET_FIELDS` impede a fuga; opcionalmente purgar com `$unset` em massa
-  (migração de dados → STOP condition, requer OK do dono).
+## 4. Contagem real de tabelas — PR #172
+- [x] `CLAUDE.md` 51 → **65**; `.claude/rules/database.md` 36 → **65**; ancorado em `= len(database.COLLECTIONS)` (verificado: 65 = `len(COLLECTIONS)` e 65 tabelas doc/pk-shaped)
+
+---
+
+## Review / Resultados
+- 4 PRs (#169, #170, #171, #172) **MERGED em `develop`** (merges `9626da8`, `3fb5b39`, `09fa426`, + #172); ramos apagados.
+- CI dos PRs vermelho por **billing-lock** dos GitHub Actions (jobs falham em ~3s sem steps; Vercel passa) — alheio ao código; merges para `develop` não bloqueados (estado `UNSTABLE`).
+- Sem regressões: suites de layout (14) e `test_users_routes` (66) verdes; lint limpo.
+
+## Follow-ups (operador / dono — não bloqueiam código)
+- **F5.6b (GATE)** — confirmar a postura RLS/Data API em **produção** e decidir desativar o Data API ou aplicar os `REVOKE` anon/authenticated (passos no runbook F5.6).
+- `develop → release → main` quando se cortar release — **`main` é stop condition** (OK explícito do dono).
+- SW: comunicar/limpar 1x o service worker antigo em browsers que já abriram a app (DevTools → Application → Service Workers → Unregister), até #170 estar em todo o lado.
