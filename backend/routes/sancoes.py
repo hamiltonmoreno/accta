@@ -274,17 +274,12 @@ async def aplicar_sancao(sancao_id: str, request: Request, current_user: User = 
         raise HTTPException(status_code=400, detail="A expulsão exige deliberação da Assembleia Geral")
 
     now = _now_iso()
-    # CAS: reivindica a sanção atomicamente (decidida -> aplicada) ANTES de tocar
-    # no utilizador. Se outra chamada concorrente já a aplicou, modified_count==0
-    # e abortamos — evita aplicar os efeitos (ex.: duplo _close_active no
-    # cargo_history numa expulsão) duas vezes. Mesmo padrão de apurar_deliberacao.
-    claimed = await db.sancoes.update_one(
-        {"id": sancao_id, "status": "decidida"},
-        {"$set": {"status": "aplicada", "aplicada_em": now}},
-    )
-    if claimed.modified_count == 0:
-        raise HTTPException(status_code=409, detail="A sanção já foi aplicada.")
-
+    # Aplica primeiro os efeitos (idempotentes: perda_direitos grava valores
+    # fixos; expulsão usa _close_active, que não fecha duas vezes um mandato já
+    # fechado), e só DEPOIS marca "aplicada" via CAS. Assim, se uma escrita de
+    # efeito falhar, o estado permanece "decidida" e a operação é re-tentável;
+    # o CAS final (decidida->aplicada) garante exactamente-uma-vez sob
+    # concorrência sem deixar a sanção "aplicada" sem os efeitos persistidos.
     if tipo == "perda_direitos":
         await db.users.update_one(
             {"id": s["user_id"]},
@@ -311,6 +306,16 @@ async def aplicar_sancao(sancao_id: str, request: Request, current_user: User = 
                 }
             },
         )
+
+    # CAS final: só agora (efeitos já persistidos) marca "aplicada". Se outra
+    # chamada concorrente já fechou a transição, modified_count==0 e abortamos
+    # sem duplicar a notificação/audit (os efeitos idempotentes já correram).
+    claimed = await db.sancoes.update_one(
+        {"id": sancao_id, "status": "decidida"},
+        {"$set": {"status": "aplicada", "aplicada_em": now}},
+    )
+    if claimed.modified_count == 0:
+        raise HTTPException(status_code=409, detail="A sanção já foi aplicada.")
 
     await create_audit_log(
         current_user.id,

@@ -180,8 +180,9 @@ async def create_wall_comment(
     # Não permitir comentar posts ainda em moderação (não aprovados): o sócio
     # comum nem sequer os consegue ler, e isto incrementava comment_count e
     # notificava o autor de comentários que ficariam órfãos se o post fosse
-    # rejeitado. Staff (admin/moderador) pode comentar no âmbito da moderação.
-    if not post.get("approved") and current_user.role not in ("admin", "moderador"):
+    # rejeitado. Staff de moderação (role OU privilégio moderate_content, igual
+    # ao resto da rota) pode comentar no âmbito da moderação.
+    if not post.get("approved") and not has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content"):
         raise HTTPException(status_code=403, detail="Não é possível comentar um post em moderação")
 
     comment = WallComment(
