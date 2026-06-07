@@ -58,30 +58,27 @@ const menuSections = [
     title: 'Painel',
     items: [
       { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['all'] },
-      { label: 'Ranking', path: '/ranking', icon: Trophy, roles: ['all'] },
-      { label: 'Meu Perfil', path: '/perfil', icon: UserCircle, roles: ['all'] },
-      { label: 'Carteira Digital', path: '/carteira', icon: CreditCard, roles: ['socio'] },
     ],
   },
   {
-    title: 'Gestão',
+    title: 'Comunidade',
     items: [
-      { label: 'Financeiro', path: '/financeiro', icon: DollarSign, roles: ['admin', 'financeiro'], privileges: ['view_finances_readonly', 'manage_finances'] },
-      { label: 'Co-aprovações', path: '/financeiro/co-aprovacoes', icon: FileCheck, roles: ['admin', 'financeiro'], privileges: ['view_finances_readonly', 'manage_finances'], match: 'direcao' },
-      { label: 'Projetos', path: '/projetos', icon: FolderKanban, roles: ['all'] },
+      { label: 'Mural', path: '/mural', icon: MessageSquare, roles: ['all'] },
+      { label: 'Galeria', path: '/galeria-admin', icon: Camera, roles: ['all'] },
+      { label: 'Benefícios', path: '/beneficios', icon: Gift, roles: ['all'] },
+      { label: 'Notícias', path: '/admin/noticias', icon: Newspaper, roles: ['admin', 'moderador'] },
+      { label: 'Aparência', path: '/admin/aparencia', icon: Palette, roles: ['admin', 'moderador'] },
+    ],
+  },
+  {
+    title: 'Atividade & Gestão',
+    items: [
       { label: 'Votações', path: '/votacoes', icon: Vote, roles: ['all'] },
       { label: 'Eventos', path: '/eventos', icon: Calendar, roles: ['all'] },
+      { label: 'Projetos', path: '/projetos', icon: FolderKanban, roles: ['all'] },
       { label: 'Documentos', path: '/documentos', icon: FileText, roles: ['all'] },
-    ],
-  },
-  {
-    title: 'Órgãos Sociais',
-    items: [
-      { label: 'Assembleias', path: '/admin/assembleias', icon: Landmark, roles: ['all'] },
-      { label: 'Eleições', path: '/admin/eleicoes', icon: ListChecks, roles: ['all'] },
-      { label: 'Honorários', path: '/governanca/honorarios', icon: Medal, roles: ['admin'], match: 'governanca' },
-      { label: 'Regulamentos', path: '/regulamentos', icon: ScrollText, roles: ['all'] },
-      { label: 'Disciplina', path: '/admin/disciplinar', icon: Gavel, roles: ['admin'], match: 'direcao' },
+      { label: 'Financeiro', path: '/financeiro', icon: DollarSign, roles: ['admin', 'financeiro'], privileges: ['view_finances_readonly', 'manage_finances'] },
+      { label: 'Co-aprovações', path: '/financeiro/co-aprovacoes', icon: FileCheck, roles: ['admin', 'financeiro'], privileges: ['view_finances_readonly', 'manage_finances'], match: 'direcao' },
     ],
   },
   {
@@ -95,13 +92,13 @@ const menuSections = [
     ],
   },
   {
-    title: 'Comunidade',
+    title: 'Órgãos Sociais',
     items: [
-      { label: 'Mural', path: '/mural', icon: MessageSquare, roles: ['all'] },
-      { label: 'Galeria', path: '/galeria-admin', icon: Camera, roles: ['all'] },
-      { label: 'Notícias', path: '/admin/noticias', icon: Newspaper, roles: ['admin', 'moderador'] },
-      { label: 'Aparência', path: '/admin/aparencia', icon: Palette, roles: ['admin', 'moderador'] },
-      { label: 'Benefícios', path: '/beneficios', icon: Gift, roles: ['all'] },
+      { label: 'Assembleias', path: '/admin/assembleias', icon: Landmark, roles: ['all'] },
+      { label: 'Eleições', path: '/admin/eleicoes', icon: ListChecks, roles: ['all'] },
+      { label: 'Regulamentos', path: '/regulamentos', icon: ScrollText, roles: ['all'] },
+      { label: 'Honorários', path: '/governanca/honorarios', icon: Medal, roles: ['admin'], match: 'governanca' },
+      { label: 'Disciplina', path: '/admin/disciplinar', icon: Gavel, roles: ['admin'], match: 'direcao' },
     ],
   },
   {
@@ -119,12 +116,11 @@ const menuSections = [
   {
     title: 'Sistema',
     items: [
-      { label: 'Notificações', path: '/notificacoes', icon: Bell, roles: ['all'] },
       { label: 'Pedidos de Inscrição', path: '/admin/pedidos-inscricao', icon: UserPlus, roles: ['admin'], badge: 'registration' },
       { label: 'Utilizadores', path: '/admin/usuarios', icon: Users, roles: ['admin'], privileges: ['manage_users'] },
       { label: 'Cargos & Mandatos', path: '/admin/cargos', icon: Award, roles: ['admin'], privileges: ['manage_users'] },
-      { label: 'Audit Logs', path: '/admin/logs', icon: ClipboardList, roles: ['admin'], privileges: ['view_audit_logs'] },
       { label: 'Comunicados', path: '/admin/comunicados', icon: Megaphone, roles: ['admin'], privileges: ['send_comunicados'] },
+      { label: 'Audit Logs', path: '/admin/logs', icon: ClipboardList, roles: ['admin'], privileges: ['view_audit_logs'] },
     ],
   },
 ];
