@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse
 from datetime import datetime, timezone
 from typing import Optional
 import re
+import asyncpg
 from models import (
     User,
     Transaction,
@@ -555,7 +556,13 @@ async def generate_monthly_quotas(
             created_by=current_user.id,
         )
         t_dict = t.model_dump()
-        await db.transactions.insert_one(t_dict)
+        try:
+            await db.transactions.insert_one(t_dict)
+        except asyncpg.exceptions.UniqueViolationError:
+            # Corrida com outra execução concorrente do gerador: o índice único
+            # ux_tx_quota_user_month garante que a quota deste sócio/mês já
+            # existe — saltamos em vez de duplicar.
+            continue
         created_count += 1
 
     await create_audit_log(

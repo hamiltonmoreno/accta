@@ -2247,6 +2247,13 @@ class ExercicioAprovar(BaseModel):
     aprovado: bool = True
 
 
+class ExercicioReabrir(BaseModel):
+    # Reabrir um exercício APROVADO desfaz um ato da AG, logo exige nova
+    # deliberação da AG (Art. 19.1/37). Reabrir após "rejeitado" é livre (não
+    # houve aprovação a desfazer) — daí o campo ser opcional.
+    deliberacao_id: Optional[str] = None
+
+
 # ===== RANKING DE ATUAÇÃO DO SÓCIO (spec-ranking-socio) =====
 # A pontuação é DERIVADA de sinais já gravados (não event-sourcing); a fonte
 # única do cálculo é `backend/ranking.py` (`compute_member_score`), onde também

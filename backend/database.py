@@ -816,6 +816,12 @@ _INDEX_DDL: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS ix_tx_cat_date ON \"transactions\" ((doc->>'category'), (doc->>'date') DESC)",
     "CREATE INDEX IF NOT EXISTS ix_tx_user_date ON \"transactions\" ((doc->>'user_id'), (doc->>'date') DESC)",
     "CREATE INDEX IF NOT EXISTS ix_tx_type ON \"transactions\" ((doc->>'type'))",
+    # Uma quota por sócio por mês: índice único parcial sobre (user_id, AAAA-MM
+    # do date) só para category='quotas'. Fecha a corrida do generate-quotas
+    # (check-then-insert concorrente) ao nível da BD; não afecta outras
+    # transacções (índice parcial).
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_tx_quota_user_month ON "transactions" '
+    "((doc->>'user_id'), substr(doc->>'date', 1, 7)) WHERE doc->>'category' = 'quotas'",
     # events (attendees is an array -> GIN for membership queries)
     "CREATE INDEX IF NOT EXISTS ix_events_date ON \"events\" ((doc->>'date'))",
     "CREATE INDEX IF NOT EXISTS ix_events_vis_date ON \"events\" ((doc->>'visibility'), (doc->>'date'))",
