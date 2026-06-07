@@ -18,7 +18,7 @@ jest.mock('../../../components/ui/dropdown-menu', () => ({
   DropdownMenuSeparator: () => <hr />,
 }));
 jest.mock('../../../components/UserAvatar', () => ({
-  UserAvatar: ({ name }) => <span data-testid="avatar">{name}</span>,
+  UserAvatar: () => <span data-testid="avatar" />,
 }));
 
 const { UserMenu } = require('../UserMenu');

@@ -31,7 +31,7 @@ export const UserMenu = ({ user, isSocio, isMember, onLogout }) => {
         aria-label="Menu do utilizador"
         data-testid="user-menu-trigger"
       >
-        <UserAvatar size="xs" photoUrl={user?.photo_url} />
+        <UserAvatar size="xs" name={user?.name} photoUrl={user?.photo_url} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel className="flex flex-col">
