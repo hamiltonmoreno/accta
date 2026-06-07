@@ -184,6 +184,90 @@ de conformidade.
 
 ---
 
+## F5.6 — RLS em todo o `public` + superfície do Data API (review Supabase 2026-06-07)
+
+**Objetivo**: a app fala **direto com o Postgres** (asyncpg, role `postgres` =
+owner/bypassrls) e faz **toda a autorização em Python** — **não usa o Data API
+(PostgREST)**. Mas o Supabase concede por omissão DML a `anon`/`authenticated`
+em **todas** as tabelas de `public`; com a `anon` key (pública) isso seria
+leitura/escrita de tudo (incl. `users` com hashes, `audit_logs`,
+`password_resets`) via REST. Fechar esta superfície.
+
+### Estado auditado (2026-06-07, DB do `DATABASE_URL` — *dev*)
+65 tabelas em `public`, **RLS ON em todas**, **0 policies** → **deny-all** para
+`anon`/`authenticated`. 0 views; 1 função `SECURITY DEFINER` (`rls_auto_enable`,
+benigna, `SET search_path=pg_catalog`). Postura **segura** — mas assenta numa só
+camada. **Confirmar o mesmo em produção** (a auditoria correu contra a dev).
+
+### Duas camadas — e qual é a **autoritativa** (igual ao modelo F5.1)
+
+**(1) RLS automático — DEFESA EM PROFUNDIDADE (já no código)**: `ensure_schema()`
+faz, a cada arranque (idempotente, non-fatal): **backfill** (ativa RLS em qualquer
+tabela de `public` sem ela) + cria a função `rls_auto_enable()` e o event trigger
+`ensure_rls` (`ddl_command_end`) que ativa RLS em **cada tabela nova**. Com 0
+policies, RLS-ON = deny-all para o Data API. **Não afeta a app**: o role runtime é
+owner/bypassrls.
+
+> ⚠️ Criar event trigger exige **superuser**; numa instalação endurecida o role
+> runtime pode não o ter → o bloco fica em warning (a app arranca na mesma) e a
+> instalação fica a cargo do operador (DDL abaixo). O **backfill** só precisa de
+> owner. **Pré-requisito de arquitetura**: o role runtime **tem** de ter
+> `BYPASSRLS` (ou ser owner) — senão RLS-ON sem policy **bloquearia a própria
+> app**. Confirmar: `SELECT rolbypassrls FROM pg_roles WHERE rolname=current_user;`
+
+**(2) Fechar o Data API — AUTORITATIVA (operador) — GATE**: como a app nunca usa
+o Data API, a opção mais forte e de impacto nulo na app é **desativá-lo** ou
+**revogar** os grants aos roles do Data API:
+
+```sql
+-- Opção A (preferida): Dashboard → Project Settings → Data API → desativar.
+--   Fecha toda a superfície REST/`anon`/`authenticated` de uma vez.
+-- Opção B (SQL, se o Data API tiver de ficar ligado p/ outra coisa):
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated;
+-- (mantém RLS-ON como 2ª camada; não revogar ao role runtime/owner.)
+
+-- Instalação autoritativa do RLS auto-enable (se o runtime não puder criar o
+-- event trigger) — correr como role privilegiado, uma vez:
+CREATE OR REPLACE FUNCTION public.rls_auto_enable() RETURNS event_trigger
+  LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'pg_catalog' AS $$
+DECLARE cmd record; BEGIN
+  FOR cmd IN SELECT * FROM pg_event_trigger_ddl_commands()
+    WHERE command_tag IN ('CREATE TABLE','CREATE TABLE AS','SELECT INTO')
+      AND object_type IN ('table','partitioned table') LOOP
+    IF cmd.schema_name = 'public' THEN
+      BEGIN EXECUTE format('alter table if exists %s enable row level security', cmd.object_identity);
+      EXCEPTION WHEN OTHERS THEN RAISE LOG 'rls_auto_enable: failed on %', cmd.object_identity; END;
+    END IF;
+  END LOOP; END; $$;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_event_trigger WHERE evtname='ensure_rls')
+  THEN CREATE EVENT TRIGGER ensure_rls ON ddl_command_end EXECUTE FUNCTION public.rls_auto_enable(); END IF; END $$;
+```
+
+### Verificação (operador)
+```sql
+-- (a) RLS ativo em TODAS as tabelas de public (espera 0):
+SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+WHERE n.nspname='public' AND c.relkind='r' AND NOT c.relrowsecurity;          -- → 0
+-- (b) 0 policies (RLS-ON + 0 policies = deny-all) e o event trigger presente:
+SELECT (SELECT count(*) FROM pg_policies WHERE schemaname='public') AS policies,
+       (SELECT count(*) FROM pg_event_trigger WHERE evtname='ensure_rls') AS trg; -- → 0, 1
+-- (c) grants do Data API revogados (Opção B) — espera 0 linhas:
+SELECT grantee, count(*) FROM information_schema.role_table_grants
+WHERE table_schema='public' AND grantee IN ('anon','authenticated') GROUP BY grantee;
+-- (d) se houver Data API: GET https://<ref>.supabase.co/rest/v1/users?select=id
+--     com a anon key → deve devolver [] ou 401/permission, NUNCA linhas.
+```
+
+**Ressalvas**:
+- Um **superuser**/`service_role` contorna sempre o RLS — limitar quem tem essas
+  credenciais (mesma ressalva do F5.1).
+- Não revogar grants ao **role runtime/owner** (partiria a app).
+- Sem políticas RLS por design: a autorização é feita na app (JWT+RBAC); RLS aqui
+  é só o muro contra o Data API, não o modelo de acesso da app.
+
+---
+
 ## Checklist (colar no PR de release / issue de operação)
 
 - [ ] F5.1a (defesa em profundidade) trigger ativo em prod (`tgenabled='O'`; teste transacional → ERRO; INSERT da app OK; `/verify` dá `ok`)
@@ -192,6 +276,8 @@ de conformidade.
 - [ ] F5.3 Backups/PITR confirmados; RPO/RTO documentados; **restauro de staging testado**
 - [ ] F5.4 **GATE D6** — decidir com o dono: adiar rotação OU implementar suporte multi-chave antes de rodar
 - [ ] F5.5 Política de retenção (indefinida) registada
+- [ ] F5.6a (defesa em profundidade) RLS ON em todas as tabelas de `public` em prod (verif. (a)=0, (b)=0 policies + trigger=1); role runtime tem `BYPASSRLS`
+- [ ] F5.6b **GATE (Data API)** — Data API desativado **ou** grants `anon`/`authenticated` revogados em `public` (verif. (c)/(d)); confirmado contra a anon key de **produção**
 
 > Fecho da `spec-verificacao-seguranca-saas`: F0/F2/F3/F4 em código (MERGED em
 > `develop`); F1 cancelado; **F5 = este runbook (operador)**. Ver
