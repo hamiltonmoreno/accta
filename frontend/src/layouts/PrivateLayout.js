@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   Vote,
   FileText,
-  MessageSquare,
   Gift,
   Users,
   X,
@@ -44,21 +43,13 @@ import {
 const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
 
 /* ========== GROUPED MENU SECTIONS ========== */
+// Mural e Ranking vivem no cabeçalho (atalhos de uso frequente). Aparência saiu
+// de Comunidade para "Configurações do sistema". Admin separado de Configurações.
 const menuSections = [
   {
     title: 'Painel',
     items: [
       { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['all'] },
-    ],
-  },
-  {
-    title: 'Comunidade',
-    items: [
-      { label: 'Mural', path: '/mural', icon: MessageSquare, roles: ['all'] },
-      { label: 'Galeria', path: '/galeria-admin', icon: Camera, roles: ['all'] },
-      { label: 'Benefícios', path: '/beneficios', icon: Gift, roles: ['all'] },
-      { label: 'Notícias', path: '/admin/noticias', icon: Newspaper, roles: ['admin', 'moderador'] },
-      { label: 'Aparência', path: '/admin/aparencia', icon: Palette, roles: ['admin', 'moderador'] },
     ],
   },
   {
@@ -73,6 +64,16 @@ const menuSections = [
     ],
   },
   {
+    title: 'Órgãos Sociais',
+    items: [
+      { label: 'Assembleias', path: '/admin/assembleias', icon: Landmark, roles: ['all'] },
+      { label: 'Eleições', path: '/admin/eleicoes', icon: ListChecks, roles: ['all'] },
+      { label: 'Regulamentos', path: '/regulamentos', icon: ScrollText, roles: ['all'] },
+      { label: 'Honorários', path: '/governanca/honorarios', icon: Medal, roles: ['admin'], match: 'governanca' },
+      { label: 'Disciplina', path: '/admin/disciplinar', icon: Gavel, roles: ['admin'], match: 'direcao' },
+    ],
+  },
+  {
     title: 'Participação',
     items: [
       { label: 'Patrocínios', path: '/participacao/patrocinios', icon: Handshake, roles: ['all'] },
@@ -83,13 +84,11 @@ const menuSections = [
     ],
   },
   {
-    title: 'Órgãos Sociais',
+    title: 'Comunidade',
     items: [
-      { label: 'Assembleias', path: '/admin/assembleias', icon: Landmark, roles: ['all'] },
-      { label: 'Eleições', path: '/admin/eleicoes', icon: ListChecks, roles: ['all'] },
-      { label: 'Regulamentos', path: '/regulamentos', icon: ScrollText, roles: ['all'] },
-      { label: 'Honorários', path: '/governanca/honorarios', icon: Medal, roles: ['admin'], match: 'governanca' },
-      { label: 'Disciplina', path: '/admin/disciplinar', icon: Gavel, roles: ['admin'], match: 'direcao' },
+      { label: 'Galeria', path: '/galeria-admin', icon: Camera, roles: ['all'] },
+      { label: 'Benefícios', path: '/beneficios', icon: Gift, roles: ['all'] },
+      { label: 'Notícias', path: '/admin/noticias', icon: Newspaper, roles: ['admin', 'moderador'] },
     ],
   },
   {
@@ -105,13 +104,19 @@ const menuSections = [
     ],
   },
   {
-    title: 'Sistema',
+    title: 'Administração',
     items: [
       { label: 'Pedidos de Inscrição', path: '/admin/pedidos-inscricao', icon: UserPlus, roles: ['admin'], badge: 'registration' },
       { label: 'Utilizadores', path: '/admin/usuarios', icon: Users, roles: ['admin'], privileges: ['manage_users'] },
       { label: 'Cargos & Mandatos', path: '/admin/cargos', icon: Award, roles: ['admin'], privileges: ['manage_users'] },
       { label: 'Comunicados', path: '/admin/comunicados', icon: Megaphone, roles: ['admin'], privileges: ['send_comunicados'] },
       { label: 'Audit Logs', path: '/admin/logs', icon: ClipboardList, roles: ['admin'], privileges: ['view_audit_logs'] },
+    ],
+  },
+  {
+    title: 'Configurações do sistema',
+    items: [
+      { label: 'Aparência', path: '/admin/aparencia', icon: Palette, roles: ['admin', 'moderador'] },
     ],
   },
 ];
@@ -242,6 +247,12 @@ export const PrivateLayout = ({ children }) => {
 
   const currentPageTitle = getPageTitle(pathname);
 
+  // O título deixou de aparecer no cabeçalho (o corpo da página já o mostra) —
+  // passamos a usá-lo no título da aba do browser.
+  useEffect(() => {
+    document.title = `ACCTA — ${currentPageTitle}`;
+  }, [currentPageTitle]);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -272,12 +283,13 @@ export const PrivateLayout = ({ children }) => {
   /* ========== SIDEBAR CONTENT (shared desktop/mobile) ========== */
   const sidebarInner = ({ isMobile = false }) => (
     <div className="flex flex-col h-full">
-      {/* ---- Top row: toggle (desktop) / fechar (mobile) — a logo agora vive no Header ---- */}
-      <div className="flex items-center px-3 py-3 min-h-[56px] border-b border-[var(--surface-border)]">
+      {/* ---- Top: toggle compacto (desktop) / fechar (mobile). Slim, sem o
+           "buraco" da antiga linha do logo — o menu estende-se para cima. ---- */}
+      <div className="flex items-center px-2 py-2">
         {!isMobile && (
           <button
             onClick={toggleSidebar}
-            className="ml-auto h-11 w-11 flex items-center justify-center rounded-md text-gray-500 hover:text-carmesim hover:bg-carmesim/10 transition-colors"
+            className="ml-auto h-8 w-8 flex items-center justify-center rounded-md text-gray-500 hover:text-carmesim hover:bg-carmesim/10 transition-colors"
             title={expanded ? 'Colapsar menu' : 'Expandir menu'}
             aria-label={expanded ? 'Colapsar menu' : 'Expandir menu'}
             aria-expanded={expanded}
@@ -383,7 +395,6 @@ export const PrivateLayout = ({ children }) => {
     <div className="min-h-screen bg-[var(--surface-bg)]">
       {/* ======= Cabeçalho fixo full-width ======= */}
       <Header
-        title={currentPageTitle}
         onOpenMobileMenu={() => setMobileOpen(true)}
         onLogout={handleLogout}
         mobileMenuButtonRef={menuBtnRef}

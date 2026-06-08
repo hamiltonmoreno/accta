@@ -1,7 +1,7 @@
 // frontend/src/layouts/components/UserMenu.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { UserCircle, CreditCard, Trophy, LogOut } from 'lucide-react';
+import { UserCircle, CreditCard, Trophy, MessageSquare, LogOut } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -14,11 +14,13 @@ import { UserAvatar } from '../../components/UserAvatar';
 import { USER_STATUS_CONFIG, USER_STATUS_FALLBACK, getStatusConfig } from '../../lib/statusConfig';
 
 /**
- * Dropdown do avatar no cabeçalho. Itens pessoais (Meu Perfil, Carteira) +
- * Sair. `Ranking` aparece aqui SÓ em mobile (md:hidden) — no desktop é um
- * ícone no cabeçalho. Visibilidade por: isSocio (Carteira), isMember (Ranking).
+ * Dropdown do avatar no cabeçalho. No DESKTOP, Meu Perfil/Mural/Ranking são
+ * ícones no cabeçalho, por isso aqui ficam `md:hidden` (só aparecem no dropdown
+ * em mobile). A Carteira Digital fica sempre dentro do dropdown ("dentro do
+ * perfil"). Visibilidade: isSocio (Carteira), isMember||isAdmin (Mural/Ranking).
  */
-export const UserMenu = ({ user, isSocio, isMember, onLogout }) => {
+export const UserMenu = ({ user, isSocio, isMember, isAdmin, onLogout }) => {
+  const showQuick = isMember || isAdmin;
   const sc =
     user?.status && user.status !== 'ativo'
       ? getStatusConfig(USER_STATUS_CONFIG, user.status, USER_STATUS_FALLBACK)
@@ -48,25 +50,34 @@ export const UserMenu = ({ user, isSocio, isMember, onLogout }) => {
           </div>
         )}
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
+        {/* Meu Perfil / Mural / Ranking: no desktop vivem no cabeçalho (md:hidden aqui). */}
+        <DropdownMenuItem asChild className="md:hidden">
           <Link to="/perfil" data-testid="menu-perfil">
             <UserCircle className="w-4 h-4 mr-2" aria-hidden="true" />
             Meu Perfil
           </Link>
         </DropdownMenuItem>
+        {showQuick && (
+          <DropdownMenuItem asChild className="md:hidden">
+            <Link to="/mural" data-testid="menu-mural">
+              <MessageSquare className="w-4 h-4 mr-2" aria-hidden="true" />
+              Mural
+            </Link>
+          </DropdownMenuItem>
+        )}
+        {showQuick && (
+          <DropdownMenuItem asChild className="md:hidden">
+            <Link to="/ranking" data-testid="menu-ranking">
+              <Trophy className="w-4 h-4 mr-2" aria-hidden="true" />
+              Ranking
+            </Link>
+          </DropdownMenuItem>
+        )}
         {isSocio && (
           <DropdownMenuItem asChild>
             <Link to="/carteira" data-testid="menu-carteira">
               <CreditCard className="w-4 h-4 mr-2" aria-hidden="true" />
               Carteira Digital
-            </Link>
-          </DropdownMenuItem>
-        )}
-        {isMember && (
-          <DropdownMenuItem asChild className="md:hidden">
-            <Link to="/ranking" data-testid="menu-ranking">
-              <Trophy className="w-4 h-4 mr-2" aria-hidden="true" />
-              Ranking
             </Link>
           </DropdownMenuItem>
         )}
