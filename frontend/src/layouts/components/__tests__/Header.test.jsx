@@ -28,8 +28,9 @@ test('mostra logo, sino, atalhos e o menu de utilizador (sem título de página)
   expect(screen.getByTestId('brand-logo')).toBeInTheDocument();
   expect(screen.getByTestId('notif-bell')).toBeInTheDocument();
   expect(screen.getByTestId('user-menu')).toBeInTheDocument();
-  // Meu Perfil é sempre um atalho; Mural/Ranking para membros.
-  expect(screen.getByTestId('header-perfil')).toHaveAttribute('href', '/perfil');
+  // Meu Perfil agora vive dentro do dropdown do avatar (sem ícone duplicado no cabeçalho).
+  expect(screen.queryByTestId('header-perfil')).toBeNull();
+  // Mural/Ranking continuam como atalhos para membros.
   expect(screen.getByTestId('header-mural')).toHaveAttribute('href', '/mural');
   expect(screen.getByTestId('header-ranking')).toHaveAttribute('href', '/ranking');
 });
@@ -52,8 +53,8 @@ test('Mural/Ranking aparecem para membro e para admin (mesmo técnico), e somem 
   rerender(<Header onOpenMobileMenu={() => {}} onLogout={() => {}} />);
   expect(screen.queryByTestId('header-ranking')).toBeNull();
   expect(screen.queryByTestId('header-mural')).toBeNull();
-  // Meu Perfil continua sempre presente
-  expect(screen.getByTestId('header-perfil')).toBeInTheDocument();
+  // O acesso ao perfil é sempre via dropdown do avatar (user-menu).
+  expect(screen.getByTestId('user-menu')).toBeInTheDocument();
 });
 
 test('hambúrguer chama onOpenMobileMenu', () => {
