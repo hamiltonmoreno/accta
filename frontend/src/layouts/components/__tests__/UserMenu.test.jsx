@@ -39,11 +39,19 @@ test('Carteira só aparece para sócios', () => {
   expect(screen.getByTestId('menu-carteira')).toHaveAttribute('href', '/carteira');
 });
 
-test('Ranking (item mobile) só aparece para membros', () => {
-  const { rerender } = render(<UserMenu user={baseUser} isSocio={true} isMember={false} onLogout={() => {}} />);
+test('Mural e Ranking (itens mobile) aparecem para membros OU admins', () => {
+  // nem membro nem admin → não aparecem
+  const { rerender } = render(<UserMenu user={baseUser} isSocio={true} isMember={false} isAdmin={false} onLogout={() => {}} />);
   expect(screen.queryByTestId('menu-ranking')).toBeNull();
-  rerender(<UserMenu user={baseUser} isSocio={true} isMember={true} onLogout={() => {}} />);
+  expect(screen.queryByTestId('menu-mural')).toBeNull();
+  // membro
+  rerender(<UserMenu user={baseUser} isSocio={true} isMember={true} isAdmin={false} onLogout={() => {}} />);
   expect(screen.getByTestId('menu-ranking')).toHaveAttribute('href', '/ranking');
+  expect(screen.getByTestId('menu-mural')).toHaveAttribute('href', '/mural');
+  // admin técnico (não-membro) → também aparecem
+  rerender(<UserMenu user={baseUser} isSocio={false} isMember={false} isAdmin={true} onLogout={() => {}} />);
+  expect(screen.getByTestId('menu-ranking')).toBeInTheDocument();
+  expect(screen.getByTestId('menu-mural')).toBeInTheDocument();
 });
 
 test('Sair chama onLogout', () => {
