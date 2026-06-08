@@ -4,7 +4,6 @@
   "buildCommand": "yarn build",
   "outputDirectory": "build",
   "installCommand": "yarn install --frozen-lockfile",
-  "cleanUrls": true,
   "trailingSlash": false,
   "regions": ["cdg1"],
   "github": {
