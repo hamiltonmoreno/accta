@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, MessageSquare, Trophy, UserCircle } from 'lucide-react';
+import { Menu, MessageSquare, Trophy } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationBell } from '../../components/NotificationBell';
 import { BrandLogo } from '../../components/BrandLogo';
@@ -15,10 +15,10 @@ const ICON_BTN =
 /**
  * Cabeçalho fixo full-width. Esquerda: hambúrguer (mobile) + logo (SEM título —
  * o corpo da página já o mostra). Direita: atalhos de ícone (Mural, Ranking,
- * Notificações, Meu Perfil) + dropdown do avatar. Mural/Ranking só p/
- * membros+admins; em mobile os atalhos dobram para dentro do dropdown.
- * `mobileMenuButtonRef` é encaminhado p/ o hambúrguer (a11y: foco devolvido ao
- * fechar o drawer).
+ * Notificações) + dropdown do avatar (Meu Perfil vive lá dentro para evitar
+ * duplicação com o avatar). Mural/Ranking só p/ membros+admins; em mobile os
+ * atalhos dobram para dentro do dropdown. `mobileMenuButtonRef` é encaminhado
+ * p/ o hambúrguer (a11y: foco devolvido ao fechar o drawer).
  */
 export const Header = ({ onOpenMobileMenu, onLogout, mobileMenuButtonRef }) => {
   const { user, isAdmin } = useAuth();
@@ -56,9 +56,6 @@ export const Header = ({ onOpenMobileMenu, onLogout, mobileMenuButtonRef }) => {
           </Link>
         )}
         <NotificationBell />
-        <Link to="/perfil" className={ICON_BTN} aria-label="Meu Perfil" data-testid="header-perfil">
-          <UserCircle className="w-5 h-5" aria-hidden="true" />
-        </Link>
         <div className="flex items-center pl-2 sm:pl-3 ml-1 border-l border-[var(--surface-border)]">
           <UserMenu user={user} isSocio={isSocio} isMember={isMember} isAdmin={isAdmin} onLogout={onLogout} />
         </div>

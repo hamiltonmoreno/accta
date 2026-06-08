@@ -14,10 +14,12 @@ import { UserAvatar } from '../../components/UserAvatar';
 import { USER_STATUS_CONFIG, USER_STATUS_FALLBACK, getStatusConfig } from '../../lib/statusConfig';
 
 /**
- * Dropdown do avatar no cabeçalho. No DESKTOP, Meu Perfil/Mural/Ranking são
- * ícones no cabeçalho, por isso aqui ficam `md:hidden` (só aparecem no dropdown
- * em mobile). A Carteira Digital fica sempre dentro do dropdown ("dentro do
- * perfil"). Visibilidade: isSocio (Carteira), isMember||isAdmin (Mural/Ranking).
+ * Dropdown do avatar no cabeçalho. Meu Perfil vive SEMPRE aqui dentro (em
+ * desktop e mobile) para evitar duplicação com o avatar no cabeçalho. Mural e
+ * Ranking são ícones no cabeçalho em desktop, por isso ficam `md:hidden` aqui
+ * (só aparecem no dropdown em mobile). A Carteira Digital fica sempre dentro do
+ * dropdown ("dentro do perfil"). Visibilidade: isSocio (Carteira),
+ * isMember||isAdmin (Mural/Ranking).
  */
 export const UserMenu = ({ user, isSocio, isMember, isAdmin, onLogout }) => {
   const showQuick = isMember || isAdmin;
@@ -50,8 +52,10 @@ export const UserMenu = ({ user, isSocio, isMember, isAdmin, onLogout }) => {
           </div>
         )}
         <DropdownMenuSeparator />
-        {/* Meu Perfil / Mural / Ranking: no desktop vivem no cabeçalho (md:hidden aqui). */}
-        <DropdownMenuItem asChild className="md:hidden">
+        {/* Meu Perfil vive sempre no dropdown (em desktop e mobile) — evita ter
+            avatar + ícone de perfil duplicados no cabeçalho. Mural/Ranking são
+            ícones no cabeçalho em desktop, por isso aqui ficam md:hidden. */}
+        <DropdownMenuItem asChild>
           <Link to="/perfil" data-testid="menu-perfil">
             <UserCircle className="w-4 h-4 mr-2" aria-hidden="true" />
             Meu Perfil
