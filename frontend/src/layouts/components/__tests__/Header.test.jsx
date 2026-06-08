@@ -12,7 +12,9 @@ jest.mock('../../../components/BrandLogo', () => ({
   BrandLogo: () => <div data-testid="brand-logo" />,
 }));
 jest.mock('../UserMenu', () => ({
-  UserMenu: ({ isMember }) => <div data-testid="user-menu" data-member={String(isMember)} />,
+  UserMenu: ({ isMember, isAdmin }) => (
+    <div data-testid="user-menu" data-member={String(isMember)} data-admin={String(isAdmin)} />
+  ),
 }));
 
 const { useAuth } = require('../../../contexts/AuthContext');
@@ -20,29 +22,44 @@ const { Header } = require('../Header');
 
 beforeEach(() => jest.clearAllMocks());
 
-test('mostra logo, título, sino e o menu de utilizador', () => {
-  useAuth.mockReturnValue({ user: { name: 'X', role: 'socio', account_type: 'member' } });
-  render(<Header title="Dashboard" onOpenMobileMenu={() => {}} onLogout={() => {}} />);
+test('mostra logo, sino, atalhos e o menu de utilizador (sem título de página)', () => {
+  useAuth.mockReturnValue({ user: { name: 'X', role: 'socio', account_type: 'member' }, isAdmin: false });
+  render(<Header onOpenMobileMenu={() => {}} onLogout={() => {}} />);
   expect(screen.getByTestId('brand-logo')).toBeInTheDocument();
-  expect(screen.getByText('Dashboard')).toBeInTheDocument();
   expect(screen.getByTestId('notif-bell')).toBeInTheDocument();
   expect(screen.getByTestId('user-menu')).toBeInTheDocument();
+  // Meu Perfil é sempre um atalho; Mural/Ranking para membros.
+  expect(screen.getByTestId('header-perfil')).toHaveAttribute('href', '/perfil');
+  expect(screen.getByTestId('header-mural')).toHaveAttribute('href', '/mural');
+  expect(screen.getByTestId('header-ranking')).toHaveAttribute('href', '/ranking');
 });
 
-test('ícone de Ranking (desktop) aparece para sócio e some para conta técnica', () => {
-  useAuth.mockReturnValue({ user: { name: 'X', role: 'socio', account_type: 'member' } });
-  const { rerender } = render(<Header title="T" onOpenMobileMenu={() => {}} onLogout={() => {}} />);
-  expect(screen.getByTestId('header-ranking')).toHaveAttribute('href', '/ranking');
+test('Mural/Ranking aparecem para membro e para admin (mesmo técnico), e somem para técnico não-admin', () => {
+  // membro sócio
+  useAuth.mockReturnValue({ user: { name: 'X', role: 'socio', account_type: 'member' }, isAdmin: false });
+  const { rerender } = render(<Header onOpenMobileMenu={() => {}} onLogout={() => {}} />);
+  expect(screen.getByTestId('header-ranking')).toBeInTheDocument();
+  expect(screen.getByTestId('header-mural')).toBeInTheDocument();
 
-  useAuth.mockReturnValue({ user: { name: 'Sys', role: 'admin', account_type: 'technical' } });
-  rerender(<Header title="T" onOpenMobileMenu={() => {}} onLogout={() => {}} />);
+  // conta técnica MAS admin → aparece (resolve o caso da conta de teste)
+  useAuth.mockReturnValue({ user: { name: 'Sys', role: 'admin', account_type: 'technical' }, isAdmin: true });
+  rerender(<Header onOpenMobileMenu={() => {}} onLogout={() => {}} />);
+  expect(screen.getByTestId('header-ranking')).toBeInTheDocument();
+  expect(screen.getByTestId('header-mural')).toBeInTheDocument();
+
+  // conta técnica não-admin → some
+  useAuth.mockReturnValue({ user: { name: 'Bot', role: 'moderador', account_type: 'technical' }, isAdmin: false });
+  rerender(<Header onOpenMobileMenu={() => {}} onLogout={() => {}} />);
   expect(screen.queryByTestId('header-ranking')).toBeNull();
+  expect(screen.queryByTestId('header-mural')).toBeNull();
+  // Meu Perfil continua sempre presente
+  expect(screen.getByTestId('header-perfil')).toBeInTheDocument();
 });
 
 test('hambúrguer chama onOpenMobileMenu', () => {
-  useAuth.mockReturnValue({ user: { name: 'X', role: 'socio' } });
+  useAuth.mockReturnValue({ user: { name: 'X', role: 'socio' }, isAdmin: false });
   const onOpen = jest.fn();
-  render(<Header title="T" onOpenMobileMenu={onOpen} onLogout={() => {}} />);
+  render(<Header onOpenMobileMenu={onOpen} onLogout={() => {}} />);
   fireEvent.click(screen.getByTestId('mobile-sidebar-button'));
   expect(onOpen).toHaveBeenCalledTimes(1);
 });

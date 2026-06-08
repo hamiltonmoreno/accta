@@ -42,10 +42,23 @@ test('renderiza o cabeçalho e o conteúdo', () => {
   expect(screen.getByTestId('conteudo')).toHaveTextContent('Olá');
 });
 
-test('o sidebar tem Mural e NÃO tem os itens movidos para o cabeçalho', () => {
+test('sidebar: Mural saiu p/ o cabeçalho; Administração + Configurações (Aparência) presentes', () => {
+  // admin para ver as secções Administração/Configurações (itens admin-gated)
+  useAuth.mockReturnValue({
+    user: { name: 'Admin', email: 'a@accta.cv', role: 'admin', account_type: 'technical' },
+    logout: jest.fn(),
+    isAdmin: true, isFinanceiro: false, isModerador: false, isDirecao: false, isMesaAG: false,
+  });
   renderLayout();
   const sidebar = screen.getByTestId('desktop-sidebar');
-  expect(within(sidebar).getByText('Mural')).toBeInTheDocument();
+  // Comunidade mantém-se mas SEM Mural (foi p/ o cabeçalho) e SEM Aparência (foi p/ Configurações)
+  expect(within(sidebar).getByText('Galeria')).toBeInTheDocument();
+  expect(within(sidebar).queryByText('Mural')).toBeNull();
+  // Novas secções
+  expect(within(sidebar).getByText('Administração')).toBeInTheDocument();
+  expect(within(sidebar).getByText('Configurações do sistema')).toBeInTheDocument();
+  expect(within(sidebar).getByText('Aparência')).toBeInTheDocument();
+  // Itens que vivem no cabeçalho/dropdown não estão no sidebar
   expect(within(sidebar).queryByText('Meu Perfil')).toBeNull();
   expect(within(sidebar).queryByText('Notificações')).toBeNull();
   expect(within(sidebar).queryByText('Ranking')).toBeNull();
