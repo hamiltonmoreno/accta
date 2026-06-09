@@ -1544,6 +1544,7 @@ class TestRegistarContagem:
         assert exc.value.status_code == 403
 
     async def test_modo_errado_400(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value={"id": "a1", "status": "em_curso"})
         gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value=_delib(voting_mode="nominal"))
         with pytest.raises(HTTPException) as exc:
             await a_route.registar_contagem(
@@ -1556,6 +1557,7 @@ class TestRegistarContagem:
         assert exc.value.status_code == 400
 
     async def test_excede_base_400(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value={"id": "a1", "status": "em_curso"})
         gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value=_delib(voting_mode="braco_no_ar"))
         # base = present_power=2 - excluded_power=0 = 2; total 3 > 2.
         gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_rows([{"user_id": "u1", "voting_power": 2}]))
@@ -1570,6 +1572,7 @@ class TestRegistarContagem:
         assert exc.value.status_code == 400
 
     async def test_mesa_regista(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value={"id": "a1", "status": "em_curso"})
         gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value=_delib(voting_mode="braco_no_ar"))
         gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_rows([{"user_id": "u1", "voting_power": 5}]))
         captured = {}
@@ -1587,6 +1590,7 @@ class TestRegistarContagem:
     async def test_409_se_encerrada(self, gov_env):
         # CAS: se a deliberação já foi apurada entre o find_one e o update_one,
         # o filtro status="aberta" impede a sobrescrita e devolvemos 409.
+        gov_env.assembleias.find_one = AsyncMock(return_value={"id": "a1", "status": "em_curso"})
         gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value=_delib(voting_mode="braco_no_ar"))
         gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_rows([{"user_id": "u1", "voting_power": 5}]))
         gov_env.assembleia_deliberacoes.update_one = AsyncMock(return_value=MagicMock(modified_count=0))
