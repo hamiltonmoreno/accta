@@ -37,12 +37,6 @@ async def _unique_slug(base: str, exclude_id: Optional[str] = None) -> str:
         n += 1
 
 
-def _effective_date(post: dict) -> str:
-    """Chave de ordenação pública: published_at, com fallback para created_at
-    (D9 — um rascunho antigo publicado hoje aparece como recente)."""
-    return post.get("published_at") or post.get("created_at") or ""
-
-
 # --------------------------------------------------------------------------- #
 # Routes
 # --------------------------------------------------------------------------- #
@@ -90,10 +84,17 @@ async def get_posts(
     if q:
         query["title"] = {"$regex": re.escape(q), "$options": "i"}
 
-    posts = await db.posts.find(query, {"_id": 0}).to_list(1000)
-    # Ordenação por data efetiva desc (null-safe — todo doc tem created_at).
-    posts.sort(key=_effective_date, reverse=True)
-    return posts[skip : skip + limit]
+    # Ordenação + paginação no DB por data efetiva (COALESCE published_at→
+    # created_at — um rascunho antigo publicado hoje aparece como recente):
+    # evita o teto silencioso de 1000 que tornava o 1001.º+ post inacessível.
+    posts = (
+        await db.posts.find(query, {"_id": 0})
+        .sort([(("published_at", "created_at"), -1)])
+        .skip(skip)
+        .limit(limit)
+        .to_list(None)
+    )
+    return posts
 
 
 @router.get("/posts/{id_or_slug}", response_model=Post)

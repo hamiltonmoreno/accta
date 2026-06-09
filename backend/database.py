@@ -396,11 +396,19 @@ def _order_by(sort_spec) -> str:
         sort_spec = [(sort_spec, 1)]
     elif isinstance(sort_spec, tuple):
         sort_spec = [sort_spec]
+    def _lit(name: str) -> str:
+        return "'" + name.replace("'", "''") + "'"
+
     pieces: list[str] = []
     for field, direction in sort_spec:
         d = "DESC" if int(direction) < 0 else "ASC"
-        lit = "'" + field.replace("'", "''") + "'"
-        col = f"(doc->>{lit})"
+        if isinstance(field, (tuple, list)):
+            # COALESCE de campos alternativos: ordena pelo 1.º presente (ex.
+            # published_at→created_at), preservando a semântica de uma chave
+            # de ordenação derivada sem materializar um campo extra.
+            col = "COALESCE(" + ", ".join(f"(doc->>{_lit(f)})" for f in field) + ")"
+        else:
+            col = f"(doc->>{_lit(field)})"
         # numeric-aware: sort numbers numerically, everything else (ISO
         # dates, booleans, text) lexically — correct for all real sorts.
         pieces.append(f"CASE WHEN {col} ~ '^-?[0-9]+(\\.[0-9]+)?$' THEN ({col})::numeric END {d} NULLS LAST")
@@ -1351,4 +1359,54 @@ async def cast_assembleia_nominal_vote(deliberacao_id: str, user_id: str, voto_d
             await conn.execute(
                 f"INSERT INTO {_quote_ident('assembleia_votos')} (doc) VALUES ($1)",
                 voto_doc,
+            )
+
+
+async def register_presenca_locked(
+    assembleia_id: str,
+    claimed_ids: list[str],
+    presenca_doc: dict,
+    allowed_statuses: tuple[str, ...] = ("convocada", "em_curso"),
+) -> None:
+    """Regista uma presença de assembleia SOB lock da linha da assembleia.
+
+    Serializa todos os check-ins concorrentes da MESMA assembleia: numa única
+    transação trava a assembleia (`FOR UPDATE`), re-confirma que está aberta e
+    que nenhum dos `claimed_ids` (o próprio + representados) já está presente ou
+    representado, e só então insere. Fecha a janela em que dois registos
+    concorrentes reivindicavam o mesmo representado — o índice único
+    `ux_assembpres_assemb_user` só cobre `user_id`, não `representados`.
+
+    Levanta `ValueError("not_found" | "not_open" | "duplicate:<ids>")`; em
+    contenção extrema do pool levanta `asyncpg.exceptions.LockNotAvailableError`.
+    """
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute("SET LOCAL lock_timeout = '2s'")
+            row = await conn.fetchrow(
+                f"SELECT pk, doc FROM {_quote_ident('assembleias')} "
+                "WHERE doc->>'id' = $1 LIMIT 1 FOR UPDATE",
+                assembleia_id,
+            )
+            if row is None:
+                raise ValueError("not_found")
+            if (row["doc"] or {}).get("status") not in allowed_statuses:
+                raise ValueError("not_open")
+            rows = await conn.fetch(
+                f"SELECT doc FROM {_quote_ident('assembleia_presencas')} WHERE doc->>'assembleia_id' = $1",
+                assembleia_id,
+            )
+            already: set[str] = set()
+            for r in rows:
+                d = r["doc"] or {}
+                if d.get("user_id"):
+                    already.add(d["user_id"])
+                already.update(d.get("representados") or [])
+            conflict = sorted(set(claimed_ids) & already)
+            if conflict:
+                raise ValueError("duplicate:" + ",".join(conflict))
+            await conn.execute(
+                f"INSERT INTO {_quote_ident('assembleia_presencas')} (doc) VALUES ($1)",
+                presenca_doc,
             )
