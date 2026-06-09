@@ -729,9 +729,15 @@ async def apurar_honorario(nom_id: str, request: Request, current_user: User = D
     base = favor + contra  # decisão do dono: votos válidos (abstenções fora)
     aprovado = base > 0 and favor >= math.ceil(2 / 3 * base)
     new_status = "eleito" if aprovado else "rejeitado"
-    await db.honorarios_nominations.update_one(
-        {"id": nom_id}, {"$set": {"status": new_status, "votos_favor": favor, "votos_total_base": base}}
+    # CAS: fecha a nomeação atomicamente. Se uma chamada concorrente já apurou,
+    # aborta ANTES dos efeitos (elevação de membro / convite + email) para não
+    # os disparar duas vezes — o email é uma STOP-condition.
+    res = await db.honorarios_nominations.update_one(
+        {"id": nom_id, "status": "em_votacao"},
+        {"$set": {"status": new_status, "votos_favor": favor, "votos_total_base": base}},
     )
+    if res.modified_count == 0:
+        raise HTTPException(status_code=409, detail="Esta nomeação já foi apurada")
     await create_audit_log(
         current_user.id,
         "honorario_apurado",

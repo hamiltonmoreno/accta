@@ -1101,7 +1101,11 @@ async def registar_contagem(
 ):
     """A Mesa regista a contagem agregada do braço no ar (D5)."""
     _require_convene(current_user)
-    await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "id": 1})
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "id": 1, "status": 1})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    if a.get("status") != "em_curso":
+        raise HTTPException(status_code=400, detail="A sessão não está a decorrer.")
     d = await _get_deliberacao(assembleia_id, did)
     if d.get("status") != "aberta":
         raise HTTPException(status_code=400, detail="A deliberação não está aberta.")

@@ -297,6 +297,7 @@ class TestComments:
             return_value={"id": "c1", "user_id": socio_user.id, "post_id": "p1"}
         )
         mock_db.wall_comments.delete_one = AsyncMock()
+        mock_db.wall_comments.count_documents = AsyncMock(return_value=0)
         result = await wall_route.delete_wall_comment(
             post_id="p1", comment_id="c1", current_user=socio_user
         )
@@ -319,6 +320,7 @@ class TestComments:
             return_value={"id": "c1", "user_id": "outro", "post_id": "p1"}
         )
         mock_db.wall_comments.delete_one = AsyncMock()
+        mock_db.wall_comments.count_documents = AsyncMock(return_value=0)
         result = await wall_route.delete_wall_comment(
             post_id="p1", comment_id="c1", current_user=moderador_user
         )

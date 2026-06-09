@@ -62,11 +62,14 @@ export const NotificationProvider = ({ children }) => {
   const markAsReadMutation = useMutation({
     mutationFn: (id) => notificationsAPI.markRead(id),
     onMutate: async (id) => {
+      // Só decrementa se a notificação estava por ler — clicar numa já lida
+      // não deve baixar o badge.
+      const wasUnread = qc.getQueryData(LIST_KEY)?.items?.some((n) => n.id === id && !n.read);
       qc.setQueryData(LIST_KEY, (old) => old && {
         ...old,
         items: old.items.map((n) => (n.id === id ? { ...n, read: true } : n)),
       });
-      qc.setQueryData(COUNT_KEY, (old) => Math.max(0, (old || 0) - 1));
+      if (wasUnread) qc.setQueryData(COUNT_KEY, (old) => Math.max(0, (old || 0) - 1));
     },
     onError: () => {
       toast.error('Não foi possível marcar como lida');
@@ -92,6 +95,8 @@ export const NotificationProvider = ({ children }) => {
   const deleteMutation = useMutation({
     mutationFn: (id) => notificationsAPI.delete(id),
     onMutate: async (id) => {
+      // Apagar uma notificação por ler também tem de baixar o badge.
+      const wasUnread = qc.getQueryData(LIST_KEY)?.items?.some((n) => n.id === id && !n.read);
       qc.setQueryData(LIST_KEY, (old) => {
         if (!old) return old;
         return {
@@ -99,6 +104,7 @@ export const NotificationProvider = ({ children }) => {
           total: Math.max(0, old.total - 1),
         };
       });
+      if (wasUnread) qc.setQueryData(COUNT_KEY, (old) => Math.max(0, (old || 0) - 1));
     },
     onSuccess: () => toast.success('Notificação removida'),
     onError: () => {

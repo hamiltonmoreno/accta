@@ -163,11 +163,14 @@ async def get_recent_activity(limit: int = Query(15, ge=1, le=50), current_user:
         if not dt_str:
             return datetime.min.replace(tzinfo=timezone.utc)
         try:
-            if isinstance(dt_str, datetime):
-                return dt_str
-            return datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
+            dt = dt_str if isinstance(dt_str, datetime) else datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
         except (ValueError, TypeError):
             return datetime.min.replace(tzinfo=timezone.utc)
+        # Eventos/milestones podem trazer datas naive (ex. "2026-01-15"); sem
+        # isto, o sort compara naive vs aware e rebenta com TypeError.
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
 
     activities.sort(key=parse_date, reverse=True)
 
