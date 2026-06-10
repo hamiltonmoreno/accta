@@ -148,10 +148,16 @@ async def recusar_patrocinio(
 # --------------------------------------------------------------------------- #
 
 
+def _peticao_enriched(p: dict, signature_count: int, viewer_has_signed: bool) -> dict:
+    """Shape único da petição enriquecida — usado pela listagem (batch) e pelo
+    detalhe (_peticao_view), para os dois endpoints não divergirem."""
+    return {**p, "signature_count": signature_count, "viewer_has_signed": viewer_has_signed}
+
+
 async def _peticao_view(p: dict, user_id: str) -> dict:
     count = await db.peticao_assinaturas.count_documents({"peticao_id": p["id"]})
     signed = await db.peticao_assinaturas.find_one({"peticao_id": p["id"], "user_id": user_id}, {"_id": 0, "id": 1})
-    return {**p, "signature_count": count, "viewer_has_signed": signed is not None}
+    return _peticao_enriched(p, count, signed is not None)
 
 
 @router.post("/peticoes", response_model=Peticao)
@@ -182,9 +188,7 @@ async def listar_peticoes(current_user: User = Depends(get_current_user)):
         counts[pid] = counts.get(pid, 0) + 1
         if a.get("user_id") == current_user.id:
             signed_by_viewer.add(pid)
-    return [
-        {**p, "signature_count": counts.get(p["id"], 0), "viewer_has_signed": p["id"] in signed_by_viewer} for p in rows
-    ]
+    return [_peticao_enriched(p, counts.get(p["id"], 0), p["id"] in signed_by_viewer) for p in rows]
 
 
 @router.get("/peticoes/{peticao_id}")
