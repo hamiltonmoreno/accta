@@ -66,9 +66,14 @@ async def notification_stream(request: Request):
             status_code=429,
             detail="Demasiadas ligações de notificações em simultâneo. Feche outras abas.",
         )
+    # Reserva o slot JÁ, sincronamente (sem await entre o check e o incremento):
+    # o generator só começa a correr quando o Starlette itera o body, DEPOIS de
+    # devolvermos a resposta — incrementar lá dentro deixava N connects
+    # concorrentes do mesmo utilizador passar o check todos juntos e exceder o
+    # cap. Libertado no finally do generator.
+    _sse_active[user.id] = _sse_active.get(user.id, 0) + 1
 
     async def event_generator():
-        _sse_active[user.id] = _sse_active.get(user.id, 0) + 1
         last_count = -1
         try:
             while True:
