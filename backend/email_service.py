@@ -58,6 +58,7 @@ def _base_template(content: str) -> str:
 
 
 def invite_email_html(name: str, setup_url: str) -> str:
+    name = escape(name or "", quote=True)  # nome é livre/auto-registo → escapar
     content = f"""
     <h2 style="margin:0 0 8px;font-size:20px;color:#3A3A3A;">Bem-vindo a ACCTA, {name}!</h2>
     <p style="margin:0 0 20px;font-size:14px;color:#6b7280;line-height:1.6;">
@@ -82,6 +83,7 @@ def invite_email_html(name: str, setup_url: str) -> str:
 
 
 def password_reset_email_html(name: str, reset_url: str, token: str) -> str:
+    name = escape(name or "", quote=True)
     content = f"""
     <h2 style="margin:0 0 8px;font-size:20px;color:#3A3A3A;">Recuperacao de Senha</h2>
     <p style="margin:0 0 20px;font-size:14px;color:#6b7280;line-height:1.6;">
@@ -102,6 +104,7 @@ def password_reset_email_html(name: str, reset_url: str, token: str) -> str:
 
 
 def welcome_email_html(name: str) -> str:
+    name = escape(name or "", quote=True)
     content = f"""
     <h2 style="margin:0 0 8px;font-size:20px;color:#3A3A3A;">Conta Ativada!</h2>
     <p style="margin:0 0 20px;font-size:14px;color:#6b7280;line-height:1.6;">
@@ -119,6 +122,8 @@ def welcome_email_html(name: str) -> str:
 
 
 def registration_rejected_email_html(name: str, reason: str = None) -> str:
+    name = escape(name or "", quote=True)
+    reason = escape(reason, quote=True) if reason else reason
     reason_block = ""
     if reason:
         reason_block = f"""

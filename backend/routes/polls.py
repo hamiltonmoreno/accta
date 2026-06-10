@@ -164,7 +164,9 @@ async def get_poll_results(poll_id: str, current_user: User = Depends(get_curren
     if poll.get("status") != "encerrada" and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Resultados disponíveis após o encerramento da votação")
 
-    votes = await db.user_votes.find({"poll_id": poll_id}, {"_id": 0}).to_list(1000)
+    # Sem teto: um cap de 1000 subcontava silenciosamente acima de 1000 votantes
+    # (paridade com o apuramento de honorários, que já usa to_list(None)).
+    votes = await db.user_votes.find({"poll_id": poll_id}, {"_id": 0}).to_list(None)
     results = {}
     for v in votes:
         option = v["vote_option"]
