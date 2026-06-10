@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from typing import Optional
 from pathlib import Path
-from models import User, GalleryAlbum, GalleryAlbumCreate, GalleryPhoto
+from models import User, GalleryAlbum, GalleryAlbumCreate, GalleryAlbumUpdate, GalleryPhoto
 from database import db, UPLOAD_DIR
 from auth import get_current_user, has_role_or_privilege
 from helpers import notify_admins, create_notification, create_audit_log, delete_upload_file
@@ -115,14 +115,18 @@ async def create_gallery_album(album_data: GalleryAlbumCreate, current_user: Use
 
 @router.patch("/albums/{album_id}")
 async def update_gallery_album(
-    album_id: str, album_data: GalleryAlbumCreate, current_user: User = Depends(get_current_user)
+    album_id: str, album_data: GalleryAlbumUpdate, current_user: User = Depends(get_current_user)
 ):
     if not has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content"):
         raise HTTPException(status_code=403, detail="Sem permissão para moderar conteúdo")
     existing = await db.gallery_albums.find_one({"id": album_id}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Album nao encontrado")
-    update_data = {k: v for k, v in album_data.model_dump().items() if v is not None}
+    # `exclude_unset` => só os campos efetivamente enviados entram no $set,
+    # distinguindo "não enviado" (mantém) de "enviado vazio" (limpa).
+    update_data = album_data.model_dump(exclude_unset=True)
+    if not update_data:
+        raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
     await db.gallery_albums.update_one({"id": album_id}, {"$set": update_data})
     await create_audit_log(current_user.id, f"Atualizou álbum de galeria {album_id}", album_id)
     return {"message": "Album atualizado"}
