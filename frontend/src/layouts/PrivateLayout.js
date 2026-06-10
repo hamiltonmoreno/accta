@@ -44,7 +44,8 @@ const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
 
 /* ========== GROUPED MENU SECTIONS ========== */
 // Mural e Ranking vivem no cabeçalho (atalhos de uso frequente). Aparência saiu
-// de Comunidade para "Configurações do sistema". Admin separado de Configurações.
+// de Comunidade para Administração, sob o sub-rótulo "Configurações do sistema"
+// (secção única; Configurações deixou de ser uma secção própria).
 const menuSections = [
   {
     title: 'Painel',
@@ -111,11 +112,9 @@ const menuSections = [
       { label: 'Cargos & Mandatos', path: '/admin/cargos', icon: Award, roles: ['admin'], privileges: ['manage_users'] },
       { label: 'Comunicados', path: '/admin/comunicados', icon: Megaphone, roles: ['admin'], privileges: ['send_comunicados'] },
       { label: 'Audit Logs', path: '/admin/logs', icon: ClipboardList, roles: ['admin'], privileges: ['view_audit_logs'] },
-    ],
-  },
-  {
-    title: 'Configurações do sistema',
-    items: [
+      // Sub-rótulo dentro de Administração (fundido da antiga secção
+      // "Configurações do sistema"). Sem RBAC próprio — segue os itens abaixo.
+      { subheader: 'Configurações do sistema' },
       { label: 'Aparência', path: '/admin/aparencia', icon: Palette, roles: ['admin', 'moderador'] },
     ],
   },
@@ -265,6 +264,9 @@ export const PrivateLayout = ({ children }) => {
 
   /* Filter menu items by role (ou por privilégio granular — RBAC aditivo) */
   const filterItem = (item) => {
+    // Sub-rótulos são divisores visuais sem RBAC próprio; passam sempre o filtro
+    // e a sua visibilidade (esconder se ficarem órfãos) resolve-se no render.
+    if (item.subheader) return true;
     // Gating por cargo/órgão (extensão ao RBAC por role/privilégio).
     if (item.match === 'direcao' && (isAdmin || isDirecao)) return true;
     if (item.match === 'governanca' && (isAdmin || isDirecao || isMesaAG)) return true;
@@ -315,8 +317,13 @@ export const PrivateLayout = ({ children }) => {
       {/* ---- Menu sections ---- */}
       <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-2 py-3 sidebar-scroll">
         {menuSections.map((section) => {
-          const visibleItems = section.items.filter(filterItem);
-          if (visibleItems.length === 0) return null;
+          const filtered = section.items.filter(filterItem);
+          // Esconde sub-rótulos órfãos (sem nenhum item real a seguir).
+          const visibleItems = filtered.filter(
+            (it, i) => !it.subheader || filtered.slice(i + 1).some((n) => !n.subheader)
+          );
+          // Secção só aparece se tiver pelo menos um item real (não só rótulos).
+          if (!visibleItems.some((it) => !it.subheader)) return null;
           return (
             <div key={section.title} className="mb-2">
               {/* Section title */}
@@ -336,6 +343,20 @@ export const PrivateLayout = ({ children }) => {
               {/* Items */}
               <ul className="space-y-0.5">
                 {visibleItems.map((item) => {
+                  // Sub-rótulo: divisor visual dentro da secção (não é um link).
+                  if (item.subheader) {
+                    return (
+                      <li key={`sub-${item.subheader}`} className="pt-2">
+                        {collapsed && !isMobile ? (
+                          <span className="mx-auto block h-px w-5 rounded-full bg-gray-200" />
+                        ) : (
+                          <span className="block ml-2 px-1 pt-2 border-t border-gray-100 text-[11px] uppercase tracking-[0.1em] font-semibold whitespace-nowrap text-muted-auto">
+                            {item.subheader}
+                          </span>
+                        )}
+                      </li>
+                    );
+                  }
                   const Icon = item.icon;
                   const isActive = pathname === item.path;
                   return (
