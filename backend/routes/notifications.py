@@ -10,6 +10,13 @@ import json
 
 router = APIRouter(tags=["notifications"])
 
+# Streams SSE ativos por utilizador (in-memory, por worker). Cada stream faz um
+# count à BD a cada 5s para sempre — sem um tecto, N tabs × M utilizadores
+# drenam o pool asyncpg. 3 chega para multi-tab legítimo; acima disso o cliente
+# recebe 429 e o NotificationContext cai para polling.
+_SSE_MAX_PER_USER = 3
+_sse_active: dict[str, int] = {}
+
 
 @router.get("/notifications")
 async def get_notifications(
@@ -54,7 +61,14 @@ async def notification_stream(request: Request):
     if not user:
         raise HTTPException(status_code=401, detail="Token invalido")
 
+    if _sse_active.get(user.id, 0) >= _SSE_MAX_PER_USER:
+        raise HTTPException(
+            status_code=429,
+            detail="Demasiadas ligações de notificações em simultâneo. Feche outras abas.",
+        )
+
     async def event_generator():
+        _sse_active[user.id] = _sse_active.get(user.id, 0) + 1
         last_count = -1
         try:
             while True:
@@ -67,6 +81,12 @@ async def notification_stream(request: Request):
                 await asyncio.sleep(5)
         except asyncio.CancelledError:
             pass
+        finally:
+            remaining = _sse_active.get(user.id, 1) - 1
+            if remaining <= 0:
+                _sse_active.pop(user.id, None)
+            else:
+                _sse_active[user.id] = remaining
 
     return StreamingResponse(
         event_generator(),
@@ -190,13 +210,7 @@ async def verify_audit_logs(current_user: User = Depends(get_current_user)):
     tampered: List[str] = []
     offset = 0
     while True:
-        rows = await (
-            db.audit_logs.find({}, {"_id": 0})
-            .sort("created_at", 1)
-            .skip(offset)
-            .limit(BATCH)
-            .to_list(BATCH)
-        )
+        rows = await db.audit_logs.find({}, {"_id": 0}).sort("created_at", 1).skip(offset).limit(BATCH).to_list(BATCH)
         if not rows:
             break
         for log in rows:

@@ -29,9 +29,11 @@ api.interceptors.response.use(
 
     if (status === 401 && !isPublic) {
       // Cookie e httpOnly — JS nao consegue limpa-lo. Backend ja invalida
-      // server-side em /logout; aqui so disparamos o evento + redirect.
+      // server-side em /logout. O evento faz o AuthContext limpar o estado
+      // (clearAuth -> user=null) e o ProtectedRoute navega para /login via
+      // React Router — sem window.location.replace, que forcava um reload
+      // completo da SPA e corria ANTES do listener limpar o estado.
       window.dispatchEvent(new Event('accta:force-logout'));
-      window.location.replace('/login');
     }
     return Promise.reject(error);
   }

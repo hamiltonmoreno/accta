@@ -26,6 +26,38 @@ def _cursor(items):
 
 
 # --------------------------------------------------------------------------- #
+# GET /notifications/stream — cap de ligações SSE por utilizador
+# --------------------------------------------------------------------------- #
+
+
+class TestSSEConnectionCap:
+    async def test_rejects_429_when_user_at_cap(self, mock_db, socio_user, monkeypatch):
+        from starlette.requests import Request
+
+        monkeypatch.setattr(notif_route, "_extract_token", lambda _r: "tok")
+        monkeypatch.setattr(notif_route, "get_user_from_token", AsyncMock(return_value=socio_user))
+        monkeypatch.setattr(
+            notif_route, "_sse_active", {socio_user.id: notif_route._SSE_MAX_PER_USER}
+        )
+        req = Request({"type": "http", "method": "GET", "path": "/x", "headers": [], "query_string": b""})
+        with pytest.raises(HTTPException) as exc:
+            await notif_route.notification_stream(req)
+        assert exc.value.status_code == 429
+
+    async def test_allows_below_cap(self, mock_db, socio_user, monkeypatch):
+        from starlette.requests import Request
+
+        monkeypatch.setattr(notif_route, "_extract_token", lambda _r: "tok")
+        monkeypatch.setattr(notif_route, "get_user_from_token", AsyncMock(return_value=socio_user))
+        monkeypatch.setattr(
+            notif_route, "_sse_active", {socio_user.id: notif_route._SSE_MAX_PER_USER - 1}
+        )
+        req = Request({"type": "http", "method": "GET", "path": "/x", "headers": [], "query_string": b""})
+        resp = await notif_route.notification_stream(req)
+        assert resp.media_type == "text/event-stream"
+
+
+# --------------------------------------------------------------------------- #
 # GET /notifications — user-scoped list
 # --------------------------------------------------------------------------- #
 
