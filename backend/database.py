@@ -1198,18 +1198,22 @@ async def register_event_attendee(event_id: str, user_id: str) -> str:
     return "registered"
 
 
-async def transfer_cargo(from_user_id: str, to_user_id: str, from_update: dict, to_update: dict) -> None:
-    """Aplica dois updates de utilizador numa ÚNICA transação atómica
+async def transfer_cargo(from_user_id: str, to_user_id: str, from_transform, to_transform) -> None:
+    """Aplica duas transformações de utilizador numa ÚNICA transação atómica
     (transferência de mandato: despromove `from_user`, promove `to_user`).
 
-    As rotas passam apenas update specs Mongo-style ($set/$push/...); o raw SQL
-    fica aqui no DAO (regra api.md). Ambos os docs são bloqueados (FOR UPDATE) e
-    actualizados; se algum não existir, faz rollback e levanta ValueError.
+    `from_transform`/`to_transform` são callables `doc -> novo_doc` aplicados ao
+    documento JÁ BLOQUEADO (`FOR UPDATE`). Recomputar derivados do estado actual
+    (ex.: `cargo_history`) DENTRO do lock evita lost-update contra edições de
+    cargo concorrentes (promote/demote) — antes a rota passava um array
+    pré-calculado a partir de uma leitura fora da transação, que sobre-escrevia
+    alterações entretanto feitas. Ambos os docs têm de existir, senão rollback +
+    ValueError. O raw SQL fica aqui no DAO (regra api.md).
     """
     pool = await get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
-            for uid, update in ((from_user_id, from_update), (to_user_id, to_update)):
+            for uid, transform in ((from_user_id, from_transform), (to_user_id, to_transform)):
                 wb = _WhereBuilder()
                 where = wb.build({"id": uid})
                 row = await conn.fetchrow(
@@ -1218,7 +1222,7 @@ async def transfer_cargo(from_user_id: str, to_user_id: str, from_update: dict, 
                 )
                 if row is None:
                     raise ValueError(f"Utilizador {uid} não encontrado")
-                new_doc = _mongo_update(dict(row["doc"]), update)
+                new_doc = transform(dict(row["doc"]))
                 await conn.execute(
                     f"UPDATE {_quote_ident('users')} SET doc=$1 WHERE pk=$2",
                     new_doc,
