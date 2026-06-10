@@ -407,7 +407,13 @@ async def reset_password(request: Request, data: PasswordResetConfirm):
         raise HTTPException(status_code=400, detail="A senha deve ter pelo menos 6 caracteres")
 
     hashed = hash_password(data.new_password)
-    await db.users.update_one({"email": reset_doc["email"]}, {"$set": {"password": hashed}})
+    # password_changed_at invalida tokens/sessões emitidos ANTES do reset
+    # (auth.token_predates_password_change) — expulsa um intruso que mantenha
+    # uma sessão aberta. O utilizador volta a entrar com a nova senha.
+    await db.users.update_one(
+        {"email": reset_doc["email"]},
+        {"$set": {"password": hashed, "password_changed_at": datetime.now(timezone.utc).isoformat()}},
+    )
     await db.password_resets.update_one({"token": data.token}, {"$set": {"used": True}})
 
     # Audit log da reset bem-sucedida — util para investigacao de account takeover.
