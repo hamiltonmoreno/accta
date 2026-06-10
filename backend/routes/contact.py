@@ -66,6 +66,7 @@ def _contact_email_html(name: str, email: str, subject: str, message: str) -> st
 
 @router.post("/contact")
 @limiter.limit("5/minute")
+@limiter.limit("20/day")  # tecto diário por IP — trava spam lento ao CONTACT_EMAIL
 async def submit_contact(request: Request, data: ContactRequest):
     if len(data.message.strip()) < 10:
         raise HTTPException(status_code=400, detail="Mensagem demasiado curta")

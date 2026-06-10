@@ -62,12 +62,18 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
         )
     member_id = data.member_id or await next_member_id()
 
+    # Contrato explícito: role inválido (incl. "admin", que nunca se atribui
+    # por convite) devolve 422 em vez do antigo fallback silencioso p/ "socio",
+    # que mascarava erros do chamador.
+    if data.role not in ("socio", "financeiro", "moderador"):
+        raise HTTPException(status_code=422, detail="Role inválido: use socio, financeiro ou moderador")
+
     user_doc = {
         "id": user_id,
         "name": data.name,
         "email": data.email,
         "password": "",
-        "role": data.role if data.role in ["socio", "financeiro", "moderador"] else "socio",
+        "role": data.role,
         "status": "pendente_convite",
         "account_type": "member",
         "cargo": cargo_key,

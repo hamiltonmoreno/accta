@@ -145,10 +145,17 @@ def registration_rejected_email_html(name: str, reason: str = None) -> str:
     return _base_template(content)
 
 
+def _mask_email(addr: str) -> str:
+    """PII nos logs: mascara o local-part (ab***@dominio) — logs centralizados
+    não devem acumular emails completos de utilizadores."""
+    local, _, domain = (addr or "").partition("@")
+    return f"{local[:2]}***@{domain}" if domain else "***"
+
+
 async def send_email(to: str, subject: str, html: str) -> dict:
     """Send email via Resend API (non-blocking)."""
     if not RESEND_API_KEY:
-        logger.warning(f"RESEND_API_KEY not set. Email to {to} not sent.")
+        logger.warning(f"RESEND_API_KEY not set. Email to {_mask_email(to)} not sent.")
         return {"status": "skipped", "reason": "no_api_key"}
 
     params = {
@@ -163,13 +170,13 @@ async def send_email(to: str, subject: str, html: str) -> dict:
         # aguarda este resultado (ex.: convite/aprovação de admin) — sem isto o
         # request ficava pendurado até ao timeout do cliente HTTP.
         result = await asyncio.wait_for(asyncio.to_thread(resend.Emails.send, params), timeout=15)
-        logger.info(f"Email sent to {to}: {result.get('id', 'ok')}")
+        logger.info(f"Email sent to {_mask_email(to)}: {result.get('id', 'ok')}")
         return {"status": "sent", "email_id": result.get("id")}
     except TimeoutError:
-        logger.error(f"Timeout (15s) ao enviar email para {to}")
+        logger.error(f"Timeout (15s) ao enviar email para {_mask_email(to)}")
         return {"status": "failed", "error": "timeout"}
     except Exception as e:
-        logger.error(f"Failed to send email to {to}: {str(e)}")
+        logger.error(f"Failed to send email to {_mask_email(to)}: {str(e)}")
         return {"status": "failed", "error": str(e)}
 
 
