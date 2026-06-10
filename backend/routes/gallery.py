@@ -18,10 +18,13 @@ GALLERY_DIR = UPLOAD_DIR / "gallery"
 GALLERY_DIR.mkdir(exist_ok=True)
 
 
-async def _recompute_cover_if_needed(album_id: str, removed_url: str) -> None:
+async def _recompute_cover_if_needed(album_id: str | None, removed_url: str) -> None:
     """Se a foto removida/rejeitada era a capa do álbum, recalcula a capa para a
     foto aprovada mais recente (ou limpa-a). Sem isto, `cover_url` ficava a
-    apontar para um ficheiro já apagado."""
+    apontar para um ficheiro já apagado. Docs jsonb são schemaless — foto sem
+    `album_id` não tem capa a recalcular."""
+    if not album_id:
+        return
     album = await db.gallery_albums.find_one({"id": album_id}, {"_id": 0, "cover_url": 1})
     if not album or album.get("cover_url") != removed_url:
         return
@@ -285,7 +288,7 @@ async def reject_photo(photo_id: str, current_user: User = Depends(get_current_u
     delete_upload_file(photo.get("url", ""))
 
     await db.gallery_photos.delete_one({"id": photo_id})
-    await _recompute_cover_if_needed(photo["album_id"], photo.get("url", ""))
+    await _recompute_cover_if_needed(photo.get("album_id"), photo.get("url", ""))
 
     if photo.get("uploaded_by"):
         await create_notification(
@@ -314,6 +317,6 @@ async def delete_gallery_photo(photo_id: str, current_user: User = Depends(get_c
     delete_upload_file(photo.get("url", ""))
 
     await db.gallery_photos.delete_one({"id": photo_id})
-    await _recompute_cover_if_needed(photo["album_id"], photo.get("url", ""))
+    await _recompute_cover_if_needed(photo.get("album_id"), photo.get("url", ""))
     await create_audit_log(current_user.id, "gallery_photo_deleted", photo_id)
     return {"message": "Foto removida"}
