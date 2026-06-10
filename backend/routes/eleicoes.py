@@ -591,19 +591,22 @@ async def proclamar(eleicao_id: str, request: Request, current_user: User = Depe
     if not lista:
         raise HTTPException(status_code=404, detail="Lista vencedora não encontrada")
 
-    # Cria os mandatos PRIMEIRO e só depois marca "proclamada" via CAS.
-    # _proclaim_list é idempotente (não recria mandatos da mesma eleição), por
-    # isso se falhar a meio o status permanece "apurada" e a proclamação é
-    # re-tentável (P1 Codex). O CAS final apurada->proclamada garante
-    # exactamente-uma-vez sob concorrência sem deixar a eleição "proclamada"
-    # sem mandatos persistidos.
-    posse, proclaimed = await _proclaim_list(eleicao, lista, current_user.id)
-    claimed = await db.eleicoes.update_one(
-        {"id": eleicao_id, "status": "apurada"},
+    # CAS: reivindica a proclamação atomicamente (apurada → proclamando) ANTES de
+    # criar mandatos. Sem isto, duas chamadas concorrentes passavam o check em
+    # Python e ambas corriam _proclaim_list, duplicando mandatos no cargo_history.
+    claim = await db.eleicoes.update_one({"id": eleicao_id, "status": "apurada"}, {"$set": {"status": "proclamando"}})
+    if claim.modified_count == 0:
+        raise HTTPException(status_code=409, detail="Eleição já está a ser proclamada ou já foi proclamada.")
+    try:
+        posse, proclaimed = await _proclaim_list(eleicao, lista, current_user.id)
+    except Exception:
+        # Reverte o claim para não deixar a eleição presa em "proclamando" (retry).
+        await db.eleicoes.update_one({"id": eleicao_id, "status": "proclamando"}, {"$set": {"status": "apurada"}})
+        raise
+    await db.eleicoes.update_one(
+        {"id": eleicao_id},
         {"$set": {"status": "proclamada", "resultado": {**resultado, "posse_em": posse, "proclaimed": proclaimed}}},
     )
-    if claimed.modified_count == 0:
-        raise HTTPException(status_code=409, detail="A eleição já foi proclamada.")
     await create_audit_log(
         current_user.id,
         "eleicao_proclamada",

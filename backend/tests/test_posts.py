@@ -26,6 +26,9 @@ pytestmark = [pytest.mark.unit, pytest.mark.asyncio]
 
 def _cursor(items):
     cur = MagicMock()
+    cur.sort.return_value = cur
+    cur.skip.return_value = cur
+    cur.limit.return_value = cur
     cur.to_list = AsyncMock(return_value=list(items))
     return cur
 
@@ -93,13 +96,18 @@ class TestListVisibility:
             await p_route.get_posts(visibility="socios", skip=0, limit=100, current_user=None)
         assert exc.value.status_code == 401
 
-    async def test_ordena_por_data_efetiva_desc(self, env):
-        # 'a' criado em Jan mas publicado em Maio; 'b' criado em Abril sem published_at.
-        a = _doc(id="a", title="A", created_at="2026-01-01T00:00:00+00:00", published_at="2026-05-01T00:00:00+00:00")
-        b = _doc(id="b", title="B", created_at="2026-04-01T00:00:00+00:00", published_at=None)
-        env.posts.find = MagicMock(return_value=_cursor([b, a]))
-        result = await p_route.get_posts(skip=0, limit=100, current_user=None)
-        assert [p["id"] for p in result] == ["a", "b"]  # D9: a (publicado Maio) primeiro
+    async def test_ordena_e_pagina_no_dao(self, env):
+        # A ordenação por data efetiva (COALESCE published_at→created_at) + a
+        # paginação são agora delegadas ao DAO (sem teto de 1000 nem reordenação
+        # em memória): a rota passa o sort certo + skip/limit e devolve a ordem
+        # que o DAO retornar.
+        cur = _cursor([{"id": "a"}, {"id": "b"}])
+        env.posts.find = MagicMock(return_value=cur)
+        result = await p_route.get_posts(skip=5, limit=20, current_user=None)
+        cur.sort.assert_called_once_with([(("published_at", "created_at"), -1)])
+        cur.skip.assert_called_once_with(5)
+        cur.limit.assert_called_once_with(20)
+        assert [p["id"] for p in result] == ["a", "b"]  # ordem do DAO preservada
 
 
 # --------------------------------------------------------------------------- #

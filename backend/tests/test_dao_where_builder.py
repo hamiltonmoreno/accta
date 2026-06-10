@@ -40,3 +40,28 @@ def test_membership_value_rendered_as_text():
     wb.build({"team_members": "user-123"})
     assert "user-123" in wb.params
     assert '["user-123"]' not in wb.params  # não a forma jsonb-array antiga
+
+
+# --------------------------------------------------------------------------- #
+# _order_by — sort COALESCE de campos alternativos (data efetiva de posts)
+# --------------------------------------------------------------------------- #
+
+from database import _order_by  # noqa: E402
+
+
+def test_order_by_single_field_desc():
+    sql = _order_by([("created_at", -1)])
+    assert "ORDER BY" in sql
+    assert "(doc->>'created_at') DESC" in sql
+    assert "COALESCE" not in sql
+
+
+def test_order_by_coalesce_alternativos():
+    # Campo dado como tupla → COALESCE pela 1.ª chave presente (published_at,
+    # com fallback created_at): a data efetiva de _order_by sem materializar campo.
+    sql = _order_by([(("published_at", "created_at"), -1)])
+    assert "COALESCE((doc->>'published_at'), (doc->>'created_at')) DESC" in sql
+
+
+def test_order_by_vazio():
+    assert _order_by(None) == ""

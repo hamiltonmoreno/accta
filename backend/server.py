@@ -9,6 +9,7 @@ from slowapi.errors import RateLimitExceeded
 from auth import COOKIE_NAME
 from database import db, UPLOAD_DIR, ensure_schema, close_pool, ping
 from routes import api_router
+import governance
 import os
 import logging
 import uuid
@@ -199,21 +200,17 @@ async def _bootstrap_admin_if_requested():
             "password": hash_password(password),
             "role": "admin",
             "status": "ativo",
-            "cargo": "Administrador",
+            # Conta de sistema: sem cargo institucional (um `cargo` não-canónico
+            # como "Administrador" deixava is_direcao/is_mesa_ag inconsistentes).
+            # Acesso total vem do role=admin; privilégios derivam de governance
+            # (fonte única) em vez de uma lista hardcoded que ia divergindo.
+            "cargo": None,
             "member_id": "ACCTA-ADMIN",
             "license_number": "",
             "department": "Direcao",
             "phone_number": "",
             "admission_date": now,
-            "privileges": [
-                "manage_users",
-                "manage_finances",
-                "manage_events",
-                "manage_documents",
-                "moderate_content",
-                "manage_benefits",
-                "view_audit_logs",
-            ],
+            "privileges": list(governance.PRIVILEGES),
             "consent_data": True,
             "qr_code_hash": hashlib.sha256(f"accta-wallet-{user_id}".encode()).hexdigest(),
             "last_login_at": None,

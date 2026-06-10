@@ -28,7 +28,7 @@ paths:
   `$match/$group($sum/$cond)/$count/$sort/$limit/$project`. If a new op is
   needed, extend the DAO in `database.py` — keep the Mongo-style call sites.
 
-## Collections & Schema (36 tables)
+## Collections & Schema (65 tables = `len(database.COLLECTIONS)`)
 - **users**: email (unique), role, status, invite_token, qr_code_hash,
   `account_type` (member|technical), `member_id` (immutable; via `member_id_seq`),
   `member_category` (fundador|ordinario|honorario), `orgao` (denormalized from

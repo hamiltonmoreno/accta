@@ -396,11 +396,19 @@ def _order_by(sort_spec) -> str:
         sort_spec = [(sort_spec, 1)]
     elif isinstance(sort_spec, tuple):
         sort_spec = [sort_spec]
+    def _lit(name: str) -> str:
+        return "'" + name.replace("'", "''") + "'"
+
     pieces: list[str] = []
     for field, direction in sort_spec:
         d = "DESC" if int(direction) < 0 else "ASC"
-        lit = "'" + field.replace("'", "''") + "'"
-        col = f"(doc->>{lit})"
+        if isinstance(field, (tuple, list)):
+            # COALESCE de campos alternativos: ordena pelo 1.º presente (ex.
+            # published_at→created_at), preservando a semântica de uma chave
+            # de ordenação derivada sem materializar um campo extra.
+            col = "COALESCE(" + ", ".join(f"(doc->>{_lit(f)})" for f in field) + ")"
+        else:
+            col = f"(doc->>{_lit(field)})"
         # numeric-aware: sort numbers numerically, everything else (ISO
         # dates, booleans, text) lexically — correct for all real sorts.
         pieces.append(f"CASE WHEN {col} ~ '^-?[0-9]+(\\.[0-9]+)?$' THEN ({col})::numeric END {d} NULLS LAST")
@@ -1044,6 +1052,49 @@ _AUDIT_IMMUTABILITY_DDL: tuple[str, ...] = (
 )
 
 
+# RLS auto-enable (review Supabase 2026-06-07) — DEFESA EM PROFUNDIDADE contra a
+# superfície do Data API (PostgREST). A app fala direto com o Postgres como role
+# `postgres` (owner/bypassrls) e faz toda a autorização em Python; NÃO usa o Data
+# API. Mas o Supabase concede por omissão DML a `anon`/`authenticated` em todas as
+# tabelas de `public` — quem tiver a `anon` key poderia ler/escrever via REST. A
+# proteção é **RLS ON + 0 policies = deny-all** para esses roles; o role da app
+# (owner/bypassrls) não é afetado. Este bloco garante essa postura em código:
+#   (1) backfill — ativa RLS em qualquer tabela de `public` que ainda não a tenha;
+#   (2) event trigger `ensure_rls` — ativa RLS em cada tabela nova (idempotente;
+#       `CREATE EVENT TRIGGER` não tem OR REPLACE, daí o guard IF NOT EXISTS).
+# Como o trigger de audit, é **non-fatal**: criar event trigger exige superuser;
+# numa instalação endurecida (roles separados) é o operador que o instala e a
+# garantia autoritativa é dele — ver runbook **F5.6** (REVOKE/Data API off).
+_RLS_BACKFILL_DDL: str = (
+    "DO $$ DECLARE t record; BEGIN "
+    "FOR t IN SELECT c.oid::regclass AS ident FROM pg_class c "
+    "JOIN pg_namespace n ON n.oid = c.relnamespace "
+    "WHERE n.nspname = 'public' AND c.relkind = 'r' AND NOT c.relrowsecurity LOOP "
+    "EXECUTE format('alter table %s enable row level security', t.ident); "
+    "END LOOP; END $$"
+)
+_RLS_AUTO_ENABLE_DDL: tuple[str, ...] = (
+    # Corpo fiel ao já instalado em produção (pg_get_functiondef) — CREATE OR
+    # REPLACE é no-op contra a DB atual; só repõe a função se for reconstruída.
+    "CREATE OR REPLACE FUNCTION public.rls_auto_enable() "
+    "RETURNS event_trigger LANGUAGE plpgsql SECURITY DEFINER "
+    "SET search_path TO 'pg_catalog' AS $$ "
+    "DECLARE cmd record; BEGIN "
+    "FOR cmd IN SELECT * FROM pg_event_trigger_ddl_commands() "
+    "WHERE command_tag IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO') "
+    "AND object_type IN ('table','partitioned table') LOOP "
+    "IF cmd.schema_name = 'public' THEN BEGIN "
+    "EXECUTE format('alter table if exists %s enable row level security', cmd.object_identity); "
+    "EXCEPTION WHEN OTHERS THEN "
+    "RAISE LOG 'rls_auto_enable: failed to enable RLS on %', cmd.object_identity; "
+    "END; END IF; END LOOP; END; $$",
+    "DO $$ BEGIN "
+    "IF NOT EXISTS (SELECT 1 FROM pg_event_trigger WHERE evtname = 'ensure_rls') THEN "
+    "CREATE EVENT TRIGGER ensure_rls ON ddl_command_end EXECUTE FUNCTION public.rls_auto_enable(); "
+    "END IF; END $$",
+)
+
+
 async def ensure_schema() -> None:
     """Create all tables + indexes. Idempotent (safe to re-run on every
     startup) — same operational contract as the old ensure_indexes()."""
@@ -1092,6 +1143,21 @@ async def ensure_schema() -> None:
                 "a imutabilidade autoritativa e o REVOKE/role-separation do operador (runbook F5.1): %s",
                 e,
             )
+        # RLS em todas as tabelas de public (deny-all p/ o Data API) — ver nota em
+        # _RLS_AUTO_ENABLE_DDL. Backfill e trigger em try/except independentes: o
+        # backfill (precisa só de owner) protege as tabelas atuais mesmo que a
+        # criação do event trigger (precisa de superuser) não seja permitida.
+        try:
+            await conn.execute(_RLS_BACKFILL_DDL)
+        except Exception as e:  # noqa: BLE001 - non-fatal, ver runbook F5.6
+            logger.warning("RLS backfill (defesa em profundidade) NAO aplicado — autoritativo via operador (runbook F5.6): %s", e)
+        try:
+            async with conn.transaction():
+                for ddl in _RLS_AUTO_ENABLE_DDL:
+                    await conn.execute(ddl)
+            logger.info("RLS auto-enable event trigger (defesa em profundidade) instalado")
+        except Exception as e:  # noqa: BLE001 - non-fatal, ver runbook F5.6
+            logger.warning("RLS auto-enable event trigger NAO instalado — autoritativo via operador (runbook F5.6): %s", e)
     logger.info("PostgreSQL schema and indexes ensured")
 
 
@@ -1302,4 +1368,54 @@ async def cast_assembleia_nominal_vote(deliberacao_id: str, user_id: str, voto_d
             await conn.execute(
                 f"INSERT INTO {_quote_ident('assembleia_votos')} (doc) VALUES ($1)",
                 voto_doc,
+            )
+
+
+async def register_presenca_locked(
+    assembleia_id: str,
+    claimed_ids: list[str],
+    presenca_doc: dict,
+    allowed_statuses: tuple[str, ...] = ("convocada", "em_curso"),
+) -> None:
+    """Regista uma presença de assembleia SOB lock da linha da assembleia.
+
+    Serializa todos os check-ins concorrentes da MESMA assembleia: numa única
+    transação trava a assembleia (`FOR UPDATE`), re-confirma que está aberta e
+    que nenhum dos `claimed_ids` (o próprio + representados) já está presente ou
+    representado, e só então insere. Fecha a janela em que dois registos
+    concorrentes reivindicavam o mesmo representado — o índice único
+    `ux_assembpres_assemb_user` só cobre `user_id`, não `representados`.
+
+    Levanta `ValueError("not_found" | "not_open" | "duplicate:<ids>")`; em
+    contenção extrema do pool levanta `asyncpg.exceptions.LockNotAvailableError`.
+    """
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute("SET LOCAL lock_timeout = '2s'")
+            row = await conn.fetchrow(
+                f"SELECT pk, doc FROM {_quote_ident('assembleias')} "
+                "WHERE doc->>'id' = $1 LIMIT 1 FOR UPDATE",
+                assembleia_id,
+            )
+            if row is None:
+                raise ValueError("not_found")
+            if (row["doc"] or {}).get("status") not in allowed_statuses:
+                raise ValueError("not_open")
+            rows = await conn.fetch(
+                f"SELECT doc FROM {_quote_ident('assembleia_presencas')} WHERE doc->>'assembleia_id' = $1",
+                assembleia_id,
+            )
+            already: set[str] = set()
+            for r in rows:
+                d = r["doc"] or {}
+                if d.get("user_id"):
+                    already.add(d["user_id"])
+                already.update(d.get("representados") or [])
+            conflict = sorted(set(claimed_ids) & already)
+            if conflict:
+                raise ValueError("duplicate:" + ",".join(conflict))
+            await conn.execute(
+                f"INSERT INTO {_quote_ident('assembleia_presencas')} (doc) VALUES ($1)",
+                presenca_doc,
             )

@@ -107,6 +107,83 @@ async def test_revoke_token_inserts_with_expires_at(mock_db):
 
 
 # ============================================================
+# Revogação de sessões no reset de password (password_changed_at + iat)
+# ============================================================
+
+
+def test_create_access_token_includes_iat():
+    """Tokens novos trazem iat (emissão) para comparar com password_changed_at."""
+    token = auth.create_access_token({"sub": "u1"})
+    payload = jwt.decode(token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
+    assert isinstance(payload.get("iat"), int)
+    assert payload["iat"] <= payload["exp"]
+
+
+def test_token_predates_password_change_no_field_is_fresh():
+    # Utilizador que nunca fez reset → nunca é considerado obsoleto.
+    assert auth.token_predates_password_change({"iat": 1000}, {}) is False
+
+
+def test_token_predates_password_change_older_token_is_stale():
+    changed = datetime.now(timezone.utc)
+    iat = int((changed - timedelta(minutes=5)).timestamp())  # emitido antes do reset
+    assert auth.token_predates_password_change({"iat": iat}, {"password_changed_at": changed.isoformat()}) is True
+
+
+def test_token_predates_password_change_newer_token_is_fresh():
+    changed = datetime.now(timezone.utc)
+    iat = int((changed + timedelta(minutes=5)).timestamp())  # emitido após o reset
+    assert auth.token_predates_password_change({"iat": iat}, {"password_changed_at": changed.isoformat()}) is False
+
+
+def test_token_predates_password_change_missing_iat_after_reset_is_stale():
+    # Token legado sem iat, mas o utilizador já fez reset → necessariamente antigo.
+    changed = datetime.now(timezone.utc).isoformat()
+    assert auth.token_predates_password_change({}, {"password_changed_at": changed}) is True
+
+
+def _mock_request_for(token: str):
+    class _MockRequest:
+        headers = {"Authorization": f"Bearer {token}"}
+        cookies = {}
+
+    return _MockRequest()
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_rejects_token_issued_before_password_change(mock_db):
+    mock_db.tokens_revoked = MagicMock()
+    mock_db.tokens_revoked.find_one = AsyncMock(return_value=None)  # não revogado
+    future_change = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
+    mock_db.users.find_one = AsyncMock(
+        return_value={
+            "id": "u1", "email": "x@y.com", "name": "X", "role": "socio",
+            "status": "ativo", "password_changed_at": future_change,
+        }
+    )
+    token = auth.create_access_token({"sub": "u1"})  # iat = agora < future_change
+    with pytest.raises(HTTPException) as exc:
+        await auth.get_current_user(_mock_request_for(token))
+    assert exc.value.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_accepts_token_issued_after_password_change(mock_db):
+    mock_db.tokens_revoked = MagicMock()
+    mock_db.tokens_revoked.find_one = AsyncMock(return_value=None)
+    past_change = (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
+    mock_db.users.find_one = AsyncMock(
+        return_value={
+            "id": "u1", "email": "x@y.com", "name": "X", "role": "socio",
+            "status": "ativo", "password_changed_at": past_change,
+        }
+    )
+    token = auth.create_access_token({"sub": "u1"})  # iat = agora > past_change
+    user = await auth.get_current_user(_mock_request_for(token))
+    assert user.id == "u1"
+
+
+# ============================================================
 # Account lockout (5 falhas em 15min)
 # ============================================================
 

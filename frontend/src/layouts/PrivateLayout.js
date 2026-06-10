@@ -4,28 +4,19 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { registrationAPI } from '../utils/api';
 import { queryKeys } from '../lib/queryClient';
-import { NotificationBell } from '../components/NotificationBell';
-import { BrandLogo } from '../components/BrandLogo';
-import { UserAvatar } from '../components/UserAvatar';
-import { USER_STATUS_CONFIG, USER_STATUS_FALLBACK, getStatusConfig } from '../lib/statusConfig';
+import { Header } from './components/Header';
 import {
   LayoutDashboard,
-  CreditCard,
   Vote,
   FileText,
-  MessageSquare,
   Gift,
   Users,
-  LogOut,
-  Menu,
   X,
   ClipboardList,
-  Bell,
   Calendar,
   DollarSign,
   ChevronsLeft,
   ChevronsRight,
-  UserCircle,
   FolderKanban,
   Camera,
   UserPlus,
@@ -38,40 +29,38 @@ import {
   Handshake,
   FileSignature,
   HelpCircle,
-  ShieldAlert,
-  Lightbulb,
   Medal,
   FileCheck,
   ScrollText,
   Megaphone,
-  Trophy,
   GraduationCap,
   BookOpen,
   Network,
+  Lightbulb,
+  ShieldAlert,
 } from 'lucide-react';
 
 const SIDEBAR_STORAGE_KEY = 'accta:sidebar-expanded';
 
 /* ========== GROUPED MENU SECTIONS ========== */
+// Mural e Ranking vivem no cabeçalho (atalhos de uso frequente). Aparência saiu
+// de Comunidade para "Configurações do sistema". Admin separado de Configurações.
 const menuSections = [
   {
     title: 'Painel',
     items: [
       { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['all'] },
-      { label: 'Ranking', path: '/ranking', icon: Trophy, roles: ['all'] },
-      { label: 'Meu Perfil', path: '/perfil', icon: UserCircle, roles: ['all'] },
-      { label: 'Carteira Digital', path: '/carteira', icon: CreditCard, roles: ['socio'] },
     ],
   },
   {
-    title: 'Gestão',
+    title: 'Atividade & Gestão',
     items: [
-      { label: 'Financeiro', path: '/financeiro', icon: DollarSign, roles: ['admin', 'financeiro'], privileges: ['view_finances_readonly', 'manage_finances'] },
-      { label: 'Co-aprovações', path: '/financeiro/co-aprovacoes', icon: FileCheck, roles: ['admin', 'financeiro'], privileges: ['view_finances_readonly', 'manage_finances'], match: 'direcao' },
-      { label: 'Projetos', path: '/projetos', icon: FolderKanban, roles: ['all'] },
       { label: 'Votações', path: '/votacoes', icon: Vote, roles: ['all'] },
       { label: 'Eventos', path: '/eventos', icon: Calendar, roles: ['all'] },
+      { label: 'Projetos', path: '/projetos', icon: FolderKanban, roles: ['all'] },
       { label: 'Documentos', path: '/documentos', icon: FileText, roles: ['all'] },
+      { label: 'Financeiro', path: '/financeiro', icon: DollarSign, roles: ['admin', 'financeiro'], privileges: ['view_finances_readonly', 'manage_finances'] },
+      { label: 'Co-aprovações', path: '/financeiro/co-aprovacoes', icon: FileCheck, roles: ['admin', 'financeiro'], privileges: ['view_finances_readonly', 'manage_finances'], match: 'direcao' },
     ],
   },
   {
@@ -79,8 +68,8 @@ const menuSections = [
     items: [
       { label: 'Assembleias', path: '/admin/assembleias', icon: Landmark, roles: ['all'] },
       { label: 'Eleições', path: '/admin/eleicoes', icon: ListChecks, roles: ['all'] },
-      { label: 'Honorários', path: '/governanca/honorarios', icon: Medal, roles: ['admin'], match: 'governanca' },
       { label: 'Regulamentos', path: '/regulamentos', icon: ScrollText, roles: ['all'] },
+      { label: 'Honorários', path: '/governanca/honorarios', icon: Medal, roles: ['admin'], match: 'governanca' },
       { label: 'Disciplina', path: '/admin/disciplinar', icon: Gavel, roles: ['admin'], match: 'direcao' },
     ],
   },
@@ -97,11 +86,9 @@ const menuSections = [
   {
     title: 'Comunidade',
     items: [
-      { label: 'Mural', path: '/mural', icon: MessageSquare, roles: ['all'] },
       { label: 'Galeria', path: '/galeria-admin', icon: Camera, roles: ['all'] },
-      { label: 'Notícias', path: '/admin/noticias', icon: Newspaper, roles: ['admin', 'moderador'] },
-      { label: 'Aparência', path: '/admin/aparencia', icon: Palette, roles: ['admin', 'moderador'] },
       { label: 'Benefícios', path: '/beneficios', icon: Gift, roles: ['all'] },
+      { label: 'Notícias', path: '/admin/noticias', icon: Newspaper, roles: ['admin', 'moderador'] },
     ],
   },
   {
@@ -117,14 +104,19 @@ const menuSections = [
     ],
   },
   {
-    title: 'Sistema',
+    title: 'Administração',
     items: [
-      { label: 'Notificações', path: '/notificacoes', icon: Bell, roles: ['all'] },
       { label: 'Pedidos de Inscrição', path: '/admin/pedidos-inscricao', icon: UserPlus, roles: ['admin'], badge: 'registration' },
       { label: 'Utilizadores', path: '/admin/usuarios', icon: Users, roles: ['admin'], privileges: ['manage_users'] },
       { label: 'Cargos & Mandatos', path: '/admin/cargos', icon: Award, roles: ['admin'], privileges: ['manage_users'] },
-      { label: 'Audit Logs', path: '/admin/logs', icon: ClipboardList, roles: ['admin'], privileges: ['view_audit_logs'] },
       { label: 'Comunicados', path: '/admin/comunicados', icon: Megaphone, roles: ['admin'], privileges: ['send_comunicados'] },
+      { label: 'Audit Logs', path: '/admin/logs', icon: ClipboardList, roles: ['admin'], privileges: ['view_audit_logs'] },
+    ],
+  },
+  {
+    title: 'Configurações do sistema',
+    items: [
+      { label: 'Aparência', path: '/admin/aparencia', icon: Palette, roles: ['admin', 'moderador'] },
     ],
   },
 ];
@@ -255,6 +247,12 @@ export const PrivateLayout = ({ children }) => {
 
   const currentPageTitle = getPageTitle(pathname);
 
+  // O título deixou de aparecer no cabeçalho (o corpo da página já o mostra) —
+  // passamos a usá-lo no título da aba do browser.
+  useEffect(() => {
+    document.title = `ACCTA — ${currentPageTitle}`;
+  }, [currentPageTitle]);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -285,25 +283,13 @@ export const PrivateLayout = ({ children }) => {
   /* ========== SIDEBAR CONTENT (shared desktop/mobile) ========== */
   const sidebarInner = ({ isMobile = false }) => (
     <div className="flex flex-col h-full">
-      {/* ---- Logo row ---- */}
-      <div className="flex items-center gap-2 px-3 py-4 min-h-[64px] border-b border-[var(--surface-border)]">
-        {/* Recolhida: mark compacto "AC". Expandida: marca gerida (BrandLogo /
-            SVG fallback) — spec-gestao-logo-marca §4.2. */}
-        {collapsed && !isMobile ? (
-          <span className="flex items-center justify-center min-w-[48px]">
-            <div className="w-9 h-9 bg-carmesim rounded-lg flex items-center justify-center">
-              <span className="text-white font-extrabold text-sm tracking-tight">AC</span>
-            </div>
-          </span>
-        ) : (
-          <BrandLogo className="h-9" />
-        )}
-
-        {/* Toggle expand/collapse — only on desktop */}
+      {/* ---- Top: toggle compacto (desktop) / fechar (mobile). Slim, sem o
+           "buraco" da antiga linha do logo — o menu estende-se para cima. ---- */}
+      <div className="flex items-center px-2 py-2">
         {!isMobile && (
           <button
             onClick={toggleSidebar}
-            className="ml-auto h-11 w-11 flex items-center justify-center rounded-md text-gray-500 hover:text-carmesim hover:bg-carmesim/10 transition-colors"
+            className="ml-auto h-8 w-8 flex items-center justify-center rounded-md text-gray-500 hover:text-carmesim hover:bg-carmesim/10 transition-colors"
             title={expanded ? 'Colapsar menu' : 'Expandir menu'}
             aria-label={expanded ? 'Colapsar menu' : 'Expandir menu'}
             aria-expanded={expanded}
@@ -313,13 +299,16 @@ export const PrivateLayout = ({ children }) => {
           </button>
         )}
         {isMobile && (
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="ml-auto p-1.5 rounded-md text-gray-400 hover:text-carmesim transition-colors"
-            aria-label="Fechar menu"
-          >
-            <X className="w-5 h-5" aria-hidden="true" />
-          </button>
+          <>
+            <span className="font-semibold text-sm text-grafite-auto">Menu</span>
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="ml-auto p-1.5 rounded-md text-gray-400 hover:text-carmesim transition-colors"
+              aria-label="Fechar menu"
+            >
+              <X className="w-5 h-5" aria-hidden="true" />
+            </button>
+          </>
         )}
       </div>
 
@@ -399,73 +388,30 @@ export const PrivateLayout = ({ children }) => {
           );
         })}
       </nav>
-
-      {/* ---- Profile & Logout ---- */}
-      <div className="px-2 py-3 border-t border-[var(--surface-border)]">
-        {/* User profile */}
-        <div className="flex items-center gap-3 px-1 mb-2">
-          <UserAvatar size="sm" name={user?.name} photoUrl={user?.photo_url} />
-          <div
-            className={`min-w-0 flex-1 transition-opacity duration-300 ${
-              collapsed && !isMobile ? 'opacity-0 pointer-events-none w-0' : 'opacity-100'
-            }`}
-          >
-            <div className="text-sm font-semibold truncate text-grafite-auto">{user?.name}</div>
-            <div className="text-xs truncate text-muted-auto">{user?.email}</div>
-          </div>
-        </div>
-
-        {/* Status badge — só para estados não-'ativo'; tom semântico por estado
-            (pendente_* warning · inativo neutro · rejeitado erro) via statusConfig */}
-        {user?.status && user.status !== 'ativo' && !collapsed && (() => {
-          const sc = getStatusConfig(USER_STATUS_CONFIG, user.status, USER_STATUS_FALLBACK);
-          const StatusIcon = sc.icon;
-          return (
-            <div className={`mx-1 mb-2 px-2 py-1 rounded-md text-xs uppercase tracking-wider font-semibold text-center flex items-center justify-center gap-1 ${sc.className}`}>
-              {StatusIcon && <StatusIcon className="h-3 w-3" />}
-              {sc.label}
-            </div>
-          );
-        })()}
-
-        {/* Logout button */}
-        <button
-          onClick={handleLogout}
-          aria-label="Sair"
-          className="w-full flex items-center rounded-lg transition-colors text-secondary-auto"
-          data-testid="logout-button"
-        >
-          <span className="flex items-center justify-center min-w-[48px] h-[40px]">
-            <LogOut className="w-[18px] h-[18px]" />
-          </span>
-          <span
-            className={`text-sm whitespace-nowrap transition-opacity duration-300 ${
-              collapsed && !isMobile ? 'opacity-0 pointer-events-none w-0' : 'opacity-100'
-            }`}
-          >
-            Sair
-          </span>
-        </button>
-      </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen flex bg-[var(--surface-bg)]">
-      {/* ======= Desktop Sidebar ======= */}
+    <div className="min-h-screen bg-[var(--surface-bg)]">
+      {/* ======= Cabeçalho fixo full-width ======= */}
+      <Header
+        onOpenMobileMenu={() => setMobileOpen(true)}
+        onLogout={handleLogout}
+        mobileMenuButtonRef={menuBtnRef}
+      />
+
+      {/* ======= Desktop Sidebar — começa ABAIXO do cabeçalho ======= */}
       <aside
-        className="hidden md:flex md:flex-col fixed h-screen z-30 transition-all duration-300 ease-in-out bg-[var(--surface-sidebar)] shadow-[0_0_6px_rgba(0,0,0,0.06)]"
+        className="hidden md:flex md:flex-col fixed left-0 top-[var(--header-h)] bottom-0 z-30 transition-all duration-300 ease-in-out bg-[var(--surface-sidebar)] shadow-[0_0_6px_rgba(0,0,0,0.06)]"
         style={{ width: sidebarWidth }}
         data-testid="desktop-sidebar"
       >
         {sidebarInner({ isMobile: false })}
       </aside>
 
-      {/* ======= Mobile Sidebar Overlay — CSS transitions, sem framer.
-          ease-spring (cubic-bezier 0.32,0.72,0,1) replica feel "premium"
-          dos animations Apple/iOS, mais polished que ease-out linear. */}
+      {/* ======= Mobile drawer + overlay (abaixo do cabeçalho) ======= */}
       <div
-        className={`fixed inset-0 bg-black/40 z-40 md:hidden backdrop-blur-sm transition-opacity duration-300 ease-spring ${
+        className={`fixed inset-x-0 bottom-0 top-[var(--header-h)] bg-black/40 z-40 md:hidden backdrop-blur-sm transition-opacity duration-300 ease-spring ${
           mobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setMobileOpen(false)}
@@ -473,7 +419,7 @@ export const PrivateLayout = ({ children }) => {
       />
       <aside
         ref={mobileNavRef}
-        className={`fixed left-0 top-0 bottom-0 z-50 md:hidden flex flex-col shadow-xl transition-transform duration-[280ms] ease-spring will-change-transform bg-[var(--surface-sidebar)] ${
+        className={`fixed left-0 top-[var(--header-h)] bottom-0 z-50 md:hidden flex flex-col shadow-xl transition-transform duration-[280ms] ease-spring will-change-transform bg-[var(--surface-sidebar)] ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{ width: SIDEBAR_W }}
@@ -483,55 +429,16 @@ export const PrivateLayout = ({ children }) => {
         {sidebarInner({ isMobile: true })}
       </aside>
 
-      {/* ======= Main Content ======= */}
-      <div className="flex-1 min-w-0">
-        {/* Mobile Header */}
-        <header className="md:hidden sticky top-0 z-30 backdrop-blur-md px-4 py-3 bg-[var(--surface-header)] border-b border-[var(--surface-border)]">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                ref={menuBtnRef}
-                onClick={() => setMobileOpen(true)}
-                className="p-2 -ml-2 rounded-lg transition-colors touch-target text-grafite-auto"
-                aria-label="Abrir menu"
-                data-testid="mobile-sidebar-button"
-              >
-                <Menu className="w-5 h-5" aria-hidden="true" />
-              </button>
-              <span className="font-bold text-base text-grafite-auto">{currentPageTitle}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <NotificationBell />
-              <UserAvatar size="xs" name={user?.name} photoUrl={user?.photo_url} />
-            </div>
-          </div>
-        </header>
-
-        {/* Desktop Top Bar */}
-        <header
-          className="hidden md:block sticky top-0 z-30 backdrop-blur-md py-3 pr-6 transition-all duration-300 bg-[var(--surface-header)] border-b border-[var(--surface-border)]"
-          style={{ paddingLeft: isDesktop ? `calc(${sidebarWidth}px + 1.5rem)` : undefined }}
-        >
-          <div className="flex items-center justify-between">
-            <h1 className="font-semibold text-base text-grafite-auto">{currentPageTitle}</h1>
-            <div className="flex items-center gap-3">
-              <NotificationBell />
-              <div className="flex items-center gap-2 pl-3 border-l border-[var(--surface-border)]">
-                <UserAvatar size="xs" name={user?.name} photoUrl={user?.photo_url} />
-                <span className="text-sm font-medium hidden lg:block text-grafite-auto">{user?.name}</span>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Page Content */}
-        <main
-          className="p-4 sm:p-6 animate-fadeIn transition-all duration-300"
-          style={{ paddingLeft: isDesktop ? `calc(${sidebarWidth}px + 1.5rem)` : undefined }}
-        >
-          {children}
-        </main>
-      </div>
+      {/* ======= Conteúdo ======= */}
+      <main
+        className="p-4 sm:p-6 animate-fadeIn transition-all duration-300"
+        style={{
+          marginTop: 'var(--header-h)',
+          marginLeft: isDesktop ? sidebarWidth : undefined,
+        }}
+      >
+        {children}
+      </main>
     </div>
   );
 };

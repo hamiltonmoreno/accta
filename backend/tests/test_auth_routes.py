@@ -18,7 +18,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock
 
 import pytest
-from fastapi import BackgroundTasks, Response
+from fastapi import BackgroundTasks, HTTPException, Response
 from starlette.requests import Request
 
 from routes import auth_routes
@@ -149,3 +149,51 @@ class TestSetupAccount:
         assert getattr(exc.value, "status_code", None) == 400
         # Conta nao activada -> nenhum welcome agendado.
         assert bt.tasks == []
+
+
+# --------------------------------------------------------------------------- #
+# Login: só contas ATIVAS autenticam (fix bypass via forgot/reset-password)
+# --------------------------------------------------------------------------- #
+
+
+class TestLoginStatusAllowlist:
+    """Regressão do bypass crítico: rejeitado/pendente_aprovacao/inativo não
+    devem autenticar mesmo com password válida (senão forgot+reset-password
+    contornavam aprovação/desativação)."""
+
+    def _stub_login_deps(self, monkeypatch):
+        monkeypatch.setattr(auth_routes, "is_account_locked", AsyncMock(return_value=None))
+        monkeypatch.setattr(auth_routes, "verify_password", lambda raw, hashed: True)
+        monkeypatch.setattr(auth_routes, "record_failed_login", AsyncMock(return_value=False))
+        monkeypatch.setattr(auth_routes, "reset_failed_logins", AsyncMock())
+        monkeypatch.setattr(auth_routes, "alert_admins_account_locked", AsyncMock())
+
+    @pytest.mark.parametrize("status", ["inativo", "rejeitado", "pendente_aprovacao", "pendente_convite"])
+    async def test_status_nao_ativo_403(self, setup_env, mock_db, monkeypatch, status):
+        from models import UserLogin
+
+        self._stub_login_deps(monkeypatch)
+        mock_db.users.find_one = AsyncMock(
+            return_value={"id": "u1", "email": "x@y.cv", "password": "hash", "status": status}
+        )
+        with pytest.raises(HTTPException) as exc:
+            await auth_routes.login(_request(), Response(), UserLogin(email="x@y.cv", password="segredo123"))
+        assert exc.value.status_code == 403
+
+    async def test_status_ativo_autentica(self, setup_env, mock_db, monkeypatch):
+        from models import UserLogin
+
+        self._stub_login_deps(monkeypatch)
+        mock_db.users.find_one = AsyncMock(
+            return_value={
+                "id": "u1",
+                "name": "X",
+                "email": "x@y.cv",
+                "password": "hash",
+                "status": "ativo",
+                "role": "socio",
+            }
+        )
+        result = await auth_routes.login(_request(), Response(), UserLogin(email="x@y.cv", password="segredo123"))
+        assert result.access_token
+        assert result.user.id == "u1"

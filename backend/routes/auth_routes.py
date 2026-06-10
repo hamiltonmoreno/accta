@@ -82,11 +82,18 @@ async def login(request: Request, response: Response, credentials: UserLogin):
             await alert_admins_account_locked(credentials.email)
         raise HTTPException(status_code=401, detail="Credenciais invalidas")
 
-    if user_doc.get("status") == "pendente_convite":
-        await create_audit_log(user_doc["id"], "login_failed", request=request, details={"reason": "pending_invite"})
-        raise HTTPException(
-            status_code=403, detail="Conta pendente de ativacao. Use o link de convite para definir a sua senha."
-        )
+    # Só contas ATIVAS autenticam. Bloquear apenas pendente_convite deixava
+    # pendente_aprovacao/rejeitado/inativo entrar: como forgot/reset-password
+    # não filtram por status, essas contas podiam definir uma senha e contornar
+    # a aprovação do admin ou a desativação. Allowlist explícita = fail-closed.
+    status = user_doc.get("status")
+    if status != "ativo":
+        await create_audit_log(user_doc["id"], "login_failed", request=request, details={"reason": f"status_{status}"})
+        if status == "pendente_convite":
+            raise HTTPException(
+                status_code=403, detail="Conta pendente de ativacao. Use o link de convite para definir a sua senha."
+            )
+        raise HTTPException(status_code=403, detail="Conta inativa. Contacte a administracao.")
 
     # Qualquer status != "ativo" (inativo por suspensão/expulsão,
     # pendente_aprovacao, rejeitado) não pode autenticar-se — caso contrário
@@ -372,7 +379,9 @@ async def forgot_password(request: Request, data: PasswordResetRequest):
     }
 
     user = await db.users.find_one({"email": data.email}, {"_id": 0})
-    if not user:
+    # Defesa-em-profundidade: só contas ativas recebem token de reset (o gate
+    # real é no login). Resposta genérica mantém-se para não revelar o status.
+    if not user or user.get("status") != "ativo":
         return generic_response
 
     token = str(uuid.uuid4())
@@ -415,7 +424,13 @@ async def reset_password(request: Request, data: PasswordResetConfirm):
     claimed = await db.password_resets.update_one({"token": data.token, "used": False}, {"$set": {"used": True}})
     if claimed.modified_count == 0:
         raise HTTPException(status_code=400, detail="Token invalido ou ja utilizado")
-    await db.users.update_one({"email": reset_doc["email"]}, {"$set": {"password": hashed}})
+    # password_changed_at invalida tokens/sessões emitidos ANTES do reset
+    # (auth.token_predates_password_change) — expulsa um intruso que mantenha
+    # uma sessão aberta. O utilizador volta a entrar com a nova senha.
+    await db.users.update_one(
+        {"email": reset_doc["email"]},
+        {"$set": {"password": hashed, "password_changed_at": datetime.now(timezone.utc).isoformat()}},
+    )
 
     # Audit log da reset bem-sucedida — util para investigacao de account takeover.
     user_doc = await db.users.find_one({"email": reset_doc["email"]}, {"_id": 0, "id": 1})

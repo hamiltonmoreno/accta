@@ -97,10 +97,36 @@ def can_manage_finances(user) -> bool:
 
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     # jti = identificador unico do token, usado pelo blocklist em /auth/logout.
-    to_encode.update({"exp": expire, "jti": str(uuid.uuid4())})
+    # iat = instante de emissao (epoch); usado para invalidar tokens emitidos
+    # ANTES de um reset de password (revogacao de sessoes — ver
+    # token_predates_password_change).
+    to_encode.update({"exp": expire, "iat": int(now.timestamp()), "jti": str(uuid.uuid4())})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def token_predates_password_change(payload: dict, user_doc: dict) -> bool:
+    """True se o token foi emitido ANTES de a password do utilizador ter sido
+    alterada (reset). Permite expulsar sessoes antigas apos um reset — o token
+    continua criptograficamente valido ate ao exp, mas deixa de ser aceite.
+
+    Utilizadores que nunca fizeram reset (sem `password_changed_at`) nao sao
+    afectados. Um token legado sem `iat` num utilizador que JA fez reset e
+    necessariamente anterior (tokens novos trazem iat) -> tratado como antigo.
+    """
+    changed = user_doc.get("password_changed_at")
+    if not changed:
+        return False
+    iat = payload.get("iat")
+    if iat is None:
+        return True
+    try:
+        changed_ts = int(datetime.fromisoformat(changed).timestamp())
+    except (ValueError, TypeError):
+        return False
+    return int(iat) < changed_ts
 
 
 async def is_token_revoked(jti: Optional[str]) -> bool:
@@ -178,6 +204,9 @@ async def get_current_user(request: Request):
         user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
         if user_doc is None:
             raise HTTPException(status_code=401, detail="Usuário não encontrado")
+        # Token emitido antes de um reset de password -> sessão antiga, rejeita.
+        if token_predates_password_change(payload, user_doc):
+            raise HTTPException(status_code=401, detail="Sessão expirada. Faça login novamente.")
         return User(**user_doc)
     except JWTError:
         raise HTTPException(status_code=401, detail="Token inválido")
@@ -210,6 +239,9 @@ async def get_user_from_token(token: str):
             return None
         user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
         if not user_doc:
+            return None
+        # Idem get_current_user: token anterior a um reset de password -> rejeita.
+        if token_predates_password_change(payload, user_doc):
             return None
         return User(**user_doc)
     except JWTError:

@@ -125,8 +125,10 @@ async def download_document(document_id: str, current_user: User = Depends(get_c
         raise HTTPException(status_code=404, detail="Documento não encontrado")
     ensure_can_access_document(current_user, doc)
 
-    accessed_at = await record_document_access(current_user.id, document_id)
+    # Resolve o ficheiro ANTES de registar o acesso: se faltar em disco (404),
+    # não queremos um document_accesses para um download que falhou.
     file_path = get_document_file_path(doc)
+    accessed_at = await record_document_access(current_user.id, document_id)
     response = FileResponse(file_path, filename=file_download_name(doc, file_path))
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-Document-Accessed-At"] = accessed_at

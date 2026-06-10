@@ -266,15 +266,18 @@ async def compute_financial_summary(
             rng["$lt"] = date_lt
         query["date"] = rng
     elif year:
-        # Sempre meia-aberto [start, end) com $lt — um end fechado tipo
-        # "{ano}-12-31T23:59:59" excluía timestamps com fracção de segundo
-        # ("...59.5") por comparação lexicográfica.
+        # Limite superior sempre exclusivo (início do período seguinte): datas
+        # são guardadas com offset/microssegundos (ex. ...T23:59:59+00:00), que
+        # ordenam lexicamente acima de "...T23:59:59" — um `$lte` no fim do ano
+        # deixava cair transações do último segundo do exercício.
+        start = f"{year}-01-01T00:00:00"
+        end = f"{year + 1}-01-01T00:00:00"
         if month:
             start = f"{year}-{month:02d}-01T00:00:00"
-            end = f"{year + 1}-01-01T00:00:00" if month == 12 else f"{year}-{month + 1:02d}-01T00:00:00"
-        else:
-            start = f"{year}-01-01T00:00:00"
-            end = f"{year + 1}-01-01T00:00:00"
+            if month == 12:
+                end = f"{year + 1}-01-01T00:00:00"
+            else:
+                end = f"{year}-{month + 1:02d}-01T00:00:00"
         query["date"] = {"$gte": start, "$lt": end}
 
     transactions = (
@@ -327,7 +330,7 @@ async def compute_dre_report(year: int) -> dict:
     # Meia-aberto [start, end) — ver compute_financial_summary: um end fechado
     # "{ano}-12-31T23:59:59" perdia timestamps com fracção de segundo.
     start = f"{year}-01-01T00:00:00"
-    end = f"{year + 1}-01-01T00:00:00"
+    end = f"{year + 1}-01-01T00:00:00"  # exclusivo: ver nota em compute_financial_summary
     transactions = (
         await db.transactions.find(
             {"date": {"$gte": start, "$lt": end}}, {"_id": 0, "date": 1, "type": 1, "amount": 1, "category": 1}
@@ -524,7 +527,7 @@ async def generate_monthly_quotas(
 
     # Get settings for quota amount
     settings = await db.finance_settings.find_one({"id": "finance_settings"}, {"_id": 0})
-    quota_amount = settings["quota_amount"] if settings else 2000.0
+    quota_amount = settings.get("quota_amount", 2000.0) if settings else 2000.0
     quota_desc = settings.get("quota_description", "Quota Mensal") if settings else "Quota Mensal"
 
     # Get all active members. Legacy member documents may not have account_type.

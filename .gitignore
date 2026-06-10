@@ -96,6 +96,8 @@ android-sdk/
 /dev-frontend.cmd
 /supabase_help.txt
 .claude/scheduled_tasks.lock
+.tmp_verify/
+.tmp_e2e/
 
 # Visual brainstorming companion
 .superpowers/

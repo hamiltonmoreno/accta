@@ -100,6 +100,9 @@ def gov_env(mock_db, monkeypatch):
     monkeypatch.setattr(a_route, "cast_assembleia_ballot", AsyncMock())
     # Voto nominal passou para DAO helper (TOCTOU fix) — default success.
     monkeypatch.setattr(a_route, "cast_assembleia_nominal_vote", AsyncMock())
+    # Presença passou para DAO helper com lock (fix dupla-contagem) — default
+    # success; testes que captam o doc inserido sobrepõem o side_effect.
+    monkeypatch.setattr(a_route, "register_presenca_locked", AsyncMock())
     return mock_db
 
 
@@ -249,7 +252,7 @@ class TestPresencas:
             )
         )
         captured = {}
-        gov_env.assembleia_presencas.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        a_route.register_presenca_locked.side_effect = lambda aid, claimed, doc, **kw: captured.update(doc)
 
         # `find` serve 2 queries: existentes (user_id/representados) e poder de voto.
         def _pres_find(query, proj=None):
@@ -706,7 +709,7 @@ class TestSelfCheckin:
         gov_env.users.find_one = AsyncMock(return_value=_voter_doc(socio_user.id))
         gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_find(existing=[], power=[{"voting_power": 1}]))
         captured = {}
-        gov_env.assembleia_presencas.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        a_route.register_presenca_locked.side_effect = lambda aid, claimed, doc, **kw: captured.update(doc)
         result = await a_route.self_checkin(
             assembleia_id="a1",
             request=_request(),
@@ -726,7 +729,7 @@ class TestSelfCheckin:
         gov_env.users.find_one = AsyncMock(return_value=_voter_doc(socio_user.id, member_category="honorario"))
         gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_find(existing=[], power=[{"voting_power": 0}]))
         captured = {}
-        gov_env.assembleia_presencas.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        a_route.register_presenca_locked.side_effect = lambda aid, claimed, doc, **kw: captured.update(doc)
         await a_route.self_checkin(
             assembleia_id="a1",
             request=_request(),
@@ -804,7 +807,7 @@ class TestCheckinScan:
         gov_env.users.find_one = AsyncMock(return_value=_voter_doc("scanned1"))
         gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_find(existing=[], power=[{"voting_power": 1}]))
         captured = {}
-        gov_env.assembleia_presencas.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        a_route.register_presenca_locked.side_effect = lambda aid, claimed, doc, **kw: captured.update(doc)
         result = await a_route.checkin_scan(
             assembleia_id="a1",
             request=_request(),
@@ -1544,6 +1547,7 @@ class TestRegistarContagem:
         assert exc.value.status_code == 403
 
     async def test_modo_errado_400(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value={"id": "a1", "status": "em_curso"})
         gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value=_delib(voting_mode="nominal"))
         with pytest.raises(HTTPException) as exc:
             await a_route.registar_contagem(
@@ -1556,6 +1560,7 @@ class TestRegistarContagem:
         assert exc.value.status_code == 400
 
     async def test_excede_base_400(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value={"id": "a1", "status": "em_curso"})
         gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value=_delib(voting_mode="braco_no_ar"))
         # base = present_power=2 - excluded_power=0 = 2; total 3 > 2.
         gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_rows([{"user_id": "u1", "voting_power": 2}]))
@@ -1570,6 +1575,7 @@ class TestRegistarContagem:
         assert exc.value.status_code == 400
 
     async def test_mesa_regista(self, gov_env):
+        gov_env.assembleias.find_one = AsyncMock(return_value={"id": "a1", "status": "em_curso"})
         gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value=_delib(voting_mode="braco_no_ar"))
         gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_rows([{"user_id": "u1", "voting_power": 5}]))
         captured = {}
@@ -1587,6 +1593,7 @@ class TestRegistarContagem:
     async def test_409_se_encerrada(self, gov_env):
         # CAS: se a deliberação já foi apurada entre o find_one e o update_one,
         # o filtro status="aberta" impede a sobrescrita e devolvemos 409.
+        gov_env.assembleias.find_one = AsyncMock(return_value={"id": "a1", "status": "em_curso"})
         gov_env.assembleia_deliberacoes.find_one = AsyncMock(return_value=_delib(voting_mode="braco_no_ar"))
         gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_rows([{"user_id": "u1", "voting_power": 5}]))
         gov_env.assembleia_deliberacoes.update_one = AsyncMock(return_value=MagicMock(modified_count=0))
@@ -1837,11 +1844,12 @@ class TestGetDeliberacao:
 class TestCheckinRaceUnique:
     async def test_corrida_unique_devolve_409(self, gov_env, socio_user):
         # I1: dois check-ins simultâneos do mesmo sócio passam a guarda aplicacional;
-        # o índice UNIQUE rejeita o segundo e o handler traduz para 409 limpo.
+        # o índice UNIQUE (dentro de register_presenca_locked) rejeita o segundo
+        # e o handler traduz para 409 limpo.
         gov_env.assembleias.find_one = AsyncMock(return_value=_sess())
         gov_env.users.find_one = AsyncMock(return_value=_voter_doc(socio_user.id))
         gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_find(existing=[], power=[{"voting_power": 1}]))
-        gov_env.assembleia_presencas.insert_one = AsyncMock(side_effect=asyncpg.UniqueViolationError("duplicate"))
+        a_route.register_presenca_locked.side_effect = asyncpg.UniqueViolationError("duplicate")
         with pytest.raises(HTTPException) as exc:
             await a_route.self_checkin(
                 assembleia_id="a1",
@@ -1850,6 +1858,37 @@ class TestCheckinRaceUnique:
                 current_user=socio_user,
             )
         assert exc.value.status_code == 409
+
+    async def test_representado_duplicado_concorrente_409(self, gov_env):
+        # #182: dois registos concorrentes reivindicam o mesmo representado. A
+        # guarda aplicacional vê tudo livre, mas a re-verificação atómica DENTRO
+        # de register_presenca_locked encontra r1 já registado e devolve 409+ids.
+        gov_env.assembleias.find_one = AsyncMock(
+            return_value={"id": "a1", "status": "convocada", "quorum_required": 6, "eligible_voters_count": 10}
+        )
+        gov_env.users.find_one = AsyncMock(
+            return_value={
+                "id": "u1",
+                "account_type": "member",
+                "status": "ativo",
+                "member_category": "ordinario",
+                "cargo": "socio",
+            }
+        )
+        gov_env.users.find = MagicMock(
+            return_value=_cursor([{"id": "r1", "account_type": "member", "status": "ativo", "member_category": "ordinario"}])
+        )
+        gov_env.assembleia_presencas.find = MagicMock(side_effect=_pres_find(existing=[], power=[{"voting_power": 1}]))
+        a_route.register_presenca_locked.side_effect = ValueError("duplicate:r1")
+        with pytest.raises(HTTPException) as exc:
+            await a_route.register_presenca(
+                assembleia_id="a1",
+                request=_request(),
+                data=AssembleiaPresencaCreate(user_id="u1", representados=["r1"]),
+                current_user=_mesa_ag(),
+            )
+        assert exc.value.status_code == 409
+        assert "r1" in exc.value.detail
 
 
 class TestGetAssembleiaLeak:
