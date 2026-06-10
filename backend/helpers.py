@@ -141,7 +141,16 @@ async def is_account_locked(email: str) -> Optional[datetime]:
         sort=[("attempted_at", 1)],
     )
     if oldest_in_window:
-        return oldest_in_window["attempted_at"] + timedelta(minutes=LOCKOUT_WINDOW_MINUTES)
+        oldest = oldest_in_window["attempted_at"]
+        # Defesa: uma linha legada/malformada pode ter ficado como str (a
+        # rehidratação do DAO é best-effort). Coage antes de somar timedelta
+        # para não rebentar o login com TypeError.
+        if isinstance(oldest, str):
+            try:
+                oldest = datetime.fromisoformat(oldest)
+            except ValueError:
+                return now + timedelta(minutes=LOCKOUT_WINDOW_MINUTES)
+        return oldest + timedelta(minutes=LOCKOUT_WINDOW_MINUTES)
     return now + timedelta(minutes=LOCKOUT_WINDOW_MINUTES)
 
 
@@ -286,7 +295,7 @@ async def notify_all_active_users(type: str, title: str, message: str, link: Opt
 async def notify_admins(
     type: str, title: str, message: str, link: Optional[str] = None, exclude_id: Optional[str] = None
 ):
-    admins = await db.users.find({"role": "admin"}, {"_id": 0, "id": 1}).to_list(100)
+    admins = await db.users.find({"role": "admin"}, {"_id": 0, "id": 1}).to_list(None)
     admin_ids = [a["id"] for a in admins]
     await notify_users(admin_ids, type, title, message, link, exclude_id)
 
@@ -401,5 +410,5 @@ async def members_of_orgao(orgao: str) -> List[str]:
         matched = [u["id"] for u in users if matcher(u)]
         if matched:
             return matched
-    admins = await db.users.find({"role": "admin", "status": "ativo"}, {"_id": 0, "id": 1}).to_list(100)
+    admins = await db.users.find({"role": "admin", "status": "ativo"}, {"_id": 0, "id": 1}).to_list(None)
     return [a["id"] for a in admins]

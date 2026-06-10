@@ -547,22 +547,35 @@ async def transfer_cargo_endpoint(
     transition_id = str(uuid.uuid4())
     privileges = _resolve_privileges(cargo_key, data.privileges)
 
-    from_history = _close_active_mandates(from_user.get("cargo_history"), effective)
-    from_set = {"role": "socio", "cargo": "socio", "orgao": None, "privileges": [], "cargo_history": from_history}
-
-    to_history = _close_active_mandates(to_user.get("cargo_history"), effective)
+    # O mandato é estático (não depende de edições concorrentes) → construído
+    # uma vez aqui para o audit log. Já o cargo_history é recomputado DENTRO da
+    # transação (sobre o doc bloqueado, via transfer_cargo) para não sofrer
+    # lost-update contra promote/demote concorrentes — por isso passamos
+    # transformações doc->doc, não arrays pré-calculados a partir das leituras.
     mandate = _build_mandate(cargo_key, data.role, effective, current_user.id, data.elected_by, data.notes)
     mandate["transition_id"] = transition_id
-    to_history.append(mandate)
-    to_set = {
-        "role": data.role,
-        "cargo": cargo_key,
-        "orgao": orgao_of_cargo(cargo_key),
-        "privileges": privileges,
-        "cargo_history": to_history,
-    }
 
-    await transfer_cargo(data.from_user_id, data.to_user_id, {"$set": from_set}, {"$set": to_set})
+    def _demote(doc: dict) -> dict:
+        d = dict(doc)
+        d["role"] = "socio"
+        d["cargo"] = "socio"
+        d["orgao"] = None
+        d["privileges"] = []
+        d["cargo_history"] = _close_active_mandates(d.get("cargo_history"), effective)
+        return d
+
+    def _promote(doc: dict) -> dict:
+        d = dict(doc)
+        history = _close_active_mandates(d.get("cargo_history"), effective)
+        history.append(mandate)
+        d["role"] = data.role
+        d["cargo"] = cargo_key
+        d["orgao"] = orgao_of_cargo(cargo_key)
+        d["privileges"] = privileges
+        d["cargo_history"] = history
+        return d
+
+    await transfer_cargo(data.from_user_id, data.to_user_id, _demote, _promote)
 
     await create_audit_log(
         current_user.id,

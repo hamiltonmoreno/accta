@@ -19,7 +19,13 @@ async def get_personal_report(current_user: User = Depends(get_current_user)):
     signals = await gather_signal_counts(uid, "all", include_turnout=False)
 
     # Denominadores e sinais não pontuados (locais — não fazem parte do score).
-    total_events = await db.events.count_documents({"visibility": {"$in": ["publico", "socios"]}})
+    # O denominador inclui os eventos que o utilizador podia ver (publico/socios)
+    # MAIS qualquer evento restrito (direcao/privado) em que esteve presente —
+    # senão `events_attended` (que conta presenças em qualquer visibilidade)
+    # podia exceder `total_events` e dar um rácio > 100%.
+    total_events = await db.events.count_documents(
+        {"$or": [{"visibility": {"$in": ["publico", "socios"]}}, {"attendees": uid}]}
+    )
     total_polls = await db.polls.count_documents({"status": {"$in": ["aberta", "encerrada"]}})
     benefits_used = await db.benefit_validations.count_documents({"user_id": uid})
     photos_submitted = await db.gallery_photos.count_documents({"uploaded_by": uid})

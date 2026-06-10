@@ -362,16 +362,31 @@ class TestTransfer:
         transfer_mock.assert_awaited_once()
         args = transfer_mock.await_args.args
         assert args[0] == "a" and args[1] == "b"
-        from_set = args[2]["$set"]
-        to_set = args[3]["$set"]
+        # Agora a rota passa transformações doc->doc (aplicadas ao doc bloqueado
+        # dentro da transação, evitando lost-update). Aplicamo-las aos docs como
+        # o DAO faria sob lock.
+        demote, promote = args[2], args[3]
+        from_doc = demote(
+            {
+                "id": "a",
+                "cargo": "Presidente",
+                "cargo_history": [{"id": "m", "cargo": "Presidente", "fim": None, "inicio": "2024-01-01"}],
+            }
+        )
         # from volta a sócio base; mandato fechado; órgão limpo
-        assert from_set["cargo"] == "socio" and from_set["role"] == "socio"
-        assert from_set["orgao"] is None
-        assert from_set["cargo_history"][0]["fim"] is not None
-        # to recebe dir_presidente com defaults (todos os privilégios) + transition_id
-        assert to_set["cargo"] == "dir_presidente" and to_set["role"] == "admin"
-        assert to_set["orgao"] == "direcao"
-        new_mandate = to_set["cargo_history"][-1]
+        assert from_doc["cargo"] == "socio" and from_doc["role"] == "socio"
+        assert from_doc["orgao"] is None
+        assert from_doc["cargo_history"][0]["fim"] is not None
+        # to recebe dir_presidente com defaults (todos os privilégios) + transition_id.
+        # Regressão #189: a transformação opera sobre o cargo_history que LHE É
+        # PASSADO (o doc bloqueado), preservando um mandato adicionado entretanto
+        # por uma operação concorrente — sem lost-update.
+        concurrent = {"id": "x", "cargo": "dir_vogal", "fim": "2025-01-01", "inicio": "2024-01-01"}
+        to_doc = promote({"id": "b", "cargo": "Sócio", "cargo_history": [concurrent]})
+        assert to_doc["cargo"] == "dir_presidente" and to_doc["role"] == "admin"
+        assert to_doc["orgao"] == "direcao"
+        assert concurrent in to_doc["cargo_history"]  # mandato concorrente preservado
+        new_mandate = to_doc["cargo_history"][-1]
         assert new_mandate["cargo"] == "dir_presidente" and new_mandate["fim"] is None
         assert new_mandate["transition_id"] == result["transition_id"]
         assert new_mandate["elected_by"] == "AGA 2026"

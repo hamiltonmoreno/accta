@@ -54,6 +54,20 @@ async def create_poll(poll_data: PollCreate, current_user: User = Depends(get_cu
     poll = Poll(**poll_data.model_dump())
     poll_dict = poll.model_dump()
 
+    # Garante um id inteiro estável por opção. Sem ele, _poll_option_ids devolve
+    # vazio e vote() rejeita *todos* os votos ("Opção de voto inválida"). Não
+    # sobrescreve ids já enviados pelo cliente; preenche só os que faltam.
+    options = poll_dict.get("options", [])
+    used = {o["id"] for o in options if isinstance(o, dict) and isinstance(o.get("id"), int)}
+    next_id = (max(used) + 1) if used else 1
+    for opt in options:
+        if isinstance(opt, dict) and opt.get("id") is None:
+            while next_id in used:
+                next_id += 1
+            opt["id"] = next_id
+            used.add(next_id)
+            next_id += 1
+
     await db.polls.insert_one(poll_dict)
     await create_audit_log(current_user.id, f"Criou votação {poll.id}", poll.id)
     # Nota: votação nasce em "rascunho" — o broadcast "Nova Votação Aberta"
@@ -150,7 +164,9 @@ async def get_poll_results(poll_id: str, current_user: User = Depends(get_curren
     if poll.get("status") != "encerrada" and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Resultados disponíveis após o encerramento da votação")
 
-    votes = await db.user_votes.find({"poll_id": poll_id}, {"_id": 0}).to_list(1000)
+    # Sem teto: um cap de 1000 subcontava silenciosamente acima de 1000 votantes
+    # (paridade com o apuramento de honorários, que já usa to_list(None)).
+    votes = await db.user_votes.find({"poll_id": poll_id}, {"_id": 0}).to_list(None)
     results = {}
     for v in votes:
         option = v["vote_option"]

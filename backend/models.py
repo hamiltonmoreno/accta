@@ -868,6 +868,21 @@ class GalleryAlbumCreate(BaseModel):
     visibility: str = "public"
 
 
+class GalleryAlbumUpdate(BaseModel):
+    """PATCH parcial de álbum — todos os campos opcionais.
+
+    Usa-se com `model_dump(exclude_unset=True)` na rota: só os campos
+    efetivamente enviados são atualizados, o que distingue "não enviado" de
+    "enviado vazio" (ex.: `description=""` limpa o campo; omitido mantém-no).
+    """
+
+    title: Optional[str] = None
+    description: Optional[str] = None
+    cover_url: Optional[str] = None
+    order: Optional[int] = None
+    visibility: Optional[str] = None
+
+
 class GalleryPhoto(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))

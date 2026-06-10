@@ -211,6 +211,9 @@ async def delete_wall_comment(post_id: str, comment_id: str, current_user: User 
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     await db.wall_comments.delete_one({"id": comment_id})
-    await db.wall_posts.update_one({"id": post_id}, {"$inc": {"comment_count": -1}})
+    # Recomputa em vez de $inc -1 (sem floor, podia ficar negativo em
+    # legados/double-delete).
+    remaining = await db.wall_comments.count_documents({"post_id": post_id})
+    await db.wall_posts.update_one({"id": post_id}, {"$set": {"comment_count": remaining}})
     await create_audit_log(current_user.id, "wall_comment_deleted", comment_id, details={"post_id": post_id})
     return {"message": "Comentário removido"}

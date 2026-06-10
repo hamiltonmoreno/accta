@@ -22,7 +22,7 @@ from fastapi.responses import StreamingResponse
 
 import comunicados_service
 from auth import SECRET_KEY, _extract_token, get_current_user, get_user_from_token
-from database import cast_assembleia_ballot, cast_assembleia_nominal_vote, db
+from database import cast_assembleia_ballot, cast_assembleia_nominal_vote, db, register_presenca_locked
 from governance import (
     is_voting_member,
     required_absolute_majority,
@@ -248,14 +248,26 @@ async def _existing_present_ids(assembleia_id: str) -> set[str]:
 
 
 async def _finalize_checkin(a: dict, presenca: AssembleiaPresenca) -> dict:
-    """Insere a presença, recalcula o quórum, faz bump de sessão (SSE) e devolve
-    o snapshot de contagem. Partilhado por todos os caminhos de check-in."""
+    """Insere a presença SOB lock da assembleia (serializa check-ins concorrentes
+    e fecha a janela de dupla-contagem de representados — ver
+    `database.register_presenca_locked`), recalcula o quórum, faz bump de sessão
+    (SSE) e devolve o snapshot de contagem. Partilhado por todos os caminhos de
+    check-in."""
     doc = presenca.model_dump()
+    claimed = [doc["user_id"], *(doc.get("representados") or [])]
     try:
-        await db.assembleia_presencas.insert_one(doc)
+        await register_presenca_locked(a["id"], claimed, doc)
+    except ValueError as e:
+        msg = str(e)
+        if msg.startswith("duplicate"):
+            ids = msg.split(":", 1)[1] if ":" in msg else ""
+            detail = f"Já registado(s): {ids}" if ids else "A presença já está registada."
+            raise HTTPException(status_code=409, detail=detail)
+        if msg == "not_open":
+            raise HTTPException(status_code=400, detail="Assembleia não está aberta a presenças")
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
     except asyncpg.UniqueViolationError:
-        # Corrida de dois check-ins simultâneos do mesmo sócio: o índice UNIQUE
-        # (ux_assembpres_assemb_user) é o backstop atómico à guarda aplicacional.
+        # Backstop: índice UNIQUE (ux_assembpres_assemb_user) p/ o mesmo user_id.
         raise HTTPException(status_code=409, detail="A presença já está registada.")
     present_count, present_power = await _present_voting_power(a["id"])
     quorum_met = present_power >= a.get("quorum_required", 0)
@@ -1101,7 +1113,11 @@ async def registar_contagem(
 ):
     """A Mesa regista a contagem agregada do braço no ar (D5)."""
     _require_convene(current_user)
-    await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "id": 1})
+    a = await db.assembleias.find_one({"id": assembleia_id}, {"_id": 0, "id": 1, "status": 1})
+    if not a:
+        raise HTTPException(status_code=404, detail="Assembleia não encontrada")
+    if a.get("status") != "em_curso":
+        raise HTTPException(status_code=400, detail="A sessão não está a decorrer.")
     d = await _get_deliberacao(assembleia_id, did)
     if d.get("status") != "aberta":
         raise HTTPException(status_code=400, detail="A deliberação não está aberta.")
