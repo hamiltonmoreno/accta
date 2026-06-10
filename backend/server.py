@@ -7,6 +7,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from auth import COOKIE_NAME
+from config import IS_PROD
 from database import db, UPLOAD_DIR, ensure_schema, close_pool, ping
 from routes import api_router
 import governance
@@ -19,11 +20,10 @@ from datetime import datetime, timezone
 limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
 # Em produção, Swagger/ReDoc/openapi.json ficam desligados: expõem o mapa
 # completo da API a anónimos e não recebem a CSP (ver SecurityHeadersMiddleware).
-_IS_PROD = os.environ.get("ENVIRONMENT") == "production"
 app = FastAPI(
-    docs_url=None if _IS_PROD else "/docs",
-    redoc_url=None if _IS_PROD else "/redoc",
-    openapi_url=None if _IS_PROD else "/openapi.json",
+    docs_url=None if IS_PROD else "/docs",
+    redoc_url=None if IS_PROD else "/redoc",
+    openapi_url=None if IS_PROD else "/openapi.json",
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -147,7 +147,7 @@ cors_origins = (
 )
 
 # Em producao, recusamos arrancar com CORS=* (security misconfig).
-if not cors_origins and os.environ.get("ENVIRONMENT") == "production":
+if not cors_origins and IS_PROD:
     raise RuntimeError(
         "CORS_ORIGINS must be an explicit list in production. "
         "Set CORS_ORIGINS=https://your.domain (separe por virgulas para varias)."
