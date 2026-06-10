@@ -39,7 +39,7 @@ test('Carteira só aparece para sócios', () => {
   expect(screen.getByTestId('menu-carteira')).toHaveAttribute('href', '/carteira');
 });
 
-test('Mural e Ranking (itens mobile) aparecem para membros OU admins', () => {
+test('Ranking (sempre) e Mural (mobile) aparecem para membros OU admins', () => {
   // nem membro nem admin → não aparecem
   const { rerender } = render(<UserMenu user={baseUser} isSocio={true} isMember={false} isAdmin={false} onLogout={() => {}} />);
   expect(screen.queryByTestId('menu-ranking')).toBeNull();

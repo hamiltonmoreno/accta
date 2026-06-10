@@ -28,30 +28,29 @@ test('mostra logo, sino, atalhos e o menu de utilizador (sem título de página)
   expect(screen.getByTestId('brand-logo')).toBeInTheDocument();
   expect(screen.getByTestId('notif-bell')).toBeInTheDocument();
   expect(screen.getByTestId('user-menu')).toBeInTheDocument();
-  // Meu Perfil agora vive dentro do dropdown do avatar (sem ícone duplicado no cabeçalho).
+  // Meu Perfil e Ranking vivem dentro do dropdown do avatar (sem ícones soltos).
   expect(screen.queryByTestId('header-perfil')).toBeNull();
-  // Mural/Ranking continuam como atalhos para membros.
+  expect(screen.queryByTestId('header-ranking')).toBeNull();
+  // Mural continua como atalho de ícone para membros.
   expect(screen.getByTestId('header-mural')).toHaveAttribute('href', '/mural');
-  expect(screen.getByTestId('header-ranking')).toHaveAttribute('href', '/ranking');
 });
 
-test('Mural/Ranking aparecem para membro e para admin (mesmo técnico), e somem para técnico não-admin', () => {
+test('Mural (atalho do cabeçalho) aparece para membro e para admin (mesmo técnico), e some para técnico não-admin', () => {
   // membro sócio
   useAuth.mockReturnValue({ user: { name: 'X', role: 'socio', account_type: 'member' }, isAdmin: false });
   const { rerender } = render(<Header onOpenMobileMenu={() => {}} onLogout={() => {}} />);
-  expect(screen.getByTestId('header-ranking')).toBeInTheDocument();
   expect(screen.getByTestId('header-mural')).toBeInTheDocument();
+  // Ranking nunca é ícone solto no cabeçalho (vive no dropdown do avatar).
+  expect(screen.queryByTestId('header-ranking')).toBeNull();
 
   // conta técnica MAS admin → aparece (resolve o caso da conta de teste)
   useAuth.mockReturnValue({ user: { name: 'Sys', role: 'admin', account_type: 'technical' }, isAdmin: true });
   rerender(<Header onOpenMobileMenu={() => {}} onLogout={() => {}} />);
-  expect(screen.getByTestId('header-ranking')).toBeInTheDocument();
   expect(screen.getByTestId('header-mural')).toBeInTheDocument();
 
   // conta técnica não-admin → some
   useAuth.mockReturnValue({ user: { name: 'Bot', role: 'moderador', account_type: 'technical' }, isAdmin: false });
   rerender(<Header onOpenMobileMenu={() => {}} onLogout={() => {}} />);
-  expect(screen.queryByTestId('header-ranking')).toBeNull();
   expect(screen.queryByTestId('header-mural')).toBeNull();
   // O acesso ao perfil é sempre via dropdown do avatar (user-menu).
   expect(screen.getByTestId('user-menu')).toBeInTheDocument();
