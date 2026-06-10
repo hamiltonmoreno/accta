@@ -166,6 +166,9 @@ def extract_request_meta(request: Optional[Request]) -> dict:
     else:
         ip = peer
     ua = request.headers.get("user-agent", "")[:500]  # cap UA length
+    # Cap também ao IP: um XFF malformado atrás do proxy confiável não pode
+    # despejar um valor arbitrariamente longo no audit log (IPv6 max ~45).
+    ip = ip[:64] if ip else None
     return {"ip": ip, "user_agent": ua or None}
 
 

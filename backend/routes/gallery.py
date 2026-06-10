@@ -158,10 +158,14 @@ async def get_gallery_photos(
     if album_id:
         query["album_id"] = album_id
 
-    is_admin = current_user.role == "admin"
-    if status and is_admin:
+    # Staff de moderação (role OU privilégio moderate_content) pode filtrar por
+    # status — antes só `admin` podia, e o moderador que listava fotos de um
+    # álbum não via as pendentes que lhe compete moderar (incoerente com
+    # /photos/pending, que já aceita moderador).
+    is_staff = has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content")
+    if status and is_staff:
         query["status"] = status
-    elif not is_admin:
+    elif not is_staff:
         query["status"] = "approved"
 
     photos = await db.gallery_photos.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)

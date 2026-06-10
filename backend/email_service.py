@@ -2,6 +2,7 @@
 ACCTA Email Service — Resend integration for transactional emails.
 Supports: invite, password reset, welcome, broadcast notifications.
 """
+
 import os
 import asyncio
 import logging
@@ -10,8 +11,8 @@ import resend
 
 logger = logging.getLogger(__name__)
 
-RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
-SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'noreply@controlador.cv')
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
+SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "noreply@controlador.cv")
 APP_NAME = "Portal ACCTA"
 _BATCH_CHUNK_SIZE = 100  # Resend Batch aceita até 100 por chamada
 
@@ -144,10 +145,17 @@ def registration_rejected_email_html(name: str, reason: str = None) -> str:
     return _base_template(content)
 
 
+def _mask_email(addr: str) -> str:
+    """PII nos logs: mascara o local-part (ab***@dominio) — logs centralizados
+    não devem acumular emails completos de utilizadores."""
+    local, _, domain = (addr or "").partition("@")
+    return f"{local[:2]}***@{domain}" if domain else "***"
+
+
 async def send_email(to: str, subject: str, html: str) -> dict:
     """Send email via Resend API (non-blocking)."""
     if not RESEND_API_KEY:
-        logger.warning(f"RESEND_API_KEY not set. Email to {to} not sent.")
+        logger.warning(f"RESEND_API_KEY not set. Email to {_mask_email(to)} not sent.")
         return {"status": "skipped", "reason": "no_api_key"}
 
     params = {
@@ -158,11 +166,17 @@ async def send_email(to: str, subject: str, html: str) -> dict:
     }
 
     try:
-        result = await asyncio.to_thread(resend.Emails.send, params)
-        logger.info(f"Email sent to {to}: {result.get('id', 'ok')}")
+        # Timeout: a Resend lenta/indisponível não pode prender o handler que
+        # aguarda este resultado (ex.: convite/aprovação de admin) — sem isto o
+        # request ficava pendurado até ao timeout do cliente HTTP.
+        result = await asyncio.wait_for(asyncio.to_thread(resend.Emails.send, params), timeout=15)
+        logger.info(f"Email sent to {_mask_email(to)}: {result.get('id', 'ok')}")
         return {"status": "sent", "email_id": result.get("id")}
+    except TimeoutError:
+        logger.error(f"Timeout (15s) ao enviar email para {_mask_email(to)}")
+        return {"status": "failed", "error": "timeout"}
     except Exception as e:
-        logger.error(f"Failed to send email to {to}: {str(e)}")
+        logger.error(f"Failed to send email to {_mask_email(to)}: {str(e)}")
         return {"status": "failed", "error": str(e)}
 
 
@@ -186,8 +200,9 @@ async def send_registration_rejected_email(name: str, email: str, reason: str = 
     return await send_email(email, f"Pedido de inscricao — {APP_NAME}", html)
 
 
-def comunicado_email_html(subject: str, body: str, cta_label: str = None,
-                          cta_url: str = None, *, tipo: str = "informativo") -> str:
+def comunicado_email_html(
+    subject: str, body: str, cta_label: str = None, cta_url: str = None, *, tipo: str = "informativo"
+) -> str:
     """Renderiza um comunicado no template ACCTA. Conteúdo escapado; \n\n →
     parágrafos, \n → <br>. CTA (Carmesim) só com label+url. Nota de opt-out
     apenas em comunicados informativos."""
@@ -198,10 +213,7 @@ def comunicado_email_html(subject: str, body: str, cta_label: str = None,
         if not block:
             continue
         inner = escape(block, quote=True).replace("\n", "<br>")
-        paragraphs += (
-            f'<p style="margin:0 0 14px;font-size:14px;color:#6b7280;'
-            f'line-height:1.7;">{inner}</p>'
-        )
+        paragraphs += f'<p style="margin:0 0 14px;font-size:14px;color:#6b7280;line-height:1.7;">{inner}</p>'
     cta_block = ""
     resolved_cta = None
     if cta_label and cta_url:
@@ -220,15 +232,15 @@ def comunicado_email_html(subject: str, body: str, cta_label: str = None,
         cta_block = (
             f'\n    <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">'
             f'\n      <a href="{safe_cta_url}" style="display:inline-block;padding:12px 32px;'
-            f'background-color:#C7202F;color:#ffffff;font-size:14px;font-weight:600;'
+            f"background-color:#C7202F;color:#ffffff;font-size:14px;font-weight:600;"
             f'text-decoration:none;border-radius:8px;">{safe_label}</a>'
-            f'\n    </td></tr></table>'
+            f"\n    </td></tr></table>"
         )
     optout_note = ""
     if tipo == "informativo":
         optout_note = (
             '<p style="margin:20px 0 0;font-size:12px;color:#6b7280;line-height:1.5;">'
-            'Pode desactivar estes avisos informativos no seu perfil no Portal ACCTA.</p>'
+            "Pode desactivar estes avisos informativos no seu perfil no Portal ACCTA.</p>"
         )
     content = f"""
     <h2 style="margin:0 0 16px;font-size:20px;color:#3A3A3A;">{safe_subject}</h2>
@@ -249,11 +261,10 @@ async def send_comunicado_batch(recipients: list[str], subject: str, html: str) 
     errors: list = []
     use_batch = hasattr(resend, "Batch")
     for i in range(0, len(recipients), _BATCH_CHUNK_SIZE):
-        chunk = recipients[i:i + _BATCH_CHUNK_SIZE]
+        chunk = recipients[i : i + _BATCH_CHUNK_SIZE]
         if use_batch:
             params = [
-                {"from": f"{APP_NAME} <{SENDER_EMAIL}>", "to": [r], "subject": subject, "html": html}
-                for r in chunk
+                {"from": f"{APP_NAME} <{SENDER_EMAIL}>", "to": [r], "subject": subject, "html": html} for r in chunk
             ]
             try:
                 await asyncio.to_thread(resend.Batch.send, params)

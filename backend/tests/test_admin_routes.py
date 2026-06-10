@@ -92,30 +92,19 @@ class TestInviteUser:
         assert "expires_at" in result
         mock_db.users.insert_one.assert_awaited_once()
 
-    async def test_invalid_role_falls_back_to_socio(self, mock_db, admin_user, monkeypatch):
-        """Role 'admin' NAO pode ser convidado via invite — fallback para socio."""
+    async def test_invalid_role_rejected_422(self, mock_db, admin_user, monkeypatch):
+        """Role 'admin' NAO pode ser convidado via invite — 422 explicito (o
+        antigo fallback silencioso p/ socio mascarava erros do chamador)."""
         from models import InviteCreate
 
         mock_db.users.find_one = AsyncMock(return_value=None)
-
-        captured_doc = {}
-
-        async def capture_insert(doc):
-            captured_doc.update(doc)
-            return MagicMock(inserted_id="x")
-
-        mock_db.users.insert_one = capture_insert
-
-        async def fake_send(*args, **kwargs):
-            return {"status": "sent"}
-
-        monkeypatch.setattr(admin_route, "send_invite_email", fake_send)
         monkeypatch.setattr(admin_route, "next_member_id", AsyncMock(return_value="ACCTA-0042"))
 
         data = InviteCreate(name="X", email="x@y.com", role="admin")
-        await admin_route.invite_user(request=_mock_request(), data=data, current_user=admin_user)
-        # role admin nao consta na whitelist [socio/financeiro/moderador] -> fallback socio
-        assert captured_doc["role"] == "socio"
+        with pytest.raises(HTTPException) as exc:
+            await admin_route.invite_user(request=_mock_request(), data=data, current_user=admin_user)
+        assert exc.value.status_code == 422
+        mock_db.users.insert_one.assert_not_awaited()
 
     async def test_direct_invite_rejects_statutory_cargo(self, mock_db, admin_user, monkeypatch):
         from models import InviteCreate
