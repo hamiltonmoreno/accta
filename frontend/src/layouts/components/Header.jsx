@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, MessageSquare, Trophy } from 'lucide-react';
+import { Menu, MessageSquare } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationBell } from '../../components/NotificationBell';
 import { BrandLogo } from '../../components/BrandLogo';
@@ -14,17 +14,17 @@ const ICON_BTN =
 
 /**
  * Cabeçalho fixo full-width. Esquerda: hambúrguer (mobile) + logo (SEM título —
- * o corpo da página já o mostra). Direita: atalhos de ícone (Mural, Ranking,
- * Notificações) + dropdown do avatar (Meu Perfil vive lá dentro para evitar
- * duplicação com o avatar). Mural/Ranking só p/ membros+admins; em mobile os
- * atalhos dobram para dentro do dropdown. `mobileMenuButtonRef` é encaminhado
- * p/ o hambúrguer (a11y: foco devolvido ao fechar o drawer).
+ * o corpo da página já o mostra). Direita: atalho de ícone (Mural) +
+ * Notificações + dropdown do avatar (Meu Perfil, Ranking e Carteira vivem lá
+ * dentro — itens do próprio perfil, agrupados sob o avatar). Mural só p/
+ * membros+admins; em mobile dobra para dentro do dropdown. `mobileMenuButtonRef`
+ * é encaminhado p/ o hambúrguer (a11y: foco devolvido ao fechar o drawer).
  */
 export const Header = ({ onOpenMobileMenu, onLogout, mobileMenuButtonRef }) => {
   const { user, isAdmin } = useAuth();
   const isSocio = user?.role === 'socio';
   const isMember = isMemberAccount(user);
-  const showQuick = isMember || isAdmin; // Mural + Ranking
+  const showQuick = isMember || isAdmin; // Mural (Ranking mudou-se p/ o dropdown)
   return (
     <header
       className="fixed top-0 inset-x-0 z-40 h-[var(--header-h)] flex items-center gap-2 px-4 backdrop-blur-md bg-[var(--surface-header)] border-b border-[var(--surface-border)]"
@@ -48,11 +48,6 @@ export const Header = ({ onOpenMobileMenu, onLogout, mobileMenuButtonRef }) => {
         {showQuick && (
           <Link to="/mural" className={ICON_BTN} aria-label="Mural" data-testid="header-mural">
             <MessageSquare className="w-5 h-5" aria-hidden="true" />
-          </Link>
-        )}
-        {showQuick && (
-          <Link to="/ranking" className={ICON_BTN} aria-label="Ranking" data-testid="header-ranking">
-            <Trophy className="w-5 h-5" aria-hidden="true" />
           </Link>
         )}
         <NotificationBell />
