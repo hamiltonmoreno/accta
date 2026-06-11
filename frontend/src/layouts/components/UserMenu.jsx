@@ -14,12 +14,12 @@ import { UserAvatar } from '../../components/UserAvatar';
 import { USER_STATUS_CONFIG, USER_STATUS_FALLBACK, getStatusConfig } from '../../lib/statusConfig';
 
 /**
- * Dropdown do avatar no cabeçalho. Meu Perfil vive SEMPRE aqui dentro (em
- * desktop e mobile) para evitar duplicação com o avatar no cabeçalho. Mural e
- * Ranking são ícones no cabeçalho em desktop, por isso ficam `md:hidden` aqui
- * (só aparecem no dropdown em mobile). A Carteira Digital fica sempre dentro do
- * dropdown ("dentro do perfil"). Visibilidade: isSocio (Carteira),
- * isMember||isAdmin (Mural/Ranking).
+ * Dropdown do avatar no cabeçalho — agrupa os itens do próprio perfil. Meu
+ * Perfil, Ranking e Carteira Digital vivem SEMPRE aqui dentro (desktop e
+ * mobile): são funcionalidades do utilizador, agrupadas sob o avatar em vez de
+ * ícones soltos. O Mural continua a ser um atalho de ícone no cabeçalho em
+ * desktop, por isso aqui fica `md:hidden` (só aparece no dropdown em mobile).
+ * Visibilidade: isSocio (Carteira), isMember||isAdmin (Ranking/Mural).
  */
 export const UserMenu = ({ user, isSocio, isMember, isAdmin, onLogout }) => {
   const showQuick = isMember || isAdmin;
@@ -52,9 +52,9 @@ export const UserMenu = ({ user, isSocio, isMember, isAdmin, onLogout }) => {
           </div>
         )}
         <DropdownMenuSeparator />
-        {/* Meu Perfil vive sempre no dropdown (em desktop e mobile) — evita ter
-            avatar + ícone de perfil duplicados no cabeçalho. Mural/Ranking são
-            ícones no cabeçalho em desktop, por isso aqui ficam md:hidden. */}
+        {/* Itens do próprio perfil — sempre no dropdown (desktop e mobile):
+            evita avatar + ícone duplicados e agrupa o que é "do utilizador". O
+            Mural é atalho de ícone no cabeçalho em desktop, por isso md:hidden. */}
         <DropdownMenuItem asChild>
           <Link to="/perfil" data-testid="menu-perfil">
             <UserCircle className="w-4 h-4 mr-2" aria-hidden="true" />
@@ -62,15 +62,7 @@ export const UserMenu = ({ user, isSocio, isMember, isAdmin, onLogout }) => {
           </Link>
         </DropdownMenuItem>
         {showQuick && (
-          <DropdownMenuItem asChild className="md:hidden">
-            <Link to="/mural" data-testid="menu-mural">
-              <MessageSquare className="w-4 h-4 mr-2" aria-hidden="true" />
-              Mural
-            </Link>
-          </DropdownMenuItem>
-        )}
-        {showQuick && (
-          <DropdownMenuItem asChild className="md:hidden">
+          <DropdownMenuItem asChild>
             <Link to="/ranking" data-testid="menu-ranking">
               <Trophy className="w-4 h-4 mr-2" aria-hidden="true" />
               Ranking
@@ -82,6 +74,14 @@ export const UserMenu = ({ user, isSocio, isMember, isAdmin, onLogout }) => {
             <Link to="/carteira" data-testid="menu-carteira">
               <CreditCard className="w-4 h-4 mr-2" aria-hidden="true" />
               Carteira Digital
+            </Link>
+          </DropdownMenuItem>
+        )}
+        {showQuick && (
+          <DropdownMenuItem asChild className="md:hidden">
+            <Link to="/mural" data-testid="menu-mural">
+              <MessageSquare className="w-4 h-4 mr-2" aria-hidden="true" />
+              Mural
             </Link>
           </DropdownMenuItem>
         )}
