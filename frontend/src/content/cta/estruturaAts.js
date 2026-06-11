@@ -15,7 +15,7 @@ export const camadas = [
   },
   {
     sigla: 'ASA',
-    nome: 'ASA — Navegação Aérea de Cabo Verde, S.A.',
+    nome: 'ASA — Aeroportos e Segurança Aérea, S.A.',
     papel: 'Prestador dos serviços de tráfego aéreo (ATS)',
     descricao:
       'Presta operacionalmente os serviços ATS, incluindo o Centro de ' +
@@ -28,9 +28,10 @@ export const camadas = [
     nome: 'Cabo Verde Airports, S.A.',
     papel: 'Gestão aeroportuária concessionada',
     descricao:
-      'Concessionária da gestão dos aeroportos e aeródromos do país desde a ' +
-      'entrada em vigor do contrato, em julho de 2023. Não confundir ' +
-      'infraestrutura aeroportuária com a prestação ATS.',
+      'Concessionária da gestão dos aeroportos e aeródromos do país desde ' +
+      'julho de 2023 — concessão de 40 anos operada pela VINCI Airports e ' +
+      'pela ANA — Aeroportos de Portugal. Não confundir infraestrutura ' +
+      'aeroportuária com a prestação ATS.',
     baseLegal: 'Lei n.º 64/IX/2019 e Decreto-Lei n.º 14/2022',
   },
   {
@@ -50,8 +51,9 @@ export const fir = {
   nome: 'FIR Oceânica do Sal',
   baseLegal: 'Decreto-Lei n.º 9/80, de 11 de fevereiro',
   descricao:
-    'Uma das maiores regiões de informação de voo do Atlântico. Criada pelo ' +
-    'Decreto-Lei n.º 9/80, que integrou os serviços, instalações, ' +
+    'Uma das maiores regiões de informação de voo do Atlântico, com cerca de ' +
+    '1,3 milhões de km². Criada pelo Decreto-Lei n.º 9/80, que integrou os ' +
+    'serviços, instalações, ' +
     'equipamentos e pessoal afetos ao seu funcionamento no Aeroporto ' +
     'Internacional Amílcar Cabral. A prestação ATS é operada pela ASA.',
   comunicacoes: 'VHF, HF e CPDLC',

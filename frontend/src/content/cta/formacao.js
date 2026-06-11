@@ -50,12 +50,12 @@ export const caminhos = [
   },
 ];
 
-// Formação acadêmica complementar — não é via direta de licença CTA.
+// Formação académica complementar — não é via direta de licença CTA.
 export const academico = {
-  titulo: 'Formação acadêmica complementar',
+  titulo: 'Formação académica complementar',
   desc:
     'A UTA, através do ISAT no Sal, oferece formação superior em Gestão e ' +
-    'Planeamento da Aviação Civil. É uma base acadêmica complementar/' +
+    'Planeamento da Aviação Civil. É uma base académica complementar/' +
     'preparatória para o setor — não constitui, por si só, uma via de ' +
     'licenciamento de controlador de tráfego aéreo.',
 };

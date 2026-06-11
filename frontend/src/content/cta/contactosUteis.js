@@ -16,7 +16,7 @@ export const contactosUteis = [
     site: 'https://www.aac.cv/',
   },
   {
-    entidade: 'ASA — Navegação Aérea de Cabo Verde, S.A.',
+    entidade: 'ASA — Aeroportos e Segurança Aérea, S.A.',
     papel: 'Prestador ATS / navegação aérea',
     contacto: 'Tel. (+238) 241 92 00 · geral@asa.cv · Espargos, Ilha do Sal',
     site: 'https://www.asa.cv/',
