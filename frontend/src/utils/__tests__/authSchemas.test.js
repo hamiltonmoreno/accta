@@ -76,7 +76,7 @@ describe('setupAccountSchema (= resetPasswordSchema)', () => {
       password: 'abc',
       confirmPassword: 'abc',
     });
-    expectError(r, 'password', 'A senha deve ter pelo menos 6 caracteres');
+    expectError(r, 'password', 'A palavra-passe deve ter pelo menos 6 caracteres');
   });
 
   test('rejeita password com mais de 72 caracteres (limite bcrypt)', () => {
@@ -101,7 +101,7 @@ describe('setupAccountSchema (= resetPasswordSchema)', () => {
       password: 'secret123',
       confirmPassword: 'secret124',
     });
-    expectError(r, 'confirmPassword', 'As senhas não coincidem');
+    expectError(r, 'confirmPassword', 'As palavras-passe não coincidem');
   });
 
   test('resetPasswordSchema partilha o mesmo schema', () => {

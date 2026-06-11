@@ -666,7 +666,7 @@ export const DashboardPage = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-sm text-grafite truncate">
-                            {entry.member_name}{isMe && ' (voce)'}
+                            {entry.member_name}{isMe && ' (eu)'}
                           </span>
                         </div>
                         {cargoLabel && <div className="text-xs text-[#6B7280] truncate">{cargoLabel}</div>}

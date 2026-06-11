@@ -358,7 +358,7 @@ export const RankingPage = () => {
                       <RankBadge rank={e.rank} size="lg" />
                     </div>
                     <div className="font-semibold text-grafite truncate">
-                      {e.member_name}{isMe && ' (você)'}
+                      {e.member_name}{isMe && ' (eu)'}
                     </div>
                     {cargo && <div className="text-xs text-[#6B7280] truncate mt-0.5">{cargo}</div>}
                     <div className="mt-3 font-bold text-2xl text-grafite">
@@ -422,7 +422,7 @@ export const RankingPage = () => {
                             <td className="px-4 sm:px-6 py-3.5">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-medium text-sm text-grafite">
-                                  {e.member_name}{isMe && ' (você)'}
+                                  {e.member_name}{isMe && ' (eu)'}
                                 </span>
                                 {e.status === 'inativo' && (
                                   <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-[#4B5563] bg-gray-100 rounded px-1.5 py-0.5">

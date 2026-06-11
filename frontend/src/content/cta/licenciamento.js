@@ -99,12 +99,12 @@ export const conversao = {
   baseLegal: 'Procedimento da AAC (FS.PEL.09 / FS.PEL.01)',
   passos: [
     'Pedido de teste em legislação aeronáutica através do formulário ' +
-      'FS.PEL.09, com pagamento da taxa de exame teórico de 4.500$00 por prova.',
+      'FS.PEL.09, com pagamento da taxa de exame teórico conforme a tabela da AAC.',
     'Apresentação de licença estrangeira válida, Certificado Médico Classe 3, ' +
       'documento de identificação e fotografia.',
     'Comprovação de proficiência linguística na língua usada na ' +
       'radiotelefonia em Cabo Verde e em inglês.',
     'Após aprovação, pedido de conversão através do formulário FS.PEL.01, ' +
-      'com pagamento de 9.000$00.',
+      'com pagamento da taxa de conversão conforme a tabela da AAC.',
   ],
 };

@@ -42,7 +42,7 @@ async def save_validated_upload(category: str, contents: bytes, filename: str) -
     max_size = MAX_FILE_SIZES.get(category, 5 * 1024 * 1024)
     if len(contents) > max_size:
         max_mb = max_size / (1024 * 1024)
-        raise HTTPException(status_code=413, detail=f"Arquivo excede o limite de {max_mb:.0f} MB")
+        raise HTTPException(status_code=413, detail=f"Ficheiro excede o limite de {max_mb:.0f} MB")
     validate_file_content(contents, filename, ALLOWED_EXTENSIONS[category])
     file_ext = Path(filename).suffix.lower()
     unique_filename = f"{uuid.uuid4()}{file_ext}"
@@ -83,7 +83,7 @@ async def upload_file(category: str, file: UploadFile = File(...), current_user:
         raise HTTPException(status_code=500, detail="Erro interno ao processar o ficheiro")
 
     unique_filename = Path(file_url).name
-    await create_audit_log(current_user.id, f"Upload de arquivo: {file.filename}", unique_filename)
+    await create_audit_log(current_user.id, f"Upload de ficheiro: {file.filename}", unique_filename)
     return {"filename": file.filename, "file_url": file_url, "size": len(contents), "category": category}
 
 
@@ -102,12 +102,12 @@ async def delete_file(category: str, filename: str, current_user: User = Depends
         raise HTTPException(status_code=400, detail="Caminho inválido")
 
     if not file_path.exists() or not file_path.is_file():
-        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+        raise HTTPException(status_code=404, detail="Ficheiro não encontrado")
 
     try:
         file_path.unlink()
-        await create_audit_log(current_user.id, f"Deletou arquivo: {filename}", filename)
-        return {"message": "Arquivo deletado com sucesso"}
+        await create_audit_log(current_user.id, f"Eliminou ficheiro: {filename}", filename)
+        return {"message": "Ficheiro eliminado com sucesso"}
     except Exception:
         logger.exception("Falha ao apagar ficheiro %s/%s", category, filename)
         raise HTTPException(status_code=500, detail="Erro interno ao processar o ficheiro")

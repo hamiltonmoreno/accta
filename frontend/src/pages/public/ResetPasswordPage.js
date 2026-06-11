@@ -25,9 +25,9 @@ export const ResetPasswordPage = () => {
     try {
       await api.post('/auth/reset-password', { token, new_password: password });
       setSuccess(true);
-      toast.success('Senha alterada com sucesso!');
+      toast.success('Palavra-passe alterada com sucesso!');
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Erro ao redefinir senha');
+      toast.error(error.response?.data?.detail || 'Erro ao redefinir palavra-passe');
     }
   };
 
@@ -70,10 +70,10 @@ export const ResetPasswordPage = () => {
           <>
             <div className="mb-6">
               <h1 className="font-bold text-2xl text-grafite mb-1" data-testid="reset-title">
-                Nova senha
+                Nova palavra-passe
               </h1>
               <p className="text-sm text-gray-500">
-                Defina a sua nova senha de acesso ao portal.
+                Defina a sua nova palavra-passe de acesso ao portal.
               </p>
             </div>
 
@@ -81,7 +81,7 @@ export const ResetPasswordPage = () => {
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
                 <div>
                   <label htmlFor="password" className="block text-xs uppercase tracking-widest text-[#6B7280] mb-2 font-semibold">
-                    Nova senha
+                    Nova palavra-passe
                   </label>
                   <div className="relative">
                     <input
@@ -99,7 +99,7 @@ export const ResetPasswordPage = () => {
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-grafite"
                       data-testid="toggle-password-visibility"
-                      aria-label={showPassword ? 'Esconder senha' : 'Mostrar senha'}
+                      aria-label={showPassword ? 'Esconder palavra-passe' : 'Mostrar palavra-passe'}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -111,7 +111,7 @@ export const ResetPasswordPage = () => {
 
                 <div>
                   <label htmlFor="confirmPassword" className="block text-xs uppercase tracking-widest text-[#6B7280] mb-2 font-semibold">
-                    Confirmar senha
+                    Confirmar palavra-passe
                   </label>
                   <input
                     id="confirmPassword"
@@ -120,7 +120,7 @@ export const ResetPasswordPage = () => {
                     aria-invalid={errors.confirmPassword ? 'true' : 'false'}
                     {...register('confirmPassword')}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
-                    placeholder="Repita a senha"
+                    placeholder="Repita a palavra-passe"
                     data-testid="reset-confirm-password-input"
                   />
                   {errors.confirmPassword && (
@@ -139,7 +139,7 @@ export const ResetPasswordPage = () => {
                   ) : (
                     <>
                       <Lock className="w-4 h-4" />
-                      Redefinir senha
+                      Redefinir palavra-passe
                     </>
                   )}
                 </button>
@@ -152,10 +152,10 @@ export const ResetPasswordPage = () => {
               <CheckCircle className="w-8 h-8 text-[#15803D]" />
             </div>
             <h2 className="font-bold text-xl text-grafite mb-2" data-testid="reset-success-title">
-              Senha alterada!
+              Palavra-passe alterada!
             </h2>
             <p className="text-sm text-gray-500 mb-6">
-              A sua senha foi redefinida com sucesso. Já pode fazer login com a nova senha.
+              A sua palavra-passe foi redefinida com sucesso. Já pode fazer login com a nova palavra-passe.
             </p>
             <button
               onClick={() => navigate('/login')}

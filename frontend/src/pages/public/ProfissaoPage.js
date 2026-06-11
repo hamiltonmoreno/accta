@@ -20,6 +20,9 @@ import {
 } from 'lucide-react';
 import { PageBanner } from '../../components/PageBanner';
 import { ProfissaoDestaques } from '../../components/ProfissaoDestaques';
+import { TextoInstituicoes } from '../../components/TextoInstituicoes';
+import { FontesOficiais } from '../../components/FontesOficiais';
+import { FirMap } from '../../components/FirMap';
 import {
   definicaoCTA,
   responsabilidades,
@@ -169,7 +172,9 @@ export const ProfissaoPage = () => {
                 </div>
                 <h3 className="font-sans font-bold text-lg text-grafite mb-1">{c.nome}</h3>
                 <p className="text-xs text-carmesim uppercase tracking-wider font-semibold mb-3">{c.papel}</p>
-                <p className="text-sm text-gray-600 leading-relaxed mb-3">{c.descricao}</p>
+                <p className="text-sm text-gray-600 leading-relaxed mb-3">
+                  <TextoInstituicoes texto={c.descricao} />
+                </p>
                 <p className="text-xs text-gray-500">{c.baseLegal}</p>
               </div>
             ))}
@@ -182,7 +187,9 @@ export const ProfissaoPage = () => {
                 <Globe className="w-7 h-7 text-carmesim" />
                 <h3 className="font-sans font-bold text-2xl text-grafite">{fir.nome}</h3>
               </div>
-              <p className="text-gray-600 leading-relaxed mb-4">{fir.descricao}</p>
+              <p className="text-gray-600 leading-relaxed mb-4">
+                <TextoInstituicoes texto={fir.descricao} />
+              </p>
               <ul className="space-y-2 text-sm text-gray-600">
                 <li><strong className="text-grafite">Base legal:</strong> {fir.baseLegal}</li>
                 <li><strong className="text-grafite">Comunicações:</strong> {fir.comunicacoes}</li>
@@ -236,9 +243,7 @@ export const ProfissaoPage = () => {
               Como se tornar um Controlador
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              É um percurso seletivo e exigente, que segue padrões internacionais (ICAO) e é
-              regulado pela AAC — Agência de Aviação Civil (Decreto-Lei n.º 47/2019), com a
-              disciplina técnica a vir dos regulamentos CV-CAR
+              <TextoInstituicoes texto="É um percurso seletivo e exigente, que segue padrões internacionais (ICAO) e é regulado pela AAC — Agência de Aviação Civil (Decreto-Lei n.º 47/2019), com a disciplina técnica a vir dos regulamentos CV-CAR" />
             </p>
           </div>
 
@@ -415,23 +420,7 @@ export const ProfissaoPage = () => {
         </div>
         <div className="relative z-10 max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="animate-fade-up">
-              <div className="relative">
-                <div className="w-80 h-80 mx-auto border-2 border-white/20 rounded-full flex items-center justify-center">
-                  <div className="w-60 h-60 border border-white/15 rounded-full flex items-center justify-center">
-                    <div className="w-40 h-40 bg-white/5 rounded-full flex items-center justify-center">
-                      <Globe className="w-20 h-20 text-white" />
-                    </div>
-                  </div>
-                </div>
-                <div className="absolute top-10 right-10">
-                  <Plane className="w-8 h-8 text-white animate-pulse" />
-                </div>
-                <div className="absolute bottom-20 left-5">
-                  <Plane className="w-6 h-6 text-white/70 -rotate-45" />
-                </div>
-              </div>
-            </div>
+            <FirMap />
 
             <div className="animate-fade-up">
               <span className="inline-block px-4 py-2 bg-white/10 text-white rounded-full text-sm uppercase tracking-wider mb-6">
@@ -464,6 +453,9 @@ export const ProfissaoPage = () => {
 
       {/* Cat 5 F4 — destaques dinâmicos: defesa publicada, relações, formações públicas */}
       <ProfissaoDestaques />
+
+      {/* Sub-projeto C — fontes oficiais com hiperligação */}
+      <FontesOficiais />
 
       {/* CTA Section */}
       <section className="py-12 sm:py-20 lg:py-24 bg-white">

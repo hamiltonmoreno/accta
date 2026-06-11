@@ -139,7 +139,7 @@ async def vote(vote_data: VoteCreate, current_user: User = Depends(get_current_u
 
     existing_vote = await db.user_votes.find_one({"user_id": current_user.id, "poll_id": vote_data.poll_id})
     if existing_vote:
-        raise HTTPException(status_code=400, detail="Você já votou nesta votação")
+        raise HTTPException(status_code=400, detail="Já votou nesta votação")
 
     user_vote = UserVote(user_id=current_user.id, **vote_data.model_dump())
     vote_dict = user_vote.model_dump()
@@ -149,7 +149,7 @@ async def vote(vote_data: VoteCreate, current_user: User = Depends(get_current_u
     except UniqueViolationError:
         # Corrida: outra requisição inseriu o voto entre o check e o insert.
         # O índice único (user_id, poll_id) garante no máximo 1 voto.
-        raise HTTPException(status_code=400, detail="Você já votou nesta votação")
+        raise HTTPException(status_code=400, detail="Já votou nesta votação")
     return user_vote
 
 

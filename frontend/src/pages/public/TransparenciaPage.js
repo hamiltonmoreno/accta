@@ -236,7 +236,7 @@ export const TransparenciaPage = () => {
             to="/contactos"
             className="inline-flex items-center gap-2 bg-floresta text-white px-8 py-4 rounded-lg font-bold hover:bg-floresta-dark transition-all"
           >
-            Fale Conosco
+            Fale Connosco
             <ExternalLink className="w-5 h-5" />
           </Link>
         </div>

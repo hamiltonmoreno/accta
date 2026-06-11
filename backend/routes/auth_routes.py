@@ -93,7 +93,7 @@ async def login(request: Request, response: Response, credentials: UserLogin):
         )
         if status == "pendente_convite":
             raise HTTPException(
-                status_code=403, detail="Conta pendente de ativacao. Use o link de convite para definir a sua senha."
+                status_code=403, detail="Conta pendente de ativacao. Use o link de convite para definir a sua palavra-passe."
             )
         raise HTTPException(status_code=403, detail="Conta inativa. Contacte a administracao.")
 
@@ -295,7 +295,7 @@ async def setup_account(request: Request, response: Response, background_tasks: 
             pass  # Token sem formato válido — trata como legado
 
     if len(data.password) < 6:
-        raise HTTPException(status_code=400, detail="A senha deve ter pelo menos 6 caracteres")
+        raise HTTPException(status_code=400, detail="A palavra-passe deve ter pelo menos 6 caracteres")
 
     hashed = hash_password(data.password)
     now = datetime.now(timezone.utc).isoformat()
@@ -404,7 +404,7 @@ async def reset_password(request: Request, data: PasswordResetConfirm):
         raise HTTPException(status_code=400, detail="Token expirado. Solicite um novo.")
 
     if len(data.new_password) < 6:
-        raise HTTPException(status_code=400, detail="A senha deve ter pelo menos 6 caracteres")
+        raise HTTPException(status_code=400, detail="A palavra-passe deve ter pelo menos 6 caracteres")
 
     hashed = hash_password(data.new_password)
     # password_changed_at invalida tokens/sessões emitidos ANTES do reset
@@ -421,4 +421,4 @@ async def reset_password(request: Request, data: PasswordResetConfirm):
     if user_doc:
         await create_audit_log(user_doc["id"], "password_reset_completed", request=request)
 
-    return {"message": "Senha alterada com sucesso. Pode fazer login com a nova senha."}
+    return {"message": "Palavra-passe alterada com sucesso. Pode fazer login com a nova palavra-passe."}

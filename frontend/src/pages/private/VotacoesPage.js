@@ -117,7 +117,7 @@ export const VotacoesPage = () => {
           <EmptyState
             icon={Vote}
             title="Nenhuma votação aberta no momento"
-            description="Você será notificado quando novas votações forem criadas"
+            description="Será notificado quando novas votações forem criadas"
             testId="no-open-polls"
           />
         ) : (
@@ -214,7 +214,7 @@ export const VotacoesPage = () => {
               </li>
               <li className="flex items-start gap-2">
                 <div className="w-1.5 h-1.5 bg-carmesim rounded-full mt-2" />
-                <span>Você será notificado quando novas votações forem abertas</span>
+                <span>Será notificado quando novas votações forem abertas</span>
               </li>
             </ul>
           </div>
