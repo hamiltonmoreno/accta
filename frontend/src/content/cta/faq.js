@@ -13,7 +13,7 @@ export const faq = [
   {
     pergunta: 'Quem presta os serviços de tráfego aéreo no país?',
     resposta:
-      'A ASA — Navegação Aérea de Cabo Verde, S.A. presta operacionalmente ' +
+      'A ASA — Aeroportos e Segurança Aérea, S.A. presta operacionalmente ' +
       'os serviços ATS, incluindo o Centro de Controlo (ACC), as torres de ' +
       'controlo e os serviços de informação de voo.',
   },

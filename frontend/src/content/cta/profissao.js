@@ -106,10 +106,10 @@ export const caminhoCTA = [
 export const qualificacoes = {
   baseLegal: 'CV-CAR 2.3 (2026)',
   lista: [
-    { sigla: 'ADI', nome: 'Controlo de aeródromo' },
-    { sigla: 'APP procedural', nome: 'Controlo de aproximação sem vigilância' },
-    { sigla: 'APP vigilância', nome: 'Controlo de aproximação com sistemas de vigilância' },
-    { sigla: 'ACC procedural', nome: 'Controlo de área sem vigilância' },
-    { sigla: 'ACC vigilância', nome: 'Controlo de área com sistemas de vigilância' },
+    { sigla: 'ADI', nome: 'Controlo de aeródromo (instrumentos)' },
+    { sigla: 'APP', nome: 'Controlo de aproximação sem vigilância (procedural)' },
+    { sigla: 'APS', nome: 'Controlo de aproximação com sistemas de vigilância' },
+    { sigla: 'ACP', nome: 'Controlo de área sem vigilância (procedural)' },
+    { sigla: 'ACS', nome: 'Controlo de área com sistemas de vigilância' },
   ],
 };
