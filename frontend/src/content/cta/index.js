@@ -16,3 +16,4 @@ export * from './formacao';
 export * from './legislacao';
 export * from './faq';
 export * from './contactosUteis';
+export * from './instituicoes';
