@@ -5,8 +5,8 @@ import { z } from 'zod';
 
 const passwordRule = z
   .string()
-  .min(6, 'A senha deve ter pelo menos 6 caracteres')
-  .max(72, 'A senha não pode ter mais de 72 caracteres'); // bcrypt max
+  .min(6, 'A palavra-passe deve ter pelo menos 6 caracteres')
+  .max(72, 'A palavra-passe não pode ter mais de 72 caracteres'); // bcrypt max
 
 export const loginSchema = z.object({
   email: z.string().min(1, 'Email obrigatório').email('Email inválido'),
@@ -22,11 +22,11 @@ export const forgotPasswordSchema = z.object({
 const passwordPairSchema = z
   .object({
     password: passwordRule,
-    confirmPassword: z.string().min(1, 'Confirme a senha'),
+    confirmPassword: z.string().min(1, 'Confirme a palavra-passe'),
   })
   .refine((data) => data.password === data.confirmPassword, {
     path: ['confirmPassword'],
-    message: 'As senhas não coincidem',
+    message: 'As palavras-passe não coincidem',
   });
 
 export const setupAccountSchema = passwordPairSchema;
