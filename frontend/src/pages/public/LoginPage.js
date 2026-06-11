@@ -186,14 +186,14 @@ export const LoginPage = () => {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label htmlFor="password" className="block text-xs uppercase tracking-widest text-[#6B7280] font-semibold">
-                    Senha
+                    Palavra-passe
                   </label>
                   <Link
                     to="/forgot-password"
                     className="text-xs text-carmesim hover:text-carmesim-dark transition-colors font-medium"
                     data-testid="forgot-password-link"
                   >
-                    Esqueceu a senha?
+                    Esqueceu a palavra-passe?
                   </Link>
                 </div>
                 <input

@@ -98,7 +98,7 @@ Nos casos de afastamento mais longo, a **Diretiva n.º 01/PEL/2024** e a antiga 
 
 As **ATO** oficialmente aprovadas pela AAC e com cursos ATC identificados na lista mais recente disponível para esta pesquisa são, pelo menos, a **SENASA** e a **NAV Portugal**, ambas autorizadas para **ATCO Basic training**, **rating training**, qualificações de aeródromo, aproximação procedural, aproximação por vigilância, área procedural, área por vigilância, além de formação prática de instrutor e formação de avaliadores; a NAV Portugal também aparece com **refresher** e **conversion training**. citeturn23view0
 
-Como caminho formativo adicional, há registro oficial de que o **FPEF**, em cooperação com a **SENASA**, abriu concurso para **24 vagas** em curso inicial ATC para TWR — básico e ADI/ADV — em Madrid, com **16 semanas** de duração e seleção em três fases: **teste de inglês**, **teste psicotécnico e de personalidade** e **entrevista oral em inglês/intervista de personalidade**. Isso é valioso para mostrar ao público que, em Cabo Verde, o ingresso pode ocorrer por **modelo patrocinado/selecionado** por programas públicos e pela empresa, além do trajeto geral via ATO. citeturn37view1turn32search0
+Como caminho formativo adicional, há registo oficial de que o **FPEF**, em cooperação com a **SENASA**, abriu concurso para **24 vagas** em curso inicial ATC para TWR — básico e ADI/ADV — em Madrid, com **16 semanas** de duração e seleção em três fases: **teste de inglês**, **teste psicotécnico e de personalidade** e **entrevista oral em inglês/intervista de personalidade**. Isso é valioso para mostrar ao público que, em Cabo Verde, o ingresso pode ocorrer por **modelo patrocinado/selecionado** por programas públicos e pela empresa, além do trajeto geral via ATO. citeturn37view1turn32search0
 
 A **UTA**, por meio do **ISAT** no Sal, oferece formação superior em **Gestão e Planeamento da Aviação Civil**, o que pode ser relevante como base acadêmica para o setor, mas nas páginas consultadas **não aparece como curso de licenciamento CTA**. Em um site autoritativo, o correto é classificar o ISAT como **formação acadêmica complementar/preparatória**, e não como via direta de licença de controlador. citeturn31search9turn31search4
 
@@ -164,7 +164,7 @@ Em termos de trajetória profissional, a melhor leitura das normas e das oportun
 
 Sobre remuneração, a conclusão responsável para um site autoritativo é: **salários de CTA em Cabo Verde: não especificado**. Nas publicações públicas examinadas nesta pesquisa, a ASA divulga concurso para formação/contratação de controladores, mas o valor remuneratório não aparece nas informações recuperadas; e vagas da própria AAC para carreiras técnicas mencionam remuneração segundo tabela salarial vigente, sem expor montantes públicos no trecho revisto. Portanto, o site deve evitar publicar faixas não oficiais. citeturn32search0turn32search6
 
-Quanto a sindicatos e associações, nas fontes primárias oficiais consultadas **não foi localizada** uma entidade setorial com estatutos ou registro público facilmente verificável voltado especificamente a CTA. Contudo, em dezembro de 2025, a imprensa referiu a existência de uma **Associação Cabo-verdiana dos Controladores de Tráfego Aéreo (ACCTA)**. A forma prudente de redigir o site é: **“associação setorial mencionada publicamente em 2025; situação estatutária e registral a confirmar”**. citeturn36search12turn36search4
+Quanto a sindicatos e associações, nas fontes primárias oficiais consultadas **não foi localizada** uma entidade setorial com estatutos ou registo público facilmente verificável voltado especificamente a CTA. Contudo, em dezembro de 2025, a imprensa referiu a existência de uma **Associação Cabo-verdiana dos Controladores de Tráfego Aéreo (ACCTA)**. A forma prudente de redigir o site é: **“associação setorial mencionada publicamente em 2025; situação estatutária e registral a confirmar”**. citeturn36search12turn36search4
 
 ## Conteúdo pronto para controlador.cv
 
@@ -234,16 +234,16 @@ Início
 │   ├── Legislação e regulamentos
 │   ├── Formulários oficiais
 │   ├── Formulários da associação
-│   └── Contatos úteis
+│   └── Contactos úteis
 └── Transparência
     ├── Missão e objetivos
     ├── Prestação de contas
     └── Política editorial
 ```
 
-**Contatos úteis**
+**Contactos úteis**
 
-| Entidade | Papel | Contato principal | Site |
+| Entidade | Papel | Contacto principal | Site |
 |---|---|---|---|
 | AAC — Agência de Aviação Civil | Regulador aeronáutico | Tel. +238 260 34 30 · e-mail `[email protected]` · Achada Grande Frente, Praia, CP 371 | `https://www.aac.cv/` |
 | ASA — Navegação Aérea de Cabo Verde, S.A. | Prestador ATS / navegação aérea | Tel. (+238) 241 92 00 · e-mail `geral@asa.cv` / `info@asa.cv` · Espargos, Ilha do Sal | `https://www.asa.cv/` |

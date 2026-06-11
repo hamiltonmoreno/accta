@@ -63,7 +63,7 @@ export const ForgotPasswordPage = () => {
           <>
             <div className="mb-6">
               <h1 className="font-bold text-2xl text-grafite mb-1" data-testid="forgot-title">
-                Recuperar senha
+                Recuperar palavra-passe
               </h1>
               <p className="text-sm text-gray-500">
                 Introduza o email associado à sua conta para receber instruções de recuperação.
@@ -153,7 +153,7 @@ export const ForgotPasswordPage = () => {
                   data-testid="go-to-reset-btn"
                 >
                   <ExternalLink className="w-4 h-4" />
-                  Redefinir senha agora
+                  Redefinir palavra-passe agora
                 </Link>
               </div>
             )}

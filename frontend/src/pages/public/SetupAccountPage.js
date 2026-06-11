@@ -113,14 +113,14 @@ export const SetupAccountPage = () => {
           </div>
           <h1 className="text-xl font-bold text-grafite mb-1">Bem-vindo à ACCTA</h1>
           <p className="text-sm text-gray-500">
-            {inviteData?.name}, defina a sua senha para ativar a conta.
+            {inviteData?.name}, defina a sua palavra-passe para ativar a conta.
           </p>
           <p className="text-xs text-[#6B7280] mt-1">{inviteData?.email}</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div>
-            <label htmlFor="setup-password" className="block text-xs font-medium text-gray-600 mb-1.5">Senha</label>
+            <label htmlFor="setup-password" className="block text-xs font-medium text-gray-600 mb-1.5">Palavra-passe</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
               <input
@@ -137,7 +137,7 @@ export const SetupAccountPage = () => {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                aria-label={showPassword ? 'Ocultar palavra-passe' : 'Mostrar palavra-passe'}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
               </button>
@@ -148,7 +148,7 @@ export const SetupAccountPage = () => {
           </div>
 
           <div>
-            <label htmlFor="setup-confirm-password" className="block text-xs font-medium text-gray-600 mb-1.5">Confirmar Senha</label>
+            <label htmlFor="setup-confirm-password" className="block text-xs font-medium text-gray-600 mb-1.5">Confirmar Palavra-passe</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
               <input
@@ -157,7 +157,7 @@ export const SetupAccountPage = () => {
                 autoComplete="new-password"
                 aria-invalid={errors.confirmPassword ? 'true' : 'false'}
                 {...register('confirmPassword')}
-                placeholder="Repetir a senha"
+                placeholder="Repetir a palavra-passe"
                 className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none aria-[invalid=true]:border-carmesim/60"
                 data-testid="setup-confirm-password"
               />

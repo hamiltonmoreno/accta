@@ -65,7 +65,7 @@ def invite_email_html(name: str, setup_url: str) -> str:
       Foi convidado para se juntar ao Portal da Associacao dos Controladores de Trafego Aereo de Cabo Verde.
     </p>
     <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">
-      Para ativar a sua conta, clique no botao abaixo e defina a sua senha:
+      Para ativar a sua conta, clique no botao abaixo e defina a sua palavra-passe:
     </p>
     <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
       <a href="{setup_url}" style="display:inline-block;padding:12px 32px;background-color:#C7202F;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:8px;">
@@ -85,9 +85,9 @@ def invite_email_html(name: str, setup_url: str) -> str:
 def password_reset_email_html(name: str, reset_url: str, token: str) -> str:
     name = escape(name or "", quote=True)
     content = f"""
-    <h2 style="margin:0 0 8px;font-size:20px;color:#3A3A3A;">Recuperacao de Senha</h2>
+    <h2 style="margin:0 0 8px;font-size:20px;color:#3A3A3A;">Recuperacao de palavra-passe</h2>
     <p style="margin:0 0 20px;font-size:14px;color:#6b7280;line-height:1.6;">
-      Ola {name}, recebemos um pedido para redefinir a sua senha no Portal ACCTA.
+      Ola {name}, recebemos um pedido para redefinir a sua palavra-passe no Portal ACCTA.
     </p>
     <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">
       Use o codigo abaixo na pagina de recuperacao:
@@ -173,7 +173,7 @@ async def send_invite_email(name: str, email: str, setup_url: str) -> dict:
 
 async def send_password_reset_email(name: str, email: str, reset_url: str, token: str) -> dict:
     html = password_reset_email_html(name, reset_url, token)
-    return await send_email(email, f"Recuperacao de Senha — {APP_NAME}", html)
+    return await send_email(email, f"Recuperacao de palavra-passe — {APP_NAME}", html)
 
 
 async def send_welcome_email(name: str, email: str) -> dict:
