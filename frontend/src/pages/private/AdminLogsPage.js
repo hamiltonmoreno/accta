@@ -38,7 +38,7 @@ export const AdminLogsPage = () => {
         <h1 className="page-title" data-testid="admin-logs-title">
           Audit Logs
         </h1>
-        <p className="page-subtitle">Registro de todas as ações administrativas no sistema</p>
+        <p className="page-subtitle">Registo de todas as ações administrativas no sistema</p>
       </div>
 
       {/* Stats */}
@@ -50,7 +50,7 @@ export const AdminLogsPage = () => {
             </div>
           </div>
           <div className="font-mono text-3xl font-bold text-grafite mb-1">{logs.length}</div>
-          <div className="text-sm text-gray-500 uppercase tracking-wider">Registros nesta página</div>
+          <div className="text-sm text-gray-500 uppercase tracking-wider">Registos nesta página</div>
         </div>
 
         <div className="card-technical rounded-xl p-6 animate-fade-up">
@@ -76,7 +76,7 @@ export const AdminLogsPage = () => {
           <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
         </div>
       ) : logs.length === 0 && page === 0 ? (
-        <EmptyState icon={ClipboardList} title="Nenhum registro de auditoria" testId="no-logs" />
+        <EmptyState icon={ClipboardList} title="Nenhum registo de auditoria" testId="no-logs" />
       ) : (
         <div className="card-technical rounded-xl p-6">
           <div className="space-y-4 max-h-[600px] overflow-y-auto">
@@ -105,7 +105,7 @@ export const AdminLogsPage = () => {
           {(page > 0 || hasNext) && (
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-[var(--surface-border)]">
               <span className="text-xs text-gray-500">
-                Registros {skip + 1}–{skip + logs.length}
+                Registos {skip + 1}–{skip + logs.length}
               </span>
               <div className="flex items-center gap-2">
                 <button

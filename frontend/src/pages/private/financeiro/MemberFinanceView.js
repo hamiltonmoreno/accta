@@ -47,7 +47,7 @@ export const MemberFinanceView = () => {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
-        <StatBlock label="Registros" value={invoices.length} icon={DollarSign} color="bg-grafite" />
+        <StatBlock label="Registos" value={invoices.length} icon={DollarSign} color="bg-grafite" />
         <StatBlock label="Total Pago" value={`${totalPago.toLocaleString('pt')} CVE`} icon={TrendingUp} color="bg-[#16A34A]" />
       </div>
 
@@ -67,7 +67,7 @@ export const MemberFinanceView = () => {
           ))}
         </div>
       ) : invoices.length === 0 ? (
-        <EmptyState icon={DollarSign} title="Nenhum registro encontrado" testId="no-invoices" />
+        <EmptyState icon={DollarSign} title="Nenhum registo encontrado" testId="no-invoices" />
       ) : (
         <div className="card-technical overflow-hidden">
           <div className="divide-y divide-gray-50">

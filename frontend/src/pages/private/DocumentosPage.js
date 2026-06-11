@@ -190,11 +190,11 @@ const UploadDocumentModal = ({ onClose }) => {
       const allowedTypes = ['.pdf', '.doc', '.docx'];
       const ext = '.' + selectedFile.name.split('.').pop().toLowerCase();
       if (!allowedTypes.includes(ext)) {
-        toast.error('Tipo de arquivo não permitido. Use PDF, DOC ou DOCX.');
+        toast.error('Tipo de ficheiro não permitido. Use PDF, DOC ou DOCX.');
         return;
       }
       if (selectedFile.size > 10 * 1024 * 1024) {
-        toast.error('Arquivo muito grande. Máximo 10MB.');
+        toast.error('Ficheiro muito grande. Máximo 10MB.');
         return;
       }
       setFile(selectedFile);
@@ -288,7 +288,7 @@ const UploadDocumentModal = ({ onClose }) => {
             {/* File Upload */}
             <div>
               <label className="block font-mono text-xs uppercase tracking-wider text-gray-500 mb-2">
-                Arquivo *
+                Ficheiro *
               </label>
               <input
                 ref={fileInputRef}
