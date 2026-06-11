@@ -286,7 +286,7 @@ export const HomePage = () => {
                 <span className="text-carmesim">Torre de Controlo</span>
               </h2>
               <p className="text-sm sm:text-lg text-gray-600 leading-relaxed mb-4 sm:mb-6">
-                Quando você embarca num avião, vê o piloto e a tripulação. Mas existe uma{' '}
+                Quando embarca num avião, vê o piloto e a tripulação. Mas existe uma{' '}
                 <strong className="text-grafite">equipa de elite em terra</strong>, monitorizando cada metro do seu voo.
               </p>
               <p className="text-sm sm:text-lg text-gray-600 leading-relaxed mb-6 sm:mb-8">

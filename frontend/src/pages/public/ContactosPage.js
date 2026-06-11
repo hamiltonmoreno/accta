@@ -64,7 +64,7 @@ export const ContactosPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <PageBanner pageKey="contactos" badge="Contactos" title="Fale Conosco" subtitle="Tem dúvidas sobre a associação, a profissão ou deseja propor uma parceria? Utilize os canais oficiais." />
+      <PageBanner pageKey="contactos" badge="Contactos" title="Fale Connosco" subtitle="Tem dúvidas sobre a associação, a profissão ou deseja propor uma parceria? Utilize os canais oficiais." />
 
       {/* Contact Info & Form */}
       <section className="py-12 sm:py-20 lg:py-24">
