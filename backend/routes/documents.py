@@ -55,7 +55,7 @@ def get_document_file_path(doc: dict) -> Path:
     parsed_path = urlparse(file_url).path
     expected_prefix = "/uploads/documents/"
     if not parsed_path.startswith(expected_prefix):
-        raise HTTPException(status_code=404, detail="Arquivo do documento nao encontrado")
+        raise HTTPException(status_code=404, detail="Ficheiro do documento nao encontrado")
 
     filename = Path(parsed_path).name
     file_path = (UPLOAD_DIR / "documents" / filename).resolve()
@@ -63,7 +63,7 @@ def get_document_file_path(doc: dict) -> Path:
     if not file_path.is_relative_to(documents_dir):
         raise HTTPException(status_code=400, detail="Caminho de documento invalido")
     if not file_path.exists() or not file_path.is_file():
-        raise HTTPException(status_code=404, detail="Arquivo do documento nao encontrado")
+        raise HTTPException(status_code=404, detail="Ficheiro do documento nao encontrado")
     return file_path
 
 

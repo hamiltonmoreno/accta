@@ -201,7 +201,7 @@ async def upload_gallery_photo(
 
     contents = await file.read()
     if len(contents) > GALLERY_MAX_SIZE:
-        raise HTTPException(status_code=413, detail="Arquivo excede o limite de 10 MB")
+        raise HTTPException(status_code=413, detail="Ficheiro excede o limite de 10 MB")
 
     # Defense-in-depth: Pillow.verify() bloqueia .exe -> .png e tambem
     # cross-checks que o formato real bate com a extensao.
