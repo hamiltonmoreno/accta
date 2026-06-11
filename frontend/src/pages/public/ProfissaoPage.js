@@ -22,6 +22,7 @@ import { PageBanner } from '../../components/PageBanner';
 import { ProfissaoDestaques } from '../../components/ProfissaoDestaques';
 import { TextoInstituicoes } from '../../components/TextoInstituicoes';
 import { FontesOficiais } from '../../components/FontesOficiais';
+import { FirMap } from '../../components/FirMap';
 import {
   definicaoCTA,
   responsabilidades,
@@ -419,23 +420,7 @@ export const ProfissaoPage = () => {
         </div>
         <div className="relative z-10 max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="animate-fade-up">
-              <div className="relative">
-                <div className="w-80 h-80 mx-auto border-2 border-white/20 rounded-full flex items-center justify-center">
-                  <div className="w-60 h-60 border border-white/15 rounded-full flex items-center justify-center">
-                    <div className="w-40 h-40 bg-white/5 rounded-full flex items-center justify-center">
-                      <Globe className="w-20 h-20 text-white" />
-                    </div>
-                  </div>
-                </div>
-                <div className="absolute top-10 right-10">
-                  <Plane className="w-8 h-8 text-white animate-pulse" />
-                </div>
-                <div className="absolute bottom-20 left-5">
-                  <Plane className="w-6 h-6 text-white/70 -rotate-45" />
-                </div>
-              </div>
-            </div>
+            <FirMap />
 
             <div className="animate-fade-up">
               <span className="inline-block px-4 py-2 bg-white/10 text-white rounded-full text-sm uppercase tracking-wider mb-6">
