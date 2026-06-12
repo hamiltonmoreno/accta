@@ -578,24 +578,23 @@ export const HomePage = () => {
         </div>
         <div className="relative z-10 max-w-4xl mx-auto px-5 sm:px-6 text-center">
           <h2 className="font-bold text-2xl sm:text-4xl lg:text-5xl text-white mb-4 sm:mb-6">
-            Junte-se aos profissionais que garantem a{' '}
-            <span className="text-white">segurança dos céus</span>
+            A ACCTA representa os controladores de tráfego aéreo de Cabo Verde.
           </h2>
           <p className="text-base sm:text-xl text-white/80 mb-8 sm:mb-10">
-            A ACCTA representa e valoriza os controladores de tráfego aéreo de Cabo Verde
+            Conheça quem somos, o que defendemos e como participamos no setor da navegação aérea.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
             <Link
               to="/sobre"
               className="inline-flex items-center justify-center gap-2 bg-floresta text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-lg hover:bg-floresta-dark transition-all"
             >
-              Conheça a Associação
+              Conhecer a associação
             </Link>
             <Link
               to="/contactos"
               className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white border border-white/20 px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-lg hover:bg-white/20 transition-all"
             >
-              Entre em Contacto
+              Entrar em contacto
             </Link>
           </div>
         </div>
