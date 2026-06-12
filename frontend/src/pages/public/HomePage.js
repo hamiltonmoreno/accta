@@ -133,19 +133,16 @@ export const HomePage = () => {
           <div className="max-w-2xl">
             <div className="animate-fade-up">
               <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-carmesim/20 backdrop-blur-sm border border-carmesim/40 rounded-full mb-6 sm:mb-8">
-                <Radio className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-white" />
-                <span className="text-white font-sans text-xs sm:text-sm uppercase tracking-wider font-semibold">ACCTA Cabo Verde</span>
+                <span className="w-2 h-2 rounded-full bg-carmesim shrink-0" aria-hidden="true" />
+                <span className="text-white font-sans text-xs sm:text-sm uppercase tracking-wider font-semibold">ACCTA · Cabo Verde</span>
               </div>
 
               <h1 className="font-bold text-3xl sm:text-5xl lg:text-6xl xl:text-7xl text-white leading-tight mb-4 sm:mb-6" data-testid="hero-title">
-                Os Guardiões{' '}
-                <span className="text-white">Invisíveis</span>{' '}
-                dos Céus de Cabo Verde
+                O controlo de tráfego aéreo em Cabo Verde.
               </h1>
 
               <p className="text-base sm:text-xl lg:text-2xl text-white leading-relaxed mb-8 sm:mb-10 max-w-xl" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
-                24 horas por dia, garantimos a segurança, a fluidez e a soberania do espaço aéreo no meio do Atlântico.{' '}
-                <span className="text-white font-bold">Nós somos a CTA.</span>
+                Somos os controladores de tráfego aéreo que organizam, comunicam e protegem cada voo na FIR Oceânica do Sal — uma das maiores regiões de informação de voo do Atlântico.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -154,7 +151,7 @@ export const HomePage = () => {
                   className="group inline-flex items-center justify-center gap-2 bg-floresta text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-lg font-bold text-sm sm:text-base hover:bg-floresta-dark transition-all shadow-lg shadow-floresta/25"
                   data-testid="hero-cta-primary"
                 >
-                  Conheça a Profissão
+                  Conhecer a profissão
                   <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
                 <Link
@@ -162,18 +159,13 @@ export const HomePage = () => {
                   className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white border border-white/30 px-6 sm:px-8 py-3.5 sm:py-4 rounded-lg font-bold text-sm sm:text-base hover:bg-white/20 transition-all"
                   data-testid="hero-cta-secondary"
                 >
-                  Área do Associado
+                  Área do associado
                 </Link>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 hidden sm:block animate-fade-up">
-          <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center">
-            <div className="w-1.5 h-3 bg-carmesim rounded-full mt-2 animate-bounce" />
-          </div>
-        </div>
       </section>
 
       {/* Stats Bar */}
