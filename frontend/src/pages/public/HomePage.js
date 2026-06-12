@@ -242,19 +242,18 @@ export const HomePage = () => {
           <div className="grid lg:grid-cols-2 gap-10 sm:gap-16 items-center">
             <div className="animate-fade-up">
               <span className="inline-block px-3 py-1.5 bg-carmesim/10 text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold mb-4 sm:mb-6">
-                O que fazemos
+                O que é o CTA
               </span>
               <h2 className="font-bold text-2xl sm:text-4xl lg:text-5xl text-grafite mb-4 sm:mb-6">
                 Muito além da{' '}
                 <span className="text-carmesim">Torre de Controlo</span>
               </h2>
               <p className="text-sm sm:text-lg text-gray-600 leading-relaxed mb-4 sm:mb-6">
-                Quando embarca num avião, vê o piloto e a tripulação. Mas existe uma{' '}
-                <strong className="text-grafite">equipa de elite em terra</strong>, monitorizando cada metro do seu voo.
+                Quando embarca num avião, vê o piloto e a tripulação. Em terra, há também uma{' '}
+                <strong className="text-grafite">equipa que acompanha cada fase do voo</strong> — da partida à chegada.
               </p>
               <p className="text-sm sm:text-lg text-gray-600 leading-relaxed mb-6 sm:mb-8">
-                O Controlador de Tráfego Aéreo (CTA) é o responsável por evitar colisões, organizar descolagens e aterragens 
-                e guiar aeronaves em segurança através das complexas rotas do Atlântico.
+                O Controlador de Tráfego Aéreo (CTA) organiza descolagens e aterragens, mantém a separação entre aeronaves e guia os voos pelas rotas do Atlântico médio.
               </p>
               <Link
                 to="/profissao"
