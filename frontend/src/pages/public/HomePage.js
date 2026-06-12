@@ -11,7 +11,6 @@ import {
   Users,
   Clock,
   MapPin,
-  Target,
   ArrowRight,
   Radio,
   Eye,
@@ -166,27 +165,6 @@ export const HomePage = () => {
           </div>
         </div>
 
-      </section>
-
-      {/* Stats Bar */}
-      <section className="bg-grafite py-6 sm:py-8 border-y border-carmesim/20">
-        <div className="max-w-7xl mx-auto px-5 sm:px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-5 sm:gap-8">
-            {[
-              { icon: Globe, value: 'FIR', label: 'Oceânica do Sal' },
-              { icon: Clock, value: '24/7', label: 'Operação Ininterrupta' },
-              { icon: MapPin, value: '4', label: 'Aeroportos Internacionais' },
-              { icon: Target, value: '1', label: 'Missão: Segurança Total' },
-            ].map((stat, index) => (
-              <div key={index}
-                className="text-center animate-fade-up">
-                <stat.icon className="w-6 sm:w-8 h-6 sm:h-8 text-white mx-auto mb-2 sm:mb-3" />
-                <div className="font-bold text-2xl sm:text-3xl lg:text-4xl text-white mb-0.5">{stat.value}</div>
-                <div className="text-xs text-white/80 tracking-wider">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
       </section>
 
       {/* Featured Event Countdown */}
