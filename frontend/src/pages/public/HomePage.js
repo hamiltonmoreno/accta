@@ -169,22 +169,15 @@ export const HomePage = () => {
 
       {/* Featured Event Countdown */}
       {featuredEvent && (
-        <section className="py-12 sm:py-16 bg-white border-b border-gray-100" data-testid="featured-event-section">
+        <section className="py-8 sm:py-10 bg-white border-b border-gray-100" data-testid="featured-event-section">
           <div className="max-w-7xl mx-auto px-5 sm:px-6">
-            <div className="relative overflow-hidden rounded-2xl bg-grafite p-6 sm:p-10 lg:p-12">
-              {/* Background pattern */}
-              <div className="absolute inset-0 opacity-[0.04]" style={{
-                backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
-                backgroundSize: '24px 24px'
-              }} />
-              <div className="absolute top-0 right-0 w-64 h-64 bg-carmesim/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-
+            <div className="relative overflow-hidden rounded-2xl bg-grafite p-5 sm:p-7 lg:p-8">
               <div className="relative z-10 grid lg:grid-cols-2 gap-8 items-center">
                 {/* Event Info */}
                 <div>
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-carmesim/20 border border-carmesim/30 rounded-full mb-4 sm:mb-5">
                     <Calendar className="w-3.5 h-3.5 text-white" />
-                    <span className="text-xs text-white font-semibold uppercase tracking-wider">Proximo Evento</span>
+                    <span className="text-xs text-white font-semibold uppercase tracking-wider">Próximo evento</span>
                   </div>
                   <h2 className="font-bold text-2xl sm:text-3xl lg:text-4xl text-white mb-3" data-testid="featured-event-title">
                     {featuredEvent.title}
@@ -227,8 +220,8 @@ export const HomePage = () => {
                     ].map((unit, i) => (
                       <div key={unit.label}
                         className="flex flex-col items-center animate-fade-up">
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl flex items-center justify-center mb-2">
-                          <span className="font-bold text-2xl sm:text-3xl text-white font-mono" data-testid={`countdown-${unit.label.toLowerCase()}`}>
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl flex items-center justify-center mb-2">
+                          <span className="font-bold text-xl sm:text-2xl text-white font-mono" data-testid={`countdown-${unit.label.toLowerCase()}`}>
                             {String(unit.value).padStart(2, '0')}
                           </span>
                         </div>
