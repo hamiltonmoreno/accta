@@ -50,14 +50,14 @@ const REQ_ICONS = [Users, GraduationCap, Radio, Languages, Heart];
 export const ProfissaoPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
-      <PageBanner pageKey="profissao" badge="Base de conhecimento" title="O que é ser um Controlador de Tráfego Aéreo?" subtitle="Uma profissão de raciocínio rápido, alta responsabilidade e precisão absoluta" />
+      <PageBanner pageKey="profissao" title="O que é ser um Controlador de Tráfego Aéreo?" subtitle="Uma profissão de raciocínio rápido, alta responsabilidade e precisão absoluta" />
 
       {/* Introduction */}
       <section className="py-12 sm:py-20 lg:py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="animate-fade-up">
-              <h2 className="font-sans font-bold text-4xl text-grafite mb-8">
+              <h2 className="font-sans font-bold text-3xl md:text-4xl text-grafite mb-8">
                 O profissional que guia os{' '}
                 <span className="text-carmesim">Céus</span>
               </h2>
@@ -97,7 +97,7 @@ export const ProfissaoPage = () => {
             <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
               Tipos de Controlo
             </span>
-            <h2 className="font-sans font-bold text-4xl text-grafite mb-4">
+            <h2 className="font-sans font-bold text-3xl md:text-4xl text-grafite mb-4">
               Os Tipos de Controlo em Cabo Verde
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -110,7 +110,7 @@ export const ProfissaoPage = () => {
             {tiposControlo.map((tipo) => {
               const Icon = TIPO_ICONS[tipo.sigla] || Radio;
               return (
-                <div key={tipo.sigla} className="card-technical rounded-2xl p-8 animate-fade-up">
+                <div key={tipo.sigla} className="card-technical card-hover rounded-2xl p-8 animate-fade-up">
                   <div className="w-14 h-14 bg-grafite rounded-xl flex items-center justify-center mb-5">
                     <Icon className="w-7 h-7 text-white" />
                   </div>
@@ -136,7 +136,7 @@ export const ProfissaoPage = () => {
             <p className="text-sm text-gray-500 text-center mb-8">Base legal: {qualificacoes.baseLegal}</p>
             <div className="grid sm:grid-cols-2 gap-4">
               {qualificacoes.lista.map((q) => (
-                <div key={q.sigla} className="flex items-start gap-3 card-technical rounded-xl p-5 animate-fade-up">
+                <div key={q.sigla} className="flex items-start gap-3 card-technical card-hover rounded-xl p-5 animate-fade-up">
                   <CheckCircle className="w-5 h-5 text-carmesim flex-shrink-0 mt-0.5" />
                   <div>
                     <div className="font-semibold text-grafite">{q.sigla}</div>
@@ -156,7 +156,7 @@ export const ProfissaoPage = () => {
             <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-6">
               Estrutura ATS
             </span>
-            <h2 className="font-sans font-bold text-4xl text-grafite mb-4">
+            <h2 className="font-sans font-bold text-3xl md:text-4xl text-grafite mb-4">
               Quem faz o quê na navegação aérea
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -166,7 +166,7 @@ export const ProfissaoPage = () => {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
             {camadas.map((c) => (
-              <div key={c.sigla} className="card-technical rounded-xl p-6 animate-fade-up">
+              <div key={c.sigla} className="card-technical card-hover rounded-xl p-6 animate-fade-up">
                 <div className="w-12 h-12 bg-grafite rounded-lg flex items-center justify-center mb-4">
                   <Building2 className="w-6 h-6 text-white" />
                 </div>
@@ -182,7 +182,7 @@ export const ProfissaoPage = () => {
 
           <div className="grid lg:grid-cols-2 gap-8">
             {/* FIR */}
-            <div className="card-technical rounded-2xl p-8 animate-fade-up">
+            <div className="card-technical card-hover rounded-2xl p-8 animate-fade-up">
               <div className="flex items-center gap-3 mb-4">
                 <Globe className="w-7 h-7 text-carmesim" />
                 <h3 className="font-sans font-bold text-2xl text-grafite">{fir.nome}</h3>
@@ -200,7 +200,7 @@ export const ProfissaoPage = () => {
 
             {/* Órgãos ATS + infraestrutura */}
             <div className="space-y-6">
-              <div className="card-technical rounded-2xl p-8 animate-fade-up">
+              <div className="card-technical card-hover rounded-2xl p-8 animate-fade-up">
                 <div className="flex items-center gap-3 mb-4">
                   <MapPin className="w-7 h-7 text-carmesim" />
                   <h3 className="font-sans font-bold text-2xl text-grafite">Órgãos ATS (operados pela ASA)</h3>
@@ -220,7 +220,7 @@ export const ProfissaoPage = () => {
                   </div>
                 </dl>
               </div>
-              <div className="card-technical rounded-2xl p-8 animate-fade-up">
+              <div className="card-technical card-hover rounded-2xl p-8 animate-fade-up">
                 <div className="flex items-center gap-3 mb-3">
                   <Plane className="w-7 h-7 text-carmesim" />
                   <h3 className="font-sans font-bold text-xl text-grafite">Infraestrutura aeroportuária</h3>
@@ -239,7 +239,7 @@ export const ProfissaoPage = () => {
             <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
               Carreira
             </span>
-            <h2 className="font-sans font-bold text-4xl text-grafite mb-4">
+            <h2 className="font-sans font-bold text-3xl md:text-4xl text-grafite mb-4">
               Como se tornar um Controlador
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -250,7 +250,7 @@ export const ProfissaoPage = () => {
           {/* Timeline */}
           <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-6 mb-20">
             {caminhoCTA.map((fase, i) => (
-              <div key={fase.etapa} className="card-technical rounded-xl p-6 animate-fade-up">
+              <div key={fase.etapa} className="card-technical card-hover rounded-xl p-6 animate-fade-up">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-9 h-9 rounded-full bg-grafite text-white flex items-center justify-center font-bold text-sm">
                     {i + 1}
@@ -276,7 +276,7 @@ export const ProfissaoPage = () => {
               {requisitos.map((req, index) => {
                 const Icon = REQ_ICONS[index] || CheckCircle;
                 return (
-                  <div key={index} className="card-technical rounded-xl p-6 flex gap-5 animate-fade-up">
+                  <div key={index} className="card-technical card-hover rounded-xl p-6 flex gap-5 animate-fade-up">
                     <div className="w-14 h-14 bg-gray-100 text-grafite rounded-xl flex items-center justify-center flex-shrink-0">
                       <Icon className="w-7 h-7" />
                     </div>
@@ -300,7 +300,7 @@ export const ProfissaoPage = () => {
             <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-6">
               Licenciamento
             </span>
-            <h2 className="font-sans font-bold text-4xl text-grafite mb-4">
+            <h2 className="font-sans font-bold text-3xl md:text-4xl text-grafite mb-4">
               Licenciamento, recência e validade
             </h2>
           </div>
@@ -312,7 +312,7 @@ export const ProfissaoPage = () => {
 
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Recência */}
-            <div className="card-technical rounded-2xl p-8 animate-fade-up">
+            <div className="card-technical card-hover rounded-2xl p-8 animate-fade-up">
               <div className="flex items-center gap-3 mb-4">
                 <Clock className="w-7 h-7 text-carmesim" />
                 <h3 className="font-sans font-bold text-xl text-grafite">Recência e validade</h3>
@@ -329,7 +329,7 @@ export const ProfissaoPage = () => {
             </div>
 
             {/* Reentrada */}
-            <div className="card-technical rounded-2xl p-8 animate-fade-up">
+            <div className="card-technical card-hover rounded-2xl p-8 animate-fade-up">
               <div className="flex items-center gap-3 mb-4">
                 <Scale className="w-7 h-7 text-carmesim" />
                 <h3 className="font-sans font-bold text-xl text-grafite">Reentrada operacional</h3>
@@ -347,7 +347,7 @@ export const ProfissaoPage = () => {
             </div>
 
             {/* Conversão */}
-            <div className="card-technical rounded-2xl p-8 animate-fade-up">
+            <div className="card-technical card-hover rounded-2xl p-8 animate-fade-up">
               <div className="flex items-center gap-3 mb-4">
                 <FileText className="w-7 h-7 text-carmesim" />
                 <h3 className="font-sans font-bold text-xl text-grafite">Conversão de licença estrangeira</h3>
@@ -370,7 +370,7 @@ export const ProfissaoPage = () => {
             <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
               Formação
             </span>
-            <h2 className="font-sans font-bold text-4xl text-grafite mb-4">
+            <h2 className="font-sans font-bold text-3xl md:text-4xl text-grafite mb-4">
               Onde formar-se
             </h2>
             <p className="text-sm text-gray-500 max-w-2xl mx-auto">{notaFonte}</p>
@@ -378,7 +378,7 @@ export const ProfissaoPage = () => {
 
           <div className="grid md:grid-cols-2 gap-8 mb-12">
             {ato.map((a) => (
-              <div key={a.nome} className="card-technical rounded-2xl p-8 animate-fade-up">
+              <div key={a.nome} className="card-technical card-hover rounded-2xl p-8 animate-fade-up">
                 <div className="flex items-center gap-3 mb-4">
                   <GraduationCap className="w-7 h-7 text-carmesim" />
                   <div>
@@ -396,12 +396,12 @@ export const ProfissaoPage = () => {
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {caminhos.map((c) => (
-              <div key={c.titulo} className="card-technical rounded-xl p-6 animate-fade-up">
+              <div key={c.titulo} className="card-technical card-hover rounded-xl p-6 animate-fade-up">
                 <h4 className="font-sans font-semibold text-lg text-grafite mb-2">{c.titulo}</h4>
                 <p className="text-sm text-gray-600">{c.desc}</p>
               </div>
             ))}
-            <div className="card-technical rounded-xl p-6 animate-fade-up">
+            <div className="card-technical card-hover rounded-xl p-6 animate-fade-up">
               <h4 className="font-sans font-semibold text-lg text-grafite mb-2">{academico.titulo}</h4>
               <p className="text-sm text-gray-600">{academico.desc}</p>
             </div>
@@ -426,7 +426,7 @@ export const ProfissaoPage = () => {
               <span className="inline-block px-4 py-2 bg-white/10 text-white rounded-full text-sm uppercase tracking-wider mb-6">
                 Espaço Aéreo
               </span>
-              <h2 className="font-sans font-bold text-4xl text-white mb-6">
+              <h2 className="font-sans font-bold text-3xl md:text-4xl text-white mb-6">
                 A {fir.nome}: um espaço estratégico
               </h2>
               <p className="text-xl text-white/80 leading-relaxed mb-6">
@@ -460,7 +460,7 @@ export const ProfissaoPage = () => {
       {/* CTA Section */}
       <section className="py-12 sm:py-20 lg:py-24 bg-white">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="font-sans font-bold text-4xl text-grafite mb-6">
+          <h2 className="font-sans font-bold text-3xl md:text-4xl text-grafite mb-6">
             Quer conhecer a nossa associação?
           </h2>
           <p className="text-xl text-gray-600 mb-10">
