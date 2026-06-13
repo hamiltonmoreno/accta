@@ -145,6 +145,8 @@ export const cargosAPI = {
 // Governança estatutária — estrutura canónica (spec-governanca §9)
 export const governanceAPI = {
   structure: () => api.get('/governance/structure'),
+  // Público (sem auth) — titulares dos órgãos sociais p/ a página /sobre.
+  getCorposSociais: () => api.get('/governance/corpos-sociais'),
 };
 
 // Banners de página (spec-padronizacao-banners)
