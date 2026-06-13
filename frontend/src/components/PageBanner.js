@@ -34,7 +34,7 @@ export const PageBanner = ({ pageKey, badge, title, subtitle, icon: Icon }) => {
         sizes="100vw"
         alt={alt}
         aria-hidden={alt ? undefined : 'true'}
-        fetchpriority="high"
+        fetchPriority="high"
         decoding="async"
         className="absolute inset-0 w-full h-full object-cover"
       />

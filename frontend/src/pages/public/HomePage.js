@@ -11,7 +11,6 @@ import {
   Users,
   Clock,
   MapPin,
-  Target,
   ArrowRight,
   Radio,
   Eye,
@@ -69,7 +68,6 @@ export const HomePage = () => {
   const heroImg = bannerCfg?.home?.image_url || bannerDefault('home');
   const heroIsUnsplash = heroImg.includes('images.unsplash.com');
 
-  const [featuredEvent, setFeaturedEvent] = useState(null);
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   // Últimas 3 notícias públicas — pedidas com limit=3 (não cortadas no browser).
@@ -78,9 +76,21 @@ export const HomePage = () => {
     queryFn: async () => (await postsAPI.getAll({ visibility: 'publico', status: 'publicado', limit: 3 })).data,
   });
 
-  useEffect(() => {
-    loadFeaturedEvent();
-  }, []);
+  // Evento em destaque via useQuery (em vez de useState+useEffect+axios). Enquanto
+  // carrega, reservamos espaço com um placeholder (ver render) para evitar o salto
+  // de layout (CLS) que ocorria quando o evento era inserido após o primeiro paint.
+  // queryFn devolve null explícito quando não há evento (RQ não aceita undefined).
+  const { data: featuredEvent, isLoading: loadingEvent } = useQuery({
+    queryKey: queryKeys.events.featured(),
+    queryFn: async () => {
+      try {
+        return (await eventsAPI.getFeatured()).data || null;
+      } catch {
+        return null;
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   const calcCountdown = useCallback((dateStr) => {
     const target = new Date(dateStr).getTime();
@@ -103,13 +113,6 @@ export const HomePage = () => {
     return () => clearInterval(interval);
   }, [featuredEvent, calcCountdown]);
 
-  const loadFeaturedEvent = async () => {
-    try {
-      const res = await eventsAPI.getFeatured();
-      if (res.data) setFeaturedEvent(res.data);
-    } catch (err) { /* no featured event */ }
-  };
-
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -123,7 +126,7 @@ export const HomePage = () => {
             aria-hidden={bannerCfg?.home?.alt ? undefined : 'true'}
             className="absolute inset-0 w-full h-full object-cover"
             loading="eager"
-            fetchpriority="high"
+            fetchPriority="high"
             decoding="async"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-grafite via-grafite/90 to-grafite/50 sm:from-grafite sm:via-grafite/85 sm:to-grafite/50" />
@@ -133,19 +136,16 @@ export const HomePage = () => {
           <div className="max-w-2xl">
             <div className="animate-fade-up">
               <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-carmesim/20 backdrop-blur-sm border border-carmesim/40 rounded-full mb-6 sm:mb-8">
-                <Radio className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-white" />
-                <span className="text-white font-sans text-xs sm:text-sm uppercase tracking-wider font-semibold">ACCTA Cabo Verde</span>
+                <span className="w-2 h-2 rounded-full bg-carmesim shrink-0" aria-hidden="true" />
+                <span className="text-white font-sans text-xs sm:text-sm uppercase tracking-wider font-semibold">ACCTA · Cabo Verde</span>
               </div>
 
               <h1 className="font-bold text-3xl sm:text-5xl lg:text-6xl xl:text-7xl text-white leading-tight mb-4 sm:mb-6" data-testid="hero-title">
-                Os Guardiões{' '}
-                <span className="text-white">Invisíveis</span>{' '}
-                dos Céus de Cabo Verde
+                O controlo de tráfego aéreo em Cabo Verde.
               </h1>
 
               <p className="text-base sm:text-xl lg:text-2xl text-white leading-relaxed mb-8 sm:mb-10 max-w-xl" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
-                24 horas por dia, garantimos a segurança, a fluidez e a soberania do espaço aéreo no meio do Atlântico.{' '}
-                <span className="text-white font-bold">Nós somos a CTA.</span>
+                Somos os controladores de tráfego aéreo que organizam, comunicam e protegem cada voo na FIR Oceânica do Sal — uma das maiores regiões de informação de voo do Atlântico.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -154,7 +154,7 @@ export const HomePage = () => {
                   className="group inline-flex items-center justify-center gap-2 bg-floresta text-white px-6 sm:px-8 py-3.5 sm:py-4 rounded-lg font-bold text-sm sm:text-base hover:bg-floresta-dark transition-all shadow-lg shadow-floresta/25"
                   data-testid="hero-cta-primary"
                 >
-                  Conheça a Profissão
+                  Conhecer a profissão
                   <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
                 <Link
@@ -162,59 +162,33 @@ export const HomePage = () => {
                   className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white border border-white/30 px-6 sm:px-8 py-3.5 sm:py-4 rounded-lg font-bold text-sm sm:text-base hover:bg-white/20 transition-all"
                   data-testid="hero-cta-secondary"
                 >
-                  Área do Associado
+                  Área do associado
                 </Link>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 hidden sm:block animate-fade-up">
-          <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center">
-            <div className="w-1.5 h-3 bg-carmesim rounded-full mt-2 animate-bounce" />
-          </div>
-        </div>
       </section>
 
-      {/* Stats Bar */}
-      <section className="bg-grafite py-6 sm:py-8 border-y border-carmesim/20">
-        <div className="max-w-7xl mx-auto px-5 sm:px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-5 sm:gap-8">
-            {[
-              { icon: Globe, value: 'FIR', label: 'Oceânica do Sal' },
-              { icon: Clock, value: '24/7', label: 'Operação Ininterrupta' },
-              { icon: MapPin, value: '4', label: 'Aeroportos Internacionais' },
-              { icon: Target, value: '1', label: 'Missão: Segurança Total' },
-            ].map((stat, index) => (
-              <div key={index}
-                className="text-center animate-fade-up">
-                <stat.icon className="w-6 sm:w-8 h-6 sm:h-8 text-white mx-auto mb-2 sm:mb-3" />
-                <div className="font-bold text-2xl sm:text-3xl lg:text-4xl text-white mb-0.5">{stat.value}</div>
-                <div className="text-xs text-white/80 tracking-wider">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Event Countdown */}
-      {featuredEvent && (
-        <section className="py-12 sm:py-16 bg-white border-b border-gray-100" data-testid="featured-event-section">
+      {/* Featured Event Countdown — placeholder reserva espaço enquanto carrega
+          (evita CLS); colapsa para nada quando não há evento. */}
+      {loadingEvent ? (
+        <section className="py-8 sm:py-10 bg-white border-b border-gray-100" aria-hidden="true" data-testid="featured-event-skeleton">
           <div className="max-w-7xl mx-auto px-5 sm:px-6">
-            <div className="relative overflow-hidden rounded-2xl bg-grafite p-6 sm:p-10 lg:p-12">
-              {/* Background pattern */}
-              <div className="absolute inset-0 opacity-[0.04]" style={{
-                backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
-                backgroundSize: '24px 24px'
-              }} />
-              <div className="absolute top-0 right-0 w-64 h-64 bg-carmesim/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-
+            <div className="rounded-2xl bg-grafite/5 animate-pulse min-h-[260px] sm:min-h-[220px] lg:min-h-[200px]" />
+          </div>
+        </section>
+      ) : featuredEvent ? (
+        <section className="py-8 sm:py-10 bg-white border-b border-gray-100" data-testid="featured-event-section">
+          <div className="max-w-7xl mx-auto px-5 sm:px-6">
+            <div className="relative overflow-hidden rounded-2xl bg-grafite p-5 sm:p-7 lg:p-8">
               <div className="relative z-10 grid lg:grid-cols-2 gap-8 items-center">
                 {/* Event Info */}
                 <div>
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-carmesim/20 border border-carmesim/30 rounded-full mb-4 sm:mb-5">
                     <Calendar className="w-3.5 h-3.5 text-white" />
-                    <span className="text-xs text-white font-semibold uppercase tracking-wider">Proximo Evento</span>
+                    <span className="text-xs text-white font-semibold uppercase tracking-wider">Próximo evento</span>
                   </div>
                   <h2 className="font-bold text-2xl sm:text-3xl lg:text-4xl text-white mb-3" data-testid="featured-event-title">
                     {featuredEvent.title}
@@ -257,8 +231,8 @@ export const HomePage = () => {
                     ].map((unit, i) => (
                       <div key={unit.label}
                         className="flex flex-col items-center animate-fade-up">
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl flex items-center justify-center mb-2">
-                          <span className="font-bold text-2xl sm:text-3xl text-white font-mono" data-testid={`countdown-${unit.label.toLowerCase()}`}>
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl flex items-center justify-center mb-2">
+                          <span className="font-bold text-xl sm:text-2xl text-white font-mono" data-testid={`countdown-${unit.label.toLowerCase()}`}>
                             {String(unit.value).padStart(2, '0')}
                           </span>
                         </div>
@@ -271,7 +245,7 @@ export const HomePage = () => {
             </div>
           </div>
         </section>
-      )}
+      ) : null}
 
       {/* What We Do Section */}
       <section className="py-16 sm:py-24 bg-gray-50">
@@ -279,19 +253,18 @@ export const HomePage = () => {
           <div className="grid lg:grid-cols-2 gap-10 sm:gap-16 items-center">
             <div className="animate-fade-up">
               <span className="inline-block px-3 py-1.5 bg-carmesim/10 text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold mb-4 sm:mb-6">
-                O que fazemos
+                O que é o CTA
               </span>
               <h2 className="font-bold text-2xl sm:text-4xl lg:text-5xl text-grafite mb-4 sm:mb-6">
                 Muito além da{' '}
                 <span className="text-carmesim">Torre de Controlo</span>
               </h2>
               <p className="text-sm sm:text-lg text-gray-600 leading-relaxed mb-4 sm:mb-6">
-                Quando embarca num avião, vê o piloto e a tripulação. Mas existe uma{' '}
-                <strong className="text-grafite">equipa de elite em terra</strong>, monitorizando cada metro do seu voo.
+                Quando embarca num avião, vê o piloto e a tripulação. Em terra, há também uma{' '}
+                <strong className="text-grafite">equipa que acompanha cada fase do voo</strong> — da partida à chegada.
               </p>
               <p className="text-sm sm:text-lg text-gray-600 leading-relaxed mb-6 sm:mb-8">
-                O Controlador de Tráfego Aéreo (CTA) é o responsável por evitar colisões, organizar descolagens e aterragens 
-                e guiar aeronaves em segurança através das complexas rotas do Atlântico.
+                O Controlador de Tráfego Aéreo (CTA) organiza descolagens e aterragens, mantém a separação entre aeronaves e guia os voos pelas rotas do Atlântico médio.
               </p>
               <Link
                 to="/profissao"
@@ -616,24 +589,23 @@ export const HomePage = () => {
         </div>
         <div className="relative z-10 max-w-4xl mx-auto px-5 sm:px-6 text-center">
           <h2 className="font-bold text-2xl sm:text-4xl lg:text-5xl text-white mb-4 sm:mb-6">
-            Junte-se aos profissionais que garantem a{' '}
-            <span className="text-white">segurança dos céus</span>
+            A ACCTA representa os controladores de tráfego aéreo de Cabo Verde.
           </h2>
           <p className="text-base sm:text-xl text-white/80 mb-8 sm:mb-10">
-            A ACCTA representa e valoriza os controladores de tráfego aéreo de Cabo Verde
+            Conheça quem somos, o que defendemos e como participamos no setor da navegação aérea.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
             <Link
               to="/sobre"
               className="inline-flex items-center justify-center gap-2 bg-floresta text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-lg hover:bg-floresta-dark transition-all"
             >
-              Conheça a Associação
+              Conhecer a associação
             </Link>
             <Link
               to="/contactos"
               className="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white border border-white/20 px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-lg hover:bg-white/20 transition-all"
             >
-              Entre em Contacto
+              Entrar em contacto
             </Link>
           </div>
         </div>
