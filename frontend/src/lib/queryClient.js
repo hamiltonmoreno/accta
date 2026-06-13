@@ -80,6 +80,7 @@ export const queryKeys = {
   },
   governance: {
     structure: () => ['governance', 'structure'],
+    corposSociais: () => ['governance', 'corpos-sociais'],
   },
   banners: {
     public: () => ['banners', 'public'],
