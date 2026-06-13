@@ -2581,3 +2581,32 @@ class RelacaoExternaUpdate(BaseModel):
     documentos: Optional[list[str]] = None
     visibility: Optional[Literal["socios", "publico"]] = None
     # tipo é imutável após criação.
+
+
+# ===== Corpos Sociais (página pública /sobre) =====
+# Resposta do endpoint público GET /api/governance/corpos-sociais.
+# Expõe APENAS nome + foto dos titulares ativos — nunca email/id/role.
+
+
+class CorpoSocialTitular(BaseModel):
+    name: str
+    photo_url: Optional[str] = None
+
+
+class CorpoSocialCargo(BaseModel):
+    key: str
+    label: str
+    ordem: int
+    seats: int
+    titulares: List[CorpoSocialTitular] = []
+
+
+class CorpoSocialOrgao(BaseModel):
+    id: str
+    nome: str
+    tipo: str
+    cargos: List[CorpoSocialCargo] = []
+
+
+class CorposSociaisResponse(BaseModel):
+    orgaos: List[CorpoSocialOrgao] = []
