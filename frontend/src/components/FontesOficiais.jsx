@@ -17,7 +17,7 @@ export const FontesOficiais = () => (
           Instituições de referência
         </h2>
         <p className="text-sm text-gray-500 max-w-2xl mx-auto">
-          Esta base de conhecimento remete para as fontes oficiais. Confirme sempre
+          Esta secção remete para as fontes oficiais. Confirme sempre
           a informação vigente nas páginas das respetivas entidades.
         </p>
       </div>

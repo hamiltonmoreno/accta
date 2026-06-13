@@ -283,10 +283,6 @@ export const ContactosPage = () => {
       <section className="py-16 bg-white">
         <div className="max-w-3xl mx-auto px-6">
           <div className="text-center mb-10">
-            <span className="inline-flex items-center gap-2 px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-4">
-              <HelpCircle className="w-4 h-4" />
-              Base de Conhecimento
-            </span>
             <h2 className="font-sans font-bold text-3xl text-grafite mb-3">
               Perguntas Frequentes
             </h2>

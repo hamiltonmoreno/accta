@@ -188,9 +188,6 @@ export const TransparenciaPage = () => {
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
-            <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-4">
-              Base de Conhecimento
-            </span>
             <h2 className="font-sans font-bold text-3xl text-grafite mb-4">
               Legislação e Regulamentos
             </h2>
