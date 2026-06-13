@@ -68,7 +68,6 @@ export const HomePage = () => {
   const heroImg = bannerCfg?.home?.image_url || bannerDefault('home');
   const heroIsUnsplash = heroImg.includes('images.unsplash.com');
 
-  const [featuredEvent, setFeaturedEvent] = useState(null);
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   // Últimas 3 notícias públicas — pedidas com limit=3 (não cortadas no browser).
@@ -77,9 +76,21 @@ export const HomePage = () => {
     queryFn: async () => (await postsAPI.getAll({ visibility: 'publico', status: 'publicado', limit: 3 })).data,
   });
 
-  useEffect(() => {
-    loadFeaturedEvent();
-  }, []);
+  // Evento em destaque via useQuery (em vez de useState+useEffect+axios). Enquanto
+  // carrega, reservamos espaço com um placeholder (ver render) para evitar o salto
+  // de layout (CLS) que ocorria quando o evento era inserido após o primeiro paint.
+  // queryFn devolve null explícito quando não há evento (RQ não aceita undefined).
+  const { data: featuredEvent, isLoading: loadingEvent } = useQuery({
+    queryKey: queryKeys.events.featured(),
+    queryFn: async () => {
+      try {
+        return (await eventsAPI.getFeatured()).data || null;
+      } catch {
+        return null;
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   const calcCountdown = useCallback((dateStr) => {
     const target = new Date(dateStr).getTime();
@@ -101,13 +112,6 @@ export const HomePage = () => {
     }, 1000);
     return () => clearInterval(interval);
   }, [featuredEvent, calcCountdown]);
-
-  const loadFeaturedEvent = async () => {
-    try {
-      const res = await eventsAPI.getFeatured();
-      if (res.data) setFeaturedEvent(res.data);
-    } catch (err) { /* no featured event */ }
-  };
 
   return (
     <div className="min-h-screen">
@@ -167,8 +171,15 @@ export const HomePage = () => {
 
       </section>
 
-      {/* Featured Event Countdown */}
-      {featuredEvent && (
+      {/* Featured Event Countdown — placeholder reserva espaço enquanto carrega
+          (evita CLS); colapsa para nada quando não há evento. */}
+      {loadingEvent ? (
+        <section className="py-8 sm:py-10 bg-white border-b border-gray-100" aria-hidden="true" data-testid="featured-event-skeleton">
+          <div className="max-w-7xl mx-auto px-5 sm:px-6">
+            <div className="rounded-2xl bg-grafite/5 animate-pulse min-h-[260px] sm:min-h-[220px] lg:min-h-[200px]" />
+          </div>
+        </section>
+      ) : featuredEvent ? (
         <section className="py-8 sm:py-10 bg-white border-b border-gray-100" data-testid="featured-event-section">
           <div className="max-w-7xl mx-auto px-5 sm:px-6">
             <div className="relative overflow-hidden rounded-2xl bg-grafite p-5 sm:p-7 lg:p-8">
@@ -234,7 +245,7 @@ export const HomePage = () => {
             </div>
           </div>
         </section>
-      )}
+      ) : null}
 
       {/* What We Do Section */}
       <section className="py-16 sm:py-24 bg-gray-50">
