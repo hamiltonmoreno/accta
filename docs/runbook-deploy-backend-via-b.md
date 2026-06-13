@@ -48,10 +48,16 @@ git fetch origin main && git rev-parse --short=12 main
 
 | Variável | Valor |
 |----------|-------|
-| `TAG` (imagem nova) | `sha-f149268a1fde` |
+| `TAG` (imagem nova) | `sha-f149268a1fde` — **DEPLOYED 2026-06-13, prod atual** |
 | Tag git da release | `v0.5.8` |
-| Rollback (prod anterior, v0.5.0) | `sha-03a5fc060626` |
-| Teste decisivo desta release | `GET https://api.controlador.cv/api/governance/corpos-sociais` → 200 + JSON dos 3 órgãos |
+| Rollback (prod anterior, v0.5.4) | `sha-409a7b4fe314` |
+| Teste decisivo desta release | `GET https://api.controlador.cv/api/governance/corpos-sociais` → 200 + JSON dos 3 órgãos ✅ confirmado live |
+
+> **Nota de lição:** a imagem que corria em prod antes da v0.5.8 era a da
+> **v0.5.4** (`sha-409a7b4fe314`, #197), **não** a v0.5.0 — as v0.5.5/v0.5.6/v0.5.7
+> foram releases **só de frontend** (Vercel), por isso o backend ficou na v0.5.4.
+> Confirma sempre a imagem em execução antes de deploy: `docker compose ps`
+> (coluna IMAGE) ou `docker inspect accta-backend --format '{{.Config.Image}}'`.
 
 ---
 
@@ -91,7 +97,7 @@ curl -fsS https://api.controlador.cv/api/governance/corpos-sociais
 A imagem anterior continua no VPS; só se troca o `TAG`:
 ```bash
 cd /docker/accta
-export TAG=sha-03a5fc060626        # <- rollback (v0.5.0)
+export TAG=sha-409a7b4fe314        # <- rollback (v0.5.4, imagem que corria antes da v0.5.8)
 docker compose up -d --no-deps backend
 ```
 
@@ -123,7 +129,9 @@ Ver `DEPLOY.md` e `HOSTINGER_DEPLOY.md` para o setup completo (secrets SSH,
 ## 6. Notas finais
 - O **frontend** é independente: a Vercel publica automaticamente no push para
   `main`. Esta "Via B" é **só backend**.
-- Histórico de deploys Via B: v0.4.0 (`sha-ba3e946e3add`), v0.5.0
-  (`sha-03a5fc060626`, prod atual antes de v0.5.8).
+- Histórico de imagens de backend em prod: v0.4.0 (`sha-ba3e946e3add`) → v0.5.0
+  (`sha-03a5fc060626`) → **v0.5.4 (`sha-409a7b4fe314`)** → **v0.5.8
+  (`sha-f149268a1fde`, atual)**. As v0.5.1/v0.5.5/v0.5.6/v0.5.7 não tocaram no
+  backend (só Vercel).
 - Depois do deploy do backend, **atribuir os cargos** em `/admin/cargos` (com
   foto) para a secção Corpos Sociais deixar de mostrar "Vago".
