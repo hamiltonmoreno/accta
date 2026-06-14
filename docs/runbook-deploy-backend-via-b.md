@@ -26,11 +26,13 @@
 ### ⚠️ Armadilhas que partem produção
 - **NUNCA** correr `/opt/projetos/accta/deploy.sh` — builda para 8001, fora da
   rede `proxy`, e desliga o backend do NPM (já causou outage).
-- **Porta 8000 vs 8001:** o `backend/Dockerfile` é **8001-native**
-  (`uvicorn --port 8001`, EXPOSE/HEALTHCHECK 8001), mas o NPM fala **8000**. O
-  compose canónico de `/docker/accta` **já** tem o override obrigatório
+- **Porta 8000:** desde a **v0.5.13** o `backend/Dockerfile` é **8000-native**
+  (EXPOSE/HEALTHCHECK/CMD `--port 8000`, #228) — alinhado com o NPM. O compose
+  canónico de `/docker/accta` **já** tem o override
   `command: ["uvicorn","server:app","--host","0.0.0.0","--port","8000","--workers","2"]`
-  + healthcheck em `:8000`. **Não substituas esse compose** — só mexes no `TAG`.
+  + healthcheck em `:8000`, que agora é **redundante mas inofensivo**. **Não
+  substituas esse compose** — só mexes no `TAG`. (Imagens ≤ v0.5.8 eram
+  8001-native e dependiam mesmo desse override.)
 - Construir a imagem **no VPS** é só por causa do billing lock. Não usar o clone
   órfão `/opt/projetos/accta` para arrancar serviços.
 
@@ -44,18 +46,18 @@ Antes de começar, obtém o SHA do `main` na release (na tua máquina):
 git fetch origin main && git rev-parse --short=12 main
 ```
 
-**Valores atuais (v0.5.8 — página Sobre + endpoint público corpos sociais):**
+**Valores atuais (v0.5.13 — revisão de segurança + follow-ups operacionais):**
 
 | Variável | Valor |
 |----------|-------|
-| `TAG` (imagem nova) | `sha-f149268a1fde` — **DEPLOYED 2026-06-13, prod atual** |
-| Tag git da release | `v0.5.8` |
-| Rollback (prod anterior, v0.5.4) | `sha-409a7b4fe314` |
-| Teste decisivo desta release | `GET https://api.controlador.cv/api/governance/corpos-sociais` → 200 + JSON dos 3 órgãos ✅ confirmado live |
+| `TAG` (imagem nova) | `sha-f580b90ee543` — **a fazer deploy** |
+| Tag git da release | `v0.5.13` |
+| Rollback (prod anterior, v0.5.8) | `sha-f149268a1fde` |
+| Teste decisivo desta release | `GET https://api.controlador.cv/openapi.json` → **404** (Swagger/OpenAPI desligados em prod, #191/#225) — em v0.5.8 dava 200 |
 
-> **Nota de lição:** a imagem que corria em prod antes da v0.5.8 era a da
-> **v0.5.4** (`sha-409a7b4fe314`, #197), **não** a v0.5.0 — as v0.5.5/v0.5.6/v0.5.7
-> foram releases **só de frontend** (Vercel), por isso o backend ficou na v0.5.4.
+> **Nota de lição:** o backend em prod antes da v0.5.13 estava na **v0.5.8**
+> (`sha-f149268a1fde`), **não** numa v0.5.9–v0.5.12 — essas quatro foram releases
+> **só de frontend** (PWA/ícones/cache, Vercel) e **não tocaram em `backend/`**.
 > Confirma sempre a imagem em execução antes de deploy: `docker compose ps`
 > (coluna IMAGE) ou `docker inspect accta-backend --format '{{.Config.Image}}'`.
 
@@ -67,27 +69,29 @@ git fetch origin main && git rev-parse --short=12 main
 ```bash
 rm -rf /tmp/accta-build
 git clone https://github.com/hamiltonmoreno/accta.git /tmp/accta-build
-cd /tmp/accta-build && git checkout v0.5.8        # <- tag git da release
+cd /tmp/accta-build && git checkout v0.5.13       # <- tag git da release
 docker build -f backend/Dockerfile \
-  -t ghcr.io/hamiltonmoreno/accta-backend:sha-f149268a1fde .   # <- TAG
+  -t ghcr.io/hamiltonmoreno/accta-backend:sha-f580b90ee543 .   # <- TAG
 ```
 
 ### 2.2 Arrancar via o compose canónico (só muda o TAG)
 ```bash
 cd /docker/accta
-export TAG=sha-f149268a1fde
+export TAG=sha-f580b90ee543
 docker compose up -d --no-deps backend
 ```
 
 ### 2.3 Verificar
 ```bash
 docker compose ps                         # backend = Up (healthy)
-docker compose logs --tail=50 backend     # sem tracebacks
+docker compose logs --tail=80 backend     # arranque limpo: ensure_schema OK, sem tracebacks
 curl -fsS https://api.controlador.cv/api/ # 200
 
-# Teste específico desta release (endpoint novo):
-curl -fsS https://api.controlador.cv/api/governance/corpos-sociais
-# Esperado: 200 + JSON com "orgaos":[{assembleia_geral},{direcao},{conselho_fiscal}]
+# Teste decisivo desta release: /openapi.json e /docs ficam DESLIGADOS em prod
+# (server.py, #191/#225) — prova que a imagem nova está a correr.
+curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/openapi.json  # esperado: 404
+curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/docs          # esperado: 404
+# (depende de ENVIRONMENT=production no backend/.env — já presente; HSTS/CORS também o exigem.)
 ```
 
 ---
@@ -97,7 +101,7 @@ curl -fsS https://api.controlador.cv/api/governance/corpos-sociais
 A imagem anterior continua no VPS; só se troca o `TAG`:
 ```bash
 cd /docker/accta
-export TAG=sha-409a7b4fe314        # <- rollback (v0.5.4, imagem que corria antes da v0.5.8)
+export TAG=sha-f149268a1fde        # <- rollback (v0.5.8, imagem que corria antes da v0.5.13)
 docker compose up -d --no-deps backend
 ```
 
@@ -131,7 +135,8 @@ Ver `DEPLOY.md` e `HOSTINGER_DEPLOY.md` para o setup completo (secrets SSH,
   `main`. Esta "Via B" é **só backend**.
 - Histórico de imagens de backend em prod: v0.4.0 (`sha-ba3e946e3add`) → v0.5.0
   (`sha-03a5fc060626`) → **v0.5.4 (`sha-409a7b4fe314`)** → **v0.5.8
-  (`sha-f149268a1fde`, atual)**. As v0.5.1/v0.5.5/v0.5.6/v0.5.7 não tocaram no
-  backend (só Vercel).
-- Depois do deploy do backend, **atribuir os cargos** em `/admin/cargos` (com
-  foto) para a secção Corpos Sociais deixar de mostrar "Vago".
+  (`sha-f149268a1fde`)** → **v0.5.13 (`sha-f580b90ee543`, este deploy)**. As
+  v0.5.1/v0.5.5/v0.5.6/v0.5.7 e v0.5.9–v0.5.12 não tocaram no backend (só Vercel).
+- Pós-deploy específico de cada release (não há nenhum para a v0.5.13). Histórico:
+  na v0.5.8 foi preciso **atribuir os cargos** em `/admin/cargos` (com foto) para
+  a secção Corpos Sociais deixar de mostrar "Vago".
