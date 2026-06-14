@@ -1,4 +1,7 @@
-const CACHE_NAME = 'accta-wallet-v2';
+// v3: purga a cache v2, que podia conter o fallback SPA (index.html) gravado no
+// lugar de assets que davam 404 antes de existirem (ex.: /logo192.png servido
+// como text/html). O bump força o activate a apagar a cache envenenada.
+const CACHE_NAME = 'accta-wallet-v3';
 
 const STATIC_ASSETS = [
   '/carteira',
@@ -61,7 +64,13 @@ self.addEventListener('fetch', (event) => {
       caches.match(request).then((cachedResponse) => {
         if (cachedResponse) return cachedResponse;
         return fetch(request).then((response) => {
-          if (!response || !response.ok) return response;
+          // Nunca cachear o fallback SPA (index.html) servido para um asset em
+          // falta — era o que envenenava a cache (ex.: /logo192.png gravado como
+          // text/html). Só cacheamos respostas reais do tipo esperado.
+          const contentType = response && response.headers.get('content-type');
+          if (!response || !response.ok || (contentType && contentType.includes('text/html'))) {
+            return response;
+          }
           const clonedResponse = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(request, clonedResponse);
