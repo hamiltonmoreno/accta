@@ -827,8 +827,8 @@ class WallPost(BaseModel):
 
 
 class WallPostCreate(BaseModel):
-    content: str
-    category: str = "geral"
+    content: str = Field(min_length=1, max_length=5000)
+    category: str = Field(default="geral", max_length=50)
 
 
 class WallComment(BaseModel):
@@ -842,7 +842,7 @@ class WallComment(BaseModel):
 
 
 class WallCommentCreate(BaseModel):
-    content: str
+    content: str = Field(min_length=1, max_length=2000)
 
 
 # ===== GALLERY MODELS =====
@@ -2260,6 +2260,13 @@ class ExercicioSubmeterAG(BaseModel):
 class ExercicioAprovar(BaseModel):
     deliberacao_id: str
     aprovado: bool = True
+
+
+class ExercicioReabrir(BaseModel):
+    # Reabrir um exercício APROVADO desfaz um ato da AG, logo exige nova
+    # deliberação da AG (Art. 19.1/37). Reabrir após "rejeitado" é livre (não
+    # houve aprovação a desfazer) — daí o campo ser opcional.
+    deliberacao_id: Optional[str] = None
 
 
 # ===== RANKING DE ATUAÇÃO DO SÓCIO (spec-ranking-socio) =====

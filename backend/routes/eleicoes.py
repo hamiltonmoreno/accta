@@ -394,12 +394,15 @@ async def voto_correspondencia(
         if sentinel == "not_open":
             raise HTTPException(status_code=400, detail="A votação não está aberta")
         raise HTTPException(status_code=409, detail="Este eleitor já votou")
+    # Regista a identidade do eleitor em nome de quem o voto foi lançado (NÃO o
+    # sentido do voto, que permanece secreto) — sem isto é impossível auditar
+    # abusos da Comissão/Mesa que registem votos sem consentimento do eleitor.
     await create_audit_log(
         current_user.id,
         "eleicao_voto_correspondencia",
         eleicao_id,
         request=request,
-        details={"modo": "correspondencia"},
+        details={"modo": "correspondencia", "user_id": data.user_id},
     )
     return {"message": "Voto por correspondência registado."}
 
@@ -424,9 +427,7 @@ async def apurar(eleicao_id: str, request: Request, current_user: User = Depends
     # `cast_ballot`) serializam — quem entrar depois vê `status="votacao"`
     # já trocado e o helper levanta `ValueError("not_open")`. Duas chamadas
     # concorrentes a `apurar` ficam idempotentes: só uma fecha.
-    pre_close = await db.eleicoes.update_one(
-        {"id": eleicao_id, "status": "votacao"}, {"$set": {"status": "apurada"}}
-    )
+    pre_close = await db.eleicoes.update_one({"id": eleicao_id, "status": "votacao"}, {"$set": {"status": "apurada"}})
     if pre_close.modified_count == 0:
         raise HTTPException(status_code=409, detail="Eleição já apurada.")
 
@@ -503,6 +504,11 @@ async def _proclaim_list(eleicao: dict, lista: dict, by_id: str) -> tuple[str, l
         if not user:
             continue
         cargo_key = c["cargo"]
+        # Idempotência: se já existe um mandato desta eleição (retry após falha
+        # parcial), não recriar — evita duplicar entradas no cargo_history.
+        if any((m or {}).get("eleicao_id") == eleicao["id"] for m in (user.get("cargo_history") or [])):
+            proclaimed.append({"user_id": c["user_id"], "cargo": cargo_key, "suplente": False})
+            continue
         hist = _close_active(user.get("cargo_history"), posse)
         mandate = CargoMandate(
             cargo=cargo_key,
@@ -541,6 +547,11 @@ async def _proclaim_list(eleicao: dict, lista: dict, by_id: str) -> tuple[str, l
         if not user:
             continue
         cargo_key = c["cargo"]
+        # Idempotência (ver titulares): não recriar o mandato de suplente se já
+        # existir um desta eleição.
+        if any((m or {}).get("eleicao_id") == eleicao["id"] for m in (user.get("cargo_history") or [])):
+            proclaimed.append({"user_id": c["user_id"], "cargo": cargo_key, "suplente": True})
+            continue
         mandate = CargoMandate(
             cargo=cargo_key,
             label=cargo_label(cargo_key),
@@ -583,9 +594,7 @@ async def proclamar(eleicao_id: str, request: Request, current_user: User = Depe
     # CAS: reivindica a proclamação atomicamente (apurada → proclamando) ANTES de
     # criar mandatos. Sem isto, duas chamadas concorrentes passavam o check em
     # Python e ambas corriam _proclaim_list, duplicando mandatos no cargo_history.
-    claim = await db.eleicoes.update_one(
-        {"id": eleicao_id, "status": "apurada"}, {"$set": {"status": "proclamando"}}
-    )
+    claim = await db.eleicoes.update_one({"id": eleicao_id, "status": "apurada"}, {"$set": {"status": "proclamando"}})
     if claim.modified_count == 0:
         raise HTTPException(status_code=409, detail="Eleição já está a ser proclamada ou já foi proclamada.")
     try:

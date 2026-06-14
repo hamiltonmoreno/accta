@@ -157,6 +157,10 @@ async def set_comissao(
         raise HTTPException(
             status_code=400, detail=f"A Comissão de Inquérito tem {COMISSAO_INQUERITO_MEMBROS} elementos distintos"
         )
+    if s["user_id"] in data.membros:
+        raise HTTPException(
+            status_code=400, detail="O visado não pode integrar a Comissão de Inquérito que o investiga"
+        )
 
     prazo = (datetime.now(timezone.utc) + timedelta(days=data.prazo_dias or INQUERITO_PRAZO_DIAS)).isoformat()
     await db.sancoes.update_one(
@@ -270,6 +274,12 @@ async def aplicar_sancao(sancao_id: str, request: Request, current_user: User = 
         raise HTTPException(status_code=400, detail="A expulsão exige deliberação da Assembleia Geral")
 
     now = _now_iso()
+    # Aplica primeiro os efeitos (idempotentes: perda_direitos grava valores
+    # fixos; expulsão usa _close_active, que não fecha duas vezes um mandato já
+    # fechado), e só DEPOIS marca "aplicada" via CAS. Assim, se uma escrita de
+    # efeito falhar, o estado permanece "decidida" e a operação é re-tentável;
+    # o CAS final (decidida->aplicada) garante exactamente-uma-vez sob
+    # concorrência sem deixar a sanção "aplicada" sem os efeitos persistidos.
     if tipo == "perda_direitos":
         await db.users.update_one(
             {"id": s["user_id"]},
@@ -297,7 +307,16 @@ async def aplicar_sancao(sancao_id: str, request: Request, current_user: User = 
             },
         )
 
-    await db.sancoes.update_one({"id": sancao_id}, {"$set": {"status": "aplicada", "aplicada_em": now}})
+    # CAS final: só agora (efeitos já persistidos) marca "aplicada". Se outra
+    # chamada concorrente já fechou a transição, modified_count==0 e abortamos
+    # sem duplicar a notificação/audit (os efeitos idempotentes já correram).
+    claimed = await db.sancoes.update_one(
+        {"id": sancao_id, "status": "decidida"},
+        {"$set": {"status": "aplicada", "aplicada_em": now}},
+    )
+    if claimed.modified_count == 0:
+        raise HTTPException(status_code=409, detail="A sanção já foi aplicada.")
+
     await create_audit_log(
         current_user.id,
         "sancao_aplicada",

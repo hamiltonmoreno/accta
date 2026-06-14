@@ -326,6 +326,8 @@ async def compute_dre_report(year: int) -> dict:
     """Computa o DRE anual (mensal + por categoria). Fonte única reutilizada pelo
     endpoint `/finances/dre` e pelo `dre_snapshot` congelado no Relatório e Contas
     (spec-ciclo §4.1) — os números não mudam depois da submissão."""
+    # Meia-aberto [start, end) — ver compute_financial_summary: um end fechado
+    # "{ano}-12-31T23:59:59" perdia timestamps com fracção de segundo.
     start = f"{year}-01-01T00:00:00"
     end = f"{year + 1}-01-01T00:00:00"  # exclusivo: ver nota em compute_financial_summary
     transactions = (
@@ -695,37 +697,16 @@ async def export_dre_pdf(
 ):
     require_view_finances(current_user)
 
-    start = f"{year}-01-01T00:00:00"
-    end = f"{year + 1}-01-01T00:00:00"  # exclusivo: ver nota em compute_financial_summary
-    transactions = (
-        await db.transactions.find({"date": {"$gte": start, "$lt": end}}, {"_id": 0}).limit(10000).to_list(None)
-    )
-
-    monthly = {}
-    for m in range(1, 13):
-        monthly[m] = {"receitas": 0, "despesas": 0}
-
-    receitas_cat = {}
-    despesas_cat = {}
-
-    for t in transactions:
-        date_str = t.get("date", "")
-        try:
-            m = int(date_str[5:7])
-        except (ValueError, IndexError):
-            continue
-        cat = t.get("category") or "Sem categoria"
-        amount = t.get("amount") or 0
-        if t.get("type") == "receita":
-            monthly[m]["receitas"] += amount
-            receitas_cat[cat] = receitas_cat.get(cat, 0) + amount
-        else:
-            monthly[m]["despesas"] += amount
-            despesas_cat[cat] = despesas_cat.get(cat, 0) + amount
-
-    total_receitas = sum(v["receitas"] for v in monthly.values())
-    total_despesas = sum(v["despesas"] for v in monthly.values())
-    resultado = total_receitas - total_despesas
+    # Reutiliza a fonte única do DRE (mesma janela/limite que /finances/dre) em
+    # vez de recalcular — antes divergia (limite 10000 vs 5000, range $lte vs
+    # $lt) e um bug corrigido aqui não chegava ao endpoint JSON.
+    dre = await compute_dre_report(year)
+    monthly = dre["monthly"]
+    receitas_cat = dre["receitas_por_categoria"]
+    despesas_cat = dre["despesas_por_categoria"]
+    total_receitas = dre["total_receitas"]
+    total_despesas = dre["total_despesas"]
+    resultado = dre["resultado_liquido"]
 
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=20)

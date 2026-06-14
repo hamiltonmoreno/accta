@@ -31,33 +31,63 @@ def _cursor(items):
 # --------------------------------------------------------------------------- #
 
 
+def _sse_request():
+    from starlette.requests import Request
+
+    return Request({"type": "http", "method": "GET", "path": "/x", "headers": [], "query_string": b""})
+
+
+def _fresh_slots(n: int) -> dict[str, float]:
+    import time
+
+    now = time.monotonic()
+    return {f"slot{i}": now for i in range(n)}
+
+
 class TestSSEConnectionCap:
     async def test_rejects_429_when_user_at_cap(self, mock_db, socio_user, monkeypatch):
-        from starlette.requests import Request
-
         monkeypatch.setattr(notif_route, "_extract_token", lambda _r: "tok")
         monkeypatch.setattr(notif_route, "get_user_from_token", AsyncMock(return_value=socio_user))
-        monkeypatch.setattr(notif_route, "_sse_active", {socio_user.id: notif_route._SSE_MAX_PER_USER})
-        req = Request({"type": "http", "method": "GET", "path": "/x", "headers": [], "query_string": b""})
+        monkeypatch.setattr(notif_route, "_sse_active", {socio_user.id: _fresh_slots(notif_route._SSE_MAX_PER_USER)})
         with pytest.raises(HTTPException) as exc:
-            await notif_route.notification_stream(req)
+            await notif_route.notification_stream(_sse_request())
         assert exc.value.status_code == 429
 
     async def test_allows_below_cap_and_reserves_slot_synchronously(self, mock_db, socio_user, monkeypatch):
         """O slot tem de ficar reservado ANTES de devolver a resposta (o
         generator só corre quando o Starlette itera o body) — senão N connects
         concorrentes passavam o check todos juntos (Codex P2)."""
-        from starlette.requests import Request
+        monkeypatch.setattr(notif_route, "_extract_token", lambda _r: "tok")
+        monkeypatch.setattr(notif_route, "get_user_from_token", AsyncMock(return_value=socio_user))
+        active = {socio_user.id: _fresh_slots(notif_route._SSE_MAX_PER_USER - 1)}
+        monkeypatch.setattr(notif_route, "_sse_active", active)
+        resp = await notif_route.notification_stream(_sse_request())
+        assert resp.media_type == "text/event-stream"
+        # Reservado sincronamente, sem o generator ter sido iterado.
+        assert len(active[socio_user.id]) == notif_route._SSE_MAX_PER_USER
+
+    async def test_stale_slots_expire_and_do_not_lock_user_out(self, mock_db, socio_user, monkeypatch):
+        """Slot cujo generator nunca foi iterado (disconnect antes do 1.º chunk,
+        erro de middleware) não corre o finally — sem TTL ficava preso para
+        sempre e 3 leaks bastavam para 429 até ao restart do worker. Com TTL,
+        slots sem heartbeat expiram e o utilizador volta a conseguir ligar."""
+        import time
 
         monkeypatch.setattr(notif_route, "_extract_token", lambda _r: "tok")
         monkeypatch.setattr(notif_route, "get_user_from_token", AsyncMock(return_value=socio_user))
-        active = {socio_user.id: notif_route._SSE_MAX_PER_USER - 1}
+        stale = time.monotonic() - notif_route._SSE_SLOT_TTL - 1
+        active = {socio_user.id: {f"leak{i}": stale for i in range(notif_route._SSE_MAX_PER_USER)}}
         monkeypatch.setattr(notif_route, "_sse_active", active)
-        req = Request({"type": "http", "method": "GET", "path": "/x", "headers": [], "query_string": b""})
-        resp = await notif_route.notification_stream(req)
+        resp = await notif_route.notification_stream(_sse_request())
         assert resp.media_type == "text/event-stream"
-        # Reservado sincronamente, sem o generator ter sido iterado.
-        assert active[socio_user.id] == notif_route._SSE_MAX_PER_USER
+        # Os 3 slots fantasma foram descartados; só o novo está reservado.
+        assert len(active[socio_user.id]) == 1
+
+    async def test_release_removes_slot_and_user_entry(self, mock_db, socio_user, monkeypatch):
+        active = {socio_user.id: {"s1": 0.0}}
+        monkeypatch.setattr(notif_route, "_sse_active", active)
+        notif_route._sse_release(socio_user.id, "s1")
+        assert socio_user.id not in active
 
 
 # --------------------------------------------------------------------------- #

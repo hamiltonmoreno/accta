@@ -4,6 +4,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timezone, timedelta
 from typing import Optional
+from config import IS_PROD
 from database import db
 import os
 import uuid
@@ -22,9 +23,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 # token theft. Em prod (cross-site Vercel <-> Render): SameSite=None + Secure.
 # Em dev (localhost): SameSite=Lax + Secure=False (sem HTTPS).
 COOKIE_NAME = "accta_session"
-_IS_PROD = os.environ.get("ENVIRONMENT") == "production"
-COOKIE_SECURE = _IS_PROD
-COOKIE_SAMESITE = "none" if _IS_PROD else "lax"
+COOKIE_SECURE = IS_PROD
+COOKIE_SAMESITE = "none" if IS_PROD else "lax"
 
 
 def set_session_cookie(response: Response, token: str) -> None:
