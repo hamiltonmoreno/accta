@@ -17,7 +17,14 @@ import hashlib
 from datetime import datetime, timezone
 
 limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
-app = FastAPI()
+# Em produção, Swagger/ReDoc/openapi.json ficam desligados: expõem o mapa
+# completo da API a anónimos e não recebem a CSP (ver SecurityHeadersMiddleware).
+_IS_PROD = os.environ.get("ENVIRONMENT") == "production"
+app = FastAPI(
+    docs_url=None if _IS_PROD else "/docs",
+    redoc_url=None if _IS_PROD else "/redoc",
+    openapi_url=None if _IS_PROD else "/openapi.json",
+)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
