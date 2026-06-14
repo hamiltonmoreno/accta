@@ -45,6 +45,16 @@ const safeUrl = (url) => {
 
 const STALE = 5 * 60 * 1000; // conteúdo quase estático
 
+// Grelha das secções dinâmicas. Com poucos cartões, centra-os (1 → coluna
+// única centrada; 2 → duas colunas centradas) em vez de os deixar encostados
+// à esquerda numa grelha de 3 colunas.
+const gridClass = (n) =>
+  n === 1
+    ? 'grid gap-6 max-w-sm mx-auto'
+    : n === 2
+      ? 'grid gap-6 sm:grid-cols-2 max-w-3xl mx-auto'
+      : 'grid gap-6 sm:grid-cols-2 lg:grid-cols-3';
+
 export const ProfissaoDestaques = () => {
   const { data: defesa = [] } = useQuery({
     queryKey: ['public', 'defesa-profissional'],
@@ -80,7 +90,7 @@ export const ProfissaoDestaques = () => {
               </p>
             </div>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className={gridClass(defesa.length)}>
               {defesa.map((d) => {
                 const data = fmtData(d.data);
                 return (
@@ -129,7 +139,7 @@ export const ProfissaoDestaques = () => {
               </p>
             </div>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className={gridClass(relacoes.length)}>
               {relacoes.map((r) => {
                 const website = safeUrl(r.website);
                 return (
@@ -191,7 +201,7 @@ export const ProfissaoDestaques = () => {
               </h2>
             </div>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className={gridClass(formacoes.length)}>
               {formacoes.map((f) => {
                 const url = safeUrl(f.url);
                 return (
