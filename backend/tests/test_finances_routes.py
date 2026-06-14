@@ -438,8 +438,11 @@ class TestGenerateQuotas:
             return _cursor([{"id": "member-1", "name": "Socio"}])
 
         mock_db.users.find = MagicMock(side_effect=find_users)
-        mock_db.transactions.find = MagicMock(return_value=_cursor([]))
         mock_db.finance_settings.find_one = AsyncMock(return_value={"quota_amount": 2000.0})
+        # A inserção passa pelo helper atómico (advisory lock) — mock no estilo das
+        # restantes funções de lock do database.py (ex. register_presenca_locked).
+        fake_insert = AsyncMock(return_value=1)
+        monkeypatch.setattr(finances_route, "insert_quotas_atomic", fake_insert)
         monkeypatch.setattr(finances_route, "create_audit_log", AsyncMock())
         monkeypatch.setattr(finances_route, "notify_all_active_users", AsyncMock())
 
@@ -450,4 +453,70 @@ class TestGenerateQuotas:
             "$or": [{"account_type": "member"}, {"account_type": {"$exists": False}}],
         }
         assert result["created"] == 1
-        mock_db.transactions.insert_one.assert_awaited_once()
+        # 1 candidato (o único sócio activo), com (ano, mês) e categoria certos.
+        fake_insert.assert_awaited_once()
+        call_year, call_month, candidates = fake_insert.await_args.args
+        assert (call_year, call_month) == (2026, 5)
+        assert [c["user_id"] for c in candidates] == ["member-1"]
+        assert candidates[0]["category"] == "quotas"
+
+
+class _ACtx:
+    """Async context manager que entrega `value` no __aenter__."""
+
+    def __init__(self, value):
+        self._value = value
+
+    async def __aenter__(self):
+        return self._value
+
+    async def __aexit__(self, *_):
+        return False
+
+
+@pytest.mark.asyncio
+class TestInsertQuotasAtomic:
+    async def test_dedup_under_lock(self, monkeypatch):
+        """Sob o advisory lock, re-lê os existentes do mês e insere só os em
+        falta — member-1 já tem quota, só member-2 é inserido."""
+        import database
+
+        executed: list = []
+        inserted: list = []
+
+        class FakeConn:
+            async def execute(self, sql, *args):
+                executed.append((sql, args))
+                if sql.startswith("INSERT"):
+                    inserted.append(args[0])
+
+            async def fetch(self, sql, *args):
+                return [{"uid": "member-1"}]  # member-1 já tem quota no mês
+
+            def transaction(self):
+                return _ACtx(None)
+
+        class FakePool:
+            def acquire(self):
+                return _ACtx(FakeConn())
+
+        monkeypatch.setattr(database, "get_pool", AsyncMock(return_value=FakePool()))
+
+        candidates = [
+            {"user_id": "member-1", "category": "quotas"},
+            {"user_id": "member-2", "category": "quotas"},
+        ]
+        n = await database.insert_quotas_atomic(2026, 5, candidates)
+
+        assert n == 1
+        assert [d["user_id"] for d in inserted] == ["member-2"]
+        # Advisory lock pedido com (namespace, ano*100+mês) ANTES de inserir.
+        lock_args = next(args for sql, args in executed if "pg_advisory_xact_lock" in sql)
+        assert lock_args == (database._QUOTA_LOCK_NS, 202605)
+
+    async def test_empty_candidates_short_circuits(self, monkeypatch):
+        import database
+
+        # Se tocar no pool, falha — candidatos vazios devem sair sem ligar.
+        monkeypatch.setattr(database, "get_pool", AsyncMock(side_effect=AssertionError("não devia ligar")))
+        assert await database.insert_quotas_atomic(2026, 5, []) == 0

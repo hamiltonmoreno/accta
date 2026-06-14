@@ -18,7 +18,7 @@ from models import (
     MFA_SECRET_FIELDS,
 )
 from finance_joia import joia_status
-from database import db
+from database import db, insert_quotas_atomic
 from auth import get_current_user, can_view_finances, can_manage_finances
 from helpers import create_audit_log, notify_admins, notify_all_active_users
 from fpdf import FPDF
@@ -535,22 +535,13 @@ async def generate_monthly_quotas(
         {"_id": 0, "id": 1, "name": 1},
     ).to_list(1000)
 
-    # Check which users already have quota for this month — usar range query
-    # ($gte/$lt) em vez de $regex, melhor para o indice composto (category, date).
-    month_start = f"{year}-{month:02d}-01"
-    next_month_start = f"{year + 1}-01-01" if month == 12 else f"{year}-{month + 1:02d}-01"
-    existing = await db.transactions.find(
-        {"category": "quotas", "date": {"$gte": month_start, "$lt": next_month_start}},
-        {"_id": 0, "user_id": 1},
-    ).to_list(None)
-    existing_user_ids = {t["user_id"] for t in existing if t.get("user_id")}
-
-    created_count = 0
-    for user in active_users:
-        if user["id"] in existing_user_ids:
-            continue
-
-        t = Transaction(
+    # Constrói um candidato por sócio activo. A deduplicação por mês (saltar
+    # quem já tem quota) e a inserção acontecem ATOMICAMENTE em
+    # insert_quotas_atomic, sob advisory lock por (ano, mês): serializa
+    # execuções concorrentes do gerador e fecha a race check-then-insert (dois
+    # admins a gerar o mesmo mês em simultâneo já não duplicam).
+    candidate_docs = [
+        Transaction(
             type="receita",
             category="quotas",
             description=f"{quota_desc} - {month:02d}/{year} - {user.get('name', 'Socio')}",
@@ -559,10 +550,10 @@ async def generate_monthly_quotas(
             reference=f"FOLHA-{year}{month:02d}",
             user_id=user["id"],
             created_by=current_user.id,
-        )
-        t_dict = t.model_dump()
-        await db.transactions.insert_one(t_dict)
-        created_count += 1
+        ).model_dump()
+        for user in active_users
+    ]
+    created_count = await insert_quotas_atomic(year, month, candidate_docs)
 
     await create_audit_log(
         current_user.id, f"Gerou {created_count} quotas para {month:02d}/{year} ({quota_amount} CVE cada)"
@@ -582,7 +573,7 @@ async def generate_monthly_quotas(
     return {
         "message": f"{created_count} quotas geradas para {month:02d}/{year}",
         "created": created_count,
-        "skipped": len(existing_user_ids),
+        "skipped": len(active_users) - created_count,
         "total_value": created_count * quota_amount,
     }
 
