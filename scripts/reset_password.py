@@ -12,7 +12,8 @@ da esperada (deriva de deploy) — a mensagem deixa-o explicito.
 
 Fix: se a conta existir, atualiza o hash da password usando EXATAMENTE o mesmo
 CryptContext de backend/auth.py (bcrypt, rounds=12), pelo que o login passa a
-aceitar a nova senha de imediato. Nao mexe em mais nenhum campo.
+aceitar a nova senha de imediato. So toca em password (+ password_changed_at,
+que invalida sessoes/tokens emitidos antes da reposicao, e password_reset_at).
 
 NOTA: nao envia emails, nao altera schema, nao toca noutras contas. Mostra o
 estado da conta (status/role/account_type) para confirmar que e a certa.
@@ -59,12 +60,17 @@ async def reset_password(email: str, password: str):
         await close_pool()
         sys.exit(2)
 
+    now_iso = datetime.now(timezone.utc).isoformat()
     res = await db.users.update_one(
         {"email": email},
         {
             "$set": {
                 "password": hash_password(password),
-                "password_reset_at": datetime.now(timezone.utc).isoformat(),
+                # password_changed_at invalida tokens/sessoes emitidos ANTES do
+                # reset (auth.token_predates_password_change) — uma reposicao de
+                # recuperacao tem de expulsar sessoes/tokens roubados ainda vivos.
+                "password_changed_at": now_iso,
+                "password_reset_at": now_iso,
             }
         },
     )
