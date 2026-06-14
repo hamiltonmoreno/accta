@@ -14,6 +14,21 @@
 
 ---
 
+## 📌 Estado (atualizado 2026-06-14)
+
+Este cutover via **CD/GHCR** (Fase 3) **ainda não foi executado**: o CD continua
+**billing-locked** (os jobs do GitHub Actions não chegam a um runner). O backend
+de produção do v0.4.0 em diante foi colocado em prod pela **"Via B" manual**
+(build da imagem **no VPS**, sem `docker compose pull` do GHCR) —
+ver **`docs/runbook-deploy-backend-via-b.md`**, que é o procedimento **em vigor**.
+
+Este runbook fica como o procedimento canónico para o **1.º cutover para GHCR
+quando a billing for restaurada**. O landmine da Fase 1 (imagem viva
+não-recriável → rollback achatado por `docker export`) e o gate continuam
+válidos independentemente da via escolhida.
+
+---
+
 ## ⚠️ Landmine conhecido (ler antes de tudo)
 
 A imagem **viva** atual em produção é **não-recriável**: tem um blob de layer
