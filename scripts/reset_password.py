@@ -31,6 +31,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", "backend", ".env"))
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 from database import db, ensure_schema, close_pool  # noqa: E402
+from helpers import create_audit_log  # noqa: E402
 
 # Mesmo contexto/parametros que backend/auth.py para garantir hashes compativeis.
 from passlib.context import CryptContext  # noqa: E402
@@ -74,6 +75,16 @@ async def reset_password(email: str, password: str):
             }
         },
     )
+    if res.modified_count == 1:
+        # Regista a reposicao no audit log (cadeia HMAC, via create_audit_log) —
+        # actor "system" (CLI out-of-band, sem sessao). Util para investigacao de
+        # account-takeover: deixa rasto de quando/que conta teve a senha reposta.
+        await create_audit_log(
+            "system",
+            "password_reset_cli",
+            user["id"],
+            details={"email": email, "via": "scripts/reset_password.py"},
+        )
     await close_pool()
 
     print("=" * 60)
