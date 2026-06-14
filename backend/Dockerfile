@@ -20,9 +20,14 @@ COPY scripts/ ./scripts/
 
 RUN mkdir -p /app/uploads
 
-EXPOSE 8001
+# Porta 8000 (decisão do dono) — é a porta interna do container em produção
+# (NPM: api.controlador.cv → accta-backend:8000). Antes a imagem era 8001-native
+# e o compose de prod compensava com um override `command: --port 8000`; alinhar
+# aqui torna o default da imagem honesto e remove essa divergência. O dev local
+# bare-metal continua a usar `uvicorn --reload --port 8001` (não é o container).
+EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD curl -fsS http://localhost:8001/api/ || exit 1
+  CMD curl -fsS http://localhost:8000/api/ || exit 1
 
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "2"]
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
