@@ -39,6 +39,7 @@ from models import (
     Exercicio,
     ExercicioAprovar,
     ExercicioCreate,
+    ExercicioReabrir,
     ExercicioSubmeterAG,
     OrcamentoSubmit,
     ParecerCF,
@@ -532,13 +533,37 @@ async def aprovar_exercicio(ano: int, data: ExercicioAprovar, current_user: User
 
 
 @router.post("/exercicios/{ano}/reabrir")
-async def reabrir_exercicio(ano: int, current_user: User = Depends(get_current_user)):
+async def reabrir_exercicio(
+    ano: int, data: ExercicioReabrir = ExercicioReabrir(), current_user: User = Depends(get_current_user)
+):
     _require_mesa_ag(current_user)
     ex = await _get_exercicio(ano)
     if ex["status"] not in ("rejeitado", "aprovado"):
         raise HTTPException(status_code=400, detail="So um exercicio fechado pode ser reaberto")
-    await db.exercicios.update_one({"ano": ano}, {"$set": {"status": "reaberto"}})
-    await create_audit_log(current_user.id, f"Reabriu exercicio {ano}", ex["id"])
+
+    # Reabrir um exercicio APROVADO desfaz um ato de competencia da AG (Art.
+    # 19.1/37): exige nova deliberacao APROVADA, e que pertenca a assembleia
+    # onde o exercicio foi aprovado (mesmo padrao de aprovar_exercicio).
+    # Reabrir apos "rejeitado" continua livre (nao ha aprovacao a desfazer).
+    if ex["status"] == "aprovado":
+        if not data.deliberacao_id:
+            raise HTTPException(
+                status_code=400, detail="Reabrir um exercicio aprovado exige deliberacao da Assembleia Geral"
+            )
+        delib = await _validate_deliberacao_aprovada(data.deliberacao_id)
+        if delib.get("assembleia_id") != ex.get("assembleia_id"):
+            raise HTTPException(
+                status_code=400,
+                detail="A deliberacao tem de pertencer a assembleia onde o exercicio foi aprovado",
+            )
+
+    updates = {"status": "reaberto"}
+    if ex["status"] == "aprovado":
+        updates["reaberto_deliberacao_id"] = data.deliberacao_id
+    await db.exercicios.update_one({"ano": ano}, {"$set": updates})
+    await create_audit_log(
+        current_user.id, f"Reabriu exercicio {ano} (estava {ex['status']})", ex["id"]
+    )
     return {"ano": ano, "status": "reaberto"}
 
 

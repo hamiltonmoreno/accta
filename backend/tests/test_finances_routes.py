@@ -366,6 +366,39 @@ class TestDRE:
         # So a tx valida foi contabilizada.
         assert result["total_receitas"] == 500
 
+    async def test_year_range_is_half_open(self, mock_db, admin_user):
+        # O filtro tem de ser [ano-01-01, (ano+1)-01-01) com $lt — um $lte sobre
+        # "{ano}-12-31T23:59:59" perderia timestamps com fracção de segundo.
+        captured = {}
+
+        def _find(query, *a, **k):
+            captured["query"] = query
+            return _cursor([])
+
+        mock_db.transactions.find = MagicMock(side_effect=_find)
+        await finances_route.get_dre_report(year=2026, current_user=admin_user)
+        assert captured["query"]["date"] == {"$gte": "2026-01-01T00:00:00", "$lt": "2027-01-01T00:00:00"}
+
+    async def test_export_pdf_reuses_compute_dre(self, mock_db, admin_user, monkeypatch):
+        # O export PDF deve reutilizar compute_dre_report (fonte única), não
+        # recalcular — senão uma correcção num lado não chega ao outro.
+        from fastapi.responses import StreamingResponse
+
+        dre = {
+            "year": 2026,
+            "monthly": {m: {"receitas": 0, "despesas": 0} for m in range(1, 13)},
+            "receitas_por_categoria": {"quotas": 1000},
+            "despesas_por_categoria": {"operacional": 200},
+            "total_receitas": 1000,
+            "total_despesas": 200,
+            "resultado_liquido": 800,
+        }
+        spy = AsyncMock(return_value=dre)
+        monkeypatch.setattr(finances_route, "compute_dre_report", spy)
+        result = await finances_route.export_dre_pdf(year=2026, current_user=admin_user)
+        spy.assert_awaited_once_with(2026)
+        assert isinstance(result, StreamingResponse)
+
 
 # --------------------------------------------------------------------------- #
 # Settings endpoints

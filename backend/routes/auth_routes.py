@@ -88,9 +88,7 @@ async def login(request: Request, response: Response, credentials: UserLogin):
     # a aprovação do admin ou a desativação. Allowlist explícita = fail-closed.
     status = user_doc.get("status")
     if status != "ativo":
-        await create_audit_log(
-            user_doc["id"], "login_failed", request=request, details={"reason": f"status_{status}"}
-        )
+        await create_audit_log(user_doc["id"], "login_failed", request=request, details={"reason": f"status_{status}"})
         if status == "pendente_convite":
             raise HTTPException(
                 status_code=403, detail="Conta pendente de ativacao. Use o link de convite para definir a sua palavra-passe."
@@ -407,6 +405,13 @@ async def reset_password(request: Request, data: PasswordResetConfirm):
         raise HTTPException(status_code=400, detail="A palavra-passe deve ter pelo menos 6 caracteres")
 
     hashed = hash_password(data.new_password)
+    # Invalida o token ANTES de aplicar a nova password (CAS used:False→True). Se
+    # algo falhar entre as duas escritas, o token fica inutilizável em vez de
+    # reutilizável; o CAS também impede dois pedidos concorrentes com o mesmo
+    # token de passarem ambos.
+    claimed = await db.password_resets.update_one({"token": data.token, "used": False}, {"$set": {"used": True}})
+    if claimed.modified_count == 0:
+        raise HTTPException(status_code=400, detail="Token invalido ou ja utilizado")
     # password_changed_at invalida tokens/sessões emitidos ANTES do reset
     # (auth.token_predates_password_change) — expulsa um intruso que mantenha
     # uma sessão aberta. O utilizador volta a entrar com a nova senha.
@@ -414,7 +419,6 @@ async def reset_password(request: Request, data: PasswordResetConfirm):
         {"email": reset_doc["email"]},
         {"$set": {"password": hashed, "password_changed_at": datetime.now(timezone.utc).isoformat()}},
     )
-    await db.password_resets.update_one({"token": data.token}, {"$set": {"used": True}})
 
     # Audit log da reset bem-sucedida — util para investigacao de account takeover.
     user_doc = await db.users.find_one({"email": reset_doc["email"]}, {"_id": 0, "id": 1})

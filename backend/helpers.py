@@ -25,9 +25,7 @@ async def enrich_author_photos(docs, id_field: str = "user_id", out_field: str =
         for d in docs:
             d[out_field] = None
         return docs
-    rows = await db.users.find(
-        {"id": {"$in": list(ids)}}, {"_id": 0, "id": 1, "photo_url": 1}
-    ).to_list(len(ids))
+    rows = await db.users.find({"id": {"$in": list(ids)}}, {"_id": 0, "id": 1, "photo_url": 1}).to_list(len(ids))
     photo_by_id = {r["id"]: r.get("photo_url") for r in rows}
     for d in docs:
         d[out_field] = photo_by_id.get(d.get(id_field))
@@ -113,9 +111,7 @@ async def record_failed_login(email: str, ip: Optional[str] = None) -> bool:
     now = datetime.now(timezone.utc)
     await db.login_attempts.insert_one({"email": email, "ip": ip, "attempted_at": now})
     window_start = now - timedelta(minutes=LOCKOUT_WINDOW_MINUTES)
-    count = await db.login_attempts.count_documents(
-        {"email": email, "attempted_at": {"$gte": window_start}}
-    )
+    count = await db.login_attempts.count_documents({"email": email, "attempted_at": {"$gte": window_start}})
     return count == LOCKOUT_THRESHOLD
 
 
@@ -282,8 +278,12 @@ async def notify_users(
 
 async def notify_all_active_users(type: str, title: str, message: str, link: Optional[str] = None):
     # Sem cap: um broadcast tem de atingir TODOS os sócios ativos (o limite
-    # de 500 fazia desaparecer notificações silenciosamente).
-    users = await db.users.find({"status": "ativo"}, {"_id": 0, "id": 1}).to_list(None)
+    # de 500 fazia desaparecer notificações silenciosamente). Exclui contas
+    # técnicas (account_type="technical", ex.: admin@controlador.cv) — não são
+    # sócios reais (consistente com _base_members em comunicados_service).
+    users = await db.users.find({"status": "ativo", "account_type": {"$ne": "technical"}}, {"_id": 0, "id": 1}).to_list(
+        None
+    )
     if not users:
         return
     notifications = []

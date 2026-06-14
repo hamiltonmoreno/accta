@@ -17,6 +17,7 @@ from fastapi import HTTPException
 
 from models import (
     ExercicioAprovar,
+    ExercicioReabrir,
     ExercicioCreate,
     ExercicioSubmeterAG,
     OrcamentoLinha,
@@ -434,4 +435,34 @@ class TestReabrir:
         _wire(mock_db, ex=_ex(status="aberto"))
         with pytest.raises(HTTPException) as e:
             await pc.reabrir_exercicio(2026, current_user=_MESA())
+        assert e.value.status_code == 400
+
+    async def test_reabre_aprovado_sem_delib_400(self, mock_db):
+        # Reabrir um exercício aprovado exige deliberação da AG.
+        _wire(mock_db, ex=_ex(status="aprovado", assembleia_id="a1"))
+        with pytest.raises(HTTPException) as e:
+            await pc.reabrir_exercicio(2026, current_user=_MESA())
+        assert e.value.status_code == 400
+
+    async def test_reabre_aprovado_com_delib_ok(self, mock_db):
+        _wire(
+            mock_db,
+            ex=_ex(status="aprovado", assembleia_id="a1"),
+            delib={"id": "d1", "aprovado": True, "assembleia_id": "a1"},
+        )
+        out = await pc.reabrir_exercicio(
+            2026, ExercicioReabrir(deliberacao_id="d1"), current_user=_MESA()
+        )
+        assert out["status"] == "reaberto"
+
+    async def test_reabre_aprovado_delib_outra_assembleia_400(self, mock_db):
+        _wire(
+            mock_db,
+            ex=_ex(status="aprovado", assembleia_id="a1"),
+            delib={"id": "d1", "aprovado": True, "assembleia_id": "OUTRA"},
+        )
+        with pytest.raises(HTTPException) as e:
+            await pc.reabrir_exercicio(
+                2026, ExercicioReabrir(deliberacao_id="d1"), current_user=_MESA()
+            )
         assert e.value.status_code == 400
