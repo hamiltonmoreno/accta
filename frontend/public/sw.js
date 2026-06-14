@@ -1,7 +1,9 @@
-// v3: purga a cache v2, que podia conter o fallback SPA (index.html) gravado no
-// lugar de assets que davam 404 antes de existirem (ex.: /logo192.png servido
-// como text/html). O bump força o activate a apagar a cache envenenada.
-const CACHE_NAME = 'accta-wallet-v3';
+// v4: cache-first passa a aplicar-se SÓ a /static/* (assets com hash de
+// conteúdo, onde `immutable` é seguro e a mudança troca o nome do ficheiro).
+// Ícones de nome fixo na raiz (/logo192.png, /favicon.ico, …) deixam de ser
+// pinados pelo SW e passam a respeitar o Cache-Control HTTP (revalidável) — uma
+// troca de logo propaga-se sem novo deploy do SW. O bump purga a cache v3.
+const CACHE_NAME = 'accta-wallet-v4';
 
 const STATIC_ASSETS = [
   '/carteira',
@@ -58,8 +60,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For same-origin static assets, use cache-first
-  if (url.origin === self.location.origin && url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|ico|woff2?)$/)) {
+  // Cache-first SÓ para /static/* (assets com hash de conteúdo, imutáveis por
+  // nome). Ícones/manifest de raiz NÃO entram aqui — vão à rede e respeitam o
+  // Cache-Control HTTP, para que uma troca de logo propague sem novo SW.
+  if (url.origin === self.location.origin && url.pathname.startsWith('/static/')) {
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
         if (cachedResponse) return cachedResponse;
