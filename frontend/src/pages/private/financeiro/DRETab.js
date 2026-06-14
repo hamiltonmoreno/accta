@@ -56,7 +56,11 @@ export const DRETab = () => {
         <select value={year} onChange={(e) => setYear(parseInt(e.target.value))}
           className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-mono focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
           data-testid="dre-year-select">
-          {[2024, 2025, 2026, 2027].map((y) => <option key={y} value={y}>{y}</option>)}
+          {/* 2024 = primeiro exercício com dados; gera até ao próximo ano para
+              não desaparecer o ano corrente quando o calendário virar. */}
+          {Array.from({ length: new Date().getFullYear() + 1 - 2024 + 1 }, (_, i) => 2024 + i).map((y) => (
+            <option key={y} value={y}>{y}</option>
+          ))}
         </select>
         <button onClick={handleExportPDF} disabled={exporting || loading}
           className="ml-auto btn-primary flex items-center gap-2 text-sm" data-testid="export-dre-pdf-btn">

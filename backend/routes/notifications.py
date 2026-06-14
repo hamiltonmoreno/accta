@@ -7,8 +7,43 @@ from auth import _extract_token, get_current_user, get_user_from_token, has_role
 from helpers import create_audit_log, notify_all_active_users, verify_audit_entry
 import asyncio
 import json
+import time
+import uuid
 
 router = APIRouter(tags=["notifications"])
+
+# Streams SSE ativos por utilizador (in-memory, por worker). Cada stream faz um
+# count à BD a cada 5s para sempre — sem um tecto, N tabs × M utilizadores
+# drenam o pool asyncpg. 3 chega para multi-tab legítimo; acima disso o cliente
+# recebe 429 e o NotificationContext cai para polling.
+#
+# Cada slot guarda um heartbeat (renovado a cada iteração do loop) e expira ao
+# fim de _SSE_SLOT_TTL sem renovação: se o generator nunca chegar a ser iterado
+# (disconnect antes do 1.º chunk, erro de middleware após a reserva), o
+# `finally` nunca corre e, sem TTL, o slot ficava preso para sempre — 3 leaks e
+# o utilizador levava 429 até ao restart do worker.
+_SSE_MAX_PER_USER = 3
+_SSE_SLOT_TTL = 20.0  # segundos; 4× o intervalo de poll (5s) dá folga a jitter
+_sse_active: dict[str, dict[str, float]] = {}  # user_id -> {slot_id: heartbeat}
+
+
+def _sse_live_slots(user_id: str) -> dict[str, float]:
+    """Slots vivos do utilizador, descartando os expirados (auto-limpeza)."""
+    now = time.monotonic()
+    slots = {sid: ts for sid, ts in _sse_active.get(user_id, {}).items() if now - ts < _SSE_SLOT_TTL}
+    if slots:
+        _sse_active[user_id] = slots
+    else:
+        _sse_active.pop(user_id, None)
+    return slots
+
+
+def _sse_release(user_id: str, slot_id: str) -> None:
+    slots = _sse_active.get(user_id)
+    if slots is not None:
+        slots.pop(slot_id, None)
+        if not slots:
+            _sse_active.pop(user_id, None)
 
 
 @router.get("/notifications")
@@ -54,12 +89,26 @@ async def notification_stream(request: Request):
     if not user:
         raise HTTPException(status_code=401, detail="Token invalido")
 
+    if len(_sse_live_slots(user.id)) >= _SSE_MAX_PER_USER:
+        raise HTTPException(
+            status_code=429,
+            detail="Demasiadas ligações de notificações em simultâneo. Feche outras abas.",
+        )
+    # Reserva o slot JÁ, sincronamente (sem await entre o check e a reserva):
+    # o generator só começa a correr quando o Starlette itera o body, DEPOIS de
+    # devolvermos a resposta — reservar lá dentro deixava N connects
+    # concorrentes do mesmo utilizador passar o check todos juntos e exceder o
+    # cap. Libertado no finally do generator; se este nunca correr, o TTL trata.
+    slot_id = uuid.uuid4().hex
+    _sse_active.setdefault(user.id, {})[slot_id] = time.monotonic()
+
     async def event_generator():
         last_count = -1
         try:
             while True:
                 if await request.is_disconnected():
                     break
+                _sse_active.setdefault(user.id, {})[slot_id] = time.monotonic()  # heartbeat
                 count = await db.notifications.count_documents({"user_id": user.id, "read": False})
                 if count != last_count:
                     last_count = count
@@ -67,6 +116,8 @@ async def notification_stream(request: Request):
                 await asyncio.sleep(5)
         except asyncio.CancelledError:
             pass
+        finally:
+            _sse_release(user.id, slot_id)
 
     return StreamingResponse(
         event_generator(),
@@ -190,13 +241,7 @@ async def verify_audit_logs(current_user: User = Depends(get_current_user)):
     tampered: List[str] = []
     offset = 0
     while True:
-        rows = await (
-            db.audit_logs.find({}, {"_id": 0})
-            .sort("created_at", 1)
-            .skip(offset)
-            .limit(BATCH)
-            .to_list(BATCH)
-        )
+        rows = await db.audit_logs.find({}, {"_id": 0}).sort("created_at", 1).skip(offset).limit(BATCH).to_list(BATCH)
         if not rows:
             break
         for log in rows:

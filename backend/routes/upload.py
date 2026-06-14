@@ -39,6 +39,10 @@ async def save_validated_upload(category: str, contents: bytes, filename: str) -
     Devolve o `file_url`. Levanta HTTPException em invalidação. Reutilizado pelo
     endpoint genérico `/upload/{category}` e pelo upload de documentos de
     prestação de contas. NÃO faz checagem de RBAC (o caller decide)."""
+    # Um cliente pode omitir o filename no Content-Disposition → file.filename é
+    # None e Path(None) rebentaria com TypeError (HTTP 500). Recusa com 400.
+    if not filename:
+        raise HTTPException(status_code=400, detail="Nome de ficheiro em falta")
     max_size = MAX_FILE_SIZES.get(category, 5 * 1024 * 1024)
     if len(contents) > max_size:
         max_mb = max_size / (1024 * 1024)

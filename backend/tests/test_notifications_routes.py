@@ -3,6 +3,7 @@ delete, broadcast (admin), audit logs.
 
 SSE stream endpoint nao testado aqui (precisa integration test + EventSource
 client). Restante endpoints sao standard query/mutation routes."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
@@ -23,6 +24,70 @@ def _cursor(items):
     cursor.limit = MagicMock(return_value=cursor)
     cursor.to_list = AsyncMock(return_value=items)
     return cursor
+
+
+# --------------------------------------------------------------------------- #
+# GET /notifications/stream — cap de ligações SSE por utilizador
+# --------------------------------------------------------------------------- #
+
+
+def _sse_request():
+    from starlette.requests import Request
+
+    return Request({"type": "http", "method": "GET", "path": "/x", "headers": [], "query_string": b""})
+
+
+def _fresh_slots(n: int) -> dict[str, float]:
+    import time
+
+    now = time.monotonic()
+    return {f"slot{i}": now for i in range(n)}
+
+
+class TestSSEConnectionCap:
+    async def test_rejects_429_when_user_at_cap(self, mock_db, socio_user, monkeypatch):
+        monkeypatch.setattr(notif_route, "_extract_token", lambda _r: "tok")
+        monkeypatch.setattr(notif_route, "get_user_from_token", AsyncMock(return_value=socio_user))
+        monkeypatch.setattr(notif_route, "_sse_active", {socio_user.id: _fresh_slots(notif_route._SSE_MAX_PER_USER)})
+        with pytest.raises(HTTPException) as exc:
+            await notif_route.notification_stream(_sse_request())
+        assert exc.value.status_code == 429
+
+    async def test_allows_below_cap_and_reserves_slot_synchronously(self, mock_db, socio_user, monkeypatch):
+        """O slot tem de ficar reservado ANTES de devolver a resposta (o
+        generator só corre quando o Starlette itera o body) — senão N connects
+        concorrentes passavam o check todos juntos (Codex P2)."""
+        monkeypatch.setattr(notif_route, "_extract_token", lambda _r: "tok")
+        monkeypatch.setattr(notif_route, "get_user_from_token", AsyncMock(return_value=socio_user))
+        active = {socio_user.id: _fresh_slots(notif_route._SSE_MAX_PER_USER - 1)}
+        monkeypatch.setattr(notif_route, "_sse_active", active)
+        resp = await notif_route.notification_stream(_sse_request())
+        assert resp.media_type == "text/event-stream"
+        # Reservado sincronamente, sem o generator ter sido iterado.
+        assert len(active[socio_user.id]) == notif_route._SSE_MAX_PER_USER
+
+    async def test_stale_slots_expire_and_do_not_lock_user_out(self, mock_db, socio_user, monkeypatch):
+        """Slot cujo generator nunca foi iterado (disconnect antes do 1.º chunk,
+        erro de middleware) não corre o finally — sem TTL ficava preso para
+        sempre e 3 leaks bastavam para 429 até ao restart do worker. Com TTL,
+        slots sem heartbeat expiram e o utilizador volta a conseguir ligar."""
+        import time
+
+        monkeypatch.setattr(notif_route, "_extract_token", lambda _r: "tok")
+        monkeypatch.setattr(notif_route, "get_user_from_token", AsyncMock(return_value=socio_user))
+        stale = time.monotonic() - notif_route._SSE_SLOT_TTL - 1
+        active = {socio_user.id: {f"leak{i}": stale for i in range(notif_route._SSE_MAX_PER_USER)}}
+        monkeypatch.setattr(notif_route, "_sse_active", active)
+        resp = await notif_route.notification_stream(_sse_request())
+        assert resp.media_type == "text/event-stream"
+        # Os 3 slots fantasma foram descartados; só o novo está reservado.
+        assert len(active[socio_user.id]) == 1
+
+    async def test_release_removes_slot_and_user_entry(self, mock_db, socio_user, monkeypatch):
+        active = {socio_user.id: {"s1": 0.0}}
+        monkeypatch.setattr(notif_route, "_sse_active", active)
+        notif_route._sse_release(socio_user.id, "s1")
+        assert socio_user.id not in active
 
 
 # --------------------------------------------------------------------------- #
@@ -152,9 +217,7 @@ class TestDeleteNotification:
 
     async def test_success_returns_message(self, mock_db, socio_user):
         mock_db.notifications.delete_one = AsyncMock(return_value=MagicMock(deleted_count=1))
-        result = await notif_route.delete_notification(
-            notification_id="n1", current_user=socio_user
-        )
+        result = await notif_route.delete_notification(notification_id="n1", current_user=socio_user)
         assert "removida" in result["message"].lower()
 
 
@@ -190,9 +253,7 @@ class TestBroadcast:
 
         with pytest.raises(HTTPException) as exc:
             await notif_route.broadcast_notification(
-                notif_data=NotificationCreate(
-                    user_id="broadcast", type="geral", title="X", message="m"
-                ),
+                notif_data=NotificationCreate(user_id="broadcast", type="geral", title="X", message="m"),
                 current_user=socio_user,
             )
         assert exc.value.status_code == 403
@@ -202,9 +263,7 @@ class TestBroadcast:
 
         with pytest.raises(HTTPException) as exc:
             await notif_route.broadcast_notification(
-                notif_data=NotificationCreate(
-                    user_id="broadcast", type="geral", title="X", message="m"
-                ),
+                notif_data=NotificationCreate(user_id="broadcast", type="geral", title="X", message="m"),
                 current_user=financeiro_user,
             )
         assert exc.value.status_code == 403
@@ -214,9 +273,7 @@ class TestBroadcast:
 
         mock_db.users.find = MagicMock(return_value=_cursor([]))
         result = await notif_route.broadcast_notification(
-            notif_data=NotificationCreate(
-                user_id="broadcast", type="geral", title="Aviso", message="msg"
-            ),
+            notif_data=NotificationCreate(user_id="broadcast", type="geral", title="Aviso", message="msg"),
             current_user=admin_user,
         )
         assert "enviada" in result["message"].lower()
@@ -233,9 +290,7 @@ class TestCreateNotification:
 
         with pytest.raises(HTTPException) as exc:
             await notif_route.create_notification_route(
-                notif_data=NotificationCreate(
-                    user_id="u1", type="geral", title="X", message="m"
-                ),
+                notif_data=NotificationCreate(user_id="u1", type="geral", title="X", message="m"),
                 current_user=socio_user,
             )
         assert exc.value.status_code == 403
@@ -244,9 +299,7 @@ class TestCreateNotification:
         from models import NotificationCreate
 
         result = await notif_route.create_notification_route(
-            notif_data=NotificationCreate(
-                user_id="u1", type="geral", title="X", message="m"
-            ),
+            notif_data=NotificationCreate(user_id="u1", type="geral", title="X", message="m"),
             current_user=admin_user,
         )
         assert result.user_id == "u1"

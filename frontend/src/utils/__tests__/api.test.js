@@ -117,7 +117,9 @@ describe('utils/api', () => {
       ).rejects.toBeDefined();
 
       expect(dispatchedEvents).toContain('accta:force-logout');
-      expect(window.location.replace).toHaveBeenCalledWith('/login');
+      // O redirect é responsabilidade do ProtectedRoute (React Router) depois
+      // do AuthContext limpar o estado — o interceptor NÃO faz full reload.
+      expect(window.location.replace).not.toHaveBeenCalled();
     });
 
     test('does NOT force logout on 401 from a public route', async () => {

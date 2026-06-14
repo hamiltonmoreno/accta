@@ -148,10 +148,16 @@ async def recusar_patrocinio(
 # --------------------------------------------------------------------------- #
 
 
+def _peticao_enriched(p: dict, signature_count: int, viewer_has_signed: bool) -> dict:
+    """Shape único da petição enriquecida — usado pela listagem (batch) e pelo
+    detalhe (_peticao_view), para os dois endpoints não divergirem."""
+    return {**p, "signature_count": signature_count, "viewer_has_signed": viewer_has_signed}
+
+
 async def _peticao_view(p: dict, user_id: str) -> dict:
     count = await db.peticao_assinaturas.count_documents({"peticao_id": p["id"]})
     signed = await db.peticao_assinaturas.find_one({"peticao_id": p["id"], "user_id": user_id}, {"_id": 0, "id": 1})
-    return {**p, "signature_count": count, "viewer_has_signed": signed is not None}
+    return _peticao_enriched(p, count, signed is not None)
 
 
 @router.post("/peticoes", response_model=Peticao)
@@ -167,7 +173,22 @@ async def criar_peticao(data: PeticaoCreate, request: Request, current_user: Use
 @router.get("/peticoes")
 async def listar_peticoes(current_user: User = Depends(get_current_user)):
     rows = await db.peticoes.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
-    return [await _peticao_view(p, current_user.id) for p in rows]
+    if not rows:
+        return []
+    # Uma query para as assinaturas de toda a página (antes: 2 queries POR
+    # petição via _peticao_view — 200 petições = 400 queries).
+    ids = [p["id"] for p in rows]
+    assinaturas = await db.peticao_assinaturas.find(
+        {"peticao_id": {"$in": ids}}, {"_id": 0, "peticao_id": 1, "user_id": 1}
+    ).to_list(None)
+    counts: dict[str, int] = {}
+    signed_by_viewer: set[str] = set()
+    for a in assinaturas:
+        pid = a.get("peticao_id")
+        counts[pid] = counts.get(pid, 0) + 1
+        if a.get("user_id") == current_user.id:
+            signed_by_viewer.add(pid)
+    return [_peticao_enriched(p, counts.get(p["id"], 0), p["id"] in signed_by_viewer) for p in rows]
 
 
 @router.get("/peticoes/{peticao_id}")

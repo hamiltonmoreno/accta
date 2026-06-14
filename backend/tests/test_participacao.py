@@ -156,6 +156,37 @@ class TestPeticao:
         assert res.status == "aberta"
         pet_env.peticoes.insert_one.assert_awaited()
 
+    async def test_listar_agrega_assinaturas_numa_query(self, pet_env, socio_user):
+        """A listagem busca as assinaturas da página em lote (1 query), não 2
+        queries por petição (N+1)."""
+        rows = [{"id": "p1", "titulo": "A"}, {"id": "p2", "titulo": "B"}]
+        cur_p = MagicMock()
+        cur_p.sort.return_value = cur_p
+        cur_p.to_list = AsyncMock(return_value=rows)
+        pet_env.peticoes.find = MagicMock(return_value=cur_p)
+        assinaturas = [
+            {"peticao_id": "p1", "user_id": socio_user.id},
+            {"peticao_id": "p1", "user_id": "outro"},
+            {"peticao_id": "p2", "user_id": "outro"},
+        ]
+        cur_a = MagicMock()
+        cur_a.to_list = AsyncMock(return_value=assinaturas)
+        pet_env.peticao_assinaturas.find = MagicMock(return_value=cur_a)
+
+        out = await p.listar_peticoes(current_user=socio_user)
+
+        by_id = {x["id"]: x for x in out}
+        assert by_id["p1"]["signature_count"] == 2
+        assert by_id["p1"]["viewer_has_signed"] is True
+        assert by_id["p2"]["signature_count"] == 1
+        assert by_id["p2"]["viewer_has_signed"] is False
+        # 1 única query às assinaturas, com $in dos ids da página
+        pet_env.peticao_assinaturas.find.assert_called_once()
+        q = pet_env.peticao_assinaturas.find.call_args[0][0]
+        assert q == {"peticao_id": {"$in": ["p1", "p2"]}}
+        # e nenhum count_documents por petição (o padrão N+1 antigo)
+        pet_env.peticao_assinaturas.count_documents.assert_not_awaited()
+
     async def test_assinar_reaches_threshold_notifies_once(self, pet_env, socio_user):
         pet_env.peticoes.find_one = AsyncMock(
             return_value={"id": "p1", "titulo": "X", "status": "aberta", "threshold_fraction": 0.25}

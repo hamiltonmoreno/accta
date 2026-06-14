@@ -221,7 +221,7 @@ async def list_publicacoes(
     tipo: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
-    current_user: User = Depends(get_current_user),  # noqa: ARG001 — só protege rota
+    current_user: User = Depends(get_current_user),
 ):
     """Lista publicações que o utilizador autenticado pode ver.
 
@@ -235,6 +235,10 @@ async def list_publicacoes(
     query: dict = {}
     if tipo:
         query["tipo"] = tipo
+    # Não-admin só vê publicações destinadas a sócios ou ao público; as `privado`
+    # ficam reservadas à Direcção/admin (a listagem não filtrava de todo).
+    if not _can_manage(current_user):
+        query["visibility"] = {"$in": ["publico", "socios"]}
 
     total = await db.publicacoes.count_documents(query)
     items = (

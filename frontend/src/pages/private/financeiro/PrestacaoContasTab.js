@@ -209,8 +209,8 @@ export const PrestacaoContasTab = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {execucao.linhas.map((l, i) => (
-                          <tr key={i} className="border-b border-[#F5F5F5]">
+                        {execucao.linhas.map((l) => (
+                          <tr key={`${l.tipo}-${l.categoria}`} className="border-b border-[#F5F5F5]">
                             <td className="py-2 pr-3 text-grafite">{catLabel(l.categoria)} <span className="text-xs text-[#6B7280]">({l.tipo})</span></td>
                             <td className="py-2 px-3 text-right text-grafite">{fmtCve(l.orcado)}</td>
                             <td className="py-2 px-3 text-right text-grafite">{fmtCve(l.realizado)}</td>

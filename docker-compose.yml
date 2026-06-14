@@ -19,8 +19,12 @@ services:
     restart: unless-stopped
     env_file:
       - ./backend/.env
+    # Porta 8000 = porta interna do container em produção (decisão do dono;
+    # ver backend/Dockerfile e deploy.yml). Em prod o NPM alcança o backend
+    # pela rede `proxy` (sem mapeamento de host); este mapeamento serve o
+    # uso local/de referência.
     ports:
-      - "8001:8001"
+      - "8000:8000"
     volumes:
       # Bind-mount no host (NÃO volume nomeado): o nginx serve /uploads/
       # directamente do disco (mais rápido que proxy→uvicorn) e a pasta entra

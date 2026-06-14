@@ -1011,11 +1011,15 @@ def _required_index_name(ddl: str) -> str | None:
 # purges opportunistically on insert so growth is bounded without pg_cron).
 _PGCRON_DDL: tuple[str, ...] = (
     "CREATE EXTENSION IF NOT EXISTS pg_cron",
+    # Compara como timestamptz, NÃO como texto: `now()::text` produz separador
+    # espaço ('2026-06-07 12:00:00+00') enquanto os valores são ISO-8601 com 'T',
+    # e 'T'(0x54) > ' '(0x20) faria a comparação lexicográfica falhar no dia
+    # corrente. O cast (doc->>'campo')::timestamptz torna a comparação correcta.
     "SELECT cron.schedule('accta_purge_tokens_revoked', '*/15 * * * *', "
-    "$$DELETE FROM \"tokens_revoked\" WHERE doc->>'expires_at' < now()::text$$)",
+    "$$DELETE FROM \"tokens_revoked\" WHERE (doc->>'expires_at')::timestamptz < now()$$)",
     "SELECT cron.schedule('accta_purge_login_attempts', '0 * * * *', "
-    "$$DELETE FROM \"login_attempts\" WHERE doc->>'attempted_at' "
-    "< (now() - interval '24 hours')::text$$)",
+    "$$DELETE FROM \"login_attempts\" WHERE (doc->>'attempted_at')::timestamptz "
+    "< now() - interval '24 hours'$$)",
 )
 
 
@@ -1263,8 +1267,7 @@ async def _cast_secret_ballot_locked(
         async with conn.transaction():
             await conn.execute("SET LOCAL lock_timeout = '2s'")
             row = await conn.fetchrow(
-                f"SELECT pk, doc FROM {_quote_ident(parent_table)} "
-                "WHERE doc->>'id' = $1 LIMIT 1 FOR UPDATE",
+                f"SELECT pk, doc FROM {_quote_ident(parent_table)} WHERE doc->>'id' = $1 LIMIT 1 FOR UPDATE",
                 parent_id,
             )
             if row is None:
@@ -1414,3 +1417,46 @@ async def register_presenca_locked(
                 f"INSERT INTO {_quote_ident('assembleia_presencas')} (doc) VALUES ($1)",
                 presenca_doc,
             )
+
+
+# Namespace fixo da 1.ª chave do par pg_advisory_xact_lock(int4, int4) usado na
+# geração de quotas; a 2.ª chave é ano*100+mês (único por mês).
+_QUOTA_LOCK_NS = 8421
+
+
+async def insert_quotas_atomic(year: int, month: int, candidate_docs: list[dict]) -> int:
+    """Insere as quotas mensais em falta SOB advisory lock transaction-scoped.
+
+    Serializa execuções concorrentes do gerador para o MESMO (ano, mês):
+    `pg_advisory_xact_lock` é o único advisory lock seguro sob o pooler do
+    Supabase em transaction mode (um lock de sessão poderia ficar numa ligação
+    diferente dos statements seguintes). Dentro da transação trancada re-lê os
+    `user_id` que já têm quota no mês e insere apenas os `candidate_docs` em
+    falta — é idempotente e fecha a janela check-then-insert (dois geradores
+    concorrentes do mesmo mês deixam de duplicar). Devolve o nº inserido.
+    """
+    if not candidate_docs:
+        return 0
+    month_start = f"{year}-{month:02d}-01"
+    next_month_start = f"{year + 1}-01-01" if month == 12 else f"{year}-{month + 1:02d}-01"
+    table = _quote_ident("transactions")
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            # Bound de segurança: o gerador é rápido; se o lock não vier em 10s
+            # (contenção patológica), aborta em vez de prender a ligação.
+            await conn.execute("SET LOCAL lock_timeout = '10s'")
+            # Trava (ano, mês): um 2.º gerador concorrente espera aqui e, ao
+            # entrar, re-lê os existentes (já com os do 1.º) e insere 0.
+            await conn.execute("SELECT pg_advisory_xact_lock($1, $2)", _QUOTA_LOCK_NS, year * 100 + month)
+            rows = await conn.fetch(
+                f"SELECT doc->>'user_id' AS uid FROM {table} "
+                "WHERE doc->>'category' = 'quotas' AND doc->>'date' >= $1 AND doc->>'date' < $2",
+                month_start,
+                next_month_start,
+            )
+            existing = {r["uid"] for r in rows if r["uid"]}
+            to_insert = [dict(d) for d in candidate_docs if d.get("user_id") not in existing]
+            for doc in to_insert:
+                await conn.execute(f"INSERT INTO {table}(doc) VALUES($1)", doc)
+            return len(to_insert)

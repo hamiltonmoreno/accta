@@ -60,6 +60,13 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
             status_code=400,
             detail="Convites directos criam sócios base; atribua cargos em Cargos & Mandatos após activação",
         )
+    # Contrato explícito: role inválido (incl. "admin", que nunca se atribui
+    # por convite) devolve 422 em vez do antigo fallback silencioso p/ "socio",
+    # que mascarava erros do chamador. Validar ANTES de next_member_id(): o
+    # nextval consome a sequência mesmo quando o pedido falha (gaps ACCTA-XXXX).
+    if data.role not in ("socio", "financeiro", "moderador"):
+        raise HTTPException(status_code=422, detail="Role inválido: use socio, financeiro ou moderador")
+
     member_id = data.member_id or await next_member_id()
 
     user_doc = {
@@ -67,7 +74,7 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
         "name": data.name,
         "email": data.email,
         "password": "",
-        "role": data.role if data.role in ["socio", "financeiro", "moderador"] else "socio",
+        "role": data.role,
         "status": "pendente_convite",
         "account_type": "member",
         "cargo": cargo_key,
