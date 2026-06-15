@@ -82,7 +82,7 @@ export const governanca = {
     },
     {
       id: 'participacao',
-      titulo: 'Participação: patrocínios, petições, propostas, esclarecimentos e reclamações',
+      titulo: 'Participação: petições, propostas, esclarecimentos e reclamações',
       resumo: 'Os canais formais para a sua voz junto da Direção e da Assembleia.',
       rota: '/participacao/propostas',
       passos: [
@@ -91,7 +91,6 @@ export const governanca = {
         'Petições — subscrever ou criar petições de sócios.',
         'Esclarecimentos — pedir esclarecimentos à Direção.',
         'Reclamações — apresentar reclamações ou recursos.',
-        'Patrocínios — registar/consultar apoios e patrocínios.',
         'Depois de submeter, acompanhe o estado na própria página do canal.',
       ],
       dicas: [

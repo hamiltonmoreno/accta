@@ -68,13 +68,6 @@ export const registrationAPI = {
   reject: (userId, reason) => api.post(`/admin/registration-requests/${userId}/reject`, { reason }),
 };
 
-// Patrocínio de admissão (spec-voz-participacao §3, Art. 8.3)
-export const patrociniosAPI = {
-  pendentes: () => api.get('/participacao/patrocinios/pendentes'),
-  confirmar: (candidateId, note) => api.post(`/participacao/patrocinios/${candidateId}/confirmar`, { note }),
-  recusar: (candidateId, note) => api.post(`/participacao/patrocinios/${candidateId}/recusar`, { note }),
-};
-
 // Petição para AG extraordinária (spec-voz-participacao §5, Art. 9.f/19.2.d)
 export const peticoesAPI = {
   list: () => api.get('/peticoes'),
