@@ -50,6 +50,7 @@ const EventosPage = lazy(() => import('./pages/private/EventosPage').then((m) =>
 const GaleriaAdminPage = lazy(() => import('./pages/private/GaleriaAdminPage').then((m) => ({ default: m.GaleriaAdminPage })));
 const AdminUsuariosPage = lazy(() => import('./pages/private/AdminUsuariosPage').then((m) => ({ default: m.AdminUsuariosPage })));
 const PerfilPage = lazy(() => import('./pages/private/PerfilPage').then((m) => ({ default: m.PerfilPage })));
+const AjudaPage = lazy(() => import('./pages/private/AjudaPage').then((m) => ({ default: m.AjudaPage })));
 const AdminLogsPage = lazy(() => import('./pages/private/AdminLogsPage').then((m) => ({ default: m.AdminLogsPage })));
 const AdminPedidosInscricaoPage = lazy(() => import('./pages/private/AdminPedidosInscricaoPage').then((m) => ({ default: m.AdminPedidosInscricaoPage })));
 const AdminCargosPage = lazy(() => import('./pages/private/AdminCargosPage').then((m) => ({ default: m.AdminCargosPage })));
@@ -292,6 +293,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <PrivateLayout><PerfilPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ajuda"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><AjudaPage /></PrivateLayout>
             </ProtectedRoute>
           }
         />

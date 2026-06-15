@@ -1,7 +1,7 @@
 // frontend/src/layouts/components/UserMenu.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { UserCircle, CreditCard, Trophy, MessageSquare, LogOut } from 'lucide-react';
+import { UserCircle, CreditCard, Trophy, MessageSquare, HelpCircle, LogOut } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -85,6 +85,15 @@ export const UserMenu = ({ user, isSocio, isMember, isAdmin, onLogout }) => {
             </Link>
           </DropdownMenuItem>
         )}
+        {/* Ajuda — utilitária, visível a todos os autenticados. Bloco próprio,
+            antes do separador do Sair (não se cola à ação destrutiva). */}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/ajuda" data-testid="menu-ajuda">
+            <HelpCircle className="w-4 h-4 mr-2" aria-hidden="true" />
+            Ajuda
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={onLogout}

@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { registrationAPI } from '../utils/api';
 import { queryKeys } from '../lib/queryClient';
+import { buildNavContext, isNavItemVisible } from '../lib/nav/visibility';
 import { Header } from './components/Header';
 import {
   LayoutDashboard,
@@ -125,6 +126,7 @@ const menuSections = [
 const PAGE_TITLES = {
   '/dashboard': 'Dashboard',
   '/perfil': 'Meu Perfil',
+  '/ajuda': 'Central de Ajuda',
   '/carteira': 'Carteira Digital',
   '/financeiro': 'Financeiro',
   '/financeiro/co-aprovacoes': 'Co-aprovações',
@@ -262,23 +264,10 @@ export const PrivateLayout = ({ children }) => {
     setExpanded((prev) => !prev);
   }, []);
 
-  /* Filter menu items by role (ou por privilégio granular — RBAC aditivo) */
-  const filterItem = (item) => {
-    // Sub-rótulos são divisores visuais sem RBAC próprio; passam sempre o filtro
-    // e a sua visibilidade (esconder se ficarem órfãos) resolve-se no render.
-    if (item.subheader) return true;
-    // Gating por cargo/órgão (extensão ao RBAC por role/privilégio).
-    if (item.match === 'direcao' && (isAdmin || isDirecao)) return true;
-    if (item.match === 'governanca' && (isAdmin || isDirecao || isMesaAG)) return true;
-    if (item.roles.includes('all')) return true;
-    if (item.roles.includes('admin') && isAdmin) return true;
-    if (item.roles.includes('financeiro') && (isFinanceiro || isAdmin)) return true;
-    if (item.roles.includes('moderador') && (isModerador || isAdmin)) return true;
-    if (item.roles.includes('socio') && user?.role === 'socio') return true;
-    // Privilégios concedem acesso EXTRA à entrada (ex.: Conselho Fiscal vê Financeiro).
-    if (item.privileges?.some((p) => (user?.privileges || []).includes(p))) return true;
-    return false;
-  };
+  /* Filter menu items by role (ou por privilégio granular — RBAC aditivo).
+     A regra vive em lib/nav/visibility (partilhada com a Central de Ajuda). */
+  const navCtx = buildNavContext({ isAdmin, isFinanceiro, isModerador, isDirecao, isMesaAG, user });
+  const filterItem = (item) => isNavItemVisible(item, navCtx);
 
   const sidebarWidth = collapsed ? SIDEBAR_COLLAPSED_W : SIDEBAR_W;
 
