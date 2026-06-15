@@ -17,6 +17,10 @@ export const meuPortal = {
         'Ao entrar, é levado ao Dashboard.',
         'Cada cartão resume um módulo (votações abertas, próximos eventos, avisos recentes…).',
         'Carregue num cartão para abrir o módulo correspondente.',
+        'Volte ao Dashboard a qualquer momento pelo logótipo no cabeçalho.',
+      ],
+      dicas: [
+        'Os cartões mostram só o que é relevante para si — começam vazios numa conta nova e enchem-se com a atividade.',
       ],
     },
     {
@@ -32,6 +36,10 @@ export const meuPortal = {
       ],
       dicas: [
         'As quotas são descontadas na folha de pagamento — não há cobrança manual nem situação de incumprimento.',
+        'O número de sócio é permanente e não muda.',
+      ],
+      faq: [
+        { q: 'O meu cartão pode ser validado por terceiros?', a: 'Sim. O código do cartão permite confirmar que é sócio através do validador público do portal.' },
       ],
     },
     {
@@ -46,6 +54,7 @@ export const meuPortal = {
       ],
       dicas: [
         'A participação consistente faz subir a posição ao longo do tempo.',
+        'A pontuação é recalculada periodicamente — pode não refletir de imediato a última ação.',
       ],
     },
     {
@@ -57,6 +66,13 @@ export const meuPortal = {
         'Abra o sino no cabeçalho para ver os avisos recentes.',
         'Carregue numa notificação para ir diretamente ao que a originou.',
         'Use "marcar como lida" para limpar o contador.',
+        'Veja o histórico completo na página de Notificações.',
+      ],
+      dicas: [
+        'Os avisos chegam em tempo real; se a ligação cair, o portal volta a verificar a cada 30 segundos.',
+      ],
+      faq: [
+        { q: 'Recebo notificações por email?', a: 'Alguns avisos importantes (ex.: comunicados da Direção) também são enviados por email; os restantes ficam no portal.' },
       ],
     },
   ],

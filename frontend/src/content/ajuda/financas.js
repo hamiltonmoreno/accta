@@ -27,6 +27,9 @@ export const financas = {
         'O Conselho Fiscal acede em modo de leitura (view_finances_readonly); a gestão exige manage_finances.',
         'As quotas são descontadas na folha — não existe incumprimento de quotas a tratar aqui.',
       ],
+      faq: [
+        { q: 'Vejo o Financeiro mas não consigo editar — porquê?', a: 'Tem acesso de leitura (ex.: Conselho Fiscal). A criação/edição de transações exige o privilégio de gestão financeira.' },
+      ],
     },
     {
       id: 'co-aprovacoes',
