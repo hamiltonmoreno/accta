@@ -116,25 +116,11 @@ describe('registrationSchema', () => {
     name: 'João Candidato',
     email: 'joao@x.cv',
     cargo_declarado: 'Sócio',
-    sponsor1: 'ACCTA-0001',
-    sponsor2: 'ACCTA-0002',
     consent_data: true,
   };
 
   test('aceita pedido válido (sem campos opcionais)', () => {
     expect(registrationSchema.safeParse(valid).success).toBe(true);
-  });
-
-  test('exige 2 padrinhos (Art. 8.3)', () => {
-    expectError(registrationSchema.safeParse({ ...valid, sponsor1: '' }), 'sponsor1');
-  });
-
-  test('rejeita padrinhos iguais', () => {
-    expectError(
-      registrationSchema.safeParse({ ...valid, sponsor1: 'ACCTA-0001', sponsor2: 'ACCTA-0001' }),
-      'sponsor2',
-      'Os 2 padrinhos têm de ser distintos',
-    );
   });
 
   test('aceita opcionais vazios (string vazia)', () => {

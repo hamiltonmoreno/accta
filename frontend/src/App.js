@@ -61,7 +61,6 @@ const AdminDisciplinarPage = lazy(() => import('./pages/private/AdminDisciplinar
 const AdminAparenciaPage = lazy(() => import('./pages/private/AdminAparenciaPage').then((m) => ({ default: m.AdminAparenciaPage })));
 const AdminNoticiasPage = lazy(() => import('./pages/private/AdminNoticiasPage').then((m) => ({ default: m.AdminNoticiasPage })));
 const AdminComunicadosPage = lazy(() => import('./pages/private/AdminComunicadosPage').then((m) => ({ default: m.AdminComunicadosPage })));
-const PatrociniosPage = lazy(() => import('./pages/private/PatrociniosPage').then((m) => ({ default: m.PatrociniosPage })));
 const PeticoesPage = lazy(() => import('./pages/private/PeticoesPage').then((m) => ({ default: m.PeticoesPage })));
 const EsclarecimentosPage = lazy(() => import('./pages/private/EsclarecimentosPage').then((m) => ({ default: m.EsclarecimentosPage })));
 const ReclamacoesPage = lazy(() => import('./pages/private/ReclamacoesPage').then((m) => ({ default: m.ReclamacoesPage })));
@@ -389,14 +388,6 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={['admin']} allowedPrivileges={['send_comunicados']}>
               <PrivateLayout><AdminComunicadosPage /></PrivateLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/participacao/patrocinios"
-          element={
-            <ProtectedRoute>
-              <PrivateLayout><PatrociniosPage /></PrivateLayout>
             </ProtectedRoute>
           }
         />

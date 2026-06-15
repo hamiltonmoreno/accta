@@ -27,7 +27,6 @@ import {
   Gavel,
   Palette,
   Newspaper,
-  Handshake,
   FileSignature,
   HelpCircle,
   Medal,
@@ -78,7 +77,6 @@ const menuSections = [
   {
     title: 'Participação',
     items: [
-      { label: 'Patrocínios', path: '/participacao/patrocinios', icon: Handshake, roles: ['all'] },
       { label: 'Petições', path: '/participacao/peticoes', icon: FileSignature, roles: ['all'] },
       { label: 'Propostas', path: '/participacao/propostas', icon: Lightbulb, roles: ['all'] },
       { label: 'Esclarecimentos', path: '/participacao/esclarecimentos', icon: HelpCircle, roles: ['all'] },
@@ -147,7 +145,6 @@ const PAGE_TITLES = {
   '/admin/aparencia': 'Aparência do Site',
   '/admin/comunicados': 'Comunicados',
   '/admin/noticias': 'Notícias / Blog',
-  '/participacao/patrocinios': 'Patrocínios',
   '/participacao/peticoes': 'Petições',
   '/participacao/propostas': 'Propostas para a ordem de trabalhos',
   '/participacao/esclarecimentos': 'Pedidos de esclarecimento',

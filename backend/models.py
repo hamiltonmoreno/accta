@@ -335,16 +335,11 @@ class RegistrationRequest(BaseModel):
     cargo_declarado: str = Field(default="Sócio")  # validado contra CARGOS_DECLARADOS na rota
     consent_data: bool  # tem de ser True (RGPD)
     website: Optional[str] = Field(default=None, max_length=200)  # HONEYPOT — preenchido => descartar
-    # Patrocínio de admissão (spec-voz-participacao §3, Art. 8.3): 2 padrinhos
-    # (member_id ACCTA-XXXX ou email). Opcional aqui; exigência validada na rota
-    # para o auto-registo.
-    sponsors: Optional[List[str]] = Field(default=None, max_length=2)
 
 
 class RegistrationApprove(BaseModel):
     role: str = "socio"  # validado contra ["socio","financeiro","moderador","admin"] na rota
     cargo: Optional[str] = None  # se None, mantém o cargo_declarado
-    waive_sponsorship: bool = False  # dispensa Art. 8.3 (bootstrap/excepção, auditável)
     # Data de qualificação como CTA (AAAA-MM-DD) — assinala a jóia (Art. 6) na
     # admissão. Se None, mantém o valor já no documento (ou fica por decidir).
     cta_qualified_since: Optional[str] = None
@@ -356,25 +351,6 @@ class RegistrationApprove(BaseModel):
 
 
 # ===== PARTICIPAÇÃO DO SÓCIO (spec-voz-participacao-socio) =====
-
-
-class Patrocinio(BaseModel):
-    # Uma linha por par candidato↔padrinho (espelha user_votes; facilita o
-    # "inbox do padrinho"). Art. 8.3.
-    model_config = ConfigDict(extra="ignore")
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    candidate_id: str
-    sponsor_user_id: str
-    sponsor_member_id: Optional[str] = None  # ACCTA-XXXX (snapshot p/ display)
-    status: Literal["pendente", "confirmado", "recusado"] = "pendente"
-    responded_at: Optional[str] = None
-    note: Optional[str] = Field(default=None, max_length=500)
-    created_at: Optional[str] = None
-    source_article: str = "8.3"
-
-
-class PatrocinioRespond(BaseModel):
-    note: Optional[str] = Field(default=None, max_length=500)
 
 
 # 1.3 — Petição para AG extraordinária (Art. 9.f, 19.2.d)

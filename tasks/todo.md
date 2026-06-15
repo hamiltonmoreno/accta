@@ -1,54 +1,42 @@
-# TODO — Central de Ajuda (manual do utilizador no dropdown do perfil)
+# Todo — Remover patrocínio de admissão (Art. 8.3)
 
-Spec: `tasks/spec-central-ajuda.md`. Defaults do dono: 1-A (página `/ajuda`),
-2-A (conteúdo estático em `content/ajuda/`), 3 (filtrar por role/privilégio),
-4 (pesquisa client-side).
+Decisão do dono: **remover a funcionalidade inteira**; **manter** aprovação do admin
+(só cai o gate dos 2 padrinhos). Coleção `patrocinios` + dados ficam em DB (sem drop).
 
-## Fase 0 — helper de visibilidade partilhado
-- [ ] `lib/nav/visibility.js`: `buildNavContext(auth)` + `isNavItemVisible(item, ctx)`
-      (extrai a regra do `filterItem` do `PrivateLayout`)
-- [ ] `PrivateLayout.js` passa a consumir o helper (sem mudar comportamento)
+## Backend
+- [ ] `routes/auth_routes.py` — remover validação de padrinhos + criação de patrocinios + notify padrinhos no `register`; limpar imports (`Patrocinio`, `is_voting_member`, `notify_users`)
+- [ ] `routes/admin.py` — remover gate `confirmados < 2` + `waive_sponsorship` + resumo `sponsors`/`confirmed_count` na listagem
+- [ ] `routes/participacao.py` — remover endpoints `/patrocinios/*` + import `PatrocinioRespond`
+- [ ] `models.py` — remover `sponsors` (RegistrationRequest), `waive_sponsorship` (RegistrationApprove), classes `Patrocinio` + `PatrocinioRespond`
+- [ ] `database.py` — SEM alteração (coleção/índices/dados ficam)
 
-## Fase 1 — manual + entrada
-- [ ] `content/ajuda/`: index + primeirosPassos, meuPortal, governanca,
-      comunidade, financas, administracao (artigos com passos/dicas/faq + `gate`)
-- [ ] `pages/private/AjudaPage.js`: herói + pesquisa + TOC + secções (Accordion),
-      filtra secções/artigos por visibilidade; conteúdo só do módulo
-- [ ] `UserMenu.jsx`: item *Ajuda* (`menu-ajuda`) → `/ajuda`, neutro, todos os roles
-- [ ] `App.js`: lazy import + rota privada `/ajuda` (sem gate de role)
+## Frontend
+- [ ] `pages/public/CriarContaPage.js` — remover bloco padrinhos + sponsors no submit
+- [ ] `utils/authSchemas.js` — remover sponsor1/sponsor2 + refine
+- [ ] `utils/api.js` — remover `patrociniosAPI`
+- [ ] `App.js` — remover import + rota `/participacao/patrocinios`
+- [ ] `layouts/PrivateLayout.js` — remover item nav + breadcrumb + import `Handshake`
+- [ ] `pages/private/PatrociniosPage.js` — APAGAR
+- [ ] `pages/private/AdminPedidosInscricaoPage.js` — remover coluna Patrocínios + gate + waive
+- [ ] `content/ajuda/governanca.js` — remover menções a patrocínios
 
-## Testes
-- [ ] `UserMenu.test.jsx`: *Ajuda* aparece p/ todos e aponta `/ajuda`
-- [ ] `AjudaPage.test.jsx`: render; socio não vê Finanças/Administração; admin vê;
-      pesquisa filtra
-- [ ] `content/ajuda` integridade: ids únicos, secção tem ≥1 artigo, rotas válidas
-- [ ] `lib/nav/visibility.test.js`: regra de RBAC aditivo + match
+## Tests
+- [ ] `tests/test_participacao.py` — remover bloco patrocínio (fixture `env`, `_req`, classes, import)
+- [ ] `tests/test_auto_registo.py` — reescrever testes que dependem de padrinhos/gate/waive
+- [ ] `utils/__tests__/authSchemas.test.js` — remover asserts de sponsor
+- [ ] `content/ajuda/__tests__/integrity.test.js` — tirar `/participacao/patrocinios` de ROTAS_VALIDAS
 
 ## Verificação
-- [x] `yarn build` passa; eslint sem novos erros; testes verdes (31 novos)
-- [x] `/frontend-design`: neutral-led, sem dark mode, sem primário Floresta (só links Carmesim)
+- [x] `ruff check` (6 ficheiros) — All checks passed
+- [x] `pytest tests/test_auto_registo.py tests/test_participacao.py` — 67 passed
+- [x] eslint (7 ficheiros alterados) — limpo
+- [x] jest authSchemas + ajuda integrity — 27 passed
 
----
-
-## Revisão (feito)
-
-Todas as caixas acima ✓. Resumo:
-
-- **Fase 0** — `lib/nav/visibility.js` (`buildNavContext`/`isNavItemVisible`)
-  extraído de `PrivateLayout.filterItem`; sidebar passa a consumi-lo (testes da
-  PrivateLayout continuam verdes → sem mudança de comportamento). Fonte única
-  partilhada com o manual.
-- **Fase 1** — `content/ajuda/` (index + 6 secções A–F, artigos com
-  passos/dicas/faq/rota/gate); `AjudaPage` consome o módulo, filtra
-  secções/artigos por visibilidade real, pesquisa client-side, TOC com
-  deep-link `#seccao`, rodapé p/ Esclarecimentos; item *Ajuda* (`menu-ajuda`)
-  no `UserMenu` p/ todos os roles; rota privada `/ajuda` (sem gate de role).
-- **Visibilidade por artigo**: secção aparece se ≥1 artigo visível (ex.:
-  moderador só vê Aparência/Notícias dentro de Administração; Conselho Fiscal
-  com `view_finances_readonly` vê Finanças sem ser admin).
-- **Testes** (31): `visibility` (RBAC aditivo + match), `content/ajuda`
-  integridade (ids únicos, rotas válidas), `AjudaPage` (socio≠Finanças/Admin,
-  admin vê, CF vê Finanças, pesquisa filtra, estado vazio), `UserMenu` (Ajuda
-  p/ todos os roles).
-- **Fora de escopo (spec §9)**: editor via API, "?" contextual por página, tour
-  interativo — ficam para fases futuras.
+## Review
+Todos os itens acima feitos. Funcionalidade Art. 8.3 removida ponta-a-ponta
+(registo, validação, gate de aprovação, página/endpoints, nav, ajuda).
+Aprovação do admin mantida (sem o gate dos 2 padrinhos). `database.py` intacto
+— coleção `patrocinios` + índices + dados ficam em DB (dormentes, sem drop).
+Hits remanescentes só em `tasks/spec-voz-participacao-socio-concluido.md`
+(registo histórico) e `.understand-anything/` (artefactos gerados) — não-código.
+Não commitei (aguarda decisão do dono sobre branch/PR).
