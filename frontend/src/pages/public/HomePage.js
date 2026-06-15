@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { postsAPI, eventsAPI, bannersAPI } from '../../utils/api';
+import { postsAPI, eventsAPI, bannersAPI, mediaUrl } from '../../utils/api';
 import { unsplashSrcSet } from '../../utils/unsplash';
 import { queryKeys } from '../../lib/queryClient';
 import { bannerDefault } from '../../lib/bannerDefaults';
@@ -119,7 +119,7 @@ export const HomePage = () => {
       <section className="relative min-h-[600px] sm:min-h-[85vh] lg:min-h-[90vh] flex items-center overflow-hidden">
         <div className="absolute inset-0">
           <img
-            src={heroImg}
+            src={mediaUrl(heroImg)}
             srcSet={heroIsUnsplash ? unsplashSrcSet(heroImg) : undefined}
             sizes="100vw"
             alt={bannerCfg?.home?.alt || ''}
@@ -537,7 +537,7 @@ export const HomePage = () => {
                   <div className="card-technical overflow-hidden hover:shadow-lg transition-all">
                     <div className="h-36 sm:h-48 relative overflow-hidden">
                       <img
-                        src={post.cover_url || NEWS_IMAGES[index % NEWS_IMAGES.length]}
+                        src={mediaUrl(post.cover_url) || NEWS_IMAGES[index % NEWS_IMAGES.length]}
                         alt={post.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         loading="lazy"

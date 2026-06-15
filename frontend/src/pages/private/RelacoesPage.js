@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { relacoesAPI } from '../../utils/api';
+import { relacoesAPI, mediaUrl } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { toast } from 'sonner';
@@ -47,7 +47,7 @@ const RelacaoCard = ({ relacao, canManage, onEdit, onDelete }) => {
     >
       {relacao.logo_url ? (
         <img
-          src={relacao.logo_url}
+          src={mediaUrl(relacao.logo_url)}
           alt={`Logo de ${relacao.nome}`}
           loading="lazy"
           className="w-16 h-16 object-contain rounded-lg border border-gray-200 bg-white flex-shrink-0"

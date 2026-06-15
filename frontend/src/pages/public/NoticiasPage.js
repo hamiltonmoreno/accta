@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Calendar, Tag, Newspaper } from 'lucide-react';
-import { postsAPI } from '../../utils/api';
+import { postsAPI, mediaUrl } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
 import { EmptyState } from '../../components/EmptyState';
 import { PageBanner } from '../../components/PageBanner';
@@ -72,7 +72,7 @@ export const NoticiasPage = () => {
                 >
                   {post.cover_url && (
                     <div className="h-44 overflow-hidden">
-                      <img src={post.cover_url} alt={post.title} className="w-full h-full object-cover" loading="lazy" />
+                      <img src={mediaUrl(post.cover_url)} alt={post.title} className="w-full h-full object-cover" loading="lazy" />
                     </div>
                   )}
                   <div className="p-6">

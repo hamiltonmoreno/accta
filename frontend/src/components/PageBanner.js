@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { bannersAPI } from '../utils/api';
+import { bannersAPI, mediaUrl } from '../utils/api';
 import { queryKeys } from '../lib/queryClient';
 import { bannerDefault } from '../lib/bannerDefaults';
 import { unsplashSrcSet } from '../utils/unsplash';
@@ -29,7 +29,7 @@ export const PageBanner = ({ pageKey, badge, title, subtitle, icon: Icon }) => {
     <section className="relative h-64 sm:h-72 lg:h-80 flex items-center overflow-hidden">
       {/* Above-the-fold / provável LCP → eager + fetchPriority alta (nunca lazy). */}
       <img
-        src={imageUrl}
+        src={mediaUrl(imageUrl)}
         srcSet={isUnsplash ? unsplashSrcSet(imageUrl) : undefined}
         sizes="100vw"
         alt={alt}

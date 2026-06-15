@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Calendar, Tag, User, Newspaper } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { postsAPI } from '../../utils/api';
+import { postsAPI, mediaUrl } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
 import { EmptyState } from '../../components/EmptyState';
 
@@ -63,7 +63,7 @@ export const NoticiaDetailPage = () => {
 
         {post.cover_url && (
           <img
-            src={post.cover_url}
+            src={mediaUrl(post.cover_url)}
             alt={post.title}
             className="w-full max-h-[420px] object-cover rounded-xl border border-[#E5E7EB] mb-8"
             loading="eager"
