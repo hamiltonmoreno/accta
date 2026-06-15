@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { brandAPI, uploadAPI } from '../../utils/api';
+import { brandAPI, uploadAPI, mediaUrl } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
 import { BrandLogo } from '../../components/BrandLogo';
 import { toast } from 'sonner';
@@ -18,7 +18,7 @@ const LogoSlot = ({ label, hint, field, url, dark, onUpload, onReset, busy }) =>
       {/* Preview no fundo correspondente (claro / grafite) para validar legibilidade. */}
       <div className={`h-24 rounded-md flex items-center justify-center px-4 ${dark ? 'bg-grafite' : 'bg-white border border-[#E5E7EB]'}`}>
         {url ? (
-          <img src={url} alt={`Logótipo (${label})`} className="max-h-16 max-w-[200px] object-contain" />
+          <img src={mediaUrl(url)} alt={`Logótipo (${label})`} className="max-h-16 max-w-[200px] object-contain" />
         ) : (
           <BrandLogo dark={dark} className="h-9" />
         )}

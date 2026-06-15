@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { PageBanner } from '../../components/PageBanner';
 import { Skeleton } from '../../components/ui/skeleton';
 import { ASSOCIACAO_NOME_COMPLETO, fir, camadas } from '../../content/cta';
-import { governanceAPI } from '../../utils/api';
+import { governanceAPI, mediaUrl } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
 import {
   Shield,
@@ -45,7 +45,7 @@ const TitularCard = ({ titular, cargoLabel, accent }) => {
         </span>
       ) : titular.photo_url ? (
         <img
-          src={titular.photo_url}
+          src={mediaUrl(titular.photo_url)}
           alt={`Foto de ${titular.name} — ${cargoLabel}`}
           loading="lazy"
           className="w-10 h-10 shrink-0 rounded-full object-cover"

@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { bannersAPI, uploadAPI } from '../../utils/api';
+import { bannersAPI, uploadAPI, mediaUrl } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
 import { toast } from 'sonner';
 import { Image as ImageIcon, Upload, Star, Save } from 'lucide-react';
@@ -21,7 +21,7 @@ const BannerCard = ({ bkey, info, onUpload, onSaveAlt, uploading, savingAlt }) =
     <div className="bg-white rounded-lg border border-[#E5E7EB] shadow-sm overflow-hidden" data-testid={`banner-card-${bkey}`}>
       <div className="relative h-36 bg-[#F5F5F5]">
         {info.image_url ? (
-          <img src={info.image_url} alt={`Pré-visualização: ${PAGE_LABELS[bkey] || bkey}`} className="w-full h-full object-cover" />
+          <img src={mediaUrl(info.image_url)} alt={`Pré-visualização: ${PAGE_LABELS[bkey] || bkey}`} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-[#9CA3AF]">
             <ImageIcon className="w-8 h-8" aria-hidden="true" />

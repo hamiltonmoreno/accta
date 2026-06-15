@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Megaphone, Globe, FileText, GraduationCap, ExternalLink, Download } from 'lucide-react';
-import { defesaAPI, relacoesAPI, formacoesAPI, documentsAPI } from '../utils/api';
+import { defesaAPI, relacoesAPI, formacoesAPI, documentsAPI, mediaUrl } from '../utils/api';
 
 // Cat 5 F4 — secções dinâmicas da ProfissaoPage pública. Cada bloco só renderiza
 // quando há conteúdo já marcado como público (defesa publicada, relações/formações
@@ -147,7 +147,7 @@ export const ProfissaoDestaques = () => {
                     <div className="flex items-start gap-4">
                       {r.logo_url ? (
                         <img
-                          src={r.logo_url}
+                          src={mediaUrl(r.logo_url)}
                           alt={r.nome}
                           loading="lazy"
                           className="w-12 h-12 object-contain flex-shrink-0"
