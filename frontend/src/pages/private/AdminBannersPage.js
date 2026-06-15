@@ -9,7 +9,7 @@ import { Skeleton } from '../../components/ui/skeleton';
 // Rótulos legíveis por chave de banner (apresentação; a lista canónica vem do backend).
 const PAGE_LABELS = {
   home: 'Início', sobre: 'Sobre', profissao: 'Profissão', contactos: 'Contactos',
-  beneficios: 'Benefícios', transparencia: 'Transparência', galeria: 'Galeria',
+  beneficios: 'Benefícios', galeria: 'Galeria',
   eventos: 'Eventos', noticias: 'Notícias', validador: 'Validador',
 };
 

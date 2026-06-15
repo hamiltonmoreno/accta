@@ -17,7 +17,6 @@ import {
   UserCircle,
   Building,
   Scale,
-  ArrowRight,
 } from 'lucide-react';
 
 // Iniciais p/ placeholder de avatar (titular sem foto).
@@ -336,19 +335,12 @@ export const SobrePage = () => {
             Quer saber mais sobre a nossa atuação?
           </h2>
           <p className="text-xl text-white/80 mb-10">
-            Consulte os documentos de governança e os relatórios de gestão
+            Entre em contacto connosco para esclarecer qualquer questão
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link
-              to="/transparencia"
-              className="inline-flex items-center gap-2 bg-floresta text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-floresta-dark transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ring-offset-2 ring-offset-grafite"
-            >
-              Ver Transparência
-              <ArrowRight className="w-5 h-5" aria-hidden="true" />
-            </Link>
-            <Link
               to="/contactos"
-              className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white border border-white/20 px-8 py-4 rounded-lg font-bold text-lg hover:bg-white/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ring-offset-2 ring-offset-grafite"
+              className="inline-flex items-center gap-2 bg-floresta text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-floresta-dark transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ring-offset-2 ring-offset-grafite"
             >
               Fale Connosco
             </Link>

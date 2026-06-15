@@ -24,7 +24,7 @@ api.interceptors.response.use(
   (error) => {
     const status = error.response?.status;
     const currentPath = window.location.pathname;
-    const publicPaths = ['/login', '/validador', '/profissao', '/noticias', '/transparencia', '/sobre', '/beneficios-publico', '/contactos', '/eventos-publico', '/galeria', '/publicacoes-publico', '/forgot-password', '/reset-password', '/criar-conta'];
+    const publicPaths = ['/login', '/validador', '/profissao', '/noticias', '/sobre', '/beneficios-publico', '/contactos', '/eventos-publico', '/galeria', '/publicacoes-publico', '/forgot-password', '/reset-password', '/criar-conta'];
     const isPublic = currentPath === '/' || publicPaths.some(p => currentPath.startsWith(p));
 
     if (status === 401 && !isPublic) {
