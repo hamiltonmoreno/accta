@@ -57,10 +57,10 @@ export const PublicLayout = ({ children }) => {
               })}
               <Link
                 to="/login"
-                className="ml-3 bg-floresta text-white hover:bg-floresta-dark h-9 px-5 rounded-lg font-semibold text-xs transition-colors flex items-center gap-2"
+                className="ml-3 bg-grafite text-white hover:bg-grafite/90 h-9 px-5 rounded-lg font-semibold text-xs transition-colors flex items-center gap-2"
                 data-testid="nav-login-button"
               >
-                Entrar
+                Login
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -114,9 +114,9 @@ export const PublicLayout = ({ children }) => {
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 py-3 px-4 bg-floresta text-white rounded-lg font-semibold text-sm"
+                  className="flex items-center justify-center gap-2 py-3 px-4 bg-grafite text-white hover:bg-grafite/90 transition-colors rounded-lg font-semibold text-sm"
                 >
-                  Entrar
+                  Login
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
