@@ -21,6 +21,10 @@ export const governanca = {
       ],
       dicas: [
         'Só membros votantes ativos podem votar.',
+        'Confirme a opção antes de submeter — o voto não é alterável depois de registado.',
+      ],
+      faq: [
+        { q: 'Tentei votar e não consegui — porquê?', a: 'A votação pode ter fechado, ou a sua conta pode não ter direito de voto (só membros votantes ativos votam).' },
       ],
     },
     {
@@ -40,6 +44,7 @@ export const governanca = {
       ],
       faq: [
         { q: 'O meu voto pode ser associado a mim?', a: 'Não. O voto é secreto: o recibo prova a participação, mas o conteúdo do voto é separado da identidade.' },
+        { q: 'Perdi o recibo — e agora?', a: 'O recibo serve de comprovativo pessoal. Sem ele continua válido o registo da sua participação, mas guarde-o sempre que possível.' },
       ],
     },
     {
@@ -55,6 +60,10 @@ export const governanca = {
       ],
       dicas: [
         'A presença é registada para efeitos de quórum e de participação.',
+        'Acompanhe a sala ao vivo para não perder o momento de cada votação.',
+      ],
+      faq: [
+        { q: 'Marquei presença mas a votação não abriu — é normal?', a: 'Sim. As deliberações são postas a votação uma de cada vez, ao longo da sessão; aguarde o momento de cada ponto.' },
       ],
     },
     {
@@ -66,6 +75,9 @@ export const governanca = {
         'Abra "Regulamentos" na barra lateral.',
         'Escolha um regulamento para ler.',
         'Consulte o histórico de versões quando disponível.',
+      ],
+      dicas: [
+        'Confirme sempre que está a ler a versão em vigor antes de a citar.',
       ],
     },
     {
@@ -84,6 +96,10 @@ export const governanca = {
       ],
       dicas: [
         'Seja específico: um pedido claro é respondido mais depressa.',
+        'Escolha o canal certo — uma proposta para a Assembleia segue um caminho diferente de uma reclamação.',
+      ],
+      faq: [
+        { q: 'Qual a diferença entre proposta e petição?', a: 'A proposta leva um ponto à ordem de trabalhos da Assembleia; a petição reúne subscrições de sócios em torno de um tema.' },
       ],
     },
   ],

@@ -29,6 +29,9 @@ export const comunidade = {
         'Escolha um projeto para ver o detalhe, as tarefas e os comentários.',
         'Participe nas tarefas que lhe forem atribuídas.',
       ],
+      dicas: [
+        'Grupos e comissões aparecem aqui como projetos — distinga-os pelo tipo indicado em cada cartão.',
+      ],
     },
     {
       id: 'documentos',
@@ -61,6 +64,9 @@ export const comunidade = {
         'Abra "Galeria" na barra lateral.',
         'Navegue pelos álbuns.',
         'Ao submeter fotos, lembre-se de que carecem de aprovação antes de ficarem visíveis.',
+      ],
+      faq: [
+        { q: 'Submeti uma foto e não aparece — porquê?', a: 'Todas as fotos passam por aprovação de um moderador antes de ficarem visíveis na galeria.' },
       ],
     },
     {
