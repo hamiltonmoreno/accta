@@ -54,6 +54,20 @@ test('Ranking (sempre) e Mural (mobile) aparecem para membros OU admins', () => 
   expect(screen.getByTestId('menu-mural')).toBeInTheDocument();
 });
 
+test('Ajuda aparece para todos os roles e aponta para /ajuda', () => {
+  const variantes = [
+    { isAdmin: true, isMember: false, isSocio: false },
+    { isAdmin: false, isMember: true, isSocio: true },
+    { isAdmin: false, isMember: true, isSocio: false },
+    { isAdmin: false, isMember: false, isSocio: false },
+  ];
+  variantes.forEach((v) => {
+    const { unmount } = render(<UserMenu user={baseUser} onLogout={() => {}} {...v} />);
+    expect(screen.getByTestId('menu-ajuda')).toHaveAttribute('href', '/ajuda');
+    unmount();
+  });
+});
+
 test('Sair chama onLogout', () => {
   const onLogout = jest.fn();
   render(<UserMenu user={baseUser} isSocio={true} isMember={true} onLogout={onLogout} />);
