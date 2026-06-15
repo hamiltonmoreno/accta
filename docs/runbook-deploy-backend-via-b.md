@@ -46,18 +46,18 @@ Antes de começar, obtém o SHA do `main` na release (na tua máquina):
 git fetch origin main && git rev-parse --short=12 main
 ```
 
-**Valores atuais (v0.5.13 — revisão de segurança + follow-ups operacionais):**
+**Valores atuais (v0.5.17 — remoção do patrocínio de admissão, Art. 8.3, #245):**
 
 | Variável | Valor |
 |----------|-------|
-| `TAG` (imagem nova) | `sha-f580b90ee543` — **a fazer deploy** |
-| Tag git da release | `v0.5.13` |
-| Rollback (prod anterior, v0.5.8) | `sha-f149268a1fde` |
-| Teste decisivo desta release | `GET https://api.controlador.cv/openapi.json` → **404** (Swagger/OpenAPI desligados em prod, #191/#225) — em v0.5.8 dava 200 |
+| `TAG` (imagem nova) | `sha-6e313d80425f` — **em prod** (deployed 2026-06-15) |
+| Tag git da release | `v0.5.17` (= `6e313d8`, HEAD de `main`, merge #246) |
+| Rollback (prod anterior, v0.5.13) | `sha-f580b90ee543` |
+| Teste decisivo desta release | `GET https://api.controlador.cv/api/participacao/patrocinios/pendentes` → **404** (endpoints de patrocínio removidos, #245) — antes da v0.5.17 dava **401** (rota existia, exigia token) |
 
-> **Nota de lição:** o backend em prod antes da v0.5.13 estava na **v0.5.8**
-> (`sha-f149268a1fde`), **não** numa v0.5.9–v0.5.12 — essas quatro foram releases
-> **só de frontend** (PWA/ícones/cache, Vercel) e **não tocaram em `backend/`**.
+> **Nota de lição:** o backend em prod antes da v0.5.17 estava na **v0.5.13**
+> (`sha-f580b90ee543`), **não** numa v0.5.14–v0.5.16 — essas três foram releases
+> **só de frontend** (Vercel) e **não tocaram em `backend/`**.
 > Confirma sempre a imagem em execução antes de deploy: `docker compose ps`
 > (coluna IMAGE) ou `docker inspect accta-backend --format '{{.Config.Image}}'`.
 
@@ -69,15 +69,15 @@ git fetch origin main && git rev-parse --short=12 main
 ```bash
 rm -rf /tmp/accta-build
 git clone https://github.com/hamiltonmoreno/accta.git /tmp/accta-build
-cd /tmp/accta-build && git checkout v0.5.13       # <- tag git da release
+cd /tmp/accta-build && git checkout v0.5.17       # <- tag git da release
 docker build -f backend/Dockerfile \
-  -t ghcr.io/hamiltonmoreno/accta-backend:sha-f580b90ee543 .   # <- TAG
+  -t ghcr.io/hamiltonmoreno/accta-backend:sha-6e313d80425f .   # <- TAG
 ```
 
 ### 2.2 Arrancar via o compose canónico (só muda o TAG)
 ```bash
 cd /docker/accta
-export TAG=sha-f580b90ee543
+export TAG=sha-6e313d80425f
 docker compose up -d --no-deps backend
 ```
 
@@ -87,8 +87,10 @@ docker compose ps                         # backend = Up (healthy)
 docker compose logs --tail=80 backend     # arranque limpo: ensure_schema OK, sem tracebacks
 curl -fsS https://api.controlador.cv/api/ # 200
 
-# Teste decisivo desta release: /openapi.json e /docs ficam DESLIGADOS em prod
-# (server.py, #191/#225) — prova que a imagem nova está a correr.
+# Teste decisivo desta release: os endpoints de patrocínio (Art. 8.3) foram
+# removidos (#245) — uma rota inexistente dá 404 ANTES da auth (provava 401 antes).
+curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/api/participacao/patrocinios/pendentes  # esperado: 404
+# Invariante de segurança (mantém-se desde v0.5.13): docs desligados em prod.
 curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/openapi.json  # esperado: 404
 curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/docs          # esperado: 404
 # (depende de ENVIRONMENT=production no backend/.env — já presente; HSTS/CORS também o exigem.)
@@ -101,7 +103,7 @@ curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/docs        
 A imagem anterior continua no VPS; só se troca o `TAG`:
 ```bash
 cd /docker/accta
-export TAG=sha-f149268a1fde        # <- rollback (v0.5.8, imagem que corria antes da v0.5.13)
+export TAG=sha-f580b90ee543        # <- rollback (v0.5.13, imagem que corria antes da v0.5.17)
 docker compose up -d --no-deps backend
 ```
 
@@ -134,9 +136,11 @@ Ver `DEPLOY.md` e `HOSTINGER_DEPLOY.md` para o setup completo (secrets SSH,
 - O **frontend** é independente: a Vercel publica automaticamente no push para
   `main`. Esta "Via B" é **só backend**.
 - Histórico de imagens de backend em prod: v0.4.0 (`sha-ba3e946e3add`) → v0.5.0
-  (`sha-03a5fc060626`) → **v0.5.4 (`sha-409a7b4fe314`)** → **v0.5.8
-  (`sha-f149268a1fde`)** → **v0.5.13 (`sha-f580b90ee543`, este deploy)**. As
-  v0.5.1/v0.5.5/v0.5.6/v0.5.7 e v0.5.9–v0.5.12 não tocaram no backend (só Vercel).
-- Pós-deploy específico de cada release (não há nenhum para a v0.5.13). Histórico:
-  na v0.5.8 foi preciso **atribuir os cargos** em `/admin/cargos` (com foto) para
-  a secção Corpos Sociais deixar de mostrar "Vago".
+  (`sha-03a5fc060626`) → v0.5.4 (`sha-409a7b4fe314`) → v0.5.8
+  (`sha-f149268a1fde`) → v0.5.13 (`sha-f580b90ee543`) → **v0.5.17
+  (`sha-6e313d80425f`, este deploy)**. As v0.5.1/v0.5.5/v0.5.6/v0.5.7,
+  v0.5.9–v0.5.12 e v0.5.14–v0.5.16 não tocaram no backend (só Vercel).
+- Pós-deploy específico de cada release (não há nenhum para a v0.5.17 — a coleção
+  `patrocinios` fica em DB, dormente, sem migração). Histórico: na v0.5.8 foi
+  preciso **atribuir os cargos** em `/admin/cargos` (com foto) para a secção
+  Corpos Sociais deixar de mostrar "Vago".
