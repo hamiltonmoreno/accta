@@ -14,7 +14,6 @@ export const PublicLayout = ({ children }) => {
     { label: 'Sobre', path: '/sobre' },
     { label: 'A Profissão', path: '/profissao' },
     { label: 'Benefícios', path: '/beneficios-publico' },
-    { label: 'Transparência', path: '/transparencia' },
     { label: 'Publicações', path: '/publicacoes-publico' },
     { label: 'Contactos', path: '/contactos' },
     { label: 'Galeria', path: '/galeria' },
@@ -149,7 +148,6 @@ export const PublicLayout = ({ children }) => {
               <ul className="space-y-2.5 text-sm text-white/60">
                 <li><Link to="/sobre" className="hover:text-white transition-colors">Sobre</Link></li>
                 <li><Link to="/profissao" className="hover:text-white transition-colors">A Profissão</Link></li>
-                <li><Link to="/transparencia" className="hover:text-white transition-colors">Transparência</Link></li>
                 <li><Link to="/beneficios-publico" className="hover:text-white transition-colors">Benefícios</Link></li>
                 <li><Link to="/contactos" className="hover:text-white transition-colors">Contactos</Link></li>
                 <li><Link to="/galeria" className="hover:text-white transition-colors">Galeria</Link></li>

@@ -11,7 +11,6 @@ export const BANNER_DEFAULTS = {
   profissao: U('1540962351504-03099e0a754b'),
   contactos: U('1672856181212-b5b5a0065a08'),
   beneficios: U('1600880292203-757bb62b4baf'),
-  transparencia: U('1618506060789-b63788b0cecd'),
   galeria: U('1436491865332-7a61a109cc05'),
   eventos: U('1474302770737-173ee21bab63'),
   noticias: U('1618506060789-b63788b0cecd'),
