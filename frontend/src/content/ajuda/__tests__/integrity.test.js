@@ -8,7 +8,7 @@ const ROTAS_VALIDAS = new Set([
   '/relacoes-externas', '/admin/assembleias', '/admin/eleicoes', '/admin/disciplinar',
   '/admin/pedidos-inscricao', '/admin/usuarios', '/admin/cargos', '/admin/comunicados',
   '/admin/logs', '/admin/aparencia', '/admin/noticias', '/financeiro', '/financeiro/co-aprovacoes',
-  '/governanca/honorarios', '/participacao/patrocinios', '/participacao/peticoes',
+  '/governanca/honorarios', '/participacao/peticoes',
   '/participacao/propostas', '/participacao/esclarecimentos', '/participacao/reclamacoes',
 ]);
 

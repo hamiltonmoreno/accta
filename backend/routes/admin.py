@@ -201,21 +201,6 @@ async def list_registration_requests(
         .to_list(limit)
     )
 
-    # Resumo de patrocínios por candidato (Art. 8.3) para a UI de aprovação.
-    for r in requests:
-        pats = await db.patrocinios.find({"candidate_id": r["id"]}, {"_id": 0}).to_list(10)
-        sponsors_summary = []
-        for p in pats:
-            su = await db.users.find_one({"id": p["sponsor_user_id"]}, {"_id": 0, "name": 1, "member_id": 1})
-            sponsors_summary.append(
-                {
-                    "name": (su or {}).get("name"),
-                    "member_id": p.get("sponsor_member_id") or (su or {}).get("member_id"),
-                    "status": p["status"],
-                }
-            )
-        r["sponsors"] = sponsors_summary
-        r["confirmed_count"] = sum(1 for p in pats if p["status"] == "confirmado")
     return requests
 
 
@@ -234,21 +219,6 @@ async def approve_registration(
     user = await db.users.find_one({"id": user_id, "status": "pendente_aprovacao"}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Pedido nao encontrado ou ja processado")
-
-    # Gate de patrocínio (Art. 8.3): exige 2 patrocínios confirmados, salvo
-    # dispensa explícita e auditável (bootstrap de fundadores / excepção).
-    if data.waive_sponsorship:
-        await create_audit_log(
-            current_user.id,
-            "sponsorship_waived",
-            user_id,
-            request=request,
-            details={"reason": "dispensa de patrocínio na aprovação (Art. 8.3)"},
-        )
-    else:
-        confirmados = await db.patrocinios.count_documents({"candidate_id": user_id, "status": "confirmado"})
-        if confirmados < 2:
-            raise HTTPException(status_code=409, detail="Aprovação bloqueada: faltam patrocínios (Art. 8.3).")
 
     invite_token = secrets.token_urlsafe(32)
     now = datetime.now(timezone.utc)

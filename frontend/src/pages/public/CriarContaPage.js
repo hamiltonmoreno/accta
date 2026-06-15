@@ -39,9 +39,7 @@ export const CriarContaPage = () => {
 
   const onSubmit = async (values) => {
     try {
-      const { sponsor1, sponsor2, ...rest } = values;
-      // Art. 8.3 — 2 padrinhos enviados como array `sponsors`.
-      await registrationAPI.submit({ ...rest, sponsors: [sponsor1.trim(), sponsor2.trim()] });
+      await registrationAPI.submit(values);
       setSuccess(true);
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Erro ao enviar o pedido. Tente novamente.');
@@ -176,40 +174,6 @@ export const CriarContaPage = () => {
             <p className="text-xs text-[#6B7280] mt-1">
               Apenas declarativo — a direção confirma o cargo e o nível de acesso ao aprovar.
             </p>
-          </div>
-
-          {/* Patrocínio de admissão (Art. 8.3) — 2 padrinhos sócios activos. */}
-          <div className="rounded-lg border border-[#E5E7EB] p-3 space-y-3">
-            <p className="text-xs text-[#6B7280]">
-              Precisa de <strong>2 sócios activos</strong> que confirmem o seu patrocínio (Art. 8.3). Indique o nº de
-              sócio (ACCTA-XXXX) ou o email de cada um.
-            </p>
-            <div>
-              <label htmlFor="reg-sponsor1" className="block text-xs font-medium text-gray-600 mb-1.5">1.º padrinho *</label>
-              <input
-                id="reg-sponsor1"
-                type="text"
-                aria-invalid={errors.sponsor1 ? 'true' : 'false'}
-                {...register('sponsor1')}
-                placeholder="ACCTA-0001 ou email"
-                className="w-full px-3 py-3 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none aria-[invalid=true]:border-carmesim/60"
-                data-testid="reg-sponsor1"
-              />
-              {errors.sponsor1 && <p className="text-xs text-[#B91C1C] mt-1" role="alert">{errors.sponsor1.message}</p>}
-            </div>
-            <div>
-              <label htmlFor="reg-sponsor2" className="block text-xs font-medium text-gray-600 mb-1.5">2.º padrinho *</label>
-              <input
-                id="reg-sponsor2"
-                type="text"
-                aria-invalid={errors.sponsor2 ? 'true' : 'false'}
-                {...register('sponsor2')}
-                placeholder="ACCTA-0002 ou email"
-                className="w-full px-3 py-3 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none aria-[invalid=true]:border-carmesim/60"
-                data-testid="reg-sponsor2"
-              />
-              {errors.sponsor2 && <p className="text-xs text-[#B91C1C] mt-1" role="alert">{errors.sponsor2.message}</p>}
-            </div>
           </div>
 
           <label htmlFor="reg-consent" className="flex items-start gap-2.5 cursor-pointer">

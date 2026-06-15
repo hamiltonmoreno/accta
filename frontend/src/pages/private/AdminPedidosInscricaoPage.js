@@ -36,7 +36,7 @@ export const AdminPedidosInscricaoPage = () => {
   const qc = useQueryClient();
   const [tab, setTab] = useState('pendente_aprovacao');
   const [approving, setApproving] = useState(null); // request a aprovar
-  const [approveForm, setApproveForm] = useState({ role: 'socio', cargo: '', waive: false, cta_qualified_since: '' });
+  const [approveForm, setApproveForm] = useState({ role: 'socio', cargo: '', cta_qualified_since: '' });
   const [rejecting, setRejecting] = useState(null); // request a rejeitar
   const [rejectReason, setRejectReason] = useState('');
 
@@ -81,7 +81,6 @@ export const AdminPedidosInscricaoPage = () => {
     setApproveForm({
       role: 'socio',
       cargo: req.cargo_declarado || req.cargo || 'Sócio',
-      waive: false,
       cta_qualified_since: req.cta_qualified_since || '',
     });
     setApproving(req);
@@ -138,7 +137,6 @@ export const AdminPedidosInscricaoPage = () => {
                 <th className="px-4 py-3 font-semibold">Cargo declarado</th>
                 <th className="px-4 py-3 font-semibold">Nº associado</th>
                 <th className="px-4 py-3 font-semibold">Contacto</th>
-                <th className="px-4 py-3 font-semibold">Patrocínios</th>
                 <th className="px-4 py-3 font-semibold">Data</th>
                 {tab === 'pendente_aprovacao' && <th className="px-4 py-3 font-semibold text-right">Ações</th>}
               </tr>
@@ -162,32 +160,6 @@ export const AdminPedidosInscricaoPage = () => {
                     {req.phone_number && <p className="flex items-center gap-1"><Phone className="w-3 h-3" aria-hidden="true" />{req.phone_number}</p>}
                     {req.department && <p className="flex items-center gap-1"><Building2 className="w-3 h-3" aria-hidden="true" />{req.department}</p>}
                     {!req.phone_number && !req.department && '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    {(req.sponsors || []).length === 0 ? (
-                      <span className="text-xs text-[#6B7280]">—</span>
-                    ) : (
-                      <div className="space-y-1">
-                        <span className="text-xs font-medium text-grafite">{req.confirmed_count || 0}/2 confirmados</span>
-                        <div className="flex flex-wrap gap-1">
-                          {(req.sponsors || []).map((s, i) => (
-                            <span
-                              key={i}
-                              title={s.name || s.member_id || ''}
-                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[11px] ${
-                                s.status === 'confirmado'
-                                  ? 'bg-[#F0FDF4] text-[#15803D]'
-                                  : s.status === 'recusado'
-                                    ? 'bg-[#FEF2F2] text-[#B91C1C]'
-                                    : 'bg-[#FFFBEB] text-[#B45309]'
-                              }`}
-                            >
-                              {s.member_id || s.name || '—'}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </td>
                   <td className="px-4 py-3 text-xs text-[#6B7280]">
                     <span className="flex items-center gap-1"><Clock className="w-3 h-3" aria-hidden="true" />{formatDate(req.registration_request_at)}</span>
@@ -271,22 +243,6 @@ export const AdminPedidosInscricaoPage = () => {
                 </p>
               )}
             </div>
-            {/* Gate de patrocínio (Art. 8.3): aprovar exige 2 confirmados, salvo dispensa. */}
-            <div className={`rounded-lg px-3 py-2.5 text-xs ${(approving?.confirmed_count || 0) >= 2 ? 'bg-[#F0FDF4] text-[#15803D]' : 'bg-[#FFFBEB] text-[#B45309]'}`}>
-              Patrocínio (Art. 8.3): <strong>{approving?.confirmed_count || 0}/2</strong> confirmados.
-            </div>
-            {(approving?.confirmed_count || 0) < 2 && (
-              <label className="flex items-start gap-2 text-xs text-[#6B7280] cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={approveForm.waive}
-                  onChange={(e) => setApproveForm({ ...approveForm, waive: e.target.checked })}
-                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-carmesim focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
-                  data-testid="approve-waive"
-                />
-                <span>Dispensar patrocínio (Art. 8.3). A dispensa fica registada no audit log.</span>
-              </label>
-            )}
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setApproving(null)}
@@ -295,8 +251,8 @@ export const AdminPedidosInscricaoPage = () => {
                 Cancelar
               </button>
               <button
-                onClick={() => approveMutation.mutate({ id: approving.id, data: { role: approveForm.role, cargo: approveForm.cargo || null, waive_sponsorship: approveForm.waive, cta_qualified_since: approveForm.cta_qualified_since || null } })}
-                disabled={approveMutation.isPending || (!approveForm.waive && (approving?.confirmed_count || 0) < 2)}
+                onClick={() => approveMutation.mutate({ id: approving.id, data: { role: approveForm.role, cargo: approveForm.cargo || null, cta_qualified_since: approveForm.cta_qualified_since || null } })}
+                disabled={approveMutation.isPending}
                 className="px-4 py-2 rounded-lg bg-floresta text-white text-sm font-semibold hover:bg-floresta-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 data-testid="approve-confirm"
               >
