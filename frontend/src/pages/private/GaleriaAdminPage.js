@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { galleryAPI } from '../../utils/api';
+import { galleryAPI, mediaUrl } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { queryKeys } from '../../lib/queryClient';
@@ -476,7 +476,7 @@ export const GaleriaAdminPage = () => {
                 data-testid={`album-card-${album.id}`}>
                 <div className="relative aspect-[16/10] overflow-hidden">
                   {album.cover_url ? (
-                    <img src={album.cover_url} alt={album.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                    <img src={mediaUrl(album.cover_url)} alt={album.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-[var(--surface-card-hover)]">
                       <Images className="w-12 h-12 text-muted-auto" />

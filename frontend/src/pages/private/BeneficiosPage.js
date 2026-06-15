@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { benefitsAPI } from '../../utils/api';
+import { benefitsAPI, mediaUrl } from '../../utils/api';
 import { Gift, MapPin, Percent, ExternalLink, Phone, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
@@ -123,7 +123,7 @@ export const BeneficiosPage = () => {
               data-testid={`benefit-${benefit.id}`}>
               {benefit.logo_url && (
                 <div className="h-48 bg-gray-100 flex items-center justify-center p-6">
-                  <img src={benefit.logo_url} alt={benefit.name} loading="lazy" className="max-h-full max-w-full object-contain" />
+                  <img src={mediaUrl(benefit.logo_url)} alt={benefit.name} loading="lazy" className="max-h-full max-w-full object-contain" />
                 </div>
               )}
 

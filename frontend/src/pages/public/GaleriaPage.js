@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { galleryAPI } from '../../utils/api';
+import { galleryAPI, mediaUrl } from '../../utils/api';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { Camera, X, ChevronLeft, ChevronRight, Images, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -86,7 +86,7 @@ const AlbumCard = ({ album, onClick }) => (
     data-testid={`album-${album.id}`}>
     <div className="relative overflow-hidden rounded-xl aspect-[4/3]">
       <img
-        src={album.cover_url}
+        src={mediaUrl(album.cover_url)}
         alt={album.title}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         loading="lazy"
@@ -110,7 +110,7 @@ const AlbumView = ({ album, photos, onBack, onOpenLightbox }) => (
     {/* Album Header */}
     <div className="relative h-48 sm:h-64 md:h-80 overflow-hidden rounded-xl mb-6 sm:mb-8">
       <img
-        src={album.cover_url}
+        src={mediaUrl(album.cover_url)}
         alt={album.title}
         className="w-full h-full object-cover"
       />

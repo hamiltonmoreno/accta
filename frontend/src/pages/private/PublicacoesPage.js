@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { publicacoesAPI } from '../../utils/api';
+import { publicacoesAPI, mediaUrl } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { toast } from 'sonner';
@@ -36,7 +36,7 @@ const PublicacaoCard = ({ publicacao, canManage, onEdit, onDelete }) => {
       data-testid={`publicacao-card-${publicacao.id}`}>
       {publicacao.capa_url ? (
         <img
-          src={publicacao.capa_url}
+          src={mediaUrl(publicacao.capa_url)}
           alt={`Capa de ${publicacao.titulo}`}
           loading="lazy"
           className="w-20 h-28 object-cover rounded-lg border border-gray-200 flex-shrink-0"

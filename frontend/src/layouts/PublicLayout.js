@@ -14,7 +14,6 @@ export const PublicLayout = ({ children }) => {
     { label: 'Sobre', path: '/sobre' },
     { label: 'A Profissão', path: '/profissao' },
     { label: 'Benefícios', path: '/beneficios-publico' },
-    { label: 'Transparência', path: '/transparencia' },
     { label: 'Publicações', path: '/publicacoes-publico' },
     { label: 'Contactos', path: '/contactos' },
     { label: 'Galeria', path: '/galeria' },
@@ -57,10 +56,10 @@ export const PublicLayout = ({ children }) => {
               })}
               <Link
                 to="/login"
-                className="ml-3 bg-floresta text-white hover:bg-floresta-dark h-9 px-5 rounded-lg font-semibold text-xs transition-colors flex items-center gap-2"
+                className="ml-3 bg-grafite text-white hover:bg-grafite/90 h-9 px-5 rounded-lg font-semibold text-xs transition-colors flex items-center gap-2"
                 data-testid="nav-login-button"
               >
-                Entrar
+                Login
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -114,9 +113,9 @@ export const PublicLayout = ({ children }) => {
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 py-3 px-4 bg-floresta text-white rounded-lg font-semibold text-sm"
+                  className="flex items-center justify-center gap-2 py-3 px-4 bg-grafite text-white hover:bg-grafite/90 transition-colors rounded-lg font-semibold text-sm"
                 >
-                  Entrar
+                  Login
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
@@ -149,7 +148,6 @@ export const PublicLayout = ({ children }) => {
               <ul className="space-y-2.5 text-sm text-white/60">
                 <li><Link to="/sobre" className="hover:text-white transition-colors">Sobre</Link></li>
                 <li><Link to="/profissao" className="hover:text-white transition-colors">A Profissão</Link></li>
-                <li><Link to="/transparencia" className="hover:text-white transition-colors">Transparência</Link></li>
                 <li><Link to="/beneficios-publico" className="hover:text-white transition-colors">Benefícios</Link></li>
                 <li><Link to="/contactos" className="hover:text-white transition-colors">Contactos</Link></li>
                 <li><Link to="/galeria" className="hover:text-white transition-colors">Galeria</Link></li>

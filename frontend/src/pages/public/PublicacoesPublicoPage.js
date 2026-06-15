@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { BookOpen, Download, FileText, Calendar, User } from 'lucide-react';
-import { publicacoesAPI, documentsAPI } from '../../utils/api';
+import { publicacoesAPI, documentsAPI, mediaUrl } from '../../utils/api';
 import { Skeleton } from '../../components/ui/skeleton';
 
 // Cat 5 F4 — catálogo público de publicações formais (revista/boletim/artigo/
@@ -100,7 +100,7 @@ export const PublicacoesPublicoPage = () => {
                   >
                     {p.capa_url ? (
                       <img
-                        src={p.capa_url}
+                        src={mediaUrl(p.capa_url)}
                         alt={p.titulo}
                         loading="lazy"
                         className="w-full h-44 object-cover bg-gray-100"

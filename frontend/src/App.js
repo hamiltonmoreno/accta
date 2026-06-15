@@ -23,7 +23,6 @@ const ValidadorPage = lazy(() => import('./pages/public/ValidadorPage').then((m)
 const ForgotPasswordPage = lazy(() => import('./pages/public/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })));
 const SetupAccountPage = lazy(() => import('./pages/public/SetupAccountPage').then((m) => ({ default: m.SetupAccountPage })));
 const ResetPasswordPage = lazy(() => import('./pages/public/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })));
-const TransparenciaPage = lazy(() => import('./pages/public/TransparenciaPage').then((m) => ({ default: m.TransparenciaPage })));
 const BeneficiosPublicoPage = lazy(() => import('./pages/public/BeneficiosPublicoPage').then((m) => ({ default: m.BeneficiosPublicoPage })));
 const ContactosPage = lazy(() => import('./pages/public/ContactosPage').then((m) => ({ default: m.ContactosPage })));
 const EventosPublicoPage = lazy(() => import('./pages/public/EventosPublicoPage').then((m) => ({ default: m.EventosPublicoPage })));
@@ -121,7 +120,6 @@ function AppRoutes() {
         <Route path="/profissao" element={<PublicLayout><ProfissaoPage /></PublicLayout>} />
         <Route path="/noticias" element={<PublicLayout><NoticiasPage /></PublicLayout>} />
         <Route path="/noticias/:slug" element={<PublicLayout><NoticiaDetailPage /></PublicLayout>} />
-        <Route path="/transparencia" element={<PublicLayout><TransparenciaPage /></PublicLayout>} />
         <Route path="/beneficios-publico" element={<PublicLayout><BeneficiosPublicoPage /></PublicLayout>} />
         <Route path="/contactos" element={<PublicLayout><ContactosPage /></PublicLayout>} />
         <Route path="/eventos-publico" element={<PublicLayout><EventosPublicoPage /></PublicLayout>} />

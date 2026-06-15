@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { brandAPI } from '../utils/api';
+import { brandAPI, mediaUrl } from '../utils/api';
 import { queryKeys } from '../lib/queryClient';
 import { ACCTALogoHorizontal } from './ACCTALogo';
 import { cn } from '../lib/utils';
@@ -32,7 +32,7 @@ export const BrandLogo = ({ dark = false, className = '' }) => {
   if (url && !imageFailed) {
     return (
       <img
-        src={url}
+        src={mediaUrl(url)}
         alt={alt}
         onError={() => setImageFailed(true)}
         className={cn('h-9 w-auto max-h-9 max-w-[180px] object-contain', className)}

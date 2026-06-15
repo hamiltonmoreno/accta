@@ -16,7 +16,7 @@ import {
   ArrowRight,
   Mail
 } from 'lucide-react';
-import { benefitsAPI } from '../../utils/api';
+import { benefitsAPI, mediaUrl } from '../../utils/api';
 import { PageBanner } from '../../components/PageBanner';
 
 export const BeneficiosPublicoPage = () => {
@@ -197,7 +197,7 @@ export const BeneficiosPublicoPage = () => {
                 const card = (
                   <div className="card-technical rounded-xl p-8 flex items-center justify-center h-32 animate-fade-up hover:shadow-md transition-shadow">
                     <img
-                      src={partner.logo_url}
+                      src={mediaUrl(partner.logo_url)}
                       alt={partner.name}
                       title={partner.name}
                       loading="lazy"
