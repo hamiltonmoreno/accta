@@ -200,3 +200,23 @@ gate em `get_current_user`; `models.MFA_SECRET_FIELDS`; `$pull` atómico em
 `auth_routes.py::login`. Itens menores diferidos p/ F3: SSE/`get_user_from_token`
 não honram `mfa_pending`; audit sem IP/UA em verify/disable; lockout
 partilhado password↔OTP.
+
+---
+
+### L14 — Nunca `git reset --hard` com alterações não-committadas presentes
+**Mistake**: Para basear um novo ramo no `origin/develop` atualizado, corri
+`git reset --hard origin/develop` enquanto o working tree tinha modificações
+não-committadas alheias à tarefa (`FontesOficiais.jsx`, `settings.local.json`).
+O reset apagou-as do working tree. Como nunca foram `git add`, não havia blob
+em git e não eram recuperáveis por `fsck`/`reflog` (recuperadas, por sorte, do
+histórico local do VS Code — e afinal eram triviais: 1 linha de indentação).
+**Rule**: Antes de qualquer comando destrutivo de working tree (`reset --hard`,
+`checkout -- .`, `clean -fd`), correr `git status` e tratar do que está sujo —
+`git stash -u` (e dar pop no destino certo) ou commitar. Para "novo ramo a
+partir do remoto", preferir `git fetch && git switch -c novo-ramo origin/develop`
+(switch recusa se houver conflito) em vez de criar local e fazer `reset --hard`.
+Nunca assumir que working-tree-only é recuperável: sem `add`/`stash`/commit não
+existe em git.
+**Context**: ACCTA, fluxo GitFlow de criar `feature/*` a partir de `develop`
+quando o `develop` local está atrás do `origin/develop`. Liga a
+[[git-pipe-tail-masks-exit]] e à preferência por worktrees com WIP ativo.
