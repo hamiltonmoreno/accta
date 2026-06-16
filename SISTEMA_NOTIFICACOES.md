@@ -1,96 +1,84 @@
-# Sistema de Notificacoes In-App — Portal ACCTA
+# Sistema de Notificações In-App — Portal ACCTA
 
-## Status: 100% Implementado e Funcional
+## Visão Geral
 
----
+Sistema de notificações para manter os sócios informados sobre eventos importantes da associação, com entrega **em tempo real via SSE** e *fallback* de polling.
 
-## Overview
-
-Sistema completo de notificacoes para manter socios informados sobre eventos importantes da associacao.
-
-### Componentes:
-1. Backend API (5 endpoints, 100% testado)
-2. NotificationContext (Provider React com polling 30s)
-3. NotificationBell (Badge + Dropdown no header)
-4. NotificacoesPage (Pagina completa com stats e filtros)
-5. Broadcast Admin (Enviar notificacoes para todos)
-6. Auto-triggers (Projetos, Financas, Galeria)
+### Componentes
+1. **Backend API** — endpoints REST + stream SSE (`routes/notifications.py`)
+2. **NotificationContext** — Provider React (SSE com `EventSource`, *fallback* polling 30s)
+3. **NotificationBell** — Badge + dropdown no header
+4. **NotificacoesPage** (`/notificacoes`) — página completa com estatísticas e filtros
+5. **Broadcast admin** — enviar notificações para todos os sócios
+6. **Auto-triggers** — geração automática a partir de ações no sistema
 
 ---
 
-## Tipos de Notificacao
+## Categorias de Notificação
 
-| Tipo | Quando e Gerada | Link |
-|------|-----------------|------|
-| poll_opened | Nova votacao criada pelo admin | /votacoes |
-| document_new | Novo documento publicado | /documentos |
-| wall_post_approved | Post do mural aprovado | /mural |
-| wall_post_pending | Novo post aguarda moderacao (para admin) | /mural |
-| project_update | Alteracao em projeto | /projetos |
-| finance_update | Nova transacao financeira | /financeiro |
-| gallery_submission | Nova foto submetida (para admin) | /galeria-admin |
-| gallery_approved | Foto aprovada/rejeitada (para socio) | /galeria-admin |
-| broadcast | Mensagem geral do admin | - |
+A categoria é usada para filtros e ícones. Listadas em `GET /api/notifications/types`:
+
+| Categoria | Exemplos de origem |
+|-----------|--------------------|
+| `geral` | Mensagens genéricas |
+| `comunicado` | Comunicados oficiais (email + in-app) |
+| `financeiro` | Transações, quotas, prestação de contas |
+| `evento` | Novos eventos / inscrições |
+| `projeto` | Alterações em projetos |
+| `mural` | Posts do mural (aprovação / moderação) |
+| `votacao` | Votações e deliberações |
+| `documento` | Novos documentos |
+| `sistema` | Avisos do sistema |
 
 ---
 
 ## API Endpoints
 
 ```
-GET    /api/notifications                  # Listar todas do utilizador
-GET    /api/notifications/unread/count     # Contador nao lidas
+GET    /api/notifications                  # Listar as do utilizador
+GET    /api/notifications/unread/count     # Contador de não lidas
+GET    /api/notifications/stream           # SSE: count de não lidas em tempo real
+GET    /api/notifications/types            # Categorias disponíveis
 PATCH  /api/notifications/{id}/read        # Marcar uma como lida
 PATCH  /api/notifications/mark-all-read    # Marcar todas como lidas
-POST   /api/notifications                  # Criar notificacao (admin)
+DELETE /api/notifications/{id}             # Eliminar uma notificação
+DELETE /api/notifications/clear/all        # Limpar todas
+POST   /api/notifications                  # Criar notificação (admin)
 POST   /api/notifications/broadcast        # Broadcast para todos (admin)
-DELETE /api/notifications/{id}             # Eliminar notificacao
 ```
 
 ---
 
-## Funcionalidades
+## Stream em Tempo Real (SSE)
 
-### Badge Visual
-- Contador no sino (header sidebar)
-- Animacao pulse quando ha nao lidas
+`GET /api/notifications/stream` (`media_type: text/event-stream`):
 
-### Dropdown
-- Ultimas 10 notificacoes
-- Botao "Marcar todas como lidas"
-- Click para navegar ao destino
-- Timestamp relativo
-
-### Pagina Completa (/notificacoes)
-- Dashboard com estatisticas (total, nao lidas)
-- Lista cronologica com filtros
-- Cards coloridos por tipo
-- Eliminacao individual
-
-### Auto-triggers
-- Nova votacao → notifica todos socios ativos
-- Alteracao em projeto → notifica membros
-- Nova transacao financeira → notifica admin/financeiro
-- Submissao de foto → notifica admin
-- Aprovacao/rejeicao de foto → notifica socio autor
+- **Auth**: cookie httpOnly **ou** `Authorization: Bearer` — o browser usa `EventSource` com `withCredentials: true`. O *fallback* `?token=` foi **removido** (o token aparecia em logs do proxy).
+- **Payload**: emite `data: {"count": N}` sempre que o número de não lidas muda; *poll* interno a cada **5s** com *heartbeat*.
+- **Limite**: máximo de **3 ligações em simultâneo por utilizador** (`429` se exceder — fechar outras abas). Slots geridos por TTL para libertar ligações órfãs.
+- **Fallback**: o `NotificationContext` recorre a **polling 30s** quando o SSE não está disponível.
 
 ---
 
-## Teste via cURL
+## Auto-triggers (helpers.py)
 
-```bash
-TOKEN=$(curl -s -X POST "$API_URL/api/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{"email":"socio1@controlador.cv","password":"socio123"}' \
-  | python3 -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
+Geração automática via `create_notification`, `notify_users`, `notify_all_active_users`, `notify_admins`:
 
-# Contador
-curl -X GET "$API_URL/api/notifications/unread/count" \
-  -H "Authorization: Bearer $TOKEN"
+- Nova votação / deliberação → notifica sócios elegíveis
+- Alteração em projeto → notifica membros do projeto
+- Nova transação financeira / movimento → notifica admin/financeiro
+- Submissão de foto → notifica admin; aprovação/rejeição → notifica o autor
+- Novo documento / comunicado → notifica os destinatários
+- Eventos de governança (assembleias, prestação de contas) → notificações dedicadas
 
-# Listar
-curl -X GET "$API_URL/api/notifications" \
-  -H "Authorization: Bearer $TOKEN"
-```
+---
+
+## Segurança
+
+- Apenas as notificações do próprio utilizador são visíveis
+- Auth obrigatória (cookie httpOnly ou Bearer) em todos os endpoints, incluindo o SSE
+- Apenas admin pode criar/broadcast notificações
+- Não é possível ver notificações de outros utilizadores
 
 ---
 
@@ -98,25 +86,12 @@ curl -X GET "$API_URL/api/notifications" \
 
 ```
 Backend:
-  /app/backend/routes/notifications.py
-  /app/backend/models.py (Notification model)
-  /app/backend/helpers.py (create_notification, notify_all_active_users)
+  backend/routes/notifications.py     # endpoints REST + stream SSE
+  backend/models.py                   # modelo Notification
+  backend/helpers.py                  # create_notification, notify_users, notify_all_active_users, notify_admins
 
 Frontend:
-  /app/frontend/src/contexts/NotificationContext.js
-  /app/frontend/src/components/NotificationBell.js
-  /app/frontend/src/pages/private/NotificacoesPage.js
+  frontend/src/contexts/NotificationContext.js   # EventSource + fallback polling 30s
+  frontend/src/components/NotificationBell.js     # badge + dropdown
+  frontend/src/pages/private/NotificacoesPage.js  # página completa
 ```
-
----
-
-## Seguranca
-
-- Apenas notificacoes do proprio utilizador sao visiveis
-- Token JWT obrigatorio
-- Admin pode criar/broadcast notificacoes
-- Nao e possivel ver notificacoes de outros utilizadores
-
----
-
-Status Final: Production-Ready
