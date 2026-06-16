@@ -183,6 +183,25 @@ async def test_get_current_user_accepts_token_issued_after_password_change(mock_
     assert user.id == "u1"
 
 
+@pytest.mark.parametrize("bad_status", ["inativo", "rejeitado", "pendente_convite", "pendente_aprovacao"])
+@pytest.mark.asyncio
+async def test_get_current_user_rejects_non_active_account(mock_db, bad_status):
+    """Conta desativada/sancionada/rejeitada APÓS o login -> a sessão existente
+    é morta no próximo pedido (allowlist fail-closed, igual ao login)."""
+    mock_db.tokens_revoked = MagicMock()
+    mock_db.tokens_revoked.find_one = AsyncMock(return_value=None)  # não revogado por logout
+    mock_db.users.find_one = AsyncMock(
+        return_value={
+            "id": "u1", "email": "x@y.com", "name": "X", "role": "socio",
+            "status": bad_status,
+        }
+    )
+    token = auth.create_access_token({"sub": "u1"})  # token criptograficamente válido
+    with pytest.raises(HTTPException) as exc:
+        await auth.get_current_user(_mock_request_for(token))
+    assert exc.value.status_code == 401
+
+
 # ============================================================
 # Account lockout (5 falhas em 15min)
 # ============================================================
