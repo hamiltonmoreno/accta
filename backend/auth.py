@@ -248,6 +248,10 @@ async def get_user_from_token(token: str):
         user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
         if not user_doc:
             return None
+        # Idem get_current_user: conta não-ativa (desativada/sancionada após o
+        # login) -> mata também a sessão SSE/opcional, sem esperar pelo exp.
+        if user_doc.get("status") != "ativo":
+            return None
         # Idem get_current_user: token anterior a um reset de password -> rejeita.
         if token_predates_password_change(payload, user_doc):
             return None

@@ -202,6 +202,22 @@ async def test_get_current_user_rejects_non_active_account(mock_db, bad_status):
     assert exc.value.status_code == 401
 
 
+@pytest.mark.asyncio
+async def test_get_user_from_token_rejects_non_active_account(mock_db):
+    """A via SSE/opcional (get_user_from_token) espelha get_current_user: conta
+    não-ativa -> None (sem matar o stream só no exp)."""
+    mock_db.tokens_revoked = MagicMock()
+    mock_db.tokens_revoked.find_one = AsyncMock(return_value=None)
+    mock_db.users.find_one = AsyncMock(
+        return_value={
+            "id": "u1", "email": "x@y.com", "name": "X", "role": "socio",
+            "status": "inativo",
+        }
+    )
+    token = auth.create_access_token({"sub": "u1"})
+    assert await auth.get_user_from_token(token) is None
+
+
 # ============================================================
 # Account lockout (5 falhas em 15min)
 # ============================================================
