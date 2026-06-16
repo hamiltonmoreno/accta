@@ -205,17 +205,19 @@ python scripts/seed_gallery.py  # Seed gallery data
 │   ├── components/       # Custom: NotificationBell, PollResults, ACCTALogo…
 │   ├── contexts/         # AuthContext, NotificationContext
 │   ├── layouts/          # PrivateLayout (sidebar), PublicLayout (marketing)
-│   ├── pages/public/     # 14 public pages (Home, Login, Transparencia…)
-│   ├── pages/private/    # 16 private pages (Dashboard, Financeiro, Projetos…)
-│   └── utils/api.js      # Axios client + all API groups (40+ endpoints)
+│   ├── pages/public/     # 16 public pages (Home, Login, Sobre, Profissao…)
+│   ├── pages/private/    # 42 private pages (Dashboard, Financeiro, Assembleias…)
+│   └── utils/api.js      # Axios client + all API groups
 ├── backend/
 │   ├── server.py         # FastAPI app entry + CORS + rate limiting
 │   ├── database.py       # PostgreSQL/asyncpg DAO (Mongo-compatible) + schema/indexes
 │   ├── auth.py           # JWT creation/validation + bcrypt
 │   ├── models.py         # Pydantic models (request/response)
+│   ├── governance.py     # Órgãos, cargos, categorias, privilégios (source of truth)
+│   ├── permissions.py    # RBAC / eligibility helpers
 │   ├── helpers.py        # create_notification, create_audit_log, notify_*
-│   ├── email_service.py  # Resend integration (invite, reset, welcome)
-│   └── routes/           # 18 route modules (one per domain)
+│   ├── email_service.py  # Resend integration (invite, reset, welcome, comunicados)
+│   └── routes/           # 32 route modules (one per domain)
 ├── tasks/
 │   ├── todo.md           # Active task plan + progress
 │   └── lessons.md        # Accumulated lessons from corrections

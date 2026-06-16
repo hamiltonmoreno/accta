@@ -204,6 +204,14 @@ async def get_current_user(request: Request):
         user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
         if user_doc is None:
             raise HTTPException(status_code=401, detail="Usuário não encontrado")
+        # Conta desativada/rejeitada/sancionada APÓS o login -> mata a sessão.
+        # Espelha a allowlist fail-closed do login (auth_routes): só contas
+        # ATIVAS mantêm sessão. Um token só pôde ser emitido com status "ativo"
+        # (login bloqueia o resto), logo bloquear != "ativo" não afecta sessões
+        # legítimas — apenas revoga, no próximo pedido, quem o admin desativou
+        # ou o Conselho sancionou entretanto, sem esperar pelo exp (até 24h).
+        if user_doc.get("status") != "ativo":
+            raise HTTPException(status_code=401, detail="Sessão expirada. Faça login novamente.")
         # Token emitido antes de um reset de password -> sessão antiga, rejeita.
         if token_predates_password_change(payload, user_doc):
             raise HTTPException(status_code=401, detail="Sessão expirada. Faça login novamente.")
@@ -239,6 +247,10 @@ async def get_user_from_token(token: str):
             return None
         user_doc = await db.users.find_one({"id": user_id}, {"_id": 0})
         if not user_doc:
+            return None
+        # Idem get_current_user: conta não-ativa (desativada/sancionada após o
+        # login) -> mata também a sessão SSE/opcional, sem esperar pelo exp.
+        if user_doc.get("status") != "ativo":
             return None
         # Idem get_current_user: token anterior a um reset de password -> rejeita.
         if token_predates_password_change(payload, user_doc):

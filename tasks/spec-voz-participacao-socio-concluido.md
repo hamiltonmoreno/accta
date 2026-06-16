@@ -1,5 +1,14 @@
 # Spec — Voz e Participação do Sócio (Categoria 1)
 
+> ⚠️ **ATUALIZAÇÃO (2026-06-15) — Feature 1.1 (Patrocínio de admissão, Art. 8.3)
+> REMOVIDA.** O patrocínio de admissão foi removido ponta-a-ponta na release
+> **v0.5.17** (PR #245): o auto-registo deixou de exigir 2 padrinhos, caiu o gate
+> de aprovação e os endpoints `/participacao/patrocinios/*` + a página foram
+> eliminados. A coleção `patrocinios` e os dados ficam em DB (dormentes, sem
+> drop). A aprovação do pedido pela Direcção mantém-se. **As restantes 5
+> funcionalidades (1.2–1.6) continuam em produção.** A §3 abaixo fica como
+> registo histórico do que existiu.
+
 > **Status**: rascunho técnico (2026-05-21). Requer validação da Direcção/Mesa da
 > AG nas regras com efeito estatutário (limiares, maiorias, prazos) antes de
 > implementar. É spec de produto/engenharia, **não** parecer jurídico.
@@ -22,7 +31,7 @@ sócio"):
 
 | # | Funcionalidade | Artigo | Núcleo |
 |---|---|---|---|
-| 1.1 | Patrocínio de admissão (2 padrinhos) | 8.3 | bloqueia aprovação sem 2 patrocínios confirmados |
+| ~~1.1~~ | ~~Patrocínio de admissão (2 padrinhos)~~ **[REMOVIDA — v0.5.17/#245]** | 8.3 | ~~bloqueia aprovação sem 2 patrocínios confirmados~~ |
 | 1.2 | Membros honorários | 8.4 | Direcção nomeia → AG vota → 2/3 elege; categoria que não vota |
 | 1.3 | Petição para AG extraordinária | 9.f, 19.2.d | sócios assinam; ao atingir 1/4 notifica a Mesa |
 | 1.4 | Propostas/temas para a ordem de trabalhos | 9.g, 9.h | sócio submete; Mesa/Direcção tria e inclui na OT |
@@ -154,7 +163,15 @@ como `Optional[str] = None`, preenchidos manualmente pela Mesa/admin.
 
 ---
 
-## 3. Feature 1.1 — Patrocínio de admissão (Art. 8.3)
+## 3. Feature 1.1 — Patrocínio de admissão (Art. 8.3) — ❌ REMOVIDA (v0.5.17 / #245)
+
+> **Esta funcionalidade foi removida ponta-a-ponta em 2026-06-15** (release
+> v0.5.17, PR #245). O conteúdo abaixo é **registo histórico** do que existiu —
+> não corresponde ao código atual. Auto-registo já não pede padrinhos; gate de
+> aprovação removido; endpoints `/participacao/patrocinios/*` e `PatrociniosPage`
+> eliminados; modelos `Patrocinio`/`PatrocinioRespond` e campos `sponsors`/
+> `waive_sponsorship` removidos. Coleção `patrocinios` + dados ficam em DB (sem
+> drop). Aprovação do pedido pela Direcção mantém-se.
 
 **Resumo**: ao candidatar-se, o novo membro tem de ser apadrinhado por **2
 sócios activos**; o sistema regista os padrinhos e **bloqueia a aprovação** sem
