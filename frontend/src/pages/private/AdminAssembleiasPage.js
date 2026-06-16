@@ -449,7 +449,7 @@ export const AdminAssembleiasPage = () => {
                           {d.threshold != null && <span>· Limiar: {d.threshold}</span>}
                           {d.source_article && <span>· {d.source_article}</span>}
                         </div>
-                        <div className="mt-3 grid grid-cols-3 gap-2 max-w-xs">
+                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 max-w-xs">
                           <VoteStat label="A favor" value={d.votos_favor} color="text-[#15803D]" />
                           <VoteStat label="Contra" value={d.votos_contra} color="text-[#B91C1C]" />
                           <VoteStat label="Abstenções" value={d.abstencoes} color="text-[#6B7280]" />
@@ -661,7 +661,7 @@ export const AdminAssembleiasPage = () => {
                 {MAIORIA_OPTIONS.map((m) => <option key={m} value={m}>{MAIORIA_LABELS[m]}</option>)}
               </select>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className={labelCls}>A favor</label>
                 <input type="number" min={0} value={delibForm.votos_favor}

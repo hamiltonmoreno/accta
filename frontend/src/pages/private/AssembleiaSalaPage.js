@@ -570,7 +570,7 @@ const ContagemBracoForm = ({ assembleia, deliberacaoId }) => {
     onError: (e) => toast.error(e.response?.data?.detail || 'Erro'),
   });
   return (
-    <div className="grid grid-cols-3 gap-2 items-end">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
       <div>
         <label className={labelCls} htmlFor="favor">A favor</label>
         <input id="favor" type="number" min={0} className={fieldCls} value={favor} onChange={(e) => setFavor(e.target.value)} />
