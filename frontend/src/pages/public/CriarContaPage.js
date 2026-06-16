@@ -6,6 +6,7 @@ import { UserPlus, CheckCircle, Loader2, Mail, User, Phone, Building2 } from 'lu
 import { toast } from 'sonner';
 import { registrationAPI } from '../../utils/api';
 import { registrationSchema } from '../../utils/authSchemas';
+import { Input } from '../../components/ui/input';
 
 // Fallback caso o endpoint público de opções falhe — mantém o form utilizável.
 const CARGOS_FALLBACK = [
@@ -87,7 +88,7 @@ export const CriarContaPage = () => {
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           {/* Honeypot anti-bot — deve ficar vazio (escondido de utilizadores reais) */}
-          <input
+          <Input
             type="text"
             tabIndex={-1}
             autoComplete="off"
@@ -100,7 +101,7 @@ export const CriarContaPage = () => {
             <label htmlFor="reg-name" className="block text-xs font-medium text-gray-600 mb-1.5">Nome completo *</label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
-              <input
+              <Input
                 id="reg-name"
                 type="text"
                 aria-invalid={errors.name ? 'true' : 'false'}
@@ -117,7 +118,7 @@ export const CriarContaPage = () => {
             <label htmlFor="reg-email" className="block text-xs font-medium text-gray-600 mb-1.5">Email *</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
-              <input
+              <Input
                 id="reg-email"
                 type="email"
                 aria-invalid={errors.email ? 'true' : 'false'}
@@ -135,7 +136,7 @@ export const CriarContaPage = () => {
               <label htmlFor="reg-phone" className="block text-xs font-medium text-gray-600 mb-1.5">Telefone</label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
-                <input
+                <Input
                   id="reg-phone"
                   type="tel"
                   {...register('phone_number')}
@@ -149,7 +150,7 @@ export const CriarContaPage = () => {
               <label htmlFor="reg-dept" className="block text-xs font-medium text-gray-600 mb-1.5">Departamento</label>
               <div className="relative">
                 <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
-                <input
+                <Input
                   id="reg-dept"
                   type="text"
                   {...register('department')}
@@ -177,7 +178,7 @@ export const CriarContaPage = () => {
           </div>
 
           <label htmlFor="reg-consent" className="flex items-start gap-2.5 cursor-pointer">
-            <input
+            <Input
               id="reg-consent"
               type="checkbox"
               {...register('consent_data')}

@@ -23,6 +23,7 @@ import {
   getStatusConfig,
 } from '../../lib/statusConfig';
 import { EmptyState } from '../../components/EmptyState';
+import { Input } from '../../components/ui/input';
 import { Skeleton } from '../../components/ui/skeleton';
 import { UserAvatar } from '../../components/UserAvatar';
 
@@ -197,7 +198,7 @@ export const AdminUsuariosPage = () => {
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
+            <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Pesquisar por nome, email ou n.º sócio..."
@@ -421,7 +422,7 @@ export const AdminUsuariosPage = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs uppercase tracking-widest text-[#6B7280] font-semibold mb-1">Nome</label>
-                    <input
+                    <Input
                       value={editingUser.name || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
                       className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 outline-none"
@@ -509,7 +510,7 @@ export const AdminUsuariosPage = () => {
                           }`}
                           data-testid={`privilege-${priv}`}
                         >
-                          <input
+                          <Input
                             type="checkbox"
                             checked={checked}
                             onChange={() => togglePrivilege(priv)}
@@ -555,7 +556,7 @@ export const AdminUsuariosPage = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs uppercase tracking-widest text-[#6B7280] font-semibold mb-1">Telefone</label>
-                    <input
+                    <Input
                       type="tel"
                       inputMode="tel"
                       autoComplete="tel"
@@ -566,7 +567,7 @@ export const AdminUsuariosPage = () => {
                   </div>
                   <div>
                     <label className="block text-xs uppercase tracking-widest text-[#6B7280] font-semibold mb-1">Departamento</label>
-                    <input
+                    <Input
                       value={editingUser.department || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, department: e.target.value })}
                       placeholder="Ex: Torre de Controlo Sal"
@@ -663,7 +664,7 @@ export const AdminUsuariosPage = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="sm:col-span-2">
                       <label className="block text-xs font-medium text-gray-600 mb-1">Nome Completo *</label>
-                      <input
+                      <Input
                         value={inviteData.name}
                         onChange={(e) => setInviteData({ ...inviteData, name: e.target.value })}
                         className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/30 outline-none"
@@ -673,7 +674,7 @@ export const AdminUsuariosPage = () => {
                     </div>
                     <div className="sm:col-span-2">
                       <label className="block text-xs font-medium text-gray-600 mb-1">Email *</label>
-                      <input
+                      <Input
                         type="email"
                         inputMode="email"
                         autoComplete="email"
@@ -699,7 +700,7 @@ export const AdminUsuariosPage = () => {
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">N. Membro</label>
-                      <input
+                      <Input
                         value={inviteData.member_id}
                         onChange={(e) => setInviteData({ ...inviteData, member_id: e.target.value })}
                         className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/30 outline-none"
@@ -709,7 +710,7 @@ export const AdminUsuariosPage = () => {
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Licenca ATC</label>
-                      <input
+                      <Input
                         value={inviteData.license_number}
                         onChange={(e) => setInviteData({ ...inviteData, license_number: e.target.value })}
                         className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/30 outline-none"
@@ -719,7 +720,7 @@ export const AdminUsuariosPage = () => {
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Departamento</label>
-                      <input
+                      <Input
                         value={inviteData.department}
                         onChange={(e) => setInviteData({ ...inviteData, department: e.target.value })}
                         className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/30 outline-none"
@@ -729,7 +730,7 @@ export const AdminUsuariosPage = () => {
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Telefone</label>
-                      <input
+                      <Input
                         type="tel"
                         inputMode="tel"
                         autoComplete="tel"
