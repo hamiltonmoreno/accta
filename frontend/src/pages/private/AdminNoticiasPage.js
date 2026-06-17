@@ -13,6 +13,8 @@ import { toast } from 'sonner';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
 import { Switch } from '../../components/ui/switch';
+import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
@@ -92,7 +94,7 @@ export const AdminNoticiasPage = () => {
       <div className="flex flex-col md:flex-row gap-3">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" aria-hidden="true" />
-          <input
+          <Input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -313,7 +315,7 @@ const PostFormModal = ({ post, onClose }) => {
         <form onSubmit={submit} className="p-6 space-y-5">
           <div>
             <label className={labelCls}>Título *</label>
-            <input type="text" value={title} maxLength={180} onChange={(e) => setTitle(e.target.value)}
+            <Input type="text" value={title} maxLength={180} onChange={(e) => setTitle(e.target.value)}
               className={inputCls} placeholder="Ex: Nova rota Praia–Sal" required data-testid="post-title-input" />
           </div>
 
@@ -345,19 +347,19 @@ const PostFormModal = ({ post, onClose }) => {
 
           <div>
             <label className={labelCls}>Resumo (excerpt)</label>
-            <textarea value={excerpt} maxLength={320} rows={2} onChange={(e) => setExcerpt(e.target.value)}
+            <Textarea value={excerpt} maxLength={320} rows={2} onChange={(e) => setExcerpt(e.target.value)}
               className={inputCls} placeholder="Frase de chamada apresentada na lista (opcional)." data-testid="post-excerpt-input" />
           </div>
 
           <div>
             <label className={labelCls}>Conteúdo *</label>
-            <textarea value={content} maxLength={20000} rows={8} onChange={(e) => setContent(e.target.value)}
+            <Textarea value={content} maxLength={20000} rows={8} onChange={(e) => setContent(e.target.value)}
               className={inputCls} placeholder="Texto da notícia. As quebras de linha são preservadas." required data-testid="post-content-input" />
           </div>
 
           <div>
             <label className={labelCls}>Tags (separadas por vírgula)</label>
-            <input type="text" value={tags} onChange={(e) => setTags(e.target.value)}
+            <Input type="text" value={tags} onChange={(e) => setTags(e.target.value)}
               className={inputCls} placeholder="Ex: aviação, segurança, 2026" data-testid="post-tags-input" />
           </div>
 

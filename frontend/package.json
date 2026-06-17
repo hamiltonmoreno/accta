@@ -1,6 +1,6 @@
 {
   "name": "frontend",
-  "version": "0.5.18",
+  "version": "0.5.19",
   "private": true,
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
@@ -68,6 +68,9 @@
     "test:coverage": "craco test --watchAll=false --coverage"
   },
   "jest": {
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1"
+    },
     "collectCoverageFrom": [
       "src/utils/**/*.{js,jsx}",
       "src/contexts/**/*.{js,jsx}",

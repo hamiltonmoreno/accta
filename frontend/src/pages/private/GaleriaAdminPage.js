@@ -17,6 +17,8 @@ import {
   AlertDialogHeader, AlertDialogTitle,
 } from '../../components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
 
 // ===== LIGHTBOX =====
 const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
@@ -33,7 +35,7 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
   const photo = photos[currentIndex];
   if (!photo) return null;
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center animate-fade-up" onClick={onClose} data-testid="lightbox">
+    <div role="dialog" aria-modal="true" aria-label="Visualizador de fotografia" className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center animate-fade-up" onClick={onClose} data-testid="lightbox">
       <button onClick={onClose} className="absolute top-4 right-4 z-50 min-w-[44px] min-h-[44px] flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full" aria-label="Fechar" data-testid="lightbox-close">
         <X className="w-6 h-6 text-white" aria-hidden="true" />
       </button>
@@ -114,7 +116,7 @@ const UploadModal = ({ albums, onClose }) => {
           </div>
           <div>
             <label htmlFor="upload-caption" className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Legenda</label>
-            <input id="upload-caption" type="text" value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Descricao da foto..."
+            <Input id="upload-caption" type="text" value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Descricao da foto..."
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="upload-caption-input" />
           </div>
@@ -186,14 +188,14 @@ const AlbumModal = ({ album, onClose }) => {
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
             <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Titulo *</label>
-            <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
+            <Input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="Ex: Aeroportos de Cabo Verde"
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="album-title-input" />
           </div>
           <div>
             <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-muted-auto">Descricao</label>
-            <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
+            <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Descricao do album..." rows={2}
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none resize-none"
               data-testid="album-desc-input" />
