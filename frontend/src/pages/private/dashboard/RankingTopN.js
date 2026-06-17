@@ -15,7 +15,7 @@ export const RankingTopN = ({
     <div className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden animate-fade-up" data-testid="ranking-widget">
       <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100">
         <div className="flex items-center gap-2">
-          <Trophy className="w-4 h-4 text-carmesim" />
+          <Trophy className="w-4 h-4 text-grafite" />
           <h2 className="text-lg font-semibold text-grafite">Ranking de Atuacao</h2>
         </div>
         <span className="text-xs text-[#6B7280] uppercase tracking-wider hidden sm:block">Top {topN}</span>

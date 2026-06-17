@@ -20,7 +20,7 @@ export const PersonalReport = ({ personalReport, myRanking, rankingOn, rankBreak
     <div className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden animate-fade-up" data-testid="personal-report">
       <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100">
         <div className="flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-carmesim" />
+          <BarChart3 className="w-4 h-4 text-grafite" />
           <h2 className="text-lg font-semibold text-grafite">A Minha Participacao</h2>
         </div>
         {rankingOn ? (
