@@ -6,7 +6,7 @@ import { Checkbox } from '../../../components/ui/checkbox';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { usersAPI } from '../../../utils/api';
 import { queryKeys } from '../../../lib/queryClient';
-import { useDebounced } from './tokens';
+import { useDebounced } from './hooks';
 
 export function MemberSelector({ selectedIds, onToggle }) {
   const [search, setSearch] = useState('');

@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { CheckCircle2, Clock, XCircle } from 'lucide-react';
 
 export const PAGE_SIZE = 20;
@@ -41,13 +40,3 @@ export const formatDate = (iso) => {
     return '—';
   }
 };
-
-// debounce simples para um valor (usado na contagem de destinatários).
-export function useDebounced(value, delay) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return debounced;
-}
