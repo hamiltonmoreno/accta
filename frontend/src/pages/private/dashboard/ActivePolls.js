@@ -10,7 +10,7 @@ export const ActivePolls = ({ polls }) => {
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-grafite">Votacoes Abertas</h2>
         {polls.length > 0 && (
-          <button onClick={() => navigate('/votacoes')} className="text-xs text-carmesim font-semibold hover:text-carmesim-dark">
+          <button onClick={() => navigate('/votacoes')} className="text-xs text-carmesim font-semibold hover:text-carmesim-dark rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2">
             Ver todas
           </button>
         )}
@@ -25,7 +25,7 @@ export const ActivePolls = ({ polls }) => {
       ) : (
         <div className="space-y-2.5">
           {polls.slice(0, 3).map((poll) => (
-            <button key={poll.id} onClick={() => navigate('/votacoes')} className="w-full flex items-center gap-3 p-3.5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left" data-testid={`poll-${poll.id}`}>
+            <button key={poll.id} onClick={() => navigate('/votacoes')} className="w-full flex items-center gap-3 p-3.5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid={`poll-${poll.id}`}>
               <div className="w-9 h-9 bg-carmesim/10 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Vote className="w-4 h-4 text-carmesim" />
               </div>

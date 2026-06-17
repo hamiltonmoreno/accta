@@ -12,7 +12,7 @@ export const UpcomingEvents = ({ events }) => {
         <h2 className="text-lg font-semibold text-grafite">Proximos Eventos</h2>
         <button
           onClick={() => navigate('/eventos')}
-          className="text-xs text-carmesim hover:text-carmesim-dark font-semibold flex items-center gap-1"
+          className="text-xs text-carmesim hover:text-carmesim-dark font-semibold flex items-center gap-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
         >
           Ver todos <ArrowRight className="w-3.5 h-3.5" />
         </button>
@@ -76,7 +76,7 @@ export const UpcomingEvents = ({ events }) => {
         {events.map((event) => (
           <button
             key={event.id}
-            className="flex items-start gap-3 p-4 hover:bg-gray-50 transition-colors text-left w-full"
+            className="flex items-start gap-3 p-4 hover:bg-gray-50 transition-colors text-left w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#C7202F]/40"
             onClick={() => navigate('/eventos')}
           >
             <div className="w-11 h-11 bg-grafite rounded-xl flex flex-col items-center justify-center flex-shrink-0">
