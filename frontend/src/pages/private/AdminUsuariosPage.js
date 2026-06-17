@@ -510,7 +510,7 @@ export const AdminUsuariosPage = () => {
                           }`}
                           data-testid={`privilege-${priv}`}
                         >
-                          <Input
+                          <input
                             type="checkbox"
                             checked={checked}
                             onChange={() => togglePrivilege(priv)}
