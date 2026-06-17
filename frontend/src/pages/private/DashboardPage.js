@@ -1,118 +1,26 @@
 import React, { Suspense, lazy, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { statsAPI, pollsAPI, eventsAPI, financesAPI, activityAPI, reportAPI, rankingAPI } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
-import {
-  Users, DollarSign, Vote, CheckCircle, Bell,
-  Calendar, MapPin, Clock, ArrowRight, TrendingUp, TrendingDown,
-  Wallet, ArrowUpRight, ArrowDownRight, BarChart3, MessageSquare,
-  FolderKanban, Trophy, Activity, Image, FileText, Heart, ThumbsUp, Medal,
-} from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
-import { CARGO_LABELS_FALLBACK } from '../../lib/governanceLabels';
+
+import { MONTH_LABELS, CATEGORY_LABELS } from './dashboard/tokens';
+import { AdminStats } from './dashboard/AdminStats';
+import { FinanceSummary } from './dashboard/FinanceSummary';
+import { Contribuicoes } from './dashboard/Contribuicoes';
+import { ActivePolls } from './dashboard/ActivePolls';
+import { UpcomingEvents } from './dashboard/UpcomingEvents';
+import { PersonalReport } from './dashboard/PersonalReport';
+import { RankingTopN } from './dashboard/RankingTopN';
+import { ActivityFeed } from './dashboard/ActivityFeed';
+import { NotificationsList } from './dashboard/NotificationsList';
 
 // Recharts (~334KB) só carregado para utilizadores com finance, via Suspense.
 const FinanceCharts = lazy(() => import('./dashboard/FinanceCharts'));
 
-// ===== STAT CARD (Reference style: title top, big value, change indicator) =====
-const StatCard = ({ title, value, icon: Icon, iconBg, change, changeLabel }) => (
-  <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-200 animate-fade-up">
-    <div className="flex items-center justify-between mb-3">
-      <span className="text-sm text-gray-500 font-medium">{title}</span>
-      <div className={`w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center`}>
-        <Icon className="w-5 h-5" />
-      </div>
-    </div>
-    <div className="font-bold text-3xl sm:text-4xl text-grafite mb-1 font-sans tracking-tight">{value}</div>
-    {change !== undefined && (
-      <div className={`flex items-center gap-1 text-sm ${change >= 0 ? 'text-[#15803D]' : 'text-[#B91C1C]'}`}>
-        {change >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-        <span className="font-semibold">{change >= 0 ? '+' : ''}{change}%</span>
-        {changeLabel && <span className="text-[#6B7280] font-normal ml-0.5">{changeLabel}</span>}
-      </div>
-    )}
-  </div>
-);
-
-// ===== NOTIFICATION ICON =====
-const NotifIcon = ({ type }) => {
-  const config = {
-    poll_opened: { icon: Vote, color: 'text-carmesim', bg: 'bg-carmesim/10' },
-    invoice_due: { icon: DollarSign, color: 'text-[#B45309]', bg: 'bg-[#FFFBEB]' },
-    event_new: { icon: Calendar, color: 'text-[#1D4ED8]', bg: 'bg-[#EFF6FF]' },
-    wall_post_approved: { icon: CheckCircle, color: 'text-[#15803D]', bg: 'bg-[#F0FDF4]' },
-    wall_comment: { icon: Bell, color: 'text-[#3A3A3A]', bg: 'bg-[#F5F5F5]' },
-  };
-  const c = config[type] || { icon: Bell, color: 'text-[#3A3A3A]', bg: 'bg-[#F5F5F5]' };
-  const IconComp = c.icon;
-  return (
-    <div className={`w-9 h-9 ${c.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
-      <IconComp className={`w-4 h-4 ${c.color}`} />
-    </div>
-  );
-};
-
-// ===== CHART COLORS =====
-const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-
-const CATEGORY_LABELS = {
-  quotas: 'Quotas', patrocinios: 'Patrocinios', doacoes: 'Doacoes',
-  eventos: 'Eventos', outros_receita: 'Outros',
-  operacional: 'Operacional', juridico: 'Juridico',
-  comunicacao: 'Comunicacao', viagens: 'Viagens', outros_despesa: 'Outros Desp.',
-};
-
-// ===== ACTIVITY ICON =====
-const ACTIVITY_ICONS = {
-  mural: MessageSquare,
-  projeto: FolderKanban,
-  evento: Calendar,
-  financeiro: DollarSign,
-  votacao: Vote,
-  trophy: Trophy,
-};
-
-const ACTIVITY_COLORS = {
-  mural: { bg: 'bg-[#F5F5F5]', text: 'text-[#3A3A3A]' },
-  projeto: { bg: 'bg-[#FFFBEB]', text: 'text-[#B45309]' },
-  evento: { bg: 'bg-[#F5F5F5]', text: 'text-[#3A3A3A]' },
-  financeiro: { bg: 'bg-[#F0FDF4]', text: 'text-[#15803D]' },
-  votacao: { bg: 'bg-[#F5F5F5]', text: 'text-[#3A3A3A]' },
-};
-
-const ActivityIcon = ({ type }) => {
-  const Icon = ACTIVITY_ICONS[type] || Activity;
-  const colors = ACTIVITY_COLORS[type] || { bg: 'bg-[#F5F5F5]', text: 'text-[#3A3A3A]' };
-  return (
-    <div className={`w-9 h-9 ${colors.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
-      <Icon className={`w-4 h-4 ${colors.text}`} />
-    </div>
-  );
-};
-
-const timeAgo = (dateStr) => {
-  if (!dateStr) return '';
-  try {
-    const now = new Date();
-    const date = new Date(dateStr);
-    const diff = Math.floor((now - date) / 1000);
-    if (diff < 60) return 'agora mesmo';
-    if (diff < 3600) return `ha ${Math.floor(diff / 60)} min`;
-    if (diff < 86400) return `ha ${Math.floor(diff / 3600)}h`;
-    if (diff < 604800) return `ha ${Math.floor(diff / 86400)}d`;
-    return format(date, 'dd MMM', { locale: ptBR });
-  } catch {
-    return '';
-  }
-};
-
-// ===== MAIN DASHBOARD =====
 export const DashboardPage = () => {
   const { user, isAdmin, isFinanceiro } = useAuth();
   const { notifications, unreadCount } = useNotifications();
@@ -255,43 +163,12 @@ export const DashboardPage = () => {
         <p className="page-subtitle">Resumo da sua conta e atividades</p>
       </div>
 
-      {/* ===== ADMIN/FINANCEIRO: Stat Cards (Reference style) ===== */}
+      {/* Admin/Financeiro: stat cards */}
       {hasFinance && stats && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-          <StatCard
-            title="Total Socios"
-            value={stats.total_users}
-            icon={Users}
-            iconBg="bg-grafite/10 text-grafite"
-            delay={0.05}
-          />
-          <StatCard
-            title="Socios Ativos"
-            value={stats.active_users}
-            icon={CheckCircle}
-            iconBg="bg-[#F0FDF4] text-[#15803D]"
-            delay={0.1}
-          />
-          <StatCard
-            title="Eventos Ativos"
-            value={stats.active_events}
-            icon={Calendar}
-            iconBg="bg-carmesim/10 text-carmesim"
-            delay={0.15}
-          />
-          <StatCard
-            title="Receita Anual"
-            value={financeSummary ? `${(financeSummary.total_receitas / 1000).toFixed(0)}k` : `${stats.total_revenue.toFixed(0)}`}
-            icon={DollarSign}
-            iconBg="bg-[#EFF6FF] text-[#1D4ED8]"
-            change={financeSummary && financeSummary.total_receitas > 0 ? Math.round((financeSummary.resultado_liquido / financeSummary.total_receitas) * 100) : undefined}
-            changeLabel="margem"
-            delay={0.2}
-          />
-        </div>
+        <AdminStats stats={stats} financeSummary={financeSummary} />
       )}
 
-      {/* ===== CHARTS GRID — recharts em chunk lazy só carrega para finance users ===== */}
+      {/* Charts grid — recharts em chunk lazy só carrega para finance users */}
       {hasFinance && dreData && (
         <Suspense fallback={
           <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 h-[320px] flex items-center justify-center">
@@ -307,473 +184,47 @@ export const DashboardPage = () => {
         </Suspense>
       )}
 
-      {/* ===== Financial Summary Banner (for admin) ===== */}
+      {/* Financial summary banner */}
       {hasFinance && financeSummary && (
-        <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 cursor-pointer hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all animate-fade-up outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
-          onClick={() => navigate('/financeiro')}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/financeiro'); } }}
-          aria-label={`Ver Financeiro ${currentYear}`}
-          data-testid="finance-summary-widget">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-grafite flex items-center gap-2">
-              <Wallet className="w-5 h-5 text-carmesim" /> Saldo Financeiro {currentYear}
-            </h3>
-            <ArrowRight className="w-4 h-4 text-gray-400" />
-          </div>
-          <div className="grid grid-cols-3 gap-4 sm:gap-6">
-            <div>
-              <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Receitas</div>
-              <div className="font-mono text-xl sm:text-2xl font-bold text-[#15803D]">{financeSummary.total_receitas.toLocaleString('pt')}</div>
-              <div className="text-xs text-[#6B7280] mt-0.5">CVE</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Despesas</div>
-              <div className="font-mono text-xl sm:text-2xl font-bold text-[#B91C1C]">{financeSummary.total_despesas.toLocaleString('pt')}</div>
-              <div className="text-xs text-[#6B7280] mt-0.5">CVE</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Resultado</div>
-              <div className={`font-mono text-xl sm:text-2xl font-bold ${financeSummary.resultado_liquido >= 0 ? 'text-grafite' : 'text-[#B91C1C]'}`}>
-                {financeSummary.resultado_liquido.toLocaleString('pt')}
-              </div>
-              <div className="text-xs text-[#6B7280] mt-0.5">CVE</div>
-            </div>
-          </div>
-        </div>
+        <FinanceSummary financeSummary={financeSummary} currentYear={currentYear} />
       )}
 
-      {/* ===== MAIN GRID: Invoices + Polls ===== */}
+      {/* Main grid: Contribuicoes + Active Polls */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-        {/* Contribuicoes - Desconto em Folha */}
-        <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 animate-fade-up">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-grafite" data-testid="contributions-title">Contribuicoes</h2>
-            <span className="text-xs text-[#6B7280] uppercase tracking-wider hidden sm:block">Desconto em Folha</span>
-          </div>
-          <div className="text-center py-8">
-            <div className="w-14 h-14 bg-[#F0FDF4] rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <CheckCircle className="w-7 h-7 text-[#15803D]" />
-            </div>
-            <p className="text-sm text-grafite font-semibold" data-testid="contributions-status">Tudo em dia!</p>
-            <p className="text-xs text-[#6B7280] mt-1">Quotas descontadas automaticamente na folha salarial</p>
-          </div>
-        </div>
-
-        {/* Active Polls */}
-        <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 animate-fade-up">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-grafite">Votacoes Abertas</h2>
-            {activePolls.length > 0 && (
-              <button onClick={() => navigate('/votacoes')} className="text-xs text-carmesim font-semibold hover:text-carmesim-dark">
-                Ver todas
-              </button>
-            )}
-          </div>
-          {activePolls.length === 0 ? (
-            <EmptyState
-              icon={Vote}
-              title="Nenhuma votacao aberta"
-              testId="no-active-polls"
-              className="border-0 shadow-none p-0 py-8"
-            />
-          ) : (
-            <div className="space-y-2.5">
-              {activePolls.slice(0, 3).map((poll) => (
-                <button key={poll.id} onClick={() => navigate('/votacoes')} className="w-full flex items-center gap-3 p-3.5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left" data-testid={`poll-${poll.id}`}>
-                  <div className="w-9 h-9 bg-carmesim/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Vote className="w-4 h-4 text-carmesim" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm text-grafite truncate">{poll.title}</div>
-                    <div className="text-xs text-[#6B7280]">
-                      Ate {new Date(poll.end_date).toLocaleDateString('pt')}
-                    </div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <Contribuicoes />
+        <ActivePolls polls={activePolls} />
       </div>
 
-      {/* ===== UPCOMING EVENTS (Reference table style) ===== */}
-      {upcomingEvents.length > 0 && (
-        <div className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden animate-fade-up">
-          <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100">
-            <h2 className="text-lg font-semibold text-grafite">Proximos Eventos</h2>
-            <button
-              onClick={() => navigate('/eventos')}
-              className="text-xs text-carmesim hover:text-carmesim-dark font-semibold flex items-center gap-1"
-            >
-              Ver todos <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
+      {upcomingEvents.length > 0 && <UpcomingEvents events={upcomingEvents} />}
 
-          {/* Desktop: Table style */}
-          <div className="hidden md:block">
-            <table className="w-full">
-              <thead className="bg-gray-50/80">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Evento</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Data</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Local</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Hora</th>
-                </tr>
-              </thead>
-              <tbody>
-                {upcomingEvents.map((event, i) => (
-                  <tr
-                    key={event.id}
-                    className="border-t border-gray-50 hover:bg-gray-50/50 cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#C7202F]/40"
-                    onClick={() => navigate('/eventos')}
-                    role="button"
-                    tabIndex={0}
-                    aria-label="Ver todos os eventos"
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/eventos'); } }}
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-grafite rounded-xl flex flex-col items-center justify-center flex-shrink-0">
-                          <span className="font-bold text-xs text-white leading-none">
-                            {format(new Date(event.date), 'dd')}
-                          </span>
-                          <span className="text-xs text-white uppercase font-bold leading-none mt-0.5">
-                            {format(new Date(event.date), 'MMM', { locale: ptBR })}
-                          </span>
-                        </div>
-                        <span className="font-medium text-sm text-grafite">{event.title}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {format(new Date(event.date), "dd 'de' MMMM", { locale: ptBR })}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1.5 text-sm text-gray-500">
-                        <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                        {event.location}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 font-mono">
-                      {format(new Date(event.date), 'HH:mm')}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile: Card style */}
-          <div className="md:hidden divide-y divide-gray-50">
-            {upcomingEvents.map((event) => (
-              <button
-                key={event.id}
-                className="flex items-start gap-3 p-4 hover:bg-gray-50 transition-colors text-left w-full"
-                onClick={() => navigate('/eventos')}
-              >
-                <div className="w-11 h-11 bg-grafite rounded-xl flex flex-col items-center justify-center flex-shrink-0">
-                  <span className="font-bold text-sm text-white leading-none">
-                    {format(new Date(event.date), 'dd')}
-                  </span>
-                  <span className="text-xs text-white uppercase font-bold leading-none mt-0.5">
-                    {format(new Date(event.date), 'MMM', { locale: ptBR })}
-                  </span>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold text-sm text-grafite truncate">{event.title}</h3>
-                  <div className="flex items-center gap-1.5 text-xs text-[#6B7280] mt-1">
-                    <Clock className="w-3 h-3 flex-shrink-0" />
-                    <span>{format(new Date(event.date), 'HH:mm')}</span>
-                    <span className="text-gray-300 mx-0.5">|</span>
-                    <MapPin className="w-3 h-3 flex-shrink-0" />
-                    <span className="truncate">{event.location}</span>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ===== PERSONAL ACTIVITY REPORT ===== */}
       {personalReport && (
-        <div className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden animate-fade-up"
-          data-testid="personal-report">
-          <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-carmesim" />
-              <h2 className="text-lg font-semibold text-grafite">A Minha Participacao</h2>
-            </div>
-            {rankingOn ? (
-              <div className="flex items-center gap-2.5" data-testid="ranking-score-header">
-                {myRanking.rank && myRanking.rank <= 3 && (
-                  <Medal
-                    className={`w-5 h-5 ${myRanking.rank === 1 ? 'text-carmesim' : 'text-[#6B7280]'}`}
-                    aria-hidden="true"
-                  />
-                )}
-                <div className="text-right">
-                  <div className="font-bold text-lg text-grafite leading-none">
-                    {myRanking.score}
-                    <span className="text-xs font-normal text-[#6B7280] ml-1">pts</span>
-                  </div>
-                  <div className="text-xs text-[#6B7280] mt-0.5">
-                    {myRanking.rank ? `#${myRanking.rank} de ${myRanking.total_members}` : 'Atuacao'}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <span className="text-xs text-[#6B7280] uppercase tracking-wider hidden sm:block">Relatorio pessoal</span>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-gray-100">
-            {[
-              {
-                icon: Calendar,
-                label: 'Eventos',
-                value: personalReport.events_attended,
-                total: personalReport.total_events,
-                color: 'bg-carmesim/10 text-carmesim',
-                signalKey: 'evento_presenca',
-              },
-              {
-                icon: Vote,
-                label: 'Votacoes',
-                value: personalReport.polls_voted,
-                total: personalReport.total_polls,
-                color: 'bg-[#EFF6FF] text-[#1D4ED8]',
-                signalKey: 'votacao_voto',
-              },
-              {
-                icon: MessageSquare,
-                label: 'Publicacoes',
-                value: personalReport.wall_posts,
-                total: null,
-                color: 'bg-[#F0FDF4] text-[#15803D]',
-                signalKey: 'mural_post',
-              },
-              {
-                icon: ThumbsUp,
-                label: 'Likes Recebidos',
-                value: personalReport.likes_received,
-                total: null,
-                color: 'bg-[#F5F5F5] text-[#3A3A3A]',
-                signalKey: 'mural_like_recebido',
-              },
-              {
-                icon: FolderKanban,
-                label: 'Projetos',
-                value: personalReport.projects_member,
-                total: null,
-                color: 'bg-[#F5F5F5] text-[#3A3A3A]',
-                signalKey: 'projeto_participacao',
-              },
-              {
-                icon: Image,
-                label: 'Fotos',
-                value: personalReport.photos_approved,
-                total: personalReport.photos_submitted,
-                color: 'bg-[#FFFBEB] text-[#B45309]',
-                signalKey: 'galeria_foto',
-              },
-              {
-                icon: Heart,
-                label: 'Beneficios',
-                value: personalReport.benefits_used,
-                total: null,
-                color: 'bg-[#F5F5F5] text-[#3A3A3A]',
-              },
-              {
-                icon: FileText,
-                label: 'Documentos',
-                value: personalReport.documents_available,
-                total: null,
-                color: 'bg-[#F5F5F5] text-[#3A3A3A]',
-              },
-            ].map((item, idx) => (
-              <div key={item.label} className="bg-white p-4 sm:p-5 flex flex-col items-center text-center" data-testid={`report-stat-${idx}`}>
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-2.5 ${item.color}`}>
-                  <item.icon className="w-4 h-4" />
-                </div>
-                <div className="font-bold text-xl text-grafite">{item.value}</div>
-                {item.total !== null && item.total > 0 && (
-                  <div className="text-xs text-[#6B7280] font-mono mt-0.5">de {item.total}</div>
-                )}
-                <div className="text-xs text-gray-500 mt-1">{item.label}</div>
-                {rankingOn && item.signalKey && rankBreakdown[item.signalKey]?.points > 0 && (
-                  <div className="text-[11px] font-semibold text-[#6B7280] mt-1">
-                    +{rankBreakdown[item.signalKey].points} pts
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        <PersonalReport
+          personalReport={personalReport}
+          myRanking={myRanking}
+          rankingOn={rankingOn}
+          rankBreakdown={rankBreakdown}
+        />
       )}
 
-      {/* ===== RANKING TOP-N (Atuacao do socio) ===== */}
       {/* isError esconde o widget quando o leaderboard e restrito (direcao_only → 403). */}
       {rankingOn && !leaderboardQuery.isError && (
-        <div className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden animate-fade-up" data-testid="ranking-widget">
-          <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100">
-            <div className="flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-carmesim" />
-              <h2 className="text-lg font-semibold text-grafite">Ranking de Atuacao</h2>
-            </div>
-            <span className="text-xs text-[#6B7280] uppercase tracking-wider hidden sm:block">Top {topN}</span>
-          </div>
-
-          {leaderboardQuery.isLoading ? (
-            <div className="p-5 sm:p-6 space-y-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 rounded-xl" />
-              ))}
-            </div>
-          ) : topEntries.length === 0 ? (
-            <EmptyState
-              icon={Trophy}
-              title="Ranking ainda nao calculado"
-              description="A atuacao dos socios aparece aqui apos o primeiro calculo."
-              testId="ranking-empty"
-              className="border-0 shadow-none p-0 py-10"
-            />
-          ) : (
-            <>
-              <div className="divide-y divide-gray-50">
-                {topEntries.map((entry) => {
-                  const isMe = entry.user_id === user?.id;
-                  const cargoLabel = entry.cargo && entry.cargo !== 'socio' ? CARGO_LABELS_FALLBACK[entry.cargo] : null;
-                  const barPct = Math.max(4, Math.round(((entry.score || 0) / maxScore) * 100));
-                  return (
-                    <div
-                      key={entry.user_id}
-                      className={`flex items-center gap-3 px-5 sm:px-6 py-3 ${isMe ? 'bg-carmesim/5' : ''}`}
-                      data-testid={`ranking-row-${entry.rank}`}
-                    >
-                      <div className="w-8 flex items-center justify-center flex-shrink-0">
-                        {entry.rank <= 3 ? (
-                          <Medal
-                            className={`w-5 h-5 ${entry.rank === 1 ? 'text-carmesim' : 'text-[#6B7280]'}`}
-                            aria-hidden="true"
-                          />
-                        ) : (
-                          <span className="text-sm font-semibold text-[#6B7280] font-mono">{entry.rank}</span>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm text-grafite truncate">
-                            {entry.member_name}{isMe && ' (eu)'}
-                          </span>
-                        </div>
-                        {cargoLabel && <div className="text-xs text-[#6B7280] truncate">{cargoLabel}</div>}
-                        <div className="mt-1.5 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${entry.rank === 1 ? 'bg-carmesim' : 'bg-gray-300'}`}
-                            style={{ width: `${barPct}%` }}
-                          />
-                        </div>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <div className="font-bold text-base text-grafite leading-none">{entry.score}</div>
-                        <div className="text-[10px] text-[#6B7280] mt-0.5">pts</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-3 border-t border-gray-100">
-                <span className="text-xs text-[#6B7280]" data-testid="ranking-computed-at">
-                  {leaderboard?.computed_at
-                    ? `Atualizado ${format(new Date(leaderboard.computed_at), "dd 'de' MMMM, HH:mm", { locale: ptBR })}`
-                    : ''}
-                </span>
-                <button
-                  onClick={() => navigate('/ranking')}
-                  className="text-xs text-carmesim hover:text-carmesim-dark font-semibold flex items-center gap-1 flex-shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-1"
-                  data-testid="ranking-ver-completo"
-                >
-                  Ver ranking completo <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+        <RankingTopN
+          topEntries={topEntries}
+          maxScore={maxScore}
+          topN={topN}
+          leaderboard={leaderboard}
+          leaderboardLoading={leaderboardQuery.isLoading}
+          currentUserId={user?.id}
+        />
       )}
 
-      {/* ===== ACTIVITY FEED ===== */}
-      {recentActivity.length > 0 && (
-        <div className="bg-white border border-gray-200/80 rounded-2xl overflow-hidden animate-fade-up"
-          data-testid="activity-feed">
-          <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100">
-            <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-carmesim" />
-              <h2 className="text-lg font-semibold text-grafite">Atividade Recente</h2>
-            </div>
-            <span className="text-xs text-[#6B7280] uppercase tracking-wider hidden sm:block">Ultimas atualizacoes</span>
-          </div>
+      {recentActivity.length > 0 && <ActivityFeed items={recentActivity} />}
 
-          <div className="divide-y divide-gray-50 max-h-[420px] overflow-y-auto">
-            {recentActivity.map((item, i) => (
-              <button
-                key={`${item.type}-${i}`}
-                onClick={() => item.link && navigate(item.link)}
-                className="w-full flex items-start gap-3 px-5 sm:px-6 py-3.5 hover:bg-gray-50/80 transition-colors text-left"
-                data-testid={`activity-item-${i}`}
-              >
-                <ActivityIcon type={item.type} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm text-grafite truncate">{item.title}</span>
-                    <span className="text-xs text-[#6B7280] font-mono whitespace-nowrap">{timeAgo(item.created_at)}</span>
-                  </div>
-                  <p className="text-xs text-gray-500 truncate mt-0.5">{item.description}</p>
-                </div>
-                <ArrowRight className="w-3.5 h-3.5 text-gray-300 flex-shrink-0 mt-1" />
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ===== NOTIFICATIONS ===== */}
       {unreadCount > 0 && (
-        <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 border-l-4 border-l-carmesim animate-fade-up">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Bell className="w-4 h-4 text-carmesim" />
-              <h3 className="font-semibold text-sm text-grafite">
-                {unreadCount} {unreadCount === 1 ? 'notificacao nova' : 'notificacoes novas'}
-              </h3>
-            </div>
-            <button
-              onClick={() => navigate('/notificacoes')}
-              className="text-xs text-carmesim hover:text-carmesim-dark font-semibold"
-            >
-              Ver todas
-            </button>
-          </div>
-          <div className="space-y-2">
-            {notifications.filter(n => !n.read).slice(0, 3).map((notif) => (
-              <button
-                key={notif.id}
-                onClick={() => navigate('/notificacoes')}
-                className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left"
-              >
-                <NotifIcon type={notif.type} />
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-grafite text-xs truncate">{notif.title}</div>
-                  <div className="text-xs text-[#6B7280] truncate">{notif.message}</div>
-                </div>
-                <ArrowRight className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
-              </button>
-            ))}
-          </div>
-        </div>
+        <NotificationsList unreadCount={unreadCount} notifications={notifications} />
       )}
     </div>
   );
 };
+
+export default DashboardPage;
