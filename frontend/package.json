@@ -68,6 +68,9 @@
     "test:coverage": "craco test --watchAll=false --coverage"
   },
   "jest": {
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1"
+    },
     "collectCoverageFrom": [
       "src/utils/**/*.{js,jsx}",
       "src/contexts/**/*.{js,jsx}",

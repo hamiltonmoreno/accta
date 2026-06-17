@@ -20,6 +20,8 @@ import {
 import { EmptyState } from '../../components/EmptyState';
 import { primaryBtn } from '../../lib/buttonStyles';
 import { Skeleton } from '../../components/ui/skeleton';
+import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
 import { MemberPicker } from '../../components/MemberPicker';
 
 const TIPO_OPTIONS = ['ordinaria', 'extraordinaria', 'eleitoral'];
@@ -486,7 +488,7 @@ export const AdminAssembleiasPage = () => {
             </div>
             <div>
               <label htmlFor="convocar-titulo" className={labelCls}>Título</label>
-              <input
+              <Input
                 id="convocar-titulo"
                 type="text"
                 value={convocarForm.titulo}
@@ -502,7 +504,7 @@ export const AdminAssembleiasPage = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label htmlFor="convocar-data" className={labelCls}>Data e hora</label>
-                <input
+                <Input
                   id="convocar-data"
                   type="datetime-local"
                   value={convocarForm.data}
@@ -513,7 +515,7 @@ export const AdminAssembleiasPage = () => {
               </div>
               <div>
                 <label htmlFor="convocar-local" className={labelCls}>Local</label>
-                <input
+                <Input
                   id="convocar-local"
                   type="text"
                   value={convocarForm.local}
@@ -631,7 +633,7 @@ export const AdminAssembleiasPage = () => {
           <div className="space-y-4">
             <div>
               <label className={labelCls}>Ponto</label>
-              <input
+              <Input
                 type="text"
                 value={delibForm.ponto}
                 onChange={(e) => setDelibForm({ ...delibForm, ponto: e.target.value })}
@@ -642,7 +644,7 @@ export const AdminAssembleiasPage = () => {
             </div>
             <div>
               <label className={labelCls}>Descrição (opcional)</label>
-              <textarea
+              <Textarea
                 value={delibForm.descricao}
                 onChange={(e) => setDelibForm({ ...delibForm, descricao: e.target.value })}
                 rows={2}
@@ -664,26 +666,26 @@ export const AdminAssembleiasPage = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className={labelCls}>A favor</label>
-                <input type="number" min={0} value={delibForm.votos_favor}
+                <Input type="number" min={0} value={delibForm.votos_favor}
                   onChange={(e) => setDelibForm({ ...delibForm, votos_favor: e.target.value })}
                   className={fieldCls} data-testid="deliberacao-favor" />
               </div>
               <div>
                 <label className={labelCls}>Contra</label>
-                <input type="number" min={0} value={delibForm.votos_contra}
+                <Input type="number" min={0} value={delibForm.votos_contra}
                   onChange={(e) => setDelibForm({ ...delibForm, votos_contra: e.target.value })}
                   className={fieldCls} data-testid="deliberacao-contra" />
               </div>
               <div>
                 <label className={labelCls}>Abstenções</label>
-                <input type="number" min={0} value={delibForm.abstencoes}
+                <Input type="number" min={0} value={delibForm.abstencoes}
                   onChange={(e) => setDelibForm({ ...delibForm, abstencoes: e.target.value })}
                   className={fieldCls} data-testid="deliberacao-abstencoes" />
               </div>
             </div>
             <div>
               <label className={labelCls}>Artigo de base (opcional)</label>
-              <input
+              <Input
                 type="text"
                 value={delibForm.source_article}
                 onChange={(e) => setDelibForm({ ...delibForm, source_article: e.target.value })}
@@ -719,7 +721,7 @@ export const AdminAssembleiasPage = () => {
           <div className="space-y-4">
             <div>
               <label className={labelCls}>ID do documento da acta (opcional)</label>
-              <input
+              <Input
                 type="text"
                 value={actaId}
                 onChange={(e) => setActaId(e.target.value)}

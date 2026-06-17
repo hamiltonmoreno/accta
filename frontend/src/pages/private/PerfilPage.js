@@ -6,6 +6,8 @@ import { UserAvatar } from '../../components/UserAvatar';
 import { AvatarCropDialog } from '../../components/AvatarCropDialog';
 import { queryKeys } from '../../lib/queryClient';
 import { Switch } from '../../components/ui/switch';
+import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
 import { PRIVILEGE_LABELS, cargoLabelFrom, memberCategoryLabel } from '../../lib/governanceLabels';
 import { toast } from 'sonner';
 import {
@@ -69,14 +71,13 @@ const inputCls =
 const FormInput = ({ id, testId, label, value, onChange, type = 'text', placeholder, max }) => (
   <div>
     <label htmlFor={id} className={labelCls}>{label}</label>
-    <input
+    <Input
       id={id}
       type={type}
       value={value}
       maxLength={max}
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
-      className={inputCls}
       data-testid={testId || id}
     />
   </div>
@@ -476,14 +477,14 @@ export const PerfilPage = () => {
             </div>
             <div>
               <label htmlFor="profile-bio" className={labelCls}>Biografia</label>
-              <textarea
+              <Textarea
                 id="profile-bio"
                 value={form.bio}
                 onChange={(e) => set('bio')(e.target.value)}
                 rows={3}
                 maxLength={1000}
                 placeholder="Fale um pouco sobre si..."
-                className={`${inputCls} resize-none`}
+                className="resize-none"
                 data-testid="profile-edit-bio"
               />
             </div>

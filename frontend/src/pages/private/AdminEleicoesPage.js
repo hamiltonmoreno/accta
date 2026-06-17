@@ -16,6 +16,8 @@ import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
 import { MemberPicker as CandidatePicker } from '../../components/MemberPicker';
 import { primaryBtn } from '../../lib/buttonStyles';
+import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
 
 const MODO_LABELS = {
   presencial: 'Presencial',
@@ -90,7 +92,7 @@ const CriarEleicaoModal = ({ open, onClose, onSubmit, pending }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelClass} htmlFor="ele-ano">Ano</label>
-              <input
+              <Input
                 id="ele-ano"
                 type="number"
                 value={form.ano}
@@ -115,7 +117,7 @@ const CriarEleicaoModal = ({ open, onClose, onSubmit, pending }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelClass} htmlFor="ele-inicio">Início do mandato</label>
-              <input
+              <Input
                 id="ele-inicio"
                 type="date"
                 value={form.mandato_inicio}
@@ -125,7 +127,7 @@ const CriarEleicaoModal = ({ open, onClose, onSubmit, pending }) => {
             </div>
             <div>
               <label className={labelClass} htmlFor="ele-fim">Fim do mandato</label>
-              <input
+              <Input
                 id="ele-fim"
                 type="date"
                 value={form.mandato_fim}
@@ -195,7 +197,7 @@ const SubmeterListaModal = ({ open, onClose, onSubmit, pending, slots, structure
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className={labelClass} htmlFor="lista-letra">Letra</label>
-              <input
+              <Input
                 id="lista-letra"
                 type="text"
                 maxLength={2}
@@ -208,7 +210,7 @@ const SubmeterListaModal = ({ open, onClose, onSubmit, pending, slots, structure
             </div>
             <div className="col-span-2">
               <label className={labelClass} htmlFor="lista-nome">Nome (opcional)</label>
-              <input
+              <Input
                 id="lista-nome"
                 type="text"
                 value={nome}
@@ -353,7 +355,7 @@ export const ValidarListaModal = ({ lista, structure, onClose, onSubmit, pending
           )}
           <div>
             <label className={labelClass} htmlFor="rejeicao-motivo">Motivo (em caso de rejeição)</label>
-            <textarea
+            <Textarea
               id="rejeicao-motivo"
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
@@ -429,7 +431,7 @@ export const VotoCorrespondenciaModal = ({ open, onClose, onSubmit, pending, lis
           </div>
           <div>
             <label className={labelClass} htmlFor="corr-just">Justificação</label>
-            <textarea
+            <Textarea
               id="corr-just"
               value={justificacao}
               onChange={(e) => setJustificacao(e.target.value)}

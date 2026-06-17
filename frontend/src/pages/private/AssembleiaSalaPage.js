@@ -21,6 +21,8 @@ import {
   EXPEDIENTE_TIPO_LABELS,
 } from '../../lib/governanceLabels';
 import { primaryBtn } from '../../lib/buttonStyles';
+import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
 // ---------- Tokens & helpers ----------------------------------------------- //
 
 const secondaryBtn =
@@ -270,7 +272,7 @@ export const CheckinParticipantePanel = ({ assembleia, presente, refetchAssemb }
       <div className="flex flex-wrap items-end gap-2">
         <div className="flex-1 min-w-[160px]">
           <label className={labelCls} htmlFor="checkin-code">Código de sessão (opcional)</label>
-          <input
+          <Input
             id="checkin-code"
             className={fieldCls}
             placeholder="ABC123"
@@ -475,7 +477,7 @@ export const VotacaoPanel = ({ assembleia, snapshot, isMesa, currentUserId }) =>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className={labelCls} htmlFor="ponto">Ponto</label>
-            <input id="ponto" className={fieldCls} required minLength={1} value={ponto} onChange={(e) => setPonto(e.target.value)} />
+            <Input id="ponto" className={fieldCls} required minLength={1} value={ponto} onChange={(e) => setPonto(e.target.value)} />
           </div>
           <div>
             <label className={labelCls} htmlFor="mode">Modo</label>
@@ -486,7 +488,7 @@ export const VotacaoPanel = ({ assembleia, snapshot, isMesa, currentUserId }) =>
         </div>
         <div>
           <label className={labelCls} htmlFor="descricao">Descrição</label>
-          <textarea id="descricao" className={fieldCls} required rows={2} value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+          <Textarea id="descricao" className={fieldCls} required rows={2} value={descricao} onChange={(e) => setDescricao(e.target.value)} />
         </div>
         <div>
           <label className={labelCls} htmlFor="maioria">Maioria</label>
@@ -573,15 +575,15 @@ const ContagemBracoForm = ({ assembleia, deliberacaoId }) => {
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
       <div>
         <label className={labelCls} htmlFor="favor">A favor</label>
-        <input id="favor" type="number" min={0} className={fieldCls} value={favor} onChange={(e) => setFavor(e.target.value)} />
+        <Input id="favor" type="number" min={0} className={fieldCls} value={favor} onChange={(e) => setFavor(e.target.value)} />
       </div>
       <div>
         <label className={labelCls} htmlFor="contra">Contra</label>
-        <input id="contra" type="number" min={0} className={fieldCls} value={contra} onChange={(e) => setContra(e.target.value)} />
+        <Input id="contra" type="number" min={0} className={fieldCls} value={contra} onChange={(e) => setContra(e.target.value)} />
       </div>
       <div>
         <label className={labelCls} htmlFor="abst">Abstenções</label>
-        <input id="abst" type="number" min={0} className={fieldCls} value={abst} onChange={(e) => setAbst(e.target.value)} />
+        <Input id="abst" type="number" min={0} className={fieldCls} value={abst} onChange={(e) => setAbst(e.target.value)} />
       </div>
       <div className="col-span-3">
         <button type="button" className={secondaryBtn} disabled={mut.isPending} onClick={() => mut.mutate()}>
@@ -694,12 +696,12 @@ export const MocoesPanel = ({ assembleia, snapshot, isMesa, presente, currentUse
             </div>
             <div className="sm:col-span-2">
               <label className={labelCls} htmlFor="mocao-titulo">Título</label>
-              <input id="mocao-titulo" className={fieldCls} required minLength={3} value={titulo} onChange={(e) => setTitulo(e.target.value)} />
+              <Input id="mocao-titulo" className={fieldCls} required minLength={3} value={titulo} onChange={(e) => setTitulo(e.target.value)} />
             </div>
           </div>
           <div>
             <label className={labelCls} htmlFor="mocao-texto">Texto</label>
-            <textarea id="mocao-texto" className={fieldCls} required rows={2} value={texto} onChange={(e) => setTexto(e.target.value)} />
+            <Textarea id="mocao-texto" className={fieldCls} required rows={2} value={texto} onChange={(e) => setTexto(e.target.value)} />
           </div>
           <button type="submit" className={primaryBtn} disabled={submeterMut.isPending}>
             Submeter
@@ -778,7 +780,7 @@ const ExpedientePanel = ({ assembleia, snapshot, isMesa }) => {
             </div>
             <div className="sm:col-span-2">
               <label className={labelCls} htmlFor="exp-texto">Texto</label>
-              <input id="exp-texto" className={fieldCls} required minLength={1} value={texto} onChange={(ev) => setTexto(ev.target.value)} />
+              <Input id="exp-texto" className={fieldCls} required minLength={1} value={texto} onChange={(ev) => setTexto(ev.target.value)} />
             </div>
           </div>
           {tipo !== 'correspondencia' && (
@@ -848,7 +850,7 @@ const DocumentosPanel = ({ assembleia, isMesa }) => {
         <div className="flex flex-wrap items-end gap-2 pt-2 border-t border-[#E5E7EB]">
           <div className="flex-1 min-w-[220px]">
             <label className={labelCls} htmlFor="doc-id">document_id existente</label>
-            <input
+            <Input
               id="doc-id"
               className={fieldCls}
               placeholder="UUID do documento já carregado"
@@ -976,11 +978,11 @@ const ConvidadosPanel = ({ assembleia, snapshot }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div>
             <label className={labelCls} htmlFor="conv-nome">Nome</label>
-            <input id="conv-nome" className={fieldCls} required minLength={2} value={nome} onChange={(e) => setNome(e.target.value)} />
+            <Input id="conv-nome" className={fieldCls} required minLength={2} value={nome} onChange={(e) => setNome(e.target.value)} />
           </div>
           <div>
             <label className={labelCls} htmlFor="conv-email">Email (opcional)</label>
-            <input id="conv-email" type="email" className={fieldCls} value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input id="conv-email" type="email" className={fieldCls} value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
         </div>
         <label className="inline-flex items-center gap-2 text-sm">
