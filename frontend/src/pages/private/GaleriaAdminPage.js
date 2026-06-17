@@ -33,7 +33,7 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
   const photo = photos[currentIndex];
   if (!photo) return null;
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center animate-fade-up" onClick={onClose} data-testid="lightbox">
+    <div role="dialog" aria-modal="true" aria-label="Visualizador de fotografia" className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center animate-fade-up" onClick={onClose} data-testid="lightbox">
       <button onClick={onClose} className="absolute top-4 right-4 z-50 min-w-[44px] min-h-[44px] flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full" aria-label="Fechar" data-testid="lightbox-close">
         <X className="w-6 h-6 text-white" aria-hidden="true" />
       </button>

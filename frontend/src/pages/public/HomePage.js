@@ -144,7 +144,7 @@ export const HomePage = () => {
                 O controlo de tráfego aéreo em Cabo Verde.
               </h1>
 
-              <p className="text-base sm:text-xl lg:text-2xl text-white leading-relaxed mb-8 sm:mb-10 max-w-xl" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
+              <p className="text-base sm:text-xl lg:text-2xl text-white leading-relaxed mb-8 sm:mb-10 max-w-xl [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">
                 Somos os controladores de tráfego aéreo que organizam, comunicam e protegem cada voo na FIR Oceânica do Sal — uma das maiores regiões de informação de voo do Atlântico.
               </p>
 
@@ -222,7 +222,7 @@ export const HomePage = () => {
 
                 {/* Countdown */}
                 <div className="flex justify-center lg:justify-end">
-                  <div className="grid grid-cols-4 gap-3 sm:gap-4" data-testid="countdown-timer">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4" data-testid="countdown-timer">
                     {[
                       { value: countdown.days, label: 'Dias' },
                       { value: countdown.hours, label: 'Horas' },

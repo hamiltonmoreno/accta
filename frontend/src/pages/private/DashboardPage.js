@@ -391,7 +391,7 @@ export const DashboardPage = () => {
                       Ate {new Date(poll.end_date).toLocaleDateString('pt')}
                     </div>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                  <ArrowRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
                 </button>
               ))}
             </div>
