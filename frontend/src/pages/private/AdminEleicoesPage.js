@@ -280,7 +280,7 @@ const VotarModal = ({ open, onClose, onSubmit, pending, listas }) => {
     <label
       className={`flex items-center gap-3 px-3 py-2.5 rounded-md border cursor-pointer transition-colors ${voto === id ? 'border-carmesim bg-carmesim/5' : 'border-[#E5E7EB] hover:bg-[#F5F5F5]'}`}
     >
-      <Input
+      <input
         type="radio"
         name="voto"
         checked={voto === id}
