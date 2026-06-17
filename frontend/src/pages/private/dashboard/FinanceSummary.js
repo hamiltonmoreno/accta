@@ -15,7 +15,7 @@ export const FinanceSummary = ({ financeSummary, currentYear }) => {
       data-testid="finance-summary-widget">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-grafite flex items-center gap-2">
-          <Wallet className="w-5 h-5 text-carmesim" /> Saldo Financeiro {currentYear}
+          <Wallet className="w-5 h-5 text-grafite" /> Saldo Financeiro {currentYear}
         </h3>
         <ArrowRight className="w-4 h-4 text-gray-400" />
       </div>

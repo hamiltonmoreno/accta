@@ -9,14 +9,14 @@ export const NotificationsList = ({ unreadCount, notifications }) => {
     <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 border-l-4 border-l-carmesim animate-fade-up">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Bell className="w-4 h-4 text-carmesim" />
+          <Bell className="w-4 h-4 text-grafite" />
           <h3 className="font-semibold text-sm text-grafite">
             {unreadCount} {unreadCount === 1 ? 'notificacao nova' : 'notificacoes novas'}
           </h3>
         </div>
         <button
           onClick={() => navigate('/notificacoes')}
-          className="text-xs text-carmesim hover:text-carmesim-dark font-semibold"
+          className="text-xs text-carmesim hover:text-carmesim-dark font-semibold rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
         >
           Ver todas
         </button>
@@ -26,7 +26,7 @@ export const NotificationsList = ({ unreadCount, notifications }) => {
           <button
             key={notif.id}
             onClick={() => navigate('/notificacoes')}
-            className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left"
+            className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
           >
             <NotifIcon type={notif.type} />
             <div className="flex-1 min-w-0">
