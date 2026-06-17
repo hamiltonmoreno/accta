@@ -10,7 +10,8 @@ import {
   Card, CardHeader, CardTitle, CardDescription, CardContent,
 } from '../../components/ui/card';
 
-import { ORGAO_SEGMENT_LABELS, useDebounced } from './comunicados/tokens';
+import { ORGAO_SEGMENT_LABELS } from './comunicados/tokens';
+import { useDebounced } from './comunicados/hooks';
 import { HistoryTable } from './comunicados/HistoryTable';
 import { ComposerCard } from './comunicados/ComposerCard';
 import { PreviewCard } from './comunicados/PreviewCard';
