@@ -1,12 +1,15 @@
 import { Users } from 'lucide-react';
 
-// D. Comunidade & conhecimento — visível a todos os membros. Eventos, projetos,
-// documentos, mural, galeria, benefícios e a área profissional.
+// D. Comunidade & conhecimento — visível a todos os membros. Eventos, projetos
+// (incl. grupos de trabalho e comissões — Art. 31.e), documentos, mural,
+// galeria, benefícios e a área profissional. O artigo "Projetos…" espelha
+// PROJECT_TIPOS (projeto/grupo_trabalho/comissao) e a regra de criação real
+// (backend/routes/projects.py): só a Direção/admin cria grupos e comissões.
 export const comunidade = {
   id: 'comunidade',
   titulo: 'Comunidade e conhecimento',
   icon: Users,
-  resumo: 'Eventos, projetos, documentos, mural, galeria, benefícios e área profissional.',
+  resumo: 'Eventos, projetos, grupos de trabalho, comissões, documentos, mural, galeria, benefícios e área profissional.',
   artigos: [
     {
       id: 'eventos',
@@ -21,16 +24,78 @@ export const comunidade = {
     },
     {
       id: 'projetos',
-      titulo: 'Projetos, grupos e comissões',
-      resumo: 'Acompanhar projetos, tarefas e a colaboração entre membros.',
+      titulo: 'Projetos, grupos de trabalho e comissões',
+      resumo:
+        'Três tipos de estrutura colaborativa no mesmo módulo, com as mesmas ferramentas (tarefas, marcos, despesas, comentários). O que muda é a natureza e quem os cria.',
       rota: '/projetos',
+      quandoUsar: [
+        'Quer organizar uma iniciativa, estudo ou atividade com tarefas e colaboração entre membros.',
+        'Quer acompanhar o trabalho de um grupo de trabalho ou de uma comissão e as suas tarefas.',
+      ],
+      quandoNaoUsar: [
+        'Quer levar um assunto a decisão da Assembleia — isso é uma Proposta (secção "Governança e voz").',
+        'É um processo disciplinar contra um membro — corre na Comissão de Inquérito (disciplinar), não aqui.',
+      ],
       passos: [
-        'Abra "Projetos" na barra lateral.',
-        'Escolha um projeto para ver o detalhe, as tarefas e os comentários.',
-        'Participe nas tarefas que lhe forem atribuídas.',
+        'Abra "Projetos" na barra lateral. Use as abas Projetos · Grupos de Trabalho · Comissões para filtrar.',
+        'Escolha um item para ver o detalhe: tarefas, marcos, despesas e comentários.',
+        'Participe nas tarefas que lhe forem atribuídas e comente o andamento.',
+        'Para propor um Projeto comum, use "Novo Projeto" (entra como proposta e aguarda aprovação).',
+      ],
+      campos: [
+        {
+          campo: 'Tipo',
+          ajuda: 'Projeto = iniciativa concreta proposta por qualquer sócio. Grupo de Trabalho e Comissão (Art. 31.e) só são criados pela Direção/admin e nascem já aprovados. O seletor de tipo só aparece a quem pode criar grupos/comissões.',
+          exemplo: 'Grupo de Trabalho — para um estudo pontual; Comissão — para uma área de trabalho continuada.',
+        },
+        {
+          campo: 'Título',
+          ajuda: 'Nome claro da estrutura ou iniciativa.',
+          exemplo: '«Festa do Dia do Controlador 2026» (projeto) ou «Grupo de Trabalho — Fadiga e Escalas» (grupo).',
+        },
+        {
+          campo: 'Descrição',
+          ajuda: 'O objetivo e o âmbito: o que se pretende fazer e até onde vai.',
+          exemplo: '«Estudar o impacto das escalas atuais na fadiga e propor recomendações à Direção.»',
+        },
+        {
+          campo: 'Visibilidade',
+          ajuda: 'Público (visível aos sócios depois de aprovado) ou Privado (restrito à Direção e à equipa).',
+          exemplo: 'Privado (Direção) — enquanto a comissão prepara um parecer interno.',
+        },
+        {
+          campo: 'Categoria',
+          ajuda: 'Uma etiqueta livre para agrupar (ex.: Social, Formação, Técnico).',
+          exemplo: '«Formação»',
+        },
+        {
+          campo: 'Orçamento (CVE)',
+          ajuda: 'Valor estimado, se aplicável. Pode ficar a 0.',
+          exemplo: '0 (sem orçamento próprio)',
+        },
+        {
+          campo: 'Início / Fim',
+          ajuda: 'Datas de vigência. O Fim é especialmente útil em grupos de trabalho eventuais, que se encerram quando concluem.',
+          exemplo: 'Início hoje; Fim no encerramento previsto do estudo.',
+        },
       ],
       dicas: [
-        'Grupos e comissões aparecem aqui como projetos — distinga-os pelo tipo indicado em cada cartão.',
+        'Grupos de trabalho e comissões partilham as mesmas ferramentas que um projeto — a diferença está na natureza e em quem os cria.',
+        'O coordenador de um grupo/comissão é uma função operacional, não um cargo estatutário — não entra no histórico de mandatos.',
+      ],
+      faq: [
+        {
+          q: 'Quando uso um grupo de trabalho em vez de uma comissão?',
+          a: 'Em regra: grupo de trabalho para algo pontual e temporário (um estudo, um evento, um objetivo com prazo, que se encerra ao concluir); comissão para uma área de trabalho mais formal e continuada. Mecanicamente são iguais; a escolha do tipo é da Direção, conforme a natureza da estrutura (Art. 31.e).',
+        },
+        {
+          q: 'Posso criar um grupo de trabalho ou uma comissão?',
+          a: 'Não. Só a Direção ou o admin os criam (Art. 31.e) e ficam logo aprovados. Um sócio ativo pode, isso sim, propor um Projeto comum, que entra como proposta e aguarda aprovação.',
+        },
+        {
+          q: 'Esta «Comissão» é a mesma do disciplinar?',
+          a: 'Não. Aqui «Comissão» é uma estrutura de trabalho (Art. 31.e). A Comissão de Inquérito é outra coisa — pertence ao módulo disciplinar, em "Administração".',
+        },
       ],
     },
     {
@@ -54,6 +119,9 @@ export const comunidade = {
         'Leia as publicações e reaja/comente.',
         'Publique respeitando as regras de convivência.',
       ],
+      dicas: [
+        'As publicações passam por moderação antes de ficarem visíveis a todos.',
+      ],
     },
     {
       id: 'galeria',
@@ -66,7 +134,10 @@ export const comunidade = {
         'Ao submeter fotos, lembre-se de que carecem de aprovação antes de ficarem visíveis.',
       ],
       faq: [
-        { q: 'Submeti uma foto e não aparece — porquê?', a: 'Todas as fotos passam por aprovação de um moderador antes de ficarem visíveis na galeria.' },
+        {
+          q: 'Submeti uma foto e não aparece — porquê?',
+          a: 'Todas as fotos passam por aprovação de um moderador antes de ficarem visíveis na galeria.',
+        },
       ],
     },
     {

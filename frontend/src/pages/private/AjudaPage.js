@@ -14,15 +14,20 @@ import {
 
 const ALL_GATE = { roles: ['all'] };
 
-// Texto pesquisável de um artigo (título + resumo + passos + dicas + FAQ).
+// Texto pesquisável de um artigo (título + resumo + passos + dicas + FAQ +
+// quando usar/não + campos). Mantém-se em sincronia com o que a página desenha.
 const articleHaystack = (a) =>
   [
     a.titulo,
     a.resumo,
     ...(a.passos || []),
     ...(a.dicas || []),
+    ...(a.quandoUsar || []),
+    ...(a.quandoNaoUsar || []),
+    ...(a.campos || []).flatMap((c) => [c.campo, c.ajuda, c.exemplo]),
     ...(a.faq || []).flatMap((f) => [f.q, f.a]),
   ]
+    .filter(Boolean)
     .join(' ')
     .toLowerCase();
 
@@ -152,12 +157,55 @@ export const AjudaPage = () => {
                           <AccordionTrigger className="text-grafite font-semibold">{a.titulo}</AccordionTrigger>
                           <AccordionContent>
                             {a.resumo && <p className="text-sm text-[#4B5563] mb-3">{a.resumo}</p>}
+                            {(a.quandoUsar?.length > 0 || a.quandoNaoUsar?.length > 0) && (
+                              <div className="grid sm:grid-cols-2 gap-2.5 mb-3">
+                                {a.quandoUsar?.length > 0 && (
+                                  <div className="rounded-md bg-[#F0FDF4] border border-[#DCFCE7] p-3">
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-[#15803D] mb-1.5">Quando usar</p>
+                                    <ul className="list-disc list-inside space-y-1 text-sm text-[#3F6212] marker:text-[#86EFAC]">
+                                      {a.quandoUsar.map((d, i) => (
+                                        <li key={i}>{d}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                {a.quandoNaoUsar?.length > 0 && (
+                                  <div className="rounded-md bg-[#FBEAEC] border border-[#F5D0D4] p-3">
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-[#A51B27] mb-1.5">Quando NÃO usar</p>
+                                    <ul className="list-disc list-inside space-y-1 text-sm text-[#7F1D1D] marker:text-[#F5A3AB]">
+                                      {a.quandoNaoUsar.map((d, i) => (
+                                        <li key={i}>{d}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             {a.passos?.length > 0 && (
                               <ol className="list-decimal list-inside space-y-1.5 text-sm text-grafite mb-3 marker:text-[#9CA3AF]">
                                 {a.passos.map((p, i) => (
                                   <li key={i}>{p}</li>
                                 ))}
                               </ol>
+                            )}
+                            {a.campos?.length > 0 && (
+                              <div className="rounded-md border border-[#E5E7EB] overflow-hidden mb-3">
+                                <p className="text-xs font-semibold uppercase tracking-wider text-[#6B7280] bg-[#F5F5F5] px-3 py-2">Como preencher cada campo</p>
+                                <dl className="divide-y divide-[#F0F0F0]">
+                                  {a.campos.map((c, i) => (
+                                    <div key={i} className="px-3 py-2.5">
+                                      <dt className="text-sm font-semibold text-grafite">{c.campo}</dt>
+                                      {c.ajuda && <dd className="text-sm text-[#4B5563] mt-0.5">{c.ajuda}</dd>}
+                                      {c.exemplo && (
+                                        <dd className="text-sm text-[#4B5563] mt-1">
+                                          <span className="text-xs font-semibold uppercase tracking-wider text-[#9CA3AF] mr-1.5">Exemplo</span>
+                                          <span className="italic">{c.exemplo}</span>
+                                        </dd>
+                                      )}
+                                    </div>
+                                  ))}
+                                </dl>
+                              </div>
                             )}
                             {a.dicas?.length > 0 && (
                               <div className="rounded-md bg-[#F5F5F5] border border-[#E5E7EB] p-3 mb-3">
