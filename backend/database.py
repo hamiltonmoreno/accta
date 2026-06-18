@@ -797,6 +797,13 @@ _INDEX_DDL: tuple[str, ...] = (
     "CREATE UNIQUE INDEX IF NOT EXISTS ux_users_email ON \"users\" ((doc->>'email'))",
     "CREATE INDEX IF NOT EXISTS ix_users_invite_token ON \"users\" ((doc->>'invite_token')) WHERE doc ? 'invite_token'",
     "CREATE INDEX IF NOT EXISTS ix_users_id ON \"users\" ((doc->>'id'))",
+    # member_id imutável e único por sócio. UNIQUE parcial (ignora NULL/contas
+    # técnicas). Best-effort de propósito — NÃO está em REQUIRED_INDEX_NAMES: se
+    # produção já tiver member_ids duplicados pré-existentes, a criação falha e
+    # ensure_schema só emite warning (não derruba o arranque). Backstop de BD à
+    # verificação aplicacional de colisão no convite (admin.py).
+    "CREATE UNIQUE INDEX IF NOT EXISTS ux_users_member_id ON \"users\" ((doc->>'member_id')) "
+    "WHERE doc->>'member_id' IS NOT NULL",
     "CREATE INDEX IF NOT EXISTS ix_users_status ON \"users\" ((doc->>'status'))",
     "CREATE INDEX IF NOT EXISTS ix_users_role ON \"users\" ((doc->>'role'))",
     # auto-registo: listagem rápida de pedidos pendentes/rejeitados (painel admin)
@@ -997,6 +1004,12 @@ _INDEX_DDL: tuple[str, ...] = (
 REQUIRED_INDEX_NAMES = {
     "ux_votes_user_poll",
     "ux_eleicao_receipt",  # garante 1 voto por eleitor (voto secreto)
+    # Load-bearing: ÚNICA guarda contra o envio DUPLO de email oficial (a captura
+    # de UniqueViolation em comunicados_service.dispatch_oficial_auto só é no-op se
+    # este UNIQUE existir). Se a sua criação falhar — p.ex. comunicados oficiais
+    # duplicados pré-existentes em prod — ensure_schema RECUSA arrancar (em vez de
+    # degradar silenciosamente para envio duplo). Resolver duplicados antes do deploy.
+    "ux_comunicados_source_ref",
 }
 
 
@@ -1460,3 +1473,71 @@ async def insert_quotas_atomic(year: int, month: int, candidate_docs: list[dict]
             for doc in to_insert:
                 await conn.execute(f"INSERT INTO {table}(doc) VALUES($1)", doc)
             return len(to_insert)
+
+
+async def sign_ato_atomic(ato_id: str, user_id: str, assinatura: dict, compute_status) -> dict:
+    """Acrescenta uma assinatura a um acto de co-aprovação SOB lock da linha.
+
+    Fecha a janela TOCTOU em `routes/atos.py:sign_ato` (find_one→update_one): dois
+    membros da Direcção a assinar em simultâneo liam o MESMO array de assinaturas e
+    o segundo `update_one` sobre-escrevia o primeiro (assinatura/transição de estado
+    perdida). Numa única transação: `SELECT … FOR UPDATE` do acto, re-verifica
+    idempotência (já assinou → no-op), acrescenta a assinatura e reapura o `status`
+    via `compute_status(novas_assinaturas, requisitos)` — a regra estatutária fica em
+    `atos_rules.evaluate_status` (passada como callable, como `transfer_cargo`, p/ não
+    importar `permissions`/`governance` no DAO e evitar ciclos).
+
+    Devolve um dict de resultado:
+    - {"outcome": "not_found"}            — acto inexistente
+    - {"outcome": "not_pending"}          — acto já não está pendente
+    - {"outcome": "already_signed"}       — este utilizador já assinou (idempotente)
+    - {"outcome": "signed", "ato": <doc>} — assinatura aplicada; `ato` é o doc novo
+    """
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute("SET LOCAL lock_timeout = '2s'")
+            row = await conn.fetchrow(
+                f"SELECT pk, doc FROM {_quote_ident('atos')} WHERE doc->>'id' = $1 LIMIT 1 FOR UPDATE",
+                ato_id,
+            )
+            if row is None:
+                return {"outcome": "not_found"}
+            ato = dict(row["doc"])
+            if ato.get("status") != "pendente":
+                return {"outcome": "not_pending"}
+            assinaturas = list(ato.get("assinaturas") or [])
+            if any(a.get("user_id") == user_id for a in assinaturas):
+                return {"outcome": "already_signed"}
+            novas_assinaturas = assinaturas + [assinatura]
+            ato["assinaturas"] = novas_assinaturas
+            ato["status"] = compute_status(novas_assinaturas, ato.get("requisitos") or {})
+            await conn.execute(
+                f"UPDATE {_quote_ident('atos')} SET doc=$1 WHERE pk=$2",
+                ato,
+                row["pk"],
+            )
+            return {"outcome": "signed", "ato": ato}
+
+
+async def replace_period_scores(period_key: str, docs: list[dict]) -> int:
+    """Substitui o snapshot de `member_scores` de um período numa ÚNICA transação.
+
+    `rebuild_scores` (ranking.py) fazia `delete_many` seguido de `insert_many` — entre
+    as duas escritas o leaderboard do período aparecia VAZIO a leitores concorrentes.
+    Inverter a ordem não é seguro (o índice único `ux_mscores_user_period` em
+    `(user_id, period_key)` colide ao inserir antes de apagar o snapshot anterior do
+    mesmo período). Atomizar o delete+insert na mesma transação elimina a janela de
+    vazio sem violar a unicidade. Devolve o nº de docs inseridos.
+    """
+    pool = await get_pool()
+    table = _quote_ident("member_scores")
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute(f"DELETE FROM {table} WHERE doc->>'period_key' = $1", period_key)
+            if docs:
+                await conn.executemany(
+                    f"INSERT INTO {table}(doc) VALUES($1)",
+                    [(dict(d),) for d in docs],
+                )
+    return len(docs)

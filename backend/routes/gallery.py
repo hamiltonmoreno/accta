@@ -322,5 +322,16 @@ async def delete_gallery_photo(photo_id: str, current_user: User = Depends(get_c
 
     await db.gallery_photos.delete_one({"id": photo_id})
     await _recompute_cover_if_needed(photo.get("album_id"), photo.get("url", ""))
-    await create_audit_log(current_user.id, "gallery_photo_deleted", photo_id)
+    # Audita ambos os caminhos (staff E dono): a remoção pelo próprio uploader
+    # não pode ser um ponto cego de moderação. Regista quem removeu e o autor.
+    await create_audit_log(
+        current_user.id,
+        "gallery_photo_deleted",
+        photo_id,
+        details={
+            "deleted_by_role": "staff" if is_staff else "owner",
+            "uploaded_by": photo.get("uploaded_by"),
+            "album_id": photo.get("album_id"),
+        },
+    )
     return {"message": "Foto removida"}

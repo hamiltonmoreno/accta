@@ -109,7 +109,10 @@ async def record_failed_login(email: str, ip: Optional[str] = None) -> bool:
     mantêm-se válidos (a contagem extra é index-backed e o login é rate-limited).
     """
     now = datetime.now(timezone.utc)
-    await db.login_attempts.insert_one({"email": email, "ip": ip, "attempted_at": now})
+    # attempted_at como string ISO-8601 (convenção do projeto). O DAO rehidrata-o
+    # de volta para datetime na leitura (_DATETIME_FIELDS), e a query $gte abaixo
+    # serializa o datetime para a mesma forma ISO — comparação consistente.
+    await db.login_attempts.insert_one({"email": email, "ip": ip, "attempted_at": now.isoformat()})
     window_start = now - timedelta(minutes=LOCKOUT_WINDOW_MINUTES)
     count = await db.login_attempts.count_documents({"email": email, "attempted_at": {"$gte": window_start}})
     return count == LOCKOUT_THRESHOLD

@@ -138,6 +138,10 @@ export const NotificationProvider = ({ children }) => {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
+      if (fallbackIntervalRef.current) {
+        clearInterval(fallbackIntervalRef.current);
+        fallbackIntervalRef.current = null;
+      }
       return;
     }
 

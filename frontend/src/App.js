@@ -362,7 +362,7 @@ function AppRoutes() {
         <Route
           path="/admin/disciplinar"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['admin']}>
               <PrivateLayout><AdminDisciplinarPage /></PrivateLayout>
             </ProtectedRoute>
           }
@@ -426,7 +426,7 @@ function AppRoutes() {
         <Route
           path="/governanca/honorarios"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['admin']}>
               <PrivateLayout><HonorariosPage /></PrivateLayout>
             </ProtectedRoute>
           }

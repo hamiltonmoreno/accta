@@ -6,7 +6,9 @@ import { pollsAPI } from '../../utils/api';
 export const VotingInterface = ({ poll, onVoteSuccess }) => {
   const [selected, setSelected] = useState(null);
   const [voting, setVoting] = useState(false);
-  const [voted, setVoted] = useState(false);
+  // Inicializa a partir do campo has_voted devolvido pelo backend (se disponível).
+  // O ?? false garante retrocompatibilidade enquanto o backend ainda não devolve o campo.
+  const [voted, setVoted] = useState(poll.has_voted ?? false);
 
   const handleVote = async () => {
     if (!selected) {
@@ -23,7 +25,8 @@ export const VotingInterface = ({ poll, onVoteSuccess }) => {
     } catch (error) {
       const msg = error.response?.data?.detail || 'Erro ao votar';
       toast.error(msg);
-      if (msg.includes('já votou')) setVoted(true);
+      // Defesa adicional: 409 = já votou (duplicado); marca estado sem alarme extra.
+      if (error.response?.status === 409 || msg.includes('já votou')) setVoted(true);
     } finally {
       setVoting(false);
     }

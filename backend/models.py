@@ -1994,6 +1994,19 @@ class PageBannerUpdate(BaseModel):
     image_url: Optional[str] = None
     alt: Optional[str] = Field(default=None, max_length=300)
 
+    @field_validator("image_url")
+    @classmethod
+    def _v_image_url(cls, v):
+        # Espelha _v_photo_url (UserProfileUpdate): só aceita imagens carregadas
+        # pelo nosso endpoint (/uploads/…), "" (limpar) ou None (manter). Bloqueia
+        # URLs externas (http(s)://…) — impede beacons de tracking e carregamento
+        # de imagem de terceiros num banner público.
+        if v in (None, ""):
+            return v
+        if not v.startswith("/uploads/"):
+            raise ValueError("URL de banner inválida")
+        return v
+
 
 # ===== GESTÃO DA MARCA / LOGO (spec-gestao-logo-marca) =====
 # Single-doc settings (molde finance_settings). logo_*_url None → SVG fallback.

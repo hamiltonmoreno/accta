@@ -75,6 +75,30 @@ def _wire_atos(mock_db, doc=None, find_list=None):
     return coll
 
 
+def _wire_sign_atomic(monkeypatch, doc):
+    """Substitui `database.sign_ato_atomic` (importado em `routes/atos.py`) por um
+    fake fiel que opera sobre `doc` em memória — a assinatura+reapuramento corre
+    sob lock no DAO real, aqui simula-se a transação. Espelha o padrão de
+    `cast_ballot`/`register_event_attendee` nos outros testes unitários. Devolve o
+    AsyncMock para asserções; o `doc` é mutado in-place (status/assinaturas)."""
+
+    async def _fake(ato_id, user_id, assinatura, compute_status):
+        if doc is None:
+            return {"outcome": "not_found"}
+        if doc.get("status") != "pendente":
+            return {"outcome": "not_pending"}
+        if any(a.get("user_id") == user_id for a in (doc.get("assinaturas") or [])):
+            return {"outcome": "already_signed"}
+        novas = list(doc.get("assinaturas") or []) + [assinatura]
+        doc["assinaturas"] = novas
+        doc["status"] = compute_status(novas, doc.get("requisitos") or {})
+        return {"outcome": "signed", "ato": doc}
+
+    mock = AsyncMock(side_effect=_fake)
+    monkeypatch.setattr(atos_route, "sign_ato_atomic", mock)
+    return mock
+
+
 # --------------------------------------------------------------------------- #
 # Regras puras
 # --------------------------------------------------------------------------- #
@@ -198,41 +222,46 @@ class TestSignAto:
             await atos_route.sign_ato("a1", AtoSign(decisao="talvez"), _request(), current_user=_user("socio", "dir_vogal"))
         assert e.value.status_code == 400
 
-    async def test_status_nao_pendente_400(self, mock_db):
+    async def test_status_nao_pendente_409(self, mock_db, monkeypatch):
         doc = self._pendente()
         doc["status"] = "aprovado"
         _wire_atos(mock_db, doc=doc)
+        _wire_sign_atomic(monkeypatch, doc)
         with pytest.raises(HTTPException) as e:
             await atos_route.sign_ato("a1", AtoSign(decisao="aprovado"), _request(), current_user=_user("socio", "dir_vogal"))
         assert e.value.status_code == 400
 
-    async def test_assinante_duplicado_400(self, mock_db):
+    async def test_assinante_duplicado_409(self, mock_db, monkeypatch):
         doc = self._pendente(assinaturas=[_sig("dir_vogal", user_id="dup")])
         _wire_atos(mock_db, doc=doc)
+        _wire_sign_atomic(monkeypatch, doc)
         with pytest.raises(HTTPException) as e:
             await atos_route.sign_ato(
                 "a1", AtoSign(decisao="aprovado"), _request(), current_user=_user("socio", "dir_presidente", uid="dup")
             )
-        assert e.value.status_code == 400
+        # Idempotência de assinatura duplicada → 409 (era 400 antes do lock atómico).
+        assert e.value.status_code == 409
 
-    async def test_segunda_assinatura_aprova(self, mock_db):
+    async def test_segunda_assinatura_aprova(self, mock_db, monkeypatch):
         # Vogal já assinou; o Presidente assina → 2 Direção incl. Presidente → aprovado.
         doc = self._pendente(assinaturas=[_sig("dir_vogal", user_id="v1")])
-        coll = _wire_atos(mock_db, doc=doc)
+        _wire_atos(mock_db, doc=doc)
+        mock = _wire_sign_atomic(monkeypatch, doc)
         await atos_route.sign_ato(
             "a1", AtoSign(decisao="aprovado"), _request(), current_user=_user("socio", "dir_presidente", uid="pres")
         )
-        update = coll.update_one.call_args.args[1]["$set"]
-        assert update["status"] == "aprovado"
-        assert len(update["assinaturas"]) == 2
+        mock.assert_awaited_once()
+        assert doc["status"] == "aprovado"
+        assert len(doc["assinaturas"]) == 2
 
-    async def test_rejeicao_fecha(self, mock_db):
+    async def test_rejeicao_fecha(self, mock_db, monkeypatch):
         doc = self._pendente()
-        coll = _wire_atos(mock_db, doc=doc)
+        _wire_atos(mock_db, doc=doc)
+        _wire_sign_atomic(monkeypatch, doc)
         await atos_route.sign_ato(
             "a1", AtoSign(decisao="rejeitado"), _request(), current_user=_user("socio", "dir_presidente")
         )
-        assert coll.update_one.call_args.args[1]["$set"]["status"] == "rejeitado"
+        assert doc["status"] == "rejeitado"
 
 
 @pytest.mark.asyncio

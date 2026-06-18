@@ -296,6 +296,21 @@ def _wcoll(**kw):
     return c
 
 
+def _wire_replace(monkeypatch):
+    """Substitui `ranking.replace_period_scores` (DAO atómico delete+insert) por um
+    AsyncMock fiel ao contrato (devolve len(docs)). O snapshot deixou de ser
+    `member_scores.delete_many`+`insert_many` para fechar a janela de leaderboard
+    vazio (database.replace_period_scores) — os testes asseguram o snapshot via
+    este mock. Devolve o mock; `.call_args.args == (period_key, docs)`."""
+
+    async def _fake(period_key, docs):
+        return len(docs)
+
+    mock = AsyncMock(side_effect=_fake)
+    monkeypatch.setattr(ranking, "replace_period_scores", mock)
+    return mock
+
+
 def _members(*specs):
     """specs: (id, name) → docs de membro elegível para rebuild."""
     return [
@@ -309,6 +324,7 @@ class TestRebuildScores:
         mock_db.users = _coll(find_list=_members(("a", "Ana"), ("b", "Bruno"), ("c", "Carla"), ("d", "Duarte")))
         mock_db.member_scores = _wcoll()
         mock_db.ranking_settings = _wcoll(find_one_ret=None)
+        replace = _wire_replace(monkeypatch)
 
         scores = {"a": 30.0, "b": 20.0, "c": 20.0, "d": 5.0}
 
@@ -319,7 +335,7 @@ class TestRebuildScores:
 
         n = await ranking.rebuild_scores("2026")
         assert n == 4
-        docs = mock_db.member_scores.insert_many.call_args.args[0]
+        period_key, docs = replace.call_args.args
         by_user = {d["user_id"]: d for d in docs}
         assert by_user["a"]["rank"] == 1
         # empate em 20.0 partilha a rank 2 (desempate estável por nome: Bruno < Carla)
@@ -335,15 +351,16 @@ class TestRebuildScores:
         mock_db.users = _coll(find_list=_members(("a", "Ana"), ("b", "Bruno")))
         mock_db.member_scores = _wcoll()
         mock_db.ranking_settings = _wcoll(find_one_ret={"id": "s1"})  # settings já existe
+        replace = _wire_replace(monkeypatch)
         monkeypatch.setattr(
             ranking, "compute_member_score", AsyncMock(return_value={"score": 10.0, "breakdown": {}})
         )
 
         await ranking.rebuild_scores("2026")
         await ranking.rebuild_scores("2026")
-        # cada rebuild apaga o período antes de inserir → idempotente
-        assert mock_db.member_scores.delete_many.await_count == 2
-        mock_db.member_scores.delete_many.assert_awaited_with({"period_key": "2026"})
+        # cada rebuild substitui o snapshot do período atomicamente → idempotente
+        assert replace.await_count == 2
+        assert replace.call_args.args[0] == "2026"
         # settings já existia → update_one (nunca insert duplicado)
         assert mock_db.ranking_settings.update_one.await_count == 2
         mock_db.ranking_settings.insert_one.assert_not_called()
@@ -352,6 +369,7 @@ class TestRebuildScores:
         mock_db.users = _coll(find_list=_members(("a", "Ana")))
         mock_db.member_scores = _wcoll()
         mock_db.ranking_settings = _wcoll(find_one_ret=None)  # sem doc de settings
+        _wire_replace(monkeypatch)
         monkeypatch.setattr(
             ranking, "compute_member_score", AsyncMock(return_value={"score": 1.0, "breakdown": {}})
         )
@@ -365,6 +383,7 @@ class TestRebuildScores:
         mock_db.users = _coll(find_list=[])
         mock_db.member_scores = _wcoll()
         mock_db.ranking_settings = _wcoll(find_one_ret=None)
+        _wire_replace(monkeypatch)
         monkeypatch.setattr(
             ranking, "compute_member_score", AsyncMock(return_value={"score": 0, "breakdown": {}})
         )
@@ -379,13 +398,14 @@ class TestRebuildScores:
         mock_db.users = _coll(find_list=[])
         mock_db.member_scores = _wcoll()
         mock_db.ranking_settings = _wcoll(find_one_ret=None)
+        replace = _wire_replace(monkeypatch)
         monkeypatch.setattr(
             ranking, "compute_member_score", AsyncMock(return_value={"score": 0, "breakdown": {}})
         )
         n = await ranking.rebuild_scores("2026")
         assert n == 0
-        mock_db.member_scores.insert_many.assert_not_called()
-        mock_db.member_scores.delete_many.assert_awaited_once()  # apaga mesmo quando vazio
+        # substitui o snapshot mesmo quando vazio (apaga o período, insere 0)
+        replace.assert_awaited_once_with("2026", [])
 
 
 # --------------------------------------------------------------------------- #
@@ -677,7 +697,8 @@ class TestVisibilityAndOptOut:
         mock_db.users = _coll(find_list=[{"id": "a", "name": "Ana", "status": "ativo", "ranking_opt_out": True}])
         mock_db.member_scores = _wcoll()
         mock_db.ranking_settings = _wcoll(find_one_ret=None)
+        replace = _wire_replace(monkeypatch)
         monkeypatch.setattr(ranking, "compute_member_score", AsyncMock(return_value={"score": 5, "breakdown": {}}))
         await ranking.rebuild_scores("2026")
-        doc = mock_db.member_scores.insert_many.call_args.args[0][0]
+        doc = replace.call_args.args[1][0]
         assert doc["ranking_opt_out"] is True
