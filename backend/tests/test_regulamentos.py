@@ -339,3 +339,59 @@ class TestSlugValidator:
 
     def test_normaliza_maiusculas(self):
         assert RegulamentoCreate(slug="Regimento-AG", titulo="Regimento").slug == "regimento-ag"
+
+
+# --------------------------------------------------------------------------- #
+# Visibilidade para não-gestores (sócios comuns não veem rascunhos)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.asyncio
+class TestVisibilidadeNaoGestor:
+    async def test_list_oculta_rascunhos_a_socio(self, mock_db):
+        # r1 tem versão em vigor aprovada (visível); r2 sem versão aprovada (oculto).
+        mock_db.regulamentos = _coll(
+            find_list=[
+                _reg(id="r1", current_version_id="v-aprovada"),
+                _reg(id="r2", current_version_id=None),
+            ]
+        )
+        mock_db.regulamento_versoes = _coll()
+        mock_db.regulamento_versoes.find_one = AsyncMock(
+            return_value={"id": "v-aprovada", "status": "aprovado"}
+        )
+        out = await reg_route.list_regulamentos(current_user=_user("socio"))
+        assert [r["id"] for r in out["items"]] == ["r1"]
+        assert out["total"] == 1
+
+    async def test_list_gestor_ve_tudo(self, mock_db):
+        mock_db.regulamentos = _coll(
+            find_list=[_reg(id="r1", current_version_id=None), _reg(id="r2", current_version_id=None)]
+        )
+        mock_db.regulamento_versoes = _coll()
+        out = await reg_route.list_regulamentos(current_user=_user("socio", "dir_secretario"))
+        assert {r["id"] for r in out["items"]} == {"r1", "r2"}
+        assert out["total"] == 2
+
+    async def test_get_socio_filtra_versoes_nao_aprovadas(self, mock_db):
+        _wire(
+            mock_db,
+            reg=_reg(id="r1"),
+            versoes_list=[
+                _versao(status="aprovado", vid="v1", versao=1),
+                _versao(status="rascunho", vid="v2", versao=2),
+            ],
+        )
+        out = await reg_route.get_regulamento("r1", current_user=_user("socio"))
+        assert [v["status"] for v in out["versoes"]] == ["aprovado"]
+
+    async def test_get_socio_sem_versao_aprovada_404(self, mock_db):
+        _wire(mock_db, reg=_reg(id="r1"), versoes_list=[_versao(status="rascunho", vid="v2", versao=2)])
+        with pytest.raises(HTTPException) as e:
+            await reg_route.get_regulamento("r1", current_user=_user("socio"))
+        assert e.value.status_code == 404
+
+    async def test_get_gestor_ve_rascunhos(self, mock_db):
+        _wire(mock_db, reg=_reg(id="r1"), versoes_list=[_versao(status="rascunho", vid="v2", versao=2)])
+        out = await reg_route.get_regulamento("r1", current_user=_user("socio", "dir_secretario"))
+        assert [v["status"] for v in out["versoes"]] == ["rascunho"]
