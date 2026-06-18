@@ -76,3 +76,20 @@ test('pesquisa sem resultados mostra estado vazio', () => {
   fireEvent.change(screen.getByTestId('ajuda-search'), { target: { value: 'zzz-nao-existe-xpto' } });
   expect(screen.getByTestId('ajuda-vazio')).toBeInTheDocument();
 });
+
+test('artigos com profundidade mostram "Quando usar" e o guia de campos', () => {
+  mockAuth = { ...authBase };
+  render(<AjudaPage />);
+  // Propostas (Governança, visível a todos) tem quandoUsar + campos.
+  expect(screen.getAllByText('Quando usar').length).toBeGreaterThan(0);
+  expect(screen.getAllByText('Como preencher cada campo').length).toBeGreaterThan(0);
+});
+
+test('a pesquisa indexa os campos novos (ex.: termo de um campo)', () => {
+  mockAuth = { ...authBase };
+  render(<AjudaPage />);
+  // "fundamentação" só aparece nos campos/textos da Petição (Governança).
+  fireEvent.change(screen.getByTestId('ajuda-search'), { target: { value: 'fundamentação' } });
+  expect(screen.getByTestId('ajuda-secao-governanca')).toBeInTheDocument();
+  expect(screen.queryByTestId('ajuda-secao-meu-portal')).toBeNull();
+});
