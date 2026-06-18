@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Gavel, Vote } from 'lucide-react';
+import { CheckCircle, Gavel, Vote } from 'lucide-react';
 import { toast } from 'sonner';
 import { assembleiasAPI } from '../../../utils/api';
 import { VOTING_MODE_LABELS, MAIORIA_LABELS } from '../../../lib/governanceLabels';
@@ -57,6 +57,14 @@ export const VotacaoPanel = ({ assembleia, snapshot, isMesa, currentUserId }) =>
   const [mode, setMode] = useState('braco_no_ar');
   const [maioria, setMaioria] = useState('absoluta');
 
+  // Controla se o utilizador já votou na deliberação corrente.
+  // Reinicializa sempre que a deliberação activa muda (inclui quando fecha/abre nova).
+  const deliberacaoId = openVote?.deliberacao_id ?? null;
+  const [hasVoted, setHasVoted] = useState(false);
+  useEffect(() => {
+    setHasVoted(false);
+  }, [deliberacaoId]);
+
   const { data: delib } = useQuery({
     queryKey: ['assembleia', assembleia.id, 'deliberacao', openVote?.deliberacao_id],
     queryFn: async () => (await assembleiasAPI.getDeliberacao(assembleia.id, openVote.deliberacao_id)).data,
@@ -77,8 +85,18 @@ export const VotacaoPanel = ({ assembleia, snapshot, isMesa, currentUserId }) =>
 
   const votarMut = useMutation({
     mutationFn: (escolha) => assembleiasAPI.votarDeliberacao(assembleia.id, openVote.deliberacao_id, { escolha }),
-    onSuccess: () => toast.success('Voto registado'),
-    onError: (e) => toast.error(e.response?.data?.detail || 'Erro'),
+    onSuccess: () => {
+      setHasVoted(true);
+      toast.success('Voto registado');
+    },
+    onError: (e) => {
+      const detail = e.response?.data?.detail || 'Erro';
+      // 409 = já votou (duplicado ou re-envio); marca como votado sem alarme extra.
+      if (e.response?.status === 409) {
+        setHasVoted(true);
+      }
+      toast.error(detail);
+    },
   });
 
   const apurarMut = useMutation({
@@ -151,19 +169,26 @@ export const VotacaoPanel = ({ assembleia, snapshot, isMesa, currentUserId }) =>
       )}
 
       {openVote.voting_mode !== 'braco_no_ar' && !isExcluded && (
-        <div className="flex flex-wrap gap-2">
-          {['favor', 'contra', 'abstencao'].map((esc) => (
-            <button
-              key={esc}
-              type="button"
-              className={esc === 'favor' ? primaryBtn : secondaryBtn}
-              disabled={votarMut.isPending}
-              onClick={() => votarMut.mutate(esc)}
-            >
-              {esc === 'favor' ? 'A favor' : esc === 'contra' ? 'Contra' : 'Abstenção'}
-            </button>
-          ))}
-        </div>
+        hasVoted ? (
+          <div className="flex items-center gap-2 rounded-md border border-[#BBF7D0] bg-[#F0FDF4] px-3 py-2">
+            <CheckCircle className="w-4 h-4 shrink-0 text-[#166534]" />
+            <span className="text-sm font-medium text-[#166534]">Voto registado</span>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {['favor', 'contra', 'abstencao'].map((esc) => (
+              <button
+                key={esc}
+                type="button"
+                className={esc === 'favor' ? primaryBtn : secondaryBtn}
+                disabled={votarMut.isPending}
+                onClick={() => votarMut.mutate(esc)}
+              >
+                {esc === 'favor' ? 'A favor' : esc === 'contra' ? 'Contra' : 'Abstenção'}
+              </button>
+            ))}
+          </div>
+        )
       )}
 
       {openVote.voting_mode === 'braco_no_ar' && isMesa && (

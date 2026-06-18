@@ -7,6 +7,7 @@ de governança.
 """
 
 import logging
+import os
 import uuid
 from collections import Counter
 from datetime import datetime, timezone
@@ -190,6 +191,17 @@ async def dispatch_oficial_auto(
     existing = await db.comunicados.find_one({"source_kind": source_kind, "source_ref_id": ref_id}, {"_id": 0, "id": 1})
     if existing:
         return None
+    # CTA relativo (ex. /assembleias/{id}) só vira botão se FRONTEND_URL existir
+    # (ver comunicado_email_html). Sem base, o comunicado OFICIAL sai SEM botão de
+    # acção — sinaliza-o em vez de o suprimir em silêncio (config em falta).
+    if cta_label and cta_url and cta_url.startswith("/") and not os.environ.get("FRONTEND_URL", "").strip():
+        logger.warning(
+            "Comunicado oficial (%s/%s) será enviado SEM botão de acção: cta_url relativo '%s' "
+            "exige FRONTEND_URL, que não está definido.",
+            source_kind,
+            ref_id,
+            cta_url,
+        )
     cid = str(uuid.uuid4())
     doc = {
         "id": cid,

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timezone
 from typing import List, Optional
 from asyncpg.exceptions import UniqueViolationError
-from models import User, Poll, PollCreate, PollStatusUpdate, UserVote, VoteCreate
+from models import User, Poll, PollWithVote, PollCreate, PollStatusUpdate, UserVote, VoteCreate
 from database import db
 from auth import get_current_user
 from helpers import create_audit_log, notify_all_active_users
@@ -38,11 +38,27 @@ def _poll_option_ids(poll: dict) -> set[int]:
     }
 
 
-@router.get("/polls", response_model=List[Poll])
+async def _voted_poll_ids(user_id: str, poll_ids: list[str]) -> set[str]:
+    """IDs (dos `poll_ids` dados) em que o utilizador já votou. Só o próprio voto —
+    não revela o sentido nem o voto de terceiros (mantém o voto secreto)."""
+    if not poll_ids:
+        return set()
+    rows = await db.user_votes.find(
+        {"user_id": user_id, "poll_id": {"$in": poll_ids}}, {"_id": 0, "poll_id": 1}
+    ).to_list(None)
+    return {r["poll_id"] for r in rows if r.get("poll_id")}
+
+
+# PollWithVote fixa a forma da resposta (Poll + has_voted) e descarta campos
+# internos do doc (extra="ignore"), sem perder o has_voted por-utilizador.
+@router.get("/polls", response_model=List[PollWithVote])
 async def get_polls(skip: int = 0, limit: int = 100, current_user: User = Depends(get_current_user)):
     limit = min(limit, 100)
     query = {} if current_user.role == "admin" else {"status": {"$ne": "rascunho"}}
     polls = await db.polls.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(None)
+    voted = await _voted_poll_ids(current_user.id, [p["id"] for p in polls if p.get("id")])
+    for p in polls:
+        p["has_voted"] = p.get("id") in voted
     return polls
 
 
@@ -168,8 +184,11 @@ async def get_poll_results(poll_id: str, current_user: User = Depends(get_curren
     # (paridade com o apuramento de honorários, que já usa to_list(None)).
     votes = await db.user_votes.find({"poll_id": poll_id}, {"_id": 0}).to_list(None)
     results = {}
+    has_voted = False
     for v in votes:
         option = v["vote_option"]
         results[option] = results.get(option, 0) + 1
+        if v.get("user_id") == current_user.id:
+            has_voted = True
 
-    return {"poll_id": poll_id, "total_votes": len(votes), "results": results}
+    return {"poll_id": poll_id, "total_votes": len(votes), "results": results, "has_voted": has_voted}

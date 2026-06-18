@@ -622,6 +622,14 @@ class Poll(BaseModel):
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
+class PollWithVote(Poll):
+    """`Poll` + flag `has_voted` por-utilizador (GET /polls). Subclasse para fixar
+    a forma da resposta: `extra="ignore"` (herdado) descarta campos jsonb internos
+    do doc (ex. `created_by`) que `List[dict]` cru exporia."""
+
+    has_voted: bool = False
+
+
 class PollCreate(BaseModel):
     title: str
     description: str
@@ -1993,6 +2001,19 @@ class PageBanner(BaseModel):
 class PageBannerUpdate(BaseModel):
     image_url: Optional[str] = None
     alt: Optional[str] = Field(default=None, max_length=300)
+
+    @field_validator("image_url")
+    @classmethod
+    def _v_image_url(cls, v):
+        # Espelha _v_photo_url (UserProfileUpdate): só aceita imagens carregadas
+        # pelo nosso endpoint (/uploads/…), "" (limpar) ou None (manter). Bloqueia
+        # URLs externas (http(s)://…) — impede beacons de tracking e carregamento
+        # de imagem de terceiros num banner público.
+        if v in (None, ""):
+            return v
+        if not v.startswith("/uploads/"):
+            raise ValueError("URL de banner inválida")
+        return v
 
 
 # ===== GESTÃO DA MARCA / LOGO (spec-gestao-logo-marca) =====

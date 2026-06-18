@@ -273,7 +273,10 @@ async def test_record_failed_login_inserts_attempt_and_signals_threshold(mock_db
     # A falha que cruza o threshold sinaliza a transição.
     mock_db.login_attempts.count_documents = AsyncMock(return_value=helpers.LOCKOUT_THRESHOLD)
     assert await helpers.record_failed_login("user@example.com") is True
-    assert isinstance(doc["attempted_at"], datetime)
+    # attempted_at é guardado como string ISO-8601 (convenção do projeto); o DAO
+    # rehidrata-o para datetime na leitura via _DATETIME_FIELDS.
+    assert isinstance(doc["attempted_at"], str)
+    datetime.fromisoformat(doc["attempted_at"])  # parseável → ISO válido
 
 
 @pytest.mark.asyncio

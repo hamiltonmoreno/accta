@@ -5,7 +5,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from fastapi import HTTPException
+from fastapi import BackgroundTasks, HTTPException
 from starlette.requests import Request
 
 from routes import participacao as p
@@ -483,7 +483,7 @@ class TestHonorario:
 
     async def test_apurar_requires_mesa_403(self, hon_env, socio_user):
         with pytest.raises(HTTPException) as exc:
-            await p.apurar_honorario("h1", _req(), current_user=socio_user)
+            await p.apurar_honorario("h1", _req(), BackgroundTasks(), current_user=socio_user)
         assert exc.value.status_code == 403
 
     async def test_apurar_nao_em_votacao_409(self, hon_env, admin_user):
@@ -491,7 +491,7 @@ class TestHonorario:
             return_value={"id": "h1", "status": "proposta", "nominee_name": "X"}
         )
         with pytest.raises(HTTPException) as exc:
-            await p.apurar_honorario("h1", _req(), current_user=admin_user)
+            await p.apurar_honorario("h1", _req(), BackgroundTasks(), current_user=admin_user)
         assert exc.value.status_code == 409
 
     async def test_apurar_exacto_dois_tercos_elege_interno(self, hon_env, admin_user):
@@ -507,7 +507,7 @@ class TestHonorario:
         _votes(
             hon_env, [{"vote_option": 1}, {"vote_option": 1}, {"vote_option": 2}]
         )  # favor=2 base=3 → ceil(2)=2 → eleito
-        await p.apurar_honorario("h1", _req(), current_user=admin_user)
+        await p.apurar_honorario("h1", _req(), BackgroundTasks(), current_user=admin_user)
         sets = [c.args[1]["$set"] for c in hon_env.honorarios_nominations.update_one.await_args_list]
         assert any(s.get("status") == "eleito" for s in sets)
         hon_env.users.update_one.assert_awaited()
@@ -527,7 +527,7 @@ class TestHonorario:
         _votes(
             hon_env, [{"vote_option": 1}, {"vote_option": 2}, {"vote_option": 2}]
         )  # favor=1 base=3 → ceil(2)=2 → rejeitado
-        await p.apurar_honorario("h1", _req(), current_user=admin_user)
+        await p.apurar_honorario("h1", _req(), BackgroundTasks(), current_user=admin_user)
         sets = [c.args[1]["$set"] for c in hon_env.honorarios_nominations.update_one.await_args_list]
         assert any(s.get("status") == "rejeitado" for s in sets)
         hon_env.users.update_one.assert_not_awaited()
@@ -543,7 +543,7 @@ class TestHonorario:
             }
         )
         _votes(hon_env, [{"vote_option": 3}, {"vote_option": 3}])  # só abstenções → base=0 → rejeitado
-        await p.apurar_honorario("h1", _req(), current_user=admin_user)
+        await p.apurar_honorario("h1", _req(), BackgroundTasks(), current_user=admin_user)
         sets = [c.args[1]["$set"] for c in hon_env.honorarios_nominations.update_one.await_args_list]
         assert any(s.get("status") == "rejeitado" for s in sets)
 
@@ -559,13 +559,17 @@ class TestHonorario:
         )
         hon_env.users.find_one = AsyncMock(return_value=None)  # email ainda não existe
         _votes(hon_env, [{"vote_option": 1}, {"vote_option": 1}])  # favor=2 base=2 → ceil(1.33)=2 → eleito
-        await p.apurar_honorario("h1", _req(), current_user=admin_user)
+        # O convite vai por BackgroundTask depois do CAS irrevogável (um email falhado
+        # não dá 500). Captura o BackgroundTasks e verifica que a task foi agendada.
+        bt = BackgroundTasks()
+        await p.apurar_honorario("h1", _req(), bt, current_user=admin_user)
         hon_env.users.insert_one.assert_awaited()
         new_user = hon_env.users.insert_one.await_args.args[0]
         assert new_user["status"] == "pendente_convite"
         assert new_user["member_category"] == "honorario"
         assert new_user["account_type"] == "member"
-        p.send_invite_email.assert_awaited_once()
+        # send_invite_email agendado (não awaited diretamente — corre após a resposta).
+        assert any(t.func is p.send_invite_email for t in bt.tasks)
 
     async def test_apurar_email_de_membro_existente_eleva_sem_convite(self, hon_env, admin_user):
         # Email é identificador universal: se já é sócio, eleva (não cria conta nem envia convite).
@@ -580,7 +584,7 @@ class TestHonorario:
         )
         hon_env.users.find_one = AsyncMock(return_value={"id": "u-existente"})
         _votes(hon_env, [{"vote_option": 1}, {"vote_option": 1}])  # eleito
-        await p.apurar_honorario("h1", _req(), current_user=admin_user)
+        await p.apurar_honorario("h1", _req(), BackgroundTasks(), current_user=admin_user)
         hon_env.users.insert_one.assert_not_awaited()
         p.send_invite_email.assert_not_awaited()
         assert hon_env.users.update_one.await_args.args[1]["$set"]["member_category"] == "honorario"

@@ -279,13 +279,12 @@ async def compute_financial_summary(
                 end = f"{year}-{month + 1:02d}-01T00:00:00"
         query["date"] = {"$gte": start, "$lt": end}
 
-    transactions = (
-        await db.transactions.find(
-            query, {"_id": 0, "type": 1, "amount": 1, "category": 1, "description": 1, "date": 1}
-        )
-        .limit(5000)
-        .to_list(5000)
-    )
+    # Sem teto: um cap de 5000 truncava silenciosamente os totais acima de 5000
+    # transações na janela (paridade com as restantes agregações, que usam
+    # to_list(None)).
+    transactions = await db.transactions.find(
+        query, {"_id": 0, "type": 1, "amount": 1, "category": 1, "description": 1, "date": 1}
+    ).to_list(None)
 
     # .get() defensivo: documentos legados/migrados podem não ter todos os
     # campos — antes um KeyError virava 500.

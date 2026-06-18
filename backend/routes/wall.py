@@ -138,6 +138,15 @@ async def toggle_like_wall_post(post_id: str, current_user: User = Depends(get_c
     if not post:
         raise HTTPException(status_code=404, detail="Post não encontrado")
 
+    # Não permitir like em conteúdo invisível: posts ainda em moderação (não
+    # aprovados) só são visíveis ao staff de moderação e ao próprio autor, tal
+    # como em `create_wall_comment`. Para o sócio comum o post não existe (404).
+    if not post.get("approved"):
+        is_staff = has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content")
+        is_author = post.get("user_id") == current_user.id
+        if not is_staff and not is_author:
+            raise HTTPException(status_code=404, detail="Post não encontrado")
+
     likes = post.get("likes", [])
     if current_user.id in likes:
         await db.wall_posts.update_one({"id": post_id}, {"$pull": {"likes": current_user.id}})

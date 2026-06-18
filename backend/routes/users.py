@@ -252,6 +252,13 @@ async def update_user_status(user_id: str, status: str, current_user: User = Dep
     if status not in USER_STATUSES:
         raise HTTPException(status_code=400, detail=f"Status inválido. Opções: {', '.join(USER_STATUSES)}")
 
+    # Verifica a existência antes de atualizar: update_one num id inexistente é
+    # um no-op silencioso que mesmo assim registava audit-log de uma alteração
+    # que nunca ocorreu. Só audita se a conta existir.
+    existing = await db.users.find_one({"id": user_id}, {"_id": 0, "id": 1})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Utilizador não encontrado")
+
     await db.users.update_one({"id": user_id}, {"$set": {"status": status}})
     await create_audit_log(current_user.id, "user_status_updated", user_id, details={"status": status})
     return {"message": "Status atualizado"}

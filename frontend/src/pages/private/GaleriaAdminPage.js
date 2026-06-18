@@ -52,7 +52,7 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
       )}
       <div className="max-w-5xl max-h-[85vh] mx-4" onClick={(e) => e.stopPropagation()}>
         <img key={photo.id}
-          src={photo.url} alt={photo.caption} className="max-w-full max-h-[80vh] object-contain rounded-lg animate-fade-up" />
+          src={mediaUrl(photo.url)} alt={photo.caption} className="max-w-full max-h-[80vh] object-contain rounded-lg animate-fade-up" />
         {photo.caption && <p className="text-white/80 text-center mt-4 text-sm">{photo.caption}</p>}
       </div>
     </div>
@@ -274,7 +274,7 @@ const PendingPanel = () => {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-4">
           {pending.map(photo => (
             <div key={photo.id} className="relative group rounded-lg overflow-hidden" data-testid={`pending-photo-${photo.id}`}>
-              <img src={photo.url} alt={photo.caption} loading="lazy" className="w-full aspect-square object-cover" />
+              <img src={mediaUrl(photo.url)} alt={photo.caption} loading="lazy" className="w-full aspect-square object-cover" />
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                 <p className="text-white text-xs text-center px-2 truncate w-full">{photo.uploaded_by_name}</p>
                 <p className="text-white/70 text-xs truncate w-full text-center">{photo.album_title}</p>
@@ -298,7 +298,7 @@ const PendingPanel = () => {
 
 // ===== MAIN PAGE =====
 export const GaleriaAdminPage = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const qc = useQueryClient();
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [lightboxIndex, setLightboxIndex] = useState(-1);
@@ -430,10 +430,10 @@ export const GaleriaAdminPage = () => {
                 <div key={photo.id}
                   className="group relative aspect-square overflow-hidden rounded-lg animate-fade-up" data-testid={`gallery-photo-${photo.id}`}>
                   <button onClick={() => setLightboxIndex(index)} className="w-full h-full">
-                    <img src={photo.url} alt={photo.caption} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
+                    <img src={mediaUrl(photo.url)} alt={photo.caption} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
                   </button>
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors pointer-events-none" />
-                  {(isAdmin || photo.uploaded_by === undefined) && (
+                  {(isAdmin || photo.uploaded_by === user?.id) && (
                     <button onClick={() => setConfirmDeletePhoto(photo.id)}
                       className="absolute top-2 right-2 p-1.5 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 text-white hover:bg-carmesim/80 transition-all"
                       aria-label="Apagar foto"
