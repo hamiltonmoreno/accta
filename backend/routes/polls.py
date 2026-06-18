@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timezone
-from typing import Optional
+from typing import List, Optional
 from asyncpg.exceptions import UniqueViolationError
-from models import User, Poll, PollCreate, PollStatusUpdate, UserVote, VoteCreate
+from models import User, Poll, PollWithVote, PollCreate, PollStatusUpdate, UserVote, VoteCreate
 from database import db
 from auth import get_current_user
 from helpers import create_audit_log, notify_all_active_users
@@ -49,8 +49,9 @@ async def _voted_poll_ids(user_id: str, poll_ids: list[str]) -> set[str]:
     return {r["poll_id"] for r in rows if r.get("poll_id")}
 
 
-# Sem response_model: List[Poll] (extra="ignore") descartaria o has_voted por-utilizador.
-@router.get("/polls")
+# PollWithVote fixa a forma da resposta (Poll + has_voted) e descarta campos
+# internos do doc (extra="ignore"), sem perder o has_voted por-utilizador.
+@router.get("/polls", response_model=List[PollWithVote])
 async def get_polls(skip: int = 0, limit: int = 100, current_user: User = Depends(get_current_user)):
     limit = min(limit, 100)
     query = {} if current_user.role == "admin" else {"status": {"$ne": "rascunho"}}

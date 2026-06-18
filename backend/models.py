@@ -622,6 +622,14 @@ class Poll(BaseModel):
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
+class PollWithVote(Poll):
+    """`Poll` + flag `has_voted` por-utilizador (GET /polls). Subclasse para fixar
+    a forma da resposta: `extra="ignore"` (herdado) descarta campos jsonb internos
+    do doc (ex. `created_by`) que `List[dict]` cru exporia."""
+
+    has_voted: bool = False
+
+
 class PollCreate(BaseModel):
     title: str
     description: str

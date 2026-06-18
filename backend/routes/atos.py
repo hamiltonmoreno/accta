@@ -162,6 +162,9 @@ async def sign_ato(ato_id: str, data: AtoSign, request: Request, current_user: U
         raise HTTPException(status_code=400, detail="O acto ja nao esta pendente")
     if outcome == "already_signed":
         raise HTTPException(status_code=409, detail="Ja assinou este acto")
+    if outcome == "locked":
+        # Contenção transitória (outra assinatura concorrente segura o lock).
+        raise HTTPException(status_code=409, detail="Assinatura concorrente em curso. Tente novamente.")
 
     ato = result["ato"]
     novo_status = ato["status"]

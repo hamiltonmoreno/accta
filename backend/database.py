@@ -1491,33 +1491,40 @@ async def sign_ato_atomic(ato_id: str, user_id: str, assinatura: dict, compute_s
     - {"outcome": "not_found"}            — acto inexistente
     - {"outcome": "not_pending"}          — acto já não está pendente
     - {"outcome": "already_signed"}       — este utilizador já assinou (idempotente)
+    - {"outcome": "locked"}               — lock_timeout esgotado (contenção; retry)
     - {"outcome": "signed", "ato": <doc>} — assinatura aplicada; `ato` é o doc novo
     """
     pool = await get_pool()
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            await conn.execute("SET LOCAL lock_timeout = '2s'")
-            row = await conn.fetchrow(
-                f"SELECT pk, doc FROM {_quote_ident('atos')} WHERE doc->>'id' = $1 LIMIT 1 FOR UPDATE",
-                ato_id,
-            )
-            if row is None:
-                return {"outcome": "not_found"}
-            ato = dict(row["doc"])
-            if ato.get("status") != "pendente":
-                return {"outcome": "not_pending"}
-            assinaturas = list(ato.get("assinaturas") or [])
-            if any(a.get("user_id") == user_id for a in assinaturas):
-                return {"outcome": "already_signed"}
-            novas_assinaturas = assinaturas + [assinatura]
-            ato["assinaturas"] = novas_assinaturas
-            ato["status"] = compute_status(novas_assinaturas, ato.get("requisitos") or {})
-            await conn.execute(
-                f"UPDATE {_quote_ident('atos')} SET doc=$1 WHERE pk=$2",
-                ato,
-                row["pk"],
-            )
-            return {"outcome": "signed", "ato": ato}
+    try:
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute("SET LOCAL lock_timeout = '2s'")
+                row = await conn.fetchrow(
+                    f"SELECT pk, doc FROM {_quote_ident('atos')} WHERE doc->>'id' = $1 LIMIT 1 FOR UPDATE",
+                    ato_id,
+                )
+                if row is None:
+                    return {"outcome": "not_found"}
+                ato = dict(row["doc"])
+                if ato.get("status") != "pendente":
+                    return {"outcome": "not_pending"}
+                assinaturas = list(ato.get("assinaturas") or [])
+                if any(a.get("user_id") == user_id for a in assinaturas):
+                    return {"outcome": "already_signed"}
+                novas_assinaturas = assinaturas + [assinatura]
+                ato["assinaturas"] = novas_assinaturas
+                ato["status"] = compute_status(novas_assinaturas, ato.get("requisitos") or {})
+                await conn.execute(
+                    f"UPDATE {_quote_ident('atos')} SET doc=$1 WHERE pk=$2",
+                    ato,
+                    row["pk"],
+                )
+                return {"outcome": "signed", "ato": ato}
+    except asyncpg.exceptions.LockNotAvailableError:
+        # Outra assinatura concorrente mantém o lock da linha além do lock_timeout.
+        # Sinaliza contenção transitória ao chamador (→ 409, retry) em vez de
+        # propagar um 500 opaco. A assinatura ainda não foi aplicada.
+        return {"outcome": "locked"}
 
 
 async def replace_period_scores(period_key: str, docs: list[dict]) -> int:

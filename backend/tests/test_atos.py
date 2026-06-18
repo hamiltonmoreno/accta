@@ -263,6 +263,18 @@ class TestSignAto:
         )
         assert doc["status"] == "rejeitado"
 
+    async def test_locked_contencao_409(self, mock_db, monkeypatch):
+        # lock_timeout esgotado (assinatura concorrente segura o lock) → outcome
+        # "locked" → 409 (contenção transitória, retry) em vez de 500 opaco.
+        doc = self._pendente()
+        _wire_atos(mock_db, doc=doc)
+        monkeypatch.setattr(atos_route, "sign_ato_atomic", AsyncMock(return_value={"outcome": "locked"}))
+        with pytest.raises(HTTPException) as e:
+            await atos_route.sign_ato(
+                "a1", AtoSign(decisao="aprovado"), _request(), current_user=_user("socio", "dir_presidente")
+            )
+        assert e.value.status_code == 409
+
 
 @pytest.mark.asyncio
 class TestExecuteAto:
