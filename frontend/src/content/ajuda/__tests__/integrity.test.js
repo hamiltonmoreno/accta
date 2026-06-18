@@ -47,4 +47,41 @@ describe('content/ajuda — integridade', () => {
       });
     });
   });
+
+  test('campos opcionais (quandoUsar/quandoNaoUsar/campos) têm o shape esperado', () => {
+    ajudaSections.forEach((s) => {
+      s.artigos.forEach((a) => {
+        ['quandoUsar', 'quandoNaoUsar'].forEach((k) => {
+          if (a[k] !== undefined) {
+            expect(Array.isArray(a[k])).toBe(true);
+            a[k].forEach((line) => {
+              expect(typeof line).toBe('string');
+              expect(line.length).toBeGreaterThan(0);
+            });
+          }
+        });
+        if (a.campos !== undefined) {
+          expect(Array.isArray(a.campos)).toBe(true);
+          a.campos.forEach((c) => {
+            // `campo` é obrigatório; `ajuda`/`exemplo` são opcionais mas, se
+            // existirem, são strings não-vazias (o "como preencher").
+            expect(typeof c.campo).toBe('string');
+            expect(c.campo.length).toBeGreaterThan(0);
+            ['ajuda', 'exemplo'].forEach((k) => {
+              if (c[k] !== undefined) {
+                expect(typeof c[k]).toBe('string');
+                expect(c[k].length).toBeGreaterThan(0);
+              }
+            });
+          });
+        }
+      });
+    });
+  });
+
+  test('Governança tem o guia de decisão "Qual canal de voz devo usar?"', () => {
+    const gov = ajudaSections.find((s) => s.id === 'governanca');
+    expect(gov).toBeTruthy();
+    expect(gov.artigos.some((a) => a.id === 'qual-canal')).toBe(true);
+  });
 });
