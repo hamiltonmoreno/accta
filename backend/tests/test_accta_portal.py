@@ -1,6 +1,6 @@
 """
 ACCTA Portal API Tests
-Tests for authentication, invoices, polls, documents, benefits, wall, notifications
+Tests for authentication, quotas, polls, documents, benefits, wall, notifications
 """
 import pytest
 import requests

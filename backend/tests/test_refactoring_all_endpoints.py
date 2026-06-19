@@ -5,7 +5,7 @@ Tests ALL endpoints after server.py was split into 17 module files.
 Modules tested:
 - auth_routes.py: /auth/register, /auth/login, /auth/me
 - users.py: /users, /users/{id}/status
-- invoices.py: /invoices, /invoices/{id}/confirm
+- finances.py: /finances/me/quotas (self-service quota view)
 - polls.py: /polls, /polls/vote, /polls/{id}/results
 - posts.py: /posts
 - documents.py: /documents
