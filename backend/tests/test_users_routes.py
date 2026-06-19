@@ -501,15 +501,25 @@ class TestUpdateUserStatus:
         assert exc.value.status_code == 403
 
     async def test_admin_updates_status(self, mock_db, admin_user):
+        # Existência verificada antes de atualizar (404 se inexistente) — wire o find_one.
+        mock_db.users.find_one = AsyncMock(return_value={"id": "some-id"})
         result = await users_route.update_user_status(user_id="some-id", status="inativo", current_user=admin_user)
         assert "atualizado" in result["message"].lower()
         mock_db.users.update_one.assert_awaited_with({"id": "some-id"}, {"$set": {"status": "inativo"}})
+
+    async def test_admin_status_user_not_found_404(self, mock_db, admin_user):
+        mock_db.users.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await users_route.update_user_status(user_id="ghost", status="inativo", current_user=admin_user)
+        assert exc.value.status_code == 404
+        mock_db.users.update_one.assert_not_awaited()
 
     @pytest.mark.parametrize("status", ["ativo", "inativo", "pendente_convite"])
     async def test_admin_accepts_every_valid_status(self, mock_db, admin_user, status):
         from models import USER_STATUSES
 
         assert status in USER_STATUSES
+        mock_db.users.find_one = AsyncMock(return_value={"id": "some-id"})
         await users_route.update_user_status(user_id="some-id", status=status, current_user=admin_user)
         mock_db.users.update_one.assert_awaited_with({"id": "some-id"}, {"$set": {"status": status}})
 

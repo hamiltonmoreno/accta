@@ -15,7 +15,7 @@ que abriria ligacao ao DB no startup).
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import BackgroundTasks, HTTPException, Response
@@ -148,6 +148,25 @@ class TestSetupAccount:
             )
         assert getattr(exc.value, "status_code", None) == 400
         # Conta nao activada -> nenhum welcome agendado.
+        assert bt.tasks == []
+
+    async def test_concurrent_claim_409(self, mock_db, setup_env):
+        """Race de duplo setup: o user ainda é encontrado e o token não expirou,
+        mas o UPDATE-CAS (filtro token+status) não casa porque outro pedido já
+        activou a conta → modified_count==0 → 409 (e nada agendado)."""
+        from models import SetupAccount
+
+        mock_db.users.find_one = AsyncMock(return_value=_pending_user())
+        mock_db.users.update_one = AsyncMock(return_value=MagicMock(modified_count=0))
+        bt = BackgroundTasks()
+        with pytest.raises(Exception) as exc:
+            await auth_routes.setup_account(
+                request=_request(),
+                response=Response(),
+                background_tasks=bt,
+                data=SetupAccount(token="valid-token", password="abcd1234"),
+            )
+        assert getattr(exc.value, "status_code", None) == 409
         assert bt.tasks == []
 
 

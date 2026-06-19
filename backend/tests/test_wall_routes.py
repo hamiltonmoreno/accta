@@ -236,8 +236,8 @@ class TestLike:
         async def find_one(_q, _proj):
             call_count["n"] += 1
             if call_count["n"] == 1:
-                return {"id": "p1", "likes": []}
-            return {"id": "p1", "likes": [socio_user.id]}
+                return {"id": "p1", "likes": [], "approved": True}
+            return {"id": "p1", "likes": [socio_user.id], "approved": True}
 
         mock_db.wall_posts.find_one = find_one
         result = await wall_route.toggle_like_wall_post(post_id="p1", current_user=socio_user)
@@ -250,8 +250,8 @@ class TestLike:
         async def find_one(_q, _proj):
             call_count["n"] += 1
             if call_count["n"] == 1:
-                return {"id": "p1", "likes": [socio_user.id]}
-            return {"id": "p1", "likes": []}
+                return {"id": "p1", "likes": [socio_user.id], "approved": True}
+            return {"id": "p1", "likes": [], "approved": True}
 
         mock_db.wall_posts.find_one = find_one
         result = await wall_route.toggle_like_wall_post(post_id="p1", current_user=socio_user)

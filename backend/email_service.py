@@ -106,6 +106,19 @@ def password_reset_email_html(name: str, reset_url: str, token: str) -> str:
 
 def welcome_email_html(name: str) -> str:
     name = escape(name or "", quote=True)
+    # Link funcional para o portal: resolve via FRONTEND_URL (mesmo padrão de
+    # comunicado_email_html). Sem base configurada, omite o botão (em vez do antigo
+    # href="#" morto) — o utilizador já acede pela página que tinha aberta.
+    base = os.environ.get("FRONTEND_URL", "").rstrip("/")
+    cta_block = ""
+    if base:
+        portal_url = f"{base}/dashboard"
+        cta_block = f"""
+    <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
+      <a href="{portal_url}" style="display:inline-block;padding:12px 32px;background-color:#C7202F;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:8px;">
+        Aceder ao Portal
+      </a>
+    </td></tr></table>"""
     content = f"""
     <h2 style="margin:0 0 8px;font-size:20px;color:#3A3A3A;">Conta Ativada!</h2>
     <p style="margin:0 0 20px;font-size:14px;color:#6b7280;line-height:1.6;">
@@ -113,12 +126,7 @@ def welcome_email_html(name: str) -> str:
     </p>
     <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">
       Agora tem acesso a todas as funcionalidades da area reservada: dashboard, votacoes, eventos, documentos, mural e muito mais.
-    </p>
-    <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
-      <a href="#" style="display:inline-block;padding:12px 32px;background-color:#C7202F;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:8px;">
-        Aceder ao Portal
-      </a>
-    </td></tr></table>"""
+    </p>{cta_block}"""
     return _base_template(content)
 
 

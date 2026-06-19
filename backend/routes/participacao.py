@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from asyncpg.exceptions import UniqueViolationError
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 
 from auth import generate_qr_hash, get_current_user
 from database import db, next_member_id
@@ -644,7 +644,12 @@ async def abrir_votacao_honorario(nom_id: str, request: Request, current_user: U
 
 
 @router.post("/honorarios/{nom_id}/apurar", response_model=HonorarioNomination)
-async def apurar_honorario(nom_id: str, request: Request, current_user: User = Depends(get_current_user)):
+async def apurar_honorario(
+    nom_id: str,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+):
     if not _can_manage_honorarios(current_user):
         raise HTTPException(status_code=403, detail="Apenas a Mesa da AG (ou admin) pode apurar a votação")
     nom = await db.honorarios_nominations.find_one({"id": nom_id}, {"_id": 0})
@@ -653,10 +658,12 @@ async def apurar_honorario(nom_id: str, request: Request, current_user: User = D
     if nom["status"] != "em_votacao":
         raise HTTPException(status_code=409, detail="Esta nomeação não está em votação")
     poll_id = nom.get("poll_id")
+    # Lê os votos ANTES de fechar o poll: fechar primeiro abria uma janela em que o
+    # poll estava "encerrada" mas o apuramento ainda não tinha lido os votos.
+    votes = await db.user_votes.find({"poll_id": poll_id}, {"_id": 0, "vote_option": 1}).to_list(None)
     # Fecha o poll (idempotente — não falha se já encerrado/inexistente).
     if poll_id:
         await db.polls.update_one({"id": poll_id}, {"$set": {"status": "encerrada"}})
-    votes = await db.user_votes.find({"poll_id": poll_id}, {"_id": 0, "vote_option": 1}).to_list(None)
     favor = sum(1 for v in votes if v.get("vote_option") == 1)
     contra = sum(1 for v in votes if v.get("vote_option") == 2)
     base = favor + contra  # decisão do dono: votos válidos (abstenções fora)
@@ -679,7 +686,7 @@ async def apurar_honorario(nom_id: str, request: Request, current_user: User = D
         details={"favor": favor, "contra": contra, "base": base, "aprovado": aprovado},
     )
     if aprovado:
-        await _aplicar_honorario_eleito(nom, request)
+        await _aplicar_honorario_eleito(nom, request, background_tasks)
         await notify_admins(
             "system",
             "Membro honorário eleito",
@@ -728,13 +735,19 @@ async def ligar_honorario_assembleia(
     return await db.honorarios_nominations.find_one({"id": nom_id}, {"_id": 0})
 
 
-async def _aplicar_honorario_eleito(nom: dict, request: Request) -> None:
+async def _aplicar_honorario_eleito(
+    nom: dict, request: Request, background_tasks: BackgroundTasks
+) -> None:
     """Efeitos da eleição. O email é identificador universal:
     - nomeado interno (`nominee_user_id`) OU email de um sócio já existente →
       eleva (`member_category=honorario`);
     - email de pessoa nova → cria utilizador `pendente_convite` + convite
       (reusa send_invite_email). STOP: email real — spec §13 (validar inbox dev);
-    - sem identificador → fica registado como eleito, sem conta."""
+    - sem identificador → fica registado como eleito, sem conta.
+
+    O envio do convite vai por BackgroundTask depois do CAS irrevogável: se o
+    email falhar, o sócio fica criado/convidado em DB e o estado de governança
+    persiste — o convite reenvia-se, não se perde a eleição num 500."""
     user_id = nom.get("nominee_user_id")
     if not user_id and nom.get("nominee_email"):
         existing = await db.users.find_one({"email": nom["nominee_email"]}, {"_id": 0, "id": 1})
@@ -787,4 +800,5 @@ async def _aplicar_honorario_eleito(nom: dict, request: Request) -> None:
     await db.honorarios_nominations.update_one({"id": nom["id"]}, {"$set": {"nominee_user_id": new_user_id}})
     origin = resolve_link_base(request)
     setup_url = f"{origin}/setup-account?token={invite_token}" if origin else ""
-    await send_invite_email(nom["nominee_name"], nom["nominee_email"], setup_url)
+    # Fire-and-forget: o estado já persistiu; um email falhado não dá 500.
+    background_tasks.add_task(send_invite_email, nom["nominee_name"], nom["nominee_email"], setup_url)

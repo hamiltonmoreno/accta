@@ -35,6 +35,16 @@ from routes import prestacao_contas as pc
 pytestmark = pytest.mark.unit
 
 
+def _request():
+    """Fake Request para satisfazer a assinatura de update_transaction."""
+
+    class _R:
+        client = type("C", (), {"host": "127.0.0.1"})
+        headers = {"User-Agent": "test", "origin": "https://accta.cv"}
+
+    return _R()
+
+
 def _user(role="socio", cargo="socio", privileges=None, uid=None) -> User:
     return User(
         id=uid or str(uuid.uuid4()),
@@ -192,7 +202,7 @@ class TestParecer:
         _wire(mock_db)
         with pytest.raises(HTTPException) as e:
             await fin_route.update_transaction(
-                "t1", TransactionUpdate(amount=10.0), current_user=_CF()
+                "t1", TransactionUpdate(amount=10.0), _request(), current_user=_CF()
             )
         assert e.value.status_code == 403
 

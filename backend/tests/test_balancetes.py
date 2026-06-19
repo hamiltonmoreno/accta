@@ -21,6 +21,16 @@ from routes import prestacao_contas as pc
 pytestmark = pytest.mark.unit
 
 
+def _request():
+    """Fake Request para satisfazer a assinatura de update_transaction."""
+
+    class _R:
+        client = type("C", (), {"host": "127.0.0.1"})
+        headers = {"User-Agent": "test", "origin": "https://accta.cv"}
+
+    return _R()
+
+
 def _user(role="socio", cargo="socio", privileges=None, uid=None) -> User:
     return User(
         id=uid or str(uuid.uuid4()),
@@ -214,6 +224,7 @@ class TestProofUrlPatch:
         await fin_route.update_transaction(
             "t1",
             TransactionUpdate(proof_url="https://x/comprovativo.pdf"),
+            _request(),
             current_user=_tesoureiro(),
         )
         set_ = mock_db.transactions.update_one.call_args.args[1]["$set"]

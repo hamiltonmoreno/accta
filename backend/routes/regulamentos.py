@@ -41,8 +41,14 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _can_manage(user: User) -> bool:
+    """Mesma verificação de role/privilégio do gate `_require_manage`, mas sem
+    levantar exceção — usada para decidir o que um leitor pode ver."""
+    return user.role == "admin" or is_direcao(user) or user_can(user, "manage_documents")
+
+
 def _require_manage(user: User):
-    if not (user.role == "admin" or is_direcao(user) or user_can(user, "manage_documents")):
+    if not _can_manage(user):
         raise HTTPException(status_code=403, detail="Apenas a Direccao ou admin pode gerir regulamentos")
 
 
@@ -108,21 +114,43 @@ async def create_regulamento(data: RegulamentoCreate, current_user: User = Depen
 
 @router.get("")
 async def list_regulamentos(current_user: User = Depends(get_current_user)):
+    can_manage = _can_manage(current_user)
     regs = await db.regulamentos.find({}, {"_id": 0}).sort("created_at", -1).to_list(None)
+    # Batch: resolve todas as versões em vigor num único find($in) em vez de um
+    # find_one por regulamento (evita N+1 round-trips à DB).
+    version_ids = [r["current_version_id"] for r in regs if r.get("current_version_id")]
+    versoes_by_id = {}
+    if version_ids:
+        versoes = await db.regulamento_versoes.find(
+            {"id": {"$in": version_ids}}, {"_id": 0}
+        ).to_list(None)
+        versoes_by_id = {v["id"]: v for v in versoes}
+    visible = []
     for r in regs:
-        cur = None
-        if r.get("current_version_id"):
-            cur = await db.regulamento_versoes.find_one({"id": r["current_version_id"]}, {"_id": 0})
+        cur = versoes_by_id.get(r.get("current_version_id"))
+        # Sócios comuns só veem regulamentos com uma versão em vigor aprovada;
+        # rascunhos/versões não aprovadas ficam ocultos. Gestores veem tudo.
+        if not can_manage and (cur is None or cur.get("status") != "aprovado"):
+            continue
         r["current_version"] = cur
-    return {"items": regs, "total": len(regs)}
+        visible.append(r)
+    return {"items": visible, "total": len(visible)}
 
 
 @router.get("/{regulamento_id}")
 async def get_regulamento(regulamento_id: str, current_user: User = Depends(get_current_user)):
+    can_manage = _can_manage(current_user)
     reg = await _get_regulamento(regulamento_id)
     versoes = await db.regulamento_versoes.find(
         {"regulamento_id": regulamento_id}, {"_id": 0}
     ).to_list(None)
+    # Sócios comuns só veem versões aprovadas; rascunhos/em_aprovação ficam ocultos.
+    # Sem qualquer versão aprovada, o regulamento não é público (404 — não revela
+    # a existência de um repositório só com rascunhos). Gestores veem tudo.
+    if not can_manage:
+        versoes = [v for v in versoes if v.get("status") == "aprovado"]
+        if not versoes:
+            raise HTTPException(status_code=404, detail="Regulamento nao encontrado")
     versoes.sort(key=lambda v: v.get("versao", 0), reverse=True)
     reg["versoes"] = versoes
     return reg

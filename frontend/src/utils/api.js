@@ -266,16 +266,10 @@ export const usersAPI = {
   getPrivileges: () => api.get('/users/meta/privileges'),
 };
 
-// Invoices API
-export const invoicesAPI = {
-  getAll: () => api.get('/invoices'),
-  create: (data) => api.post('/invoices', data),
-  confirm: (invoiceId) => api.patch(`/invoices/${invoiceId}/confirm`),
-};
-
 // Finances API
 export const financesAPI = {
   getTransactions: (params) => api.get('/finances/transactions', { params }),
+  getMyQuotas: () => api.get('/finances/me/quotas'),
   getTransactionCount: (params) => api.get('/finances/transactions/count', { params }),
   exportTransactionsCsv: (params) => api.get('/finances/transactions/csv', { params, responseType: 'blob' }),
   createTransaction: (data) => api.post('/finances/transactions', data),

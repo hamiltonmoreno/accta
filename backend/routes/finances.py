@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Optional
 import re
 from models import (
@@ -120,9 +120,38 @@ async def count_transactions(
     return {"count": count}
 
 
+@router.get("/me/quotas")
+async def list_my_quotas(current_user: User = Depends(get_current_user)):
+    """Vista self-service do sócio sobre os SEUS lançamentos de quota/jóia.
+
+    NÃO exige view_finances: qualquer utilizador autenticado vê apenas os seus
+    (filtro fixo por user_id). As quotas reais vivem em `transactions` (lançadas
+    via geração mensal/folha); não há estado pendente/pago — todos os lançamentos
+    listados são efetivos. Substitui o antigo módulo `invoices`.
+    """
+    query = {
+        "user_id": current_user.id,
+        "type": "receita",
+        "category": {"$in": ["quotas", "joias"]},
+    }
+    items = await db.transactions.find(query, {"_id": 0}).sort("date", -1).to_list(None)
+
+    def _amount(t: dict) -> float:
+        # Coerção defensiva: tolera amount ausente/None/string mal-formada em
+        # docs legados sem rebentar o endpoint (não há validação na leitura).
+        try:
+            return float(t.get("amount") or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    total_pago = sum(_amount(t) for t in items)
+    return {"items": items, "total_pago": total_pago}
+
+
 @router.post("/transactions")
 async def create_transaction(
     data: TransactionCreate,
+    request: Request,
     current_user: User = Depends(get_current_user),
 ):
     require_manage_finances(current_user)
@@ -156,7 +185,10 @@ async def create_transaction(
 
     await db.transactions.insert_one(t_dict)
     await create_audit_log(
-        current_user.id, f"Criou transacao {transaction.id} ({data.type}: {data.amount} CVE)", transaction.id
+        current_user.id,
+        f"Criou transacao {transaction.id} ({data.type}: {data.amount} CVE)",
+        transaction.id,
+        request=request,
     )
 
     # Notify admins about new transaction (if creator is financeiro, not admin)
@@ -176,6 +208,7 @@ async def create_transaction(
 async def update_transaction(
     transaction_id: str,
     data: TransactionUpdate,
+    request: Request,
     current_user: User = Depends(get_current_user),
 ):
     require_manage_finances(current_user)
@@ -218,7 +251,9 @@ async def update_transaction(
 
     if updates:
         await db.transactions.update_one({"id": transaction_id}, {"$set": updates})
-        await create_audit_log(current_user.id, f"Atualizou transacao {transaction_id}", transaction_id)
+        await create_audit_log(
+            current_user.id, f"Atualizou transacao {transaction_id}", transaction_id, request=request
+        )
 
     updated = await db.transactions.find_one({"id": transaction_id}, {"_id": 0})
     return updated
@@ -227,6 +262,7 @@ async def update_transaction(
 @router.delete("/transactions/{transaction_id}")
 async def delete_transaction(
     transaction_id: str,
+    request: Request,
     current_user: User = Depends(get_current_user),
 ):
     require_manage_finances(current_user)
@@ -236,7 +272,7 @@ async def delete_transaction(
         raise HTTPException(status_code=404, detail="Transacao nao encontrada")
 
     await db.transactions.delete_one({"id": transaction_id})
-    await create_audit_log(current_user.id, f"Removeu transacao {transaction_id}", transaction_id)
+    await create_audit_log(current_user.id, f"Removeu transacao {transaction_id}", transaction_id, request=request)
     return {"message": "Transacao removida"}
 
 
@@ -279,13 +315,12 @@ async def compute_financial_summary(
                 end = f"{year}-{month + 1:02d}-01T00:00:00"
         query["date"] = {"$gte": start, "$lt": end}
 
-    transactions = (
-        await db.transactions.find(
-            query, {"_id": 0, "type": 1, "amount": 1, "category": 1, "description": 1, "date": 1}
-        )
-        .limit(5000)
-        .to_list(5000)
-    )
+    # Sem teto: um cap de 5000 truncava silenciosamente os totais acima de 5000
+    # transações na janela (paridade com as restantes agregações, que usam
+    # to_list(None)).
+    transactions = await db.transactions.find(
+        query, {"_id": 0, "type": 1, "amount": 1, "category": 1, "description": 1, "date": 1}
+    ).to_list(None)
 
     # .get() defensivo: documentos legados/migrados podem não ter todos os
     # campos — antes um KeyError virava 500.
@@ -330,13 +365,11 @@ async def compute_dre_report(year: int) -> dict:
     # "{ano}-12-31T23:59:59" perdia timestamps com fracção de segundo.
     start = f"{year}-01-01T00:00:00"
     end = f"{year + 1}-01-01T00:00:00"  # exclusivo: ver nota em compute_financial_summary
-    transactions = (
-        await db.transactions.find(
-            {"date": {"$gte": start, "$lt": end}}, {"_id": 0, "date": 1, "type": 1, "amount": 1, "category": 1}
-        )
-        .limit(5000)
-        .to_list(5000)
-    )
+    # Sem limite: alinhado com compute_financial_summary (to_list(None)). Um teto
+    # (antes 5000) truncava o DRE em silêncio e divergia do resumo à escala.
+    transactions = await db.transactions.find(
+        {"date": {"$gte": start, "$lt": end}}, {"_id": 0, "date": 1, "type": 1, "amount": 1, "category": 1}
+    ).to_list(None)
 
     # Monthly breakdown
     monthly = {}
@@ -405,6 +438,7 @@ async def get_finance_settings(
 @router.patch("/settings")
 async def update_finance_settings(
     data: FinanceSettingsUpdate,
+    request: Request,
     current_user: User = Depends(get_current_user),
 ):
     if current_user.role != "admin":
@@ -489,7 +523,9 @@ async def update_finance_settings(
     else:
         await db.finance_settings.update_one({"id": "finance_settings"}, {"$set": updates})
 
-    await create_audit_log(current_user.id, f"Atualizou configuracoes financeiras: {updates}")
+    await create_audit_log(
+        current_user.id, f"Atualizou configuracoes financeiras: {updates}", request=request
+    )
 
     # Notify admins about settings change
     if "quota_amount" in updates:
@@ -518,6 +554,7 @@ async def get_finance_settings_history(current_user: User = Depends(get_current_
 
 @router.post("/generate-quotas")
 async def generate_monthly_quotas(
+    request: Request,
     month: int = Query(..., ge=1, le=12),
     year: int = Query(...),
     current_user: User = Depends(get_current_user),
@@ -530,10 +567,12 @@ async def generate_monthly_quotas(
     quota_desc = settings.get("quota_description", "Quota Mensal") if settings else "Quota Mensal"
 
     # Get all active members. Legacy member documents may not have account_type.
+    # Sem teto (antes 1000): acima do limite, sócios excedentes ficavam sem quota
+    # gerada em silêncio. A dedup/inserção por mês é atómica em insert_quotas_atomic.
     active_users = await db.users.find(
         {"status": "ativo", "$or": [{"account_type": "member"}, {"account_type": {"$exists": False}}]},
         {"_id": 0, "id": 1, "name": 1},
-    ).to_list(1000)
+    ).to_list(None)
 
     # Constrói um candidato por sócio activo. A deduplicação por mês (saltar
     # quem já tem quota) e a inserção acontecem ATOMICAMENTE em
@@ -556,7 +595,9 @@ async def generate_monthly_quotas(
     created_count = await insert_quotas_atomic(year, month, candidate_docs)
 
     await create_audit_log(
-        current_user.id, f"Gerou {created_count} quotas para {month:02d}/{year} ({quota_amount} CVE cada)"
+        current_user.id,
+        f"Gerou {created_count} quotas para {month:02d}/{year} ({quota_amount} CVE cada)",
+        request=request,
     )
 
     # Notify all active users that quotas were generated
@@ -650,7 +691,9 @@ async def export_transactions_csv(
     if search:
         query["description"] = {"$regex": _safe_search_regex(search), "$options": "i"}
 
-    transactions = await db.transactions.find(query, {"_id": 0}).sort("date", -1).limit(5000).to_list(None)
+    # Sem limite: alinhado com o resumo/DRE. Um teto (antes 5000) truncava o
+    # export em silêncio, omitindo lançamentos sem qualquer aviso.
+    transactions = await db.transactions.find(query, {"_id": 0}).sort("date", -1).to_list(None)
 
     import csv
 
@@ -941,6 +984,15 @@ async def preview_joia(
     if not user:
         raise HTTPException(status_code=404, detail="Utilizador nao encontrado")
     if cta_qualified_since is not None:
+        # Valida o override: data ISO-8601 e não-futura. Sem isto, uma data
+        # futura produzia uma qualificação/jóia enganosa no modal de aprovação.
+        # joia_status interpreta a qualificação como `date` (AAAA-MM-DD).
+        try:
+            since_date = date.fromisoformat(cta_qualified_since.strip()[:10])
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=422, detail="cta_qualified_since deve ser uma data ISO-8601 valida")
+        if since_date > datetime.now(timezone.utc).date():
+            raise HTTPException(status_code=422, detail="cta_qualified_since nao pode ser uma data futura")
         user = {**user, "cta_qualified_since": cta_qualified_since}
     settings = await db.finance_settings.find_one({"id": "finance_settings"}, {"_id": 0})
     if not isinstance(settings, dict):

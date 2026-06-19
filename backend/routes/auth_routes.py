@@ -251,17 +251,24 @@ async def setup_account(request: Request, response: Response, background_tasks: 
     hashed = hash_password(data.password)
     now = datetime.now(timezone.utc).isoformat()
 
-    await db.users.update_one(
-        {"id": user_doc["id"]},
+    # CAS: a activação só vence se o convite ainda estiver por usar (mesmo token +
+    # status pendente_convite). Fecha a race de dois POST /setup-account concorrentes
+    # com o mesmo token — sem isto, ambos passavam e o 2.º re-emitia um token/sessão.
+    # password_changed_at por paridade com reset_password (invalida tokens anteriores).
+    claimed = await db.users.update_one(
+        {"id": user_doc["id"], "invite_token": data.token, "status": "pendente_convite"},
         {
             "$set": {
                 "password": hashed,
                 "status": "ativo",
                 "invite_token": None,
                 "last_login_at": now,
+                "password_changed_at": now,
             }
         },
     )
+    if claimed.modified_count == 0:
+        raise HTTPException(status_code=409, detail="Token de convite invalido ou conta ja ativada")
 
     user_doc["password"] = ""
     user_doc["status"] = "ativo"

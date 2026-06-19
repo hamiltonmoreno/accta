@@ -1,13 +1,11 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { invoicesAPI } from '../../../utils/api';
+import { financesAPI } from '../../../utils/api';
 import { queryKeys } from '../../../lib/queryClient';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DollarSign, TrendingUp } from 'lucide-react';
-import {
-  INVOICE_STATUS_CONFIG, INVOICE_STATUS_FALLBACK, getStatusConfig,
-} from '../../../lib/statusConfig';
+import { CATEGORY_LABELS } from './constants';
 import { EmptyState } from '../../../components/EmptyState';
 import { Skeleton } from '../../../components/ui/skeleton';
 
@@ -22,12 +20,15 @@ const StatBlock = ({ label, value, icon: Icon, color }) => (
 );
 
 export const MemberFinanceView = () => {
-  const { data: invoices = [], isLoading: loading } = useQuery({
-    queryKey: queryKeys.invoices.list(),
-    queryFn: async () => (await invoicesAPI.getAll()).data,
+  // Quotas/jóias do próprio sócio, lidas de `transactions` (filtro por user_id no
+  // backend). Não há estado pendente/pago — são lançamentos efetivos (folha).
+  const { data, isLoading: loading } = useQuery({
+    queryKey: queryKeys.myQuotas.list(),
+    queryFn: async () => (await financesAPI.getMyQuotas()).data,
   });
 
-  const totalPago = invoices.filter((i) => i.status === 'pago').reduce((s, i) => s + i.amount, 0);
+  const items = data?.items || [];
+  const totalPago = data?.total_pago || 0;
 
   return (
     <div className="space-y-5 sm:space-y-6">
@@ -47,51 +48,43 @@ export const MemberFinanceView = () => {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
-        <StatBlock label="Registos" value={invoices.length} icon={DollarSign} color="bg-grafite" />
+        <StatBlock label="Registos" value={items.length} icon={DollarSign} color="bg-grafite" />
         <StatBlock label="Total Pago" value={`${totalPago.toLocaleString('pt')} CVE`} icon={TrendingUp} color="bg-[#16A34A]" />
       </div>
 
       {loading ? (
-        <div className="card-technical overflow-hidden divide-y divide-gray-50" data-testid="invoices-loading">
+        <div className="card-technical overflow-hidden divide-y divide-gray-50" data-testid="quotas-loading">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="p-4 flex items-center justify-between">
               <div className="space-y-2">
                 <Skeleton className="h-3.5 w-24" />
                 <Skeleton className="h-3 w-20" />
               </div>
-              <div className="flex flex-col items-end gap-2">
-                <Skeleton className="h-3.5 w-20" />
-                <Skeleton className="h-5 w-16 rounded-full" />
-              </div>
+              <Skeleton className="h-3.5 w-20" />
             </div>
           ))}
         </div>
-      ) : invoices.length === 0 ? (
-        <EmptyState icon={DollarSign} title="Nenhum registo encontrado" testId="no-invoices" />
+      ) : items.length === 0 ? (
+        <EmptyState icon={DollarSign} title="Nenhum registo encontrado" testId="no-quotas" />
       ) : (
         <div className="card-technical overflow-hidden">
           <div className="divide-y divide-gray-50">
-            {invoices.map((inv) => {
-              const statusCfg = getStatusConfig(INVOICE_STATUS_CONFIG, inv.status, INVOICE_STATUS_FALLBACK);
-              const StatusIcon = statusCfg.icon;
-              return (
-              <div key={inv.id} className="p-4 flex items-center justify-between" data-testid={`invoice-${inv.id}`}>
+            {items.map((tx) => (
+              <div key={tx.id} className="p-4 flex items-center justify-between" data-testid={`quota-${tx.id}`}>
                 <div>
-                  <span className="font-semibold text-sm capitalize text-grafite-auto">{inv.type}</span>
+                  <span className="font-semibold text-sm text-grafite-auto">
+                    {CATEGORY_LABELS[tx.category] || tx.description || tx.category}
+                  </span>
                   <div className="text-xs mt-0.5 text-muted-auto">
-                    {inv.due_date ? format(new Date(inv.due_date), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
+                    {tx.date ? format(new Date(tx.date), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
+                    {tx.reference ? ` · ${tx.reference}` : ''}
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="font-mono font-bold text-sm text-grafite-auto">{inv.amount} CVE</div>
-                  <span className={`inline-flex items-center gap-1 text-xs font-semibold uppercase px-2 py-0.5 rounded-full mt-0.5 ${statusCfg.className}`}>
-                    <StatusIcon className="w-3 h-3" aria-hidden="true" />
-                    {inv.status}
-                  </span>
+                <div className="font-mono font-bold text-sm text-grafite-auto">
+                  {(tx.amount || 0).toLocaleString('pt')} CVE
                 </div>
               </div>
-              );
-            })}
+            ))}
           </div>
         </div>
       )}

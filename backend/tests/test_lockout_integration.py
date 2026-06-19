@@ -36,17 +36,28 @@ class _FakeLoginAttempts:
         self.docs = [d for d in self.docs if d.get("email") != email]
         return type("R", (), {"deleted_count": before - len(self.docs)})()
 
+    @staticmethod
+    def _as_dt(value):
+        """Mirror do DAO real: `attempted_at` está em `_DATETIME_FIELDS`, logo é
+        guardado como string ISO e REHIDRATADO para datetime na leitura. O fake
+        faz o mesmo aqui para aceitar tanto strings (record_failed_login) como
+        datetimes (docs injetados pelos testes)."""
+        return datetime.fromisoformat(value) if isinstance(value, str) else value
+
     def _in_window(self, filt):
         email = filt["email"]
         gte = filt["attempted_at"]["$gte"]
-        return [d for d in self.docs if d.get("email") == email and d["attempted_at"] >= gte]
+        return [
+            d for d in self.docs
+            if d.get("email") == email and self._as_dt(d["attempted_at"]) >= gte
+        ]
 
     async def count_documents(self, filt):
         return len(self._in_window(filt))
 
     async def find_one(self, filt, sort=None):
         cands = self._in_window(filt)
-        return min(cands, key=lambda d: d["attempted_at"]) if cands else None
+        return min(cands, key=lambda d: self._as_dt(d["attempted_at"])) if cands else None
 
 
 @pytest.fixture

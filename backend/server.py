@@ -180,6 +180,15 @@ def _validate_runtime_config():
         )
     if not cors_origins and cors_origins_raw != "*":
         logger.warning("CORS_ORIGINS is empty - defaulting to '*'. Set an explicit list in production for security.")
+    # CSRFOriginCheckMiddleware só valida Origin/Referer quando `allowed_origins`
+    # não está vazio; com CORS_ORIGINS vazio a proteção CSRF para cookie-auth fica
+    # INATIVA. Em prod isto não acontece (arranque já falha com CORS vazio acima),
+    # mas fora de prod avisa-se explicitamente em vez de silêncio.
+    if not cors_origins:
+        logger.warning(
+            "CSRF protection INATIVA: CORS_ORIGINS vazio - o middleware de verificação de Origin "
+            "é ignorado para auth por cookie. Defina CORS_ORIGINS para ativar a proteção."
+        )
 
 
 async def _bootstrap_admin_if_requested():

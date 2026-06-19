@@ -131,6 +131,26 @@ class TestPreviewEndpoint:
         )
         assert result["joia_devida"] == 4000.0
 
+    async def test_override_data_futura_422(self, mock_db, admin_user):
+        # Regressão #279: data futura produziria qualificação/jóia enganosa.
+        mock_db.users.find_one = AsyncMock(return_value={"id": "u1", "member_category": "ordinario"})
+        mock_db.finance_settings.find_one = AsyncMock(return_value={"quota_amount": 2000.0, "joia_multiplier": 2.0})
+        with pytest.raises(HTTPException) as exc:
+            await finances_route.preview_joia(
+                user_id="u1", cta_qualified_since="2999-12-31", current_user=admin_user
+            )
+        assert exc.value.status_code == 422
+        assert "futura" in exc.value.detail.lower()
+
+    async def test_override_formato_invalido_422(self, mock_db, admin_user):
+        mock_db.users.find_one = AsyncMock(return_value={"id": "u1", "member_category": "ordinario"})
+        mock_db.finance_settings.find_one = AsyncMock(return_value={"quota_amount": 2000.0, "joia_multiplier": 2.0})
+        with pytest.raises(HTTPException) as exc:
+            await finances_route.preview_joia(
+                user_id="u1", cta_qualified_since="nao-e-data", current_user=admin_user
+            )
+        assert exc.value.status_code == 422
+
     async def test_settings_em_falta_usa_default(self, mock_db, admin_user):
         # finance_settings.find_one → None (default do mock); usa FinanceSettings().
         mock_db.users.find_one = AsyncMock(

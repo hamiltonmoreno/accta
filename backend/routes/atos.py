@@ -20,7 +20,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from auth import can_view_finances, get_current_user
-from database import db
+from database import db, sign_ato_atomic
 from helpers import create_audit_log, members_of_orgao, notify_users
 from models import (
     ATO_DECISOES,
@@ -144,24 +144,30 @@ async def sign_ato(ato_id: str, data: AtoSign, request: Request, current_user: U
     if data.decisao not in ATO_DECISOES:
         raise HTTPException(status_code=400, detail=f"Decisao invalida. Use: {ATO_DECISOES}")
 
-    ato = await db.atos.find_one({"id": ato_id}, {"_id": 0})
-    if not ato:
-        raise HTTPException(status_code=404, detail="Acto nao encontrado")
-    if ato.get("status") != "pendente":
-        raise HTTPException(status_code=400, detail="O acto ja nao esta pendente")
-    if _has_signed(ato, current_user.id):
-        raise HTTPException(status_code=400, detail="Ja assinou este acto")
-
     assinatura = {
         "user_id": current_user.id,
         "cargo": current_user.cargo,
         "decisao": data.decisao,
         "signed_at": datetime.now(timezone.utc).isoformat(),
     }
-    novas_assinaturas = (ato.get("assinaturas") or []) + [assinatura]
-    novo_status = evaluate_status(novas_assinaturas, ato.get("requisitos") or {})
+    # Assinatura + reapuramento de estado SOB lock da linha do acto (fecha a race
+    # TOCTOU de duas assinaturas concorrentes — ver database.sign_ato_atomic). A
+    # regra estatutária (evaluate_status) entra como callable; o DAO não importa
+    # permissions/governance.
+    result = await sign_ato_atomic(ato_id, current_user.id, assinatura, evaluate_status)
+    outcome = result["outcome"]
+    if outcome == "not_found":
+        raise HTTPException(status_code=404, detail="Acto nao encontrado")
+    if outcome == "not_pending":
+        raise HTTPException(status_code=400, detail="O acto ja nao esta pendente")
+    if outcome == "already_signed":
+        raise HTTPException(status_code=409, detail="Ja assinou este acto")
+    if outcome == "locked":
+        # Contenção transitória (outra assinatura concorrente segura o lock).
+        raise HTTPException(status_code=409, detail="Assinatura concorrente em curso. Tente novamente.")
 
-    await db.atos.update_one({"id": ato_id}, {"$set": {"assinaturas": novas_assinaturas, "status": novo_status}})
+    ato = result["ato"]
+    novo_status = ato["status"]
     await create_audit_log(
         current_user.id,
         f"Assinou acto {ato_id} ({data.decisao})",
@@ -182,7 +188,10 @@ async def sign_ato(ato_id: str, data: AtoSign, request: Request, current_user: U
             exclude_id=current_user.id,
         )
 
-    return await db.atos.find_one({"id": ato_id}, {"_id": 0})
+    # Devolve o doc já atualizado por sign_ato_atomic (= dict(row["doc"]), sem
+    # pk/_id) em vez de um re-fetch: poupa um round-trip e fecha a janela em que
+    # um assinante concorrente devolveria um doc mais recente que o assinado.
+    return ato
 
 
 @router.post("/{ato_id}/executar")

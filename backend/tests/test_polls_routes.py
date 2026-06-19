@@ -80,6 +80,20 @@ class TestGetPolls:
         await polls_route.get_polls(current_user=admin_user)
         mock_db.polls.find.assert_called_once_with({}, {"_id": 0})
 
+    async def test_has_voted_flag_per_user(self, mock_db, socio_user):
+        # p1 já votado pelo utilizador, p2 não — só o próprio voto conta (voto secreto).
+        mock_db.polls.find = MagicMock(
+            return_value=_cursor([{"id": "p1", "title": "A"}, {"id": "p2", "title": "B"}])
+        )
+        mock_db.user_votes.find = MagicMock(return_value=_cursor([{"poll_id": "p1"}]))
+        result = await polls_route.get_polls(current_user=socio_user)
+        by_id = {p["id"]: p for p in result}
+        assert by_id["p1"]["has_voted"] is True
+        assert by_id["p2"]["has_voted"] is False
+        # 1 única query a user_votes, restrita ao próprio utilizador e aos ids da página.
+        q = mock_db.user_votes.find.call_args[0][0]
+        assert q == {"user_id": socio_user.id, "poll_id": {"$in": ["p1", "p2"]}}
+
     async def test_limit_capped_at_100(self, mock_db, socio_user):
         captured = {}
 

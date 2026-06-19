@@ -35,7 +35,7 @@ async def seed_database():
     # Limpar coleções existentes
     collections = [
         "users",
-        "invoices",
+        "transactions",
         "polls",
         "user_votes",
         "posts",
@@ -132,14 +132,15 @@ async def seed_database():
     await db.users.insert_many(users)
     print(f"  {len(users)} usuarios criados")
 
-    # ===== INVOICES =====
-    invoices = []
+    # ===== QUOTAS (transactions) =====
+    # As quotas vivem em `transactions` (fonte única; lançadas via geração
+    # mensal/folha). Geramos as dos últimos 6 meses por sócio para alimentar a
+    # vista "Minhas Quotas" (GET /finances/me/quotas) e o summary/DRE.
+    quota_txs = []
     current_year = datetime.now().year
 
-    # Criar quotas para todos os sócios
     for user in users:
         if user["role"] == "socio":
-            # Quotas dos últimos 6 meses
             for month in range(6):
                 current_month = datetime.now().month
                 target_month = current_month - month
@@ -149,28 +150,25 @@ async def seed_database():
                     target_month = 12 + target_month
                     target_year = current_year - 1
 
-                due_date = datetime(target_year, target_month, 10, tzinfo=timezone.utc)
+                tx_date = datetime(target_year, target_month, 15, tzinfo=timezone.utc)
 
-                status = "pago"
-
-                invoice = {
+                quota_txs.append({
                     "id": str(uuid.uuid4()),
-                    "user_id": user["id"],
-                    "type": "quota",
+                    "type": "receita",
+                    "category": "quotas",
+                    "description": "Quota Mensal",
                     "amount": 500.0,  # 500 CVE
-                    "due_date": due_date.isoformat(),
-                    "status": status,
-                    "source": "folha_salarial",
-                    "payroll_reference": f"Folha AAC {due_date.strftime('%B/%Y')}",
-                    "confirmed_by_admin": status == "pago",
-                    "confirmed_at": due_date.isoformat() if status == "pago" else None,
-                    "notes": None,
-                    "created_at": (due_date - timedelta(days=15)).isoformat(),
-                }
-                invoices.append(invoice)
+                    "date": tx_date.isoformat(),
+                    "reference": f"FOLHA-{target_year}{target_month:02d}",
+                    "user_id": user["id"],
+                    # Quem "gera" as quotas é um gestor de finanças; usar um id real
+                    # (admin) por rastreabilidade, alinhado com os restantes created_by.
+                    "created_by": admin_id,
+                    "created_at": (tx_date - timedelta(days=15)).isoformat(),
+                })
 
-    await db.invoices.insert_many(invoices)
-    print(f"✅ {len(invoices)} invoices criados")
+    await db.transactions.insert_many(quota_txs)
+    print(f"✅ {len(quota_txs)} quotas (transactions) criadas")
 
     # ===== POLLS =====
     polls = []
@@ -417,7 +415,7 @@ async def seed_database():
             "id": str(uuid.uuid4()),
             "user_id": fin_id,
             "action": "Confirmou pagamento de quota",
-            "target_id": invoices[0]["id"] if invoices else None,
+            "target_id": quota_txs[0]["id"] if quota_txs else None,
             "created_at": (datetime.now(timezone.utc) - timedelta(days=10)).isoformat(),
         },
         {

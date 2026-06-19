@@ -9,7 +9,7 @@ colecções existentes + ajustes manuais. Pesos são configuráveis em
 Invariantes:
 - Voto secreto preservado: da eleição usa-se só a **comparência** (recibo HMAC),
   nunca o boletim/sentido de voto (§3.3).
-- Quotas/invoices NÃO entram no score (desconto em folha; §0).
+- Quotas NÃO entram no score (desconto em folha; §0).
 - Datas no `doc` são ISO-8601 string → o filtro de período é comparação
   lexicográfica de strings (`$gte`/`$lt`).
 """
@@ -22,7 +22,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from database import db
+from database import db, replace_period_scores
 from auth import SECRET_KEY
 
 # Pesos default (§3.1) — validados pela Direcção; afináveis em ranking_settings.
@@ -274,10 +274,9 @@ async def rebuild_scores(period_key: str) -> int:
             }
         )
 
-    # Substitui o snapshot do período (idempotente).
-    await db.member_scores.delete_many({"period_key": period_key})
-    if docs:
-        await db.member_scores.insert_many(docs)
+    # Substitui o snapshot do período numa única transação (delete+insert atómicos)
+    # — evita a janela em que o leaderboard aparecia vazio entre o delete e o insert.
+    await replace_period_scores(period_key, docs)
 
     # Carimba `last_rebuild_at` no doc único de settings (o DAO não tem upsert).
     existing = await db.ranking_settings.find_one({}, {"_id": 0, "id": 1})

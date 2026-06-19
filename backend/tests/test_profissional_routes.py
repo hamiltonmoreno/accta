@@ -336,6 +336,47 @@ class TestPublicacaoList:
         assert exc.value.status_code == 400
 
 
+class TestPublicacaoGet:
+    """Visibilidade de `get_publicacao` (mitiga IDOR): o não-gestor só acede a
+    `publico`/`socios` ou às suas próprias; `privado` de terceiros → 404 (não 403,
+    para não revelar existência). O gestor vê tudo."""
+
+    async def test_nao_gestor_privado_de_terceiro_404(self, wired_publicacoes, socio_user):
+        wired_publicacoes.find_one = AsyncMock(
+            return_value={"id": "p1", "visibility": "privado", "created_by": "outro"}
+        )
+        with pytest.raises(HTTPException) as exc:
+            await prof_route.get_publicacao("p1", current_user=socio_user)
+        assert exc.value.status_code == 404
+
+    async def test_nao_gestor_socios_ok(self, wired_publicacoes, socio_user):
+        wired_publicacoes.find_one = AsyncMock(
+            return_value={"id": "p1", "visibility": "socios", "created_by": "outro"}
+        )
+        out = await prof_route.get_publicacao("p1", current_user=socio_user)
+        assert out["id"] == "p1"
+
+    async def test_autor_ve_propria_privada(self, wired_publicacoes, socio_user):
+        wired_publicacoes.find_one = AsyncMock(
+            return_value={"id": "p1", "visibility": "privado", "created_by": socio_user.id}
+        )
+        out = await prof_route.get_publicacao("p1", current_user=socio_user)
+        assert out["id"] == "p1"
+
+    async def test_gestor_ve_privada_de_terceiro(self, wired_publicacoes, direcao_user):
+        wired_publicacoes.find_one = AsyncMock(
+            return_value={"id": "p1", "visibility": "privado", "created_by": "outro"}
+        )
+        out = await prof_route.get_publicacao("p1", current_user=direcao_user)
+        assert out["id"] == "p1"
+
+    async def test_inexistente_404(self, wired_publicacoes, socio_user):
+        wired_publicacoes.find_one = AsyncMock(return_value=None)
+        with pytest.raises(HTTPException) as exc:
+            await prof_route.get_publicacao("nope", current_user=socio_user)
+        assert exc.value.status_code == 404
+
+
 class TestPublicacaoUpdate:
     async def test_404(self, wired_publicacoes, direcao_user, quiet_audit):
         from models import PublicacaoUpdate

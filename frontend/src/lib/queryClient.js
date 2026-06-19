@@ -139,8 +139,8 @@ export const queryKeys = {
     list: () => ['regulamentos'],
     byId: (id) => ['regulamentos', id],
   },
-  invoices: {
-    list: () => ['invoices'],
+  myQuotas: {
+    list: () => ['finances', 'me', 'quotas'],
   },
   wall: {
     list: (category) => ['wall', category || 'all'],

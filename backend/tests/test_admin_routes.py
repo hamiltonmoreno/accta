@@ -67,6 +67,26 @@ class TestInviteUser:
             )
         assert exc.value.status_code == 400
 
+    async def test_member_id_collision_409(self, mock_db, admin_user, monkeypatch):
+        """member_id fornecido manualmente que já existe → 409 (imutável e único
+        por sócio). O email passa (None); a colisão é no segundo find_one."""
+        from models import InviteCreate
+
+        async def find_one(query, _proj=None):
+            # email check passa; colisão apenas no lookup por member_id
+            if "member_id" in query:
+                return {"id": "outro", "member_id": query["member_id"]}
+            return None
+
+        mock_db.users.find_one = find_one
+        monkeypatch.setattr(admin_route, "next_member_id", AsyncMock(return_value="ACCTA-9999"))
+
+        data = InviteCreate(name="X", email="novo@x.cv", role="socio", member_id="ACCTA-0001")
+        with pytest.raises(HTTPException) as exc:
+            await admin_route.invite_user(request=_mock_request(), data=data, current_user=admin_user)
+        assert exc.value.status_code == 409
+        mock_db.users.insert_one.assert_not_awaited()
+
     async def test_admin_creates_invite(self, mock_db, admin_user, monkeypatch):
         from models import InviteCreate
 

@@ -67,7 +67,14 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
     if data.role not in ("socio", "financeiro", "moderador"):
         raise HTTPException(status_code=422, detail="Role inválido: use socio, financeiro ou moderador")
 
-    member_id = data.member_id or await next_member_id()
+    # member_id fornecido manualmente: verifica colisão antes de escrever (é
+    # imutável e único por sócio). Backstop de BD: ux_users_member_id (best-effort).
+    if data.member_id:
+        if await db.users.find_one({"member_id": data.member_id}, {"_id": 0, "id": 1}):
+            raise HTTPException(status_code=409, detail="member_id já em uso")
+        member_id = data.member_id
+    else:
+        member_id = await next_member_id()
 
     user_doc = {
         "id": user_id,

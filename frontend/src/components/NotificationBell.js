@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNotifications } from '../contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
-import { Bell, BarChart3, CheckCheck, CheckCircle2, FileText, Wallet, X } from 'lucide-react';
+import { Bell, BarChart3, CheckCheck, CheckCircle2, FileText, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -20,7 +20,6 @@ export const NotificationBell = () => {
 
   const NOTIF_ICONS = {
     poll_opened: BarChart3,
-    invoice_due: Wallet,
     document_new: FileText,
     wall_post_approved: CheckCircle2,
   };

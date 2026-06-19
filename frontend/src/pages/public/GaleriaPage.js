@@ -69,7 +69,7 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
       {/* Image */}
       <div className="max-w-5xl max-h-[85vh] mx-4" onClick={(e) => e.stopPropagation()}>
         <img key={photo.id}
-          src={photo.url}
+          src={mediaUrl(photo.url)}
           alt={photo.caption || ''}
           className="max-w-full max-h-[80vh] object-contain rounded-lg animate-fade-up" />
         {photo.caption && (
@@ -141,7 +141,7 @@ const AlbumView = ({ album, photos, onBack, onOpenLightbox }) => (
           className="group relative aspect-square overflow-hidden rounded-lg animate-fade-up"
           data-testid={`photo-${photo.id}`}>
           <img
-            src={photo.url}
+            src={mediaUrl(photo.url)}
             alt={photo.caption || ''}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
             loading="lazy"

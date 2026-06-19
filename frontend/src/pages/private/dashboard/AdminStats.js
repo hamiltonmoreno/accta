@@ -24,7 +24,7 @@ export const AdminStats = ({ stats, financeSummary }) => (
     />
     <StatCard
       title="Receita Anual"
-      value={financeSummary ? `${(financeSummary.total_receitas / 1000).toFixed(0)}k` : `${stats.total_revenue.toFixed(0)}`}
+      value={financeSummary ? `${((financeSummary.total_receitas || 0) / 1000).toFixed(0)}k` : '—'}
       icon={DollarSign}
       iconBg="bg-[#EFF6FF] text-[#1D4ED8]"
       change={financeSummary && financeSummary.total_receitas > 0 ? Math.round((financeSummary.resultado_liquido / financeSummary.total_receitas) * 100) : undefined}

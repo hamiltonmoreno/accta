@@ -250,11 +250,20 @@ async def list_publicacoes(
 @router.get("/publicacoes/{publicacao_id}")
 async def get_publicacao(
     publicacao_id: str,
-    current_user: User = Depends(get_current_user),  # noqa: ARG001 — só protege rota
+    current_user: User = Depends(get_current_user),
 ):
     publicacao = await db.publicacoes.find_one({"id": publicacao_id}, {"_id": 0})
     if not publicacao:
         raise HTTPException(status_code=404, detail="Publicacao nao encontrada")
+    # Mesma restrição de visibilidade que `list_publicacoes`: o não-gestor só
+    # acede a publicações `publico`/`socios`. As `privado` ficam reservadas à
+    # Direcção/admin e ao autor — devolve 404 (não 403) para não revelar a sua
+    # existência (mitiga IDOR).
+    if not _can_manage(current_user):
+        visivel = publicacao.get("visibility") in ("publico", "socios")
+        autor = publicacao.get("created_by") == current_user.id
+        if not visivel and not autor:
+            raise HTTPException(status_code=404, detail="Publicacao nao encontrada")
     return publicacao
 
 
