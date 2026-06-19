@@ -188,7 +188,10 @@ async def sign_ato(ato_id: str, data: AtoSign, request: Request, current_user: U
             exclude_id=current_user.id,
         )
 
-    return await db.atos.find_one({"id": ato_id}, {"_id": 0})
+    # Devolve o doc já atualizado por sign_ato_atomic (= dict(row["doc"]), sem
+    # pk/_id) em vez de um re-fetch: poupa um round-trip e fecha a janela em que
+    # um assinante concorrente devolveria um doc mais recente que o assinado.
+    return ato
 
 
 @router.post("/{ato_id}/executar")
