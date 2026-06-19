@@ -101,8 +101,11 @@
 - [x] `craco build` → build de produção OK.
 - [ ] Validação no browser com sócio que tenha quotas (pendente — requer sessão).
 
-**Pendente (fora deste PR):**
+**Pendente (fora deste PR) — issues abertas:**
 
-- `DROP TABLE invoices` em prod (STOP — schema destrutivo; tabela vazia, inócua).
-- Dívidas não tocadas (análise): DRE truncado a 5000, cap de 1000 sócios na
-  geração de quotas, jóia-preview com data futura, audit logs de finanças sem IP.
+- [#281](https://github.com/hamiltonmoreno/accta/issues/281) — `chore(db)`: `DROP TABLE invoices` em prod (STOP — schema destrutivo; tabela órfã vazia).
+- [#277](https://github.com/hamiltonmoreno/accta/issues/277) — `fix(finances)`: DRE/export truncam a 5000 transações silenciosamente (summary não).
+- [#278](https://github.com/hamiltonmoreno/accta/issues/278) — `fix(finances)`: geração de quotas limitada a 1000 sócios (`to_list(1000)`).
+- [#279](https://github.com/hamiltonmoreno/accta/issues/279) — `fix(finances)`: joia/preview aceita `cta_qualified_since` no futuro sem validação.
+- [#280](https://github.com/hamiltonmoreno/accta/issues/280) — `fix(finances)`: audit logs de finanças sem IP/User-Agent (falta `request=`).
+- [#282](https://github.com/hamiltonmoreno/accta/issues/282) — `cleanup(ranking)`: comentário órfão menciona invoices (detetado na revisão pós-merge).
