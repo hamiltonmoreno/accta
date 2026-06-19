@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 from routes.auth_routes import router as auth_router
 from routes.users import router as users_router
-from routes.invoices import router as invoices_router
 from routes.polls import router as polls_router
 from routes.posts import router as posts_router
 from routes.documents import router as documents_router
@@ -37,7 +36,6 @@ api_router = APIRouter(prefix="/api")
 
 api_router.include_router(auth_router)
 api_router.include_router(users_router)
-api_router.include_router(invoices_router)
 api_router.include_router(polls_router)
 api_router.include_router(posts_router)
 api_router.include_router(documents_router)

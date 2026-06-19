@@ -77,10 +77,6 @@ ENDPOINTS = [
     # Finance
     ("GET", "/api/finances/transactions", ["admin", "financeiro"], None),
     ("GET", "/api/stats", ["admin", "financeiro"], None),
-    ("POST", "/api/invoices", ["admin", "financeiro"], {
-        "user_id": "u1", "type": "quota_mensal", "amount": 100.0,
-        "due_date": "2026-01-01T00:00:00+00:00",
-    }),
     # Moderation
     ("GET", "/api/wall/pending", ["admin", "moderador"], None),
     # Authenticated, any role (status=ativo via fixtures)

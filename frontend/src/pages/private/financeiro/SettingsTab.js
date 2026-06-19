@@ -66,9 +66,10 @@ export const SettingsTab = () => {
     onSuccess: (res) => {
       setGenResult(res.data);
       toast.success(res.data.message);
-      // As quotas geradas afectam invoices/transactions — invalidar.
-      qc.invalidateQueries({ queryKey: ['invoices'] });
+      // As quotas geradas são transactions — invalidar a vista admin e a
+      // vista self-service do sócio (Minhas Quotas).
       qc.invalidateQueries({ queryKey: ['transactions'] });
+      qc.invalidateQueries({ queryKey: ['finances', 'me', 'quotas'] });
     },
     onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao gerar quotas'),
   });

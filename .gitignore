@@ -63,6 +63,7 @@ __pycache__/
 *pyc*
 venv/
 .venv/
+venv311/
 
 # Development tools
 chainlit.md

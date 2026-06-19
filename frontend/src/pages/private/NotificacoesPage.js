@@ -28,7 +28,6 @@ const NOTIFICATION_ICONS = {
   documento: FileText,
   document_new: FileText,
   sistema: Settings,
-  invoice_due: DollarSign,
 };
 
 const NOTIFICATION_COLORS = {
@@ -45,7 +44,6 @@ const NOTIFICATION_COLORS = {
   documento: 'bg-sky-600',
   document_new: 'bg-sky-600',
   sistema: 'bg-gray-600',
-  invoice_due: 'bg-carmesim',
 };
 
 const FILTER_OPTIONS = [

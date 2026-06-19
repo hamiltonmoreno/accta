@@ -151,17 +151,9 @@ class TestUsersRoutes:
         print("✓ GET /users correctly forbidden for socio")
 
 
-class TestInvoicesRoutes:
-    """Test invoices endpoints - invoices.py"""
-    
-    @pytest.fixture
-    def admin_token(self):
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": ADMIN_EMAIL,
-            "password": ADMIN_PASSWORD
-        })
-        return response.json()["access_token"]
-    
+class TestMyQuotasRoute:
+    """Test self-service quota view - GET /finances/me/quotas (substitui invoices)"""
+
     @pytest.fixture
     def socio_token(self):
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
@@ -169,50 +161,24 @@ class TestInvoicesRoutes:
             "password": SOCIO_PASSWORD
         })
         return response.json()["access_token"]
-    
-    def test_get_invoices_as_admin(self, admin_token):
-        """Test GET /invoices as admin (returns all invoices)"""
+
+    def test_get_my_quotas_as_socio(self, socio_token):
+        """Test GET /finances/me/quotas as socio (returns only own quotas)"""
         response = requests.get(
-            f"{BASE_URL}/api/invoices",
-            headers={"Authorization": f"Bearer {admin_token}"}
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert isinstance(data, list)
-        print(f"✓ GET /invoices (admin) returns {len(data)} invoices")
-    
-    def test_get_invoices_as_socio(self, socio_token):
-        """Test GET /invoices as socio (returns only user's invoices)"""
-        response = requests.get(
-            f"{BASE_URL}/api/invoices",
+            f"{BASE_URL}/api/finances/me/quotas",
             headers={"Authorization": f"Bearer {socio_token}"}
         )
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
-        print(f"✓ GET /invoices (socio) returns {len(data)} invoices")
-    
-    def test_confirm_invoice_as_admin(self, admin_token):
-        """Test PATCH /invoices/{id}/confirm as admin"""
-        # First get an invoice
-        invoices_response = requests.get(
-            f"{BASE_URL}/api/invoices",
-            headers={"Authorization": f"Bearer {admin_token}"}
-        )
-        invoices = invoices_response.json()
-        
-        if invoices:
-            invoice_id = invoices[0]["id"]
-            response = requests.patch(
-                f"{BASE_URL}/api/invoices/{invoice_id}/confirm",
-                headers={"Authorization": f"Bearer {admin_token}"}
-            )
-            assert response.status_code == 200
-            data = response.json()
-            assert "message" in data
-            print(f"✓ PATCH /invoices/{invoice_id}/confirm successful")
-        else:
-            pytest.skip("No invoices to test")
+        assert isinstance(data["items"], list)
+        assert "total_pago" in data
+        print(f"✓ GET /finances/me/quotas (socio) returns {len(data['items'])} registos")
+
+    def test_my_quotas_requires_auth(self):
+        """Test GET /finances/me/quotas requires authentication"""
+        response = requests.get(f"{BASE_URL}/api/finances/me/quotas")
+        assert response.status_code in [401, 403]
+        print("✓ GET /finances/me/quotas correctly requires authentication")
 
 
 class TestPollsRoutes:
@@ -646,7 +612,6 @@ class TestStatsRoutes:
         assert "total_users" in data
         assert "active_users" in data
         assert "active_events" in data
-        assert "total_revenue" in data
         print(f"✓ GET /stats - users: {data['total_users']}, active: {data['active_users']}, events: {data['active_events']}")
     
     def test_get_stats_as_socio_forbidden(self, socio_token):

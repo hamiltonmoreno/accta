@@ -17,15 +17,11 @@ async def get_statistics(current_user: User = Depends(get_current_user)):
     # Event não tem campo "status" — "ativo" = evento ainda por acontecer.
     now_iso = datetime.now(timezone.utc).isoformat()
     active_events = await db.events.count_documents({"date": {"$gte": now_iso}})
-    total_revenue = await db.invoices.aggregate(
-        [{"$match": {"status": "pago"}}, {"$group": {"_id": None, "total": {"$sum": "$amount"}}}]
-    ).to_list(1)
 
     return {
         "total_users": total_users,
         "active_users": active_users,
         "active_events": active_events,
-        "total_revenue": total_revenue[0]["total"] if total_revenue else 0,
     }
 
 
