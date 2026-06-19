@@ -991,7 +991,7 @@ async def preview_joia(
             since_date = date.fromisoformat(cta_qualified_since.strip()[:10])
         except (ValueError, TypeError):
             raise HTTPException(status_code=422, detail="cta_qualified_since deve ser uma data ISO-8601 valida")
-        if since_date > date.today():
+        if since_date > datetime.now(timezone.utc).date():
             raise HTTPException(status_code=422, detail="cta_qualified_since nao pode ser uma data futura")
         user = {**user, "cta_qualified_since": cta_qualified_since}
     settings = await db.finance_settings.find_one({"id": "finance_settings"}, {"_id": 0})

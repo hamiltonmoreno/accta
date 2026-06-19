@@ -631,3 +631,12 @@ class TestMyQuotas:
         mock_db.transactions.find = MagicMock(return_value=_cursor(items))
         result = await finances_route.list_my_quotas(current_user=socio_user)
         assert result["total_pago"] == 500.0
+
+    async def test_le_todas_as_quotas_sem_teto(self, mock_db, socio_user):
+        # Coerência com o resto do módulo (#277/#278): a vista do sócio lê todas
+        # as suas quotas sem teto. Trava uma regressão se alguém puser .limit(...).
+        cursor = _cursor([])
+        mock_db.transactions.find = MagicMock(return_value=cursor)
+        await finances_route.list_my_quotas(current_user=socio_user)
+        cursor.limit.assert_not_called()
+        cursor.to_list.assert_awaited_once_with(None)
