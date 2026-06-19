@@ -161,7 +161,9 @@ async def seed_database():
                     "date": tx_date.isoformat(),
                     "reference": f"FOLHA-{target_year}{target_month:02d}",
                     "user_id": user["id"],
-                    "created_by": "seed",
+                    # Quem "gera" as quotas é um gestor de finanças; usar um id real
+                    # (admin) por rastreabilidade, alinhado com os restantes created_by.
+                    "created_by": admin_id,
                     "created_at": (tx_date - timedelta(days=15)).isoformat(),
                 })
 
