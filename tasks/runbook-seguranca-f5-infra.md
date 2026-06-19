@@ -285,7 +285,7 @@ Os checks autoritativos (F5.1a/b, F5.6a, F5.3, F5.4) precisam de acesso DBA/supe
 
 - [ ] F5.1a (defesa em profundidade) trigger ativo em prod (`tgenabled='O'`; teste transacional → ERRO; INSERT da app OK; `/verify` dá `ok`)
 - [ ] F5.1b **(autoritativo, obrigatório)** role runtime ≠ owner do schema; `REVOKE UPDATE/DELETE/TRUNCATE ON audit_logs FROM <role_runtime>` aplicado e verificado (UPDATE como runtime → `permission denied`)
-- [ ] F5.2 TLS≥1.2 ✅ (TLS 1.3 verificado 2026-06-19) + **redireção 80→443 a fazer** + cabeçalhos OK ✅; env vars de prod (CORS sem `*`, `ENVIRONMENT=production`)
+- [x] F5.2 TLS≥1.2 ✅ (TLS 1.3) + **redireção 80→443 ✅** (verificado 2026-06-19: `http://api.controlador.cv/` → 301 → `https://...`; NPM proxy_host id=3 com `force-ssl.conf` include — ver memória `vps-hardening-state` §gotcha sobre fragilidade do regen) + cabeçalhos OK ✅; env vars de prod (CORS sem `*`, `ENVIRONMENT=production`)
 - [ ] F5.3 Backups/PITR confirmados; RPO/RTO documentados; **restauro de staging testado**
 - [ ] F5.4 **GATE D6** — decidir com o dono: adiar rotação OU implementar suporte multi-chave antes de rodar
 - [ ] F5.5 Política de retenção (indefinida) registada
