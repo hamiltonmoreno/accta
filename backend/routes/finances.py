@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Optional
 import re
 from models import (
@@ -982,6 +982,15 @@ async def preview_joia(
     if not user:
         raise HTTPException(status_code=404, detail="Utilizador nao encontrado")
     if cta_qualified_since is not None:
+        # Valida o override: data ISO-8601 e não-futura. Sem isto, uma data
+        # futura produzia uma qualificação/jóia enganosa no modal de aprovação.
+        # joia_status interpreta a qualificação como `date` (AAAA-MM-DD).
+        try:
+            since_date = date.fromisoformat(cta_qualified_since.strip()[:10])
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=422, detail="cta_qualified_since deve ser uma data ISO-8601 valida")
+        if since_date > date.today():
+            raise HTTPException(status_code=422, detail="cta_qualified_since nao pode ser uma data futura")
         user = {**user, "cta_qualified_since": cta_qualified_since}
     settings = await db.finance_settings.find_one({"id": "finance_settings"}, {"_id": 0})
     if not isinstance(settings, dict):
