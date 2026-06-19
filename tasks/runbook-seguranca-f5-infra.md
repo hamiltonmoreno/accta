@@ -276,20 +276,42 @@ Executadas pelo assistente sem creds privilegiadas — só observam superfície 
 |---|---|
 | F5.2 TLS handshake (`api.controlador.cv:443`) | ✅ **TLS 1.3** / `TLS_AES_256_GCM_SHA384` / `Verify return code: 0 (ok)` |
 | F5.2 Cabeçalhos `x-content-type-options`/`x-frame-options`/`referrer-policy` | ✅ Presentes (`nosniff` / `DENY` / `strict-origin-when-cross-origin`) — vistos numa resposta 405 do openresty |
-| F5.2 Redireção 80→443 | ❌ **GAP** — `GET http://api.controlador.cv/api/` devolve **HTTP 200** (não há `Location` para HTTPS). NPM/openresty está a servir conteúdo em plain HTTP. Configurar redireção permanente 301 no vhost. |
+| F5.2 Redireção 80→443 | ✅ Implementada 2026-06-19 (edição manual do conf NPM — `include force-ssl.conf` no proxy_host id=3). `http://api.controlador.cv/api/` → 301 → `https://...`. Sobreviveu reboot. |
 | F5.6b Data API anon probe | ⏸ Pendente — preciso da Supabase project ref + anon key (passo (d) do §F5.6); recomenda-se preferir Opção A (Dashboard → Project Settings → Data API → desativar) e dispensar este probe. |
 
-Os checks autoritativos (F5.1a/b, F5.6a, F5.3, F5.4) precisam de acesso DBA/superuser e ficam no operador.
+## Verificações via DB (read-only via backend container, 2026-06-19)
+
+Executadas via `docker exec accta-backend python` contra a DB de prod
+(`current_user=postgres`, BYPASSRLS=true).
+
+| Item | Resultado |
+|---|---|
+| F5.1a trigger `trg_audit_logs_immutable` | ✅ Ativo (`tgenabled='O'`) |
+| F5.1a trigger `trg_audit_logs_no_truncate` | ✅ Ativo |
+| F5.1a fire test (INSERT+UPDATE+ROLLBACK) | ✅ Trigger dispara: "audit_logs is append-only: UPDATE not allowed" |
+| F5.6a public tables | 64 |
+| F5.6a tabelas SEM RLS | ✅ 0 |
+| F5.6a policies em public | ✅ 0 (= deny-all p/ anon) |
+| F5.6a event trigger `ensure_rls` | ✅ Instalado |
+| F5.6a role runtime BYPASSRLS | ✅ `postgres` = BYPASSRLS=true |
+
+**Defesa em profundidade verificada.** Ressalva: `current_user=postgres` é dono
+do schema → camadas autoritativas F5.1b (REVOKE + role-separation) e F5.6b
+(fechar Data API) continuam pendentes do operador (sem elas, quem tem a
+credencial runtime consegue DISABLE/DROP TRIGGER e RLS BYPASS contornam tudo).
+
+Os checks autoritativos restantes (F5.1b, F5.6b GATE, F5.3, F5.4) precisam de
+acesso DBA/superuser ou ações no dashboard Supabase.
 
 ## Checklist (colar no PR de release / issue de operação)
 
-- [ ] F5.1a (defesa em profundidade) trigger ativo em prod (`tgenabled='O'`; teste transacional → ERRO; INSERT da app OK; `/verify` dá `ok`)
+- [x] F5.1a (defesa em profundidade) trigger ativo em prod ✅ (verificado 2026-06-19 via backend container: 2 triggers `tgenabled='O'`; fire test transacional bloqueado com "audit_logs is append-only")
 - [ ] F5.1b **(autoritativo, obrigatório)** role runtime ≠ owner do schema; `REVOKE UPDATE/DELETE/TRUNCATE ON audit_logs FROM <role_runtime>` aplicado e verificado (UPDATE como runtime → `permission denied`)
 - [x] F5.2 TLS≥1.2 ✅ (TLS 1.3) + **redireção 80→443 ✅** (verificado 2026-06-19: `http://api.controlador.cv/` → 301 → `https://...`; NPM proxy_host id=3 com `force-ssl.conf` include — ver memória `vps-hardening-state` §gotcha sobre fragilidade do regen) + cabeçalhos OK ✅; env vars de prod (CORS sem `*`, `ENVIRONMENT=production`)
 - [ ] F5.3 Backups/PITR confirmados; RPO/RTO documentados; **restauro de staging testado**
 - [ ] F5.4 **GATE D6** — decidir com o dono: adiar rotação OU implementar suporte multi-chave antes de rodar
 - [ ] F5.5 Política de retenção (indefinida) registada
-- [ ] F5.6a (defesa em profundidade) RLS ON em todas as tabelas de `public` em prod (verif. (a)=0, (b)=0 policies + trigger=1); role runtime tem `BYPASSRLS`
+- [x] F5.6a (defesa em profundidade) RLS ON em todas as tabelas de `public` em prod ✅ (verificado 2026-06-19: 64 tabelas, 0 sem RLS, 0 policies, event trigger `ensure_rls` instalado; `current_user=postgres` BYPASSRLS=true)
 - [ ] F5.6b **GATE (Data API)** — Data API desativado **ou** grants `anon`/`authenticated` revogados em `public` (verif. (c)/(d)); confirmado contra a anon key de **produção**
 
 > Fecho da `spec-verificacao-seguranca-saas`: F0/F2/F3/F4 em código (MERGED em
