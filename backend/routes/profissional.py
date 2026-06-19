@@ -250,7 +250,7 @@ async def list_publicacoes(
 @router.get("/publicacoes/{publicacao_id}")
 async def get_publicacao(
     publicacao_id: str,
-    current_user: User = Depends(get_current_user),  # noqa: ARG001 — só protege rota
+    current_user: User = Depends(get_current_user),
 ):
     publicacao = await db.publicacoes.find_one({"id": publicacao_id}, {"_id": 0})
     if not publicacao:
