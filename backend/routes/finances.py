@@ -365,13 +365,11 @@ async def compute_dre_report(year: int) -> dict:
     # "{ano}-12-31T23:59:59" perdia timestamps com fracção de segundo.
     start = f"{year}-01-01T00:00:00"
     end = f"{year + 1}-01-01T00:00:00"  # exclusivo: ver nota em compute_financial_summary
-    transactions = (
-        await db.transactions.find(
-            {"date": {"$gte": start, "$lt": end}}, {"_id": 0, "date": 1, "type": 1, "amount": 1, "category": 1}
-        )
-        .limit(5000)
-        .to_list(5000)
-    )
+    # Sem limite: alinhado com compute_financial_summary (to_list(None)). Um teto
+    # (antes 5000) truncava o DRE em silêncio e divergia do resumo à escala.
+    transactions = await db.transactions.find(
+        {"date": {"$gte": start, "$lt": end}}, {"_id": 0, "date": 1, "type": 1, "amount": 1, "category": 1}
+    ).to_list(None)
 
     # Monthly breakdown
     monthly = {}
@@ -691,7 +689,9 @@ async def export_transactions_csv(
     if search:
         query["description"] = {"$regex": _safe_search_regex(search), "$options": "i"}
 
-    transactions = await db.transactions.find(query, {"_id": 0}).sort("date", -1).limit(5000).to_list(None)
+    # Sem limite: alinhado com o resumo/DRE. Um teto (antes 5000) truncava o
+    # export em silêncio, omitindo lançamentos sem qualquer aviso.
+    transactions = await db.transactions.find(query, {"_id": 0}).sort("date", -1).to_list(None)
 
     import csv
 

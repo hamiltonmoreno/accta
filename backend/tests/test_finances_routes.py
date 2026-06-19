@@ -414,6 +414,15 @@ class TestDRE:
         await finances_route.get_dre_report(year=2026, current_user=admin_user)
         assert captured["query"]["date"] == {"$gte": "2026-01-01T00:00:00", "$lt": "2027-01-01T00:00:00"}
 
+    async def test_le_todas_as_transacoes_sem_teto(self, mock_db, admin_user):
+        # Regressão #277: o DRE truncava em 5000 e divergia do resumo (sem teto).
+        # Não deve aplicar `.limit` e deve pedir todas via `to_list(None)`.
+        cursor = _cursor([])
+        mock_db.transactions.find = MagicMock(return_value=cursor)
+        await finances_route.get_dre_report(year=2026, current_user=admin_user)
+        cursor.limit.assert_not_called()
+        cursor.to_list.assert_awaited_once_with(None)
+
     async def test_export_pdf_reuses_compute_dre(self, mock_db, admin_user, monkeypatch):
         # O export PDF deve reutilizar compute_dre_report (fonte única), não
         # recalcular — senão uma correcção num lado não chega ao outro.
