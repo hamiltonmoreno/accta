@@ -1097,6 +1097,15 @@ _RLS_AUTO_ENABLE_DDL: tuple[str, ...] = (
     "END IF; END $$",
 )
 
+# Serializa instalações concorrentes de DDL idempotente entre workers de uvicorn
+# no arranque (audit trigger, RLS backfill, RLS event trigger) — caso contrário
+# o 2.º worker apanha "tuple concurrently updated" em CREATE OR REPLACE e gera
+# warning espúrio no log. 2.ª chave: ver `_DDL_LOCK_AUDIT/_RLS/_RLS_EVT` abaixo.
+_DDL_LOCK_NS = 8420
+_DDL_LOCK_AUDIT = 1
+_DDL_LOCK_RLS_BACKFILL = 2
+_DDL_LOCK_RLS_EVT = 3
+
 
 async def ensure_schema() -> None:
     """Create all tables + indexes. Idempotent (safe to re-run on every
@@ -1137,6 +1146,7 @@ async def ensure_schema() -> None:
         # imutabilidade autoritativa vem do REVOKE (runbook F5.1). A app arranca.
         try:
             async with conn.transaction():
+                await conn.execute("SELECT pg_advisory_xact_lock($1, $2)", _DDL_LOCK_NS, _DDL_LOCK_AUDIT)
                 for ddl in _AUDIT_IMMUTABILITY_DDL:
                     await conn.execute(ddl)
             logger.info("audit_logs immutability trigger (defesa em profundidade) instalado")
@@ -1151,11 +1161,14 @@ async def ensure_schema() -> None:
         # backfill (precisa só de owner) protege as tabelas atuais mesmo que a
         # criação do event trigger (precisa de superuser) não seja permitida.
         try:
-            await conn.execute(_RLS_BACKFILL_DDL)
+            async with conn.transaction():
+                await conn.execute("SELECT pg_advisory_xact_lock($1, $2)", _DDL_LOCK_NS, _DDL_LOCK_RLS_BACKFILL)
+                await conn.execute(_RLS_BACKFILL_DDL)
         except Exception as e:  # noqa: BLE001 - non-fatal, ver runbook F5.6
             logger.warning("RLS backfill (defesa em profundidade) NAO aplicado — autoritativo via operador (runbook F5.6): %s", e)
         try:
             async with conn.transaction():
+                await conn.execute("SELECT pg_advisory_xact_lock($1, $2)", _DDL_LOCK_NS, _DDL_LOCK_RLS_EVT)
                 for ddl in _RLS_AUTO_ENABLE_DDL:
                     await conn.execute(ddl)
             logger.info("RLS auto-enable event trigger (defesa em profundidade) instalado")
