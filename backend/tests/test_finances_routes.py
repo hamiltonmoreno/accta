@@ -506,6 +506,21 @@ class TestGenerateQuotas:
         assert [c["user_id"] for c in candidates] == ["member-1"]
         assert candidates[0]["category"] == "quotas"
 
+    async def test_le_todos_os_socios_sem_teto(self, mock_db, admin_user, monkeypatch):
+        # Regressão #278: o teto to_list(1000) deixava sócios excedentes sem quota
+        # em silêncio. Deve ler todos via to_list(None).
+        cursor = _cursor([])
+        mock_db.users.find = MagicMock(return_value=cursor)
+        mock_db.finance_settings.find_one = AsyncMock(return_value={"quota_amount": 2000.0})
+        monkeypatch.setattr(finances_route, "insert_quotas_atomic", AsyncMock(return_value=0))
+        monkeypatch.setattr(finances_route, "create_audit_log", AsyncMock())
+        monkeypatch.setattr(finances_route, "notify_all_active_users", AsyncMock())
+
+        await finances_route.generate_monthly_quotas(
+            request=_request(), month=5, year=2026, current_user=admin_user
+        )
+        cursor.to_list.assert_awaited_once_with(None)
+
 
 class _ACtx:
     """Async context manager que entrega `value` no __aenter__."""

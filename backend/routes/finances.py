@@ -567,10 +567,12 @@ async def generate_monthly_quotas(
     quota_desc = settings.get("quota_description", "Quota Mensal") if settings else "Quota Mensal"
 
     # Get all active members. Legacy member documents may not have account_type.
+    # Sem teto (antes 1000): acima do limite, sócios excedentes ficavam sem quota
+    # gerada em silêncio. A dedup/inserção por mês é atómica em insert_quotas_atomic.
     active_users = await db.users.find(
         {"status": "ativo", "$or": [{"account_type": "member"}, {"account_type": {"$exists": False}}]},
         {"_id": 0, "id": 1, "name": 1},
-    ).to_list(1000)
+    ).to_list(None)
 
     # Constrói um candidato por sócio activo. A deduplicação por mês (saltar
     # quem já tem quota) e a inserção acontecem ATOMICAMENTE em
