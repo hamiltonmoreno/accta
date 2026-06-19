@@ -520,3 +520,53 @@ class TestInsertQuotasAtomic:
         # Se tocar no pool, falha — candidatos vazios devem sair sem ligar.
         monkeypatch.setattr(database, "get_pool", AsyncMock(side_effect=AssertionError("não devia ligar")))
         assert await database.insert_quotas_atomic(2026, 5, []) == 0
+
+
+# --------------------------------------------------------------------------- #
+# GET /me/quotas — vista self-service do sócio (substitui invoices)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.asyncio
+class TestMyQuotas:
+    async def test_filters_by_own_user_id(self, mock_db, socio_user):
+        captured = {}
+
+        def find(query, _proj):
+            captured["query"] = query
+            return _cursor([])
+
+        mock_db.transactions.find = MagicMock(side_effect=find)
+        await finances_route.list_my_quotas(current_user=socio_user)
+        # Filtro fixo pelo próprio user_id + quotas/jóias de receita.
+        assert captured["query"]["user_id"] == socio_user.id
+        assert captured["query"]["type"] == "receita"
+        assert captured["query"]["category"] == {"$in": ["quotas", "joias"]}
+
+    async def test_sums_total_pago(self, mock_db, socio_user):
+        items = [
+            {"id": "t1", "amount": 500.0, "category": "quotas"},
+            {"id": "t2", "amount": 2000.0, "category": "joias"},
+        ]
+        mock_db.transactions.find = MagicMock(return_value=_cursor(items))
+        result = await finances_route.list_my_quotas(current_user=socio_user)
+        assert result["items"] == items
+        assert result["total_pago"] == 2500.0
+
+    async def test_socio_allowed_no_403(self, mock_db, socio_user):
+        # Ao contrário de /transactions, o sócio PODE ver as suas quotas.
+        mock_db.transactions.find = MagicMock(return_value=_cursor([]))
+        result = await finances_route.list_my_quotas(current_user=socio_user)
+        assert result == {"items": [], "total_pago": 0}
+
+    async def test_bad_amount_is_tolerated(self, mock_db, socio_user):
+        # amount mal-formado/ausente em doc legado não deve rebentar o endpoint.
+        items = [
+            {"id": "t1", "amount": 500.0},
+            {"id": "t2", "amount": "abc"},
+            {"id": "t3"},
+            {"id": "t4", "amount": None},
+        ]
+        mock_db.transactions.find = MagicMock(return_value=_cursor(items))
+        result = await finances_route.list_my_quotas(current_user=socio_user)
+        assert result["total_pago"] == 500.0

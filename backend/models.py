@@ -572,40 +572,6 @@ class TransferCargoRequest(BaseModel):
     effective_date: Optional[str] = None  # ISO 8601, default = agora
 
 
-# ===== INVOICE MODELS =====
-
-
-class Invoice(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: str
-    type: str
-    amount: float
-    due_date: str
-    status: str = "pendente"
-    source: str = "folha_salarial"
-    payroll_reference: Optional[str] = None
-    confirmed_by_admin: bool = False
-    confirmed_at: Optional[str] = None
-    notes: Optional[str] = None
-    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-
-
-class InvoiceCreate(BaseModel):
-    user_id: str
-    type: str
-    amount: float
-    due_date: str
-    source: str = "folha_salarial"
-    payroll_reference: Optional[str] = None
-    notes: Optional[str] = None
-
-    @field_validator("due_date", mode="before")
-    @classmethod
-    def _v_due_date(cls, v):
-        return _validate_datetime_str(v, label="Data de vencimento")
-
-
 # ===== POLL MODELS =====
 
 

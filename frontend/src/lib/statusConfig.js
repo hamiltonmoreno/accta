@@ -72,14 +72,6 @@ export const EVENT_TYPE_CONFIG = {
 };
 export const EVENT_TYPE_FALLBACK = 'outro';
 
-// ---- Estado de fatura / quota ----------------------------------------------
-// pago -> success · pendente -> warning
-export const INVOICE_STATUS_CONFIG = {
-  pago: { label: 'Pago', icon: CheckCircle, ...TONE.success },
-  pendente: { label: 'Pendente', icon: Clock, ...TONE.warning },
-};
-export const INVOICE_STATUS_FALLBACK = 'pendente';
-
 // ---- Estado de utilizador --------------------------------------------------
 // ativo -> success · pendente_convite/pendente_aprovacao -> warning ·
 // inativo -> neutro · rejeitado -> error

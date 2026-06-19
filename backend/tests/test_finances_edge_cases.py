@@ -20,8 +20,6 @@ from models import (
     TRANSACTION_TYPES,
     FinanceSettings,
     FinanceSettingsUpdate,
-    Invoice,
-    InvoiceCreate,
     Transaction,
     TransactionCreate,
     TransactionUpdate,
@@ -126,42 +124,6 @@ class TestTransactionUpdate:
 
 
 # --------------------------------------------------------------------------- #
-# Invoice model — quota & status
-# --------------------------------------------------------------------------- #
-
-
-class TestInvoice:
-    def test_default_status_is_pendente(self):
-        inv = Invoice(
-            user_id="u1",
-            type="quota_mensal",
-            amount=2000.0,
-            due_date=datetime.now(timezone.utc).isoformat(),
-        )
-        assert inv.status == "pendente"
-        assert inv.confirmed_by_admin is False
-
-    def test_default_source_is_payroll(self):
-        inv = Invoice(
-            user_id="u1",
-            type="quota_mensal",
-            amount=2000.0,
-            due_date=datetime.now(timezone.utc).isoformat(),
-        )
-        # Per CLAUDE.md: quotas are payroll-deducted, never marked inadimplente.
-        assert inv.source == "folha_salarial"
-
-    def test_invoice_create_minimal(self):
-        ic = InvoiceCreate(
-            user_id="u1",
-            type="quota_mensal",
-            amount=2000.0,
-            due_date=datetime.now(timezone.utc).isoformat(),
-        )
-        assert ic.amount == 2000.0
-
-
-# --------------------------------------------------------------------------- #
 # Empty-string date rejection (regressão Lote 6)
 # --------------------------------------------------------------------------- #
 
@@ -183,10 +145,6 @@ class TestEmptyStringDateRejected:
 
     def test_transaction_update_allows_none_date(self):
         assert TransactionUpdate(date=None).date is None
-
-    def test_invoice_create_rejects_empty_due_date(self):
-        with pytest.raises(ValidationError):
-            InvoiceCreate(user_id="u1", type="quota_mensal", amount=1.0, due_date="")
 
 
 # --------------------------------------------------------------------------- #

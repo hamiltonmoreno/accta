@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Activity, ArrowDownRight, ArrowUpRight, Bell, Calendar, CheckCircle, DollarSign, Vote,
+  Activity, ArrowDownRight, ArrowUpRight, Bell, Calendar, CheckCircle, Vote,
 } from 'lucide-react';
 import { ACTIVITY_ICONS, ACTIVITY_COLORS } from './tokens';
 
@@ -28,7 +28,6 @@ export const StatCard = ({ title, value, icon: Icon, iconBg, change, changeLabel
 export const NotifIcon = ({ type }) => {
   const config = {
     poll_opened: { icon: Vote, color: 'text-carmesim', bg: 'bg-carmesim/10' },
-    invoice_due: { icon: DollarSign, color: 'text-[#B45309]', bg: 'bg-[#FFFBEB]' },
     event_new: { icon: Calendar, color: 'text-[#1D4ED8]', bg: 'bg-[#EFF6FF]' },
     wall_post_approved: { icon: CheckCircle, color: 'text-[#15803D]', bg: 'bg-[#F0FDF4]' },
     wall_comment: { icon: Bell, color: 'text-[#3A3A3A]', bg: 'bg-[#F5F5F5]' },

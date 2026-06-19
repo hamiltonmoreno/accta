@@ -120,6 +120,34 @@ async def count_transactions(
     return {"count": count}
 
 
+@router.get("/me/quotas")
+async def list_my_quotas(current_user: User = Depends(get_current_user)):
+    """Vista self-service do sócio sobre os SEUS lançamentos de quota/jóia.
+
+    NÃO exige view_finances: qualquer utilizador autenticado vê apenas os seus
+    (filtro fixo por user_id). As quotas reais vivem em `transactions` (lançadas
+    via geração mensal/folha); não há estado pendente/pago — todos os lançamentos
+    listados são efetivos. Substitui o antigo módulo `invoices`.
+    """
+    query = {
+        "user_id": current_user.id,
+        "type": "receita",
+        "category": {"$in": ["quotas", "joias"]},
+    }
+    items = await db.transactions.find(query, {"_id": 0}).sort("date", -1).to_list(None)
+
+    def _amount(t: dict) -> float:
+        # Coerção defensiva: tolera amount ausente/None/string mal-formada em
+        # docs legados sem rebentar o endpoint (não há validação na leitura).
+        try:
+            return float(t.get("amount") or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    total_pago = sum(_amount(t) for t in items)
+    return {"items": items, "total_pago": total_pago}
+
+
 @router.post("/transactions")
 async def create_transaction(
     data: TransactionCreate,

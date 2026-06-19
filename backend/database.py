@@ -54,7 +54,6 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 # All logical collections -> tables. 30 with Pydantic models + 7 without.
 COLLECTIONS: tuple[str, ...] = (
     "users",
-    "invoices",
     "polls",
     "user_votes",
     "posts",
@@ -861,9 +860,6 @@ _INDEX_DDL: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS ix_posts_slug ON \"posts\" ((doc->>'slug'))",
     'CREATE INDEX IF NOT EXISTS ix_posts_status_vis_pub ON "posts" '
     "((doc->>'status'), (doc->>'visibility'), (doc->>'published_at') DESC)",
-    # invoices
-    "CREATE INDEX IF NOT EXISTS ix_inv_user_status ON \"invoices\" ((doc->>'user_id'), (doc->>'status'))",
-    "CREATE INDEX IF NOT EXISTS ix_inv_status_created ON \"invoices\" ((doc->>'status'), (doc->>'created_at') DESC)",
     # audit
     "CREATE INDEX IF NOT EXISTS ix_audit_created ON \"audit_logs\" ((doc->>'created_at') DESC)",
     "CREATE INDEX IF NOT EXISTS ix_audit_user_created ON \"audit_logs\" ((doc->>'user_id'), (doc->>'created_at') DESC)",

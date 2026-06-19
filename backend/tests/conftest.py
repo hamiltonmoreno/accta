@@ -166,7 +166,6 @@ def mock_db(monkeypatch):
         "posts",
         "wall_posts",
         "wall_comments",
-        "invoices",
         "polls",
         "user_votes",
         "events",

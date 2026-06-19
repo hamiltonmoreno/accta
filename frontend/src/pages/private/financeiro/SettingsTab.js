@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financesAPI } from '../../../utils/api';
+import { queryKeys } from '../../../lib/queryClient';
 import { toast } from 'sonner';
 import { DollarSign, Settings, RefreshCw, CheckCircle, Users } from 'lucide-react';
 import { MONTH_NAMES } from './constants';
@@ -66,9 +67,10 @@ export const SettingsTab = () => {
     onSuccess: (res) => {
       setGenResult(res.data);
       toast.success(res.data.message);
-      // As quotas geradas afectam invoices/transactions — invalidar.
-      qc.invalidateQueries({ queryKey: ['invoices'] });
+      // As quotas geradas são transactions — invalidar a vista admin e a
+      // vista self-service do sócio (Minhas Quotas).
       qc.invalidateQueries({ queryKey: ['transactions'] });
+      qc.invalidateQueries({ queryKey: queryKeys.myQuotas.list() });
     },
     onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao gerar quotas'),
   });

@@ -1,6 +1,6 @@
 """
 ACCTA Portal API Tests
-Tests for authentication, invoices, polls, documents, benefits, wall, notifications
+Tests for authentication, quotas, polls, documents, benefits, wall, notifications
 """
 import pytest
 import requests
@@ -128,30 +128,24 @@ class TestAuthMe:
         print(f"✓ Auth/me returns correct admin user: {data['name']}")
 
 
-class TestInvoices:
-    """Invoice endpoint tests"""
-    
-    def test_get_invoices_socio(self, socio_headers):
-        """Socio can get their own invoices"""
-        response = requests.get(f"{BASE_URL}/api/invoices", headers=socio_headers)
+class TestMyQuotas:
+    """Self-service quota view (GET /finances/me/quotas) — substitui o antigo
+    módulo invoices. Cada utilizador vê apenas as SUAS quotas/jóias."""
+
+    def test_get_my_quotas_socio(self, socio_headers):
+        """Socio can get their own quota transactions"""
+        response = requests.get(f"{BASE_URL}/api/finances/me/quotas", headers=socio_headers)
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
-        print(f"✓ Socio invoices retrieved: {len(data)} invoices")
-    
-    def test_get_invoices_admin(self, admin_headers):
-        """Admin can get all invoices"""
-        response = requests.get(f"{BASE_URL}/api/invoices", headers=admin_headers)
-        assert response.status_code == 200
-        data = response.json()
-        assert isinstance(data, list)
-        print(f"✓ Admin invoices retrieved: {len(data)} invoices")
-    
-    def test_invoices_requires_auth(self):
-        """Invoices endpoint requires authentication"""
-        response = requests.get(f"{BASE_URL}/api/invoices")
+        assert isinstance(data["items"], list)
+        assert "total_pago" in data
+        print(f"✓ Socio quotas retrieved: {len(data['items'])} registos")
+
+    def test_my_quotas_requires_auth(self):
+        """Endpoint requires authentication"""
+        response = requests.get(f"{BASE_URL}/api/finances/me/quotas")
         assert response.status_code in [401, 403]
-        print("✓ Invoices correctly requires authentication")
+        print("✓ My quotas correctly requires authentication")
 
 
 class TestPolls:
