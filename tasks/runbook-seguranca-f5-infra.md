@@ -277,7 +277,7 @@ Executadas pelo assistente sem creds privilegiadas — só observam superfície 
 | F5.2 TLS handshake (`api.controlador.cv:443`) | ✅ **TLS 1.3** / `TLS_AES_256_GCM_SHA384` / `Verify return code: 0 (ok)` |
 | F5.2 Cabeçalhos `x-content-type-options`/`x-frame-options`/`referrer-policy` | ✅ Presentes (`nosniff` / `DENY` / `strict-origin-when-cross-origin`) — vistos numa resposta 405 do openresty |
 | F5.2 Redireção 80→443 | ✅ Implementada 2026-06-19 (edição manual do conf NPM — `include force-ssl.conf` no proxy_host id=3). `http://api.controlador.cv/api/` → 301 → `https://...`. Sobreviveu reboot. |
-| F5.6b Data API anon probe | ⏸ Pendente — preciso da Supabase project ref + anon key (passo (d) do §F5.6); recomenda-se preferir Opção A (Dashboard → Project Settings → Data API → desativar) e dispensar este probe. |
+| F5.6b Data API anon probe | ❌ **ATIVO** — derivado o project ref do `DATABASE_URL` (user `postgres.<ref>` no pooler) e verificado 2026-06-19 que `https://<ref>.supabase.co/rest/v1/` responde **HTTP 401 "No API key found"** = PostgREST está up, só falta a chave. Com a anon key qualquer mesa de `public` seria acessível por REST — **mitigado** por RLS deny-all (F5.6a ✓), mas a camada autoritativa pede desativação no Dashboard (Opção A do §F5.6). |
 
 ## Verificações via DB (read-only via backend container, 2026-06-19)
 
