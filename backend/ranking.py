@@ -9,7 +9,7 @@ colecções existentes + ajustes manuais. Pesos são configuráveis em
 Invariantes:
 - Voto secreto preservado: da eleição usa-se só a **comparência** (recibo HMAC),
   nunca o boletim/sentido de voto (§3.3).
-- Quotas/invoices NÃO entram no score (desconto em folha; §0).
+- Quotas NÃO entram no score (desconto em folha; §0).
 - Datas no `doc` são ISO-8601 string → o filtro de período é comparação
   lexicográfica de strings (`$gte`/`$lt`).
 """
