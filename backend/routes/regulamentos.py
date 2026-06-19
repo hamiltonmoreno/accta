@@ -116,11 +116,18 @@ async def create_regulamento(data: RegulamentoCreate, current_user: User = Depen
 async def list_regulamentos(current_user: User = Depends(get_current_user)):
     can_manage = _can_manage(current_user)
     regs = await db.regulamentos.find({}, {"_id": 0}).sort("created_at", -1).to_list(None)
+    # Batch: resolve todas as versões em vigor num único find($in) em vez de um
+    # find_one por regulamento (evita N+1 round-trips à DB).
+    version_ids = [r["current_version_id"] for r in regs if r.get("current_version_id")]
+    versoes_by_id = {}
+    if version_ids:
+        versoes = await db.regulamento_versoes.find(
+            {"id": {"$in": version_ids}}, {"_id": 0}
+        ).to_list(None)
+        versoes_by_id = {v["id"]: v for v in versoes}
     visible = []
     for r in regs:
-        cur = None
-        if r.get("current_version_id"):
-            cur = await db.regulamento_versoes.find_one({"id": r["current_version_id"]}, {"_id": 0})
+        cur = versoes_by_id.get(r.get("current_version_id"))
         # Sócios comuns só veem regulamentos com uma versão em vigor aprovada;
         # rascunhos/versões não aprovadas ficam ocultos. Gestores veem tudo.
         if not can_manage and (cur is None or cur.get("status") != "aprovado"):

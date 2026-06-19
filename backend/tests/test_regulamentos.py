@@ -356,9 +356,8 @@ class TestVisibilidadeNaoGestor:
                 _reg(id="r2", current_version_id=None),
             ]
         )
-        mock_db.regulamento_versoes = _coll()
-        mock_db.regulamento_versoes.find_one = AsyncMock(
-            return_value={"id": "v-aprovada", "status": "aprovado"}
+        mock_db.regulamento_versoes = _coll(
+            find_list=[{"id": "v-aprovada", "status": "aprovado"}]
         )
         out = await reg_route.list_regulamentos(current_user=_user("socio"))
         assert [r["id"] for r in out["items"]] == ["r1"]
