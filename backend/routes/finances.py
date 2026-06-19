@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from datetime import datetime, timezone
 from typing import Optional
@@ -151,6 +151,7 @@ async def list_my_quotas(current_user: User = Depends(get_current_user)):
 @router.post("/transactions")
 async def create_transaction(
     data: TransactionCreate,
+    request: Request,
     current_user: User = Depends(get_current_user),
 ):
     require_manage_finances(current_user)
@@ -184,7 +185,10 @@ async def create_transaction(
 
     await db.transactions.insert_one(t_dict)
     await create_audit_log(
-        current_user.id, f"Criou transacao {transaction.id} ({data.type}: {data.amount} CVE)", transaction.id
+        current_user.id,
+        f"Criou transacao {transaction.id} ({data.type}: {data.amount} CVE)",
+        transaction.id,
+        request=request,
     )
 
     # Notify admins about new transaction (if creator is financeiro, not admin)
@@ -204,6 +208,7 @@ async def create_transaction(
 async def update_transaction(
     transaction_id: str,
     data: TransactionUpdate,
+    request: Request,
     current_user: User = Depends(get_current_user),
 ):
     require_manage_finances(current_user)
@@ -246,7 +251,9 @@ async def update_transaction(
 
     if updates:
         await db.transactions.update_one({"id": transaction_id}, {"$set": updates})
-        await create_audit_log(current_user.id, f"Atualizou transacao {transaction_id}", transaction_id)
+        await create_audit_log(
+            current_user.id, f"Atualizou transacao {transaction_id}", transaction_id, request=request
+        )
 
     updated = await db.transactions.find_one({"id": transaction_id}, {"_id": 0})
     return updated
@@ -255,6 +262,7 @@ async def update_transaction(
 @router.delete("/transactions/{transaction_id}")
 async def delete_transaction(
     transaction_id: str,
+    request: Request,
     current_user: User = Depends(get_current_user),
 ):
     require_manage_finances(current_user)
@@ -264,7 +272,7 @@ async def delete_transaction(
         raise HTTPException(status_code=404, detail="Transacao nao encontrada")
 
     await db.transactions.delete_one({"id": transaction_id})
-    await create_audit_log(current_user.id, f"Removeu transacao {transaction_id}", transaction_id)
+    await create_audit_log(current_user.id, f"Removeu transacao {transaction_id}", transaction_id, request=request)
     return {"message": "Transacao removida"}
 
 
@@ -432,6 +440,7 @@ async def get_finance_settings(
 @router.patch("/settings")
 async def update_finance_settings(
     data: FinanceSettingsUpdate,
+    request: Request,
     current_user: User = Depends(get_current_user),
 ):
     if current_user.role != "admin":
@@ -516,7 +525,9 @@ async def update_finance_settings(
     else:
         await db.finance_settings.update_one({"id": "finance_settings"}, {"$set": updates})
 
-    await create_audit_log(current_user.id, f"Atualizou configuracoes financeiras: {updates}")
+    await create_audit_log(
+        current_user.id, f"Atualizou configuracoes financeiras: {updates}", request=request
+    )
 
     # Notify admins about settings change
     if "quota_amount" in updates:
@@ -545,6 +556,7 @@ async def get_finance_settings_history(current_user: User = Depends(get_current_
 
 @router.post("/generate-quotas")
 async def generate_monthly_quotas(
+    request: Request,
     month: int = Query(..., ge=1, le=12),
     year: int = Query(...),
     current_user: User = Depends(get_current_user),
@@ -583,7 +595,9 @@ async def generate_monthly_quotas(
     created_count = await insert_quotas_atomic(year, month, candidate_docs)
 
     await create_audit_log(
-        current_user.id, f"Gerou {created_count} quotas para {month:02d}/{year} ({quota_amount} CVE cada)"
+        current_user.id,
+        f"Gerou {created_count} quotas para {month:02d}/{year} ({quota_amount} CVE cada)",
+        request=request,
     )
 
     # Notify all active users that quotas were generated

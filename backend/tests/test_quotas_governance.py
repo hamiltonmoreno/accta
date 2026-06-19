@@ -19,6 +19,16 @@ from models import FinanceSettingsUpdate
 pytestmark = [pytest.mark.asyncio]
 
 
+def _request():
+    """Fake Request para satisfazer a assinatura de update_finance_settings."""
+
+    class _R:
+        client = type("C", (), {"host": "127.0.0.1"})
+        headers = {"User-Agent": "test", "origin": "https://accta.cv"}
+
+    return _R()
+
+
 def _coll(**methods):
     c = MagicMock()
     c.find_one = AsyncMock(return_value=None)
@@ -49,7 +59,7 @@ class TestQuotaGovernance:
     async def test_quota_sem_deliberacao_400(self, fin_env, admin_user):
         with pytest.raises(HTTPException) as exc:
             await finances_route.update_finance_settings(
-                data=FinanceSettingsUpdate(quota_amount=3000), current_user=admin_user
+                data=FinanceSettingsUpdate(quota_amount=3000), request=_request(), current_user=admin_user
             )
         assert exc.value.status_code == 400
 
@@ -60,6 +70,7 @@ class TestQuotaGovernance:
         with pytest.raises(HTTPException) as exc:
             await finances_route.update_finance_settings(
                 data=FinanceSettingsUpdate(quota_amount=3000, assembleia_id="a1", deliberacao_id="d1"),
+                request=_request(),
                 current_user=admin_user,
             )
         assert exc.value.status_code == 400
@@ -71,6 +82,7 @@ class TestQuotaGovernance:
         with pytest.raises(HTTPException) as exc:
             await finances_route.update_finance_settings(
                 data=FinanceSettingsUpdate(quota_amount=3000, assembleia_id="a1", deliberacao_id="d1"),
+                request=_request(),
                 current_user=admin_user,
             )
         assert exc.value.status_code == 400
@@ -86,6 +98,7 @@ class TestQuotaGovernance:
 
         result = await finances_route.update_finance_settings(
             data=FinanceSettingsUpdate(quota_amount=3000, assembleia_id="a1", deliberacao_id="d1"),
+            request=_request(),
             current_user=admin_user,
         )
         assert "atualizadas" in result["message"].lower()
@@ -102,7 +115,7 @@ class TestQuotaGovernance:
         upd = {}
         fin_env.finance_settings.update_one = AsyncMock(side_effect=lambda f, u: upd.update(u["$set"]))
         result = await finances_route.update_finance_settings(
-            data=FinanceSettingsUpdate(quota_description="Quota Anual"), current_user=admin_user
+            data=FinanceSettingsUpdate(quota_description="Quota Anual"), request=_request(), current_user=admin_user
         )
         assert "atualizadas" in result["message"].lower()
         assert upd["quota_description"] == "Quota Anual"

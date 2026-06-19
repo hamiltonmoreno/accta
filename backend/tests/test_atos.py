@@ -371,20 +371,20 @@ class TestPaymentGate:
             return_value={"id": "finance_settings", "coaprovacao_limiar": 1000.0}
         )
         with pytest.raises(HTTPException) as e:
-            await finances_route.create_transaction(self._despesa(5000), current_user=financeiro_user)
+            await finances_route.create_transaction(self._despesa(5000), _request(), current_user=financeiro_user)
         assert e.value.status_code == 400
 
     async def test_despesa_abaixo_limiar_passa(self, mock_db, financeiro_user):
         mock_db.finance_settings.find_one = AsyncMock(
             return_value={"id": "finance_settings", "coaprovacao_limiar": 1000.0}
         )
-        tx = await finances_route.create_transaction(self._despesa(500), current_user=financeiro_user)
+        tx = await finances_route.create_transaction(self._despesa(500), _request(), current_user=financeiro_user)
         assert tx.type == "despesa"
         mock_db.transactions.insert_one.assert_awaited_once()
 
     async def test_limiar_zero_desligado(self, mock_db, financeiro_user):
         # finance_settings.find_one → None (default) ⇒ limiar 0 ⇒ despesa grande passa.
-        tx = await finances_route.create_transaction(self._despesa(999999), current_user=financeiro_user)
+        tx = await finances_route.create_transaction(self._despesa(999999), _request(), current_user=financeiro_user)
         assert tx.type == "despesa"
 
     async def test_receita_nao_afetada_pelo_gate(self, mock_db, financeiro_user):
@@ -394,5 +394,5 @@ class TestPaymentGate:
         data = TransactionCreate(
             type="receita", category="quotas", description="Quota", amount=5000, date="2026-05-23"
         )
-        tx = await finances_route.create_transaction(data, current_user=financeiro_user)
+        tx = await finances_route.create_transaction(data, _request(), current_user=financeiro_user)
         assert tx.type == "receita"
