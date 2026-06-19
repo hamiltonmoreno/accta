@@ -558,3 +558,15 @@ class TestMyQuotas:
         mock_db.transactions.find = MagicMock(return_value=_cursor([]))
         result = await finances_route.list_my_quotas(current_user=socio_user)
         assert result == {"items": [], "total_pago": 0}
+
+    async def test_bad_amount_is_tolerated(self, mock_db, socio_user):
+        # amount mal-formado/ausente em doc legado não deve rebentar o endpoint.
+        items = [
+            {"id": "t1", "amount": 500.0},
+            {"id": "t2", "amount": "abc"},
+            {"id": "t3"},
+            {"id": "t4", "amount": None},
+        ]
+        mock_db.transactions.find = MagicMock(return_value=_cursor(items))
+        result = await finances_route.list_my_quotas(current_user=socio_user)
+        assert result["total_pago"] == 500.0

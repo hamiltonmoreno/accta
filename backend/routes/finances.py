@@ -135,7 +135,16 @@ async def list_my_quotas(current_user: User = Depends(get_current_user)):
         "category": {"$in": ["quotas", "joias"]},
     }
     items = await db.transactions.find(query, {"_id": 0}).sort("date", -1).to_list(None)
-    total_pago = sum(float(t.get("amount") or 0) for t in items)
+
+    def _amount(t: dict) -> float:
+        # Coerção defensiva: tolera amount ausente/None/string mal-formada em
+        # docs legados sem rebentar o endpoint (não há validação na leitura).
+        try:
+            return float(t.get("amount") or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    total_pago = sum(_amount(t) for t in items)
     return {"items": items, "total_pago": total_pago}
 
 
