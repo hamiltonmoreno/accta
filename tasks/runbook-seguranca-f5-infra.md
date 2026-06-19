@@ -268,11 +268,24 @@ WHERE table_schema='public' AND grantee IN ('anon','authenticated') GROUP BY gra
 
 ---
 
+## Verificações read-only contra prod (2026-06-19)
+
+Executadas pelo assistente sem creds privilegiadas — só observam superfície externa.
+
+| Item | Resultado |
+|---|---|
+| F5.2 TLS handshake (`api.controlador.cv:443`) | ✅ **TLS 1.3** / `TLS_AES_256_GCM_SHA384` / `Verify return code: 0 (ok)` |
+| F5.2 Cabeçalhos `x-content-type-options`/`x-frame-options`/`referrer-policy` | ✅ Presentes (`nosniff` / `DENY` / `strict-origin-when-cross-origin`) — vistos numa resposta 405 do openresty |
+| F5.2 Redireção 80→443 | ❌ **GAP** — `GET http://api.controlador.cv/api/` devolve **HTTP 200** (não há `Location` para HTTPS). NPM/openresty está a servir conteúdo em plain HTTP. Configurar redireção permanente 301 no vhost. |
+| F5.6b Data API anon probe | ⏸ Pendente — preciso da Supabase project ref + anon key (passo (d) do §F5.6); recomenda-se preferir Opção A (Dashboard → Project Settings → Data API → desativar) e dispensar este probe. |
+
+Os checks autoritativos (F5.1a/b, F5.6a, F5.3, F5.4) precisam de acesso DBA/superuser e ficam no operador.
+
 ## Checklist (colar no PR de release / issue de operação)
 
 - [ ] F5.1a (defesa em profundidade) trigger ativo em prod (`tgenabled='O'`; teste transacional → ERRO; INSERT da app OK; `/verify` dá `ok`)
 - [ ] F5.1b **(autoritativo, obrigatório)** role runtime ≠ owner do schema; `REVOKE UPDATE/DELETE/TRUNCATE ON audit_logs FROM <role_runtime>` aplicado e verificado (UPDATE como runtime → `permission denied`)
-- [ ] F5.2 TLS≥1.2 + redireção 80→443 + cabeçalhos de segurança confirmados; env vars de prod (CORS sem `*`, `ENVIRONMENT=production`)
+- [ ] F5.2 TLS≥1.2 ✅ (TLS 1.3 verificado 2026-06-19) + **redireção 80→443 a fazer** + cabeçalhos OK ✅; env vars de prod (CORS sem `*`, `ENVIRONMENT=production`)
 - [ ] F5.3 Backups/PITR confirmados; RPO/RTO documentados; **restauro de staging testado**
 - [ ] F5.4 **GATE D6** — decidir com o dono: adiar rotação OU implementar suporte multi-chave antes de rodar
 - [ ] F5.5 Política de retenção (indefinida) registada
