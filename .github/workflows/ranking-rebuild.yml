@@ -55,9 +55,12 @@ jobs:
       - name: Rebuild snapshot
         env:
           DATABASE_URL: ${{ secrets.RANKING_REBUILD_DATABASE_URL }}
+          # Input passado por env (nao interpolado no `run:`) para evitar shell
+          # injection via `workflow_dispatch` (mesmo que dispatch exija write).
+          PERIODS: ${{ github.event.inputs.periods }}
         run: |
           if [ -z "$DATABASE_URL" ]; then
             echo "::error::Secret RANKING_REBUILD_DATABASE_URL nao configurado."
             exit 1
           fi
-          python scripts/rebuild_ranking.py ${{ github.event.inputs.periods }}
+          python scripts/rebuild_ranking.py $PERIODS
