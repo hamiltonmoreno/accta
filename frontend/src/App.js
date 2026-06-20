@@ -386,7 +386,7 @@ function AppRoutes() {
         <Route
           path="/admin/comunicados"
           element={
-            <ProtectedRoute allowedRoles={['admin']} allowedPrivileges={['send_comunicados']}>
+            <ProtectedRoute allowedRoles={['admin']} allowedPrivileges={['send_comunicados', 'comunicar_intra_orgao']}>
               <PrivateLayout><AdminComunicadosPage /></PrivateLayout>
             </ProtectedRoute>
           }

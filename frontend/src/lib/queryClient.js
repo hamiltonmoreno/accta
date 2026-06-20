@@ -90,6 +90,7 @@ export const queryKeys = {
     list: (params) => ['comunicados', params || {}],
     segments: () => ['comunicados', 'segments'],
     recipientsCount: (key) => ['comunicados', 'recipients-count', key],
+    previewAudience: (key) => ['comunicados', 'preview-audience', key],
   },
   brand: {
     public: () => ['brand', 'public'],
