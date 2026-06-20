@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Megaphone, XCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Megaphone, Pencil, Trash2, XCircle } from 'lucide-react';
 import {
   Table, TableHeader, TableBody, TableHead, TableRow, TableCell,
 } from '../../../components/ui/table';
@@ -13,7 +13,7 @@ import {
   CHANNEL_LABELS, PAGE_SIZE, TIPO_LABELS, formatDate,
 } from './tokens';
 
-export function HistoryTable() {
+export function HistoryTable({ onEditDraft, onDeleteDraft }) {
   const [page, setPage] = useState(0);
   const skip = page * PAGE_SIZE;
 
@@ -71,6 +71,7 @@ export function HistoryTable() {
             <TableHead className="text-right">Na app</TableHead>
             <TableHead>Data</TableHead>
             <TableHead>Autor</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -114,6 +115,32 @@ export function HistoryTable() {
               <TableCell className="text-[#6B7280] whitespace-nowrap">{formatDate(c.created_at)}</TableCell>
               <TableCell className="text-[#6B7280] max-w-[10rem] truncate" title={c.created_by}>
                 {c.created_by}
+              </TableCell>
+              <TableCell className="text-right whitespace-nowrap">
+                {c.status === 'rascunho' ? (
+                  <div className="inline-flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onEditDraft?.(c)}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white border border-[#D1D5DB] text-grafite text-xs font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                      data-testid={`comunicado-edit-${c.id}`}
+                    >
+                      <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDeleteDraft?.(c)}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white border border-[#C7202F] text-[#C7202F] text-xs font-medium hover:bg-[#FBEAEC] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                      data-testid={`comunicado-delete-${c.id}`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                      Eliminar
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-[#6B7280]">—</span>
+                )}
               </TableCell>
             </TableRow>
           ))}

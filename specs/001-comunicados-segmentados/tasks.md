@@ -79,7 +79,7 @@ D2 = incluir ciclo de rascunho; D3 = `enviado_parcial` ≡ `parcial` (aditivo).
 - [X] T022 [P] [US1] `frontend/src/utils/api.js`: adicionar `comunicadosAPI.previewAudience(data)`, `send(id)`, `updateDraft(id,data)`, `deleteDraft(id)`
 - [X] T023 [US1] `frontend/src/pages/private/comunicados/ComposerCard.js`: adicionar selector de **Órgão** (Assembleia Geral/Direcção/Conselho Fiscal, via `GET /governance/structure` — sem hard-code, FR-012)
 - [X] T024 [US1] `frontend/src/pages/private/comunicados/PreviewCard.js`: render contagem + amostra (≤5) + "…mais N" (FR-002) a partir de `previewAudience` (debounced)
-- [ ] T025 [US1] `frontend/src/pages/private/comunicados/ConfirmDialog.js` + `AdminComunicadosPage.js`: botão "Enviar comunicado" **Floresta `#166534`** (único primário/vista); gestão de rascunho (guardar/editar) e "Eliminar rascunho" **Carmesim outline** (solid só no confirm) — Princípio V
+- [X] T025 [US1] `frontend/src/pages/private/comunicados/ConfirmDialog.js` + `AdminComunicadosPage.js`: botão "Enviar comunicado" **Floresta `#166534`** (único primário/vista); gestão de rascunho (guardar/editar) e "Eliminar rascunho" **Carmesim outline** (solid só no confirm) — Princípio V
 - [X] T026 [US1] `AdminComunicadosPage.js`: badge visual de **dry-run** quando ambiente não-prod (FR-009)
 - [ ] T027 [US1] Validação manual em browser do fluxo US1 (quickstart US1) — preview, envio dry-run, 403, rascunho — antes de marcar a story como done (Princípio VII)
 

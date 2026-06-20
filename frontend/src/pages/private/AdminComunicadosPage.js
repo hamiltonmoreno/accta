@@ -6,10 +6,14 @@ import { queryKeys } from '../../lib/queryClient';
 import { ROLE_LABELS } from '../../lib/cargoLabels';
 import { MEMBER_CATEGORY_LABELS } from '../../lib/governanceLabels';
 import { toast } from 'sonner';
-import { Megaphone } from 'lucide-react';
+import { Megaphone, Pencil } from 'lucide-react';
 import {
   Card, CardHeader, CardTitle, CardDescription, CardContent,
 } from '../../components/ui/card';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '../../components/ui/alert-dialog';
 
 import { ORGAO_SEGMENT_LABELS } from './comunicados/tokens';
 import { useDebounced } from './comunicados/hooks';
@@ -41,6 +45,8 @@ export function AdminComunicadosPage() {
   const [ctaLabel, setCtaLabel] = useState('');
   const [ctaUrl, setCtaUrl] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);   // rascunho em edição (T025)
+  const [deleteTarget, setDeleteTarget] = useState(null);  // rascunho a eliminar
   // Modo segmentado (spec-comunicados-segmentados). Emissor restrito arranca e
   // permanece em segmentada (só órgãos).
   const [audienceMode, setAudienceMode] = useState(restricted ? 'segmentada' : 'simples');
@@ -150,7 +156,28 @@ export function AdminComunicadosPage() {
     setSubject(''); setBody(''); setTipo('informativo'); setChannels(['in_app']);
     setSegKind('all_active'); setSegValue(''); setUserIds([]);
     setCtaLabel(''); setCtaUrl(''); setAf(EMPTY_AF); setDryRun(false);
+    setEditingId(null);
     qc.invalidateQueries({ queryKey: ['comunicados'] });
+  };
+
+  // Carrega um rascunho do histórico no compositor (T025: editar).
+  const loadDraft = (c) => {
+    setSubject(c.subject || '');
+    setBody(c.body || '');
+    setTipo(c.tipo || 'informativo');
+    setChannels(c.channels?.length ? c.channels : ['in_app']);
+    setCtaLabel(c.cta_label || '');
+    setCtaUrl(c.cta_url || '');
+    setDryRun(!!c.dry_run);
+    const f = c.audience_filter || {};
+    setAf({
+      orgaos: f.orgaos || [], cargos: f.cargos || [], categorias: f.categorias || [],
+      statuses: f.statuses || [], joined_after: f.joined_after || '', joined_before: f.joined_before || '',
+      nominal: [...(f.nominal_member_ids || []), ...(f.nominal_emails || [])].join(', '),
+    });
+    setAudienceMode('segmentada');
+    setEditingId(c.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Modo simples: envio imediato (v1, inalterado).
@@ -163,11 +190,17 @@ export function AdminComunicadosPage() {
     onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao enviar o comunicado'),
   });
 
-  // Modo segmentado: cria rascunho e envia (create → enviar).
+  // Modo segmentado: envia. Reusa o rascunho em edição (PATCH→enviar) ou cria um
+  // novo (create→enviar).
   const segmentedMutation = useMutation({
     mutationFn: async (payload) => {
-      const created = await comunicadosAPI.create(payload);
-      const sent = await comunicadosAPI.send(created.data.id);
+      let id = editingId;
+      if (id) {
+        await comunicadosAPI.updateDraft(id, payload);
+      } else {
+        id = (await comunicadosAPI.create(payload)).data.id;
+      }
+      const sent = await comunicadosAPI.send(id);
       return sent.data;
     },
     onSuccess: (res) => {
@@ -179,6 +212,34 @@ export function AdminComunicadosPage() {
       resetComposer();
     },
     onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao enviar o comunicado'),
+  });
+
+  // Guardar rascunho sem enviar (cria novo ou atualiza o que está em edição).
+  const saveDraftMutation = useMutation({
+    mutationFn: async (payload) =>
+      (editingId
+        ? await comunicadosAPI.updateDraft(editingId, payload)
+        : await comunicadosAPI.create(payload)).data,
+    onSuccess: () => {
+      toast.success(editingId ? 'Rascunho atualizado.' : 'Rascunho guardado.');
+      resetComposer();
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao guardar o rascunho'),
+  });
+
+  // Eliminar (cancelar) um rascunho.
+  const deleteMutation = useMutation({
+    mutationFn: (id) => comunicadosAPI.deleteDraft(id),
+    onSuccess: (_res, id) => {
+      toast.success('Rascunho eliminado.');
+      if (editingId === id) resetComposer();
+      else qc.invalidateQueries({ queryKey: ['comunicados'] });
+      setDeleteTarget(null);
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.detail || 'Erro ao eliminar o rascunho');
+      setDeleteTarget(null);
+    },
   });
 
   // Validação cliente (espelha as regras do backend).
@@ -199,8 +260,19 @@ export function AdminComunicadosPage() {
     return null;
   }, [subject, body, channels, segmented, audienceReady, audiencePreview, segmentReady, segKind, ctaUrlValid]);
 
+  // Guardar rascunho é mais permissivo que enviar: não exige audiência > 0.
+  const draftError = useMemo(() => {
+    if (!subject.trim()) return 'Indique o assunto.';
+    if (body.trim().length < 10) return 'O corpo deve ter pelo menos 10 caracteres.';
+    if (!audienceReady) return 'Defina pelo menos um critério de audiência.';
+    if (!ctaUrlValid) return 'O URL do botão deve começar por http:// ou https://.';
+    return null;
+  }, [subject, body, audienceReady, ctaUrlValid]);
+
   const pending = segmented ? segmentedMutation.isPending : createMutation.isPending;
-  const canSubmit = !validationError && !pending && (!segmented || (!previewing && !!audiencePreview));
+  const savingDraft = saveDraftMutation.isPending;
+  const canSubmit = !validationError && !pending && !savingDraft
+    && (!segmented || (!previewing && !!audiencePreview));
 
   const handleSubmitClick = () => {
     if (validationError) {
@@ -221,6 +293,18 @@ export function AdminComunicadosPage() {
     } else {
       createMutation.mutate({ ...common, segment });
     }
+  };
+
+  const handleSaveDraft = () => {
+    if (draftError) {
+      toast.error(draftError);
+      return;
+    }
+    saveDraftMutation.mutate({
+      subject: subject.trim(), body: body.trim(), tipo, channels,
+      cta_label: ctaLabel.trim() || null, cta_url: ctaUrl.trim() || null,
+      audience_filter: audienceFilter, dry_run: dryRun,
+    });
   };
 
   const inApp = recipients?.in_app ?? 0;
@@ -264,6 +348,23 @@ export function AdminComunicadosPage() {
         </div>
       </div>
 
+      {editingId && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-[#E5E7EB] bg-[#F5F5F5] px-4 py-2.5">
+          <span className="inline-flex items-center gap-2 text-sm text-grafite">
+            <Pencil className="w-4 h-4 text-[#6B7280]" aria-hidden="true" />
+            A editar um rascunho. Guarde ou envie as alterações.
+          </span>
+          <button
+            type="button"
+            onClick={resetComposer}
+            className="text-sm font-medium text-[#6B7280] hover:text-grafite underline-offset-2 hover:underline cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 rounded"
+            data-testid="comunicado-cancel-edit"
+          >
+            Cancelar edição
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {/* Compositor */}
         <div className="xl:col-span-2 space-y-6">
@@ -301,6 +402,8 @@ export function AdminComunicadosPage() {
             onSubmitClick={handleSubmitClick}
             audienceMode={audienceMode} audienceReady={audienceReady}
             audiencePreview={audiencePreview} previewing={previewing} dryRun={dryRun}
+            onSaveDraft={handleSaveDraft} savingDraft={savingDraft}
+            showSaveDraft={segmented} editing={!!editingId}
           />
         </div>
       </div>
@@ -312,7 +415,10 @@ export function AdminComunicadosPage() {
           <CardDescription>Comunicados enviados, do mais recente ao mais antigo.</CardDescription>
         </CardHeader>
         <CardContent>
-          <HistoryTable />
+          <HistoryTable
+            onEditDraft={loadDraft}
+            onDeleteDraft={(c) => setDeleteTarget({ id: c.id, subject: c.subject })}
+          />
         </CardContent>
       </Card>
 
@@ -327,6 +433,30 @@ export function AdminComunicadosPage() {
         emailCount={segmented ? recipientsTotal : emailCount}
         dryRun={segmented && dryRun}
       />
+
+      {/* Eliminar rascunho — confirmação irreversível (Carmesim solid) */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar rascunho</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget?.subject
+                ? `Vai eliminar o rascunho "${deleteTarget.subject}". Esta ação não pode ser anulada.`
+                : 'Vai eliminar este rascunho. Esta ação não pode ser anulada.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="comunicado-delete-cancel">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+              className="bg-carmesim text-white hover:bg-[#A51B27]"
+              data-testid="comunicado-delete-confirm"
+            >
+              Eliminar rascunho
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, ExternalLink, FlaskConical, Loader2, Send, Users } from 'lucide-react';
+import { AlertTriangle, ExternalLink, FlaskConical, Loader2, Save, Send, Users } from 'lucide-react';
 import {
   Card, CardHeader, CardTitle, CardDescription, CardContent,
 } from '../../../components/ui/card';
@@ -61,6 +61,8 @@ export function PreviewCard({
   onSubmitClick,
   // Modo segmentado (spec-comunicados-segmentados)
   audienceMode, audienceReady, audiencePreview, previewing, dryRun,
+  // Gestão de rascunho (T025)
+  onSaveDraft, savingDraft, showSaveDraft, editing,
 }) {
   const segmented = audienceMode === 'segmentada';
   return (
@@ -152,6 +154,24 @@ export function PreviewCard({
           )}
           {pending ? 'A enviar…' : (segmented && dryRun ? 'Simular envio' : 'Enviar comunicado')}
         </button>
+
+        {/* Guardar rascunho (secundário neutro) — só no modo segmentado */}
+        {showSaveDraft && (
+          <button
+            type="button"
+            onClick={onSaveDraft}
+            disabled={savingDraft || pending}
+            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-white border border-[#D1D5DB] text-grafite font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+            data-testid="comunicado-save-draft"
+          >
+            {savingDraft ? (
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Save className="w-4 h-4" aria-hidden="true" />
+            )}
+            {editing ? 'Atualizar rascunho' : 'Guardar rascunho'}
+          </button>
+        )}
       </CardContent>
     </Card>
   );
