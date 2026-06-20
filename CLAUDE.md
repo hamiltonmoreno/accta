@@ -361,9 +361,8 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan:
-`specs/001-comunicados-segmentados/plan.md` (Comunicados Segmentados v2 —
+No active Spec Kit feature. Last completed:
+`specs/001-comunicados-segmentados-concluido/` (Comunicados Segmentados v2 —
 audiência por filtro composto, preview, snapshot auditável; extensão aditiva do
-módulo de comunicados PR #113).
+módulo de comunicados PR #113) — RELEASED v0.5.25, 48/48 tarefas concluídas.
 <!-- SPECKIT END -->

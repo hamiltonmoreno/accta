@@ -220,3 +220,23 @@ existe em git.
 **Context**: ACCTA, fluxo GitFlow de criar `feature/*` a partir de `develop`
 quando o `develop` local está atrás do `origin/develop`. Liga a
 [[git-pipe-tail-masks-exit]] e à preferência por worktrees com WIP ativo.
+
+---
+
+### L15 — Filtros por "órgão" resolvem para a chave canónica de `governance.py`, não para o rótulo nem para a leitura intuitiva
+**Mistake**: Na spec de Comunicados Segmentados v2, artefactos iniciais usaram
+um enum inválido `assembleia_geral` para o atalho de órgão e localizaram mal o
+helper `members_of_orgao` (2 achados HIGH corrigidos em 161f4ac). O atalho
+"Assembleia Geral" lê-se como "todo o plenário", mas a chave canónica é
+`mesa_ag` e resolve só para a Mesa da AG (Presidente/VP/Secretário) — não para
+todos os votantes. Também houve correção do dono na revisão do PR #302: editar/
+enviar comunicado tinha de ser trancado a autor-ou-admin (IDOR, b29d180).
+**Rule**: Antes de escrever qualquer filtro/enum de órgão ou cargo, ler
+`backend/governance.py` (fonte de verdade) e usar a **chave canónica** exata
+(`mesa_ag`, `direcao`, `conselho_fiscal` — nunca `assembleia_geral` nem o
+rótulo). Documentar na spec que "Assembleia Geral" como atalho = Mesa da AG; o
+plenário pede `categorias`/`statuses`. Em rotas que editam/enviam recursos com
+dono, validar ownership (autor-ou-admin) — não basta o RBAC de papel.
+**Context**: ACCTA, módulo de comunicados e qualquer feature que filtre por
+órgãos/cargos. Liga a [[governanca-estatutaria-state]] e
+[[comunicados-segmentados-spec-state]].
