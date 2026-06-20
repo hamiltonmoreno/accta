@@ -201,6 +201,11 @@ PRIVILEGES = [
     # disparo de comunicados (spec-comunicados-email) — overlay aditivo:
     # admin OU este privilégio podem compor/enviar comunicados.
     "send_comunicados",
+    # comunicação intra-órgão (spec-comunicados-segmentados US4/D1) — overlay
+    # aditivo e RESTRITO: permite a um órgão (ex.: Conselho Fiscal) dirigir-se
+    # apenas a outros órgãos sociais (direcao/mesa_ag/conselho_fiscal), sem
+    # acesso aos restantes critérios de audiência nem ao caminho `segment`.
+    "comunicar_intra_orgao",
     # ranking de atuação (spec-ranking-socio §7) — overlay aditivo: configurar
     # pesos/visibilidade, registar ajustes e recalcular o ranking sem dar admin
     # (concedível à Direcção).

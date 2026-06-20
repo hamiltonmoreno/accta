@@ -166,6 +166,31 @@ async def test_preview_sample_more_and_intersection_reduced(mock_db):
     assert prev["more"] == 0
 
 
+# ---------------------------------------------------------------------------
+# US2 — composição tripla (categoria+status+período) e intersection_reduced
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_three_way_composition_and(mock_db):
+    _wire(mock_db)
+    # status ativo (u1,u2,u3) AND categoria ordinario (u1,u3) AND admitidos<2023 (u1)
+    res = await _resolve(
+        {"statuses": ["ativo"], "categorias": ["ordinario"], "joined_before": "2023-01-01"})
+    assert {u["id"] for u in res} == {"u1"}
+
+
+@pytest.mark.asyncio
+async def test_intersection_reduced_warning_when_below_smallest(mock_db):
+    _wire(mock_db)
+    # cargos direcao (u1,u2)=2 AND categoria ordinario (u1,u3)=2 → intersecção {u1}=1 < 2
+    prev = await svc.preview_audience(
+        {"cargos": ["dir_presidente", "dir_tesoureiro"], "categorias": ["ordinario"]},
+        tipo="oficial", channels=["in_app"])
+    assert prev["recipients_count"] == 1
+    assert prev["per_type_counts"] == {"cargos": 2, "categorias": 2}
+    assert any(w["code"] == "intersection_reduced" for w in prev["warnings"])
+
+
 @pytest.mark.asyncio
 async def test_describe_audience_readable():
     s = svc.describe_audience({"orgaos": ["direcao"], "categorias": ["ordinario"]})

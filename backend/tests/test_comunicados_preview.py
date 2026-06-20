@@ -28,3 +28,24 @@ async def test_preview_returns_count_and_sample(mock_db, admin_user, monkeypatch
     assert res["recipients_count"] == 7
     assert res["more"] == 5
     assert res["sample"] == ["Ana", "Bruno"]
+
+
+# ---------------------------------------------------------------------------
+# US3 — status pendente_aprovacao alarga a base e avisa (resolução real)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_preview_pendente_aprovacao_widens_base_and_warns(mock_db, admin_user):
+    users = [
+        {"id": "a", "name": "Ativo", "email": "a@x.cv", "account_type": "member",
+         "status": "ativo", "member_category": "ordinario", "cargo": "socio"},
+        {"id": "p", "name": "Pend", "email": "p@x.cv", "account_type": "member",
+         "status": "pendente_aprovacao", "member_category": "ordinario", "cargo": "socio"},
+    ]
+    mock_db.users.find.return_value.to_list = AsyncMock(return_value=users)
+    payload = AudiencePreviewRequest(
+        channels=["in_app"], audience_filter={"statuses": ["pendente_aprovacao"]})
+    res = await cmod.preview_audience(payload, current_user=admin_user)
+    # só o pendente; o ativo fica fora (a base passou a ser pendente_aprovacao)
+    assert res["recipients_count"] == 1
+    assert any(w["code"] == "includes_unapproved" for w in res["warnings"])

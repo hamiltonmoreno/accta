@@ -8,7 +8,7 @@ import { Skeleton } from '../../../components/ui/skeleton';
 import { EmptyState } from '../../../components/EmptyState';
 import { comunicadosAPI } from '../../../utils/api';
 import { queryKeys } from '../../../lib/queryClient';
-import { StatusBadge, segmentDescription } from './widgets';
+import { StatusBadge, segmentDescription, audienceDescription } from './widgets';
 import {
   CHANNEL_LABELS, PAGE_SIZE, TIPO_LABELS, formatDate,
 } from './tokens';
@@ -83,8 +83,25 @@ export function HistoryTable() {
               <TableCell className="text-[#6B7280]">
                 {(c.channels || []).map((ch) => CHANNEL_LABELS[ch] || ch).join(' · ')}
               </TableCell>
-              <TableCell className="text-[#6B7280] max-w-[12rem] truncate" title={segmentDescription(c.segment)}>
-                {segmentDescription(c.segment)}
+              <TableCell className="text-[#6B7280] max-w-[14rem]">
+                {c.audience_filter ? (
+                  <div className="space-y-0.5">
+                    <div className="truncate" title={audienceDescription(c.audience_filter)}>
+                      {audienceDescription(c.audience_filter)}
+                    </div>
+                    <div className="text-xs text-[#6B7280] tabular-nums">
+                      {(c.audience_resolved?.length ?? c.recipients_count ?? 0)} destinatário(s)
+                      {(c.failed_member_ids?.length ?? 0) > 0 && (
+                        <span className="text-[#B91C1C]"> · {c.failed_member_ids.length} falha(s)</span>
+                      )}
+                      {c.dry_run && <span className="text-[#B45309]"> · simulação</span>}
+                    </div>
+                  </div>
+                ) : (
+                  <span className="block truncate" title={segmentDescription(c.segment)}>
+                    {segmentDescription(c.segment)}
+                  </span>
+                )}
               </TableCell>
               <TableCell><StatusBadge status={c.status} /></TableCell>
               <TableCell className="text-right text-[#6B7280] tabular-nums">

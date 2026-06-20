@@ -76,11 +76,11 @@ D2 = incluir ciclo de rascunho; D3 = `enviado_parcial` ≡ `parcial` (aditivo).
 - [X] T019 [US1] Audit log do envio: usar acção `"comunicado_enviado"` com `details={comunicado_id, audience_filter, recipients_count, recipients_sample≤5, dry_run}` (FR-005, alinhar nome p/ SC-003) em `backend/routes/comunicados.py` (data-model §5). **Antes do rename, confirmar que nenhuma query de dashboard/auditoria filtra a string antiga `enviar_comunicado`** (A1) — se filtrar, manter ambas ou actualizar a query
 - [X] T020 [US1] Injectar linha "Para: {describe_audience}" no email (FR-007) ligando `describe_audience` ao `comunicado_email_html`/corpo em `backend/comunicados_service.py` — depende de T008
 - [X] T021 [US1] Adicionar `DELETE /comunicados/{id}` em `backend/routes/comunicados.py` → `status="cancelado"` (só em rascunho; 409 terminal; autor ou admin); audit `cancelar_comunicado` (contracts/delete-draft.md / FR-011)
-- [ ] T022 [P] [US1] `frontend/src/utils/api.js`: adicionar `comunicadosAPI.previewAudience(data)`, `send(id)`, `updateDraft(id,data)`, `deleteDraft(id)`
-- [ ] T023 [US1] `frontend/src/pages/private/comunicados/ComposerCard.js`: adicionar selector de **Órgão** (Assembleia Geral/Direcção/Conselho Fiscal, via `GET /governance/structure` — sem hard-code, FR-012)
-- [ ] T024 [US1] `frontend/src/pages/private/comunicados/PreviewCard.js`: render contagem + amostra (≤5) + "…mais N" (FR-002) a partir de `previewAudience` (debounced)
+- [X] T022 [P] [US1] `frontend/src/utils/api.js`: adicionar `comunicadosAPI.previewAudience(data)`, `send(id)`, `updateDraft(id,data)`, `deleteDraft(id)`
+- [X] T023 [US1] `frontend/src/pages/private/comunicados/ComposerCard.js`: adicionar selector de **Órgão** (Assembleia Geral/Direcção/Conselho Fiscal, via `GET /governance/structure` — sem hard-code, FR-012)
+- [X] T024 [US1] `frontend/src/pages/private/comunicados/PreviewCard.js`: render contagem + amostra (≤5) + "…mais N" (FR-002) a partir de `previewAudience` (debounced)
 - [ ] T025 [US1] `frontend/src/pages/private/comunicados/ConfirmDialog.js` + `AdminComunicadosPage.js`: botão "Enviar comunicado" **Floresta `#166534`** (único primário/vista); gestão de rascunho (guardar/editar) e "Eliminar rascunho" **Carmesim outline** (solid só no confirm) — Princípio V
-- [ ] T026 [US1] `AdminComunicadosPage.js`: badge visual de **dry-run** quando ambiente não-prod (FR-009)
+- [X] T026 [US1] `AdminComunicadosPage.js`: badge visual de **dry-run** quando ambiente não-prod (FR-009)
 - [ ] T027 [US1] Validação manual em browser do fluxo US1 (quickstart US1) — preview, envio dry-run, 403, rascunho — antes de marcar a story como done (Princípio VII)
 
 **Checkpoint**: comunicado segmentado por órgão funcional ponta-a-ponta com rascunho + audit. MVP entregável.
@@ -95,15 +95,15 @@ D2 = incluir ciclo de rascunho; D3 = `enviado_parcial` ≡ `parcial` (aditivo).
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T028 [P] [US2] `backend/tests/test_comunicados_audience.py` (estender): composição categoria+status+período (AND); `intersection_reduced` quando cai abaixo do tipo mais restritivo (FR-014)
-- [ ] T029 [P] [US2] `backend/tests/test_comunicados_draft.py` (estender): snapshot imutável após mudança de cargo entre preview e envio (US2-AS3); lista nominal → `nominal_not_found` + `technical_excluded` (FR-003)
+- [X] T028 [P] [US2] `backend/tests/test_comunicados_audience.py` (estender): composição categoria+status+período (AND); `intersection_reduced` quando cai abaixo do tipo mais restritivo (FR-014)
+- [X] T029 [P] [US2] `backend/tests/test_comunicados_draft.py` (estender): snapshot imutável após mudança de cargo entre preview e envio (US2-AS3); lista nominal → `nominal_not_found` + `technical_excluded` (FR-003)
 
 ### Implementation for User Story 2
 
-- [ ] T030 [US2] `frontend/src/pages/private/comunicados/ComposerCard.js`: adicionar inputs de **Categoria** (múltipla), **Status** (múltipla), **Período** (joined_after/joined_before, date range) e **Lista nominal** (member_id/email)
-- [ ] T031 [US2] `frontend/src/pages/private/comunicados/PreviewCard.js`: mostrar `per_type_counts` + `intersected_count` + mensagem "Filtros combinados por AND…" quando `intersection_reduced` (FR-014); render warnings `nominal_not_found`/`technical_excluded`
-- [ ] T032 [US2] `AdminComunicadosPage.js`: bloquear botão "Enviar" + mensagem "Filtro não selecciona nenhum sócio — revê os critérios" quando preview `recipients_count==0` (espelha o 422 do backend, FR-006)
-- [ ] T033 [US2] `AdminComunicadosPage.js`/`HistoryTable.js`: vista de histórico mostra `audience_filter`, `audience_resolved` (contagem), `failed_member_ids`, estado (FR-013)
+- [X] T030 [US2] `frontend/src/pages/private/comunicados/ComposerCard.js`: adicionar inputs de **Categoria** (múltipla), **Status** (múltipla), **Período** (joined_after/joined_before, date range) e **Lista nominal** (member_id/email)
+- [X] T031 [US2] `frontend/src/pages/private/comunicados/PreviewCard.js`: mostrar `per_type_counts` + `intersected_count` + mensagem "Filtros combinados por AND…" quando `intersection_reduced` (FR-014); render warnings `nominal_not_found`/`technical_excluded`
+- [X] T032 [US2] `AdminComunicadosPage.js`: bloquear botão "Enviar" + mensagem "Filtro não selecciona nenhum sócio — revê os critérios" quando preview `recipients_count==0` (espelha o 422 do backend, FR-006)
+- [X] T033 [US2] `AdminComunicadosPage.js`/`HistoryTable.js`: vista de histórico mostra `audience_filter`, `audience_resolved` (contagem), `failed_member_ids`, estado (FR-013)
 - [ ] T034 [US2] Validação manual em browser do fluxo US2 (quickstart US2)
 
 **Checkpoint**: filtros compostos + reconciliação + histórico funcionais; US1 e US2 independentes.
@@ -118,12 +118,12 @@ D2 = incluir ciclo de rascunho; D3 = `enviado_parcial` ≡ `parcial` (aditivo).
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T035 [P] [US3] `backend/tests/test_comunicados_preview.py` (estender): `statuses=["pendente_aprovacao"]` alarga a base correctamente (não só `ativo`), exclui `ativo`, e gera warning `includes_unapproved` (US3-AS2)
+- [X] T035 [P] [US3] `backend/tests/test_comunicados_preview.py` (estender): `statuses=["pendente_aprovacao"]` alarga a base correctamente (não só `ativo`), exclui `ativo`, e gera warning `includes_unapproved` (US3-AS2)
 
 ### Implementation for User Story 3
 
-- [ ] T036 [US3] `frontend/src/pages/private/comunicados/ComposerCard.js`: expor `pendente_aprovacao` no selector de status
-- [ ] T037 [US3] `frontend/src/pages/private/comunicados/PreviewCard.js`: ícone/aviso visual quando warning `includes_unapproved` está presente (US3-AS2)
+- [X] T036 [US3] `frontend/src/pages/private/comunicados/ComposerCard.js`: expor `pendente_aprovacao` no selector de status
+- [X] T037 [US3] `frontend/src/pages/private/comunicados/PreviewCard.js`: ícone/aviso visual quando warning `includes_unapproved` está presente (US3-AS2)
 - [ ] T038 [US3] Validação manual em browser do fluxo US3 (quickstart US3)
 
 **Checkpoint**: filtro de status para onboarding funcional; US1–US3 independentes.
@@ -138,13 +138,13 @@ D2 = incluir ciclo de rascunho; D3 = `enviado_parcial` ≡ `parcial` (aditivo).
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T039 [P] [US4] `backend/tests/test_comunicados_routes.py` (estender): utilizador CF com `comunicar_intra_orgao` passa o guard e envia para órgão interno; utilizador sem `send_comunicados` nem `comunicar_intra_orgao` → 403; audit identifica autor
+- [X] T039 [P] [US4] `backend/tests/test_comunicados_routes.py` (estender): utilizador CF com `comunicar_intra_orgao` passa o guard e envia para órgão interno; utilizador sem `send_comunicados` nem `comunicar_intra_orgao` → 403; audit identifica autor
 
 ### Implementation for User Story 4
 
-- [ ] T040 [P] [US4] Registar a privilege `comunicar_intra_orgao` em `backend/governance.py` (lista `PRIVILEGES`) e adicionar helper `can_comunicar_intra_orgao(user)` em `backend/permissions.py` (D1). **Grant path (U1)**: a privilege é uma overlay **aditiva** atribuída manualmente via gestão de privilégios (NÃO auto-concedida por cargo); `can_comunicar_intra_orgao` = `user_can(user, "comunicar_intra_orgao")`. O teste T039 atribui-a explicitamente ao user CF (sem assumir auto-grant)
-- [ ] T041 [US4] Atualizar o guard `_can_send` em `backend/routes/comunicados.py` para aceitar `send_comunicados` **OU** `comunicar_intra_orgao`. **Âmbito permitido (U2)**: um autor que só tem `comunicar_intra_orgao` (sem `send_comunicados`/admin) só pode enviar para `audience_filter` com **`orgaos ⊆ {direcao, mesa_ag, conselho_fiscal}` e nenhum outro tipo de critério preenchido** (cargos/categorias/statuses/período/nominal vazios); qualquer audiência fora deste âmbito → **403**. Autores com `send_comunicados`/admin não têm esta restrição — depende de T040
-- [ ] T042 [US4] Garantir entrada de UI ao ecrã de comunicados para quem tem `comunicar_intra_orgao` (gating no `AdminComunicadosPage.js`/rota privada)
+- [X] T040 [P] [US4] Registar a privilege `comunicar_intra_orgao` em `backend/governance.py` (lista `PRIVILEGES`) e adicionar helper `can_comunicar_intra_orgao(user)` em `backend/permissions.py` (D1). **Grant path (U1)**: a privilege é uma overlay **aditiva** atribuída manualmente via gestão de privilégios (NÃO auto-concedida por cargo); `can_comunicar_intra_orgao` = `user_can(user, "comunicar_intra_orgao")`. O teste T039 atribui-a explicitamente ao user CF (sem assumir auto-grant)
+- [X] T041 [US4] Atualizar o guard `_can_send` em `backend/routes/comunicados.py` para aceitar `send_comunicados` **OU** `comunicar_intra_orgao`. **Âmbito permitido (U2)**: um autor que só tem `comunicar_intra_orgao` (sem `send_comunicados`/admin) só pode enviar para `audience_filter` com **`orgaos ⊆ {direcao, mesa_ag, conselho_fiscal}` e nenhum outro tipo de critério preenchido** (cargos/categorias/statuses/período/nominal vazios); qualquer audiência fora deste âmbito → **403**. Autores com `send_comunicados`/admin não têm esta restrição — depende de T040
+- [X] T042 [US4] Garantir entrada de UI ao ecrã de comunicados para quem tem `comunicar_intra_orgao` (gating no `AdminComunicadosPage.js`/rota privada)
 - [ ] T043 [US4] Validação manual em browser do fluxo US4 (quickstart US4)
 
 **Checkpoint**: todas as user stories funcionais e independentes.
@@ -153,8 +153,8 @@ D2 = incluir ciclo de rascunho; D3 = `enviado_parcial` ≡ `parcial` (aditivo).
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T044 [P] Regressão: correr suite de comunicados completa (`pytest tests/test_comunicados_*.py -q`) + auto-dispatch de governança (garantir que o caminho `segment` legado não regrediu)
-- [ ] T045 [P] `cd backend && ruff check . && ruff format --check .` e `cd frontend && npx eslint src/ --ext .js,.jsx --max-warnings=60`
+- [X] T044 [P] Regressão: correr suite de comunicados completa (`pytest tests/test_comunicados_*.py -q`) + auto-dispatch de governança (garantir que o caminho `segment` legado não regrediu)
+- [X] T045 [P] `cd backend && ruff check . && ruff format --check .` e `cd frontend && npx eslint src/ --ext .js,.jsx --max-warnings=60`
 - [ ] T046 Executar a validação completa do `quickstart.md` (todas as US + edge cases) e registar resultado
 - [ ] T047 Correr `/speckit-analyze` para consistência cruzada spec↔plan↔tasks contra a constituição antes de `/speckit-implement` (Governance da constituição)
 - [ ] T048 [P] Capturar quaisquer correcções do dono durante a implementação em `tasks/lessons.md` (Princípio VII)

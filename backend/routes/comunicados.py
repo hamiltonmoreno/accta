@@ -12,15 +12,28 @@ from models import (
 from config import IS_PROD
 from database import db
 from auth import get_current_user, has_role_or_privilege
+from permissions import can_comunicar_intra_orgao
 from helpers import create_audit_log
 import comunicados_service
 
 router = APIRouter(tags=["comunicados"])
 limiter = Limiter(key_func=get_remote_address)
 
+# Órgãos a que um emissor restrito (só `comunicar_intra_orgao`) se pode dirigir
+# (US4 U2). Espelha as keys aceites por helpers.members_of_orgao.
+_INTRA_ORGAO_KEYS = {"direcao", "mesa_ag", "conselho_fiscal"}
+_AF_NON_ORGAO_KEYS = ("cargos", "categorias", "statuses", "joined_after",
+                      "joined_before", "nominal_member_ids", "nominal_emails")
+
+
+def _is_full_sender(user: User) -> bool:
+    """Emissor pleno: admin ou `send_comunicados` (sem restrição de âmbito)."""
+    return has_role_or_privilege(user, ("admin",), "send_comunicados")
+
 
 def _can_send(user: User) -> bool:
-    return has_role_or_privilege(user, ("admin",), "send_comunicados")
+    """Acesso ao módulo: emissor pleno OU intra-órgão (US4/D1)."""
+    return _is_full_sender(user) or can_comunicar_intra_orgao(user)
 
 
 def _guard(user: User):
@@ -28,12 +41,36 @@ def _guard(user: User):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
 
+def _guard_full(user: User):
+    """Caminho `segment` legado + contagens: exige emissor pleno (US4 U2)."""
+    if not _is_full_sender(user):
+        raise HTTPException(status_code=403, detail="Sem permissão")
+
+
+def _enforce_intra_orgao_scope(user: User, audience_filter: dict | None):
+    """Âmbito restrito (US4 U2): um emissor que só tem `comunicar_intra_orgao`
+    (sem `send_comunicados`/admin) só pode dirigir-se a órgãos sociais —
+    `orgaos ⊆ {direcao, mesa_ag, conselho_fiscal}` e nenhum outro critério
+    preenchido. Emissores plenos não têm esta restrição."""
+    if _is_full_sender(user):
+        return
+    af = audience_filter or {}
+    orgaos = af.get("orgaos") or []
+    if (not orgaos
+            or not set(orgaos) <= _INTRA_ORGAO_KEYS
+            or any(af.get(k) for k in _AF_NON_ORGAO_KEYS)):
+        raise HTTPException(
+            status_code=403,
+            detail="Só pode comunicar para órgãos sociais (Direcção, Mesa da AG, Conselho Fiscal)",
+        )
+
+
 # --- rotas estáticas ANTES de /comunicados/{id} (ordem importa no FastAPI) ---
 
 @router.post("/comunicados/recipients/count")
 async def count_recipients(payload: RecipientsCountRequest,
                            current_user: User = Depends(get_current_user)):
-    _guard(current_user)
+    _guard_full(current_user)
     seg = payload.segment.model_dump()
     inapp = (await comunicados_service.resolve_recipients(seg, channel="in_app", tipo=payload.tipo)
              if "in_app" in payload.channels else [])
@@ -83,6 +120,7 @@ async def create_comunicado(request: Request, payload: ComunicadoCreate,
     # --- Caminho v2: audiência segmentada → cria RASCUNHO (envio é explícito) ---
     if payload.audience_filter is not None:
         af = payload.audience_filter.model_dump()
+        _enforce_intra_orgao_scope(current_user, af)
         doc = {
             "id": cid, "subject": payload.subject, "body": payload.body,
             "cta_label": payload.cta_label, "cta_url": payload.cta_url,
@@ -103,6 +141,7 @@ async def create_comunicado(request: Request, payload: ComunicadoCreate,
         return {"id": cid, "status": "rascunho"}
 
     # --- Caminho legado (segment): envio imediato (comportamento v1 inalterado) ---
+    _guard_full(current_user)  # emissor restrito não usa o caminho `segment` (US4 U2)
     seg = payload.segment.model_dump()
     ids = set()
     for ch in payload.channels:
@@ -144,6 +183,9 @@ async def update_comunicado(comunicado_id: str, payload: ComunicadoUpdate, reque
     changes = payload.model_dump(exclude_none=True)
     if "audience_filter" in changes:
         changes["audience_filter"] = payload.audience_filter.model_dump()
+    # Âmbito restrito (US4 U2): valida o filtro efectivo após a edição.
+    _enforce_intra_orgao_scope(
+        current_user, changes.get("audience_filter") or doc.get("audience_filter"))
     if changes:
         await db.comunicados.update_one({"id": comunicado_id}, {"$set": changes})
     return {"id": comunicado_id, "status": "rascunho"}
@@ -161,6 +203,7 @@ async def enviar_comunicado(comunicado_id: str, request: Request,
     if doc.get("status") != "rascunho":
         raise HTTPException(status_code=409, detail="Apenas rascunhos podem ser enviados")
     af = doc.get("audience_filter")
+    _enforce_intra_orgao_scope(current_user, af)  # âmbito restrito no envio (US4 U2)
     sample: list = []
     if af:
         prev = await comunicados_service.preview_audience(af, tipo=doc["tipo"], channels=doc["channels"])

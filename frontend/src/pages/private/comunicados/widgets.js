@@ -29,3 +29,25 @@ export function segmentDescription(seg) {
   if (seg.kind === 'manual') return `${base} (${(seg.user_ids || []).length})`;
   return base;
 }
+
+/**
+ * Rótulo PT legível de um `audience_filter` v2 (espelha describe_audience no
+ * backend) — descreve os critérios, não as pessoas. Usado no histórico (FR-013).
+ */
+export function audienceDescription(af) {
+  if (!af) return '—';
+  const parts = [];
+  if (af.orgaos?.length) parts.push(af.orgaos.map((o) => ORGAO_SEGMENT_LABELS[o] || o).join(', '));
+  if (af.cargos?.length) parts.push(`cargos (${af.cargos.length})`);
+  if (af.categorias?.length) {
+    parts.push(`categoria ${af.categorias.map((c) => MEMBER_CATEGORY_LABELS[c] || c).join(', ')}`);
+  }
+  if (af.statuses?.length) parts.push(`estado ${af.statuses.join(', ')}`);
+  const a = af.joined_after;
+  const b = af.joined_before;
+  if (a && b) parts.push(`admitidos ${a}–${b}`);
+  else if (a) parts.push(`admitidos após ${a}`);
+  else if (b) parts.push(`admitidos até ${b}`);
+  if (af.nominal_member_ids?.length || af.nominal_emails?.length) parts.push('lista nominal');
+  return parts.length ? parts.join(' · ') : 'audiência personalizada';
+}

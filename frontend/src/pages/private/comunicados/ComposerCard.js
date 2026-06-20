@@ -11,6 +11,7 @@ import {
 } from '../../../components/ui/select';
 import { Checkbox } from '../../../components/ui/checkbox';
 import { MemberSelector } from './MemberSelector';
+import { AudienceBuilder } from './AudienceBuilder';
 import { SEGMENT_KIND_LABELS } from './tokens';
 
 export function ComposerCard({
@@ -25,7 +26,13 @@ export function ComposerCard({
   ctaUrl, setCtaUrl,
   ctaUrlValid,
   valueOptions,
+  // Modo segmentado (spec-comunicados-segmentados)
+  audienceMode, setAudienceMode,
+  af, setAf, cargoOptions, categoriaOptions,
+  dryRun, setDryRun, showDryRun,
+  restricted = false,
 }) {
+  const segmented = restricted || audienceMode === 'segmentada';
   return (
     <Card>
       <CardHeader>
@@ -111,42 +118,79 @@ export function ComposerCard({
           )}
         </div>
 
-        {/* Segmento */}
-        <div className="space-y-1.5">
-          <Label htmlFor="comunicado-segment">Destinatários</Label>
-          <Select
-            value={segKind}
-            onValueChange={(v) => { setSegKind(v); setSegValue(''); }}
-          >
-            <SelectTrigger id="comunicado-segment" data-testid="comunicado-segment">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(SEGMENT_KIND_LABELS).map(([k, label]) => (
-                <SelectItem key={k} value={k}>{label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Destinatários — modo simples (segment) ou segmentado (audience_filter) */}
+        <div className="space-y-2">
+          <Label htmlFor="comunicado-audience-mode">Destinatários</Label>
+          {restricted ? (
+            <p className="text-xs text-[#6B7280]">
+              Pode dirigir-se apenas a órgãos sociais (Direcção, Mesa da AG, Conselho Fiscal).
+            </p>
+          ) : (
+            <Select value={audienceMode} onValueChange={setAudienceMode}>
+              <SelectTrigger id="comunicado-audience-mode" data-testid="comunicado-audience-mode">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="simples">Audiência simples</SelectItem>
+                <SelectItem value="segmentada">Audiência segmentada</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
 
-          {(segKind === 'role' || segKind === 'member_category' || segKind === 'orgao') && (
-            <div className="pt-1">
-              <Select value={segValue} onValueChange={setSegValue}>
-                <SelectTrigger data-testid="comunicado-segment-value">
-                  <SelectValue placeholder="Escolha um valor…" />
+          {!segmented && (
+            <div className="space-y-1.5 pt-1">
+              <Select
+                value={segKind}
+                onValueChange={(v) => { setSegKind(v); setSegValue(''); }}
+              >
+                <SelectTrigger id="comunicado-segment" data-testid="comunicado-segment">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {valueOptions.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  {Object.entries(SEGMENT_KIND_LABELS).map(([k, label]) => (
+                    <SelectItem key={k} value={k}>{label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+
+              {(segKind === 'role' || segKind === 'member_category' || segKind === 'orgao') && (
+                <div className="pt-1">
+                  <Select value={segValue} onValueChange={setSegValue}>
+                    <SelectTrigger data-testid="comunicado-segment-value">
+                      <SelectValue placeholder="Escolha um valor…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {valueOptions.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {segKind === 'manual' && (
+                <div className="pt-1">
+                  <MemberSelector selectedIds={userIds} onToggle={toggleUser} />
+                </div>
+              )}
             </div>
           )}
 
-          {segKind === 'manual' && (
+          {segmented && (
             <div className="pt-1">
-              <MemberSelector selectedIds={userIds} onToggle={toggleUser} />
+              <AudienceBuilder
+                af={af} setAf={setAf}
+                cargoOptions={cargoOptions} categoriaOptions={categoriaOptions}
+                restricted={restricted}
+              />
             </div>
+          )}
+
+          {segmented && showDryRun && (
+            <label className="flex items-center gap-2 cursor-pointer pt-1">
+              <Checkbox checked={dryRun} onCheckedChange={() => setDryRun(!dryRun)} data-testid="comunicado-dry-run" />
+              <span className="text-sm text-grafite">Simulação (dry-run) — não envia, apenas calcula e regista</span>
+            </label>
           )}
         </div>
 
