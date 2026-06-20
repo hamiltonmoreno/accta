@@ -14,7 +14,7 @@ Composição: **OR dentro do tipo, AND entre tipos** (FR-014, ver research R2).
 | Campo | Tipo | Notas |
 |-------|------|-------|
 | `cargos` | `list[str]` = `[]` | keys canónicas de `governance.py` (ex. `dir_tesoureiro`), nunca labels |
-| `orgaos` | `list[str]` = `[]` | `assembleia_geral` / `direcao` / `conselho_fiscal`; expandido server-side via `members_of_orgao` (FR-012) |
+| `orgaos` | `list[str]` = `[]` | keys canónicas **aceites por `helpers.members_of_orgao`**: `direcao` / `mesa_ag` / `conselho_fiscal` (FR-012). ⚠ A key da Assembleia Geral é **`mesa_ag`** (Mesa da AG: Presidente/VP/Secretário) — NÃO `assembleia_geral`, que devolveria `None` → fallback silencioso p/ admins. O atalho "Órgão: Assembleia Geral" resolve para a **Mesa da AG**; o plenário completo (todos os votantes) obtém-se por `categorias`/`statuses`, não por este atalho. |
 | `categorias` | `list[str]` = `[]` | `fundador` / `ordinario` / `honorario` (de `MEMBER_CATEGORIES`) |
 | `statuses` | `list[str]` = `[]` | subconjunto de `ativo`/`inativo`/`pendente_convite`/`pendente_aprovacao`/`rejeitado`; vazio ⇒ default `["ativo"]` |
 | `joined_after` | `Optional[str]` | data ISO; `admission_date >= joined_after` |

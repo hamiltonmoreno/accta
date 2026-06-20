@@ -32,6 +32,9 @@ FR-002, FR-003, FR-014 e os edge cases de preview.
 
 - `audience_filter` valida como em data-model §1 (pelo menos um critério;
   enums fechadas validadas → **422** se inválido).
+- `orgaos[]` aceita **só** as keys `direcao` / `mesa_ag` / `conselho_fiscal`
+  (as que `helpers.members_of_orgao` reconhece; `assembleia_geral` é inválido e
+  daria 422 — a Assembleia Geral é a key `mesa_ag`).
 
 ## Response 200
 

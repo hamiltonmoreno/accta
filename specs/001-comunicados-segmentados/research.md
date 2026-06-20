@@ -36,8 +36,10 @@ universo de ~200 sócios. In-memory é simples e suficiente à escala.
 **intersecção** desses conjuntos (AND entre tipos). Tipos:
 
 - `cargos[]` → `u.cargo in cargos`
-- `orgaos[]` → união de `members_of_orgao(o)` para cada `o` (resolvido
-  server-side via `governance.py` — FR-012)
+- `orgaos[]` → união de `helpers.members_of_orgao(o)` para cada `o` (FR-012).
+  **Keys aceites: `direcao`/`mesa_ag`/`conselho_fiscal`** (a key da AG é
+  `mesa_ag`, não `assembleia_geral` — esta última cairia no fallback de admins).
+  O `AudienceFilter.orgaos` valida contra exactamente estas três keys.
 - `categorias[]` → `u.member_category in categorias`
 - `statuses[]` → base alargada a esses status (ver R1)
 - `joined_after` / `joined_before` → `joined_after <= u.admission_date <= joined_before`
@@ -210,8 +212,19 @@ Não inventar uma matriz fina sem confirmação.
 **Decisão**: ✅ **CONFIRMADO (2026-06-20)** — adicionar `comunicar_intra_orgao`.
 Mantém-se `send_comunicados` para emissão geral (admin/Direcção) **e** adiciona-se
 a overlay `comunicar_intra_orgao` + helper em `permissions.py` para o Conselho
-Fiscal poder dirigir-se a órgãos internos (US4 entra neste ciclo). A audiência
-de quem só tem `comunicar_intra_orgao` é restrita a filtros de órgão interno.
+Fiscal poder dirigir-se a órgãos internos (US4 entra neste ciclo).
+
+**Grant path (U1, post-analyze)**: a privilege é uma overlay **aditiva**
+atribuída **manualmente** via gestão de privilégios (Constituição III —
+privileges são overlays `role OR privilege`), **não** auto-concedida por cargo.
+`can_comunicar_intra_orgao(user) = user_can(user, "comunicar_intra_orgao")`.
+
+**Âmbito permitido (U2, post-analyze)**: um autor que tem **só**
+`comunicar_intra_orgao` (sem `send_comunicados`/admin) só pode enviar para
+`audience_filter` com `orgaos ⊆ {direcao, mesa_ag, conselho_fiscal}` e **nenhum
+outro tipo de critério** preenchido (cargos/categorias/statuses/período/nominal
+vazios). Audiência fora deste âmbito → **403**. Autores `send_comunicados`/admin
+não têm esta restrição.
 
 ---
 

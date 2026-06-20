@@ -64,7 +64,7 @@ mitigado por `dry_run` em não-produção (FR-009).
 |-----------|-----------|--------|
 | **I. Simplicity First** | Extensão aditiva; reutiliza dispatch/email/notify/audit/índices existentes. Sem filas novas (assumption). Snapshot é um campo no doc, não uma tabela nova. | ✅ PASS |
 | **II. Root-Cause Discipline** | Reconciliação de status feita aditivamente (não rename destrutivo nem shim); `enviado_parcial`→`parcial` documentado, não duplicado. | ✅ PASS |
-| **III. RBAC + Audit (NON-NEG)** | Cada endpoint protegido verifica privilégio à entrada (`send_comunicados` + overlay `comunicar_intra_orgao` — ver D1); `comunicado_enviado` em cada envio; sem SQL cru (só DAO); índices só em `ensure_schema()`; órgão→cargos resolvido server-side via `governance.py` (FR-012, sem hard-code no frontend). | ✅ PASS |
+| **III. RBAC + Audit (NON-NEG)** | Cada endpoint protegido verifica privilégio à entrada (`send_comunicados` + overlay `comunicar_intra_orgao` — ver D1); `comunicado_enviado` em cada envio; sem SQL cru (só DAO); índices só em `ensure_schema()`; órgão→membros resolvido server-side via `helpers.members_of_orgao` (matchers de `permissions.py` sobre as keys de `governance.py`) — FR-012, sem hard-code no frontend. | ✅ PASS |
 | **IV. Language Discipline** | UI/email/detail em PT; identificadores EN genéricos (`audience_filter`, `resolve_audience`, `recipients_count`); domínio PT (`comunicado`, `socio`, `orgao`, `cargo`, `rascunho`). | ✅ PASS |
 | **V. Design System (NON-NEG)** | "Enviar comunicado" = Floresta `#166534` (único primário positivo/vista); "Eliminar rascunho" = Carmesim outline (solid só no confirm dialog irreversível). Aviso de dry-run neutro. Sem dark mode. | ✅ PASS |
 | **VI. GitFlow + Confirmation** | Feature off `develop`, PR→`develop`. STOP #5 (modelo Pydantic): mitigado — alterações aditivas/opcionais. STOP #6 (email a sócios reais): `dry_run` em não-prod + o envio real continua a exigir confirmação do autor (preview→confirmar). | ⚠ Gated → ver Complexity / D2 |
@@ -122,7 +122,8 @@ backend/
 ├── comunicados_service.py        # + resolve_audience(); preview_audience();
 │                                 #   dispatch persiste audience_resolved + failed_member_ids; dry_run
 ├── permissions.py                # + comunicar_intra_orgao helper (se D1 confirmar US4)
-├── governance.py                 # (fonte de órgão→cargos; sem alteração — já expõe members_of_orgao)
+├── governance.py                 # (fonte de keys de órgãos/cargos + PRIVILEGES; + comunicar_intra_orgao se D1)
+├── helpers.py                    # (members_of_orgao — keys aceites: direcao/mesa_ag/conselho_fiscal; sem alteração)
 ├── database.py                   # + índice ix_comunicados (se necessário) em ensure_schema()
 ├── routes/comunicados.py         # + POST /comunicados/preview-audience; create estendido;
 │                                 #   DELETE /comunicados/{id} (rascunho); GET histórico estende campos
