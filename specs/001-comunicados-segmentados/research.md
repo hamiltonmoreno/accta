@@ -207,8 +207,11 @@ adicionar uma única overlay `comunicar_intra_orgao` + helper em
 `permissions.py`, restringindo a audiência desse perfil a órgãos internos.
 Não inventar uma matriz fina sem confirmação.
 
-**Decisão**: ⛔ confirmar com o dono antes de implementar (US4 é P3 — pode ficar
-fora do primeiro corte sem bloquear P1/P2).
+**Decisão**: ✅ **CONFIRMADO (2026-06-20)** — adicionar `comunicar_intra_orgao`.
+Mantém-se `send_comunicados` para emissão geral (admin/Direcção) **e** adiciona-se
+a overlay `comunicar_intra_orgao` + helper em `permissions.py` para o Conselho
+Fiscal poder dirigir-se a órgãos internos (US4 entra neste ciclo). A audiência
+de quem só tem `comunicar_intra_orgao` é restrita a filtros de órgão interno.
 
 ---
 
@@ -223,16 +226,19 @@ fora do primeiro corte sem bloquear P1/P2).
 /comunicados/{id}/enviar` (resolve+dispatch) **ou** `DELETE /comunicados/{id}`
 (só permitido em `rascunho`; `enviado`/`parcial`/`cancelado` imutáveis, FR-011).
 
-**Decisão**: ⛔ confirmar âmbito (afecta nº de endpoints/UI). Se o dono preferir
-"compor→preview→enviar" sem persistência de rascunho, removem-se o estado
-`rascunho`/PATCH/DELETE e simplifica-se.
+**Decisão**: ✅ **CONFIRMADO (2026-06-20)** — incluir o ciclo de rascunho. Fluxo:
+create `status="rascunho"` (sem dispatch) → `PATCH /comunicados/{id}` (editar) →
+`POST /comunicados/{id}/enviar` (resolve+dispatch) **ou** `DELETE
+/comunicados/{id}` (→ `cancelado`, só em `rascunho`; terminais imutáveis,
+FR-011). UI ganha gestão de rascunhos.
 
 ---
 
 ## D3 — Reutilizar `parcial` para `enviado_parcial`
 
-Ver **R5**. **Recomendação**: reutilizar `parcial`. ⛔ confirmar (trivial mas é
-um "bloco de decisão" — política do projecto manda confirmar).
+Ver **R5**. **Decisão**: ✅ **CONFIRMADO (2026-06-20)** — reutilizar `parcial`
+(`enviado_parcial` ≡ `parcial`). Extensão aditiva só para `rascunho`/`cancelado`;
+sem migração de docs, sem tocar o dispatch testado.
 
 ---
 
@@ -243,12 +249,12 @@ um "bloco de decisão" — política do projecto manda confirmar).
 | Resolução de audiência / OR-AND (R1,R2) | ✅ resolvido |
 | Forma do preview + warnings (R3) | ✅ resolvido |
 | Snapshot + audit (R4) | ✅ resolvido |
-| Status aditivo (R5 / D3) | ✅ técnico resolvido; ⛔ confirmar D3 |
+| Status aditivo (R5 / D3) | ✅ resolvido + confirmado |
 | Campo de período (R6) | ✅ resolvido |
 | Dry-run (R7) | ✅ resolvido |
 | Email legível (R8) | ✅ resolvido |
-| Matriz de privilégios (D1) | ⛔ owner decision |
-| Ciclo de rascunho (D2) | ⛔ owner decision |
+| Matriz de privilégios (D1) | ✅ confirmado — `+ comunicar_intra_orgao` (US4 entra) |
+| Ciclo de rascunho (D2) | ✅ confirmado — incluir rascunho |
 
-Nenhuma incógnita **técnica** fica por resolver. Os 3 gates (D1–D3) são
-decisões de produto a confirmar antes de implementar.
+**Todos os gates D1–D3 confirmados pelo dono em 2026-06-20.** Nenhuma incógnita
+técnica ou de produto fica por resolver — pronto para `/speckit-tasks`.
