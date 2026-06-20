@@ -952,13 +952,67 @@ class NotificationCreate(BaseModel):
 COMUNICADO_TIPOS = ["oficial", "informativo"]
 COMUNICADO_CHANNELS = ["in_app", "email"]
 COMUNICADO_SEGMENT_KINDS = ["all_active", "role", "orgao", "member_category", "manual"]
-COMUNICADO_STATUSES = ["a_enviar", "enviando", "enviado", "parcial", "falhado"]
+# Estados — extensão aditiva (spec-comunicados-segmentados): `rascunho` e
+# `cancelado` novos; `enviado_parcial` da spec ≡ `parcial` existente (sem rename,
+# sem migração — não quebra documentos em prod).
+COMUNICADO_STATUSES = ["rascunho", "a_enviar", "enviando", "enviado", "parcial", "falhado", "cancelado"]
+# Keys de órgão aceites pelo filtro de audiência — exactamente as que
+# helpers.members_of_orgao reconhece. A Assembleia Geral é `mesa_ag` (a Mesa);
+# `assembleia_geral` NÃO é válido (cairia no fallback de admins).
+COMUNICADO_ORGAO_KEYS = ["direcao", "mesa_ag", "conselho_fiscal"]
 
 
 class ComunicadoSegment(BaseModel):
     kind: Literal["all_active", "role", "orgao", "member_category", "manual"]
     value: Optional[str] = None
     user_ids: Optional[List[str]] = None
+
+
+class AudienceFilter(BaseModel):
+    """Filtro de audiência composto (spec-comunicados-segmentados FR-001/FR-014).
+
+    Composição: OR dentro do mesmo tipo, AND entre tipos diferentes. Pelo menos
+    um critério preenchido. Resolvido server-side em
+    `comunicados_service.resolve_audience` (paridade preview↔envio).
+    """
+
+    cargos: List[str] = []
+    orgaos: List[str] = []
+    categorias: List[str] = []
+    statuses: List[str] = []
+    joined_after: Optional[str] = None
+    joined_before: Optional[str] = None
+    nominal_member_ids: List[str] = []
+    nominal_emails: List[str] = []
+
+    @model_validator(mode="after")
+    def _v_filter(self):
+        if not any(
+            [
+                self.cargos, self.orgaos, self.categorias, self.statuses,
+                self.joined_after, self.joined_before,
+                self.nominal_member_ids, self.nominal_emails,
+            ]
+        ):
+            raise ValueError("Defina pelo menos um critério de audiência")
+        bad_cargos = [c for c in self.cargos if c not in CARGO_KEYS]
+        if bad_cargos:
+            raise ValueError(f"Cargo(s) inválido(s): {', '.join(bad_cargos)}")
+        bad_orgaos = [o for o in self.orgaos if o not in COMUNICADO_ORGAO_KEYS]
+        if bad_orgaos:
+            raise ValueError(
+                f"Órgão(s) inválido(s): {', '.join(bad_orgaos)} — "
+                f"use {', '.join(COMUNICADO_ORGAO_KEYS)}"
+            )
+        bad_cats = [c for c in self.categorias if c not in MEMBER_CATEGORIES]
+        if bad_cats:
+            raise ValueError(f"Categoria(s) inválida(s): {', '.join(bad_cats)}")
+        bad_status = [s for s in self.statuses if s not in USER_STATUSES]
+        if bad_status:
+            raise ValueError(f"Status inválido(s): {', '.join(bad_status)}")
+        if self.joined_after and self.joined_before and self.joined_after > self.joined_before:
+            raise ValueError("joined_after não pode ser posterior a joined_before")
+        return self
 
 
 def _dedupe_nonempty_channels(v):
@@ -972,7 +1026,11 @@ class ComunicadoCreate(BaseModel):
     body: str
     tipo: Literal["oficial", "informativo"] = "informativo"
     channels: List[Literal["in_app", "email"]]
-    segment: ComunicadoSegment
+    # Caminho v1/legado (`segment`) OU caminho v2 (`audience_filter`) —
+    # exactamente um (ver _v_target). `segment` deixou de ser obrigatório.
+    segment: Optional[ComunicadoSegment] = None
+    audience_filter: Optional[AudienceFilter] = None
+    dry_run: bool = False
     notification_type: str = "comunicado"
     cta_label: Optional[str] = None
     cta_url: Optional[str] = None
@@ -1011,8 +1069,17 @@ class ComunicadoCreate(BaseModel):
         return v
 
     @model_validator(mode="after")
+    def _v_target(self):
+        # exactamente um de segment / audience_filter
+        if (self.segment is None) == (self.audience_filter is None):
+            raise ValueError("Forneça exactamente um de 'segment' ou 'audience_filter'")
+        return self
+
+    @model_validator(mode="after")
     def _v_segment(self):
         seg = self.segment
+        if seg is None:
+            return self
         if seg.kind in ("role", "orgao", "member_category") and not seg.value:
             raise ValueError("Este segmento requer 'value'")
         if seg.kind == "manual" and not seg.user_ids:
@@ -1029,6 +1096,32 @@ class RecipientsCountRequest(BaseModel):
     @classmethod
     def _v_channels(cls, v):
         return _dedupe_nonempty_channels(v)
+
+
+class AudiencePreviewRequest(BaseModel):
+    """Pedido de preview de audiência (spec-comunicados-segmentados FR-002)."""
+
+    tipo: Literal["oficial", "informativo"] = "informativo"
+    channels: List[Literal["in_app", "email"]]
+    audience_filter: AudienceFilter
+
+    @field_validator("channels")
+    @classmethod
+    def _v_channels(cls, v):
+        return _dedupe_nonempty_channels(v)
+
+
+class ComunicadoUpdate(BaseModel):
+    """Edição de um rascunho (FR-011) — todos os campos opcionais."""
+
+    subject: Optional[str] = None
+    body: Optional[str] = None
+    tipo: Optional[Literal["oficial", "informativo"]] = None
+    channels: Optional[List[Literal["in_app", "email"]]] = None
+    audience_filter: Optional[AudienceFilter] = None
+    cta_label: Optional[str] = None
+    cta_url: Optional[str] = None
+    dry_run: Optional[bool] = None
 
 
 class EmailPreferencesUpdate(BaseModel):
