@@ -1,0 +1,133 @@
+# CodeRabbit configuration for ACCTA Portal
+# Docs: https://docs.coderabbit.ai/guides/configure-coderabbit
+#
+# Filosofia: alta sinal, baixo ruido. CodeRabbit complementa o code-reviewer
+# subagent local, nao substitui. Findings devem caber em <30min de leitura
+# humana antes de merge.
+
+language: pt-PT
+early_access: false
+tone_instructions: |
+  Responde em portugues europeu (pt-PT).
+  Sê directo: raiz do problema, ficheiro:linha, patch sugerido — sem
+  preambulos nem repetir o diff. Sem emojis. Sem "great work" ou afins.
+  Stack: FastAPI + asyncpg (PostgreSQL/Supabase via DAO Mongo-compatible em
+  `backend/database.py`); React 19 + Tailwind + shadcn/ui no frontend.
+  Convencoes-chave para flag NEGATIVO:
+  - Codigo em portugues nos comments/docstrings, EN nos identificadores
+    tecnicos (excepto termos de dominio: socio, joia, quota, deliberacao,
+    sancao, exercicio, balancete, assembleia)
+  - Cores: Carmesim #C7202F = identidade + destrutivo; Floresta #166534 =
+    accao positiva; nunca Carmesim como primary positivo
+  - Sem dark mode (decisao firme do owner)
+  - Sem status "inadimplente" (quotas sao payroll-deducted)
+  - RBAC explicito em cada endpoint, audit_log em cada write admin
+  - Sem raw SQL em routes (usar DAO Mongo-compatible)
+  - Datas sao str ISO-8601, nunca datetime
+  - Nunca expor `password` em respostas
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: true
+
+  # Ramos onde a review automatica corre
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - develop
+      - main
+      - "release/.*"
+      - "hotfix/.*"
+
+  # Excluir ficheiros que nao sao codigo de producao (specs concluidas,
+  # caches, venvs, agent-memory). Padroes glob: prefixo `!` exclui.
+  path_filters:
+    - "!tasks/spec-*-concluido.md"
+    - "!backend/venv*/**"
+    - "!frontend/node_modules/**"
+    - "!frontend/build/**"
+    - "!.claude/**"
+    - "!.tmp_e2e/**"
+    - "!.understand-anything/**"
+    - "!**/*.lock"
+    - "!**/yarn.lock"
+    - "!**/package-lock.json"
+    - "!**/__pycache__/**"
+    - "!**/.pytest_cache/**"
+    - "!**/.ruff_cache/**"
+    - "!backend/uploads/**"
+
+  # Instrucoes especificas por path — guia o reviewer onde a heuristica
+  # generica falha.
+  path_instructions:
+    - path: "backend/database.py"
+      instructions: |
+        DAO Mongo-compatible sobre PostgreSQL/asyncpg — NAO e Mongo real e
+        NAO e um ORM. Filtros aceitam ops Mongo (`$in/$or/$set/$gte`...).
+        Indices vivem em `_INDEX_DDL` e sao criados em `ensure_schema()`
+        (idempotente, tolera falhas com warning). NAO sugerir migrar para
+        SQLAlchemy nem para Mongo real. Aplicar `_safe_jsonb_key` ou
+        `_WhereBuilder._lit()` se interpolar chaves jsonb dinamicas.
+
+    - path: "backend/routes/**.py"
+      instructions: |
+        Todo endpoint protegido precisa de `Depends(get_current_user)`.
+        Toda escrita admin precisa de `create_audit_log(..., request=request)`
+        — sem `request=` perde IP/UA (regressao confirmada em PR #156).
+        Sem raw SQL — usar `db.<colec>.find_one/update_one/...`.
+        Validar com modelo Pydantic (`*CreateRequest`/`*UpdateRequest`).
+        HTTPException codes: 400 (validation), 401 (no token), 403 (RBAC),
+        404 (not found), 422 (Pydantic auto).
+        Mutacoes concorrentes sobre o mesmo recurso precisam de CAS via
+        filtro de status na escrita ou `SELECT ... FOR UPDATE` no DAO
+        (padrao TOCTOU em PRs #150/#152).
+
+    - path: "backend/helpers.py"
+      instructions: |
+        `create_audit_log` aceita `request=` para extrair IP/UA via
+        `extract_request_meta`. Notificacoes: `create_notification`,
+        `notify_users`, `notify_all_active_users`, `notify_admins`.
+        Email functions sao STOP condition em utilizadores reais — flag se
+        nova chamada nao tiver guard de ambiente.
+
+    - path: "frontend/src/**.{js,jsx,ts,tsx}"
+      instructions: |
+        Tailwind only (sem inline styles, sem CSS-in-JS).
+        Componentes funcionais + hooks; primitivos via shadcn/ui (New York).
+        Botao positivo primario = `.btn-primary` ou `primaryBtn` (Floresta).
+        Carmesim apenas para identidade de marca (logo, nav activo) ou
+        destrutivo-outline (nunca solid em UIs em fluxo positivo).
+        Sem dark mode — nao introduzir `dark:` classes nem toggles.
+        Texto user-facing em PT. SSE primario + 30s polling fallback para
+        notificacoes.
+
+    - path: "frontend/src/utils/api.js"
+      instructions: |
+        Cliente axios unico — todos os endpoints agrupados aqui. Adicionar
+        novo grupo de endpoints (ex: `comunicadosAPI = {...}`) em vez de
+        chamadas axios inline noutros ficheiros.
+
+    - path: "backend/tests/**.py"
+      instructions: |
+        Dois tipos: unit (sem `import requests`) corre direto, integration
+        (com `import requests`) precisa de server live. `conftest.py`
+        oferece `mock_db`, `admin_user`/`socio_user`/`financeiro_user`/
+        `moderador_user`, `make_token`, `client`. bcrypt PINNED 4.0.1 —
+        nao sugerir bump.
+        Endpoints com `request: Request` precisam de fake Request — usar
+        o helper `_request()` (existe em varios test_*_routes.py).
+
+# Chat com @coderabbitai
+chat:
+  auto_reply: true
+
+# Privacidade: nao partilhar conhecimento do repo com CR para training.
+# Owner pode alterar para `false` se quiser que CR aprenda padroes do projeto
+# entre PRs (mas o projeto e privado / dados confidenciais).
+knowledge_base:
+  opt_out: true

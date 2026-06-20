@@ -103,7 +103,7 @@ Conventional Commits with a scope (`feat(escopo): …`, `fix(escopo): …`).
 
 - **Frontend**: React 19 + Tailwind CSS 3 + shadcn/ui + Framer Motion + Recharts + Craco
 - **Backend**: FastAPI (Python 3.11) + asyncpg (PostgreSQL/Supabase via a Mongo-compatible async DAO in `database.py`)
-- **Database**: PostgreSQL (Supabase) — 65 tables `(pk bigserial, doc jsonb)`, one per logical collection (= `len(database.COLLECTIONS)`): `users`, `transactions`, `projects`, `events`, `wall_posts`, `notifications`, `polls`, `invoices`, `documents`, `gallery_albums`, `gallery_photos`, `audit_logs`, `password_resets`, `finance_settings`, plus governança: `assembleias`, `assembleia_presencas`, `assembleia_deliberacoes`, `eleicoes`, `eleicao_listas`, `eleicao_voter_receipts`, `eleicao_ballots`, `sancoes`, `finance_settings_history`; prestação de contas: `exercicios`, `balancetes`, `regulamentos`, `regulamento_versoes`; comunicação: `comunicados`, …
+- **Database**: PostgreSQL (Supabase) — 64 tables `(pk bigserial, doc jsonb)`, one per logical collection (= `len(database.COLLECTIONS)`): `users`, `transactions`, `projects`, `events`, `wall_posts`, `notifications`, `polls`, `documents`, `gallery_albums`, `gallery_photos`, `audit_logs`, `password_resets`, `finance_settings`, plus governança: `assembleias`, `assembleia_presencas`, `assembleia_deliberacoes`, `eleicoes`, `eleicao_listas`, `eleicao_voter_receipts`, `eleicao_ballots`, `sancoes`, `finance_settings_history`; prestação de contas: `exercicios`, `balancetes`, `regulamentos`, `regulamento_versoes`; comunicação: `comunicados`, …
 - **Auth**: JWT (HS256, 24h expiry) + RBAC (admin, socio, financeiro, moderador)
 - **Email**: Resend API
 - **Deploy**: GitHub Actions CI/CD → SSH → Nginx + Supervisord
@@ -231,7 +231,7 @@ python scripts/seed_gallery.py  # Seed gallery data
 | Role | Access |
 |------|--------|
 | admin | Full system — users, finances, moderation, audit logs |
-| financeiro | Finance module, transactions, invoices, settings |
+| financeiro | Finance module, transactions, quotas, settings |
 | moderador | Content moderation — wall posts, gallery photos |
 | socio | Member portal — dashboard, carteira, events, voting, mural |
 

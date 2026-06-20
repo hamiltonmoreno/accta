@@ -44,7 +44,6 @@ paths:
 - **wall_posts** (+ wall_comments): content, user_id, approved, pinned, likes[]
 - **notifications**: user_id, type, message, read, created_at
 - **polls** (+ user_votes): title, options[], status
-- **invoices**: user_id, amount, status, period
 - **posts**, **documents** (+ document_accesses), **benefits**
   (+ benefit_validations, benefit_partners)
 - **gallery_albums**, **gallery_photos**: album_id, url, status
