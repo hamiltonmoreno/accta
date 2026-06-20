@@ -1146,6 +1146,7 @@ async def ensure_schema() -> None:
         # imutabilidade autoritativa vem do REVOKE (runbook F5.1). A app arranca.
         try:
             async with conn.transaction():
+                await conn.execute("SET LOCAL lock_timeout = '10s'")
                 await conn.execute("SELECT pg_advisory_xact_lock($1, $2)", _DDL_LOCK_NS, _DDL_LOCK_AUDIT)
                 for ddl in _AUDIT_IMMUTABILITY_DDL:
                     await conn.execute(ddl)
@@ -1162,12 +1163,14 @@ async def ensure_schema() -> None:
         # criação do event trigger (precisa de superuser) não seja permitida.
         try:
             async with conn.transaction():
+                await conn.execute("SET LOCAL lock_timeout = '10s'")
                 await conn.execute("SELECT pg_advisory_xact_lock($1, $2)", _DDL_LOCK_NS, _DDL_LOCK_RLS_BACKFILL)
                 await conn.execute(_RLS_BACKFILL_DDL)
         except Exception as e:  # noqa: BLE001 - non-fatal, ver runbook F5.6
             logger.warning("RLS backfill (defesa em profundidade) NAO aplicado — autoritativo via operador (runbook F5.6): %s", e)
         try:
             async with conn.transaction():
+                await conn.execute("SET LOCAL lock_timeout = '10s'")
                 await conn.execute("SELECT pg_advisory_xact_lock($1, $2)", _DDL_LOCK_NS, _DDL_LOCK_RLS_EVT)
                 for ddl in _RLS_AUTO_ENABLE_DDL:
                     await conn.execute(ddl)
