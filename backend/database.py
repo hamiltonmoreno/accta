@@ -1100,7 +1100,7 @@ _RLS_AUTO_ENABLE_DDL: tuple[str, ...] = (
 # Serializa instalações concorrentes de DDL idempotente entre workers de uvicorn
 # no arranque (audit trigger, RLS backfill, RLS event trigger) — caso contrário
 # o 2.º worker apanha "tuple concurrently updated" em CREATE OR REPLACE e gera
-# warning espúrio no log. 2.ª chave: ver `_DDL_LOCK_AUDIT/_RLS/_RLS_EVT` abaixo.
+# warning espúrio no log. 2.ª chave: ver `_DDL_LOCK_{AUDIT,RLS_BACKFILL,RLS_EVT}` abaixo.
 _DDL_LOCK_NS = 8420
 _DDL_LOCK_AUDIT = 1
 _DDL_LOCK_RLS_BACKFILL = 2
