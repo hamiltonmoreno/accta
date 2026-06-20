@@ -46,20 +46,18 @@ Antes de começar, obtém o SHA do `main` na release (na tua máquina):
 git fetch origin main && git rev-parse --short=12 main
 ```
 
-**Valores atuais (v0.5.22 — invoices→transactions unificado (#276), fixes de finanças (tetos de escala, jóia/UTC, audit IP/UA), N+1 em `list_regulamentos` (#287)):**
+**Valores atuais (v0.5.23 — fix infra-only #291: `pg_advisory_xact_lock` + `lock_timeout` nos 3 blocos DDL idempotentes de `ensure_schema()`, elimina WARNINGs `tuple concurrently updated` no arranque com `--workers 2`; sem mudança funcional):**
 
 | Variável | Valor |
 |----------|-------|
-| `TAG` (imagem nova) | `sha-12d24165c36a` |
-| Tag git da release | `v0.5.22` (= `12d2416`, HEAD de `main`, merge #288) |
-| Rollback (prod anterior, v0.5.18) | `sha-bbf09cfa2298` |
-| Teste decisivo desta release | a rota de invoices foi removida (#276): `GET /api/invoices` deve dar **404**, e o endpoint novo da carteira unificada `GET /api/finances/me/quotas` deve **existir** (401/403 anónimo, **não** 404). Verificação base: imagem em execução = `sha-12d24165c36a`, health 200, arranque sem tracebacks. |
+| `TAG` (imagem nova) | `sha-218a2bdf4e24` |
+| Tag git da release | `v0.5.23` (= `218a2bd`, HEAD de `main`, merge #292) |
+| Rollback (prod anterior, v0.5.22) | `sha-12d24165c36a` |
+| Teste decisivo desta release | **0 hits** em `docker compose logs --tail=200 backend \| grep -E 'WARNING.*tuple concurrently updated'` (eram 2 consistentes na v0.5.22). Os INFOs "audit_logs immutability trigger instalado" e "RLS auto-enable event trigger instalado" devem aparecer 2× cada (1 por worker). Verificação base: imagem = `sha-218a2bdf4e24`, health 200, arranque sem tracebacks. |
 
-> **Nota:** a v0.5.22 **toca em `backend/`** (45 ficheiros — remoção do
-> subsistema `invoices`, unificação da carteira em `transactions`, fixes de
-> finanças e perf em `regulamentos`) e requer mesmo este deploy. O backend em
-> prod antes da v0.5.22 está na **v0.5.18** (`sha-bbf09cfa2298`); as v0.5.19–
-> v0.5.21 não tocaram no backend (só Vercel).
+> **Nota:** a v0.5.23 **toca em `backend/`** (1 ficheiro — `database.py`,
+> fix #291 dos warnings espúrios no arranque) e requer mesmo este deploy. O
+> backend em prod antes da v0.5.23 está na **v0.5.22** (`sha-12d24165c36a`).
 > Confirma sempre a imagem em execução antes de deploy: `docker compose ps`
 > (coluna IMAGE) ou `docker inspect accta-backend --format '{{.Config.Image}}'`.
 
@@ -71,22 +69,22 @@ git fetch origin main && git rev-parse --short=12 main
 ```bash
 rm -rf /tmp/accta-build
 git clone https://github.com/hamiltonmoreno/accta.git /tmp/accta-build
-cd /tmp/accta-build && git checkout v0.5.22       # <- tag git da release
+cd /tmp/accta-build && git checkout v0.5.23       # <- tag git da release
 docker build -f backend/Dockerfile \
-  -t ghcr.io/hamiltonmoreno/accta-backend:sha-12d24165c36a .   # <- TAG
+  -t ghcr.io/hamiltonmoreno/accta-backend:sha-218a2bdf4e24 .   # <- TAG
 ```
 
 ### 2.2 Arrancar via o compose canónico (só muda o TAG)
 ```bash
 cd /docker/accta
-export TAG=sha-12d24165c36a
+export TAG=sha-218a2bdf4e24
 docker compose up -d --no-deps backend
 ```
 
 ### 2.3 Verificar
 ```bash
 docker compose ps                         # backend = Up (healthy)
-docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-12d24165c36a
+docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-218a2bdf4e24
 docker compose logs --tail=80 backend     # arranque limpo: ensure_schema OK, sem tracebacks
 curl -fsS https://api.controlador.cv/api/ # 200
 
@@ -94,10 +92,13 @@ curl -fsS https://api.controlador.cv/api/ # 200
 curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/openapi.json  # esperado: 404
 curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/docs          # esperado: 404
 # (depende de ENVIRONMENT=production no backend/.env — já presente; HSTS/CORS também o exigem.)
-# Teste decisivo da v0.5.22: subsistema invoices removido (#276) — rota inexistente dá 404.
-curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/api/invoices  # esperado: 404
-# Carteira unificada (endpoint novo, requer auth): 401/403 anónimo confirma que EXISTE (não 404).
-curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/api/finances/me/quotas  # esperado: 401/403
+# Mantêm-se desde v0.5.22 (subsistema invoices removido — rota inexistente, endpoint novo gated):
+curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/api/invoices          # esperado: 404
+curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/api/finances/me/quotas # esperado: 401/403
+# Teste decisivo da v0.5.23: o fix do #291 eliminou os 2 WARNINGs no arranque.
+docker compose logs --tail=200 backend 2>&1 | grep -E 'WARNING.*tuple concurrently updated' | wc -l   # esperado: 0
+docker compose logs --tail=200 backend 2>&1 | grep -cE 'audit_logs immutability trigger.*instalado'   # esperado: 2 (um por worker)
+docker compose logs --tail=200 backend 2>&1 | grep -cE 'RLS auto-enable event trigger.*instalado'     # esperado: 2 (um por worker)
 ```
 
 ---
@@ -107,7 +108,7 @@ curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/api/finances
 A imagem anterior continua no VPS; só se troca o `TAG`:
 ```bash
 cd /docker/accta
-export TAG=sha-bbf09cfa2298        # <- rollback (v0.5.18, imagem que corria antes da v0.5.22)
+export TAG=sha-12d24165c36a        # <- rollback (v0.5.22, imagem que corria antes da v0.5.23)
 docker compose up -d --no-deps backend
 ```
 
@@ -142,14 +143,12 @@ Ver `DEPLOY.md` e `HOSTINGER_DEPLOY.md` para o setup completo (secrets SSH,
 - Histórico de imagens de backend em prod: v0.4.0 (`sha-ba3e946e3add`) → v0.5.0
   (`sha-03a5fc060626`) → v0.5.4 (`sha-409a7b4fe314`) → v0.5.8
   (`sha-f149268a1fde`) → v0.5.13 (`sha-f580b90ee543`) → v0.5.17
-  (`sha-6e313d80425f`) → v0.5.18 (`sha-bbf09cfa2298`) → **v0.5.22
-  (`sha-12d24165c36a`, este deploy)**. As
+  (`sha-6e313d80425f`) → v0.5.18 (`sha-bbf09cfa2298`) → v0.5.22
+  (`sha-12d24165c36a`) → **v0.5.23 (`sha-218a2bdf4e24`, este deploy)**. As
   v0.5.1/v0.5.5/v0.5.6/v0.5.7, v0.5.9–v0.5.12, v0.5.14–v0.5.16 e v0.5.19–v0.5.21
   não tocaram no backend (só Vercel).
-- Pós-deploy específico da v0.5.22: assim que esta imagem estiver em prod,
-  `database.COLLECTIONS` já não inclui `invoices` — isso **desbloqueia o #281**
-  (DROP da tabela órfã `invoices` via Supabase, seguindo
-  `scripts/sql/2026-06-19-drop-invoices.sql`, que aborta se a tabela tiver
-  linhas). Sem migração de dados automática. Histórico: na v0.5.8 foi preciso
-  **atribuir os cargos** em `/admin/cargos` (com foto) para a secção Corpos
-  Sociais deixar de mostrar "Vago".
+- Pós-deploy histórico (informativo, **já feitos**): v0.5.22 desbloqueou
+  o **#281** (DROP da tabela órfã `invoices`, executado 2026-06-19 via
+  `scripts/sql/2026-06-19-drop-invoices.sql`). v0.5.8 exigiu atribuir os
+  cargos em `/admin/cargos` (com foto) para a secção Corpos Sociais
+  deixar de mostrar "Vago". A v0.5.23 não tem pós-deploy.
