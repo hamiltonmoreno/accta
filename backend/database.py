@@ -1098,13 +1098,15 @@ _RLS_AUTO_ENABLE_DDL: tuple[str, ...] = (
 )
 
 # Serializa instalações concorrentes de DDL idempotente entre workers de uvicorn
-# no arranque (audit trigger, RLS backfill, RLS event trigger) — caso contrário
-# o 2.º worker apanha "tuple concurrently updated" em CREATE OR REPLACE e gera
-# warning espúrio no log. 2.ª chave: ver `_DDL_LOCK_{AUDIT,RLS_BACKFILL,RLS_EVT}` abaixo.
+# no arranque (pg_cron, audit trigger, RLS backfill, RLS event trigger) — caso
+# contrário o 2.º worker apanha "tuple concurrently updated" em CREATE OR REPLACE
+# /CREATE EXTENSION e gera mensagem espúria no log. 2.ª chave: ver
+# `_DDL_LOCK_{AUDIT,RLS_BACKFILL,RLS_EVT,PGCRON}` abaixo.
 _DDL_LOCK_NS = 8420
 _DDL_LOCK_AUDIT = 1
 _DDL_LOCK_RLS_BACKFILL = 2
 _DDL_LOCK_RLS_EVT = 3
+_DDL_LOCK_PGCRON = 4
 
 
 async def ensure_schema() -> None:
@@ -1134,11 +1136,14 @@ async def ensure_schema() -> None:
                         "Check existing duplicate user_votes by user_id/poll_id before startup."
                     ) from e
                 logger.warning(f"Index creation warning (non-fatal): {e}")
-        for ddl in _PGCRON_DDL:
-            try:
-                await conn.execute(ddl)
-            except Exception as e:  # noqa: BLE001 - pg_cron optional
-                logger.info(f"pg_cron not configured (using opportunistic purge): {e}")
+        try:
+            async with conn.transaction():
+                await conn.execute("SET LOCAL lock_timeout = '10s'")
+                await conn.execute("SELECT pg_advisory_xact_lock($1, $2)", _DDL_LOCK_NS, _DDL_LOCK_PGCRON)
+                for ddl in _PGCRON_DDL:
+                    await conn.execute(ddl)
+        except Exception as e:  # noqa: BLE001 - pg_cron optional
+            logger.info(f"pg_cron not configured (using opportunistic purge): {e}")
         # Instala atomicamente (transação) e sem janela destrutiva (CREATE OR
         # REPLACE, sem DROP). Non-fatal de propósito: numa instalação endurecida
         # com roles separados, o role runtime pode (e deve) não ter direito de
