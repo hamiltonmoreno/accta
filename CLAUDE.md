@@ -359,3 +359,8 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 "Radar Green" `#00FF9C` / Outfit — has been fully removed). The duplicate
 `../CLAUDE.md` outside the git root is still **not tracked and out of sync**;
 this in-repo file is authoritative.
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->
