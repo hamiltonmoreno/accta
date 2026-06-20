@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Megaphone, Pencil, Trash2, XCircle } from 'lucide-react';
+import {
+  ChevronLeft, ChevronRight, FlaskConical, Megaphone, Pencil, Trash2, XCircle,
+} from 'lucide-react';
 import {
   Table, TableHeader, TableBody, TableHead, TableRow, TableCell,
 } from '../../../components/ui/table';
@@ -90,12 +92,20 @@ export function HistoryTable({ onEditDraft, onDeleteDraft }) {
                     <div className="truncate" title={audienceDescription(c.audience_filter)}>
                       {audienceDescription(c.audience_filter)}
                     </div>
-                    <div className="text-xs text-[#6B7280] tabular-nums">
-                      {(c.audience_resolved?.length ?? c.recipients_count ?? 0)} destinatário(s)
+                    <div className="text-xs text-[#6B7280] tabular-nums flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                      <span>{(c.audience_resolved?.length ?? c.recipients_count ?? 0)} destinatário(s)</span>
                       {(c.failed_member_ids?.length ?? 0) > 0 && (
-                        <span className="text-[#B91C1C]"> · {c.failed_member_ids.length} falha(s)</span>
+                        <span className="inline-flex items-center gap-1 text-[#B91C1C]">
+                          <XCircle className="w-3 h-3" aria-hidden="true" />
+                          {c.failed_member_ids.length} falha(s)
+                        </span>
                       )}
-                      {c.dry_run && <span className="text-[#B45309]"> · simulação</span>}
+                      {c.dry_run && (
+                        <span className="inline-flex items-center gap-1 text-[#B45309]">
+                          <FlaskConical className="w-3 h-3" aria-hidden="true" />
+                          simulação
+                        </span>
+                      )}
                     </div>
                   </div>
                 ) : (

@@ -167,6 +167,33 @@ async def test_intra_orgao_cannot_use_segment_path(mock_db):
 
 
 @pytest.mark.asyncio
+async def test_segments_forbidden_for_intra_orgao(mock_db):
+    """Contagens do caminho `segment` são só para emissores plenos (US4 U2)."""
+    with pytest.raises(Exception) as ei:
+        await cmod.comunicado_segments(current_user=_intra_user())
+    assert getattr(ei.value, "status_code", None) == 403
+
+
+def test_comunicado_update_revalidates_fields():
+    """PATCH revalida subject/body (W3): não deixa editar para estado inválido."""
+    from models import ComunicadoUpdate
+    with pytest.raises(Exception):
+        ComunicadoUpdate(body="curto")     # < 10 chars
+    with pytest.raises(Exception):
+        ComunicadoUpdate(subject="   ")    # vazio após strip
+    # patch parcial (campos None) continua válido
+    assert ComunicadoUpdate(tipo="oficial").body is None
+
+
+def test_audience_filter_rejects_bad_date():
+    """W5: datas fora de AAAA-MM-DD são recusadas no modelo."""
+    from models import AudienceFilter
+    with pytest.raises(Exception):
+        AudienceFilter(joined_after="abc")
+    assert AudienceFilter(joined_after="2024-01-01").joined_after == "2024-01-01"
+
+
+@pytest.mark.asyncio
 async def test_no_send_privilege_is_403(mock_db, socio_user):
     """Sem `send_comunicados` nem `comunicar_intra_orgao` → 403."""
     from models import ComunicadoCreate

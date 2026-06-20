@@ -82,7 +82,7 @@ async def count_recipients(payload: RecipientsCountRequest,
 
 @router.get("/comunicados/segments")
 async def comunicado_segments(current_user: User = Depends(get_current_user)):
-    _guard(current_user)
+    _guard_full(current_user)  # contagens do caminho `segment` — só emissor pleno (US4 U2)
     return await comunicados_service.get_segment_counts()
 
 
@@ -91,8 +91,11 @@ async def preview_audience(payload: AudiencePreviewRequest,
                            current_user: User = Depends(get_current_user)):
     """Preview da audiência segmentada (FR-002/FR-014). Sem efeitos colaterais."""
     _guard(current_user)
+    af = payload.audience_filter.model_dump()
+    # Emissor restrito não pode sondar audiências fora do seu âmbito (info-leak).
+    _enforce_intra_orgao_scope(current_user, af)
     return await comunicados_service.preview_audience(
-        payload.audience_filter.model_dump(), tipo=payload.tipo, channels=payload.channels
+        af, tipo=payload.tipo, channels=payload.channels
     )
 
 

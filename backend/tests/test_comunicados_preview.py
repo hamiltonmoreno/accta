@@ -49,3 +49,33 @@ async def test_preview_pendente_aprovacao_widens_base_and_warns(mock_db, admin_u
     # só o pendente; o ativo fica fora (a base passou a ser pendente_aprovacao)
     assert res["recipients_count"] == 1
     assert any(w["code"] == "includes_unapproved" for w in res["warnings"])
+
+
+# ---------------------------------------------------------------------------
+# US4 — preview respeita o âmbito do emissor restrito (info-leak)
+# ---------------------------------------------------------------------------
+
+def _intra_user():
+    from models import User
+    return User(id="cf1", name="CF", email="cf@x.cv", role="socio",
+                status="ativo", privileges=["comunicar_intra_orgao"])
+
+
+@pytest.mark.asyncio
+async def test_preview_intra_orgao_blocks_out_of_scope(mock_db):
+    payload = AudiencePreviewRequest(channels=["in_app"], audience_filter={"categorias": ["ordinario"]})
+    with pytest.raises(Exception) as ei:
+        await cmod.preview_audience(payload, current_user=_intra_user())
+    assert getattr(ei.value, "status_code", None) == 403
+
+
+@pytest.mark.asyncio
+async def test_preview_intra_orgao_allows_orgao(mock_db, monkeypatch):
+    monkeypatch.setattr(
+        cmod.comunicados_service, "preview_audience",
+        AsyncMock(return_value={"recipients_count": 3, "sample": [], "more": 0,
+                                "per_type_counts": {"orgaos": 3}, "intersected_count": 3, "warnings": []}),
+    )
+    payload = AudiencePreviewRequest(channels=["in_app"], audience_filter={"orgaos": ["direcao"]})
+    res = await cmod.preview_audience(payload, current_user=_intra_user())
+    assert res["recipients_count"] == 3

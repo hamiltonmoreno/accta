@@ -985,6 +985,17 @@ class AudienceFilter(BaseModel):
     nominal_member_ids: List[str] = []
     nominal_emails: List[str] = []
 
+    @field_validator("joined_after", "joined_before")
+    @classmethod
+    def _v_dates(cls, v):
+        if v is None:
+            return v
+        try:
+            date.fromisoformat(v)
+        except ValueError as exc:
+            raise ValueError("Data deve estar no formato AAAA-MM-DD") from exc
+        return v
+
     @model_validator(mode="after")
     def _v_filter(self):
         if not any(
@@ -1112,7 +1123,9 @@ class AudiencePreviewRequest(BaseModel):
 
 
 class ComunicadoUpdate(BaseModel):
-    """Edição de um rascunho (FR-011) — todos os campos opcionais."""
+    """Edição de um rascunho (FR-011) — todos os campos opcionais. Quando
+    presentes, `subject`/`body`/`cta_url` revalidam com as mesmas regras do
+    create (evita enviar um rascunho editado para um estado inválido)."""
 
     subject: Optional[str] = None
     body: Optional[str] = None
@@ -1122,6 +1135,38 @@ class ComunicadoUpdate(BaseModel):
     cta_label: Optional[str] = None
     cta_url: Optional[str] = None
     dry_run: Optional[bool] = None
+
+    @field_validator("subject")
+    @classmethod
+    def _v_subject(cls, v):
+        if v is None:
+            return v
+        v = v.strip()
+        if not v:
+            raise ValueError("Assunto obrigatório")
+        if len(v) > 200:
+            raise ValueError("Assunto demasiado longo (máx. 200)")
+        return v
+
+    @field_validator("body")
+    @classmethod
+    def _v_body(cls, v):
+        if v is None:
+            return v
+        v = v.strip()
+        if len(v) < 10:
+            raise ValueError("Corpo demasiado curto")
+        return v
+
+    @field_validator("cta_url")
+    @classmethod
+    def _v_cta_url(cls, v):
+        if v is None:
+            return v
+        v = v.strip()
+        if v and not (v.startswith("http://") or v.startswith("https://")):
+            raise ValueError("URL do CTA deve começar por http:// ou https://")
+        return v
 
 
 class EmailPreferencesUpdate(BaseModel):
