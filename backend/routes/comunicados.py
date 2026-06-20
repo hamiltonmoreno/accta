@@ -47,6 +47,13 @@ def _guard_full(user: User):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
 
+def _assert_owner_or_admin(doc: dict, user: User, action: str):
+    """Só o autor do rascunho ou um admin pode editá-lo/enviá-lo/cancelá-lo —
+    mesma regra do DELETE (evita que um emissor altere o rascunho de outro)."""
+    if doc.get("created_by") != user.id and user.role != "admin":
+        raise HTTPException(status_code=403, detail=f"Sem permissão para {action} este rascunho")
+
+
 def _enforce_intra_orgao_scope(user: User, audience_filter: dict | None):
     """Âmbito restrito (US4 U2): um emissor que só tem `comunicar_intra_orgao`
     (sem `send_comunicados`/admin) só pode dirigir-se a órgãos sociais —
@@ -181,6 +188,7 @@ async def update_comunicado(comunicado_id: str, payload: ComunicadoUpdate, reque
         raise HTTPException(status_code=404, detail="Comunicado não encontrado")
     if doc.get("status") != "rascunho":
         raise HTTPException(status_code=409, detail="Apenas rascunhos podem ser editados")
+    _assert_owner_or_admin(doc, current_user, "editar")
     if payload.dry_run and IS_PROD:
         raise HTTPException(status_code=422, detail="Modo dry-run não é permitido em produção")
     changes = payload.model_dump(exclude_none=True)
@@ -205,6 +213,7 @@ async def enviar_comunicado(comunicado_id: str, request: Request,
         raise HTTPException(status_code=404, detail="Comunicado não encontrado")
     if doc.get("status") != "rascunho":
         raise HTTPException(status_code=409, detail="Apenas rascunhos podem ser enviados")
+    _assert_owner_or_admin(doc, current_user, "enviar")
     af = doc.get("audience_filter")
     _enforce_intra_orgao_scope(current_user, af)  # âmbito restrito no envio (US4 U2)
     sample: list = []
@@ -243,8 +252,7 @@ async def cancelar_comunicado(comunicado_id: str, request: Request,
         raise HTTPException(status_code=404, detail="Comunicado não encontrado")
     if doc.get("status") != "rascunho":
         raise HTTPException(status_code=409, detail="Comunicado já enviado — imutável")
-    if doc.get("created_by") != current_user.id and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Sem permissão para cancelar este rascunho")
+    _assert_owner_or_admin(doc, current_user, "cancelar")
     await db.comunicados.update_one({"id": comunicado_id}, {"$set": {"status": "cancelado"}})
     await create_audit_log(current_user.id, "cancelar_comunicado", comunicado_id, request=request)
     return {"id": comunicado_id, "status": "cancelado"}

@@ -15,7 +15,7 @@ import {
   CHANNEL_LABELS, PAGE_SIZE, TIPO_LABELS, formatDate,
 } from './tokens';
 
-export function HistoryTable({ onEditDraft, onDeleteDraft }) {
+export function HistoryTable({ onEditDraft, onDeleteDraft, canManageDraft }) {
   const [page, setPage] = useState(0);
   const skip = page * PAGE_SIZE;
 
@@ -127,7 +127,7 @@ export function HistoryTable({ onEditDraft, onDeleteDraft }) {
                 {c.created_by}
               </TableCell>
               <TableCell className="text-right whitespace-nowrap">
-                {c.status === 'rascunho' ? (
+                {c.status === 'rascunho' && (canManageDraft ? canManageDraft(c) : true) ? (
                   <div className="inline-flex items-center gap-1.5">
                     <button
                       type="button"

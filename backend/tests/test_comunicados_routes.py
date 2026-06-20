@@ -123,7 +123,7 @@ async def test_intra_orgao_can_send_to_orgao(mock_db, monkeypatch):
     from unittest.mock import AsyncMock
     mock_db.comunicados.find_one = AsyncMock(return_value={
         "id": "c1", "status": "rascunho", "tipo": "informativo", "channels": ["in_app"],
-        "audience_filter": {"orgaos": ["direcao"]}})
+        "created_by": "cf1", "audience_filter": {"orgaos": ["direcao"]}})
     mock_db.comunicados.update_one = AsyncMock(
         return_value=type("R", (), {"modified_count": 1})())
     monkeypatch.setattr(svc, "preview_audience",
@@ -163,6 +163,36 @@ async def test_intra_orgao_cannot_use_segment_path(mock_db):
     with pytest.raises(Exception) as ei:
         await cmod.create_comunicado(_req(), ComunicadoCreate(**_payload()),
                                      BackgroundTasks(), current_user=_intra_user())
+    assert getattr(ei.value, "status_code", None) == 403
+
+
+@pytest.mark.asyncio
+async def test_enviar_rejects_non_owner_non_admin(mock_db, monkeypatch):
+    """Só o autor (ou admin) pode enviar um rascunho — espelha o DELETE."""
+    import comunicados_service as svc
+    from unittest.mock import AsyncMock
+    mock_db.comunicados.find_one = AsyncMock(return_value={
+        "id": "c1", "status": "rascunho", "tipo": "informativo", "channels": ["in_app"],
+        "created_by": "outro", "audience_filter": {"orgaos": ["direcao"]}})
+    dispatch = AsyncMock()
+    monkeypatch.setattr(svc, "dispatch_comunicado", dispatch)  # nunca deve correr
+    with pytest.raises(Exception) as ei:
+        await cmod.enviar_comunicado("c1", _req(), current_user=_full_priv_user())
+    assert getattr(ei.value, "status_code", None) == 403
+    dispatch.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_patch_rejects_non_owner_non_admin(mock_db):
+    """Só o autor (ou admin) pode editar um rascunho."""
+    from models import ComunicadoUpdate
+    from unittest.mock import AsyncMock
+    mock_db.comunicados.find_one = AsyncMock(return_value={
+        "id": "c1", "status": "rascunho", "created_by": "outro",
+        "audience_filter": {"orgaos": ["direcao"]}})
+    with pytest.raises(Exception) as ei:
+        await cmod.update_comunicado("c1", ComunicadoUpdate(subject="Editado x"),
+                                     _req(), current_user=_full_priv_user())
     assert getattr(ei.value, "status_code", None) == 403
 
 

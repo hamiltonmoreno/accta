@@ -29,7 +29,7 @@ const EMPTY_AF = {
 
 export function AdminComunicadosPage() {
   const qc = useQueryClient();
-  const { can, hasPrivilege } = useAuth();
+  const { user, isAdmin, can, hasPrivilege } = useAuth();
   // Emissor pleno (admin/send_comunicados) vs. restrito a órgãos (US4): quem só
   // tem `comunicar_intra_orgao` fica trancado ao modo segmentado por órgão.
   const isFullSender = can('send_comunicados');
@@ -418,6 +418,7 @@ export function AdminComunicadosPage() {
           <HistoryTable
             onEditDraft={loadDraft}
             onDeleteDraft={(c) => setDeleteTarget({ id: c.id, subject: c.subject })}
+            canManageDraft={(c) => isAdmin || c.created_by === user?.id}
           />
         </CardContent>
       </Card>
