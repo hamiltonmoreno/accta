@@ -57,6 +57,14 @@ def user_can(user, privilege: str) -> bool:
     return _attr(user, "role") == "admin" or privilege in (_attr(user, "privileges") or [])
 
 
+def can_comunicar_intra_orgao(user) -> bool:
+    """Emitir comunicados intra-órgão (spec-comunicados-segmentados US4/D1):
+    admin OU detentor do privilégio granular `comunicar_intra_orgao`. Overlay
+    aditivo atribuído manualmente — NÃO auto-concedido por cargo. O âmbito
+    (apenas órgãos sociais) é validado na rota de envio."""
+    return user_can(user, "comunicar_intra_orgao")
+
+
 def is_mesa_ag(user) -> bool:
     """Titular da Mesa da Assembleia Geral (qualquer cargo `ag_*`)."""
     return _cargo_key(user).startswith("ag_")

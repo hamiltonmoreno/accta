@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Megaphone, XCircle } from 'lucide-react';
+import {
+  ChevronLeft, ChevronRight, FlaskConical, Megaphone, Pencil, Trash2, XCircle,
+} from 'lucide-react';
 import {
   Table, TableHeader, TableBody, TableHead, TableRow, TableCell,
 } from '../../../components/ui/table';
@@ -8,12 +10,12 @@ import { Skeleton } from '../../../components/ui/skeleton';
 import { EmptyState } from '../../../components/EmptyState';
 import { comunicadosAPI } from '../../../utils/api';
 import { queryKeys } from '../../../lib/queryClient';
-import { StatusBadge, segmentDescription } from './widgets';
+import { StatusBadge, segmentDescription, audienceDescription } from './widgets';
 import {
   CHANNEL_LABELS, PAGE_SIZE, TIPO_LABELS, formatDate,
 } from './tokens';
 
-export function HistoryTable() {
+export function HistoryTable({ onEditDraft, onDeleteDraft, canManageDraft }) {
   const [page, setPage] = useState(0);
   const skip = page * PAGE_SIZE;
 
@@ -71,6 +73,7 @@ export function HistoryTable() {
             <TableHead className="text-right">Na app</TableHead>
             <TableHead>Data</TableHead>
             <TableHead>Autor</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -83,8 +86,33 @@ export function HistoryTable() {
               <TableCell className="text-[#6B7280]">
                 {(c.channels || []).map((ch) => CHANNEL_LABELS[ch] || ch).join(' · ')}
               </TableCell>
-              <TableCell className="text-[#6B7280] max-w-[12rem] truncate" title={segmentDescription(c.segment)}>
-                {segmentDescription(c.segment)}
+              <TableCell className="text-[#6B7280] max-w-[14rem]">
+                {c.audience_filter ? (
+                  <div className="space-y-0.5">
+                    <div className="truncate" title={audienceDescription(c.audience_filter)}>
+                      {audienceDescription(c.audience_filter)}
+                    </div>
+                    <div className="text-xs text-[#6B7280] tabular-nums flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                      <span>{(c.audience_resolved?.length ?? c.recipients_count ?? 0)} destinatário(s)</span>
+                      {(c.failed_member_ids?.length ?? 0) > 0 && (
+                        <span className="inline-flex items-center gap-1 text-[#B91C1C]">
+                          <XCircle className="w-3 h-3" aria-hidden="true" />
+                          {c.failed_member_ids.length} falha(s)
+                        </span>
+                      )}
+                      {c.dry_run && (
+                        <span className="inline-flex items-center gap-1 text-[#B45309]">
+                          <FlaskConical className="w-3 h-3" aria-hidden="true" />
+                          simulação
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <span className="block truncate" title={segmentDescription(c.segment)}>
+                    {segmentDescription(c.segment)}
+                  </span>
+                )}
               </TableCell>
               <TableCell><StatusBadge status={c.status} /></TableCell>
               <TableCell className="text-right text-[#6B7280] tabular-nums">
@@ -97,6 +125,32 @@ export function HistoryTable() {
               <TableCell className="text-[#6B7280] whitespace-nowrap">{formatDate(c.created_at)}</TableCell>
               <TableCell className="text-[#6B7280] max-w-[10rem] truncate" title={c.created_by}>
                 {c.created_by}
+              </TableCell>
+              <TableCell className="text-right whitespace-nowrap">
+                {c.status === 'rascunho' && (canManageDraft ? canManageDraft(c) : true) ? (
+                  <div className="inline-flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onEditDraft?.(c)}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white border border-[#D1D5DB] text-grafite text-xs font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                      data-testid={`comunicado-edit-${c.id}`}
+                    >
+                      <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDeleteDraft?.(c)}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white border border-[#C7202F] text-[#C7202F] text-xs font-medium hover:bg-[#FBEAEC] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                      data-testid={`comunicado-delete-${c.id}`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                      Eliminar
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-[#6B7280]">—</span>
+                )}
               </TableCell>
             </TableRow>
           ))}

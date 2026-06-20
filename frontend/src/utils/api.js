@@ -92,6 +92,11 @@ export const comunicadosAPI = {
   get: (id) => api.get(`/comunicados/${id}`),
   create: (data) => api.post('/comunicados', data),
   recipientsCount: (data) => api.post('/comunicados/recipients/count', data),
+  // Audiência segmentada (spec-comunicados-segmentados)
+  previewAudience: (data) => api.post('/comunicados/preview-audience', data),
+  send: (id) => api.post(`/comunicados/${id}/enviar`),
+  updateDraft: (id, data) => api.patch(`/comunicados/${id}`, data),
+  deleteDraft: (id) => api.delete(`/comunicados/${id}`),
   segments: () => api.get('/comunicados/segments'),
   updateEmailPreferences: (data) => api.patch('/me/email-preferences', data),
 };
