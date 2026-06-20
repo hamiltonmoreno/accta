@@ -155,7 +155,8 @@ D2 = incluir ciclo de rascunho; D3 = `enviado_parcial` ≡ `parcial` (aditivo).
 
 - [X] T044 [P] Regressão: correr suite de comunicados completa (`pytest tests/test_comunicados_*.py -q`) + auto-dispatch de governança (garantir que o caminho `segment` legado não regrediu)
 - [X] T045 [P] `cd backend && ruff check . && ruff format --check .` e `cd frontend && npx eslint src/ --ext .js,.jsx --max-warnings=60`
-- [ ] T046 Executar a validação completa do `quickstart.md` (todas as US + edge cases) e registar resultado
+- [X] T046 Executar a validação completa do `quickstart.md` (todas as US + edge cases) e registar resultado
+  - **Resultado (2026-06-20)**: validação executável in-process em DRY-RUN — `tests/test_comunicados_quickstart.py` (13 cenários: US1–US4 + edge cases + SC-003/SC-004) **PASSED**; 0 emails/notificações reais. Smoke em browser fica opcional (stack local + DB seeded).
 - [ ] T047 Correr `/speckit-analyze` para consistência cruzada spec↔plan↔tasks contra a constituição antes de `/speckit-implement` (Governance da constituição)
 - [ ] T048 [P] Capturar quaisquer correcções do dono durante a implementação em `tasks/lessons.md` (Princípio VII)
 
