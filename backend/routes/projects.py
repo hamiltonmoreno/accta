@@ -370,10 +370,24 @@ async def delete_project(
     if not project:
         raise HTTPException(status_code=404, detail="Projeto nao encontrado")
 
+    # Despesas de projeto são transações no caixa (spec-fluxo-financeiro-unificado):
+    # apagar o projeto NÃO deve apagar registos financeiros nem deixá-los órfãos.
+    # Bloqueia a remoção enquanto existirem despesas lançadas — o admin remove/
+    # reatribui as despesas primeiro (e as originadas por Ato seguem as regras do Ato).
+    tx_count = await db.transactions.count_documents({"project_id": project_id, "type": "despesa"})
+    if tx_count > 0:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"O projeto tem {tx_count} despesa(s) lancada(s) no caixa. "
+                "Remova ou reatribua as despesas antes de apagar o projeto."
+            ),
+        )
+
     await db.projects.delete_one({"id": project_id})
     await db.project_tasks.delete_many({"project_id": project_id})
     await db.project_comments.delete_many({"project_id": project_id})
-    await db.project_expenses.delete_many({"project_id": project_id})
+    await db.project_expenses.delete_many({"project_id": project_id})  # legado (já vazio pós-migração)
     await db.project_milestones.delete_many({"project_id": project_id})
     await create_audit_log(current_user.id, f"Removeu projeto '{project['title']}'", project_id)
     return {"message": "Projeto removido"}
@@ -570,7 +584,7 @@ async def list_expenses(
     items = (
         await db.transactions.find({"project_id": project_id, "type": "despesa"}, {"_id": 0})
         .sort("date", -1)
-        .to_list(None)
+        .to_list(500)
     )
     return {"items": items}
 

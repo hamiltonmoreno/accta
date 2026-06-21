@@ -65,6 +65,8 @@ def _wire(mock_db, name, *, find_one=None):
     coll.insert_one = AsyncMock(return_value=MagicMock(inserted_id="x"))
     coll.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
     coll.delete_one = AsyncMock(return_value=MagicMock(deleted_count=1))
+    coll.delete_many = AsyncMock(return_value=MagicMock(deleted_count=0))
+    coll.count_documents = AsyncMock(return_value=0)
     coll.aggregate = MagicMock(return_value=_agg([]))
     setattr(mock_db, name, coll)
     return coll
@@ -334,6 +336,32 @@ class TestSubmeterRelatorioSemUpload:
 
         await pc_route.submeter_relatorio(2026, RelatorioContasSubmit(document_id="doc-1"), admin_user)
         validate.assert_called_once()
+
+
+class TestDeleteProjectGuard:
+    async def test_block_delete_when_caixa_expenses(self, mock_db, admin_user, quiet):
+        # C1: apagar projeto com despesas no caixa é bloqueado (409), não deixa órfãos.
+        mock_db.projects.find_one = AsyncMock(return_value=_project())
+        mock_db.transactions.count_documents = AsyncMock(return_value=2)
+        with pytest.raises(HTTPException) as exc:
+            await projects_route.delete_project("p1", admin_user)
+        assert exc.value.status_code == 409
+
+    async def test_allows_delete_without_expenses(self, mock_db, admin_user, quiet):
+        mock_db.projects.find_one = AsyncMock(return_value=_project())
+        mock_db.transactions.count_documents = AsyncMock(return_value=0)
+        for c in ("project_tasks", "project_comments", "project_expenses", "project_milestones"):
+            _wire(mock_db, c)
+        result = await projects_route.delete_project("p1", admin_user)
+        assert result["message"]
+
+
+class TestRelatorioAnualPdfRBAC:
+    async def test_socio_403(self, mock_db, socio_user):
+        # S2: endpoint do relatório anual exige permissão de ver finanças.
+        with pytest.raises(HTTPException) as exc:
+            await pc_route.relatorio_anual_pdf(2025, current_user=socio_user)
+        assert exc.value.status_code == 403
 
 
 class TestRelatorioAnualPdf:

@@ -374,8 +374,10 @@ async def submeter_relatorio(ano: int, data: RelatorioContasSubmit, current_user
         {"ano": ano}, {"$set": {"relatorio_contas": relatorio, "status": "relatorio_submetido"}}
     )
     await create_audit_log(current_user.id, f"Submeteu relatorio e contas do exercicio {ano}", ex["id"])
-    # Promove o rascunho a público SÓ após o relatório persistir (SEC).
-    await _publish_document(data.document_id, "publico")
+    # Promove o rascunho a público SÓ após o relatório persistir (SEC) e SÓ se
+    # houver anexo (upload é opcional — espelha orçamento/plano).
+    if data.document_id:
+        await _publish_document(data.document_id, "publico")
 
     cf_ids = await members_of_orgao("conselho_fiscal")
     await notify_users(
