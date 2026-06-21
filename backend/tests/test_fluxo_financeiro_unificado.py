@@ -356,6 +356,31 @@ class TestDeleteProjectGuard:
         assert result["message"]
 
 
+class TestDeleteTransactionAtoGuard:
+    async def test_finances_delete_refuses_ato_linked(self, mock_db, admin_user):
+        # #308: a via financeira não pode apagar transação co-aprovada por Ato.
+        mock_db.transactions.find_one = AsyncMock(
+            return_value={"id": "t1", "type": "despesa", "amount": 80000, "ato_id": "a1"}
+        )
+        with pytest.raises(HTTPException) as exc:
+            await finances_route.delete_transaction("t1", _request(), admin_user)
+        assert exc.value.status_code == 400
+
+    async def test_finances_delete_allows_normal(self, mock_db, admin_user, monkeypatch):
+        mock_db.transactions.find_one = AsyncMock(return_value={"id": "t2", "type": "despesa", "amount": 100})
+        monkeypatch.setattr(finances_route, "create_audit_log", AsyncMock())
+        deleted = {}
+
+        async def cap_delete(q):
+            deleted.update(q)
+            return MagicMock(deleted_count=1)
+
+        mock_db.transactions.delete_one = cap_delete
+        result = await finances_route.delete_transaction("t2", _request(), admin_user)
+        assert deleted["id"] == "t2"
+        assert result["message"]
+
+
 class TestRelatorioAnualPdfRBAC:
     async def test_socio_403(self, mock_db, socio_user):
         # S2: endpoint do relatório anual exige permissão de ver finanças.

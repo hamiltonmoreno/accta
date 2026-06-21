@@ -25,9 +25,9 @@ from models import (
 )
 from database import db
 from auth import get_current_user
-from routes.finances import _coaprovacao_limiar
 from permissions import is_direcao
 from helpers import (
+    coaprovacao_limiar,
     create_audit_log,
     notify_users,
     notify_admins,
@@ -618,7 +618,7 @@ async def add_expense(
     # Gate de co-aprovação (Art. 54): despesa acima do limiar só entra via Ato de
     # pagamento aprovado e executado — fecha o atalho que contornava a dupla
     # assinatura pela via dos projetos.
-    limiar = await _coaprovacao_limiar()
+    limiar = await coaprovacao_limiar()
     if limiar > 0 and amount > limiar:
         raise HTTPException(
             status_code=400,

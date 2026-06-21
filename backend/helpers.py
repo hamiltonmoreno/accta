@@ -10,6 +10,23 @@ from database import db, UPLOAD_DIR, _json_default
 from models import AuditLog, Notification
 
 
+async def coaprovacao_limiar() -> float:
+    """Limiar de co-aprovação em vigor (spec-controlos §4.1, Art. 54). 0.0 (default)
+    = gate desligado: o lançamento directo de despesas mantém-se. Acima de um limiar
+    positivo, despesas exigem um Ato de pagamento aprovado.
+
+    Vive aqui (módulo leaf) para ser partilhada por `routes/finances.py` e
+    `routes/projects.py` sem risco de import circular (#307). Leitura defensiva —
+    tolera ausência de settings / mock_db (find_one→None)."""
+    s = await db.finance_settings.find_one({"id": "finance_settings"}, {"_id": 0})
+    if not isinstance(s, dict):
+        return 0.0
+    try:
+        return float(s.get("coaprovacao_limiar") or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 async def enrich_author_photos(docs, id_field: str = "user_id", out_field: str = "user_photo_url"):
     """Injeta a foto ATUAL do autor em cada doc de uma listagem, resolvida na
     leitura (sempre fresca e cobre conteúdo antigo, sem denormalizar nem migrar).
