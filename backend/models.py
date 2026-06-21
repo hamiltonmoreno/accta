@@ -1248,6 +1248,10 @@ class Transaction(BaseModel):
     ato_id: Optional[str] = None
     proof_url: Optional[str] = None
     conferido: Optional[bool] = None
+    # Vínculo ao projeto que originou a despesa (spec-fluxo-financeiro-unificado).
+    # Uma despesa de projeto é uma Transaction type="despesa" com project_id —
+    # fonte única de verdade (substitui a coleção project_expenses). Aditivo/opcional.
+    project_id: Optional[str] = None
 
 
 class TransactionCreate(BaseModel):
@@ -1327,6 +1331,9 @@ class AtoCreate(BaseModel):
     descricao: str
     valor: Optional[float] = None
     beneficiario: Optional[str] = None
+    # Projeto associado (despesa de projeto acima do limiar de co-aprovação).
+    # Propagado para a Transaction ao executar o ato. Aditivo/opcional.
+    project_id: Optional[str] = None
 
 
 class AtoSign(BaseModel):
@@ -1359,6 +1366,7 @@ class Ato(BaseModel):
     assinaturas: List[dict] = Field(default_factory=list)
     status: str = "pendente"
     transaction_id: Optional[str] = None  # despesa criada ao executar (pagamento)
+    project_id: Optional[str] = None  # projeto associado (propagado para a despesa)
     created_by: str
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     source_article: str = "54"
@@ -1504,6 +1512,9 @@ class ProjectExpenseCreate(BaseModel):
     description: str = Field(min_length=1)
     amount: float = Field(gt=0)
     date: Optional[str] = None
+    # Categoria de despesa (∈ EXPENSE_CATEGORIES); default "operacional" na rota.
+    # A despesa de projeto passa a ser uma Transaction, que exige categoria válida.
+    category: Optional[str] = None
 
 
 class ProjectMilestoneCreate(BaseModel):
@@ -2334,7 +2345,9 @@ class ExercicioCreate(BaseModel):
 
 
 class RelatorioContasSubmit(BaseModel):
-    document_id: str
+    # Opcional: o relatório é gerado pelo sistema; o upload é anexo opcional
+    # (versão assinada à mão). spec-fluxo-financeiro-unificado FR-016/FR-017.
+    document_id: Optional[str] = None
 
 
 class OrcamentoSubmit(BaseModel):

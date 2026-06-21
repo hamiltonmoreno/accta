@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from datetime import datetime, timezone
 from typing import Optional
 from models import (
@@ -11,11 +11,12 @@ from models import (
     ProjectTaskUpdate,
     ProjectComment,
     ProjectCommentCreate,
-    ProjectExpense,
     ProjectExpenseCreate,
     ProjectMilestone,
     ProjectMilestoneCreate,
     ProjectMilestoneUpdate,
+    Transaction,
+    EXPENSE_CATEGORIES,
     PROJECT_STATUSES,
     PROJECT_TIPOS,
     PROJECT_VISIBILITIES,
@@ -24,6 +25,7 @@ from models import (
 )
 from database import db
 from auth import get_current_user
+from routes.finances import _coaprovacao_limiar
 from permissions import is_direcao
 from helpers import (
     create_audit_log,
@@ -70,6 +72,37 @@ def can_view_project(user: User, project: dict) -> bool:
     if project.get("visibility") == "publico" and project.get("status") != "proposta":
         return True
     return user.role == "admin" or project.get("created_by") == user.id or project.get("responsible_id") == user.id
+
+
+# ===== SPENT DERIVADO (spec-fluxo-financeiro-unificado) =====
+# `spent` deixa de ser um contador escrito: deriva da soma das despesas reais do
+# projeto no caixa (transactions com project_id, type="despesa"). Fonte única.
+
+
+async def _project_spent(project_id: str) -> float:
+    """Soma das despesas reais do projeto a partir de `transactions`."""
+    pipeline = [
+        {"$match": {"project_id": project_id, "type": "despesa"}},
+        {"$group": {"_id": None, "total": {"$sum": "$amount"}}},
+    ]
+    res = await db.transactions.aggregate(pipeline).to_list(1)
+    return res[0]["total"] if res else 0.0
+
+
+async def _spent_by_project(project_ids: list) -> dict:
+    """`spent` de vários projetos numa única agregação (evita N+1)."""
+    if not project_ids:
+        return {}
+    pipeline = [
+        {"$match": {"project_id": {"$in": project_ids}, "type": "despesa"}},
+        {"$group": {"_id": "$project_id", "total": {"$sum": "$amount"}}},
+    ]
+    return {r["_id"]: r["total"] async for r in db.transactions.aggregate(pipeline)}
+
+
+def _orcamento_execucao(budget: float, spent: float) -> dict:
+    """Orçado vs. Realizado: previsão vs. soma das despesas reais + desvio."""
+    return {"budget": budget, "realizado": spent, "desvio": (budget or 0) - (spent or 0)}
 
 
 # ===== PROJECT CRUD =====
@@ -119,10 +152,13 @@ async def list_projects(
         },
     ]
     task_counts = {r["_id"]: r async for r in db.project_tasks.aggregate(pipeline)}
+    # `spent` derivado das transações do projeto, numa única agregação (sem N+1).
+    spent_map = await _spent_by_project(project_ids)
     for p in projects:
         tc = task_counts.get(p["id"], {"total": 0, "done": 0})
         p["task_count"] = tc["total"]
         p["task_done"] = tc["done"]
+        p["spent"] = spent_map.get(p["id"], 0.0)
 
     return {"items": projects, "total": total}
 
@@ -195,14 +231,21 @@ async def get_project(
         await db.project_comments.find({"project_id": project_id}, {"_id": 0}).sort("created_at", -1).to_list(200)
     )
     await enrich_author_photos(comments)
-    expenses = await db.project_expenses.find({"project_id": project_id}, {"_id": 0}).sort("date", -1).to_list(200)
+    # Despesas do projeto = transações de despesa com project_id (fonte única).
+    expenses = (
+        await db.transactions.find({"project_id": project_id, "type": "despesa"}, {"_id": 0})
+        .sort("date", -1)
+        .to_list(200)
+    )
     milestones = await db.project_milestones.find({"project_id": project_id}, {"_id": 0}).sort("date", 1).to_list(100)
 
+    spent = sum((e.get("amount") or 0) for e in expenses)
     project["tasks"] = tasks
     project["comments"] = comments
     project["expenses"] = expenses
     project["milestones"] = milestones
-    project["spent"] = sum(e["amount"] for e in expenses)
+    project["spent"] = spent
+    project["orcamento_execucao"] = _orcamento_execucao(project.get("budget") or 0, spent)
 
     return project
 
@@ -327,10 +370,24 @@ async def delete_project(
     if not project:
         raise HTTPException(status_code=404, detail="Projeto nao encontrado")
 
+    # Despesas de projeto são transações no caixa (spec-fluxo-financeiro-unificado):
+    # apagar o projeto NÃO deve apagar registos financeiros nem deixá-los órfãos.
+    # Bloqueia a remoção enquanto existirem despesas lançadas — o admin remove/
+    # reatribui as despesas primeiro (e as originadas por Ato seguem as regras do Ato).
+    tx_count = await db.transactions.count_documents({"project_id": project_id, "type": "despesa"})
+    if tx_count > 0:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"O projeto tem {tx_count} despesa(s) lancada(s) no caixa. "
+                "Remova ou reatribua as despesas antes de apagar o projeto."
+            ),
+        )
+
     await db.projects.delete_one({"id": project_id})
     await db.project_tasks.delete_many({"project_id": project_id})
     await db.project_comments.delete_many({"project_id": project_id})
-    await db.project_expenses.delete_many({"project_id": project_id})
+    await db.project_expenses.delete_many({"project_id": project_id})  # legado (já vazio pós-migração)
     await db.project_milestones.delete_many({"project_id": project_id})
     await create_audit_log(current_user.id, f"Removeu projeto '{project['title']}'", project_id)
     return {"message": "Projeto removido"}
@@ -513,12 +570,35 @@ async def delete_comment(
 # ===== EXPENSES =====
 
 
+@router.get("/{project_id}/expenses")
+async def list_expenses(
+    project_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Despesas do projeto = transações de despesa com project_id (fonte única)."""
+    project = await db.projects.find_one({"id": project_id}, {"_id": 0})
+    if not project:
+        raise HTTPException(status_code=404, detail="Projeto nao encontrado")
+    if not can_view_project(current_user, project):
+        raise HTTPException(status_code=403, detail="Sem acesso a este projeto")
+    items = (
+        await db.transactions.find({"project_id": project_id, "type": "despesa"}, {"_id": 0})
+        .sort("date", -1)
+        .to_list(500)
+    )
+    return {"items": items}
+
+
 @router.post("/{project_id}/expenses")
 async def add_expense(
     project_id: str,
     data: ProjectExpenseCreate,
+    request: Request,
     current_user: User = Depends(get_current_user),
 ):
+    """Regista uma despesa real do projeto COMO transação no caixa central
+    (spec-fluxo-financeiro-unificado). Passa pelo gate de co-aprovação (Art. 54):
+    despesas acima do limiar exigem um Ato de pagamento."""
     project = await db.projects.find_one({"id": project_id}, {"_id": 0})
     if not project:
         raise HTTPException(status_code=404, detail="Projeto nao encontrado")
@@ -526,33 +606,50 @@ async def add_expense(
         raise HTTPException(status_code=403, detail="Sem permissao")
 
     description = data.description.strip()
-    amount = data.amount  # já validado > 0 pelo modelo
+    amount = float(data.amount)  # já validado > 0 pelo modelo
     date = data.date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
-
     if not description:
         raise HTTPException(status_code=400, detail="Descricao e valor sao obrigatorios")
 
-    expense = ProjectExpense(
-        project_id=project_id,
+    category = data.category or "operacional"
+    if category not in EXPENSE_CATEGORIES:
+        raise HTTPException(status_code=400, detail=f"Categoria invalida. Use: {EXPENSE_CATEGORIES}")
+
+    # Gate de co-aprovação (Art. 54): despesa acima do limiar só entra via Ato de
+    # pagamento aprovado e executado — fecha o atalho que contornava a dupla
+    # assinatura pela via dos projetos.
+    limiar = await _coaprovacao_limiar()
+    if limiar > 0 and amount > limiar:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Despesa de {amount:,.0f} CVE excede o limiar de co-aprovacao "
+                f"({limiar:,.0f} CVE). Crie um Acto de pagamento (projeto associado) "
+                f"e execute-o apos aprovacao."
+            ),
+        )
+
+    transaction = Transaction(
+        type="despesa",
+        category=category,
         description=description,
-        amount=float(amount),
+        amount=amount,
         date=date,
+        project_id=project_id,
         created_by=current_user.id,
-        created_by_name=current_user.name,
     )
-    e_dict = expense.model_dump()
-    await db.project_expenses.insert_one(e_dict)
+    t_dict = transaction.model_dump()
+    await db.transactions.insert_one(t_dict)
+    await create_audit_log(
+        current_user.id,
+        f"Registou despesa de projeto {transaction.id} ({amount:,.0f} CVE) em '{project['title']}'",
+        project_id,
+        request=request,
+        details={"transaction_id": transaction.id, "amount": amount, "category": category},
+    )
 
-    # Update project spent — usa aggregation em vez de carregar todas as despesas para memoria
-    spent_pipeline = [
-        {"$match": {"project_id": project_id}},
-        {"$group": {"_id": None, "total": {"$sum": "$amount"}}},
-    ]
-    spent_res = await db.project_expenses.aggregate(spent_pipeline).to_list(1)
-    new_spent = spent_res[0]["total"] if spent_res else 0
-    await db.projects.update_one({"id": project_id}, {"$set": {"spent": new_spent}})
+    new_spent = await _project_spent(project_id)
 
-    # Notify stakeholders about the new expense
     link = f"/projetos/{project_id}"
     stakeholders = get_project_stakeholder_ids(project)
     await notify_users(
@@ -563,8 +660,6 @@ async def add_expense(
         link,
         exclude_id=current_user.id,
     )
-
-    # Alert if budget exceeded
     budget = project.get("budget", 0)
     if budget > 0 and new_spent > budget:
         await notify_users(
@@ -575,13 +670,14 @@ async def add_expense(
             link,
         )
 
-    return e_dict
+    return t_dict
 
 
 @router.delete("/{project_id}/expenses/{expense_id}")
 async def delete_expense(
     project_id: str,
     expense_id: str,
+    request: Request,
     current_user: User = Depends(get_current_user),
 ):
     project = await db.projects.find_one({"id": project_id}, {"_id": 0})
@@ -590,15 +686,23 @@ async def delete_expense(
     if not can_manage_project(current_user, project):
         raise HTTPException(status_code=403, detail="Sem permissao")
 
-    await db.project_expenses.delete_one({"id": expense_id, "project_id": project_id})
+    tx = await db.transactions.find_one({"id": expense_id, "project_id": project_id, "type": "despesa"}, {"_id": 0})
+    if not tx:
+        raise HTTPException(status_code=404, detail="Despesa nao encontrada")
+    # Despesa originada por um Ato executado mantém o rasto da co-aprovação —
+    # a reversão segue as regras do Ato, não a via simples de despesa de projeto.
+    if tx.get("ato_id"):
+        raise HTTPException(
+            status_code=400, detail="Despesa originada por um Acto executado; reverta pelo Acto."
+        )
 
-    spent_pipeline = [
-        {"$match": {"project_id": project_id}},
-        {"$group": {"_id": None, "total": {"$sum": "$amount"}}},
-    ]
-    spent_res = await db.project_expenses.aggregate(spent_pipeline).to_list(1)
-    new_spent = spent_res[0]["total"] if spent_res else 0
-    await db.projects.update_one({"id": project_id}, {"$set": {"spent": new_spent}})
+    await db.transactions.delete_one({"id": expense_id, "project_id": project_id})
+    await create_audit_log(
+        current_user.id,
+        f"Removeu despesa de projeto {expense_id} de '{project['title']}'",
+        project_id,
+        request=request,
+    )
 
     return {"message": "Despesa removida"}
 
