@@ -361,8 +361,10 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-No active Spec Kit feature. Last completed:
-`specs/001-comunicados-segmentados-concluido/` (Comunicados Segmentados v2 —
-audiência por filtro composto, preview, snapshot auditável; extensão aditiva do
-módulo de comunicados PR #113) — RELEASED v0.5.25, 48/48 tarefas concluídas.
+Active Spec Kit feature: `specs/002-fluxo-financeiro-unificado/` (plan:
+`specs/002-fluxo-financeiro-unificado/plan.md`) — ligar despesas de projeto ao
+caixa central (Transaction.project_id, spent derivado, gate Art. 54) + gerar o
+Relatório e Contas anual em PDF (upload vira anexo opcional). Migração de
+project_expenses = STOP (dry-run + confirmação). Próximo passo: `/speckit-tasks`.
+Last completed: `specs/001-comunicados-segmentados-concluido/` (RELEASED v0.5.25).
 <!-- SPECKIT END -->
