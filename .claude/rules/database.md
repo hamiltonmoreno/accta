@@ -44,7 +44,7 @@ paths:
   aplicar a sanção). Não existem montantes financeiros fora desta coleção:
   `Event`/`Ato`/`Sancao` guardam só a *definição* do valor, copiada para a
   transação na execução; todos os totais e resultados derivam por agregação
-  aqui (nunca leas finanças de `events`/`sancoes`/`atos`).
+  aqui (nunca leias finanças de `events`/`sancoes`/`atos`).
 - **projects** (+ project_tasks, project_comments, project_expenses,
   project_milestones): title, status, team_members[]
 - **events**: title, date, location, attendees[], visibility (resultado
