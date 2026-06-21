@@ -22,6 +22,7 @@ from models import (
     SancaoCreate,
     SancaoDecidir,
     SancaoRecurso,
+    Transaction,
     User,
 )
 from permissions import is_direcao
@@ -306,6 +307,29 @@ async def aplicar_sancao(sancao_id: str, request: Request, current_user: User = 
                 }
             },
         )
+
+    # Multa → caixa (spec-eventos-multas-caixa): cria a receita ANTES do CAS,
+    # junto dos efeitos idempotentes. Guarda por sancao_id ⇒ exactly-once mesmo
+    # com re-tentativa/concorrência (e re-tentável se o CAS falhar a seguir).
+    # Categoria "extraordinarias" (sem categorias de receita novas).
+    if tipo == "multa" and (s.get("multa_valor") or 0) > 0:
+        existing_tx = await db.transactions.find_one(
+            {"sancao_id": sancao_id, "type": "receita"}, {"_id": 0, "id": 1}
+        )
+        if not existing_tx:
+            socio = await db.users.find_one({"id": s["user_id"]}, {"_id": 0, "name": 1})
+            nome = (socio or {}).get("name")
+            multa_tx = Transaction(
+                type="receita",
+                category="extraordinarias",
+                description=f"Multa - {nome}" if nome else "Multa",
+                amount=float(s["multa_valor"]),
+                date=now,
+                sancao_id=sancao_id,
+                user_id=s["user_id"],
+                created_by=current_user.id,
+            )
+            await db.transactions.insert_one(multa_tx.model_dump())
 
     # CAS final: só agora (efeitos já persistidos) marca "aplicada". Se outra
     # chamada concorrente já fechou a transição, modified_count==0 e abortamos

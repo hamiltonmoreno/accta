@@ -20,7 +20,8 @@ import {
   Check,
   Loader2,
   UserCheck,
-  Trash2
+  Trash2,
+  Wallet
 } from 'lucide-react';
 import { format, isFuture, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -35,6 +36,7 @@ export const EventosPage = () => {
   const [filter, setFilter] = useState('upcoming');
   const [showModal, setShowModal] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [financeEvent, setFinanceEvent] = useState(null);
 
   const { data: events = [], isLoading: loading } = useQuery({
     queryKey: queryKeys.events.list(),
@@ -160,13 +162,22 @@ export const EventosPage = () => {
                     </div>
 
                     {isAdmin && (
-                      <button
-                        onClick={() => setConfirmDelete(event.id)}
-                        className="p-1.5 text-[#B91C1C] hover:bg-red-50 rounded-lg transition-colors"
-                        aria-label="Eliminar evento"
-                      >
-                        <Trash2 className="w-4 h-4" aria-hidden="true" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setFinanceEvent(event)}
+                          className="p-1.5 text-grafite hover:bg-[#F5F5F5] rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                          aria-label="Finanças do evento"
+                        >
+                          <Wallet className="w-4 h-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          onClick={() => setConfirmDelete(event.id)}
+                          className="p-1.5 text-[#C7202F] hover:bg-[#FBEAEC] rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                          aria-label="Eliminar evento"
+                        >
+                          <Trash2 className="w-4 h-4" aria-hidden="true" />
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -238,6 +249,10 @@ export const EventosPage = () => {
         </div>
       )}
 
+      {financeEvent && (
+          <EventFinanceDialog event={financeEvent} onClose={() => setFinanceEvent(null)} />
+      )}
+
       {showModal && (
           <CreateEventModal
             onClose={() => setShowModal(false)}
@@ -263,6 +278,157 @@ export const EventosPage = () => {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+};
+
+// Categorias de despesa (espelham backend EXPENSE_CATEGORIES). A despesa de
+// evento é uma transação no caixa e exige categoria (spec-eventos-multas-caixa).
+const EXPENSE_CATS = [
+  ['operacional', 'Operacional'],
+  ['eventos', 'Eventos'],
+  ['juridico', 'Jurídico'],
+  ['comunicacao', 'Comunicação'],
+  ['viagens', 'Viagens'],
+  ['outros_despesa', 'Outras Despesas'],
+];
+const fmtCve = (v) => `${Number(v || 0).toLocaleString('pt-PT')} CVE`;
+
+// Finanças de evento: despesas + receitas + resultado, tudo ligado ao caixa central.
+const EventFinanceDialog = ({ event, onClose }) => {
+  const qc = useQueryClient();
+  const eid = event.id;
+  const [tab, setTab] = useState('despesa');
+  const [form, setForm] = useState({ description: '', amount: '', category: 'eventos' });
+
+  const detail = useQuery({
+    queryKey: ['events', eid, 'detail'],
+    queryFn: async () => (await eventsAPI.getById(eid)).data,
+  });
+  const expenses = useQuery({
+    queryKey: ['events', eid, 'expenses'],
+    queryFn: async () => (await eventsAPI.getExpenses(eid)).data.items,
+  });
+  const receitas = useQuery({
+    queryKey: ['events', eid, 'receitas'],
+    queryFn: async () => (await eventsAPI.getReceitas(eid)).data.items,
+  });
+  const r = detail.data?.resultado_financeiro || { receitas: 0, despesas: 0, resultado: 0 };
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['events', eid] });
+  };
+
+  const addMut = useMutation({
+    mutationFn: () => {
+      const payload = { description: form.description.trim(), amount: parseFloat(form.amount) };
+      return tab === 'despesa'
+        ? eventsAPI.addExpense(eid, { ...payload, category: form.category })
+        : eventsAPI.addReceita(eid, payload);
+    },
+    onSuccess: () => {
+      setForm({ description: '', amount: '', category: 'eventos' });
+      invalidate();
+      toast.success(tab === 'despesa' ? 'Despesa registada' : 'Receita registada');
+    },
+    onError: (e) => toast.error(e.response?.data?.detail || 'Erro ao registar'),
+  });
+
+  const delMut = useMutation({
+    mutationFn: ({ kind, txId }) =>
+      kind === 'despesa' ? eventsAPI.deleteExpense(eid, txId) : eventsAPI.deleteReceita(eid, txId),
+    onSuccess: () => { invalidate(); toast.success('Movimento removido'); },
+    onError: (e) => toast.error(e.response?.data?.detail || 'Erro ao remover'),
+  });
+
+  const canSubmit = form.description.trim() && parseFloat(form.amount) > 0 && !addMut.isPending;
+  const rows = tab === 'despesa' ? (expenses.data || []) : (receitas.data || []);
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-2xl rounded-xl max-h-[90vh] overflow-y-auto" data-testid="event-finance-dialog">
+        <DialogHeader>
+          <DialogTitle>Finanças — {event.title}</DialogTitle>
+        </DialogHeader>
+
+        {/* Resultado do evento */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-lg border border-[#E5E7EB] p-3">
+            <div className="text-xs text-[#6B7280] uppercase">Receitas</div>
+            <div className="font-mono font-bold text-grafite">{fmtCve(r.receitas)}</div>
+          </div>
+          <div className="rounded-lg border border-[#E5E7EB] p-3">
+            <div className="text-xs text-[#6B7280] uppercase">Despesas</div>
+            <div className="font-mono font-bold text-grafite">{fmtCve(r.despesas)}</div>
+          </div>
+          <div className="rounded-lg border border-[#E5E7EB] p-3">
+            <div className="text-xs text-[#6B7280] uppercase">Resultado</div>
+            <div className={`font-mono font-bold ${r.resultado >= 0 ? 'text-[#15803D]' : 'text-[#B91C1C]'}`}>{fmtCve(r.resultado)}</div>
+          </div>
+        </div>
+
+        {/* Tabs despesa/receita */}
+        <div className="flex gap-2 mt-2">
+          {['despesa', 'receita'].map((t) => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 ${tab === t ? 'bg-[#F5F5F5] text-grafite' : 'text-[#6B7280] hover:bg-[#F5F5F5]'}`}>
+              {t === 'despesa' ? 'Despesas' : 'Receitas'}
+            </button>
+          ))}
+        </div>
+
+        {/* Formulário */}
+        <div className="flex flex-wrap items-end gap-2 border border-[#E5E7EB] rounded-lg p-3">
+          <div className="flex-1 min-w-[160px]">
+            <label className="block text-xs text-[#6B7280] mb-1">Descrição</label>
+            <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
+              className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 outline-none" data-testid="event-fin-desc" />
+          </div>
+          <div className="w-28">
+            <label className="block text-xs text-[#6B7280] mb-1">Valor (CVE)</label>
+            <input type="number" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm font-mono focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 outline-none" data-testid="event-fin-amount" />
+          </div>
+          {tab === 'despesa' && (
+            <div className="w-40">
+              <label className="block text-xs text-[#6B7280] mb-1">Categoria</label>
+              <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
+                className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 outline-none" data-testid="event-fin-cat">
+                {EXPENSE_CATS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+            </div>
+          )}
+          <button onClick={() => addMut.mutate()} disabled={!canSubmit}
+            className="inline-flex items-center gap-1.5 bg-floresta text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-floresta-dark disabled:opacity-60 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+            data-testid="event-fin-submit">
+            {addMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Registar
+          </button>
+        </div>
+
+        {/* Lista */}
+        <div className="border border-[#E5E7EB] rounded-lg overflow-hidden">
+          {rows.length === 0 ? (
+            <p className="text-sm text-[#6B7280] p-4 text-center">Sem {tab === 'despesa' ? 'despesas' : 'receitas'} registadas.</p>
+          ) : (
+            <table className="w-full text-sm">
+              <tbody>
+                {rows.map((t) => (
+                  <tr key={t.id} className="border-b border-[#F5F5F5]" data-testid={`event-fin-row-${t.id}`}>
+                    <td className="px-3 py-2 text-grafite">{t.description}{t.ato_id && <span className="ml-1.5 text-[10px] text-[#6B7280] uppercase">(co-aprovado)</span>}</td>
+                    <td className="px-3 py-2 text-right font-mono">{fmtCve(t.amount)}</td>
+                    <td className="px-3 py-2 text-xs text-[#6B7280]">{(t.date || '').slice(0, 10)}</td>
+                    <td className="px-3 py-2 w-8">
+                      <button onClick={() => delMut.mutate({ kind: tab, txId: t.id })} className="text-[#6B7280] hover:text-[#C7202F] cursor-pointer" aria-label="Remover movimento">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

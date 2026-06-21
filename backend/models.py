@@ -887,6 +887,22 @@ class EventCreate(BaseModel):
         return _validate_datetime_str(v)
 
 
+# Finanças de evento (spec-eventos-multas-caixa): despesa/receita de evento = uma
+# Transaction com event_id. Espelham ProjectExpenseCreate. category default
+# "eventos" resolvido na rota; receita usa sempre "extraordinarias".
+class EventExpenseCreate(BaseModel):
+    description: str = Field(min_length=1)
+    amount: float = Field(gt=0)
+    date: Optional[str] = None
+    category: Optional[str] = None
+
+
+class EventReceitaCreate(BaseModel):
+    description: str = Field(min_length=1)
+    amount: float = Field(gt=0)
+    date: Optional[str] = None
+
+
 class EventUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
@@ -1252,6 +1268,10 @@ class Transaction(BaseModel):
     # Uma despesa de projeto é uma Transaction type="despesa" com project_id —
     # fonte única de verdade (substitui a coleção project_expenses). Aditivo/opcional.
     project_id: Optional[str] = None
+    # Vínculos ronda 2 (spec-eventos-multas-caixa): despesa/receita de evento
+    # (event_id) e receita de multa de sanção (sancao_id). Aditivos/opcionais.
+    event_id: Optional[str] = None
+    sancao_id: Optional[str] = None
 
 
 class TransactionCreate(BaseModel):
@@ -1334,6 +1354,8 @@ class AtoCreate(BaseModel):
     # Projeto associado (despesa de projeto acima do limiar de co-aprovação).
     # Propagado para a Transaction ao executar o ato. Aditivo/opcional.
     project_id: Optional[str] = None
+    # Evento associado (despesa de evento acima do limiar) — ronda 2. Aditivo.
+    event_id: Optional[str] = None
 
 
 class AtoSign(BaseModel):
@@ -1367,6 +1389,7 @@ class Ato(BaseModel):
     status: str = "pendente"
     transaction_id: Optional[str] = None  # despesa criada ao executar (pagamento)
     project_id: Optional[str] = None  # projeto associado (propagado para a despesa)
+    event_id: Optional[str] = None  # evento associado (propagado para a despesa) — ronda 2
     created_by: str
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     source_article: str = "54"
