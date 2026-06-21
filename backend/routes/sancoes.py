@@ -309,9 +309,11 @@ async def aplicar_sancao(sancao_id: str, request: Request, current_user: User = 
         )
 
     # Multa → caixa (spec-eventos-multas-caixa): cria a receita ANTES do CAS,
-    # junto dos efeitos idempotentes. Guarda por sancao_id ⇒ exactly-once mesmo
-    # com re-tentativa/concorrência (e re-tentável se o CAS falhar a seguir).
-    # Categoria "extraordinarias" (sem categorias de receita novas).
+    # junto dos efeitos idempotentes. Guarda por sancao_id ⇒ exactly-once em
+    # re-tentativa sequencial. Categoria "extraordinarias" (sem categorias novas).
+    # `multa_tx_id` rastreia se ESTA chamada criou a receita, para o ramo de
+    # compensação abaixo (janela de concorrência).
+    multa_tx_id = None
     if tipo == "multa" and (s.get("multa_valor") or 0) > 0:
         existing_tx = await db.transactions.find_one(
             {"sancao_id": sancao_id, "type": "receita"}, {"_id": 0, "id": 1}
@@ -330,6 +332,7 @@ async def aplicar_sancao(sancao_id: str, request: Request, current_user: User = 
                 created_by=current_user.id,
             )
             await db.transactions.insert_one(multa_tx.model_dump())
+            multa_tx_id = multa_tx.id
 
     # CAS final: só agora (efeitos já persistidos) marca "aplicada". Se outra
     # chamada concorrente já fechou a transição, modified_count==0 e abortamos
@@ -339,6 +342,11 @@ async def aplicar_sancao(sancao_id: str, request: Request, current_user: User = 
         {"$set": {"status": "aplicada", "aplicada_em": now}},
     )
     if claimed.modified_count == 0:
+        # Perdemos a corrida do CAS: se ESTA chamada inseriu a receita (janela de
+        # concorrência em que o find_one não viu a inserção da chamada vencedora),
+        # remove-a para não deixar uma receita de multa duplicada no caixa.
+        if multa_tx_id:
+            await db.transactions.delete_one({"id": multa_tx_id})
         raise HTTPException(status_code=409, detail="A sanção já foi aplicada.")
 
     await create_audit_log(

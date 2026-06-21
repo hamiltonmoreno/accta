@@ -21,7 +21,9 @@ import {
   Loader2,
   UserCheck,
   Trash2,
-  Wallet
+  Wallet,
+  TrendingUp,
+  TrendingDown
 } from 'lucide-react';
 import { format, isFuture, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -301,21 +303,22 @@ const EventFinanceDialog = ({ event, onClose }) => {
   const [form, setForm] = useState({ description: '', amount: '', category: 'eventos' });
 
   const detail = useQuery({
-    queryKey: ['events', eid, 'detail'],
+    queryKey: queryKeys.events.byId(eid),
     queryFn: async () => (await eventsAPI.getById(eid)).data,
   });
   const expenses = useQuery({
-    queryKey: ['events', eid, 'expenses'],
+    queryKey: queryKeys.events.expenses(eid),
     queryFn: async () => (await eventsAPI.getExpenses(eid)).data.items,
   });
   const receitas = useQuery({
-    queryKey: ['events', eid, 'receitas'],
+    queryKey: queryKeys.events.receitas(eid),
     queryFn: async () => (await eventsAPI.getReceitas(eid)).data.items,
   });
   const r = detail.data?.resultado_financeiro || { receitas: 0, despesas: 0, resultado: 0 };
 
+  // byId(eid) = ['events', eid] é prefixo de detail/expenses/receitas → invalida as três.
   const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ['events', eid] });
+    qc.invalidateQueries({ queryKey: queryKeys.events.byId(eid) });
   };
 
   const addMut = useMutation({
@@ -362,7 +365,13 @@ const EventFinanceDialog = ({ event, onClose }) => {
           </div>
           <div className="rounded-lg border border-[#E5E7EB] p-3">
             <div className="text-xs text-[#6B7280] uppercase">Resultado</div>
-            <div className={`font-mono font-bold ${r.resultado >= 0 ? 'text-[#15803D]' : 'text-[#B91C1C]'}`}>{fmtCve(r.resultado)}</div>
+            <div className={`font-mono font-bold flex items-center gap-1 ${r.resultado >= 0 ? 'text-[#15803D]' : 'text-[#C7202F]'}`}>
+              {r.resultado >= 0
+                ? <TrendingUp className="w-3.5 h-3.5" aria-hidden="true" />
+                : <TrendingDown className="w-3.5 h-3.5" aria-hidden="true" />}
+              <span>{fmtCve(r.resultado)}</span>
+              <span className="sr-only">{r.resultado >= 0 ? 'positivo' : 'défice'}</span>
+            </div>
           </div>
         </div>
 

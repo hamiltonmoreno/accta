@@ -206,8 +206,9 @@ async def delete_event(event_id: str, current_user: User = Depends(get_current_u
         raise HTTPException(
             status_code=409,
             detail=(
-                f"O evento tem {tx_count} movimento(s) no caixa. "
-                "Remova os movimentos antes de apagar o evento."
+                f"O evento tem {tx_count} movimento(s) no caixa. Remova-os antes de apagar o evento. "
+                "Movimentos originados por um Acto executado não são removíveis (compromisso "
+                "financeiro formal); contacte a administração."
             ),
         )
 

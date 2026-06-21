@@ -127,6 +127,25 @@ class TestEventExpenseReceita:
             await events_route.add_event_receita("evt-1", EventReceitaCreate(description="x", amount=1), _request(), socio_user)
         assert exc.value.status_code == 403
 
+    async def test_financeiro_403(self, mock_db, financeiro_user, quiet):
+        # RBAC é manage_events (não manage_finances): financeiro NÃO gere eventos.
+        from models import EventExpenseCreate
+
+        mock_db.events.find_one = AsyncMock(return_value=_event())
+        with pytest.raises(HTTPException) as exc:
+            await events_route.add_event_expense("evt-1", EventExpenseCreate(description="x", amount=1), _request(), financeiro_user)
+        assert exc.value.status_code == 403
+
+    async def test_privilege_manage_events_ok(self, mock_db, quiet):
+        # Caminho de privilégio: socio com manage_events PASSA (não só por role).
+        from conftest import _make_user_dict
+        from models import EventExpenseCreate, User
+
+        gestor = User(**_make_user_dict("socio", privileges=["manage_events"]))
+        mock_db.events.find_one = AsyncMock(return_value=_event())
+        result = await events_route.add_event_expense("evt-1", EventExpenseCreate(description="Sala", amount=100), _request(), gestor)
+        assert result["type"] == "despesa"
+
 
 class TestEventListDeleteResult:
     async def test_list_expenses_filters(self, mock_db, admin_user):
@@ -283,6 +302,31 @@ class TestMultaAoAplicar:
         mock_db.transactions.insert_one = insert
         await sancoes_route.aplicar_sancao("sac-1", _request(), admin_user)
         insert.assert_not_called()
+
+    async def test_cas_loser_compensates_receita(self, mock_db, admin_user, quiet):
+        # W1: perdedor da corrida do CAS apaga a receita que criou (sem duplicado).
+        sanc = _wire(mock_db, "sancoes", find_one=_sancao())
+        sanc.update_one = AsyncMock(return_value=MagicMock(modified_count=0))  # CAS perdido
+        mock_db.users.find_one = AsyncMock(return_value={"name": "X"})
+        mock_db.transactions.find_one = AsyncMock(return_value=None)
+        inserted = {}
+
+        async def cap_ins(doc):
+            inserted.update(doc)
+            return MagicMock()
+
+        deleted = {}
+
+        async def cap_del(q):
+            deleted.update(q)
+            return MagicMock(deleted_count=1)
+
+        mock_db.transactions.insert_one = cap_ins
+        mock_db.transactions.delete_one = cap_del
+        with pytest.raises(HTTPException) as exc:
+            await sancoes_route.aplicar_sancao("sac-1", _request(), admin_user)
+        assert exc.value.status_code == 409
+        assert deleted.get("id") == inserted.get("id")  # apagou exatamente a receita que criou
 
     async def test_non_multa_no_movement(self, mock_db, admin_user, quiet):
         _wire(mock_db, "sancoes", find_one=_sancao(tipo="advertencia", multa_valor=None))
