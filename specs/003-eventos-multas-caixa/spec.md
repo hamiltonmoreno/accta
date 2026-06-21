@@ -123,7 +123,7 @@ Enquanto gestor de eventos, no detalhe do evento registo despesas (com categoria
 - **FR-013**: A criação desse movimento MUST ocorrer **exatamente uma vez** por sanção (idempotente face a repetição/concorrência da aplicação).
 - **FR-014**: Sanções que não sejam multa (ou multas sem valor) MUST NOT gerar qualquer movimento no caixa.
 - **FR-015**: A multa MUST ser tratada como cobrada no momento da aplicação (sem conceito de dívida/inadimplência, coerente com as quotas descontadas em folha).
-- **FR-016**: Se uma multa já aplicada for anulada e o fluxo de anulação existir, o sistema MUST registar um movimento de estorno associado à sanção (correção por compensação, sem apagar o movimento original).
+- **FR-016** *(condicional — FORA DE ÂMBITO nesta ronda)*: **Apenas se** existir um fluxo de anulação de sanção (`aplicada → anulada`), uma multa já aplicada que seja anulada MUST registar um movimento de estorno associado à sanção (correção por compensação, sem apagar o movimento original). **Verificado: tal fluxo não existe no código** (`routes/sancoes.py` não define a transição), pelo que este requisito **não é implementado nesta ronda**; fica para reabrir se a anulação vier a existir.
 
 **Categorias**
 

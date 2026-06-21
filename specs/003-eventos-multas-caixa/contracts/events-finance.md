@@ -13,7 +13,6 @@ Cria uma despesa do evento como `Transaction` no caixa.
 2. Valida `category` (400 se inválida); default `eventos`.
 3. **Gate Art. 54**: `limiar = coaprovacao_limiar()`; se `>0` e `amount>limiar` → 400 (PT, orientar para Ato com este evento).
 4. Cria `Transaction(type="despesa", category, event_id, …)`; `create_audit_log`.
-5. Notifica (opcional) gestores.
 
 **200**: a `Transaction` criada. **Acceptance**: US1 #1; US3 #1.
 
