@@ -62,7 +62,7 @@ Portal institucional e Sistema de Gestão Associativa (SGA) para a **Associaçã
 |--------|-----------|
 | Frontend | React 19 + Tailwind CSS 3 + shadcn/ui + Framer Motion + Recharts + Craco |
 | Backend | FastAPI (Python 3.11) + asyncpg (PostgreSQL/Supabase via DAO Mongo-compatível) |
-| Base de Dados | PostgreSQL (Supabase) — 65 tabelas `(pk bigserial, doc jsonb)` |
+| Base de Dados | PostgreSQL (Supabase) — 64 tabelas `(pk bigserial, doc jsonb)` |
 | Autenticação | JWT HS256 (24h, cookie httpOnly) + RBAC (admin, financeiro, moderador, socio) + privilégios aditivos + cargos estatutários |
 | Email | Resend API |
 | Real-time | SSE (Server-Sent Events) + fallback polling 30s |
