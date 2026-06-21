@@ -27,8 +27,8 @@ Web app: `backend/` (FastAPI) + `frontend/src/` (React). Scripts em `scripts/`.
 
 **Purpose**: Preparar terreno; branch `feature/fluxo-financeiro-unificado` já criado off `develop`.
 
-- [ ] T001 Confirmar baseline verde: `cd backend && pytest -q` e registar nº de testes a passar antes de qualquer alteração (linha de base para detetar regressões).
-- [ ] T002 [P] Rever fixtures de `backend/tests/conftest.py` e confirmar que `transactions`, `projects`, `atos`, `finance_settings`, `exercicios` estão pré-ligados no `mock_db`; anotar que `project_expenses` precisa de wiring in-test (`mock_db.project_expenses = MagicMock(...)`) conforme CLAUDE.md.
+- [X] T001 Confirmar baseline verde: `cd backend && pytest -q` e registar nº de testes a passar antes de qualquer alteração (linha de base para detetar regressões).
+- [X] T002 [P] Rever fixtures de `backend/tests/conftest.py` e confirmar que `transactions`, `projects`, `atos`, `finance_settings`, `exercicios` estão pré-ligados no `mock_db`; anotar que `project_expenses` precisa de wiring in-test (`mock_db.project_expenses = MagicMock(...)`) conforme CLAUDE.md.
 
 ---
 
@@ -38,12 +38,12 @@ Web app: `backend/` (FastAPI) + `frontend/src/` (React). Scripts em `scripts/`.
 
 **⚠️ CRITICAL**: nenhuma user story arranca antes desta fase estar completa.
 
-- [ ] T003 [P] Adicionar `project_id: Optional[str] = None` ao modelo `Transaction` em `backend/models.py` (após `ato_id`/`proof_url`/`conferido`; comentário PT a explicar o vínculo ao projeto).
-- [ ] T004 [P] Adicionar `project_id: Optional[str] = None` a `Ato` e a `AtoCreate` em `backend/models.py` (campos aditivos-opcionais).
-- [ ] T005 [P] Adicionar `category: Optional[str] = None` a `ProjectExpenseCreate` em `backend/models.py`.
-- [ ] T006 [P] Tornar `RelatorioContasSubmit.document_id` `Optional[str] = None` em `backend/models.py`.
-- [ ] T007 Adicionar índice de expressão em `transactions(doc->>'project_id')` dentro de `ensure_schema()` em `backend/database.py` (idempotente; junto aos índices de `transactions`).
-- [ ] T008 Extrair/partilhar o helper de limiar: garantir que `_coaprovacao_limiar()` de `backend/routes/finances.py` é importável por `routes/projects.py` (mover para um módulo comum leve OU importar diretamente de `routes.finances`), sem duplicar a leitura defensiva.
+- [X] T003 [P] Adicionar `project_id: Optional[str] = None` ao modelo `Transaction` em `backend/models.py` (após `ato_id`/`proof_url`/`conferido`; comentário PT a explicar o vínculo ao projeto).
+- [X] T004 [P] Adicionar `project_id: Optional[str] = None` a `Ato` e a `AtoCreate` em `backend/models.py` (campos aditivos-opcionais).
+- [X] T005 [P] Adicionar `category: Optional[str] = None` a `ProjectExpenseCreate` em `backend/models.py`.
+- [X] T006 [P] Tornar `RelatorioContasSubmit.document_id` `Optional[str] = None` em `backend/models.py`.
+- [X] T007 Adicionar índice de expressão em `transactions(doc->>'project_id')` dentro de `ensure_schema()` em `backend/database.py` (idempotente; junto aos índices de `transactions`).
+- [X] T008 Extrair/partilhar o helper de limiar: garantir que `_coaprovacao_limiar()` de `backend/routes/finances.py` é importável por `routes/projects.py` (mover para um módulo comum leve OU importar diretamente de `routes.finances`), sem duplicar a leitura defensiva.
 
 **Checkpoint**: modelos e schema prontos — stories podem começar.
 
@@ -57,18 +57,18 @@ Web app: `backend/` (FastAPI) + `frontend/src/` (React). Scripts em `scripts/`.
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T009 [P] [US1] Teste: `POST /projects/{id}/expenses` cria uma `Transaction` (`type="despesa"`, `project_id`, `category`) e NÃO escreve em `project_expenses`, em `backend/tests/test_projects_expenses.py`.
-- [ ] T010 [P] [US1] Teste: `GET /projects/{id}/expenses` devolve as transações do projeto; `DELETE` remove a transação e recomputa `spent`, em `backend/tests/test_projects_expenses.py`.
-- [ ] T011 [P] [US1] Teste: `GET /finances/transactions?project_id=` filtra corretamente, em `backend/tests/test_finances_project_filter.py`.
-- [ ] T012 [P] [US1] Teste: `spent` derivado por agregação no detalhe do projeto e na listagem (sem N+1), em `backend/tests/test_projects_spent_derived.py`.
+- [X] T009 [P] [US1] Teste: `POST /projects/{id}/expenses` cria uma `Transaction` (`type="despesa"`, `project_id`, `category`) e NÃO escreve em `project_expenses`, em `backend/tests/test_projects_expenses.py`.
+- [X] T010 [P] [US1] Teste: `GET /projects/{id}/expenses` devolve as transações do projeto; `DELETE` remove a transação e recomputa `spent`, em `backend/tests/test_projects_expenses.py`.
+- [X] T011 [P] [US1] Teste: `GET /finances/transactions?project_id=` filtra corretamente, em `backend/tests/test_finances_project_filter.py`.
+- [X] T012 [P] [US1] Teste: `spent` derivado por agregação no detalhe do projeto e na listagem (sem N+1), em `backend/tests/test_projects_spent_derived.py`.
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Reescrever `add_expense` em `backend/routes/projects.py`: validar/normalizar `category` (default `operacional`, ∈ `EXPENSE_CATEGORIES`), criar `Transaction(type="despesa", project_id=project_id, …)` via `db.transactions.insert_one`, em vez de `project_expenses`; manter guard `can_manage_project`; **adicionar `create_audit_log`**; manter notificações de stakeholders + alerta de orçamento excedido (com `spent` derivado).
-- [ ] T014 [US1] Reescrever `delete_expense` em `backend/routes/projects.py`: apagar a `Transaction` (`{id, project_id, type:"despesa"}`) + `create_audit_log`; recomputar `spent` (agregação sobre `transactions`). (Guarda de `ato_id` entra na US2 — T020.)
-- [ ] T015 [US1] Adicionar `GET /projects/{id}/expenses` (ou ajustar o existente) em `backend/routes/projects.py` para listar `transactions.find({project_id, type:"despesa"}).sort(date,-1)`.
-- [ ] T016 [US1] Implementar `spent` derivado em `backend/routes/projects.py`: no detalhe (`GET /projects/{id}`) por agregação `SUM(transactions where project_id, type="despesa")` + bloco `orcamento_execucao={budget,realizado,desvio}`; na listagem (`GET /projects`) por **uma** agregação `$group` por `project_id` (evitar N+1).
-- [ ] T017 [US1] Adicionar parâmetro `project_id: Optional[str]` a `list_transactions` em `backend/routes/finances.py` (→ `query["project_id"]`).
+- [X] T013 [US1] Reescrever `add_expense` em `backend/routes/projects.py`: validar/normalizar `category` (default `operacional`, ∈ `EXPENSE_CATEGORIES`), criar `Transaction(type="despesa", project_id=project_id, …)` via `db.transactions.insert_one`, em vez de `project_expenses`; manter guard `can_manage_project`; **adicionar `create_audit_log`**; manter notificações de stakeholders + alerta de orçamento excedido (com `spent` derivado).
+- [X] T014 [US1] Reescrever `delete_expense` em `backend/routes/projects.py`: apagar a `Transaction` (`{id, project_id, type:"despesa"}`) + `create_audit_log`; recomputar `spent` (agregação sobre `transactions`). (Guarda de `ato_id` entra na US2 — T020.)
+- [X] T015 [US1] Adicionar `GET /projects/{id}/expenses` (ou ajustar o existente) em `backend/routes/projects.py` para listar `transactions.find({project_id, type:"despesa"}).sort(date,-1)`.
+- [X] T016 [US1] Implementar `spent` derivado em `backend/routes/projects.py`: no detalhe (`GET /projects/{id}`) por agregação `SUM(transactions where project_id, type="despesa")` + bloco `orcamento_execucao={budget,realizado,desvio}`; na listagem (`GET /projects`) por **uma** agregação `$group` por `project_id` (evitar N+1).
+- [X] T017 [US1] Adicionar parâmetro `project_id: Optional[str]` a `list_transactions` em `backend/routes/finances.py` (→ `query["project_id"]`).
 
 **Checkpoint**: despesa de projeto reflete-se no caixa, resumo, DRE e balancete sem relançamento manual.
 
@@ -82,15 +82,15 @@ Web app: `backend/` (FastAPI) + `frontend/src/` (React). Scripts em `scripts/`.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T018 [P] [US2] Teste: despesa de projeto `amount > limiar` é recusada (400, mensagem PT a pedir Ato), em `backend/tests/test_projects_expenses_gate.py`.
-- [ ] T019 [P] [US2] Teste: `execute_ato` com `project_id` cria `Transaction` com `ato_id` E `project_id`; conta para `spent`, em `backend/tests/test_atos_project.py`.
-- [ ] T020 [P] [US2] Teste: `DELETE /projects/{id}/expenses/{tx}` recusa (400) quando a transação tem `ato_id`, em `backend/tests/test_projects_expenses_gate.py`.
+- [X] T018 [P] [US2] Teste: despesa de projeto `amount > limiar` é recusada (400, mensagem PT a pedir Ato), em `backend/tests/test_projects_expenses_gate.py`.
+- [X] T019 [P] [US2] Teste: `execute_ato` com `project_id` cria `Transaction` com `ato_id` E `project_id`; conta para `spent`, em `backend/tests/test_atos_project.py`.
+- [X] T020 [P] [US2] Teste: `DELETE /projects/{id}/expenses/{tx}` recusa (400) quando a transação tem `ato_id`, em `backend/tests/test_projects_expenses_gate.py`.
 
 ### Implementation for User Story 2
 
-- [ ] T021 [US2] Aplicar o gate Art. 54 em `add_expense` (`backend/routes/projects.py`): ler `_coaprovacao_limiar()` (de T008); se `>0` e `amount>limiar` → 400 com mensagem PT a orientar para criar um Ato de pagamento com o projeto associado.
-- [ ] T022 [US2] Em `delete_expense` (`backend/routes/projects.py`): se a transação tiver `ato_id` → 400 (`"Despesa originada por um Acto executado; reverta pelo Acto."`).
-- [ ] T023 [US2] Em `execute_ato` (`backend/routes/atos.py`): propagar `project_id=ato.get("project_id")` para a `Transaction` criada.
+- [X] T021 [US2] Aplicar o gate Art. 54 em `add_expense` (`backend/routes/projects.py`): ler `_coaprovacao_limiar()` (de T008); se `>0` e `amount>limiar` → 400 com mensagem PT a orientar para criar um Ato de pagamento com o projeto associado.
+- [X] T022 [US2] Em `delete_expense` (`backend/routes/projects.py`): se a transação tiver `ato_id` → 400 (`"Despesa originada por um Acto executado; reverta pelo Acto."`).
+- [X] T023 [US2] Em `execute_ato` (`backend/routes/atos.py`): propagar `project_id=ato.get("project_id")` para a `Transaction` criada.
 
 **Checkpoint**: o atalho que contornava o Art. 54 está fechado; despesas via Ato ligadas ao projeto.
 
@@ -104,13 +104,13 @@ Web app: `backend/` (FastAPI) + `frontend/src/` (React). Scripts em `scripts/`.
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T024 [P] [US3] Teste: `submeter_relatorio` sem `document_id` → 200, estado `relatorio_submetido`, `dre_snapshot` congelado; com `document_id` → publica anexo, em `backend/tests/test_prestacao_contas_relatorio_opcional.py`.
-- [ ] T025 [P] [US3] Teste: endpoint do Relatório e Contas anual devolve `application/pdf` e os totais coincidem com `compute_financial_summary(year)`, em `backend/tests/test_relatorio_anual_pdf.py`.
+- [X] T024 [P] [US3] Teste: `submeter_relatorio` sem `document_id` → 200, estado `relatorio_submetido`, `dre_snapshot` congelado; com `document_id` → publica anexo, em `backend/tests/test_prestacao_contas_relatorio_opcional.py`.
+- [X] T025 [P] [US3] Teste: endpoint do Relatório e Contas anual devolve `application/pdf` e os totais coincidem com `compute_financial_summary(year)`, em `backend/tests/test_relatorio_anual_pdf.py`.
 
 ### Implementation for User Story 3
 
-- [ ] T026 [US3] Tornar o upload opcional em `submeter_relatorio` (`backend/routes/prestacao_contas.py`): chamar `_validate_document`/`_publish_document` só quando `document_id` for fornecido (espelhar o padrão de orçamento/plano); manter `dre_snapshot = compute_dre_report(ano)` sempre.
-- [ ] T027 [US3] Implementar `GET /exercicios/{ano}/relatorio/pdf` reutilizando o gerador FPDF de `finances.py` (DRE). **Hospedar a função de montagem do PDF em `backend/routes/finances.py`** (onde já vive o FPDF) e expô-la/importá-la a partir de `prestacao_contas.py` — evita import circular `prestacao_contas ↔ finances`. Compor: capa + DRE + balancete anual (`compute_financial_summary(year)`) + orçado vs. realizado (`orcamento/execucao`) + folha de assinaturas (cargos de `governance.py`/`permissions.py`); guard de leitura financeira; rodapé "Documento gerado automaticamente pelo Portal ACCTA".
+- [X] T026 [US3] Tornar o upload opcional em `submeter_relatorio` (`backend/routes/prestacao_contas.py`): chamar `_validate_document`/`_publish_document` só quando `document_id` for fornecido (espelhar o padrão de orçamento/plano); manter `dre_snapshot = compute_dre_report(ano)` sempre.
+- [X] T027 [US3] Implementar `GET /exercicios/{ano}/relatorio/pdf` reutilizando o gerador FPDF de `finances.py` (DRE). **Hospedar a função de montagem do PDF em `backend/routes/finances.py`** (onde já vive o FPDF) e expô-la/importá-la a partir de `prestacao_contas.py` — evita import circular `prestacao_contas ↔ finances`. Compor: capa + DRE + balancete anual (`compute_financial_summary(year)`) + orçado vs. realizado (`orcamento/execucao`) + folha de assinaturas (cargos de `governance.py`/`permissions.py`); guard de leitura financeira; rodapé "Documento gerado automaticamente pelo Portal ACCTA".
 
 **Checkpoint**: relatório anual oficial sai do sistema; submissão não exige ficheiro.
 
@@ -124,10 +124,10 @@ Web app: `backend/` (FastAPI) + `frontend/src/` (React). Scripts em `scripts/`.
 
 ### Implementation for User Story 4
 
-- [ ] T028 [P] [US4] Adicionar os endpoints novos a `frontend/src/utils/api.js`: relatório anual PDF (`GET /exercicios/{ano}/relatorio/pdf`), filtro `project_id` em transações, e `category` no payload de despesa de projeto.
-- [ ] T029 [US4] `frontend/src/pages/private/financeiro/PrestacaoContasTab.js`: adicionar secção "Relatórios gerados pelo sistema" com download dos **quatro** relatórios — DRE (`/finances/dre/pdf`), balancete, Relatório e Contas anual (`/exercicios/{ano}/relatorio/pdf`) e **fluxo de caixa CSV (`/finances/transactions/csv`)** — e mover o upload para zona "anexos (opcional)"; submissão deixa de exigir ficheiro. Seguir `frontend-design` (botões neutros; sem Carmesim como primário positivo).
-- [ ] T030 [P] [US4] `frontend/src/pages/private/FinanceiroPage.js` e/ou `BalancetesTab.js`: ponto de entrada para os relatórios gerados, coerente com a nova secção.
-- [ ] T031 [US4] Detalhe do projeto (`frontend/src/pages/private/` — página/aba de projeto): campo `category` no formulário de despesa e bloco "Orçado vs. Realizado" (budget vs. spent vs. desvio); mensagem amigável quando o gate Art. 54 recusa (orientar para Ato).
+- [X] T028 [P] [US4] Adicionar os endpoints novos a `frontend/src/utils/api.js`: relatório anual PDF (`GET /exercicios/{ano}/relatorio/pdf`), filtro `project_id` em transações, e `category` no payload de despesa de projeto.
+- [X] T029 [US4] `frontend/src/pages/private/financeiro/PrestacaoContasTab.js`: adicionar secção "Relatórios gerados pelo sistema" com download dos **quatro** relatórios — DRE (`/finances/dre/pdf`), balancete, Relatório e Contas anual (`/exercicios/{ano}/relatorio/pdf`) e **fluxo de caixa CSV (`/finances/transactions/csv`)** — e mover o upload para zona "anexos (opcional)"; submissão deixa de exigir ficheiro. Seguir `frontend-design` (botões neutros; sem Carmesim como primário positivo).
+- [X] T030 [P] [US4] `frontend/src/pages/private/FinanceiroPage.js` e/ou `BalancetesTab.js`: ponto de entrada para os relatórios gerados, coerente com a nova secção.
+- [X] T031 [US4] Detalhe do projeto (`frontend/src/pages/private/` — página/aba de projeto): campo `category` no formulário de despesa e bloco "Orçado vs. Realizado" (budget vs. spent vs. desvio); mensagem amigável quando o gate Art. 54 recusa (orientar para Ato).
 
 **Checkpoint**: UX deixa claro que o sistema gera os relatórios; upload é anexo opcional.
 
@@ -139,8 +139,8 @@ Web app: `backend/` (FastAPI) + `frontend/src/` (React). Scripts em `scripts/`.
 
 **⚠️ STOP (Princípio VI #1)**: o `--apply` só corre após confirmação explícita do dono, depois de rever o relatório de reconciliação do dry-run.
 
-- [ ] T032 Criar `scripts/migrate_project_expenses_to_transactions.py` com modo **dry-run por defeito**: lê `project_expenses`, mapeia para transações candidatas (`type="despesa"`, `project_id`, `category="operacional"`, preservando `description`/`amount`/`date`/`created_by`), e imprime relatório de reconciliação (contagens + **suspeitos de duplicado**: despesa sem `project_id`, mesmo `amount`, data próxima/descrição semelhante). Não escreve nada. Padrão alinhado com `scripts/migrate_income_categories.py`.
-- [ ] T033 Adicionar `--apply` ao script (idempotente): insere as transações e marca `project_expenses` migradas (`migrated_to_transaction_id`); re-correr não duplica. **Não executar `--apply` nesta fase** — apenas implementar.
+- [X] T032 Criar `scripts/migrate_project_expenses_to_transactions.py` com modo **dry-run por defeito**: lê `project_expenses`, mapeia para transações candidatas (`type="despesa"`, `project_id`, `category="operacional"`, preservando `description`/`amount`/`date`/`created_by`), e imprime relatório de reconciliação (contagens + **suspeitos de duplicado**: despesa sem `project_id`, mesmo `amount`, data próxima/descrição semelhante). Não escreve nada. Padrão alinhado com `scripts/migrate_income_categories.py`.
+- [X] T033 Adicionar `--apply` ao script (idempotente): insere as transações e marca `project_expenses` migradas (`migrated_to_transaction_id`); re-correr não duplica. **Não executar `--apply` nesta fase** — apenas implementar.
 - [ ] T034 Correr o **dry-run** e anexar o relatório de reconciliação ao PR para revisão do dono (gate de confirmação antes de qualquer `--apply`).
 
 **Checkpoint**: histórico pronto a migrar; aplicação pendente de OK do dono.
@@ -149,11 +149,11 @@ Web app: `backend/` (FastAPI) + `frontend/src/` (React). Scripts em `scripts/`.
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T035 [P] Correr `cd backend && ruff check . && ruff format .` e `cd frontend && npx eslint src/ --ext .js,.jsx --max-warnings=60`; corrigir o que surgir.
-- [ ] T036 [P] Atualizar documentação: nota no runbook/finanças sobre "despesa de projeto = transação" e "relatório anual gerado". **Verificar o read-side cutover (FR-014)**: confirmar por busca que nenhum caminho de leitura consome `project_expenses` como fonte de dados após a unificação (todas as leituras de despesas passam por `transactions` com `project_id`); ajustar/remover menções residuais.
+- [X] T035 [P] Correr `cd backend && ruff check . && ruff format .` e `cd frontend && npx eslint src/ --ext .js,.jsx --max-warnings=60`; corrigir o que surgir.
+- [X] T036 [P] Atualizar documentação: nota no runbook/finanças sobre "despesa de projeto = transação" e "relatório anual gerado". **Verificar o read-side cutover (FR-014)**: confirmar por busca que nenhum caminho de leitura consome `project_expenses` como fonte de dados após a unificação (todas as leituras de despesas passam por `transactions` com `project_id`); ajustar/remover menções residuais.
 - [ ] T037 Executar a validação do `quickstart.md` (Cenários 1–3 via HTTP; Cenário 4 no browser com screenshot) — Princípio VII.
 - [ ] T038 [P] Registar lição em `tasks/lessons.md` se houver correção do dono durante a implementação; atualizar memória relevante (ex.: `finance-specs-alignment`).
-- [ ] T039 (Opcional) `/speckit-analyze` para conferir consistência cross-artefacto antes do `/speckit-implement`/merge.
+- [X] T039 (Opcional) `/speckit-analyze` para conferir consistência cross-artefacto antes do `/speckit-implement`/merge.
 
 ---
 

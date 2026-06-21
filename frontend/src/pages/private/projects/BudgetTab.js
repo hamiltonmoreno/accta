@@ -5,7 +5,19 @@ import { DollarSign, Plus, Trash2 } from 'lucide-react';
 import { projectsAPI } from '../../../utils/api';
 import { EmptyState } from '../../../components/EmptyState';
 
-const EMPTY_EXPENSE = () => ({ description: '', amount: '', date: new Date().toISOString().split('T')[0] });
+const EMPTY_EXPENSE = () => ({ description: '', amount: '', date: new Date().toISOString().split('T')[0], category: 'operacional' });
+
+// Categorias de despesa (espelham backend EXPENSE_CATEGORIES). A despesa de
+// projeto é uma transação no caixa e exige categoria (spec-fluxo-financeiro-unificado).
+const EXPENSE_CATS = [
+  ['operacional', 'Operacional'],
+  ['eventos', 'Eventos'],
+  ['juridico', 'Jurídico'],
+  ['comunicacao', 'Comunicação'],
+  ['viagens', 'Viagens'],
+  ['outros_despesa', 'Outras Despesas'],
+];
+const CAT_LABEL = Object.fromEntries(EXPENSE_CATS);
 
 export const BudgetTab = ({ project, expenses, canManage, onReload }) => {
   const [showAdd, setShowAdd] = useState(false);
@@ -37,7 +49,7 @@ export const BudgetTab = ({ project, expenses, canManage, onReload }) => {
 
   const handleAdd = () => {
     if (!form.description.trim() || !form.amount) { toast.error('Preencha os campos'); return; }
-    addMutation.mutate({ ...form, amount: parseFloat(form.amount) });
+    addMutation.mutate({ ...form, amount: parseFloat(form.amount), category: form.category || 'operacional' });
   };
 
   return (
@@ -98,6 +110,14 @@ export const BudgetTab = ({ project, expenses, canManage, onReload }) => {
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
               data-testid="expense-amount-input" />
           </div>
+          <div className="w-40">
+            <label className="text-xs text-[#6B7280] uppercase tracking-wider block mb-1">Categoria</label>
+            <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim outline-none"
+              data-testid="expense-category-input">
+              {EXPENSE_CATS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </div>
           <div className="w-36">
             <label className="text-xs text-[#6B7280] uppercase tracking-wider block mb-1">Data</label>
             <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })}
@@ -117,19 +137,19 @@ export const BudgetTab = ({ project, expenses, canManage, onReload }) => {
             <thead className="bg-gray-50/80 text-[#6B7280] uppercase text-xs tracking-wider">
               <tr>
                 <th className="px-4 py-3 text-left font-semibold">Descricao</th>
+                <th className="px-4 py-3 text-left font-semibold">Categoria</th>
                 <th className="px-4 py-3 text-right font-semibold">Valor</th>
                 <th className="px-4 py-3 text-left font-semibold">Data</th>
-                <th className="px-4 py-3 text-left font-semibold">Por</th>
                 {canManage && <th className="px-4 py-3 w-10"></th>}
               </tr>
             </thead>
             <tbody>
               {expenses.map(e => (
                 <tr key={e.id} className="border-t border-gray-50" data-testid={`expense-${e.id}`}>
-                  <td className="px-4 py-3 text-grafite">{e.description}</td>
+                  <td className="px-4 py-3 text-grafite">{e.description}{e.ato_id && <span className="ml-1.5 text-[10px] text-[#6B7280] uppercase">(co-aprovado)</span>}</td>
+                  <td className="px-4 py-3 text-gray-500 text-xs">{CAT_LABEL[e.category] || e.category || '—'}</td>
                   <td className="px-4 py-3 text-right font-mono font-bold text-[#3A3A3A]">{e.amount.toLocaleString('pt')} CVE</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{e.date}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{e.created_by_name}</td>
+                  <td className="px-4 py-3 text-gray-500 text-xs">{(e.date || '').slice(0, 10)}</td>
                   {canManage && (
                     <td className="px-4 py-3"><button onClick={() => deleteMutation.mutate(e.id)} className="p-1 text-gray-400 hover:text-[#B91C1C]" aria-label="Apagar despesa"><Trash2 className="w-3.5 h-3.5" aria-hidden="true" /></button></td>
                   )}

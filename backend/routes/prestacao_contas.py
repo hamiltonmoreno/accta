@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
 
 from auth import can_manage_finances, can_view_finances, get_current_user
 from database import db
@@ -49,7 +50,7 @@ from models import (
     User,
 )
 from permissions import can_emit_parecer_cf, is_direcao, is_mesa_ag
-from routes.finances import compute_dre_report, compute_financial_summary
+from routes.finances import build_relatorio_anual_pdf, compute_dre_report, compute_financial_summary
 from routes.upload import save_validated_upload
 
 router = APIRouter(tags=["prestacao-contas"])
@@ -356,7 +357,10 @@ async def submeter_relatorio(ano: int, data: RelatorioContasSubmit, current_user
     ex = await _get_exercicio(ano)
     if ex["status"] not in ("aberto", "reaberto"):
         raise HTTPException(status_code=400, detail="O relatorio so pode ser submetido com o exercicio aberto")
-    await _validate_document(data.document_id)
+    # O relatório é gerado pelo sistema; o upload é anexo OPCIONAL (versão
+    # assinada à mão). Só valida/publica quando fornecido (espelha orçamento/plano).
+    if data.document_id:
+        await _validate_document(data.document_id)
 
     # Congela o DRE do ano no momento da submissão (auditabilidade).
     dre_snapshot = await compute_dre_report(ano)
@@ -595,3 +599,47 @@ async def orcamento_execucao(ano: int, current_user: User = Depends(get_current_
             }
         )
     return {"ano": ano, "ano_orcamento": ano_alvo, "linhas": linhas}
+
+
+async def _orcamento_exec_or_none(ano: int, ex: dict) -> Optional[dict]:
+    """Versão tolerante de orcamento/execucao para o PDF: devolve None se o
+    exercício não tiver orçamento submetido (a secção é simplesmente omitida)."""
+    orc = ex.get("orcamento")
+    if not orc or not orc.get("linhas"):
+        return None
+    ano_alvo = orc.get("ano_orcamento") or (ano + 1)
+    realizado = await compute_financial_summary(year=ano_alvo)
+    rec_real = realizado.get("receitas_por_categoria", {})
+    desp_real = realizado.get("despesas_por_categoria", {})
+    linhas = []
+    for linha in orc["linhas"]:
+        real = (rec_real if linha["tipo"] == "receita" else desp_real).get(linha["categoria"], 0)
+        previsto = linha.get("valor_previsto", 0)
+        linhas.append(
+            {
+                "categoria": linha["categoria"],
+                "tipo": linha["tipo"],
+                "orcado": previsto,
+                "realizado": real,
+                "desvio": real - previsto,
+            }
+        )
+    return {"ano_orcamento": ano_alvo, "linhas": linhas}
+
+
+@router.get("/exercicios/{ano}/relatorio/pdf")
+async def relatorio_anual_pdf(ano: int, current_user: User = Depends(get_current_user)):
+    """Gera o Relatório e Contas anual COMPLETO em PDF a partir dos dados do
+    sistema (capa + DRE + balancete + orçado vs. realizado + folha de
+    assinaturas). Os números derivam só das transações — não há upload de PDF
+    como fonte (spec-fluxo-financeiro-unificado FR-015/FR-019)."""
+    _require_view_finances(current_user)
+    ex = await _get_exercicio(ano)
+    orcamento_exec = await _orcamento_exec_or_none(ano, ex)
+    buf = await build_relatorio_anual_pdf(ano, orcamento_exec=orcamento_exec)
+    filename = f"Relatorio_e_Contas_ACCTA_{ano}.pdf"
+    return StreamingResponse(
+        buf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )

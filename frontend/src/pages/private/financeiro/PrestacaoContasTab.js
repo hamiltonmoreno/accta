@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { exerciciosAPI, financesAPI } from '../../../utils/api';
 import { useAuth } from '../../../contexts/AuthContext';
 import { queryKeys } from '../../../lib/queryClient';
-import { CalendarClock, Plus, Loader2, FileText, ScrollText, Landmark, CheckCircle2, AlertTriangle, Trash2 } from 'lucide-react';
+import { CalendarClock, Plus, Loader2, FileText, ScrollText, Landmark, CheckCircle2, AlertTriangle, Trash2, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { EmptyState } from '../../../components/EmptyState';
 import { Skeleton } from '../../../components/ui/skeleton';
@@ -84,11 +84,33 @@ export const PrestacaoContasTab = () => {
 
   const closeDialog = () => { setDialog(null); setForm({}); };
 
+  // Download de relatórios GERADOS pelo sistema (a partir das transações) —
+  // o utilizador não precisa de produzir/subir o relatório (FR-015/018).
+  const [baixando, setBaixando] = useState(null);
+  const downloadBlob = (resp, filename) => {
+    const url = window.URL.createObjectURL(new Blob([resp.data]));
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+    a.remove(); window.URL.revokeObjectURL(url);
+  };
+  const baixarRelatorio = async (tipo) => {
+    setBaixando(tipo);
+    try {
+      if (tipo === 'anual') downloadBlob(await exerciciosAPI.exportRelatorioAnualPdf(ano), `Relatorio_e_Contas_ACCTA_${ano}.pdf`);
+      else if (tipo === 'dre') downloadBlob(await financesAPI.exportDREPdf(ano), `DRE_ACCTA_${ano}.pdf`);
+      else if (tipo === 'csv') downloadBlob(await financesAPI.exportTransactionsCsv({ start_date: `${ano}-01-01`, end_date: `${ano}-12-31` }), `Fluxo_de_Caixa_${ano}.csv`);
+    } catch {
+      toast.error('Não foi possível gerar o documento.');
+    } finally {
+      setBaixando(null);
+    }
+  };
+
   const runMut = useMutation({
     mutationFn: async ({ kind, payload }) => {
       switch (kind) {
         case 'abrir': return exerciciosAPI.abrir({ ano: Number(payload.ano) });
-        case 'relatorio': return exerciciosAPI.submeterRelatorio(ano, { document_id: payload.document_id.trim() });
+        case 'relatorio': return exerciciosAPI.submeterRelatorio(ano, { document_id: payload.document_id?.trim() || undefined });
         case 'orcamento': return exerciciosAPI.submeterOrcamento(ano, { linhas: payload.linhas, document_id: payload.document_id });
         case 'plano': return exerciciosAPI.submeterPlano(ano, { atividades: payload.atividades, document_id: payload.document_id });
         case 'parecer': return exerciciosAPI.emitirParecer(ano, { sentido: payload.sentido, texto: payload.texto.trim(), document_id: payload.document_id || undefined });
@@ -158,6 +180,20 @@ export const PrestacaoContasTab = () => {
                 </div>
               </div>
               <Stepper status={selected.status} />
+
+              {/* Relatórios gerados pelo sistema (a partir das transações) */}
+              <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Download className="w-4 h-4 text-grafite" aria-hidden="true" />
+                  <h4 className="text-sm font-semibold text-grafite">Relatórios gerados pelo sistema</h4>
+                </div>
+                <p className="text-xs text-[#6B7280] mb-3">Produzidos automaticamente a partir dos movimentos registados — não precisa de os elaborar nem subir.</p>
+                <div className="flex flex-wrap gap-2">
+                  <DownloadBtn onClick={() => baixarRelatorio('anual')} loading={baixando === 'anual'} testId="dl-relatorio-anual">Relatório e Contas {ano}</DownloadBtn>
+                  <DownloadBtn onClick={() => baixarRelatorio('dre')} loading={baixando === 'dre'} testId="dl-dre">DRE {ano}</DownloadBtn>
+                  <DownloadBtn onClick={() => baixarRelatorio('csv')} loading={baixando === 'csv'} testId="dl-csv">Fluxo de caixa (CSV)</DownloadBtn>
+                </div>
+              </div>
 
               {/* Resumo de peças */}
               <div className="grid gap-2 sm:grid-cols-2">
@@ -240,16 +276,15 @@ export const PrestacaoContasTab = () => {
 
       <Dialog open={dialog === 'relatorio'} onOpenChange={(o) => { if (!o) closeDialog(); }}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Submeter Relatório e Contas</DialogTitle><DialogDescription>O DRE do ano é congelado no momento da submissão.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Submeter Relatório e Contas</DialogTitle><DialogDescription>O Relatório e Contas é gerado pelo sistema a partir das transações; o DRE do ano é congelado no momento da submissão. O upload de PDF é apenas um anexo opcional.</DialogDescription></DialogHeader>
           <div className="space-y-4">
             <DocumentUploadField
               kind="relatorio"
-              required
               value={form.document_id}
               onChange={(id) => setForm({ ...form, document_id: id })}
-              label="Relatório e Contas (PDF)"
+              label="Anexo assinado (PDF, opcional)"
             />
-            <DialogActions onCancel={closeDialog} onConfirm={() => runMut.mutate({ kind: 'relatorio', payload: form })} pending={runMut.isPending} disabled={!form.document_id?.trim()} label="Submeter" testId="relatorio-submit" />
+            <DialogActions onCancel={closeDialog} onConfirm={() => runMut.mutate({ kind: 'relatorio', payload: form })} pending={runMut.isPending} label="Submeter" testId="relatorio-submit" />
           </div>
         </DialogContent>
       </Dialog>
@@ -391,6 +426,13 @@ const PecaRow = ({ icon: Icon, label, ok }) => (
 
 const ActionBtn = ({ onClick, children, testId }) => (
   <button onClick={onClick} className="inline-flex items-center gap-1.5 border border-[#D1D5DB] text-grafite px-3 py-2 rounded-md text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid={testId}>
+    {children}
+  </button>
+);
+
+const DownloadBtn = ({ onClick, loading, children, testId }) => (
+  <button onClick={onClick} disabled={loading} className="inline-flex items-center gap-1.5 border border-[#D1D5DB] bg-white text-grafite px-3 py-2 rounded-md text-sm font-medium hover:bg-[#F5F5F5] disabled:opacity-60 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid={testId}>
+    {loading ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Download className="w-4 h-4" aria-hidden="true" />}
     {children}
   </button>
 );

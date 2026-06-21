@@ -316,6 +316,9 @@ export const exerciciosAPI = {
   aprovar: (ano, data) => api.post(`/exercicios/${ano}/aprovar`, data),
   reabrir: (ano) => api.post(`/exercicios/${ano}/reabrir`),
   execucaoOrcamento: (ano) => api.get(`/exercicios/${ano}/orcamento/execucao`),
+  // Relatório e Contas anual gerado pelo sistema (PDF). Substitui a necessidade
+  // de o utilizador produzir/subir o relatório (spec-fluxo-financeiro-unificado).
+  exportRelatorioAnualPdf: (ano) => api.get(`/exercicios/${ano}/relatorio/pdf`, { responseType: 'blob' }),
 };
 
 // Balancetes periódicos / balanço anual (spec-ciclo §5). Módulo /balancetes.

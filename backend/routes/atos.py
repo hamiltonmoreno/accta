@@ -83,6 +83,7 @@ async def create_ato(data: AtoCreate, request: Request, current_user: User = Dep
         descricao=data.descricao.strip(),
         valor=data.valor,
         beneficiario=data.beneficiario,
+        project_id=data.project_id,
         requisitos=requisitos_for_tipo(data.tipo),
         created_by=current_user.id,
     )
@@ -224,6 +225,7 @@ async def execute_ato(ato_id: str, data: AtoExecute, request: Request, current_u
         date=date,
         reference=data.reference,
         ato_id=ato_id,
+        project_id=ato.get("project_id"),  # propaga o vínculo ao projeto, se existir
         created_by=current_user.id,
     )
     await db.transactions.insert_one(transaction.model_dump())

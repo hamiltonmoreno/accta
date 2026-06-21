@@ -830,6 +830,9 @@ _INDEX_DDL: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS ix_tx_cat_date ON \"transactions\" ((doc->>'category'), (doc->>'date') DESC)",
     "CREATE INDEX IF NOT EXISTS ix_tx_user_date ON \"transactions\" ((doc->>'user_id'), (doc->>'date') DESC)",
     "CREATE INDEX IF NOT EXISTS ix_tx_type ON \"transactions\" ((doc->>'type'))",
+    # despesas de projeto: filtro por projeto + agregação de `spent`
+    # (spec-fluxo-financeiro-unificado)
+    "CREATE INDEX IF NOT EXISTS ix_tx_project ON \"transactions\" ((doc->>'project_id')) WHERE doc ? 'project_id'",
     # events (attendees is an array -> GIN for membership queries)
     "CREATE INDEX IF NOT EXISTS ix_events_date ON \"events\" ((doc->>'date'))",
     "CREATE INDEX IF NOT EXISTS ix_events_vis_date ON \"events\" ((doc->>'visibility'), (doc->>'date'))",

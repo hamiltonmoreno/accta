@@ -75,6 +75,7 @@ async def _coaprovacao_limiar() -> float:
 async def list_transactions(
     type: Optional[str] = None,
     category: Optional[str] = None,
+    project_id: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     search: Optional[str] = None,
@@ -89,6 +90,8 @@ async def list_transactions(
         query["type"] = type
     if category:
         query["category"] = category
+    if project_id:
+        query["project_id"] = project_id
     if start_date or end_date:
         date_filter = {}
         if start_date:
@@ -724,17 +727,20 @@ async def export_transactions_csv(
 # ===== PDF EXPORT =====
 
 
-@router.get("/dre/pdf")
-async def export_dre_pdf(
-    year: int = Query(..., description="Ano do relatorio"),
-    current_user: User = Depends(get_current_user),
-):
-    require_view_finances(current_user)
+def _new_relatorio_pdf() -> FPDF:
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=20)
+    return pdf
 
-    # Reutiliza a fonte única do DRE (mesma janela/limite que /finances/dre) em
-    # vez de recalcular — antes divergia (limite 10000 vs 5000, range $lte vs
-    # $lt) e um bug corrigido aqui não chegava ao endpoint JSON.
-    dre = await compute_dre_report(year)
+
+def _fmt(v: float) -> str:
+    """Formata um valor CVE com separador de milhares por ponto."""
+    return f"{v:,.0f}".replace(",", ".")
+
+
+def _render_dre(pdf: FPDF, year: int, dre: dict) -> None:
+    """Renderiza o DRE (resumo + evolução mensal + categorias) numa nova página.
+    Fonte única partilhada por /dre/pdf e pelo Relatório e Contas anual."""
     monthly = dre["monthly"]
     receitas_cat = dre["receitas_por_categoria"]
     despesas_cat = dre["despesas_por_categoria"]
@@ -742,8 +748,6 @@ async def export_dre_pdf(
     total_despesas = dre["total_despesas"]
     resultado = dre["resultado_liquido"]
 
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=20)
     pdf.add_page()
 
     # --- Header ---
@@ -943,11 +947,176 @@ async def export_dre_pdf(
     )
     pdf.cell(0, 5, "Documento gerado automaticamente pelo Portal ACCTA. Nao requer assinatura.", align="C")
 
-    # Output
+
+def _render_capa(pdf: FPDF, year: int) -> None:
+    """Capa do Relatório e Contas anual."""
+    pdf.add_page()
+    pdf.set_fill_color(199, 32, 47)  # Carmesim
+    pdf.rect(0, 0, 210, 70, "F")
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_y(28)
+    pdf.set_font("Helvetica", "B", 24)
+    pdf.cell(0, 12, "ACCTA - Cabo Verde", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 13)
+    pdf.cell(0, 8, "Associacao dos Controladores de Trafego Aereo", align="C", new_x="LMARGIN", new_y="NEXT")
+
+    pdf.set_text_color(58, 58, 58)
+    pdf.set_y(110)
+    pdf.set_font("Helvetica", "B", 22)
+    pdf.cell(0, 14, "RELATORIO E CONTAS", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "B", 18)
+    pdf.cell(0, 12, f"Exercicio de {year}", align="C", new_x="LMARGIN", new_y="NEXT")
+
+    pdf.set_y(250)
+    pdf.set_font("Helvetica", "", 9)
+    pdf.set_text_color(120, 120, 120)
+    pdf.cell(
+        0,
+        6,
+        f"Documento gerado pelo Portal ACCTA em {datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M')} UTC",
+        align="C",
+    )
+
+
+def _render_balancete(pdf: FPDF, year: int, summary: dict) -> None:
+    """Balancete anual = snapshot de compute_financial_summary(year)."""
+    pdf.add_page()
+    pdf.set_text_color(58, 58, 58)
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.cell(0, 10, f"Balancete Anual - {year}", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(2)
+
+    rec = summary.get("total_receitas", 0)
+    desp = summary.get("total_despesas", 0)
+    res = summary.get("resultado_liquido", rec - desp)
+
+    pdf.set_font("Helvetica", "", 11)
+    for label, val in (("Total de Receitas", rec), ("Total de Despesas", desp)):
+        pdf.cell(120, 8, f"  {label}", border="B")
+        pdf.cell(60, 8, f"{_fmt(val)} CVE", border="B", align="R")
+        pdf.ln()
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(120, 10, "  Resultado Liquido")
+    pdf.set_text_color(*((22, 163, 74) if res >= 0 else (234, 88, 12)))
+    pdf.cell(60, 10, f"{_fmt(res)} CVE", align="R")
+    pdf.ln(14)
+
+    # Por categoria
+    pdf.set_text_color(58, 58, 58)
+    for titulo, mapa in (
+        ("Receitas por categoria", summary.get("receitas_por_categoria", {})),
+        ("Despesas por categoria", summary.get("despesas_por_categoria", {})),
+    ):
+        pdf.set_font("Helvetica", "B", 11)
+        pdf.cell(0, 8, titulo, new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("Helvetica", "", 10)
+        if mapa:
+            for cat, val in sorted(mapa.items(), key=lambda x: -x[1]):
+                pdf.cell(120, 6, f"    {CATEGORY_LABELS.get(cat, cat)}")
+                pdf.cell(60, 6, f"{_fmt(val)} CVE", align="R")
+                pdf.ln()
+        else:
+            pdf.cell(0, 6, "    (sem registos)", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(4)
+
+
+def _render_orcamento_exec(pdf: FPDF, orcamento_exec: dict) -> None:
+    """Orçado vs. Realizado por categoria (dados de orcamento/execucao)."""
+    pdf.add_page()
+    pdf.set_text_color(58, 58, 58)
+    pdf.set_font("Helvetica", "B", 14)
+    ano_orc = orcamento_exec.get("ano_orcamento", "")
+    pdf.cell(0, 10, f"Orcado vs. Realizado {ano_orc}".strip(), new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(2)
+
+    pdf.set_fill_color(199, 32, 47)
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Helvetica", "B", 9)
+    cols = [(70, "Categoria", "L"), (40, "Orcado", "R"), (40, "Realizado", "R"), (40, "Desvio", "R")]
+    for w, h, _a in cols:
+        pdf.cell(w, 8, h, fill=True, align="C")
+    pdf.ln()
+
+    pdf.set_text_color(58, 58, 58)
+    pdf.set_font("Helvetica", "", 9)
+    for i, linha in enumerate(orcamento_exec.get("linhas", [])):
+        bg = i % 2 == 0
+        if bg:
+            pdf.set_fill_color(249, 250, 251)
+        cat = CATEGORY_LABELS.get(linha["categoria"], linha["categoria"])
+        tipo = "(R)" if linha.get("tipo") == "receita" else "(D)"
+        pdf.cell(70, 7, f"  {tipo} {cat}", fill=bg)
+        pdf.cell(40, 7, _fmt(linha.get("orcado", 0)), fill=bg, align="R")
+        pdf.cell(40, 7, _fmt(linha.get("realizado", 0)), fill=bg, align="R")
+        pdf.cell(40, 7, _fmt(linha.get("desvio", 0)), fill=bg, align="R")
+        pdf.ln()
+
+
+def _render_assinaturas(pdf: FPDF, signatarios: list) -> None:
+    """Folha de assinaturas (Direção / Conselho Fiscal)."""
+    pdf.add_page()
+    pdf.set_text_color(58, 58, 58)
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.cell(0, 10, "Aprovacoes", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(6)
+
+    pdf.set_font("Helvetica", "", 10)
+    linhas = signatarios or [
+        {"cargo": "Presidente da Direccao", "nome": ""},
+        {"cargo": "Tesoureiro", "nome": ""},
+        {"cargo": "Presidente do Conselho Fiscal", "nome": ""},
+    ]
+    for s in linhas:
+        pdf.ln(14)
+        pdf.cell(0, 6, "_" * 60, new_x="LMARGIN", new_y="NEXT")
+        cargo = s.get("cargo", "")
+        nome = s.get("nome") or ""
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.cell(0, 6, cargo, new_x="LMARGIN", new_y="NEXT")
+        if nome:
+            pdf.set_font("Helvetica", "", 10)
+            pdf.cell(0, 6, nome, new_x="LMARGIN", new_y="NEXT")
+
+    pdf.ln(16)
+    pdf.set_font("Helvetica", "I", 7)
+    pdf.set_text_color(160, 160, 160)
+    pdf.cell(0, 5, "Documento gerado automaticamente pelo Portal ACCTA.", align="C")
+
+
+async def build_relatorio_anual_pdf(year: int, orcamento_exec: dict = None, signatarios: list = None) -> io.BytesIO:
+    """Monta o Relatório e Contas anual completo a partir dos dados do sistema:
+    capa + DRE + balancete anual + (opcional) orçado vs. realizado + assinaturas.
+    Os números derivam exclusivamente das transações (coincidem com /summary)."""
+    dre = await compute_dre_report(year)
+    summary = await compute_financial_summary(year=year)
+    pdf = _new_relatorio_pdf()
+    _render_capa(pdf, year)
+    _render_dre(pdf, year, dre)
+    _render_balancete(pdf, year, summary)
+    if orcamento_exec and orcamento_exec.get("linhas"):
+        _render_orcamento_exec(pdf, orcamento_exec)
+    _render_assinaturas(pdf, signatarios or [])
     buf = io.BytesIO()
     pdf.output(buf)
     buf.seek(0)
+    return buf
 
+
+@router.get("/dre/pdf")
+async def export_dre_pdf(
+    year: int = Query(..., description="Ano do relatorio"),
+    current_user: User = Depends(get_current_user),
+):
+    require_view_finances(current_user)
+
+    # Reutiliza a fonte única do DRE (mesma janela/limite que /finances/dre).
+    dre = await compute_dre_report(year)
+    pdf = _new_relatorio_pdf()
+    _render_dre(pdf, year, dre)
+
+    buf = io.BytesIO()
+    pdf.output(buf)
+    buf.seek(0)
     filename = f"DRE_ACCTA_{year}.pdf"
     return StreamingResponse(
         buf,
