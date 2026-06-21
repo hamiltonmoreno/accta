@@ -834,6 +834,11 @@ _INDEX_DDL: tuple[str, ...] = (
     # projeto (prefixo) E a agregação de `spent` ({project_id, type:despesa}) —
     # spec-fluxo-financeiro-unificado, #309.
     "CREATE INDEX IF NOT EXISTS ix_tx_project_type ON \"transactions\" ((doc->>'project_id'), (doc->>'type')) WHERE doc ? 'project_id'",
+    # Limpeza do índice antigo só-`project_id` (v0.5.26), superado por
+    # ix_tx_project_type (#309). DROP não-destrutivo + idempotente; corre depois
+    # do CREATE acima. Pode remover-se esta linha quando todos os ambientes
+    # estiverem >= ao deploy que a introduziu.
+    "DROP INDEX IF EXISTS ix_tx_project",
     # events (attendees is an array -> GIN for membership queries)
     "CREATE INDEX IF NOT EXISTS ix_events_date ON \"events\" ((doc->>'date'))",
     "CREATE INDEX IF NOT EXISTS ix_events_vis_date ON \"events\" ((doc->>'visibility'), (doc->>'date'))",
