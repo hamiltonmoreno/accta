@@ -146,7 +146,16 @@ Web app: `backend/` + `frontend/src/`. Scripts em `scripts/`.
 
 - [X] T031 [P] `ruff check`/`ruff format` no backend; `eslint` no frontend; corrigir.
 - [X] T032 [P] Atualizar docs (nota: "despesa/receita de evento = transação"; "multa aplicada → receita"); confirmar que nenhuma leitura usa dados financeiros fora de `transactions`.
-- [ ] T033 Validar `quickstart.md` (Cenários 1–4 via HTTP; Cenário 5 no browser com screenshot) — Princípio VII.
+- [~] T033 Validar `quickstart.md` (Cenários 1–4 via HTTP; Cenário 5 no browser com screenshot) — Princípio VII.
+
+  **Cenários 1–4: FEITOS e verdes** — automatizados como validação executável
+  ponta-a-ponta em `backend/tests/test_eventos_multas_caixa_quickstart.py`
+  (estado partilhado em memória; `4 passed`, suite eventos 24/24, ruff limpo).
+  Mapeiam 1:1 ao quickstart: C1 resultado de evento, C2 gate Art. 54 + Ato↔evento
+  + guarda de delete, C3 multa exactly-once + advertência sem movimento, C4 delete
+  de evento 409.
+  **Cenário 5 (UI): PENDENTE** — exige browser+app a correr; checklist preparado
+  em `specs/003-eventos-multas-caixa/T033-cenario5-browser.md` (passos + screenshot).
 - [ ] T034 (Opcional) `/speckit-analyze` final / registar lição em `tasks/lessons.md` se houver correção do dono.
 
 ---
