@@ -139,7 +139,7 @@ Web app: `backend/` + `frontend/src/`. Scripts em `scripts/`.
 ## Phase 8: Polish
 
 - [X] T031 [P] `ruff check`/`ruff format` no backend; `eslint` no frontend; corrigir.
-- [ ] T032 [P] Atualizar docs (nota: "despesa/receita de evento = transação"; "multa aplicada → receita"); confirmar que nenhuma leitura usa dados financeiros fora de `transactions`.
+- [X] T032 [P] Atualizar docs (nota: "despesa/receita de evento = transação"; "multa aplicada → receita"); confirmar que nenhuma leitura usa dados financeiros fora de `transactions`.
 - [ ] T033 Validar `quickstart.md` (Cenários 1–4 via HTTP; Cenário 5 no browser com screenshot) — Princípio VII.
 - [ ] T034 (Opcional) `/speckit-analyze` final / registar lição em `tasks/lessons.md` se houver correção do dono.
 

@@ -25,7 +25,7 @@ Portal institucional completo e Sistema de Gestão Associativa (SGA) para a ACCT
 ### Área Privada (Portal do Associado)
 - **Dashboard Personalizado** — Resumo por perfil + feed de atividade recente
 - **Carteira Digital** — Identificação com QR Code criptografado (SHA-256)
-- **Gestão Financeira** — Quotas (desconto em folha), jóia, export PDF/CSV + **co-aprovações** de atos financeiros (Art. 54)
+- **Gestão Financeira** — Quotas (desconto em folha), jóia, export PDF/CSV + **co-aprovações** de atos financeiros (Art. 54); despesas/receitas de eventos e receitas de multas integradas no caixa central (`transactions`)
 - **Votações / Polls** — Participação democrática
 - **Gestão de Projetos** — CRUD com tarefas, milestones, comentários e orçamento
 - **Eventos / Agenda** — Inscrição e calendário
@@ -102,11 +102,11 @@ Portal institucional completo e Sistema de Gestão Associativa (SGA) para a ACCT
 
 ## Tabelas / coleções lógicas (PostgreSQL)
 
-> Cada coleção lógica é uma tabela PostgreSQL `(pk bigserial, doc jsonb)` — **65 tabelas** no total (= `len(database.COLLECTIONS)`). O acesso faz-se via um DAO assíncrono Mongo-compatível sobre asyncpg em `database.py`. Não há `_id` real: cada documento traz um `id` `str(uuid4())`. Schema e índices são criados por `ensure_schema()`.
+> Cada coleção lógica é uma tabela PostgreSQL `(pk bigserial, doc jsonb)` — **64 tabelas** no total (= `len(database.COLLECTIONS)`). O acesso faz-se via um DAO assíncrono Mongo-compatível sobre asyncpg em `database.py`. Não há `_id` real: cada documento traz um `id` `str(uuid4())`. Schema e índices são criados por `ensure_schema()`.
 
 | Domínio | Coleções |
 |---------|----------|
-| Núcleo | `users`, `transactions`, `invoices`, `finance_settings`, `finance_settings_history`, `audit_logs`, `notifications` |
+| Núcleo | `users`, `transactions` (caixa central; liga a `event_id`/`sancao_id`/`ato_id`/`project_id`/`user_id`), `finance_settings`, `finance_settings_history`, `audit_logs`, `notifications` |
 | Conteúdo | `posts`, `documents`, `document_accesses`, `wall_posts`, `wall_comments`, `gallery_albums`, `gallery_photos`, `page_banners`, `brand_settings` |
 | Votações & Projetos | `polls`, `user_votes`, `projects`, `project_tasks`, `project_comments`, `project_expenses`, `project_milestones`, `events` |
 | Governança | `assembleias`, `assembleia_presencas`, `assembleia_deliberacoes`, `assembleia_palavra`, `assembleia_votos`, `assembleia_voto_receipts`, `assembleia_voto_ballots`, `assembleia_mocoes`, `assembleia_expediente`, `assembleia_convidados`, `eleicoes`, `eleicao_listas`, `eleicao_voter_receipts`, `eleicao_ballots`, `sancoes`, `atos` |

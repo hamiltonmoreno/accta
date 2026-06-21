@@ -22,7 +22,7 @@ Portal institucional e Sistema de Gestão Associativa (SGA) para a **Associaçã
 ### Portal do Associado (Área Privada)
 - Dashboard personalizado por perfil com feed de atividade recente
 - Carteira digital com QR Code SHA-256
-- Gestão financeira (quotas por desconto em folha, jóia, export PDF/CSV) + **co-aprovações** de atos financeiros (Art. 54)
+- Gestão financeira (quotas por desconto em folha, jóia, export PDF/CSV) + **co-aprovações** de atos financeiros (Art. 54); despesas/receitas de eventos e receitas de multas integradas no caixa central (`transactions`)
 - Sistema de votações / polls
 - Gestão de projetos (CRUD, tarefas, milestones, comentários, orçamento)
 - Eventos e agenda com inscrição
@@ -62,7 +62,7 @@ Portal institucional e Sistema de Gestão Associativa (SGA) para a **Associaçã
 |--------|-----------|
 | Frontend | React 19 + Tailwind CSS 3 + shadcn/ui + Framer Motion + Recharts + Craco |
 | Backend | FastAPI (Python 3.11) + asyncpg (PostgreSQL/Supabase via DAO Mongo-compatível) |
-| Base de Dados | PostgreSQL (Supabase) — 65 tabelas `(pk bigserial, doc jsonb)` |
+| Base de Dados | PostgreSQL (Supabase) — 64 tabelas `(pk bigserial, doc jsonb)` |
 | Autenticação | JWT HS256 (24h, cookie httpOnly) + RBAC (admin, financeiro, moderador, socio) + privilégios aditivos + cargos estatutários |
 | Email | Resend API |
 | Real-time | SSE (Server-Sent Events) + fallback polling 30s |
