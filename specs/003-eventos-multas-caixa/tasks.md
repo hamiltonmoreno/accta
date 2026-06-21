@@ -132,7 +132,13 @@ Web app: `backend/` + `frontend/src/`. Scripts em `scripts/`.
 
 - [X] T028 Criar `scripts/migrate_multas_to_transactions.py` (padrão de `migrate_project_expenses_to_transactions.py`): dry-run por defeito — sanções `tipo="multa"`, `status="aplicada"`, `multa_valor>0` **sem** receita com esse `sancao_id`; relatório de reconciliação; não escreve.
 - [X] T029 Adicionar `--apply --confirm` (idempotente: re-verifica `sancao_id`) ao script. **Não correr `--apply`** nesta fase.
-- [ ] T030 Correr o **dry-run** e anexar o relatório ao PR (gate antes de qualquer `--apply`).
+- [X] T030 Correr o **dry-run** e anexar o relatório ao PR (gate antes de qualquer `--apply`).
+
+  **Relatório dry-run (2026-06-21, contra prod via VPS, read-only):**
+  `multas aplicadas c/ valor=0 | a criar receita=0 | já no caixa=0` →
+  **nada a migrar**. Não existem multas legadas (aplicadas antes da feature)
+  por reconciliar; o `--apply` seria um no-op, logo **dispensado**. Fase de
+  migração concluída sem escrita em prod.
 
 ---
 
