@@ -22,7 +22,7 @@ Portal institucional e Sistema de Gestão Associativa (SGA) para a **Associaçã
 ### Portal do Associado (Área Privada)
 - Dashboard personalizado por perfil com feed de atividade recente
 - Carteira digital com QR Code SHA-256
-- Gestão financeira (quotas por desconto em folha, jóia, export PDF/CSV) + **co-aprovações** de atos financeiros (Art. 54)
+- Gestão financeira (quotas por desconto em folha, jóia, export PDF/CSV) + **co-aprovações** de atos financeiros (Art. 54); despesas/receitas de eventos e receitas de multas integradas no caixa central (`transactions`)
 - Sistema de votações / polls
 - Gestão de projetos (CRUD, tarefas, milestones, comentários, orçamento)
 - Eventos e agenda com inscrição

@@ -28,7 +28,7 @@ paths:
   `$match/$group($sum/$cond)/$count/$sort/$limit/$project`. If a new op is
   needed, extend the DAO in `database.py` — keep the Mongo-style call sites.
 
-## Collections & Schema (65 tables = `len(database.COLLECTIONS)`)
+## Collections & Schema (64 tables = `len(database.COLLECTIONS)`)
 - **users**: email (unique), role, status, invite_token, qr_code_hash,
   `account_type` (member|technical), `member_id` (immutable; via `member_id_seq`),
   `member_category` (fundador|ordinario|honorario), `orgao` (denormalized from
@@ -37,10 +37,19 @@ paths:
   `dir_tesoureiro` — never a label) + `cargo_history[]` (mandate log; written
   only by `/admin/cargos` promote/demote/transfer and election proclamation —
   `transfer` is atomic via `database.transfer_cargo`)
-- **transactions**: type (receita/despesa), amount, date, category, user_id
+- **transactions** (caixa central — **única fonte de verdade financeira**):
+  type (receita/despesa), amount, date, category, user_id, `project_id`,
+  `event_id` (**despesa/receita de evento = transação**), `ato_id`,
+  `sancao_id` (**multa aplicada → receita** automática e idempotente ao
+  aplicar a sanção). Não existem montantes financeiros fora desta coleção:
+  `Event`/`Ato`/`Sancao` guardam só a *definição* do valor, copiada para a
+  transação na execução; todos os totais e resultados derivam por agregação
+  aqui (nunca leas finanças de `events`/`sancoes`/`atos`).
 - **projects** (+ project_tasks, project_comments, project_expenses,
   project_milestones): title, status, team_members[]
-- **events**: title, date, location, attendees[], visibility
+- **events**: title, date, location, attendees[], visibility (resultado
+  financeiro = receitas − despesas é **derivado** por agregação de
+  `transactions` com este `event_id`; nunca guardado no doc do evento)
 - **wall_posts** (+ wall_comments): content, user_id, approved, pinned, likes[]
 - **notifications**: user_id, type, message, read, created_at
 - **polls** (+ user_votes): title, options[], status
