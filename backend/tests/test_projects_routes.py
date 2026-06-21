@@ -331,6 +331,7 @@ class TestAddCommentExpense:
             await projects_route.add_expense(
                 project_id="proj-1",
                 data=ProjectExpenseCreate(description="x", amount=10),
+                request=None,
                 current_user=socio_user,
             )
         assert exc.value.status_code == 403
@@ -338,15 +339,20 @@ class TestAddCommentExpense:
     async def test_add_expense_manager_ok(self, mock_db, admin_user, quiet_notifications):
         from models import ProjectExpenseCreate
 
+        # spec-fluxo-financeiro-unificado: a despesa de projeto passa a ser uma
+        # transação no caixa (type=despesa, project_id), não mais project_expenses.
         mock_db.projects.find_one = AsyncMock(return_value=_project("admin-x"))
-        _wire(mock_db, "project_expenses")
         result = await projects_route.add_expense(
             project_id="proj-1",
-            data=ProjectExpenseCreate(description="Catering", amount=1500, date="2026-01-20"),
+            data=ProjectExpenseCreate(description="Catering", amount=1500, date="2026-01-20", category="eventos"),
+            request=None,
             current_user=admin_user,
         )
         assert result["amount"] == 1500
         assert result["description"] == "Catering"
+        assert result["type"] == "despesa"
+        assert result["project_id"] == "proj-1"
+        assert result["category"] == "eventos"
         assert "_id" not in result
 
 
