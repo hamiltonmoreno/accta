@@ -265,12 +265,16 @@ async def delete_transaction(
         raise HTTPException(status_code=404, detail="Transacao nao encontrada")
 
     # Co-aprovação (Art. 54, #308): uma transação originada por um Acto executado
-    # NÃO é removível por esta via — a reversão de um pagamento co-aprovado segue o
-    # fluxo do Acto. Uniformiza com a guarda da via de despesas de projeto.
+    # é definitiva — não se apaga. Um Acto executado não pode ser cancelado; para
+    # corrigir, regista-se um movimento de estorno (entrada compensatória). Uniformiza
+    # com a guarda da via de despesas de projeto.
     if existing.get("ato_id"):
         raise HTTPException(
             status_code=400,
-            detail="Transacao co-aprovada por um Acto; a reversao segue o fluxo do Acto, nao esta via.",
+            detail=(
+                "Transacao co-aprovada por um Acto executado e definitiva e nao pode ser removida. "
+                "Para corrigir, registe um movimento de estorno."
+            ),
         )
 
     await db.transactions.delete_one({"id": transaction_id})
