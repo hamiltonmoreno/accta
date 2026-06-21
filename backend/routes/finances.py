@@ -66,6 +66,8 @@ async def list_transactions(
     type: Optional[str] = None,
     category: Optional[str] = None,
     project_id: Optional[str] = None,
+    event_id: Optional[str] = None,
+    sancao_id: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     search: Optional[str] = None,
@@ -82,6 +84,10 @@ async def list_transactions(
         query["category"] = category
     if project_id:
         query["project_id"] = project_id
+    if event_id:
+        query["event_id"] = event_id
+    if sancao_id:
+        query["sancao_id"] = sancao_id
     if start_date or end_date:
         date_filter = {}
         if start_date:

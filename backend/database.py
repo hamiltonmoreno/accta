@@ -839,6 +839,11 @@ _INDEX_DDL: tuple[str, ...] = (
     # do CREATE acima. Pode remover-se esta linha quando todos os ambientes
     # estiverem >= ao deploy que a introduziu.
     "DROP INDEX IF EXISTS ix_tx_project",
+    # ronda 2 (spec-eventos-multas-caixa): finanças de evento + receita de multa.
+    # Composto (event_id, type) serve filtro por evento + agregação do resultado;
+    # ix_tx_sancao serve o filtro e a guarda de idempotência da multa.
+    "CREATE INDEX IF NOT EXISTS ix_tx_event_type ON \"transactions\" ((doc->>'event_id'), (doc->>'type')) WHERE doc ? 'event_id'",
+    "CREATE INDEX IF NOT EXISTS ix_tx_sancao ON \"transactions\" ((doc->>'sancao_id')) WHERE doc ? 'sancao_id'",
     # events (attendees is an array -> GIN for membership queries)
     "CREATE INDEX IF NOT EXISTS ix_events_date ON \"events\" ((doc->>'date'))",
     "CREATE INDEX IF NOT EXISTS ix_events_vis_date ON \"events\" ((doc->>'visibility'), (doc->>'date'))",

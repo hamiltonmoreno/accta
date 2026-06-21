@@ -63,6 +63,8 @@ export const queryKeys = {
     upcoming: () => ['events', 'upcoming'],
     featured: () => ['events', 'featured'],
     byId: (id) => ['events', id],
+    expenses: (id) => ['events', id, 'expenses'],
+    receitas: (id) => ['events', id, 'receitas'],
   },
   users: {
     list: (filters) => ['users', filters || {}],
