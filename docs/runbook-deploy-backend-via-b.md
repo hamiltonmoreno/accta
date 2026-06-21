@@ -46,19 +46,19 @@ Antes de começar, obtém o SHA do `main` na release (na tua máquina):
 git fetch origin main && git rev-parse --short=12 main
 ```
 
-**Valores atuais (v0.5.25 — feature Comunicados Segmentados v2: audiência por filtro composto, preview, ciclo de rascunho, snapshot auditável, privilege `comunicar_intra_orgao`; caminho `segment` legado intacto):**
+**Valores atuais (v0.5.26 — feature Fluxo Financeiro Unificado: despesa de projeto = transação com `project_id`, `spent` derivado, gate Art. 54 nas despesas de projeto, Ato propaga `project_id`, Relatório e Contas anual gerado em PDF, upload do relatório opcional, `delete_project` bloqueia 409 com despesas no caixa):**
 
 | Variável | Valor |
 |----------|-------|
-| `TAG` (imagem nova) | `sha-af16c566b25f` |
-| Tag git da release | `v0.5.25` (= `af16c56`, HEAD de `main`, merge #303) |
-| Rollback (prod anterior, v0.5.24) | `sha-9c056677f181` |
-| Teste decisivo desta release | `POST /api/comunicados/preview-audience` → **401** (NÃO 404): prova que os endpoints segmentados estão vivos. Os INFOs "audit_logs immutability trigger instalado", "RLS auto-enable event trigger instalado" e "PostgreSQL schema and indexes ensured" devem aparecer 2× cada (1 por worker), 0 `tuple concurrently updated`. Verificação base: imagem = `sha-af16c566b25f`, health 200, arranque sem tracebacks. |
+| `TAG` (imagem nova) | `sha-7c38123185f9` |
+| Tag git da release | `v0.5.26` (= `7c38123`, HEAD de `main`, merge #310) |
+| Rollback (prod anterior, v0.5.25) | `sha-af16c566b25f` |
+| Teste decisivo desta release | `GET /api/exercicios/2025/relatorio/pdf` → **401** (NÃO 404): prova que o endpoint do relatório anual está vivo. Os INFOs "audit_logs immutability trigger instalado", "RLS auto-enable event trigger instalado" e "PostgreSQL schema and indexes ensured" devem aparecer 2× cada (1 por worker), 0 `tuple concurrently updated`. Verificação base: imagem = `sha-7c38123185f9`, health 200, arranque sem tracebacks. |
 
-> **Nota:** a v0.5.25 **toca em `backend/`** (comunicados: `models.py`,
-> `routes/comunicados.py`, `comunicados_service.py`, `governance.py`,
-> `permissions.py`). O backend em prod antes da v0.5.25 está na **v0.5.24**
-> (`sha-9c056677f181`).
+> **Nota:** a v0.5.26 **toca em `backend/`** (`models.py`, `database.py` índice
+> `ix_tx_project`, `routes/{projects,finances,atos,prestacao_contas}.py`). O backend
+> em prod antes da v0.5.26 está na **v0.5.25** (`sha-af16c566b25f`). A migração
+> `project_expenses`→transactions é **no-op em prod** (0 project_expenses) — sem pós-deploy.
 > Confirma sempre a imagem em execução antes de deploy: `docker compose ps`
 > (coluna IMAGE) ou `docker inspect accta-backend --format '{{.Config.Image}}'`.
 
@@ -70,22 +70,22 @@ git fetch origin main && git rev-parse --short=12 main
 ```bash
 rm -rf /tmp/accta-build
 git clone https://github.com/hamiltonmoreno/accta.git /tmp/accta-build
-cd /tmp/accta-build && git checkout v0.5.25       # <- tag git da release
+cd /tmp/accta-build && git checkout v0.5.26       # <- tag git da release
 docker build -f backend/Dockerfile \
-  -t ghcr.io/hamiltonmoreno/accta-backend:sha-af16c566b25f .   # <- TAG
+  -t ghcr.io/hamiltonmoreno/accta-backend:sha-7c38123185f9 .   # <- TAG
 ```
 
 ### 2.2 Arrancar via o compose canónico (só muda o TAG)
 ```bash
 cd /docker/accta
-export TAG=sha-af16c566b25f
+export TAG=sha-7c38123185f9
 docker compose up -d --no-deps backend
 ```
 
 ### 2.3 Verificar
 ```bash
 docker compose ps                         # backend = Up (healthy)
-docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-af16c566b25f
+docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-7c38123185f9
 docker compose logs --tail=80 backend     # arranque limpo: ensure_schema OK, sem tracebacks
 curl -fsS https://api.controlador.cv/api/ # 200
 
@@ -96,8 +96,8 @@ curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/docs        
 # Mantêm-se desde v0.5.22 (subsistema invoices removido — rota inexistente, endpoint novo gated):
 curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/api/invoices          # esperado: 404
 curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/api/finances/me/quotas # esperado: 401/403
-# Teste decisivo da v0.5.25: os endpoints de comunicados segmentados estão vivos.
-curl -s -o /dev/null -w '%{http_code}\n' -X POST https://api.controlador.cv/api/comunicados/preview-audience # esperado: 401 (NÃO 404)
+# Teste decisivo da v0.5.26: o endpoint do relatorio anual gerado esta vivo.
+curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/api/exercicios/2025/relatorio/pdf # esperado: 401 (NÃO 404)
 # Arranque limpo (mantém-se desde v0.5.24): zero hits de 'tuple concurrently updated'.
 docker compose logs --tail=200 backend 2>&1 | grep -E 'tuple concurrently updated' | wc -l            # esperado: 0
 docker compose logs --tail=200 backend 2>&1 | grep -cE 'audit_logs immutability trigger.*instalado'   # esperado: 2 (um por worker)
@@ -112,7 +112,7 @@ docker compose logs --tail=200 backend 2>&1 | grep -E 'pg_cron not configured'  
 A imagem anterior continua no VPS; só se troca o `TAG`:
 ```bash
 cd /docker/accta
-export TAG=sha-9c056677f181        # <- rollback (v0.5.24, imagem que corria antes da v0.5.25)
+export TAG=sha-af16c566b25f        # <- rollback (v0.5.25, imagem que corria antes da v0.5.26)
 docker compose up -d --no-deps backend
 ```
 
@@ -149,9 +149,9 @@ Ver `DEPLOY.md` e `HOSTINGER_DEPLOY.md` para o setup completo (secrets SSH,
   (`sha-f149268a1fde`) → v0.5.13 (`sha-f580b90ee543`) → v0.5.17
   (`sha-6e313d80425f`) → v0.5.18 (`sha-bbf09cfa2298`) → v0.5.22
   (`sha-12d24165c36a`) → v0.5.23 (`sha-218a2bdf4e24`) → v0.5.24
-  (`sha-9c056677f181`) → **v0.5.25 (`sha-af16c566b25f`, este deploy)**. As
-  v0.5.1/v0.5.5/v0.5.6/v0.5.7, v0.5.9–v0.5.12, v0.5.14–v0.5.16 e
-  v0.5.19–v0.5.21 não tocaram no backend (só Vercel).
+  (`sha-9c056677f181`) → v0.5.25 (`sha-af16c566b25f`) → **v0.5.26
+  (`sha-7c38123185f9`, este deploy)**. As v0.5.1/v0.5.5/v0.5.6/v0.5.7,
+  v0.5.9–v0.5.12, v0.5.14–v0.5.16 e v0.5.19–v0.5.21 não tocaram no backend (só Vercel).
 - Pós-deploy histórico (informativo, **já feitos**): v0.5.22 desbloqueou
   o **#281** (DROP da tabela órfã `invoices`, executado 2026-06-19 via
   `scripts/sql/2026-06-19-drop-invoices.sql`). v0.5.8 exigiu atribuir os
