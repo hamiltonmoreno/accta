@@ -361,11 +361,11 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Active Spec Kit feature: `specs/002-fluxo-financeiro-unificado/` — IMPLEMENTADO
-em `feature/fluxo-financeiro-unificado` (36/39 tarefas). Despesas de projeto =
-Transaction com `project_id` (spent derivado, gate Art. 54, audit); Ato propaga
-project_id; Relatório e Contas anual gerado em PDF (`GET /exercicios/{ano}/
-relatorio/pdf`); upload do relatório agora opcional. Pendente: T034 (correr o
-dry-run da migração em DB real — STOP, precisa OK do dono p/ `--apply`), T037
-(verificação no browser). Last completed: `specs/001-comunicados-segmentados-concluido/`.
+Active Spec Kit feature: `specs/003-eventos-multas-caixa/` — ronda 2 do fluxo
+financeiro unificado: ligar EVENTOS (custos+receitas+resultado, Transaction.event_id,
+gate Art. 54) e MULTAS de sanções (auto ao aplicar → receita com sancao_id) ao caixa
+central. Reusa "extraordinarias" (sem categorias novas). Migração de multas = STOP;
+FR-016 estorno fora de âmbito (sem fluxo aplicada→anulada). Plano:
+`specs/003-eventos-multas-caixa/plan.md`. Próximo passo: `/speckit-tasks`.
+Last completed: `specs/002-fluxo-financeiro-unificado/` (RELEASED v0.5.26, em prod).
 <!-- SPECKIT END -->
