@@ -20,7 +20,7 @@ from models import (
 from finance_joia import joia_status
 from database import db, insert_quotas_atomic
 from auth import get_current_user, can_view_finances, can_manage_finances
-from helpers import create_audit_log, notify_admins, notify_all_active_users
+from helpers import coaprovacao_limiar, create_audit_log, notify_admins, notify_all_active_users
 from fpdf import FPDF
 import io
 import uuid
@@ -54,18 +54,8 @@ def require_manage_finances(user: User):
         raise HTTPException(status_code=403, detail="Sem permissao para gerir financas")
 
 
-async def _coaprovacao_limiar() -> float:
-    """Limiar de co-aprovação em vigor (spec-controlos §4.1). 0.0 (default) = gate
-    desligado: o lançamento directo de despesas mantém-se. Acima de um limiar
-    positivo, despesas exigem um Ato de pagamento aprovado (via /atos/executar).
-    Leitura defensiva — tolera ausência de settings / mock_db (find_one→None)."""
-    s = await db.finance_settings.find_one({"id": "finance_settings"}, {"_id": 0})
-    if not isinstance(s, dict):
-        return 0.0
-    try:
-        return float(s.get("coaprovacao_limiar") or 0.0)
-    except (TypeError, ValueError):
-        return 0.0
+# `coaprovacao_limiar` vive em helpers.py (módulo leaf) — partilhada com
+# routes/projects.py sem import circular (#307).
 
 
 # ===== TRANSACTION ENDPOINTS =====
@@ -76,6 +66,8 @@ async def list_transactions(
     type: Optional[str] = None,
     category: Optional[str] = None,
     project_id: Optional[str] = None,
+    event_id: Optional[str] = None,
+    sancao_id: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     search: Optional[str] = None,
@@ -92,6 +84,10 @@ async def list_transactions(
         query["category"] = category
     if project_id:
         query["project_id"] = project_id
+    if event_id:
+        query["event_id"] = event_id
+    if sancao_id:
+        query["sancao_id"] = sancao_id
     if start_date or end_date:
         date_filter = {}
         if start_date:
@@ -173,7 +169,7 @@ async def create_transaction(
     # Ato de pagamento aprovado e executado (que cria a despesa com `ato_id`),
     # não pelo lançamento directo. Limiar 0 = desligado (não-quebra).
     if data.type == "despesa":
-        limiar = await _coaprovacao_limiar()
+        limiar = await coaprovacao_limiar()
         if limiar > 0 and data.amount > limiar:
             raise HTTPException(
                 status_code=400,
@@ -242,7 +238,7 @@ async def update_transaction(
         eff_type = updates.get("type", existing["type"])
         eff_amount = updates.get("amount", existing.get("amount") or 0)
         if eff_type == "despesa":
-            limiar = await _coaprovacao_limiar()
+            limiar = await coaprovacao_limiar()
             if limiar > 0 and eff_amount > limiar:
                 raise HTTPException(
                     status_code=400,
@@ -273,6 +269,19 @@ async def delete_transaction(
     existing = await db.transactions.find_one({"id": transaction_id}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Transacao nao encontrada")
+
+    # Co-aprovação (Art. 54, #308): uma transação originada por um Acto executado
+    # é definitiva — não se apaga. Um Acto executado não pode ser cancelado; para
+    # corrigir, regista-se um movimento de estorno (entrada compensatória). Uniformiza
+    # com a guarda da via de despesas de projeto.
+    if existing.get("ato_id"):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Transacao co-aprovada por um Acto executado e definitiva e nao pode ser removida. "
+                "Para corrigir, registe um movimento de estorno."
+            ),
+        )
 
     await db.transactions.delete_one({"id": transaction_id})
     await create_audit_log(current_user.id, f"Removeu transacao {transaction_id}", transaction_id, request=request)

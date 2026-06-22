@@ -470,6 +470,13 @@ export const eventsAPI = {
   register: (eventId) => api.post(`/events/${eventId}/register`),
   unregister: (eventId) => api.delete(`/events/${eventId}/register`),
   getAttendees: (eventId) => api.get(`/events/${eventId}/attendees`),
+  // Finanças de evento (spec-eventos-multas-caixa): despesas/receitas ligadas ao caixa
+  getExpenses: (eventId) => api.get(`/events/${eventId}/expenses`),
+  getReceitas: (eventId) => api.get(`/events/${eventId}/receitas`),
+  addExpense: (eventId, data) => api.post(`/events/${eventId}/expenses`, data),
+  addReceita: (eventId, data) => api.post(`/events/${eventId}/receitas`, data),
+  deleteExpense: (eventId, txId) => api.delete(`/events/${eventId}/expenses/${txId}`),
+  deleteReceita: (eventId, txId) => api.delete(`/events/${eventId}/receitas/${txId}`),
 };
 
 // Gallery API

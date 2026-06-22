@@ -830,9 +830,20 @@ _INDEX_DDL: tuple[str, ...] = (
     "CREATE INDEX IF NOT EXISTS ix_tx_cat_date ON \"transactions\" ((doc->>'category'), (doc->>'date') DESC)",
     "CREATE INDEX IF NOT EXISTS ix_tx_user_date ON \"transactions\" ((doc->>'user_id'), (doc->>'date') DESC)",
     "CREATE INDEX IF NOT EXISTS ix_tx_type ON \"transactions\" ((doc->>'type'))",
-    # despesas de projeto: filtro por projeto + agregação de `spent`
-    # (spec-fluxo-financeiro-unificado)
-    "CREATE INDEX IF NOT EXISTS ix_tx_project ON \"transactions\" ((doc->>'project_id')) WHERE doc ? 'project_id'",
+    # despesas de projeto: índice composto (project_id, type) serve o filtro por
+    # projeto (prefixo) E a agregação de `spent` ({project_id, type:despesa}) —
+    # spec-fluxo-financeiro-unificado, #309.
+    "CREATE INDEX IF NOT EXISTS ix_tx_project_type ON \"transactions\" ((doc->>'project_id'), (doc->>'type')) WHERE doc ? 'project_id'",
+    # Limpeza do índice antigo só-`project_id` (v0.5.26), superado por
+    # ix_tx_project_type (#309). DROP não-destrutivo + idempotente; corre depois
+    # do CREATE acima. Pode remover-se esta linha quando todos os ambientes
+    # estiverem >= ao deploy que a introduziu.
+    "DROP INDEX IF EXISTS ix_tx_project",
+    # ronda 2 (spec-eventos-multas-caixa): finanças de evento + receita de multa.
+    # Composto (event_id, type) serve filtro por evento + agregação do resultado;
+    # ix_tx_sancao serve o filtro e a guarda de idempotência da multa.
+    "CREATE INDEX IF NOT EXISTS ix_tx_event_type ON \"transactions\" ((doc->>'event_id'), (doc->>'type')) WHERE doc ? 'event_id'",
+    "CREATE INDEX IF NOT EXISTS ix_tx_sancao ON \"transactions\" ((doc->>'sancao_id')) WHERE doc ? 'sancao_id'",
     # events (attendees is an array -> GIN for membership queries)
     "CREATE INDEX IF NOT EXISTS ix_events_date ON \"events\" ((doc->>'date'))",
     "CREATE INDEX IF NOT EXISTS ix_events_vis_date ON \"events\" ((doc->>'visibility'), (doc->>'date'))",
