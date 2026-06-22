@@ -2,7 +2,7 @@
 
 **Branch**: `feature/eventos-multas-caixa` | **Date**: 2026-06-21 | **Spec**: [spec.md](./spec.md)
 
-**Input**: Feature specification from `specs/003-eventos-multas-caixa/spec.md`
+**Input**: Feature specification from `specs/003-eventos-multas-caixa-concluido/spec.md`
 
 ## Summary
 
@@ -53,7 +53,7 @@ Ronda 2 do modelo financeiro unificado (ronda 1 = spec 002, em prod v0.5.26). Li
 ### Documentation (this feature)
 
 ```text
-specs/003-eventos-multas-caixa/
+specs/003-eventos-multas-caixa-concluido/
 ├── plan.md, research.md, data-model.md, quickstart.md
 ├── contracts/{events-finance.md, finances.md, atos.md, sancoes.md}
 └── checklists/requirements.md
