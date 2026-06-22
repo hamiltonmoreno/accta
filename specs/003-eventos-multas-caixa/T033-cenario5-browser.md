@@ -22,10 +22,25 @@ browser com a app a correr — segue o checklist abaixo.
    Acto de pagamento (não um erro cru / stack trace).
 
 ## Critérios de aceitação (Princípio VII)
-- [ ] Secção financeira do evento funcional: registar despesa (com categoria), registar receita, listas e resultado visíveis.
-- [ ] Mensagem amigável (PT) quando o gate Art. 54 recusa a despesa.
-- [ ] **Design `frontend-design`**: botões neutros/**Floresta `#166534`** para ação positiva (Guardar/Registar); **sem vermelho sobre fundo escuro/colorido**; ≤1 botão primário por vista; sem dark mode.
-- [ ] **Screenshot** do diálogo de finanças do evento (com despesa+receita+resultado) anexado ao registo da tarefa.
+- [x] Secção financeira do evento funcional: registar despesa (com categoria), registar receita, listas e resultado visíveis.
+- [x] Mensagem amigável (PT) quando o gate Art. 54 recusa a despesa.
+- [x] **Design `frontend-design`**: botões neutros/**Floresta `#166534`** para ação positiva (Guardar/Registar); **sem vermelho sobre fundo escuro/colorido**; ≤1 botão primário por vista; sem dark mode.
+- [x] **Screenshot** do diálogo de finanças do evento (com despesa+receita+resultado) anexado ao registo da tarefa.
+
+## Resultado da validação (2026-06-21, browser, app local)
+**VALIDADO ✅** — `EventFinanceDialog` no evento "Teste":
+- Despesa `Sala` 8000 (categoria *Eventos*) e receita `Inscrições` 12000 registadas;
+  cabeçalho mostrou **RECEITAS 12 000 · DESPESAS 8000 · RESULTADO ↗ 4000 (positivo)**.
+  → `T033-cenario5-resultado.png`.
+- Gate Art. 54 (limiar 50000): despesa de 70000 **recusada** (não entrou na lista);
+  toast `sonner` em PT com o `detail` do backend: *"Despesa de 70,000 CVE excede o
+  limiar de co-aprovacao (50,000 CVE). Crie um Acto de pagamento (evento associado)
+  e execute-o apos aprovacao."* → `T033-cenario5-gate.png`.
+- Design conforme: botão **Registar** em Floresta `#166534`, resultado positivo a
+  verde, superfícies neutras, Carmesim só em nav ativo/logo, sem vermelho-sobre-escuro,
+  sem dark mode.
+
+Estado da DB dev reposto após o teste (limiar→0; movimentos de teste removidos).
 
 ## Notas
 - Componente: `frontend/src/.../EventFinanceDialog` (botão "Finanças do evento" na `EventosPage`, visível a admin/`manage_events`).
