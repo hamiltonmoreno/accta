@@ -4,7 +4,7 @@ description: "Task list — Eventos e Multas Ligados ao Caixa"
 
 # Tasks: Eventos e Multas Ligados ao Caixa (Ronda 2)
 
-**Input**: Design documents from `specs/003-eventos-multas-caixa/`
+**Input**: Design documents from `specs/003-eventos-multas-caixa-concluido/`
 
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/
 
@@ -160,7 +160,7 @@ Web app: `backend/` + `frontend/src/`. Scripts em `scripts/`.
   gate Art. 54 (limiar 50000) recusou despesa de 70000 com toast PT amigável.
   Design conforme (`frontend-design`: Registar em Floresta, sem vermelho-sobre-escuro,
   sem dark mode). Registo + screenshots em
-  `specs/003-eventos-multas-caixa/T033-cenario5-browser.md`
+  `specs/003-eventos-multas-caixa-concluido/T033-cenario5-browser.md`
   (`T033-cenario5-resultado.png`, `T033-cenario5-gate.png`).
 - [ ] T034 (Opcional) `/speckit-analyze` final / registar lição em `tasks/lessons.md` se houver correção do dono.
 

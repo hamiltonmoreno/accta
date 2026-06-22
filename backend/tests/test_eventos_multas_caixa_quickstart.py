@@ -7,14 +7,14 @@ universo em memória **stateful** — a transação inserida num passo é mesmo
 lida no agregado/summary do passo seguinte (ao contrário do unit test, que
 isola cada rota com mocks por-teste).
 
-Mapeia 1:1 para `specs/003-eventos-multas-caixa/quickstart.md`:
+Mapeia 1:1 para `specs/003-eventos-multas-caixa-concluido/quickstart.md`:
   - Cenário 1 (US1): resultado financeiro do evento
   - Cenário 2 (US3): gate Art. 54 + Ato↔evento + guarda de delete
   - Cenário 3 (US2): multa entra no caixa ao aplicar (exactly-once)
   - Cenário 4: eliminação de evento bloqueada (409)
 
 Cenário 5 (UI) é validado no browser — ver `quickstart.md` §Cenário 5 e o
-checklist em `specs/003-eventos-multas-caixa/T033-cenario5-browser.md`.
+checklist em `specs/003-eventos-multas-caixa-concluido/T033-cenario5-browser.md`.
 
 Sem servidor, sem DB, sem email/notificação real (audit/notify mockados).
 """
