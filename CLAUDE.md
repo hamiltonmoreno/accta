@@ -361,7 +361,14 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Active Spec Kit feature: nenhuma em curso.
+Active Spec Kit feature: `specs/004-plataforma-landing/` (branch
+`feature/landing-plataforma`) — landing page **pública de produto** que apresenta o
+Portal ACCTA como sistema/plataforma de gestão de associações, com **link discreto no
+rodapé** do `PublicLayout`. Frontend-only, conteúdo estático, **sem CTA comercial
+forte** (decisão do dono). Plano em `specs/004-plataforma-landing/plan.md`; alterações
+confinadas a `frontend/` (novo `pages/public/PlataformaPage.js` + rota lazy em `App.js`
++ link no rodapé em `layouts/PublicLayout.js`). Constitution Check = PASS (sem backend/
+DB/RBAC). Próximo passo: `/speckit-tasks`.
 Last completed: `specs/003-eventos-multas-caixa-concluido/` — ronda 2 do fluxo
 financeiro unificado: ligar EVENTOS (custos+receitas+resultado, Transaction.event_id,
 gate Art. 54) e MULTAS de sanções (auto ao aplicar → receita com sancao_id) ao caixa
