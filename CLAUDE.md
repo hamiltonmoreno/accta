@@ -361,13 +361,13 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Active Spec Kit feature: `specs/003-eventos-multas-caixa/` — ronda 2 do fluxo
+Active Spec Kit feature: nenhuma em curso.
+Last completed: `specs/003-eventos-multas-caixa-concluido/` — ronda 2 do fluxo
 financeiro unificado: ligar EVENTOS (custos+receitas+resultado, Transaction.event_id,
 gate Art. 54) e MULTAS de sanções (auto ao aplicar → receita com sancao_id) ao caixa
-central. Reusa "extraordinarias". IMPLEMENTADO em `feature/eventos-multas-caixa`
-(32/37 tarefas): Transaction +event_id/+sancao_id; eventos despesas/receitas/
-resultado + gate Art.54 + delete 409; multa idempotente ao aplicar; Ato.event_id;
-UI EventFinanceDialog. Pendente: T030 (dry-run migração multas em DB real — STOP),
-T033 (browser). FR-016 estorno fora de âmbito.
-Last completed: `specs/002-fluxo-financeiro-unificado/` (RELEASED v0.5.26, em prod).
+central. CONCLUÍDA e **RELEASED v0.5.27, em prod** (Transaction +event_id/+sancao_id;
+eventos despesas/receitas/resultado + gate Art.54 + delete 409; multa idempotente ao
+aplicar; Ato.event_id; UI EventFinanceDialog). Migração de multas = no-op (T030 dry-run
+prod = 0); FR-016 estorno fora de âmbito; só T027/T034 opcionais por fazer.
+Anterior: `specs/002-fluxo-financeiro-unificado/` (RELEASED v0.5.26, em prod).
 <!-- SPECKIT END -->
