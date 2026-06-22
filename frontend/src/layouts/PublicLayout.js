@@ -166,7 +166,10 @@ export const PublicLayout = ({ children }) => {
 
           <div className="border-t border-white/10 mt-8 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-white/50">
             <p>&copy; {new Date().getFullYear()} ACCTA - Todos os direitos reservados</p>
-            <Link to="/privacidade" className="hover:text-white transition-colors">Política de Privacidade</Link>
+            <div className="flex items-center gap-4">
+              <Link to="/plataforma" className="hover:text-white transition-colors">A plataforma</Link>
+              <Link to="/privacidade" className="hover:text-white transition-colors">Política de Privacidade</Link>
+            </div>
           </div>
         </div>
       </footer>
