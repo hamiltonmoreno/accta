@@ -196,6 +196,10 @@ async def _noop(*a, **k):
     return None
 
 
+async def _empty(*a, **k):
+    return []
+
+
 @pytest.fixture
 def world(mock_db, monkeypatch):
     """Universo stateful partilhado: instala FakeCollections em mock_db (já
@@ -221,7 +225,9 @@ def world(mock_db, monkeypatch):
     # submissão do relatório: silenciar efeitos colaterais (testados noutro lado).
     for fn in ("_publish_document", "notify_users", "create_audit_log"):
         monkeypatch.setattr(pc_route, fn, _noop, raising=False)
-    monkeypatch.setattr(pc_route, "members_of_orgao", _noop, raising=False)
+    # devolve lista (não None): submeter_relatorio passa o resultado a notify_users;
+    # um [] é fiel a "sem membros" e evita TypeError se a rota passar a iterá-lo.
+    monkeypatch.setattr(pc_route, "members_of_orgao", _empty, raising=False)
     return mock_db
 
 
