@@ -369,5 +369,5 @@ central. CONCLUÍDA e **RELEASED v0.5.27, em prod** (Transaction +event_id/+sanc
 eventos despesas/receitas/resultado + gate Art.54 + delete 409; multa idempotente ao
 aplicar; Ato.event_id; UI EventFinanceDialog). Migração de multas = no-op (T030 dry-run
 prod = 0); FR-016 estorno fora de âmbito; só T027/T034 opcionais por fazer.
-Anterior: `specs/002-fluxo-financeiro-unificado/` (RELEASED v0.5.26, em prod).
+Anterior: `specs/002-fluxo-financeiro-unificado-concluido/` (RELEASED v0.5.26, em prod).
 <!-- SPECKIT END -->
