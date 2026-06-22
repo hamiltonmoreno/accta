@@ -8,6 +8,7 @@ Dados disciplinares são sensíveis: ocultados a quem não tem permissão.
 
 from datetime import datetime, timedelta, timezone
 
+from asyncpg.exceptions import UniqueViolationError
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from auth import get_current_user
@@ -308,12 +309,13 @@ async def aplicar_sancao(sancao_id: str, request: Request, current_user: User = 
             },
         )
 
-    # Multa → caixa (spec-eventos-multas-caixa): cria a receita ANTES do CAS,
-    # junto dos efeitos idempotentes. Guarda por sancao_id ⇒ exactly-once em
-    # re-tentativa sequencial. Categoria "extraordinarias" (sem categorias novas).
-    # `multa_tx_id` rastreia se ESTA chamada criou a receita, para o ramo de
-    # compensação abaixo (janela de concorrência).
-    multa_tx_id = None
+    # Multa → caixa (spec-eventos-multas-caixa): cria a receita junto dos efeitos
+    # idempotentes. Categoria "extraordinarias" (sem categorias novas). Exactly-once
+    # com guarda dupla: o find_one cobre a re-tentativa sequencial e o índice UNIQUE
+    # parcial `ux_tx_sancao_receita` garante-o ESTRUTURALMENTE sob concorrência — se
+    # outro worker já inseriu a receita desta sanção, o insert viola a unicidade e
+    # tratamos como no-op (a receita do vencedor fica; não há nada a compensar,
+    # independentemente de quem ganhe o CAS abaixo). Ver W1 em database.py.
     if tipo == "multa" and (s.get("multa_valor") or 0) > 0:
         existing_tx = await db.transactions.find_one(
             {"sancao_id": sancao_id, "type": "receita"}, {"_id": 0, "id": 1}
@@ -331,22 +333,22 @@ async def aplicar_sancao(sancao_id: str, request: Request, current_user: User = 
                 user_id=s["user_id"],
                 created_by=current_user.id,
             )
-            await db.transactions.insert_one(multa_tx.model_dump())
-            multa_tx_id = multa_tx.id
+            try:
+                await db.transactions.insert_one(multa_tx.model_dump())
+            except UniqueViolationError:
+                # Corrida concorrente: outro worker inseriu a receita primeiro.
+                # O índice garante exactly-once; nada a fazer (no-op).
+                pass
 
-    # CAS final: só agora (efeitos já persistidos) marca "aplicada". Se outra
-    # chamada concorrente já fechou a transição, modified_count==0 e abortamos
-    # sem duplicar a notificação/audit (os efeitos idempotentes já correram).
+    # CAS final: marca "aplicada". Se outra chamada concorrente já fechou a
+    # transição, modified_count==0 e abortamos sem duplicar a notificação/audit
+    # (os efeitos idempotentes já correram; a receita é exactly-once pelo índice,
+    # logo não há compensação a fazer).
     claimed = await db.sancoes.update_one(
         {"id": sancao_id, "status": "decidida"},
         {"$set": {"status": "aplicada", "aplicada_em": now}},
     )
     if claimed.modified_count == 0:
-        # Perdemos a corrida do CAS: se ESTA chamada inseriu a receita (janela de
-        # concorrência em que o find_one não viu a inserção da chamada vencedora),
-        # remove-a para não deixar uma receita de multa duplicada no caixa.
-        if multa_tx_id:
-            await db.transactions.delete_one({"id": multa_tx_id})
         raise HTTPException(status_code=409, detail="A sanção já foi aplicada.")
 
     await create_audit_log(
