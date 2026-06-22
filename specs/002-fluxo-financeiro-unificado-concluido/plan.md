@@ -2,7 +2,7 @@
 
 **Branch**: `feature/fluxo-financeiro-unificado` | **Date**: 2026-06-20 | **Spec**: [spec.md](./spec.md)
 
-**Input**: Feature specification from `specs/002-fluxo-financeiro-unificado/spec.md`
+**Input**: Feature specification from `specs/002-fluxo-financeiro-unificado-concluido/spec.md`
 
 ## Summary
 
@@ -53,7 +53,7 @@ Unificar o registo de despesas de projeto no caixa central e tornar o "Relatóri
 ### Documentation (this feature)
 
 ```text
-specs/002-fluxo-financeiro-unificado/
+specs/002-fluxo-financeiro-unificado-concluido/
 ├── plan.md              # Este ficheiro
 ├── research.md          # Decisões técnicas (Phase 0)
 ├── data-model.md        # Entidades e deltas de campos (Phase 1)

@@ -4,7 +4,7 @@ description: "Task list — Fluxo Financeiro Unificado"
 
 # Tasks: Fluxo Financeiro Unificado
 
-**Input**: Design documents from `specs/002-fluxo-financeiro-unificado/`
+**Input**: Design documents from `specs/002-fluxo-financeiro-unificado-concluido/`
 
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/
 
@@ -141,9 +141,16 @@ Web app: `backend/` (FastAPI) + `frontend/src/` (React). Scripts em `scripts/`.
 
 - [X] T032 Criar `scripts/migrate_project_expenses_to_transactions.py` com modo **dry-run por defeito**: lê `project_expenses`, mapeia para transações candidatas (`type="despesa"`, `project_id`, `category="operacional"`, preservando `description`/`amount`/`date`/`created_by`), e imprime relatório de reconciliação (contagens + **suspeitos de duplicado**: despesa sem `project_id`, mesmo `amount`, data próxima/descrição semelhante). Não escreve nada. Padrão alinhado com `scripts/migrate_income_categories.py`.
 - [X] T033 Adicionar `--apply` ao script (idempotente): insere as transações e marca `project_expenses` migradas (`migrated_to_transaction_id`); re-correr não duplica. **Não executar `--apply` nesta fase** — apenas implementar.
-- [ ] T034 Correr o **dry-run** e anexar o relatório de reconciliação ao PR para revisão do dono (gate de confirmação antes de qualquer `--apply`).
+- [X] T034 Correr o **dry-run** e anexar o relatório de reconciliação ao PR para revisão do dono (gate de confirmação antes de qualquer `--apply`).
 
-**Checkpoint**: histórico pronto a migrar; aplicação pendente de OK do dono.
+  **Relatório dry-run (2026-06-21, contra prod via VPS, read-only):**
+  `0 project_expenses | 0 projects | 0 despesas` (12 transações, todas
+  receitas/quotas) → **nada a migrar**. Não há despesas legadas (registadas
+  antes da feature) por reconciliar; o `--apply` seria um no-op, logo
+  **dispensado**. Fase de migração concluída sem escrita em prod (STOP
+  resolvido por dados).
+
+**Checkpoint**: histórico pronto a migrar; aplicação dispensada (0 candidatos).
 
 ---
 
@@ -151,8 +158,21 @@ Web app: `backend/` (FastAPI) + `frontend/src/` (React). Scripts em `scripts/`.
 
 - [X] T035 [P] Correr `cd backend && ruff check . && ruff format .` e `cd frontend && npx eslint src/ --ext .js,.jsx --max-warnings=60`; corrigir o que surgir.
 - [X] T036 [P] Atualizar documentação: nota no runbook/finanças sobre "despesa de projeto = transação" e "relatório anual gerado". **Verificar o read-side cutover (FR-014)**: confirmar por busca que nenhum caminho de leitura consome `project_expenses` como fonte de dados após a unificação (todas as leituras de despesas passam por `transactions` com `project_id`); ajustar/remover menções residuais.
-- [ ] T037 Executar a validação do `quickstart.md` (Cenários 1–3 via HTTP; Cenário 4 no browser com screenshot) — Princípio VII.
-- [ ] T038 [P] Registar lição em `tasks/lessons.md` se houver correção do dono durante a implementação; atualizar memória relevante (ex.: `finance-specs-alignment`).
+- [X] T037 Executar a validação do `quickstart.md` (Cenários 1–3 via HTTP; Cenário 4 no browser com screenshot) — Princípio VII.
+
+  **Cenários 1–3: FEITOS e verdes** — automatizados como validação executável
+  ponta-a-ponta em `backend/tests/test_fluxo_financeiro_unificado_quickstart.py`
+  (estado partilhado em memória; `3 passed`). Mapeiam 1:1 ao quickstart: C1 despesa
+  de projeto no caixa + spent/orçamento-execução + summary, C2 gate Art. 54 +
+  Ato↔projeto + guarda de delete (ato_id), C3 Relatório e Contas em PDF +
+  submissão sem upload com `dre_snapshot` congelado.
+  **Cenário 4 (UI): browser-verificado na implementação (US4), sem screenshot
+  novo** — checklist em
+  `specs/002-fluxo-financeiro-unificado-concluido/T037-cenario4-browser.md`.
+  Fechado por decisão do dono (2026-06-22): a UX da Prestação de Contas já estava
+  verificada e a feature em prod (v0.5.27); não se recapturou artefacto. Ressalva
+  registada para paridade futura com o Princípio VII.
+- [X] T038 [P] Registar lição em `tasks/lessons.md` se houver correção do dono durante a implementação; atualizar memória relevante (ex.: `finance-specs-alignment`). — sem correção do dono na implementação; memória `fluxo-financeiro-unificado-state` atualizada (released + em prod via v0.5.27; migração no-op).
 - [X] T039 (Opcional) `/speckit-analyze` para conferir consistência cross-artefacto antes do `/speckit-implement`/merge.
 
 ---
