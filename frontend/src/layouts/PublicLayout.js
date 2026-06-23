@@ -17,6 +17,7 @@ export const PublicLayout = ({ children }) => {
     { label: 'Publicações', path: '/publicacoes-publico' },
     { label: 'Contactos', path: '/contactos' },
     { label: 'Galeria', path: '/galeria' },
+    { label: 'A Plataforma', path: '/plataforma' },
   ];
 
   return (
