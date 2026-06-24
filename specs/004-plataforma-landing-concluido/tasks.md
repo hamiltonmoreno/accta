@@ -101,7 +101,7 @@ description: "Task list — Landing page da plataforma de gestão de associaçõ
 - [x] T014 Lint: `cd frontend && npx eslint src/ --ext .js,.jsx --max-warnings=60` sem novos avisos acima do limite (SC-005).
 - [x] T015 Build: `cd frontend && yarn build` conclui com sucesso (SC-005).
 - [x] T016 Validação completa do `quickstart.md` (C1–C5) no browser, mobile e desktop, + verificação manual (Constituição VII).
-- [ ] T017 Commit em Conventional Commits com scope (`feat(frontend): landing page da plataforma + link no rodapé`) e abrir PR para `develop` (GitFlow). Registar correções em `tasks/lessons.md` se aplicável.
+- [x] T017 Commit em Conventional Commits com scope (`feat(frontend): landing page da plataforma + link no rodapé`) e abrir PR para `develop` (GitFlow). Registar correções em `tasks/lessons.md` se aplicável. — Feito: commit `1713b0c` → PR #334 → develop (`f669a5d`); RELEASED v0.5.32 e em prod (`controlador.cv/plataforma` 200). Follow-up: "A Plataforma" na navegação pública (PR #337, RELEASED v0.5.33).
 
 ---
 

@@ -361,15 +361,16 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Active Spec Kit feature: `specs/004-plataforma-landing/` (branch
-`feature/landing-plataforma`) — landing page **pública de produto** que apresenta o
-Portal ACCTA como sistema/plataforma de gestão de associações, com **link discreto no
-rodapé** do `PublicLayout`. Frontend-only, conteúdo estático, **sem CTA comercial
-forte** (decisão do dono). Plano em `specs/004-plataforma-landing/plan.md`; alterações
-confinadas a `frontend/` (novo `pages/public/PlataformaPage.js` + rota lazy em `App.js`
-+ link no rodapé em `layouts/PublicLayout.js`). Constitution Check = PASS (sem backend/
-DB/RBAC). Próximo passo: `/speckit-tasks`.
-Last completed: `specs/003-eventos-multas-caixa-concluido/` — ronda 2 do fluxo
+Active Spec Kit feature: **nenhuma** — todas as specs (001–004) estão `-concluido` e em
+prod. Próximo passo: `/speckit-specify` para a próxima feature.
+Last completed: `specs/004-plataforma-landing-concluido/` — landing page **pública de
+produto** que apresenta o Portal ACCTA como sistema/plataforma de gestão de associações,
+em tom factual e **sem CTA comercial forte** (decisão do dono). Frontend-only (novo
+`pages/public/PlataformaPage.js` + rota lazy em `App.js` + link discreto no rodapé e item
+na navegação pública em `layouts/PublicLayout.js`). CONCLUÍDA e **RELEASED v0.5.32**
+(landing) **+ v0.5.33** (item "A Plataforma" na navegação pública), em prod
+(`controlador.cv/plataforma` 200). Sem Via B (delta não tocou em `backend/`).
+Anterior: `specs/003-eventos-multas-caixa-concluido/` — ronda 2 do fluxo
 financeiro unificado: ligar EVENTOS (custos+receitas+resultado, Transaction.event_id,
 gate Art. 54) e MULTAS de sanções (auto ao aplicar → receita com sancao_id) ao caixa
 central. CONCLUÍDA e **RELEASED v0.5.27, em prod** (Transaction +event_id/+sancao_id;
