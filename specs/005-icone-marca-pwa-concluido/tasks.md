@@ -112,8 +112,8 @@ sem ícone → mark por defeito (sem espaço vazio).
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T013 [P] Correr a validação `specs/005-icone-marca-pwa/quickstart.md` (C1–C6) e registar resultados
-- [ ] T014 [P] Atualizar `docs/runbook-deploy-backend-via-b.md` com o "teste decisivo" desta release (`GET /api/brand/icon` → 200 imagem via -L; `/api/brand/public` inclui `icon_url`)
+- [X] T013 [P] Correr a validação `specs/005-icone-marca-pwa/quickstart.md` (C1–C6) e registar resultados — **C1** verde (`pytest tests/test_brand_routes.py` = 20 passed, 2026-06-25); **C3** verificado server-side em **prod** (`GET /api/brand/icon` via `-L` → 200; `/api/brand/public` inclui `icon_url`, ver [[prod-backend-deployed-state]]). **C2/C4/C5/C6 (UI/PWA/iOS) NÃO exercitados** — exigem browser/dispositivo real; por Princípio VII declara-se explicitamente em vez de afirmar sucesso (residual de validação manual do dono).
+- [X] T014 [P] Atualizar `docs/runbook-deploy-backend-via-b.md` com o "teste decisivo" desta release (`GET /api/brand/icon` → 200 imagem via -L; `/api/brand/public` inclui `icon_url`) — runbook atualizado para v0.5.35 (`sha-b16773a08b8a`, rollback `sha-4a78080aec1e`): valores §1, comandos §2, teste decisivo na verificação, rollback §3, histórico §6.
 - [X] T015 Verificação final: `cd backend && pytest tests/test_brand_routes.py -q` verde; `cd frontend && npx eslint src/ --ext .js,.jsx --max-warnings=60` limpo; `cd frontend && npx craco build` OK
 
 ---
