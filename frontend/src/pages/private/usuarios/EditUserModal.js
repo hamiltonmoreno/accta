@@ -232,10 +232,10 @@ export const EditUserModal = ({
         <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 bg-gray-50/50">
           <button
             onClick={onAskDelete}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#B91C1C] hover:text-[#991B1B] transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#C7202F] border border-[#C7202F] px-3 py-2 rounded-md hover:bg-[#FBEAEC] transition-colors cursor-pointer"
             data-testid="delete-user-btn"
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            <Trash2 className="w-4 h-4" />
             Remover
           </button>
           <div className="flex gap-2">

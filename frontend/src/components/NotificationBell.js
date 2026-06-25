@@ -39,7 +39,7 @@ export const NotificationBell = () => {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative flex items-center justify-center h-10 w-10 rounded-lg text-secondary-auto hover:text-carmesim hover:bg-carmesim/10 transition-colors"
+        className="relative flex items-center justify-center h-11 w-11 rounded-lg text-secondary-auto hover:text-carmesim hover:bg-carmesim/10 transition-colors"
         data-testid="notification-bell"
         aria-label={
           unreadCount > 0
@@ -97,7 +97,7 @@ export const NotificationBell = () => {
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="p-1 rounded hover:bg-gray-100 transition-colors"
+                    className="p-2 -mr-1 rounded hover:bg-gray-100 transition-colors cursor-pointer"
                     aria-label="Fechar painel de notificações"
                   >
                     <X className="w-5 h-5 text-gray-400" aria-hidden="true" />

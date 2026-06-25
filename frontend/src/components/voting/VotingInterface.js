@@ -65,7 +65,7 @@ export const VotingInterface = ({ poll, onVoteSuccess }) => {
               key={opt.id}
               className={`flex items-center gap-3 p-4 rounded-lg cursor-pointer transition ${
                 isSelected
-                  ? 'bg-carmesim/10 border-2 border-carmesim'
+                  ? 'bg-[#166534]/10 border-2 border-[#166534]'
                   : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'
               }`}
             >
@@ -78,7 +78,7 @@ export const VotingInterface = ({ poll, onVoteSuccess }) => {
                 data-testid={`option-${opt.id}`}
               />
               <span className="flex-1">{optionLabel(opt)}</span>
-              {isSelected && <CheckCircle className="w-5 h-5 text-carmesim" />}
+              {isSelected && <CheckCircle className="w-5 h-5 text-[#166534]" />}
             </label>
           );
         })}
@@ -87,13 +87,13 @@ export const VotingInterface = ({ poll, onVoteSuccess }) => {
       <button
         onClick={handleVote}
         disabled={!selected || voting}
-        className="w-full bg-grafite text-white h-12 rounded-lg font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+        className="w-full bg-floresta text-white hover:bg-floresta-dark h-12 rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         data-testid="vote-button"
       >
         {voting ? (
           <>
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            Registrando...
+            A registar...
           </>
         ) : (
           <>

@@ -206,7 +206,7 @@ const DefesaModal = ({ defesa, onClose }) => {
   };
 
   return (
-    <Dialog open onOpenChange={onClose}>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Editar registo' : 'Novo registo de defesa profissional'}</DialogTitle>

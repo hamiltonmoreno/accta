@@ -10,7 +10,7 @@ import { isMemberAccount } from '../../lib/account';
 // Botão de ícone padrão do cabeçalho (desktop). Mesma forma/tamanho/cor para
 // todos os atalhos — neutro, hover Carmesim (frontend-design).
 const ICON_BTN =
-  'hidden md:flex items-center justify-center h-10 w-10 rounded-lg text-secondary-auto hover:text-carmesim hover:bg-carmesim/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-carmesim/40 focus-visible:ring-offset-2';
+  'hidden md:flex items-center justify-center h-11 w-11 rounded-lg text-secondary-auto hover:text-carmesim hover:bg-carmesim/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-carmesim/40 focus-visible:ring-offset-2';
 
 /**
  * Cabeçalho fixo full-width. Esquerda: hambúrguer (mobile) + logo (SEM título —

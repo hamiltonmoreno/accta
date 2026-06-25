@@ -133,7 +133,8 @@ export const BudgetTab = ({ project, expenses, canManage, onReload }) => {
         <EmptyState icon={DollarSign} title="Nenhuma despesa registada" className="p-6 sm:p-8" testId="no-expenses" />
       ) : (
         <div className="bg-white border border-gray-200/80 rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[560px] text-sm">
             <thead className="bg-gray-50/80 text-[#6B7280] uppercase text-xs tracking-wider">
               <tr>
                 <th className="px-4 py-3 text-left font-semibold">Descricao</th>
@@ -157,6 +158,7 @@ export const BudgetTab = ({ project, expenses, canManage, onReload }) => {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

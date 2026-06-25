@@ -30,21 +30,9 @@ const NOTIFICATION_ICONS = {
   sistema: Settings,
 };
 
-const NOTIFICATION_COLORS = {
-  geral: 'bg-blue-500',
-  financeiro: 'bg-green-600',
-  evento: 'bg-purple-600',
-  projeto: 'bg-[#D97706]',
-  mural: 'bg-indigo-500',
-  wall_post_pending: 'bg-orange-500',
-  wall_post_approved: 'bg-green-500',
-  wall_comment: 'bg-indigo-500',
-  votacao: 'bg-teal-600',
-  poll_opened: 'bg-teal-600',
-  documento: 'bg-sky-600',
-  document_new: 'bg-sky-600',
-  sistema: 'bg-gray-600',
-};
+// Neutral-led: as categorias distinguem-se pelo ÍCONE, não pela cor. Círculo
+// neutro (#F5F5F5) com ícone Grafite — sem paleta arco-íris fora do sistema.
+const NOTIFICATION_ICON_WRAP = 'bg-[#F5F5F5]';
 
 const FILTER_OPTIONS = [
   { value: '', label: 'Todas' },
@@ -201,9 +189,7 @@ export const NotificacoesPage = () => {
     return Icon;
   };
 
-  const getColor = (type) => {
-    return NOTIFICATION_COLORS[type] || 'bg-gray-500';
-  };
+  const getColor = () => NOTIFICATION_ICON_WRAP;
 
   const readCount = notifications.filter(n => n.read).length;
 
@@ -306,7 +292,7 @@ export const NotificacoesPage = () => {
                 data-testid={`notification-item-${notification.id}`}>
                 <div className="flex items-start gap-3 sm:gap-4">
                   <div className={`w-9 h-9 sm:w-10 sm:h-10 ${iconColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-grafite" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-1">

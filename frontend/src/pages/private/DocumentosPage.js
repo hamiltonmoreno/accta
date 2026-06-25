@@ -29,18 +29,18 @@ export const DocumentosPage = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="page-title" data-testid="documents-title">
             Secretaria & Documentos
           </h1>
           <p className="page-subtitle">Acesse atas, estatutos, balancetes e outros documentos oficiais</p>
         </div>
-        
+
         {isAdmin && (
           <button
             onClick={() => setShowUploadModal(true)}
-            className="flex items-center gap-2 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-all text-sm font-semibold"
+            className="flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-all text-sm font-semibold"
             data-testid="upload-document-btn"
           >
             <Upload className="w-4 h-4" />
