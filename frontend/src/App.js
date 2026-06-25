@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { Toaster } from './components/ui/sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { FaviconManager } from './components/FaviconManager';
 import { PublicLayout } from './layouts/PublicLayout';
 import { PrivateLayout } from './layouts/PrivateLayout';
 import { queryClient } from './lib/queryClient';
@@ -451,6 +452,7 @@ function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
+        <FaviconManager />
         <AuthProvider>
           <NotificationProvider>
             <BrowserRouter>
