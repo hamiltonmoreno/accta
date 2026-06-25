@@ -45,7 +45,7 @@ export const VotingResults = ({ poll, results }) => {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} layout="vertical">
             <XAxis type="number" />
-            <YAxis dataKey="name" type="category" width={150} />
+            <YAxis dataKey="name" type="category" width={96} tick={{ fontSize: 12 }} />
             <Tooltip
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {

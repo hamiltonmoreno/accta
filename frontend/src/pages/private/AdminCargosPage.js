@@ -219,7 +219,7 @@ export const AdminCargosPage = () => {
                     </td>
                     <td className="px-4 py-3 text-xs text-[#6B7280]">{occupied}/{c.seats === 0 ? '∞' : c.seats}</td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex flex-wrap items-center justify-end gap-2">
                         {hasVacancy && (
                           <button
                             onClick={() => openAssign(c)}

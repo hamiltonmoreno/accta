@@ -65,12 +65,12 @@ export const ReclamacoesPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div>
           <h1 className="page-title" data-testid="reclamacoes-title">Reclamações e recursos</h1>
           <p className="page-subtitle">Reclame à Direcção de actos que considere lesivos; se não for resolvido, pode recorrer à Assembleia (Art. 9.i). Conteúdo visível só ao autor e à Direcção.</p>
         </div>
-        <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="new-reclamacao-btn">
+        <button onClick={() => setShowCreate(true)} className="flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="new-reclamacao-btn">
           <Plus className="w-4 h-4" aria-hidden="true" /> Nova reclamação
         </button>
       </div>
@@ -102,7 +102,7 @@ export const ReclamacoesPage = () => {
                 )}
                 {r.recurso?.decisao && (
                   <div className="rounded-md bg-[#FBEAEC] p-3">
-                    <p className="text-xs font-medium text-carmesim mb-1">Decisão do recurso (AG)</p>
+                    <p className="text-xs font-medium text-grafite mb-1">Decisão do recurso (AG)</p>
                     <p className="text-sm text-grafite whitespace-pre-wrap">{r.recurso.decisao}</p>
                     {r.recurso.assembleia_id && (
                       <p className="text-xs text-[#6B7280] mt-1 inline-flex items-center gap-1.5">
@@ -131,13 +131,13 @@ export const ReclamacoesPage = () => {
                 {canDecide && r.status === 'recurso' && (
                   <div className="space-y-2 pt-1">
                     <input type="text" value={dec[r.id]?.decisao || ''} onChange={(e) => setDec({ ...dec, [r.id]: { ...dec[r.id], decisao: e.target.value } })} placeholder="Decisão da AG sobre o recurso…" className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`rec-dec-${r.id}`} />
-                    <div className="flex flex-wrap items-center gap-2">
-                      <select value={dec[r.id]?.assembleia_id || ''} onChange={(e) => setDec({ ...dec, [r.id]: { ...dec[r.id], assembleia_id: e.target.value } })} className="px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`rec-dec-assembleia-${r.id}`}>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                      <select value={dec[r.id]?.assembleia_id || ''} onChange={(e) => setDec({ ...dec, [r.id]: { ...dec[r.id], assembleia_id: e.target.value } })} className="w-full sm:w-auto px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`rec-dec-assembleia-${r.id}`}>
                         <option value="">Assembleia (opcional)…</option>
                         {assembleias.map((a) => <option key={a.id} value={a.id}>{a.titulo}</option>)}
                       </select>
-                      <input type="text" value={dec[r.id]?.deliberacao_id || ''} onChange={(e) => setDec({ ...dec, [r.id]: { ...dec[r.id], deliberacao_id: e.target.value } })} placeholder="ID deliberação (opcional)" className="px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`rec-dec-delib-${r.id}`} />
-                      <button onClick={() => decMut.mutate({ id: r.id, data: { decisao: dec[r.id]?.decisao, assembleia_id: dec[r.id]?.assembleia_id || null, deliberacao_id: dec[r.id]?.deliberacao_id || null } })} disabled={decMut.isPending || !(dec[r.id]?.decisao || '').trim()} className="inline-flex items-center gap-1.5 bg-floresta text-white px-3 py-2 rounded-md text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`rec-dec-btn-${r.id}`}>
+                      <input type="text" value={dec[r.id]?.deliberacao_id || ''} onChange={(e) => setDec({ ...dec, [r.id]: { ...dec[r.id], deliberacao_id: e.target.value } })} placeholder="ID deliberação (opcional)" className="w-full sm:w-auto px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`rec-dec-delib-${r.id}`} />
+                      <button onClick={() => decMut.mutate({ id: r.id, data: { decisao: dec[r.id]?.decisao, assembleia_id: dec[r.id]?.assembleia_id || null, deliberacao_id: dec[r.id]?.deliberacao_id || null } })} disabled={decMut.isPending || !(dec[r.id]?.decisao || '').trim()} className="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto bg-floresta text-white px-3 py-2 rounded-md text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid={`rec-dec-btn-${r.id}`}>
                         <Gavel className="w-4 h-4" aria-hidden="true" /> Decidir
                       </button>
                     </div>

@@ -170,7 +170,7 @@ const RelacaoModal = ({ relacao, onClose }) => {
   };
 
   return (
-    <Dialog open onOpenChange={onClose}>
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Editar relação' : 'Nova relação externa'}</DialogTitle>

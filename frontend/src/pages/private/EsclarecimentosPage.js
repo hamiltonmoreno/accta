@@ -40,12 +40,12 @@ export const EsclarecimentosPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div>
           <h1 className="page-title" data-testid="esclarecimentos-title">Pedidos de esclarecimento</h1>
           <p className="page-subtitle">Faça uma pergunta formal a um órgão (Direcção, Mesa da AG ou Conselho Fiscal) e receba resposta escrita (Art. 9.j).</p>
         </div>
-        <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="new-esclarecimento-btn">
+        <button onClick={() => setShowCreate(true)} className="flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="new-esclarecimento-btn">
           <Plus className="w-4 h-4" aria-hidden="true" /> Nova pergunta
         </button>
       </div>
@@ -73,9 +73,9 @@ export const EsclarecimentosPage = () => {
                 </div>
               )}
               {canAnswer(e.orgao_destino) && e.status !== 'respondido' && (
-                <div className="flex gap-2 pt-1">
+                <div className="flex flex-col gap-2 pt-1 sm:flex-row">
                   <input type="text" value={respText[e.id] || ''} onChange={(ev) => setRespText({ ...respText, [e.id]: ev.target.value })} placeholder="Escreva a resposta…" className="flex-1 px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`resp-input-${e.id}`} />
-                  <button onClick={() => respMut.mutate({ id: e.id, texto: respText[e.id] })} disabled={respMut.isPending || !(respText[e.id] || '').trim()} className="inline-flex items-center gap-1.5 bg-floresta text-white px-3 py-2 rounded-md text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`resp-btn-${e.id}`}>
+                  <button onClick={() => respMut.mutate({ id: e.id, texto: respText[e.id] })} disabled={respMut.isPending || !(respText[e.id] || '').trim()} className="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto bg-floresta text-white px-3 py-2 rounded-md text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid={`resp-btn-${e.id}`}>
                     <Send className="w-4 h-4" aria-hidden="true" /> Responder
                   </button>
                 </div>

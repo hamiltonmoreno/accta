@@ -6,7 +6,7 @@ import {
 
 export const FiltersBar = ({ statusFilter, setStatusFilter, tipoFilter, setTipoFilter }) => (
   <div className="flex flex-wrap items-end gap-3 bg-white rounded-lg border border-[#E5E7EB] shadow-sm p-4">
-    <div className="min-w-[180px]">
+    <div className="w-full sm:w-auto sm:min-w-[180px]">
       <label className="block text-xs font-medium text-gray-600 mb-1.5">Estado</label>
       <select
         value={statusFilter}
@@ -18,7 +18,7 @@ export const FiltersBar = ({ statusFilter, setStatusFilter, tipoFilter, setTipoF
         {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{SANCAO_STATUS_LABELS[s]}</option>)}
       </select>
     </div>
-    <div className="min-w-[180px]">
+    <div className="w-full sm:w-auto sm:min-w-[180px]">
       <label className="block text-xs font-medium text-gray-600 mb-1.5">Tipo</label>
       <select
         value={tipoFilter}

@@ -70,12 +70,12 @@ export const PropostasPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div>
           <h1 className="page-title" data-testid="propostas-title">Propostas para a ordem de trabalhos</h1>
           <p className="page-subtitle">Submeta medidas, pontos ou temas para a Assembleia Geral. A Mesa e a Direcção triam e podem incluí-los na ordem de trabalhos (Art. 9.g/9.h).</p>
         </div>
-        <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="new-proposta-btn">
+        <button onClick={() => setShowCreate(true)} className="flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid="new-proposta-btn">
           <Plus className="w-4 h-4" aria-hidden="true" /> Nova proposta
         </button>
       </div>
@@ -116,13 +116,13 @@ export const PropostasPage = () => {
                 )}
 
                 {canTriage && ['submetida', 'em_triagem'].includes(pr.status) && (
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
-                    <input type="text" value={motivo[pr.id] || ''} onChange={(ev) => setMotivo({ ...motivo, [pr.id]: ev.target.value })} placeholder="Motivo (opcional)…" className="flex-1 min-w-[12rem] px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`motivo-${pr.id}`} />
-                    <button onClick={() => triarMut.mutate({ id: pr.id, decisao: 'aceite' })} disabled={triarMut.isPending} className="inline-flex items-center gap-1.5 border border-[#D1D5DB] text-grafite px-3 py-2 rounded-md text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`aceitar-${pr.id}`}>
-                      <Check className="w-4 h-4 text-[#15803D]" aria-hidden="true" /> Aceitar
+                  <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:flex-wrap sm:items-center">
+                    <input type="text" value={motivo[pr.id] || ''} onChange={(ev) => setMotivo({ ...motivo, [pr.id]: ev.target.value })} placeholder="Motivo (opcional)…" className="w-full sm:flex-1 sm:min-w-[12rem] px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`motivo-${pr.id}`} />
+                    <button onClick={() => triarMut.mutate({ id: pr.id, decisao: 'aceite' })} disabled={triarMut.isPending} className="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto bg-floresta text-white px-3 py-2 rounded-md text-sm font-semibold hover:bg-floresta-dark cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid={`aceitar-${pr.id}`}>
+                      <Check className="w-4 h-4" aria-hidden="true" /> Aceitar
                     </button>
-                    <button onClick={() => triarMut.mutate({ id: pr.id, decisao: 'recusada' })} disabled={triarMut.isPending} className="inline-flex items-center gap-1.5 border border-[#D1D5DB] text-grafite px-3 py-2 rounded-md text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`recusar-${pr.id}`}>
-                      <X className="w-4 h-4 text-[#6B7280]" aria-hidden="true" /> Recusar
+                    <button onClick={() => triarMut.mutate({ id: pr.id, decisao: 'recusada' })} disabled={triarMut.isPending} className="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto border border-[#C7202F] text-[#C7202F] px-3 py-2 rounded-md text-sm font-medium hover:bg-[#FBEAEC] cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2" data-testid={`recusar-${pr.id}`}>
+                      <X className="w-4 h-4" aria-hidden="true" /> Recusar
                     </button>
                   </div>
                 )}

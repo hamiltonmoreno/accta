@@ -133,7 +133,7 @@ export const EventosPage = () => {
           testId="no-events"
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredEvents.map((event, index) => {
             const style = getStatusConfig(EVENT_TYPE_CONFIG, event.type, EVENT_TYPE_FALLBACK);
             const EventIcon = style.icon;
@@ -418,7 +418,8 @@ const EventFinanceDialog = ({ event, onClose }) => {
           {rows.length === 0 ? (
             <p className="text-sm text-[#6B7280] p-4 text-center">Sem {tab === 'despesa' ? 'despesas' : 'receitas'} registadas.</p>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[420px] text-sm">
               <tbody>
                 {rows.map((t) => (
                   <tr key={t.id} className="border-b border-[#F5F5F5]" data-testid={`event-fin-row-${t.id}`}>
@@ -434,6 +435,7 @@ const EventFinanceDialog = ({ event, onClose }) => {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </DialogContent>
