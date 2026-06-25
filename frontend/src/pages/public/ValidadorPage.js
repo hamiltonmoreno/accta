@@ -86,6 +86,7 @@ export const ValidadorPage = () => {
         {/* Result */}
         {error && (
           <div className="card-technical rounded-2xl p-8 border-2 border-[#B91C1C] animate-fade-up"
+            role="alert"
             data-testid="validation-error">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-12 h-12 bg-[#FEF2F2] rounded-full flex items-center justify-center">
@@ -101,6 +102,8 @@ export const ValidadorPage = () => {
 
         {result && (
           <div className="card-technical rounded-2xl p-8 border-2 border-[#15803D] animate-fade-up"
+            role="status"
+            aria-live="polite"
             data-testid="validation-success">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-12 h-12 bg-[#F0FDF4] rounded-full flex items-center justify-center">

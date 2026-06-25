@@ -67,9 +67,9 @@ export const PublicacoesPublicoPage = () => {
                 key={f.key || 'todas'}
                 type="button"
                 onClick={() => setTipo(f.key)}
-                className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 ${
                   tipo === f.key
-                    ? 'bg-carmesim text-white border-carmesim'
+                    ? 'bg-grafite text-white border-grafite'
                     : 'bg-white text-grafite border-[#D1D5DB] hover:bg-gray-50'
                 }`}
               >
