@@ -2165,6 +2165,7 @@ class BrandSettings(BaseModel):
     logo_light_url: Optional[str] = None  # fundo claro; None → SVG fallback
     logo_dark_url: Optional[str] = None  # fundo escuro; None → SVG fallback
     favicon_url: Optional[str] = None  # ícone do separador; None → /favicon.ico estático
+    icon_url: Optional[str] = None  # ícone quadrado (PWA/og/marca compacta); None → default estático
     alt: str = "ACCTA Cabo Verde"
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_by: Optional[str] = None
@@ -2174,6 +2175,7 @@ class BrandSettingsUpdate(BaseModel):
     logo_light_url: Optional[str] = None  # "" = repor default; None = manter
     logo_dark_url: Optional[str] = None
     favicon_url: Optional[str] = None  # "" = repor default (/favicon.ico); None = manter
+    icon_url: Optional[str] = None  # "" = repor default (ícone estático); None = manter
     alt: Optional[str] = Field(default=None, max_length=200)
 
 

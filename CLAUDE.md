@@ -361,8 +361,13 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Active Spec Kit feature: **nenhuma** — todas as specs (001–004) estão `-concluido` e em
-prod. Próximo passo: `/speckit-specify` para a próxima feature.
+Active Spec Kit feature: **`specs/005-icone-marca-pwa/`** — ícone quadrado da marca
+gerível pela UI (Aparência → Marca), distinto do favicon (`icon_url` novo), que alimenta
+a marca compacta in-app + o **ícone PWA** e a **imagem de partilha (og)** via um endpoint
+estável `GET /api/brand/icon` (servir dinâmico, sem deploy; Q1=dinâmico, Q2=campos
+distintos). Plano em `specs/005-icone-marca-pwa/plan.md` (research/data-model/contracts/
+quickstart gerados). Estende o subsistema de marca (logos + favicon v0.5.34). **Próximo:
+`/speckit-tasks`.** Backend tocado (models + brand.py) → vai exigir Via B na release.
 Last completed: `specs/004-plataforma-landing-concluido/` — landing page **pública de
 produto** que apresenta o Portal ACCTA como sistema/plataforma de gestão de associações,
 em tom factual e **sem CTA comercial forte** (decisão do dono). Frontend-only (novo

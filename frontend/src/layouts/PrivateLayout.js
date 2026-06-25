@@ -6,6 +6,7 @@ import { registrationAPI } from '../utils/api';
 import { queryKeys } from '../lib/queryClient';
 import { buildNavContext, isNavItemVisible } from '../lib/nav/visibility';
 import { Header } from './components/Header';
+import { BrandIcon } from '../components/BrandIcon';
 import {
   LayoutDashboard,
   Vote,
@@ -273,11 +274,16 @@ export const PrivateLayout = ({ children }) => {
     <div className="flex flex-col h-full">
       {/* ---- Top: toggle compacto (desktop) / fechar (mobile). Slim, sem o
            "buraco" da antiga linha do logo — o menu estende-se para cima. ---- */}
-      <div className="flex items-center px-2 py-2">
+      <div className={`flex px-2 py-2 ${!isMobile && collapsed ? 'flex-col items-center gap-1.5' : 'items-center'}`}>
+        {!isMobile && collapsed && (
+          <Link to="/dashboard" aria-label="ACCTA" className="block" data-testid="sidebar-brand-icon">
+            <BrandIcon className="h-7 w-7" />
+          </Link>
+        )}
         {!isMobile && (
           <button
             onClick={toggleSidebar}
-            className="ml-auto h-8 w-8 flex items-center justify-center rounded-md text-gray-500 hover:text-carmesim hover:bg-carmesim/10 transition-colors"
+            className={`h-8 w-8 flex items-center justify-center rounded-md text-gray-500 hover:text-carmesim hover:bg-carmesim/10 transition-colors ${collapsed ? '' : 'ml-auto'}`}
             title={expanded ? 'Colapsar menu' : 'Expandir menu'}
             aria-label={expanded ? 'Colapsar menu' : 'Expandir menu'}
             aria-expanded={expanded}

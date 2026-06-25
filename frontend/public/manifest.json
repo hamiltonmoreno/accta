@@ -9,14 +9,10 @@
       "type": "image/x-icon"
     },
     {
-      "src": "/logo192.png",
+      "src": "https://api.controlador.cv/api/brand/icon",
       "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "/logo512.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "any",
+      "purpose": "any"
     }
   ],
   "start_url": "/carteira",
@@ -32,13 +28,13 @@
       "short_name": "Carteira",
       "description": "Acesse sua carteira de socio",
       "url": "/carteira",
-      "icons": [{ "src": "/logo192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "https://api.controlador.cv/api/brand/icon", "sizes": "any" }]
     },
     {
       "name": "Dashboard",
       "short_name": "Dashboard",
       "url": "/dashboard",
-      "icons": [{ "src": "/logo192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "https://api.controlador.cv/api/brand/icon", "sizes": "any" }]
     }
   ]
 }

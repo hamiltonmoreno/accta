@@ -8,9 +8,11 @@ Semântica de "limpar": campo enviado como "" repõe o default (grava None);
 campo ausente mantém o valor; uma URL substitui.
 """
 
+import os
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import RedirectResponse
 
 from auth import get_current_user
 from database import db
@@ -41,15 +43,29 @@ def _public_view(doc: dict) -> dict:
         "logo_light_url": doc.get("logo_light_url"),
         "logo_dark_url": doc.get("logo_dark_url"),
         "favicon_url": doc.get("favicon_url"),
+        "icon_url": doc.get("icon_url"),
         "alt": doc.get("alt") or _DEFAULT_ALT,
     }
 
 
 @router.get("/public")
 async def get_brand_public():
-    """Público (sem auth): logo light/dark + alt; defaults (None) se vazio.
+    """Público (sem auth): logos + favicon + ícone + alt; defaults (None) se vazio.
     Não grava nada durante a leitura."""
     return _public_view(await _get_doc())
+
+
+@router.get("/icon")
+async def get_brand_icon():
+    """Público: URL estável do ícone quadrado da marca (PWA/og). Redireciona para o
+    ícone carregado ou, na sua ausência, para o default estático do frontend. Permite
+    que o manifest/og apontem para um URL fixo e o ícone troque pela UI sem novo deploy."""
+    doc = await _get_doc()
+    icon = doc.get("icon_url")
+    if not icon:
+        base = os.environ.get("FRONTEND_URL", "").rstrip("/")
+        icon = f"{base}/logo512.png"
+    return RedirectResponse(icon, status_code=302, headers={"Cache-Control": "public, max-age=3600"})
 
 
 @router.get("")
@@ -67,7 +83,7 @@ async def update_brand(request: Request, data: BrandSettingsUpdate, current_user
         raise HTTPException(status_code=400, detail="Nenhuma alteração fornecida")
 
     existing = await _get_doc()
-    url_fields = ("logo_light_url", "logo_dark_url", "favicon_url")
+    url_fields = ("logo_light_url", "logo_dark_url", "favicon_url", "icon_url")
     set_fields: dict = {}
     for field in url_fields:
         if field in provided:

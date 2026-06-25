@@ -55,6 +55,13 @@ class TestPublic:
         result = await br_route.get_brand_public()
         assert result["favicon_url"] == "/uploads/brand/fav.png"
 
+    async def test_devolve_icon_gravado(self, brand_env):
+        brand_env.brand_settings.find_one = AsyncMock(
+            return_value={"id": "brand_settings", "icon_url": "/uploads/brand/icon.png"}
+        )
+        result = await br_route.get_brand_public()
+        assert result["icon_url"] == "/uploads/brand/icon.png"
+
     async def test_devolve_logo_gravado(self, brand_env):
         brand_env.brand_settings.find_one = AsyncMock(
             return_value={"id": "brand_settings", "logo_light_url": "/uploads/brand/a.png", "alt": "Marca"}
@@ -143,6 +150,46 @@ class TestUpdate:
         assert captured["favicon_url"] is None
         assert deleted["url"] == "/uploads/brand/old-fav.png"
 
+    async def test_define_icon(self, brand_env, moderador_user):
+        captured = {}
+        brand_env.brand_settings.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        await br_route.update_brand(
+            request=_request(),
+            data=BrandSettingsUpdate(icon_url="/uploads/brand/icon.png"),
+            current_user=moderador_user,
+        )
+        assert captured["icon_url"] == "/uploads/brand/icon.png"
+        br_route.create_audit_log.assert_awaited()
+
+    async def test_limpar_icon_repoe_none_e_apaga_upload(self, brand_env, admin_user, monkeypatch):
+        brand_env.brand_settings.find_one = AsyncMock(
+            return_value={"id": "brand_settings", "icon_url": "/uploads/brand/old-icon.png"}
+        )
+        captured = {}
+        brand_env.brand_settings.update_one = AsyncMock(side_effect=lambda f, u: captured.update(u["$set"]))
+        deleted = {}
+        monkeypatch.setattr(br_route, "delete_upload_file", lambda url: deleted.setdefault("url", url))
+        await br_route.update_brand(
+            request=_request(), data=BrandSettingsUpdate(icon_url=""), current_user=admin_user
+        )
+        assert captured["icon_url"] is None
+        assert deleted["url"] == "/uploads/brand/old-icon.png"
+
+    async def test_icon_partilhado_nao_apaga_ao_limpar_outro(self, brand_env, admin_user, monkeypatch):
+        # Mesmo ficheiro referenciado por favicon_url e icon_url: limpar só o favicon
+        # NÃO deve apagar o ficheiro (ainda referenciado pelo ícone).
+        shared = "/uploads/brand/shared.png"
+        brand_env.brand_settings.find_one = AsyncMock(
+            return_value={"id": "brand_settings", "favicon_url": shared, "icon_url": shared}
+        )
+        brand_env.brand_settings.update_one = AsyncMock()
+        deleted = {}
+        monkeypatch.setattr(br_route, "delete_upload_file", lambda url: deleted.setdefault("url", url))
+        await br_route.update_brand(
+            request=_request(), data=BrandSettingsUpdate(favicon_url=""), current_user=admin_user
+        )
+        assert "url" not in deleted  # preservado pelo icon_url
+
     async def test_ausente_mantem(self, brand_env, admin_user):
         # Só altera alt; logo_light_url ausente NÃO deve aparecer no $set.
         brand_env.brand_settings.find_one = AsyncMock(
@@ -155,6 +202,24 @@ class TestUpdate:
         )
         assert captured["alt"] == "Novo Alt"
         assert "logo_light_url" not in captured  # mantido
+
+
+class TestIcon:
+    async def test_icon_redirect_para_carregado(self, brand_env):
+        brand_env.brand_settings.find_one = AsyncMock(
+            return_value={"id": "brand_settings", "icon_url": "/uploads/brand/icon.png"}
+        )
+        resp = await br_route.get_brand_icon()
+        assert resp.status_code == 302
+        assert resp.headers["location"] == "/uploads/brand/icon.png"
+        assert "max-age" in resp.headers.get("cache-control", "")
+
+    async def test_icon_redirect_default_quando_vazio(self, brand_env, monkeypatch):
+        monkeypatch.setenv("FRONTEND_URL", "https://controlador.cv")
+        brand_env.brand_settings.find_one = AsyncMock(return_value=None)
+        resp = await br_route.get_brand_icon()
+        assert resp.status_code == 302
+        assert resp.headers["location"] == "https://controlador.cv/logo512.png"
 
 
 class TestUploadCategory:
