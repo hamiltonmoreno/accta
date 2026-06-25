@@ -275,14 +275,14 @@ const PendingPanel = () => {
           {pending.map(photo => (
             <div key={photo.id} className="relative group rounded-lg overflow-hidden" data-testid={`pending-photo-${photo.id}`}>
               <img src={mediaUrl(photo.url)} alt={photo.caption} loading="lazy" className="w-full aspect-square object-cover" />
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+              <div className="absolute inset-0 bg-black/60 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                 <p className="text-white text-xs text-center px-2 truncate w-full">{photo.uploaded_by_name}</p>
                 <p className="text-white/70 text-xs truncate w-full text-center">{photo.album_title}</p>
                 <div className="flex gap-2 mt-1">
-                  <button onClick={() => handleApprove(photo.id)} className="p-2 bg-[#16A34A] rounded-full text-white hover:bg-[#15803D]" aria-label="Aprovar foto" data-testid={`approve-photo-${photo.id}`}>
+                  <button onClick={() => handleApprove(photo.id)} className="p-2.5 bg-floresta rounded-full text-white hover:bg-floresta-dark cursor-pointer" aria-label="Aprovar foto" data-testid={`approve-photo-${photo.id}`}>
                     <CheckCircle className="w-4 h-4" aria-hidden="true" />
                   </button>
-                  <button onClick={() => handleReject(photo.id)} className="p-2 bg-white border border-[#D1D5DB] rounded-full text-[#3A3A3A] hover:bg-[#F5F5F5]" aria-label="Rejeitar foto" data-testid={`reject-photo-${photo.id}`}>
+                  <button onClick={() => handleReject(photo.id)} className="p-2.5 bg-white border border-[#D1D5DB] rounded-full text-[#3A3A3A] hover:bg-[#F5F5F5] cursor-pointer" aria-label="Rejeitar foto" data-testid={`reject-photo-${photo.id}`}>
                     <XCircle className="w-4 h-4" aria-hidden="true" />
                   </button>
                 </div>

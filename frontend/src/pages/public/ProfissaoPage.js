@@ -432,11 +432,11 @@ export const ProfissaoPage = () => {
               <p className="text-xl text-white/80 leading-relaxed mb-6">
                 {fir.descricao}
               </p>
-              <p className="text-lg text-white/70 leading-relaxed mb-8">
+              <p className="text-lg text-white/85 leading-relaxed mb-8">
                 Os controladores cabo-verdianos asseguram diariamente a passagem segura de voos
                 intercontinentais por este corredor vital entre a Europa, África e as Américas.
               </p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
                   <div className="font-sans font-bold text-2xl text-white mb-1">DL 9/80</div>
                   <div className="text-xs text-white/60 uppercase tracking-wider">Decreto que criou a FIR</div>

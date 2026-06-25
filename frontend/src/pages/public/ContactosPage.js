@@ -256,13 +256,13 @@ export const ContactosPage = () => {
                     <button
                       type="submit"
                       disabled={sending}
-                      className="w-full flex items-center justify-center gap-2 bg-grafite text-white px-6 py-4 rounded-lg font-bold hover:bg-grafite/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full flex items-center justify-center gap-2 bg-floresta text-white px-6 py-4 rounded-lg font-bold hover:bg-floresta-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
                       data-testid="contact-submit"
                     >
                       {sending ? (
                         <>
                           <Loader2 className="w-5 h-5 animate-spin" />
-                          Enviando...
+                          A enviar...
                         </>
                       ) : (
                         <>

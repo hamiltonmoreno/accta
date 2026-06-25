@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, ArrowRight } from 'lucide-react';
+import { Wallet, ArrowRight, TrendingDown, TrendingUp } from 'lucide-react';
 
 // Banner do saldo anual (clicável: leva ao módulo Financeiro).
 export const FinanceSummary = ({ financeSummary, currentYear }) => {
@@ -19,7 +19,7 @@ export const FinanceSummary = ({ financeSummary, currentYear }) => {
         </h3>
         <ArrowRight className="w-4 h-4 text-gray-400" />
       </div>
-      <div className="grid grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
         <div>
           <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Receitas</div>
           <div className="font-mono text-xl sm:text-2xl font-bold text-[#15803D]">{financeSummary.total_receitas.toLocaleString('pt')}</div>
@@ -32,7 +32,10 @@ export const FinanceSummary = ({ financeSummary, currentYear }) => {
         </div>
         <div>
           <div className="text-xs text-gray-500 uppercase tracking-wider mb-1 font-medium">Resultado</div>
-          <div className={`font-mono text-xl sm:text-2xl font-bold ${financeSummary.resultado_liquido >= 0 ? 'text-grafite' : 'text-[#B91C1C]'}`}>
+          <div className={`font-mono text-xl sm:text-2xl font-bold flex items-center gap-1.5 ${financeSummary.resultado_liquido >= 0 ? 'text-grafite' : 'text-[#B91C1C]'}`}>
+            {financeSummary.resultado_liquido >= 0
+              ? <TrendingUp className="w-4 h-4 shrink-0" aria-hidden="true" />
+              : <TrendingDown className="w-4 h-4 shrink-0" aria-hidden="true" />}
             {financeSummary.resultado_liquido.toLocaleString('pt')}
           </div>
           <div className="text-xs text-[#6B7280] mt-0.5">CVE</div>

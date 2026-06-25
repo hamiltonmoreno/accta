@@ -76,7 +76,7 @@ export const EventosPublicoPage = () => {
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-6">
           {/* Filters */}
-          <div className="flex justify-center gap-4 mb-12">
+          <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mb-12">
             {[
               { value: 'upcoming', label: 'Próximos' },
               { value: 'past', label: 'Realizados' },
@@ -85,7 +85,7 @@ export const EventosPublicoPage = () => {
               <button
                 key={f.value}
                 onClick={() => setFilter(f.value)}
-                className={`px-6 py-2 rounded-lg text-sm font-semibold transition-all ${
+                className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 ${
                   filter === f.value
                     ? 'bg-grafite text-white'
                     : 'bg-white text-gray-600 hover:bg-gray-50'

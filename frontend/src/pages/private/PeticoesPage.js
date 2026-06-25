@@ -62,14 +62,14 @@ export const PeticoesPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div>
           <h1 className="page-title" data-testid="peticoes-title">Petições</h1>
           <p className="page-subtitle">Peça a convocação de uma Assembleia Geral extraordinária (Art. 9.f / 19.2.d). Ao atingir 1/4 dos sócios votantes, a Mesa é notificada.</p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+          className="flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 bg-floresta text-white px-4 py-2 rounded-lg hover:bg-floresta-dark transition-colors text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
           data-testid="new-peticao-btn"
         >
           <Plus className="w-4 h-4" aria-hidden="true" /> Nova petição
@@ -104,17 +104,19 @@ export const PeticoesPage = () => {
                     <span>{p.signature_count} assinatura{p.signature_count === 1 ? '' : 's'}{target ? ` de ${target}` : ''}</span>
                     {pct !== null && <span>{pct}%</span>}
                   </div>
-                  <div className="h-2 bg-[#F5F5F5] rounded-full overflow-hidden">
-                    <div className="h-full bg-carmesim rounded-full transition-[width] duration-300" style={{ width: `${pct ?? Math.min(100, p.signature_count * 10)}%` }} />
-                  </div>
+                  {pct !== null && (
+                    <div className="h-2 bg-[#F5F5F5] rounded-full overflow-hidden">
+                      <div className="h-full bg-floresta rounded-full transition-[width] duration-300" style={{ width: `${pct}%` }} />
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                   {(p.status === 'aberta' || p.status === 'atingida') && (
                     <button
                       onClick={() => signMut.mutate({ id: p.id, signed: p.viewer_has_signed })}
                       disabled={busy || (p.viewer_has_signed && p.status !== 'aberta')}
-                      className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50 ${p.viewer_has_signed ? 'bg-white border border-[#D1D5DB] text-grafite hover:bg-[#F5F5F5]' : 'bg-floresta text-white hover:bg-floresta-dark'}`}
+                      className={`inline-flex items-center justify-center gap-1.5 w-full sm:w-auto px-3 py-2 rounded-md text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50 ${p.viewer_has_signed ? 'bg-white border border-[#D1D5DB] text-grafite hover:bg-[#F5F5F5]' : 'bg-floresta text-white hover:bg-floresta-dark'}`}
                       data-testid={`assinar-${p.id}`}
                     >
                       {busy ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Check className="w-4 h-4" aria-hidden="true" />}
@@ -126,7 +128,7 @@ export const PeticoesPage = () => {
                       <select
                         value={fwdAssembleia[p.id] || ''}
                         onChange={(e) => setFwdAssembleia({ ...fwdAssembleia, [p.id]: e.target.value })}
-                        className="px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40"
+                        className="w-full sm:w-auto px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40"
                         data-testid={`encaminhar-assembleia-${p.id}`}
                       >
                         <option value="">Ligar a uma AG (opcional)…</option>
@@ -135,7 +137,7 @@ export const PeticoesPage = () => {
                       <button
                         onClick={() => fwdMut.mutate({ id: p.id, assembleiaId: fwdAssembleia[p.id] })}
                         disabled={fwdMut.isPending}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-white border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer disabled:opacity-50"
+                        className="inline-flex items-center justify-center gap-1.5 w-full sm:w-auto px-3 py-2 rounded-md bg-white border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer disabled:opacity-50"
                         data-testid={`encaminhar-${p.id}`}
                       >
                         <Megaphone className="w-4 h-4" aria-hidden="true" /> Encaminhar à Mesa

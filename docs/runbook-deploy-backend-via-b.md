@@ -46,23 +46,24 @@ Antes de começar, obtém o SHA do `main` na release (na tua máquina):
 git fetch origin main && git rev-parse --short=12 main
 ```
 
-**Valores atuais (v0.5.34 — favicon gerível pela UI de Aparência, PR #341):**
+**Valores atuais (v0.5.35 — ícone quadrado da marca / PWA, spec 005, PR #344):**
 
 | Variável | Valor |
 |----------|-------|
-| `TAG` (imagem nova) | `sha-4a78080aec1e` |
-| Tag git da release | `v0.5.34` (= `4a78080`, HEAD de `main`, merge #342) |
-| Rollback (prod anterior, v0.5.31) | `sha-678575f73905` |
-| Teste decisivo desta release | `GET /api/brand/public` devolve o campo **`favicon_url`** (será `null` enquanto não houver upload — o campo existir confirma o backend novo); logos existentes preservados. Base: imagem = `sha-4a78080aec1e`, health 200, `openapi.json`/`docs` → 404, arranque sem tracebacks. |
+| `TAG` (imagem nova) | `sha-b16773a08b8a` |
+| Tag git da release | `v0.5.35` (= `b16773a`, HEAD de `main`, merge #345) |
+| Rollback (prod anterior, v0.5.34) | `sha-4a78080aec1e` |
+| Teste decisivo desta release | `GET /api/brand/icon` via `-L` segue o 302 e devolve **200** (imagem — ícone atual ou o default `{FRONTEND_URL}/logo512.png`) **e** `GET /api/brand/public` inclui o campo **`icon_url`** (`null` enquanto não houver upload — o campo existir confirma o backend novo). Base: imagem = `sha-b16773a08b8a`, health 200, `openapi.json`/`docs` → 404, arranque sem tracebacks. |
 
-> **Nota:** a v0.5.34 **toca em `backend/`** (`models.py` — `favicon_url` em
-> `BrandSettings`/`BrandSettingsUpdate`; `routes/brand.py` — campo no `_public_view`,
-> no PATCH e no audit; refactor da limpeza de uploads órfãos). O backend em prod
-> antes da v0.5.34 está na **v0.5.31** (`sha-678575f73905`). **Sem migração/pós-deploy**
-> (campo aditivo, opcional, default `None`). As releases v0.5.32/v0.5.33 foram
-> frontend-only (não mexeram no backend). Confirma sempre a imagem em execução antes
-> de deploy: `docker compose ps` (coluna IMAGE) ou
-> `docker inspect accta-backend --format '{{.Config.Image}}'`.
+> **Nota:** a v0.5.35 **toca em `backend/`** (`models.py` — `icon_url` em
+> `BrandSettings`/`BrandSettingsUpdate` + `field_validator` que restringe URLs da
+> marca a `/uploads/` ou `https://`; `routes/brand.py` — `icon_url` no `_public_view`/
+> `url_fields`/audit e o novo endpoint público `GET /api/brand/icon` que faz 302 para
+> o ícone atual ou para `{FRONTEND_URL}/logo512.png`, `Cache-Control: public, max-age=3600`).
+> O backend em prod antes da v0.5.35 está na **v0.5.34** (`sha-4a78080aec1e`). **Sem
+> migração/pós-deploy** (campo aditivo, opcional, default `None`; endpoint aditivo).
+> Confirma sempre a imagem em execução antes de deploy: `docker compose ps` (coluna
+> IMAGE) ou `docker inspect accta-backend --format '{{.Config.Image}}'`.
 
 ---
 
@@ -72,22 +73,22 @@ git fetch origin main && git rev-parse --short=12 main
 ```bash
 rm -rf /tmp/accta-build
 git clone https://github.com/hamiltonmoreno/accta.git /tmp/accta-build
-cd /tmp/accta-build && git checkout v0.5.34       # <- tag git da release
+cd /tmp/accta-build && git checkout v0.5.35       # <- tag git da release
 docker build -f backend/Dockerfile \
-  -t ghcr.io/hamiltonmoreno/accta-backend:sha-4a78080aec1e .   # <- TAG
+  -t ghcr.io/hamiltonmoreno/accta-backend:sha-b16773a08b8a .   # <- TAG
 ```
 
 ### 2.2 Arrancar via o compose canónico (só muda o TAG)
 ```bash
 cd /docker/accta
-export TAG=sha-4a78080aec1e
+export TAG=sha-b16773a08b8a
 docker compose up -d --no-deps backend
 ```
 
 ### 2.3 Verificar
 ```bash
 docker compose ps                         # backend = Up (healthy)
-docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-4a78080aec1e
+docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-b16773a08b8a
 docker compose logs --tail=80 backend     # arranque limpo: ensure_schema OK, sem tracebacks
 curl -fsS https://api.controlador.cv/api/ # 200
 
@@ -101,8 +102,10 @@ curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/api/finances
 # Regressão (spec 003, vivo desde v0.5.27): endpoints de finanças de evento.
 curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/api/events/nao-existe/expenses # esperado: 401 (NÃO 404)
 curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/api/events/nao-existe/receitas # esperado: 401 (NÃO 404)
-# Teste decisivo da v0.5.34: /api/brand/public expõe o campo favicon_url (aditivo).
-curl -fsS https://api.controlador.cv/api/brand/public   # esperado: JSON inclui "favicon_url" (null se sem upload); logos preservados
+# Teste decisivo da v0.5.35: endpoint dinâmico do ícone + campo icon_url (aditivos).
+curl -s -o /dev/null -w '%{http_code}\n' -L https://api.controlador.cv/api/brand/icon  # esperado: 200 (segue 302 p/ imagem)
+curl -fsS https://api.controlador.cv/api/brand/public | grep -o '"icon_url"'           # esperado: presente (valor null se sem upload)
+# (favicon_url da v0.5.34 mantém-se exposto e inalterado.)
 # Arranque limpo (mantém-se desde v0.5.24): zero hits de 'tuple concurrently updated'.
 docker compose logs --tail=200 backend 2>&1 | grep -E 'tuple concurrently updated' | wc -l            # esperado: 0
 docker compose logs --tail=200 backend 2>&1 | grep -cE 'audit_logs immutability trigger.*instalado'   # esperado: 2 (um por worker)
@@ -117,7 +120,7 @@ docker compose logs --tail=200 backend 2>&1 | grep -E 'pg_cron not configured'  
 A imagem anterior continua no VPS; só se troca o `TAG`:
 ```bash
 cd /docker/accta
-export TAG=sha-678575f73905        # <- rollback (v0.5.31, imagem que corria antes da v0.5.34)
+export TAG=sha-4a78080aec1e        # <- rollback (v0.5.34, imagem que corria antes da v0.5.35)
 docker compose up -d --no-deps backend
 ```
 
@@ -156,9 +159,10 @@ Ver `DEPLOY.md` e `HOSTINGER_DEPLOY.md` para o setup completo (secrets SSH,
   (`sha-12d24165c36a`) → v0.5.23 (`sha-218a2bdf4e24`) → v0.5.24
   (`sha-9c056677f181`) → v0.5.25 (`sha-af16c566b25f`) → v0.5.26
   (`sha-7c38123185f9`) → v0.5.27 (`sha-e70d67cc58ed`) → v0.5.31
-  (`sha-678575f73905`) → **v0.5.34 (`sha-4a78080aec1e`, este deploy)**. As
-  v0.5.28/v0.5.29/v0.5.30 e v0.5.32/v0.5.33 não tocaram no backend (docs/test/
-  frontend-only). As v0.5.1/v0.5.5/v0.5.6/v0.5.7, v0.5.9–v0.5.12, v0.5.14–v0.5.16 e
+  (`sha-678575f73905`) → v0.5.34 (`sha-4a78080aec1e`) → **v0.5.35
+  (`sha-b16773a08b8a`, este deploy)**. As v0.5.28/v0.5.29/v0.5.30 e
+  v0.5.32/v0.5.33 não tocaram no backend (docs/test/frontend-only). As
+  v0.5.1/v0.5.5/v0.5.6/v0.5.7, v0.5.9–v0.5.12, v0.5.14–v0.5.16 e
   v0.5.19–v0.5.21 não tocaram no backend (só Vercel).
 - Pós-deploy histórico (informativo, **já feitos**): v0.5.22 desbloqueou
   o **#281** (DROP da tabela órfã `invoices`, executado 2026-06-19 via

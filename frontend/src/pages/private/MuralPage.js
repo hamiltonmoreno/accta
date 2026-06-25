@@ -232,12 +232,12 @@ const PendingPostsPanel = () => {
                     <p className="text-sm mb-3 whitespace-pre-wrap text-secondary-auto">{post.content}</p>
                     <div className="flex gap-2 justify-end">
                       <button onClick={() => rejectMutation.mutate(post.id)}
-                        className="flex items-center gap-1 px-3 py-1.5 text-sm text-carmesim border border-carmesim/30 rounded-lg hover:bg-carmesim/10 transition-colors"
+                        className="flex items-center gap-1 px-3 py-2 text-sm text-carmesim border border-carmesim/30 rounded-lg hover:bg-carmesim/10 transition-colors cursor-pointer"
                         data-testid={`reject-post-${post.id}`}>
                         <XCircle className="w-4 h-4" /> Rejeitar
                       </button>
                       <button onClick={() => approveMutation.mutate(post.id)}
-                        className="flex items-center gap-1 px-3 py-1.5 text-sm text-white bg-[#16A34A] rounded-lg hover:bg-[#15803D] transition-colors"
+                        className="flex items-center gap-1 px-3 py-2 text-sm text-white bg-floresta rounded-lg hover:bg-floresta-dark transition-colors cursor-pointer"
                         data-testid={`approve-post-${post.id}`}>
                         <CheckCircle className="w-4 h-4" /> Aprovar
                       </button>
