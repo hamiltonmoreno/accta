@@ -24,7 +24,7 @@ export const AdminAparenciaPage = () => {
         </div>
         <div>
           <h1 className="text-xl font-bold text-grafite">Aparência do Site</h1>
-          <p className="text-sm text-[#6B7280]">Gerir o logótipo da marca e os banners das páginas públicas.</p>
+          <p className="text-sm text-[#6B7280]">Gerir o logótipo da marca, o favicon e os banners das páginas públicas.</p>
         </div>
       </div>
 

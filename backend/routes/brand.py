@@ -40,6 +40,7 @@ def _public_view(doc: dict) -> dict:
     return {
         "logo_light_url": doc.get("logo_light_url"),
         "logo_dark_url": doc.get("logo_dark_url"),
+        "favicon_url": doc.get("favicon_url"),
         "alt": doc.get("alt") or _DEFAULT_ALT,
     }
 
@@ -66,8 +67,9 @@ async def update_brand(request: Request, data: BrandSettingsUpdate, current_user
         raise HTTPException(status_code=400, detail="Nenhuma alteração fornecida")
 
     existing = await _get_doc()
+    url_fields = ("logo_light_url", "logo_dark_url", "favicon_url")
     set_fields: dict = {}
-    for field in ("logo_light_url", "logo_dark_url"):
+    for field in url_fields:
         if field in provided:
             # "" repõe default (None); URL substitui.
             set_fields[field] = provided[field] or None
@@ -75,10 +77,10 @@ async def update_brand(request: Request, data: BrandSettingsUpdate, current_user
         set_fields["alt"] = provided["alt"] or _DEFAULT_ALT
 
     # Limpa ficheiros de upload próprios que deixem de estar referenciados.
-    new_light = set_fields.get("logo_light_url", existing.get("logo_light_url"))
-    new_dark = set_fields.get("logo_dark_url", existing.get("logo_dark_url"))
-    still_referenced = {u for u in (new_light, new_dark) if u}
-    for field in ("logo_light_url", "logo_dark_url"):
+    still_referenced = {
+        set_fields.get(f, existing.get(f)) for f in url_fields if set_fields.get(f, existing.get(f))
+    }
+    for field in url_fields:
         if field in set_fields:
             old = existing.get(field)
             if old and old.startswith("/uploads/brand/") and old not in still_referenced:
@@ -101,6 +103,6 @@ async def update_brand(request: Request, data: BrandSettingsUpdate, current_user
         "brand_updated",
         _DOC_ID,
         request=request,
-        details={k: set_fields.get(k) for k in ("logo_light_url", "logo_dark_url", "alt") if k in set_fields},
+        details={k: set_fields.get(k) for k in (*url_fields, "alt") if k in set_fields},
     )
     return _public_view(await _get_doc())

@@ -45,7 +45,15 @@ class TestPublic:
         result = await br_route.get_brand_public()
         assert result["logo_light_url"] is None
         assert result["logo_dark_url"] is None
+        assert result["favicon_url"] is None
         assert result["alt"] == "ACCTA Cabo Verde"
+
+    async def test_devolve_favicon_gravado(self, brand_env):
+        brand_env.brand_settings.find_one = AsyncMock(
+            return_value={"id": "brand_settings", "favicon_url": "/uploads/brand/fav.png"}
+        )
+        result = await br_route.get_brand_public()
+        assert result["favicon_url"] == "/uploads/brand/fav.png"
 
     async def test_devolve_logo_gravado(self, brand_env):
         brand_env.brand_settings.find_one = AsyncMock(
@@ -107,6 +115,33 @@ class TestUpdate:
         )
         assert captured["logo_light_url"] is None  # voltou ao SVG fallback
         assert deleted["url"] == "/uploads/brand/old.png"  # upload antigo apagado
+
+    async def test_define_favicon(self, brand_env, admin_user):
+        captured = {}
+        brand_env.brand_settings.insert_one = AsyncMock(side_effect=lambda d: captured.update(d))
+        # _get_doc() relê via find_one após gravar → devolve o doc inserido.
+        brand_env.brand_settings.find_one = AsyncMock(side_effect=lambda *a, **k: captured or None)
+        result = await br_route.update_brand(
+            request=_request(),
+            data=BrandSettingsUpdate(favicon_url="/uploads/brand/fav.png"),
+            current_user=admin_user,
+        )
+        assert captured["favicon_url"] == "/uploads/brand/fav.png"
+        assert result["favicon_url"] == "/uploads/brand/fav.png"
+
+    async def test_limpar_favicon_repoe_none_e_apaga_upload(self, brand_env, admin_user, monkeypatch):
+        brand_env.brand_settings.find_one = AsyncMock(
+            return_value={"id": "brand_settings", "favicon_url": "/uploads/brand/old-fav.png"}
+        )
+        captured = {}
+        brand_env.brand_settings.update_one = AsyncMock(side_effect=lambda f, u: captured.update(u["$set"]))
+        deleted = {}
+        monkeypatch.setattr(br_route, "delete_upload_file", lambda url: deleted.setdefault("url", url))
+        await br_route.update_brand(
+            request=_request(), data=BrandSettingsUpdate(favicon_url=""), current_user=admin_user
+        )
+        assert captured["favicon_url"] is None
+        assert deleted["url"] == "/uploads/brand/old-fav.png"
 
     async def test_ausente_mantem(self, brand_env, admin_user):
         # Só altera alt; logo_light_url ausente NÃO deve aparecer no $set.
