@@ -46,23 +46,23 @@ Antes de começar, obtém o SHA do `main` na release (na tua máquina):
 git fetch origin main && git rev-parse --short=12 main
 ```
 
-**Valores atuais (v0.5.31 — fix da spec 003: exactly-once ESTRUTURAL da receita de multa — índice UNIQUE parcial `ux_tx_sancao_receita` + captura de `UniqueViolationError` em `aplicar_sancao` sem compensação; W2: remover índice morto `ix_tx_project`):**
+**Valores atuais (v0.5.34 — favicon gerível pela UI de Aparência, PR #341):**
 
 | Variável | Valor |
 |----------|-------|
-| `TAG` (imagem nova) | `sha-678575f73905` |
-| Tag git da release | `v0.5.31` (= `678575f`, HEAD de `main`, merge #331) |
-| Rollback (prod anterior, v0.5.27) | `sha-e70d67cc58ed` |
-| Teste decisivo desta release | Confirmar os índices na BD: `docker exec accta-backend python -c "..."` (ver §2.3) deve dar `ux_tx_sancao_receita → UNIQUE`, `ix_tx_sancao → present`, `ix_tx_project → ABSENT`. Os INFOs "audit_logs immutability trigger instalado", "RLS auto-enable event trigger instalado" e "PostgreSQL schema and indexes ensured" devem aparecer 2× cada, 0 `tuple concurrently updated`. **Nota:** 1× `Index creation warning ... pg_class_relname_nsp_index` é uma **race benigna do catálogo** entre os 2 workers a criar índices em simultâneo — não-fatal, o índice fica criado (confirma-se pelo query acima). Verificação base: imagem = `sha-678575f73905`, health 200, `GET /api/events/<id>/expenses` → 401 (regressão), arranque sem tracebacks. |
+| `TAG` (imagem nova) | `sha-4a78080aec1e` |
+| Tag git da release | `v0.5.34` (= `4a78080`, HEAD de `main`, merge #342) |
+| Rollback (prod anterior, v0.5.31) | `sha-678575f73905` |
+| Teste decisivo desta release | `GET /api/brand/public` devolve o campo **`favicon_url`** (será `null` enquanto não houver upload — o campo existir confirma o backend novo); logos existentes preservados. Base: imagem = `sha-4a78080aec1e`, health 200, `openapi.json`/`docs` → 404, arranque sem tracebacks. |
 
-> **Nota:** a v0.5.31 **toca em `backend/`** (`database.py` — novo índice UNIQUE
-> `ux_tx_sancao_receita` + remoção do `DROP INDEX ix_tx_project`; `routes/sancoes.py` —
-> captura de `UniqueViolationError`, sem compensação). O backend em prod antes da
-> v0.5.31 está na **v0.5.27** (`sha-e70d67cc58ed`). Sem migração/pós-deploy de dados
-> (o índice UNIQUE constrói limpo: prod tem 0 receitas de sanção, T030).
-> As releases v0.5.28/v0.5.29/v0.5.30 foram docs/test-only (não mexeram no backend).
-> Confirma sempre a imagem em execução antes de deploy: `docker compose ps`
-> (coluna IMAGE) ou `docker inspect accta-backend --format '{{.Config.Image}}'`.
+> **Nota:** a v0.5.34 **toca em `backend/`** (`models.py` — `favicon_url` em
+> `BrandSettings`/`BrandSettingsUpdate`; `routes/brand.py` — campo no `_public_view`,
+> no PATCH e no audit; refactor da limpeza de uploads órfãos). O backend em prod
+> antes da v0.5.34 está na **v0.5.31** (`sha-678575f73905`). **Sem migração/pós-deploy**
+> (campo aditivo, opcional, default `None`). As releases v0.5.32/v0.5.33 foram
+> frontend-only (não mexeram no backend). Confirma sempre a imagem em execução antes
+> de deploy: `docker compose ps` (coluna IMAGE) ou
+> `docker inspect accta-backend --format '{{.Config.Image}}'`.
 
 ---
 
@@ -72,22 +72,22 @@ git fetch origin main && git rev-parse --short=12 main
 ```bash
 rm -rf /tmp/accta-build
 git clone https://github.com/hamiltonmoreno/accta.git /tmp/accta-build
-cd /tmp/accta-build && git checkout v0.5.31       # <- tag git da release
+cd /tmp/accta-build && git checkout v0.5.34       # <- tag git da release
 docker build -f backend/Dockerfile \
-  -t ghcr.io/hamiltonmoreno/accta-backend:sha-678575f73905 .   # <- TAG
+  -t ghcr.io/hamiltonmoreno/accta-backend:sha-4a78080aec1e .   # <- TAG
 ```
 
 ### 2.2 Arrancar via o compose canónico (só muda o TAG)
 ```bash
 cd /docker/accta
-export TAG=sha-678575f73905
+export TAG=sha-4a78080aec1e
 docker compose up -d --no-deps backend
 ```
 
 ### 2.3 Verificar
 ```bash
 docker compose ps                         # backend = Up (healthy)
-docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-678575f73905
+docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-4a78080aec1e
 docker compose logs --tail=80 backend     # arranque limpo: ensure_schema OK, sem tracebacks
 curl -fsS https://api.controlador.cv/api/ # 200
 
@@ -101,22 +101,8 @@ curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/api/finances
 # Regressão (spec 003, vivo desde v0.5.27): endpoints de finanças de evento.
 curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/api/events/nao-existe/expenses # esperado: 401 (NÃO 404)
 curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/api/events/nao-existe/receitas # esperado: 401 (NÃO 404)
-# Teste decisivo da v0.5.31: índices na BD (W1 UNIQUE criado, W2 órfão removido).
-docker exec -e Q="ux_tx_sancao_receita ix_tx_sancao ix_tx_project" accta-backend python -c "
-import asyncio, os
-from database import get_pool
-async def main():
-    pool = await get_pool()
-    async with pool.acquire() as c:
-        rows = await c.fetch(\"SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'transactions'\")
-        have = {r['indexname']: r['indexdef'] for r in rows}
-        for n in os.environ['Q'].split():
-            d = have.get(n)
-            print(n, '->', ('UNIQUE' if d and 'UNIQUE' in d else 'present') if d else 'ABSENT')
-asyncio.run(main())
-"   # esperado: ux_tx_sancao_receita -> UNIQUE | ix_tx_sancao -> present | ix_tx_project -> ABSENT
-# Nota: 1× "Index creation warning ... pg_class_relname_nsp_index" no arranque é race
-# benigna do catálogo entre os 2 workers (não-fatal; o índice fica criado, ver query acima).
+# Teste decisivo da v0.5.34: /api/brand/public expõe o campo favicon_url (aditivo).
+curl -fsS https://api.controlador.cv/api/brand/public   # esperado: JSON inclui "favicon_url" (null se sem upload); logos preservados
 # Arranque limpo (mantém-se desde v0.5.24): zero hits de 'tuple concurrently updated'.
 docker compose logs --tail=200 backend 2>&1 | grep -E 'tuple concurrently updated' | wc -l            # esperado: 0
 docker compose logs --tail=200 backend 2>&1 | grep -cE 'audit_logs immutability trigger.*instalado'   # esperado: 2 (um por worker)
@@ -131,7 +117,7 @@ docker compose logs --tail=200 backend 2>&1 | grep -E 'pg_cron not configured'  
 A imagem anterior continua no VPS; só se troca o `TAG`:
 ```bash
 cd /docker/accta
-export TAG=sha-e70d67cc58ed        # <- rollback (v0.5.27, imagem que corria antes da v0.5.31)
+export TAG=sha-678575f73905        # <- rollback (v0.5.31, imagem que corria antes da v0.5.34)
 docker compose up -d --no-deps backend
 ```
 
@@ -169,9 +155,10 @@ Ver `DEPLOY.md` e `HOSTINGER_DEPLOY.md` para o setup completo (secrets SSH,
   (`sha-6e313d80425f`) → v0.5.18 (`sha-bbf09cfa2298`) → v0.5.22
   (`sha-12d24165c36a`) → v0.5.23 (`sha-218a2bdf4e24`) → v0.5.24
   (`sha-9c056677f181`) → v0.5.25 (`sha-af16c566b25f`) → v0.5.26
-  (`sha-7c38123185f9`) → v0.5.27 (`sha-e70d67cc58ed`) → **v0.5.31
-  (`sha-678575f73905`, este deploy)**. As v0.5.28/v0.5.29/v0.5.30 não tocaram
-  no backend (docs/test-only). As v0.5.1/v0.5.5/v0.5.6/v0.5.7, v0.5.9–v0.5.12, v0.5.14–v0.5.16 e
+  (`sha-7c38123185f9`) → v0.5.27 (`sha-e70d67cc58ed`) → v0.5.31
+  (`sha-678575f73905`) → **v0.5.34 (`sha-4a78080aec1e`, este deploy)**. As
+  v0.5.28/v0.5.29/v0.5.30 e v0.5.32/v0.5.33 não tocaram no backend (docs/test/
+  frontend-only). As v0.5.1/v0.5.5/v0.5.6/v0.5.7, v0.5.9–v0.5.12, v0.5.14–v0.5.16 e
   v0.5.19–v0.5.21 não tocaram no backend (só Vercel).
 - Pós-deploy histórico (informativo, **já feitos**): v0.5.22 desbloqueou
   o **#281** (DROP da tabela órfã `invoices`, executado 2026-06-19 via
