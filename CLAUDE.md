@@ -361,14 +361,17 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Active Spec Kit feature: **`specs/005-icone-marca-pwa/`** — ícone quadrado da marca
+Sem feature Spec Kit ativa (próximo `/speckit-specify`).
+Last completed: `specs/005-icone-marca-pwa-concluido/` — ícone quadrado da marca
 gerível pela UI (Aparência → Marca), distinto do favicon (`icon_url` novo), que alimenta
 a marca compacta in-app + o **ícone PWA** e a **imagem de partilha (og)** via um endpoint
-estável `GET /api/brand/icon` (servir dinâmico, sem deploy; Q1=dinâmico, Q2=campos
-distintos). Plano em `specs/005-icone-marca-pwa/plan.md` (research/data-model/contracts/
-quickstart gerados). Estende o subsistema de marca (logos + favicon v0.5.34). **Próximo:
-`/speckit-tasks`.** Backend tocado (models + brand.py) → vai exigir Via B na release.
-Last completed: `specs/004-plataforma-landing-concluido/` — landing page **pública de
+estável `GET /api/brand/icon` (servir dinâmico, sem deploy; 302 → ícone atual ou
+`{FRONTEND_URL}/logo512.png`). Backend tocado (`models.py` `icon_url` + `field_validator`;
+`routes/brand.py` endpoint). CONCLUÍDA e **RELEASED v0.5.35**, deployed em prod **Via B**
+(`sha-b16773a08b8a`, 2026-06-25 — `/api/brand/icon` -L → 200, `/api/brand/public` inclui
+`icon_url`; ver [[prod-backend-deployed-state]]). 15/15 tarefas; T013 C1/C3 verificados,
+C2/C4/C5/C6 (UI/PWA/iOS) residual de validação manual do dono (Princípio VII).
+Anterior: `specs/004-plataforma-landing-concluido/` — landing page **pública de
 produto** que apresenta o Portal ACCTA como sistema/plataforma de gestão de associações,
 em tom factual e **sem CTA comercial forte** (decisão do dono). Frontend-only (novo
 `pages/public/PlataformaPage.js` + rota lazy em `App.js` + link discreto no rodapé e item
