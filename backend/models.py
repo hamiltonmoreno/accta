@@ -2165,6 +2165,7 @@ class BrandSettings(BaseModel):
     logo_light_url: Optional[str] = None  # fundo claro; None → SVG fallback
     logo_dark_url: Optional[str] = None  # fundo escuro; None → SVG fallback
     favicon_url: Optional[str] = None  # ícone do separador; None → /favicon.ico estático
+    icon_url: Optional[str] = None  # ícone quadrado (PWA/og/marca compacta); None → default estático
     alt: str = "ACCTA Cabo Verde"
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_by: Optional[str] = None
@@ -2174,7 +2175,17 @@ class BrandSettingsUpdate(BaseModel):
     logo_light_url: Optional[str] = None  # "" = repor default; None = manter
     logo_dark_url: Optional[str] = None
     favicon_url: Optional[str] = None  # "" = repor default (/favicon.ico); None = manter
+    icon_url: Optional[str] = None  # "" = repor default (ícone estático); None = manter
     alt: Optional[str] = Field(default=None, max_length=200)
+
+    @field_validator("logo_light_url", "logo_dark_url", "favicon_url", "icon_url")
+    @classmethod
+    def _validate_brand_url(cls, v: Optional[str]) -> Optional[str]:
+        # "" repõe default; só se aceita um upload próprio ou um https absoluto.
+        # Bloqueia esquemas arbitrários (ex.: javascript:) servidos depois no Location/<img>.
+        if v and not (v.startswith("/uploads/") or v.startswith("https://")):
+            raise ValueError("URL de marca inválido (esperado /uploads/... ou https://...)")
+        return v
 
 
 # ===== REGULAMENTOS INTERNOS VERSIONADOS (spec-ciclo §6, Art. 31.j/56) =====

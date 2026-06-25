@@ -128,6 +128,65 @@ const FaviconSlot = ({ url, onUpload, onReset, busy }) => {
   );
 };
 
+const IconSlot = ({ url, onUpload, onReset, busy }) => {
+  const fileRef = useRef(null);
+  return (
+    <div className="bg-white rounded-lg border border-[#E5E7EB] shadow-sm p-4 space-y-3" data-testid="icon-slot">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-grafite">Ícone (app instalada / partilha)</h3>
+        {!url && <span className="text-xs text-[#6B7280]">ícone por defeito</span>}
+      </div>
+      {/* Pré-visualização a tamanhos representativos de atalho/app. */}
+      <div className="h-24 rounded-md flex items-center justify-center gap-6 bg-[#F5F5F5] border border-[#E5E7EB]">
+        <img src={url ? mediaUrl(url) : '/logo512.png'} alt="Ícone (32px)" className="w-8 h-8 object-contain rounded" />
+        <img src={url ? mediaUrl(url) : '/logo512.png'} alt="Ícone (48px)" className="w-12 h-12 object-contain rounded-lg" />
+        <img src={url ? mediaUrl(url) : '/logo512.png'} alt="Ícone (64px)" className="w-16 h-16 object-contain rounded-lg" />
+      </div>
+      <p className="text-xs text-[#6B7280]">
+        Usado no ícone da aplicação instalada (ecrã inicial) e na pré-visualização ao partilhar ligações.
+        Recomendado PNG quadrado e transparente (~512×512px), com o conteúdo centrado e margem de segurança
+        (algumas plataformas recortam as bordas). Sem upload, usa-se o ícone por defeito.
+      </p>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onUpload('icon_url', f);
+          e.target.value = '';
+        }}
+        data-testid="icon-file"
+      />
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={busy}
+          className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50"
+          data-testid="icon-replace"
+        >
+          <Upload className="w-4 h-4" aria-hidden="true" />
+          {busy ? 'A enviar...' : 'Substituir'}
+        </button>
+        {url && (
+          <button
+            type="button"
+            onClick={() => onReset('icon_url')}
+            disabled={busy}
+            className="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50"
+            data-testid="icon-reset"
+            title="Repor o ícone por defeito"
+          >
+            <RotateCcw className="w-4 h-4" aria-hidden="true" /> Repor
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const AdminMarcaPage = ({ embedded = false }) => {
   const qc = useQueryClient();
   const [busyField, setBusyField] = useState(null);
@@ -220,6 +279,13 @@ export const AdminMarcaPage = ({ embedded = false }) => {
             onUpload={handleUpload}
             onReset={handleReset}
             busy={busyField === 'favicon_url' && updateMutation.isPending}
+          />
+
+          <IconSlot
+            url={data?.icon_url}
+            onUpload={handleUpload}
+            onReset={handleReset}
+            busy={busyField === 'icon_url' && updateMutation.isPending}
           />
 
           {/* Texto alternativo */}
