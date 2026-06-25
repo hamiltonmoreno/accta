@@ -64,6 +64,70 @@ const LogoSlot = ({ label, hint, field, url, dark, onUpload, onReset, busy }) =>
   );
 };
 
+const FaviconSlot = ({ url, onUpload, onReset, busy }) => {
+  const fileRef = useRef(null);
+  return (
+    <div className="bg-white rounded-lg border border-[#E5E7EB] shadow-sm p-4 space-y-3" data-testid="favicon-slot">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-grafite">Favicon (ícone do separador)</h3>
+        {!url && <span className="text-xs text-[#6B7280]">favicon.ico por defeito</span>}
+      </div>
+      {/* Pré-visualização ao tamanho real de um separador (16/32px) + ampliada. */}
+      <div className="h-24 rounded-md flex items-center justify-center gap-6 bg-[#F5F5F5] border border-[#E5E7EB]">
+        {url ? (
+          <>
+            <img src={mediaUrl(url)} alt="Favicon (16px)" className="w-4 h-4 object-contain" />
+            <img src={mediaUrl(url)} alt="Favicon (32px)" className="w-8 h-8 object-contain" />
+            <img src={mediaUrl(url)} alt="Favicon (64px)" className="w-16 h-16 object-contain" />
+          </>
+        ) : (
+          <img src="/favicon.ico" alt="Favicon por defeito" className="w-8 h-8 object-contain" />
+        )}
+      </div>
+      <p className="text-xs text-[#6B7280]">
+        Aparece no separador do browser e nos favoritos. Recomendado PNG quadrado e transparente (~512×512px).
+        Sem upload, usa-se o ícone por defeito.
+      </p>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onUpload('favicon_url', f);
+          e.target.value = '';
+        }}
+        data-testid="favicon-file"
+      />
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={busy}
+          className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50"
+          data-testid="favicon-replace"
+        >
+          <Upload className="w-4 h-4" aria-hidden="true" />
+          {busy ? 'A enviar...' : 'Substituir'}
+        </button>
+        {url && (
+          <button
+            type="button"
+            onClick={() => onReset('favicon_url')}
+            disabled={busy}
+            className="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 disabled:opacity-50"
+            data-testid="favicon-reset"
+            title="Repor o favicon por defeito"
+          >
+            <RotateCcw className="w-4 h-4" aria-hidden="true" /> Repor
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const AdminMarcaPage = ({ embedded = false }) => {
   const qc = useQueryClient();
   const [busyField, setBusyField] = useState(null);
@@ -150,6 +214,13 @@ export const AdminMarcaPage = ({ embedded = false }) => {
               busy={busyField === 'logo_dark_url' && updateMutation.isPending}
             />
           </div>
+
+          <FaviconSlot
+            url={data?.favicon_url}
+            onUpload={handleUpload}
+            onReset={handleReset}
+            busy={busyField === 'favicon_url' && updateMutation.isPending}
+          />
 
           {/* Texto alternativo */}
           <div className="bg-white rounded-lg border border-[#E5E7EB] shadow-sm p-4">
