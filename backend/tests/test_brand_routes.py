@@ -190,6 +190,18 @@ class TestUpdate:
         )
         assert "url" not in deleted  # preservado pelo icon_url
 
+    def test_rejeita_url_esquema_invalido(self):
+        # Só /uploads/... ou https://... — bloqueia javascript:/http:/data: etc.
+        import pydantic
+
+        for bad in ("javascript:alert(1)", "http://evil.cv/x.png", "data:image/png;base64,AAAA"):
+            with pytest.raises(pydantic.ValidationError):
+                BrandSettingsUpdate(icon_url=bad)
+        # Válidos não levantam:
+        BrandSettingsUpdate(icon_url="/uploads/brand/x.png")
+        BrandSettingsUpdate(icon_url="https://cdn.exemplo.cv/x.png")
+        BrandSettingsUpdate(icon_url="")  # repor default
+
     async def test_ausente_mantem(self, brand_env, admin_user):
         # Só altera alt; logo_light_url ausente NÃO deve aparecer no $set.
         brand_env.brand_settings.find_one = AsyncMock(
@@ -220,6 +232,15 @@ class TestIcon:
         resp = await br_route.get_brand_icon()
         assert resp.status_code == 302
         assert resp.headers["location"] == "https://controlador.cv/logo512.png"
+
+    async def test_icon_default_sem_frontend_url_e_absoluto(self, brand_env, monkeypatch):
+        # Sem FRONTEND_URL o Location tem de ser absoluto (nunca relativo, que
+        # resolveria para o host do backend onde o ficheiro não existe).
+        monkeypatch.delenv("FRONTEND_URL", raising=False)
+        brand_env.brand_settings.find_one = AsyncMock(return_value=None)
+        resp = await br_route.get_brand_icon()
+        assert resp.status_code == 302
+        assert resp.headers["location"].startswith("https://")
 
 
 class TestUploadCategory:

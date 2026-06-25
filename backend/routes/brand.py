@@ -63,7 +63,10 @@ async def get_brand_icon():
     doc = await _get_doc()
     icon = doc.get("icon_url")
     if not icon:
-        base = os.environ.get("FRONTEND_URL", "").rstrip("/")
+        # Default = logo512 do frontend. FRONTEND_URL em prod; sem ele, evitar um
+        # Location relativo (resolveria para o host do backend, onde o ficheiro não
+        # existe) caindo no domínio público conhecido.
+        base = os.environ.get("FRONTEND_URL", "").rstrip("/") or "https://controlador.cv"
         icon = f"{base}/logo512.png"
     return RedirectResponse(icon, status_code=302, headers={"Cache-Control": "public, max-age=3600"})
 

@@ -28,13 +28,13 @@
       "short_name": "Carteira",
       "description": "Acesse sua carteira de socio",
       "url": "/carteira",
-      "icons": [{ "src": "https://api.controlador.cv/api/brand/icon", "sizes": "any" }]
+      "icons": [{ "src": "https://api.controlador.cv/api/brand/icon", "sizes": "any", "type": "image/png" }]
     },
     {
       "name": "Dashboard",
       "short_name": "Dashboard",
       "url": "/dashboard",
-      "icons": [{ "src": "https://api.controlador.cv/api/brand/icon", "sizes": "any" }]
+      "icons": [{ "src": "https://api.controlador.cv/api/brand/icon", "sizes": "any", "type": "image/png" }]
     }
   ]
 }

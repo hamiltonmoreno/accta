@@ -2178,6 +2178,15 @@ class BrandSettingsUpdate(BaseModel):
     icon_url: Optional[str] = None  # "" = repor default (ícone estático); None = manter
     alt: Optional[str] = Field(default=None, max_length=200)
 
+    @field_validator("logo_light_url", "logo_dark_url", "favicon_url", "icon_url")
+    @classmethod
+    def _validate_brand_url(cls, v: Optional[str]) -> Optional[str]:
+        # "" repõe default; só se aceita um upload próprio ou um https absoluto.
+        # Bloqueia esquemas arbitrários (ex.: javascript:) servidos depois no Location/<img>.
+        if v and not (v.startswith("/uploads/") or v.startswith("https://")):
+            raise ValueError("URL de marca inválido (esperado /uploads/... ou https://...)")
+        return v
+
 
 # ===== REGULAMENTOS INTERNOS VERSIONADOS (spec-ciclo §6, Art. 31.j/56) =====
 # Repositório versionado: cada `Regulamento` tem N `RegulamentoVersao` (1,2,3…);
