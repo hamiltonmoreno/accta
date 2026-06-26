@@ -117,6 +117,26 @@ async def create_sancao(request: Request, data: SancaoCreate, current_user: User
     return doc
 
 
+async def _annotate_multa_receita(rows: list) -> None:
+    """Anota cada multa aplicada com a receita REALMENTE existente no caixa
+    (`multa_receita: {exists, amount}`), agregando de `transactions` numa só
+    query (sem N+1). A faixa do cartão (PR #350) passa a refletir o estado atual
+    do caixa em vez de o inferir do estado da sanção: se a receita for removida
+    ou o valor corrigido nas finanças, a UI acompanha. O índice UNIQUE parcial
+    `ux_tx_sancao_receita` garante no máximo uma receita por sanção."""
+    aplicadas = [r["id"] for r in rows if r.get("tipo") == "multa" and r.get("status") == "aplicada"]
+    if not aplicadas:
+        return
+    txs = await db.transactions.find(
+        {"sancao_id": {"$in": aplicadas}, "type": "receita"},
+        {"_id": 0, "sancao_id": 1, "amount": 1},
+    ).to_list(len(aplicadas))
+    by_sancao = {t["sancao_id"]: float(t.get("amount") or 0) for t in txs}
+    for r in rows:
+        if r["id"] in aplicadas:
+            r["multa_receita"] = {"exists": r["id"] in by_sancao, "amount": by_sancao.get(r["id"], 0.0)}
+
+
 @router.get("")
 async def list_sancoes(
     current_user: User = Depends(get_current_user), status: str = "", tipo: str = "", user_id: str = ""
@@ -130,6 +150,7 @@ async def list_sancoes(
     if user_id:
         query["user_id"] = user_id
     rows = await db.sancoes.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    await _annotate_multa_receita(rows)
     return {"sancoes": rows}
 
 
@@ -317,9 +338,7 @@ async def aplicar_sancao(sancao_id: str, request: Request, current_user: User = 
     # tratamos como no-op (a receita do vencedor fica; não há nada a compensar,
     # independentemente de quem ganhe o CAS abaixo). Ver W1 em database.py.
     if tipo == "multa" and (s.get("multa_valor") or 0) > 0:
-        existing_tx = await db.transactions.find_one(
-            {"sancao_id": sancao_id, "type": "receita"}, {"_id": 0, "id": 1}
-        )
+        existing_tx = await db.transactions.find_one({"sancao_id": sancao_id, "type": "receita"}, {"_id": 0, "id": 1})
         if not existing_tx:
             socio = await db.users.find_one({"id": s["user_id"]}, {"_id": 0, "name": 1})
             nome = (socio or {}).get("name")

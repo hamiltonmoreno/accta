@@ -1,5 +1,5 @@
 import React from 'react';
-import { Scale, ShieldOff, Undo2, Users } from 'lucide-react';
+import { CircleDollarSign, Scale, ShieldOff, Undo2, Users } from 'lucide-react';
 import { TipoBadge, StatusBadge } from './widgets';
 import { formatDate, formatEscudo, secondaryBtn } from './tokens';
 
@@ -38,6 +38,22 @@ export const SancaoCard = ({
           )}
           {s.inquerito_prazo && <span>Prazo inquérito: {formatDate(s.inquerito_prazo)}</span>}
         </div>
+        {/* T027: receita de multa REALMENTE no caixa. O backend (list_sancoes) anota
+            `multa_receita: {exists, amount}` agregando de `transactions`, por isso a
+            faixa reflete o estado atual do caixa (esconde-se se a receita for removida
+            nas finanças) em vez de o inferir do estado da sanção — ver PR #350 / W1. */}
+        {s.tipo === 'multa' && s.status === 'aplicada' && s.multa_receita?.exists && (
+          <div
+            className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-[#F0FDF4] border border-[#BBF7D0] px-2.5 py-1 text-xs"
+            data-testid={`multa-receita-${s.id}`}
+          >
+            <CircleDollarSign className="w-3.5 h-3.5 text-[#166534]" aria-hidden="true" />
+            <span className="font-medium text-[#166534]">
+              Receita no caixa: {formatEscudo(s.multa_receita.amount)}
+            </span>
+            {s.aplicada_em && <span className="text-[#6B7280]">· {formatDate(s.aplicada_em)}</span>}
+          </div>
+        )}
       </div>
       <div className="flex flex-wrap items-center justify-end gap-2">
         {canComissao(s) && (

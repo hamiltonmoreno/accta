@@ -290,3 +290,46 @@ class TestConfidencialidade:
         with pytest.raises(HTTPException) as exc:
             await s_route.get_sancao(sancao_id="s1", current_user=socio_user)
         assert exc.value.status_code == 403
+
+
+# --------------------------------------------------------------------------- #
+# Anotação multa_receita (PR #350 W1: faixa reflete o caixa real, não o estado)
+# --------------------------------------------------------------------------- #
+
+
+class TestListMultaReceita:
+    async def test_anota_existencia_e_valor_real_do_caixa(self, gov_env):
+        # 3 sanções: multa aplicada COM receita, multa aplicada SEM receita
+        # (removida nas finanças), e advertência (não anotada).
+        gov_env.sancoes.find = MagicMock(
+            return_value=_cursor(
+                [
+                    {"id": "s1", "tipo": "multa", "status": "aplicada", "multa_valor": 5000},
+                    {"id": "s2", "tipo": "multa", "status": "aplicada", "multa_valor": 8000},
+                    {"id": "s3", "tipo": "advertencia", "status": "aplicada"},
+                ]
+            )
+        )
+        # No caixa só existe a receita de s1, e com valor corrigido (4500 != 5000).
+        tx_find = MagicMock(return_value=_cursor([{"sancao_id": "s1", "amount": 4500.0}]))
+        gov_env.transactions.find = tx_find
+
+        resp = await s_route.list_sancoes(current_user=_direcao())
+        by_id = {s["id"]: s for s in resp["sancoes"]}
+
+        assert by_id["s1"]["multa_receita"] == {"exists": True, "amount": 4500.0}
+        assert by_id["s2"]["multa_receita"] == {"exists": False, "amount": 0.0}
+        assert "multa_receita" not in by_id["s3"]  # advertência não é anotada
+
+        # Agregação numa só query (sem N+1): filtra por $in dos ids de multa aplicada.
+        flt = tx_find.call_args.args[0]
+        assert flt["type"] == "receita"
+        assert set(flt["sancao_id"]["$in"]) == {"s1", "s2"}
+
+    async def test_sem_multas_nao_consulta_transactions(self, gov_env):
+        gov_env.sancoes.find = MagicMock(
+            return_value=_cursor([{"id": "s9", "tipo": "advertencia", "status": "aplicada"}])
+        )
+        gov_env.transactions.find = MagicMock(side_effect=AssertionError("não devia consultar transactions"))
+        resp = await s_route.list_sancoes(current_user=_direcao())
+        assert resp["sancoes"][0].get("multa_receita") is None
