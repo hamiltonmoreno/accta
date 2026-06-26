@@ -52,6 +52,10 @@ def _fake_db():
             [{"id": "p-priv", "title": "Privado", "visibility": "direcao", "status": "ativo",
               "created_by": "other", "responsible_id": "other"}]
         ),
+        project_milestones=_Coll(
+            [{"id": "m1", "project_id": "p-priv", "title": "Marco secreto", "completed": True,
+              "date": "2026-01-04", "created_at": "2026-01-04"}]
+        ),
         events=_Coll(
             [
                 {"id": "e1", "title": "Publico", "visibility": "publico", "created_at": "2026-01-02"},
@@ -59,7 +63,6 @@ def _fake_db():
             ]
         ),
         transactions=_Coll([]),
-        project_milestones=_Coll([]),
         polls=_Coll([]),
     )
 
@@ -79,6 +82,7 @@ def test_socio_nao_ve_evento_direcao_nem_comentario_privado():
     descrs = [a["description"] for a in out]
     assert not any("So Direcao" in d for d in descrs), "sócio viu evento de direção"
     assert not any("segredo" in d for d in descrs), "sócio viu comentário de projeto privado"
+    assert not any("Marco secreto" in d for d in descrs), "sócio viu marco de projeto privado"
     assert any("Publico" in d for d in descrs), "evento público devia aparecer"
 
 
@@ -87,6 +91,7 @@ def test_admin_ve_tudo():
     descrs = [a["description"] for a in _run(admin)]
     assert any("So Direcao" in d for d in descrs)
     assert any("segredo" in d for d in descrs)
+    assert any("Marco secreto" in d for d in descrs)
 
 
 if __name__ == "__main__":
