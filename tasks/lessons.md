@@ -240,3 +240,18 @@ dono, validar ownership (autor-ou-admin) — não basta o RBAC de papel.
 **Context**: ACCTA, módulo de comunicados e qualquer feature que filtre por
 órgãos/cargos. Liga a [[governanca-estatutaria-state]] e
 [[comunicados-segmentados-spec-state]].
+
+---
+
+## Ranking: posição de exibição é CONTÍNUA, não o rank do servidor (2026-06-26)
+
+**Correção do dono** (spec 006): ao mostrar a lista do ranking, NÃO usar
+`entry.rank` diretamente — o backend usa *competition ranking* com empates
+(pontuações iguais → 4, 4, 4, …). O dono quer numeração **contínua e a negrito**
+(1, 2, 3, 4, 5, 6…) com a posição de cada sócio na lista ordenada.
+
+**Regra**: a lista vem ordenada por `rank` asc, por isso a posição de exibição =
+índice na lista + 1 (mapa `user_id → posição`). Aplicar de forma consistente no
+pódio, na tabela, no widget do dashboard E na caixa "A minha posição" (`#N de M`),
+para não haver inconsistência entre um sócio empatado a ver "#4" na sua caixa e
+"5" na tabela. `RankBadge` recebe a posição contínua, não o rank.

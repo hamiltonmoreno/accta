@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Trophy, Medal, Crown, Search, RefreshCw, Slash, Settings2, Plus } from 'lucide-react';
+import { Trophy, Search, RefreshCw, Slash, Settings2, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { rankingAPI } from '../../utils/api';
@@ -17,6 +17,8 @@ import { Switch } from '../../components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select';
 import { CARGO_LABELS_FALLBACK } from '../../lib/governanceLabels';
+import { RankBadge } from '../../components/RankBadge';
+import { UserAvatar } from '../../components/UserAvatar';
 
 const PAGE_SIZE = 20;
 // Uma busca generosa cobre a dimensão real da associação (centenas); pesquisa e
@@ -39,13 +41,8 @@ const WEIGHT_LABELS = {
 
 const cargoLabelOf = (c) => (c && c !== 'socio' ? CARGO_LABELS_FALLBACK[c] || null : null);
 
-// Medalha/posição: #1 Carmesim (único acento), #2/#3 neutro, resto número.
-const RankBadge = ({ rank, size = 'sm' }) => {
-  const cls = size === 'lg' ? 'w-7 h-7' : 'w-5 h-5';
-  if (rank === 1) return <Crown className={`${cls} text-carmesim`} aria-hidden="true" />;
-  if (rank === 2 || rank === 3) return <Medal className={`${cls} text-[#6B7280]`} aria-hidden="true" />;
-  return <span className="text-sm font-semibold text-[#4B5563] font-mono">{rank}</span>;
-};
+// Distinção de posição (1.º/2.º/3.º) vive em components/RankBadge.js — fonte única
+// partilhada com o widget do dashboard (spec 006, Decisão D2).
 
 // Componentes ao nível do módulo (não dentro do render do RankingPage) — definir
 // no corpo da função recria o tipo a cada render e desmonta/remonta (perda de foco).
@@ -197,7 +194,14 @@ export const RankingPage = () => {
   const enabled = data?.enabled !== false;
   const visibility = data?.visibility;
   const allEntries = useMemo(() => data?.entries || [], [data]);
+  // Posição CONTÍNUA na lista ordenada (1,2,3,4,5…) — distinta do `rank` do
+  // servidor, que usa empates (4,4,4). A lista já vem ordenada por rank asc.
+  const positionOf = useMemo(
+    () => new Map(allEntries.map((e, i) => [e.user_id, i + 1])),
+    [allEntries],
+  );
   const me = data?.me;
+  const myPosition = (me && positionOf.get(me.user_id)) ?? me?.rank;
   const top3 = allEntries.slice(0, 3);
 
   // Respeita visibility=direcao_only: o servidor devolve 403 a não-gestores
@@ -274,14 +278,14 @@ export const RankingPage = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center flex-shrink-0">
-                <RankBadge rank={me.rank} />
+                <RankBadge rank={myPosition} />
               </div>
               <div>
                 <div className="text-sm font-semibold text-grafite">A minha posição</div>
                 <div className="text-xs text-grafite">
                   {me.ranking_opt_out
                     ? 'Estás oculto das listas públicas'
-                    : me.rank ? `#${me.rank} de ${data.total_ranked ?? data.total}` : 'Ainda sem posição neste período'}
+                    : myPosition ? `#${myPosition} de ${data.total_ranked ?? data.total}` : 'Ainda sem posição neste período'}
                 </div>
               </div>
             </div>
@@ -345,17 +349,21 @@ export const RankingPage = () => {
               {top3.map((e) => {
                 const isMe = e.user_id === user?.id;
                 const cargo = cargoLabelOf(e.cargo);
-                const first = e.rank === 1;
+                const pos = positionOf.get(e.user_id);
+                const first = pos === 1;
                 return (
                   <div
                     key={e.user_id}
                     className={`bg-white rounded-2xl border p-5 text-center ${
                       first ? 'border-carmesim/30 sm:-mt-2' : 'border-gray-200/80'
                     } ${isMe ? 'ring-2 ring-carmesim/40' : first ? 'ring-1 ring-carmesim/20' : ''}`}
-                    data-testid={`ranking-podium-${e.rank}`}
+                    data-testid={`ranking-podium-${pos}`}
                   >
-                    <div className="flex items-center justify-center mb-2">
-                      <RankBadge rank={e.rank} size="lg" />
+                    <div className="flex flex-col items-center gap-2 mb-2">
+                      <UserAvatar name={e.member_name} photoUrl={e.photo_url} size="lg" />
+                      <div className="flex items-center justify-center">
+                        <RankBadge rank={pos} size="lg" />
+                      </div>
                     </div>
                     <div className="font-semibold text-grafite truncate">
                       {e.member_name}{isMe && ' (eu)'}
@@ -401,38 +409,47 @@ export const RankingPage = () => {
                   <table className="w-full">
                     <thead className="bg-gray-50/80">
                       <tr>
-                        <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider w-16">#</th>
-                        <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Membro</th>
-                        <th className="px-4 sm:px-6 py-3 text-right text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Pontuação</th>
+                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider w-10 sm:w-16">#</th>
+                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Membro</th>
+                        <th className="px-3 sm:px-6 py-3 text-right text-xs font-semibold text-[#6B7280] uppercase tracking-wider">
+                          <span className="hidden sm:inline">Pontuação</span>
+                          <span className="sm:hidden">Pts</span>
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {pageRows.map((e) => {
                         const isMe = e.user_id === user?.id;
                         const cargo = cargoLabelOf(e.cargo);
+                        const pos = positionOf.get(e.user_id);
                         return (
                           <tr
                             key={e.user_id}
                             className={`border-t border-gray-50 ${isMe ? 'bg-[#FBEAEC]' : 'hover:bg-gray-50/60'} transition-colors`}
-                            data-testid={`ranking-row-${e.rank}`}
+                            data-testid={`ranking-row-${pos}`}
                           >
-                            <td className="px-4 sm:px-6 py-3.5">
-                              <div className="flex items-center justify-center w-6"><RankBadge rank={e.rank} /></div>
+                            <td className="px-3 sm:px-6 py-3.5">
+                              <div className="flex items-center justify-center w-6"><RankBadge rank={pos} /></div>
                             </td>
-                            <td className="px-4 sm:px-6 py-3.5">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-medium text-sm text-grafite">
-                                  {e.member_name}{isMe && ' (eu)'}
-                                </span>
-                                {e.status === 'inativo' && (
-                                  <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-[#4B5563] bg-gray-100 rounded px-1.5 py-0.5">
-                                    <Slash className="w-2.5 h-2.5" aria-hidden="true" /> Inativo
-                                  </span>
-                                )}
+                            <td className="px-3 sm:px-6 py-3.5">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <UserAvatar name={e.member_name} photoUrl={e.photo_url} size="xs" />
+                                <div className="min-w-0 max-w-[42vw] sm:max-w-none">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-sm text-grafite truncate">
+                                      {e.member_name}{isMe && ' (eu)'}
+                                    </span>
+                                    {e.status === 'inativo' && (
+                                      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-[#4B5563] bg-gray-100 rounded px-1.5 py-0.5 flex-shrink-0">
+                                        <Slash className="w-2.5 h-2.5" aria-hidden="true" /> Inativo
+                                      </span>
+                                    )}
+                                  </div>
+                                  {cargo && <div className="text-xs text-[#6B7280] mt-0.5 truncate">{cargo}</div>}
+                                </div>
                               </div>
-                              {cargo && <div className="text-xs text-[#6B7280] mt-0.5">{cargo}</div>}
                             </td>
-                            <td className="px-4 sm:px-6 py-3.5 text-right">
+                            <td className="px-3 sm:px-6 py-3.5 text-right">
                               <span className="font-bold text-sm text-grafite">{e.score}</span>
                               <span className="text-[11px] text-[#6B7280] ml-1">pts</span>
                             </td>

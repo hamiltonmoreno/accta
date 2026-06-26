@@ -81,8 +81,14 @@ export const PerfilPage = () => {
   return (
     <div className="max-w-3xl mx-auto space-y-6" data-testid="profile-page">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="page-title" data-testid="profile-title">Meu Perfil</h1>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="page-title" data-testid="profile-title">Meu Perfil</h1>
+          <p className="text-sm text-[#6B7280] mt-1">
+            Podes editar os teus dados pessoais, de contacto e profissionais. O email e os
+            dados da associação são geridos pela administração.
+          </p>
+        </div>
         {!editing ? (
           <button
             onClick={() => setEditing(true)}
