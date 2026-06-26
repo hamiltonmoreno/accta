@@ -361,7 +361,14 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Sem feature Spec Kit ativa (próximo `/speckit-specify`).
+Feature Spec Kit ativa: `specs/006-ranking-perfil-ux/` (plano em
+`specs/006-ranking-perfil-ux/plan.md`) — revisão **frontend-only** de Ranking e Perfil:
+(US1) Ranking responsivo no telemóvel; (US2) distinção clara 1.º/2.º/3.º (escala de
+ênfase Carmesim→Grafite→muted + ordinal; metálicos reais = decisão de override do dono,
+research.md D2); (US3) fotos dos sócios via `UserAvatar` (`photo_url` já vem no payload do
+leaderboard — sem backend); (US4) painel de notificações sem corte à esquerda no mobile;
+(US5) Perfil — clarificar fronteira editável vs. gerido por admin (email admin-only, Q1).
+Sem alterações de backend/API/dados; sem deps novas; sem Via B. Próximo: `/speckit-tasks`.
 Last completed: `specs/005-icone-marca-pwa-concluido/` — ícone quadrado da marca
 gerível pela UI (Aparência → Marca), distinto do favicon (`icon_url` novo), que alimenta
 a marca compacta in-app + o **ícone PWA** e a **imagem de partilha (og)** via um endpoint

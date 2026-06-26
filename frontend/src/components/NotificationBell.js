@@ -15,7 +15,6 @@ export const NotificationBell = () => {
   useEffect(() => { if (isOpen) setRender(true); }, [isOpen]);
   const navigate = useNavigate();
 
-  const unreadNotifications = notifications.filter((n) => !n.read);
   const recentNotifications = notifications.slice(0, 10);
 
   const NOTIF_ICONS = {
@@ -67,9 +66,11 @@ export const NotificationBell = () => {
             onClick={() => setIsOpen(false)}
           />
 
-          {/* Panel */}
+          {/* Panel — em telemóvel fixa-se com margem de 16px nos dois bordos
+              (left-4/right-4) para nunca cortar; em sm+ volta ao painel ancorado
+              ao sino (sem regressão no desktop). spec 006 US4. */}
           <div
-            className={`absolute right-0 top-full mt-2 w-[400px] max-w-[90vw] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 ${
+            className={`fixed left-4 right-4 top-16 w-auto sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[400px] sm:max-w-[90vw] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 ${
               isOpen ? 'animate-fade-up' : 'animate-fade-out'
             }`}
             onAnimationEnd={() => { if (!isOpen) setRender(false); }}

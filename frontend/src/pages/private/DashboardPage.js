@@ -100,8 +100,13 @@ export const DashboardPage = () => {
   const leaderboard = leaderboardQuery.data;
   const topN = leaderboard?.top_n_dashboard || 5;
   // D3: membros `inativo` entram no ranking geral mas ficam FORA do Top-N do
-  // dashboard (enquadramento positivo) — filtrados antes do slice.
-  const topEntries = (leaderboard?.entries || []).filter((e) => e.status !== 'inativo').slice(0, topN);
+  // dashboard (enquadramento positivo) — filtrados antes do slice. A `position`
+  // é calculada sobre a lista COMPLETA (antes do filtro) para coincidir com a
+  // posição contínua da página /ranking, que conta os inativos (spec 006 W1).
+  const topEntries = (leaderboard?.entries || [])
+    .map((e, i) => ({ ...e, position: i + 1 }))
+    .filter((e) => e.status !== 'inativo')
+    .slice(0, topN);
   const maxScore = topEntries.length ? Math.max(...topEntries.map((e) => e.score || 0), 1) : 1;
   const stats = statsQuery.data;
   const financeSummary = financeSummaryQuery.data;

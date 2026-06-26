@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Award, BadgeCheck, Briefcase, Building2, Cake, Calendar, Clock, Droplet,
-  Fingerprint, Globe, Hash, HeartPulse, Home, Mail, MapPin,
+  Fingerprint, Globe, Hash, HeartPulse, Home, Lock, Mail, MapPin,
   Phone, Shield, FileText, User as UserIcon, Users as UsersIcon,
 } from 'lucide-react';
 import { InfoRow } from './widgets';
@@ -20,7 +20,7 @@ export const DetailsGrid = ({ user, structure }) => {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
       <div className="card-technical p-5 animate-fade-up">
         <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280] mb-3">Dados Pessoais</h3>
-        <InfoRow icon={Mail} label="Email" value={user.email} />
+        <InfoRow icon={Mail} label="Email" value={user.email} managed />
         <InfoRow icon={Phone} label="Telefone" value={user.phone_number} />
         <InfoRow icon={Cake} label="Nascimento" value={dobLabel} />
         <InfoRow icon={Droplet} label="Tipo Sanguíneo" value={user.blood_type} />
@@ -28,7 +28,7 @@ export const DetailsGrid = ({ user, structure }) => {
         <InfoRow icon={Globe} label="Nacionalidade" value={user.nationality} />
         <InfoRow icon={Fingerprint} label="NIF" value={user.nif} />
         <InfoRow icon={FileText} label="Biografia" value={user.bio} />
-        <InfoRow icon={Hash} label="N.º Sócio" value={user.member_id} />
+        <InfoRow icon={Hash} label="N.º Sócio" value={user.member_id} managed />
       </div>
 
       <div className="card-technical p-5 animate-fade-up">
@@ -57,12 +57,18 @@ export const DetailsGrid = ({ user, structure }) => {
       </div>
 
       <div className="card-technical p-5 animate-fade-up md:col-span-2">
-        <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280] mb-3">Associação</h3>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <h3 className="font-semibold text-xs uppercase tracking-widest text-[#6B7280]">Associação</h3>
+          <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+            <Lock className="w-3 h-3 text-gray-400" aria-hidden="true" />
+            Gerido pela administração
+          </span>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 sm:gap-x-8">
-          <InfoRow icon={Shield} label="Função" value={ROLE_LABEL[user.role]} />
-          <InfoRow icon={Briefcase} label="Cargo" value={cargoNome} />
-          <InfoRow icon={UsersIcon} label="Categoria" value={memberCategoryLabel(user.member_category)} />
-          <InfoRow icon={Calendar} label="Admissão" value={formatDate(user.admission_date) || '—'} />
+          <InfoRow icon={Shield} label="Função" value={ROLE_LABEL[user.role]} managed />
+          <InfoRow icon={Briefcase} label="Cargo" value={cargoNome} managed />
+          <InfoRow icon={UsersIcon} label="Categoria" value={memberCategoryLabel(user.member_category)} managed />
+          <InfoRow icon={Calendar} label="Admissão" value={formatDate(user.admission_date) || '—'} managed />
         </div>
       </div>
     </div>

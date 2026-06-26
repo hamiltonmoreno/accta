@@ -1,10 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Medal, Trophy } from 'lucide-react';
+import { ArrowRight, Trophy } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { EmptyState } from '../../../components/EmptyState';
 import { Skeleton } from '../../../components/ui/skeleton';
+import { RankBadge } from '../../../components/RankBadge';
+import { UserAvatar } from '../../../components/UserAvatar';
 import { CARGO_LABELS_FALLBACK } from '../../../lib/governanceLabels';
 
 export const RankingTopN = ({
@@ -38,7 +40,11 @@ export const RankingTopN = ({
       ) : (
         <>
           <div className="divide-y divide-gray-50">
-            {topEntries.map((entry) => {
+            {topEntries.map((entry, idx) => {
+              // Posição CONTÍNUA (1,2,3,4,5…) calculada em DashboardPage sobre a
+              // lista completa — coincide com a posição da página /ranking (conta
+              // inativos). Não usar o `rank` do servidor (que empata: 4,4,4).
+              const pos = entry.position ?? idx + 1;
               const isMe = entry.user_id === currentUserId;
               const cargoLabel = entry.cargo && entry.cargo !== 'socio' ? CARGO_LABELS_FALLBACK[entry.cargo] : null;
               const barPct = Math.max(4, Math.round(((entry.score || 0) / maxScore) * 100));
@@ -46,18 +52,12 @@ export const RankingTopN = ({
                 <div
                   key={entry.user_id}
                   className={`flex items-center gap-3 px-5 sm:px-6 py-3 ${isMe ? 'bg-carmesim/5' : ''}`}
-                  data-testid={`ranking-row-${entry.rank}`}
+                  data-testid={`ranking-row-${pos}`}
                 >
                   <div className="w-8 flex items-center justify-center flex-shrink-0">
-                    {entry.rank <= 3 ? (
-                      <Medal
-                        className={`w-5 h-5 ${entry.rank === 1 ? 'text-carmesim' : 'text-[#6B7280]'}`}
-                        aria-hidden="true"
-                      />
-                    ) : (
-                      <span className="text-sm font-semibold text-[#6B7280] font-mono">{entry.rank}</span>
-                    )}
+                    <RankBadge rank={pos} />
                   </div>
+                  <UserAvatar name={entry.member_name} photoUrl={entry.photo_url} size="xs" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-sm text-grafite truncate">
@@ -67,7 +67,7 @@ export const RankingTopN = ({
                     {cargoLabel && <div className="text-xs text-[#6B7280] truncate">{cargoLabel}</div>}
                     <div className="mt-1.5 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all duration-500 ${entry.rank === 1 ? 'bg-carmesim' : 'bg-gray-300'}`}
+                        className={`h-full rounded-full transition-all duration-500 ${pos === 1 ? 'bg-carmesim' : 'bg-gray-300'}`}
                         style={{ width: `${barPct}%` }}
                       />
                     </div>
