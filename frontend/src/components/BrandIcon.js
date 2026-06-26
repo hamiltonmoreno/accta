@@ -1,6 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { brandAPI, mediaUrl } from '../utils/api';
-import { queryKeys } from '../lib/queryClient';
+import { mediaUrl } from '../utils/api';
+import { useBrand } from '../lib/useBrand';
 import { ACCTALogo } from './ACCTALogo';
 
 /**
@@ -13,11 +12,7 @@ import { ACCTALogo } from './ACCTALogo';
  * PWA — esses vivem, respetivamente, no FaviconManager e no endpoint /api/brand/icon.
  */
 export const BrandIcon = ({ className = 'h-8 w-8' }) => {
-  const { data } = useQuery({
-    queryKey: queryKeys.brand.public(),
-    queryFn: async () => (await brandAPI.getPublic()).data,
-    staleTime: 30 * 60 * 1000, // marca é quase-estática
-  });
+  const { data } = useBrand();
 
   const icon = data?.icon_url;
   if (icon) {
