@@ -131,11 +131,10 @@ async def _annotate_multa_receita(rows: list) -> None:
         {"sancao_id": {"$in": aplicadas}, "type": "receita"},
         {"_id": 0, "sancao_id": 1, "amount": 1},
     ).to_list(len(aplicadas))
-    by_sancao = {t["sancao_id"]: t for t in txs}
+    by_sancao = {t["sancao_id"]: float(t.get("amount") or 0) for t in txs}
     for r in rows:
         if r["id"] in aplicadas:
-            tx = by_sancao.get(r["id"])
-            r["multa_receita"] = {"exists": tx is not None, "amount": float((tx or {}).get("amount") or 0)}
+            r["multa_receita"] = {"exists": r["id"] in by_sancao, "amount": by_sancao.get(r["id"], 0.0)}
 
 
 @router.get("")
