@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield } from 'lucide-react';
+import { Shield, Lock } from 'lucide-react';
 import { Input } from '../../../components/ui/input';
 import { PRIVILEGE_LABELS } from '../../../lib/governanceLabels';
 import { inputCls, labelCls } from './tokens';
@@ -30,11 +30,22 @@ export const FormSelect = ({ id, label, value, onChange, options }) => (
   </div>
 );
 
-export const InfoRow = ({ icon: Icon, label, value }) => (
+// `managed` marca um campo de identidade/associação gerido pela administração
+// (não editável em autosserviço) — ícone de cadeado + rótulo para leitores de
+// ecrã (spec 006 US5, FR-012/FR-013).
+export const InfoRow = ({ icon: Icon, label, value, managed = false }) => (
   <div className="flex items-start gap-3 py-3 border-b border-gray-50 last:border-0">
     <Icon className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
     <div className="min-w-0">
-      <span className="text-xs uppercase tracking-widest text-gray-500 font-semibold block">{label}</span>
+      <span className="text-xs uppercase tracking-widest text-gray-500 font-semibold flex items-center gap-1">
+        {label}
+        {managed && (
+          <>
+            <Lock className="w-3 h-3 text-gray-400 flex-shrink-0" aria-hidden="true" title="Gerido pela administração" />
+            <span className="sr-only">(gerido pela administração)</span>
+          </>
+        )}
+      </span>
       <span className="text-sm text-grafite font-medium break-words" data-testid={`profile-${label.toLowerCase().replace(/\s/g, '-')}`}>{value || '—'}</span>
     </div>
   </div>

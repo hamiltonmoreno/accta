@@ -120,7 +120,24 @@ Web app: `backend/` + `frontend/src/`. Scripts em `scripts/`.
 
 - [X] T025 [P] [US4] `frontend/src/utils/api.js`: endpoints de finanças de evento (expenses/receitas POST/GET/DELETE) + filtros `event_id`/`sancao_id` em transações.
 - [X] T026 [US4] Detalhe de evento (`frontend/src/pages/private/` — página/aba de evento): secção financeira com registar despesa (categoria), registar receita, listas e `resultado_financeiro` (receitas/despesas/resultado). Mensagem amigável quando o gate Art. 54 recusa. Seguir `frontend-design` (botões neutros/Floresta; sem Carmesim como primário positivo).
-- [ ] T027 [P] [US4] (Opcional) detalhe da sanção: mostrar a receita de multa associada quando aplicada.
+- [X] T027 [P] [US4] (Opcional) detalhe da sanção: mostrar a receita de multa associada quando aplicada.
+
+  **Feito (2026-06-26):** faixa em `SancaoCard.js` que mostra "Receita no caixa:
+  {valor} · {aplicada_em}" para multas aplicadas (ícone `CircleDollarSign`,
+  Floresta `#166534` sobre `#F0FDF4`, contraste ≥4.5:1, ícone+texto).
+  `data-testid="multa-receita-{id}"`.
+
+  **W1 (revisão do PR #350, Codex P2) resolvido:** a faixa **não** infere do
+  estado da sanção — `list_sancoes` (`routes/sancoes.py`) anota
+  `multa_receita: {exists, amount}` agregando de `transactions` numa só query
+  (`$in`, sem N+1) e a faixa só aparece com `multa_receita.exists`, mostrando o
+  valor REAL do caixa. Assim, se a receita for removida/corrigida nas finanças
+  (delete/patch não guardam `sancao_id`, e não há transição `aplicada→anulada`),
+  a UI acompanha em vez de afirmar uma receita inexistente. Anotação no backend
+  (não fetch no cliente) evita o 403 da Direcção sem `view_finances`. Verificado:
+  2 testes novos em `test_sancoes_routes.py` (15/15), eventos 21/21, ruff/eslint
+  limpos, e browser ponta-a-ponta (faixa presente com receita; desaparece após
+  apagar a transação).
 
 **Checkpoint**: UX de finanças de evento utilizável.
 
@@ -162,7 +179,11 @@ Web app: `backend/` + `frontend/src/`. Scripts em `scripts/`.
   sem dark mode). Registo + screenshots em
   `specs/003-eventos-multas-caixa-concluido/T033-cenario5-browser.md`
   (`T033-cenario5-resultado.png`, `T033-cenario5-gate.png`).
-- [ ] T034 (Opcional) `/speckit-analyze` final / registar lição em `tasks/lessons.md` se houver correção do dono.
+- [X] T034 (Opcional) `/speckit-analyze` final / registar lição em `tasks/lessons.md` se houver correção do dono.
+
+  **No-op (2026-06-26):** spec já concluída e em prod (v0.5.27); não houve
+  correção do dono na retoma do T027, logo não há lição nova a registar. Sem
+  itens por reconciliar.
 
 ---
 
