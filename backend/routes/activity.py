@@ -3,8 +3,21 @@ from datetime import datetime, timezone
 from database import db
 from auth import get_current_user
 from models import User
+from routes.events import get_allowed_event_visibilities
+from routes.projects import can_view_project
 
 router = APIRouter(tags=["activity"])
+
+
+async def _visible_projects(proj_ids: list, user: User) -> dict:
+    """Map id->projeto, apenas os que o utilizador pode ver (filtra o feed)."""
+    if not proj_ids:
+        return {}
+    projects = await db.projects.find(
+        {"id": {"$in": proj_ids}},
+        {"_id": 0, "id": 1, "title": 1, "visibility": 1, "status": 1, "created_by": 1, "responsible_id": 1},
+    ).to_list(len(proj_ids))
+    return {p["id"]: p for p in projects if can_view_project(user, p)}
 
 
 @router.get("/activity/recent")
@@ -48,17 +61,15 @@ async def get_recent_activity(limit: int = Query(15, ge=1, le=50), current_user:
         .to_list(5)
     )
 
-    project_titles = {}
-    if project_comments:
-        proj_ids = list({c.get("project_id") for c in project_comments if c.get("project_id")})
-        if proj_ids:
-            projects = await db.projects.find({"id": {"$in": proj_ids}}, {"_id": 0, "id": 1, "title": 1}).to_list(
-                len(proj_ids)
-            )
-            project_titles = {p["id"]: p.get("title", "Projeto") for p in projects}
+    visible_projects = await _visible_projects(
+        list({c.get("project_id") for c in project_comments if c.get("project_id")}), current_user
+    )
 
     for c in project_comments:
-        proj_title = project_titles.get(c.get("project_id"), "Projeto")
+        proj = visible_projects.get(c.get("project_id"))
+        if proj is None:  # sócio sem acesso ao projeto não vê os comentários no feed
+            continue
+        proj_title = proj.get("title", "Projeto")
         activities.append(
             {
                 "type": "projeto",
@@ -70,9 +81,13 @@ async def get_recent_activity(limit: int = Query(15, ge=1, le=50), current_user:
             }
         )
 
-    # 3. Recent events created
+    # 3. Recent events created (apenas visibilidades permitidas ao utilizador)
+    allowed_vis = list(get_allowed_event_visibilities(current_user))
     events = (
-        await db.events.find({}, {"_id": 0, "id": 1, "title": 1, "date": 1, "location": 1, "created_at": 1})
+        await db.events.find(
+            {"visibility": {"$in": allowed_vis}},
+            {"_id": 0, "id": 1, "title": 1, "date": 1, "location": 1, "created_at": 1},
+        )
         .sort("created_at", -1)
         .limit(3)
         .to_list(3)
@@ -125,7 +140,12 @@ async def get_recent_activity(limit: int = Query(15, ge=1, le=50), current_user:
         .to_list(3)
     )
 
+    milestone_projects = await _visible_projects(
+        list({m.get("project_id") for m in milestones if m.get("project_id")}), current_user
+    )
     for m in milestones:
+        if m.get("project_id") not in milestone_projects:  # marco de projeto sem acesso
+            continue
         activities.append(
             {
                 "type": "projeto",
