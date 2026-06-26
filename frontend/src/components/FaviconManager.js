@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { brandAPI, mediaUrl } from '../utils/api';
-import { queryKeys } from '../lib/queryClient';
+import { mediaUrl } from '../utils/api';
+import { useBrand } from '../lib/useBrand';
 
 /**
  * Aplica o favicon configurado na Aparência (spec-gestao-logo-marca) em runtime.
@@ -18,11 +17,7 @@ import { queryKeys } from '../lib/queryClient';
  * QueryClientProvider). Partilha a mesma query/cache do BrandLogo.
  */
 export const FaviconManager = () => {
-  const { data } = useQuery({
-    queryKey: queryKeys.brand.public(),
-    queryFn: async () => (await brandAPI.getPublic()).data,
-    staleTime: 30 * 60 * 1000, // marca é quase-estática
-  });
+  const { data } = useBrand();
 
   const favicon = data?.favicon_url;
 

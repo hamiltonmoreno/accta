@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { brandAPI, mediaUrl } from '../utils/api';
-import { queryKeys } from '../lib/queryClient';
+import { mediaUrl } from '../utils/api';
+import { useBrand } from '../lib/useBrand';
 import { ACCTALogoHorizontal } from './ACCTALogo';
 import { cn } from '../lib/utils';
 
@@ -15,11 +14,7 @@ import { cn } from '../lib/utils';
 export const BrandLogo = ({ dark = false, className = '' }) => {
   const [imageFailed, setImageFailed] = useState(false);
 
-  const { data } = useQuery({
-    queryKey: queryKeys.brand.public(),
-    queryFn: async () => (await brandAPI.getPublic()).data,
-    staleTime: 30 * 60 * 1000, // marca é quase-estática
-  });
+  const { data } = useBrand();
 
   const url = dark ? data?.logo_dark_url : data?.logo_light_url;
   const alt = data?.alt || 'ACCTA Cabo Verde';
