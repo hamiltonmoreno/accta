@@ -122,12 +122,22 @@ Web app: `backend/` + `frontend/src/`. Scripts em `scripts/`.
 - [X] T026 [US4] Detalhe de evento (`frontend/src/pages/private/` — página/aba de evento): secção financeira com registar despesa (categoria), registar receita, listas e `resultado_financeiro` (receitas/despesas/resultado). Mensagem amigável quando o gate Art. 54 recusa. Seguir `frontend-design` (botões neutros/Floresta; sem Carmesim como primário positivo).
 - [X] T027 [P] [US4] (Opcional) detalhe da sanção: mostrar a receita de multa associada quando aplicada.
 
-  **Feito (2026-06-26):** faixa informativa em `SancaoCard.js` — quando
-  `tipo=multa`, `status=aplicada` e `multa_valor>0` mostra "Receita lançada no
-  caixa: {valor} · {aplicada_em}" (ícone `CircleDollarSign`, Floresta `#166534`
-  sobre `#F0FDF4`, contraste ≥4.5:1, ícone+texto). Presentacional, sem N+1: a
-  lista de sanções já devolve `multa_valor`/`aplicada_em` e o backend garante a
-  receita exactly-once ao aplicar. `data-testid="multa-receita-{id}"`. ESLint limpo.
+  **Feito (2026-06-26):** faixa em `SancaoCard.js` que mostra "Receita no caixa:
+  {valor} · {aplicada_em}" para multas aplicadas (ícone `CircleDollarSign`,
+  Floresta `#166534` sobre `#F0FDF4`, contraste ≥4.5:1, ícone+texto).
+  `data-testid="multa-receita-{id}"`.
+
+  **W1 (revisão do PR #350, Codex P2) resolvido:** a faixa **não** infere do
+  estado da sanção — `list_sancoes` (`routes/sancoes.py`) anota
+  `multa_receita: {exists, amount}` agregando de `transactions` numa só query
+  (`$in`, sem N+1) e a faixa só aparece com `multa_receita.exists`, mostrando o
+  valor REAL do caixa. Assim, se a receita for removida/corrigida nas finanças
+  (delete/patch não guardam `sancao_id`, e não há transição `aplicada→anulada`),
+  a UI acompanha em vez de afirmar uma receita inexistente. Anotação no backend
+  (não fetch no cliente) evita o 403 da Direcção sem `view_finances`. Verificado:
+  2 testes novos em `test_sancoes_routes.py` (15/15), eventos 21/21, ruff/eslint
+  limpos, e browser ponta-a-ponta (faixa presente com receita; desaparece após
+  apagar a transação).
 
 **Checkpoint**: UX de finanças de evento utilizável.
 
