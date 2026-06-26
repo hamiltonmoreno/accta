@@ -41,9 +41,10 @@ export const RankingTopN = ({
         <>
           <div className="divide-y divide-gray-50">
             {topEntries.map((entry, idx) => {
-              // Posição CONTÍNUA (1,2,3,4,5…) = índice na lista ordenada, não o
-              // `rank` do servidor (que empata: 4,4,4).
-              const pos = idx + 1;
+              // Posição CONTÍNUA (1,2,3,4,5…) calculada em DashboardPage sobre a
+              // lista completa — coincide com a posição da página /ranking (conta
+              // inativos). Não usar o `rank` do servidor (que empata: 4,4,4).
+              const pos = entry.position ?? idx + 1;
               const isMe = entry.user_id === currentUserId;
               const cargoLabel = entry.cargo && entry.cargo !== 'socio' ? CARGO_LABELS_FALLBACK[entry.cargo] : null;
               const barPct = Math.max(4, Math.round(((entry.score || 0) / maxScore) * 100));
