@@ -120,7 +120,14 @@ Web app: `backend/` + `frontend/src/`. Scripts em `scripts/`.
 
 - [X] T025 [P] [US4] `frontend/src/utils/api.js`: endpoints de finanças de evento (expenses/receitas POST/GET/DELETE) + filtros `event_id`/`sancao_id` em transações.
 - [X] T026 [US4] Detalhe de evento (`frontend/src/pages/private/` — página/aba de evento): secção financeira com registar despesa (categoria), registar receita, listas e `resultado_financeiro` (receitas/despesas/resultado). Mensagem amigável quando o gate Art. 54 recusa. Seguir `frontend-design` (botões neutros/Floresta; sem Carmesim como primário positivo).
-- [ ] T027 [P] [US4] (Opcional) detalhe da sanção: mostrar a receita de multa associada quando aplicada.
+- [X] T027 [P] [US4] (Opcional) detalhe da sanção: mostrar a receita de multa associada quando aplicada.
+
+  **Feito (2026-06-26):** faixa informativa em `SancaoCard.js` — quando
+  `tipo=multa`, `status=aplicada` e `multa_valor>0` mostra "Receita lançada no
+  caixa: {valor} · {aplicada_em}" (ícone `CircleDollarSign`, Floresta `#166534`
+  sobre `#F0FDF4`, contraste ≥4.5:1, ícone+texto). Presentacional, sem N+1: a
+  lista de sanções já devolve `multa_valor`/`aplicada_em` e o backend garante a
+  receita exactly-once ao aplicar. `data-testid="multa-receita-{id}"`. ESLint limpo.
 
 **Checkpoint**: UX de finanças de evento utilizável.
 
@@ -162,7 +169,11 @@ Web app: `backend/` + `frontend/src/`. Scripts em `scripts/`.
   sem dark mode). Registo + screenshots em
   `specs/003-eventos-multas-caixa-concluido/T033-cenario5-browser.md`
   (`T033-cenario5-resultado.png`, `T033-cenario5-gate.png`).
-- [ ] T034 (Opcional) `/speckit-analyze` final / registar lição em `tasks/lessons.md` se houver correção do dono.
+- [X] T034 (Opcional) `/speckit-analyze` final / registar lição em `tasks/lessons.md` se houver correção do dono.
+
+  **No-op (2026-06-26):** spec já concluída e em prod (v0.5.27); não houve
+  correção do dono na retoma do T027, logo não há lição nova a registar. Sem
+  itens por reconciliar.
 
 ---
 

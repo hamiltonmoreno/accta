@@ -1,5 +1,5 @@
 import React from 'react';
-import { Scale, ShieldOff, Undo2, Users } from 'lucide-react';
+import { CircleDollarSign, Scale, ShieldOff, Undo2, Users } from 'lucide-react';
 import { TipoBadge, StatusBadge } from './widgets';
 import { formatDate, formatEscudo, secondaryBtn } from './tokens';
 
@@ -38,6 +38,19 @@ export const SancaoCard = ({
           )}
           {s.inquerito_prazo && <span>Prazo inquérito: {formatDate(s.inquerito_prazo)}</span>}
         </div>
+        {/* T027: multa aplicada → receita lançada no caixa (garantida exactly-once pelo backend). */}
+        {s.tipo === 'multa' && s.status === 'aplicada' && Number(s.multa_valor) > 0 && (
+          <div
+            className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-[#F0FDF4] border border-[#BBF7D0] px-2.5 py-1 text-xs"
+            data-testid={`multa-receita-${s.id}`}
+          >
+            <CircleDollarSign className="w-3.5 h-3.5 text-[#166534]" aria-hidden="true" />
+            <span className="font-medium text-[#166534]">
+              Receita lançada no caixa: {formatEscudo(s.multa_valor)}
+            </span>
+            {s.aplicada_em && <span className="text-[#6B7280]">· {formatDate(s.aplicada_em)}</span>}
+          </div>
+        )}
       </div>
       <div className="flex flex-wrap items-center justify-end gap-2">
         {canComissao(s) && (
