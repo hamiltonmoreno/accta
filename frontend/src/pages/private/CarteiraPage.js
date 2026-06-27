@@ -5,6 +5,7 @@ import { CreditCard, Download, Shield, Wifi, WifiOff, Smartphone, Share2, CheckC
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { financesAPI } from '../../utils/api';
 
 const OfflineBanner = ({ isOnline }) => {
   if (isOnline) return null;
@@ -61,9 +62,31 @@ export const CarteiraPage = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [cachedUser, setCachedUser] = useState(null);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   const isActive = user?.status === 'ativo';
   const displayUser = user || cachedUser;
+
+  // Exporta a carteira de quotas/jóia do próprio em PDF (comprovativo pessoal).
+  // O backend (GET /finances/me/quotas/pdf) restringe sempre ao próprio user_id.
+  const handleExportQuotasPdf = async () => {
+    setExportingPdf(true);
+    try {
+      const res = await financesAPI.exportMyQuotasPdf();
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Carteira_Quotas_ACCTA_${displayUser?.member_id || 'socio'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Erro ao exportar o PDF.');
+    } finally {
+      setExportingPdf(false);
+    }
+  };
 
   // Cache only the minimum wallet fields needed for offline QR display.
   useEffect(() => {
@@ -333,6 +356,15 @@ export const CarteiraPage = () => {
         >
           <Share2 className="w-4 h-4" />
           Partilhar
+        </button>
+        <button
+          onClick={handleExportQuotasPdf}
+          disabled={exportingPdf}
+          className="flex items-center gap-2 px-5 py-2.5 bg-white border border-[#D1D5DB] text-[#3A3A3A] rounded-lg text-sm font-semibold hover:bg-[#F5F5F5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          data-testid="export-quotas-pdf-btn"
+        >
+          <Download className="w-4 h-4" />
+          {exportingPdf ? 'A gerar…' : 'Exportar Quotas (PDF)'}
         </button>
       </div>
 
