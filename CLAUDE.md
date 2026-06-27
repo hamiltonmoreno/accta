@@ -361,7 +361,15 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Sem feature Spec Kit ativa (próximo `/speckit-specify`).
+Feature Spec Kit ativa: `specs/007-carteira-quotas-pdf/` (plano em
+`specs/007-carteira-quotas-pdf/plan.md`) — **exportar a carteira de quotas do próprio
+sócio em PDF** (comprovativo pessoal de uso interno, marca ACCTA, só os próprios dados).
+Reutiliza tudo: query `GET /me/quotas` (já RBAC-safe por `user_id`), o gerador PDF
+*branded* `fpdf` (`_new_relatorio_pdf`/`_fmt` em `routes/finances.py`) e o idioma de
+download por blob do frontend. Backend: 1 endpoint `GET /me/quotas/pdf` + `_render_carteira()`;
+frontend: botão na `CarteiraPage` + método `api.js`. Zero deps; sem schema/migração; toca
+`backend/` → release exige **Via B**. Nota de domínio: a carteira **não tem estado por
+quota** (todos os lançamentos são efetivos, quotas por folha). Próximo: `/speckit-tasks`.
 Last completed: `specs/006-ranking-perfil-ux-concluido/` — revisão **frontend-only** de
 Ranking e Perfil: (US1) ranking responsivo no telemóvel (sem overflow a 360px); (US2)
 distinção 1.º/2.º/3.º por forma+tom (Coroa carmesim / Medalha grafite / Award muted +

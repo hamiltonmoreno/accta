@@ -275,6 +275,7 @@ export const usersAPI = {
 export const financesAPI = {
   getTransactions: (params) => api.get('/finances/transactions', { params }),
   getMyQuotas: () => api.get('/finances/me/quotas'),
+  exportMyQuotasPdf: () => api.get('/finances/me/quotas/pdf', { responseType: 'blob' }),
   getTransactionCount: (params) => api.get('/finances/transactions/count', { params }),
   exportTransactionsCsv: (params) => api.get('/finances/transactions/csv', { params, responseType: 'blob' }),
   createTransaction: (data) => api.post('/finances/transactions', data),
