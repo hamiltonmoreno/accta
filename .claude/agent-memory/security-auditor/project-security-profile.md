@@ -139,3 +139,36 @@ Full security audit performed on 2026-05-18. Focused route-layer re-audit on 202
 - SVG upload: FIXED — SVG blocked in ALLOWED_EXTENSIONS for logos, brand, covers, avatars
 - `PATCH /users/{user_id}/status` status allowlist: FIXED — USER_STATUSES allowlist present at users.py:252
 - invite_token in response: FIXED — admin.py:130-135 explicitly omits the token from response
+
+## Full Broad Audit — 2026-06-26 (develop branch, commit 701c27e)
+
+### Scope: all 32 route modules, auth.py, helpers.py, database.py, server.py, file_validation.py, upload.py
+
+### MEDIUM Findings (new)
+
+M1. **IDOR / Visibility leak — `GET /activity/recent` (activity.py:73-90)**
+  Events fetched with NO visibility filter: `db.events.find({}, ...).limit(3)` — includes `direcao` events.
+  Project comments also fetched with NO project visibility check — a `socio` gets comments from `direcao`/private projects.
+  Confirmed at activity.py lines 40-70 and 73-90.
+
+M2. **setup-account CAS race (TOCTOU)** — carried from 2026-06-18 audit. CONFIRMED OPEN in current code (auth_routes.py:258-270 now has CAS filter on update_one, but double-check: the update uses `{"id": user_doc["id"], "invite_token": data.token, "status": "pendente_convite"}` + checks `modified_count == 0` — this IS the CAS fix). CLOSED — CAS is present. False positive carried from earlier.
+
+### LOW Findings (new)
+
+L1. **member_id UNIQUE index is best-effort** — ux_users_member_id is created with `CREATE UNIQUE INDEX IF NOT EXISTS` but only in `REQUIRED_INDEX_NAMES` for warning, not hard failure. Per database.py:800-805 comment, this is intentional ("best-effort"). Collision check exists at admin.py:72-75 for manual member_id. Acceptable.
+
+L2. **audit_log app-layer delete protection absent** — relies on Postgres role revoking DELETE/UPDATE. Documented as F5 operational gate. Acceptable.
+
+L3. **SSE slot cap multiplies per worker** — documented in notifications.py comment. Acceptable for current scale.
+
+L4. **Token also returned in login/setup-account body** — documented legacy compat. Acceptable.
+
+### Confirmed CLOSED from prior audits
+- M2 TOCTOU in setup_account: FIXED (CAS filter on update_one + modified_count check)
+- setup_account password_changed_at: NOW SET (auth_routes.py:261 `"password_changed_at": now`)
+- member_id uniqueness: collision check at admin.py:72-75, DB UNIQUE index (best-effort)
+- CSRF bypass in dev: by design, logged as warning; prod raises RuntimeError with empty CORS_ORIGINS
+- HIGH invoices IDOR: invoices module has been removed (replaced by me/quotas self-service + transactions module)
+
+### Status of all routes RBAC (2026-06-26 verified)
+All 32 route modules: every state-changing endpoint has explicit role/privilege check. All reads of other users' data gated. Password excluded everywhere via projection. MFA_SECRET_FIELDS excluded in all user list/read endpoints.

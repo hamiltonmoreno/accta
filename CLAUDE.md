@@ -183,7 +183,10 @@ python scripts/seed_gallery.py  # Seed gallery data
 - **No inadimplente status** — quotas are payroll-deducted; statuses are
   `ativo` / `inativo` / `pendente_convite` / `pendente_aprovacao` / `rejeitado`
 - **Photo approval workflow** — all gallery photos require admin approval before visibility
-- **Notifications** — SSE real-time stream; fallback to 30s polling
+- **Notifications** — SSE real-time stream; fallback to 30s polling; **Web Push**
+  (PWA) espelha todas as notificações in-app no celular (opt-in por dispositivo
+  no Perfil; helper `dispatch_push` em `push_service.py` engatado em
+  `create_notification`/`notify_*`)
 
 ---
 
@@ -192,7 +195,13 @@ python scripts/seed_gallery.py  # Seed gallery data
 | Scope | Variable |
 |-------|----------|
 | Frontend | `REACT_APP_BACKEND_URL` |
-| Backend | `SECRET_KEY`, `DATABASE_URL`, `CORS_ORIGINS`, `FRONTEND_URL`, `RESEND_API_KEY`, `SENDER_EMAIL` |
+| Backend | `SECRET_KEY`, `DATABASE_URL`, `CORS_ORIGINS`, `FRONTEND_URL`, `RESEND_API_KEY`, `SENDER_EMAIL`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` |
+
+> **Web Push (notificação no celular)** — `VAPID_*` alimentam o Web Push do PWA.
+> Gerar o par com `python scripts/generate_vapid_keys.py` e definir as 3 vars no
+> backend. **Sem elas, a feature fica desligada graciosamente** (endpoints
+> `/api/push/*` devolvem 503 e o toggle no Perfil mostra-se inativo). Frontend
+> obtém a chave pública via `GET /api/push/vapid-public-key` (sem rebuild).
 
 ---
 
@@ -361,7 +370,19 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Sem feature Spec Kit ativa (próximo `/speckit-specify`).
+Active: `specs/009-notificacoes-push-celular/` — **notificações push no celular
+(Web Push / PWA)**. Plano: `specs/009-notificacoes-push-celular/plan.md`. Espelha
+**todas** as notificações in-app no dispositivo do sócio (Android/desktop; iOS
+16.4+ via PWA na Tela de Início), com opt-in por dispositivo no Perfil. Backend:
+`push_service.py` (VAPID/`pywebpush`, `dispatch_push` engatado em
+`create_notification`/`notify_*`, anti-SSRF `is_safe_push_endpoint`, poda de
+subscrições 404/410), `routes/push.py` (`/api/push/*`), coleção
+`push_subscriptions`. Frontend: `sw.js` (push/notificationclick), `utils/push.js`,
+`components/PushPrefs.js`. Degrada graciosamente sem envs VAPID (503/no-op).
+**Implementada na branch (PR #362→develop)**; 24 testes verdes, ruff limpo, Vercel
+preview deployado. Toca `backend/` → release `develop→main` exige **Via B** + envs
+VAPID em produção. Próximo: `/speckit-tasks`. CI do repo está vermelha por uma
+falha **infra do GitHub Actions** (todos os branches falham em ~4s), não pelo código.
 Last completed: `specs/008-lembrete-quotas-concluido/` — **lembrete informativo de quotas**
 (transparência, **SEM inadimplência** — linguagem de cobrança proibida). Disparo **orientado
 a evento**: ao gerar as quotas do mês (`POST /finances/generate-quotas`) substitui o aviso

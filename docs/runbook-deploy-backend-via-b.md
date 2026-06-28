@@ -46,24 +46,28 @@ Antes de começar, obtém o SHA do `main` na release (na tua máquina):
 git fetch origin main && git rev-parse --short=12 main
 ```
 
-**Valores atuais (v0.5.35 — ícone quadrado da marca / PWA, spec 005, PR #344):**
+**Valores atuais (v0.5.39 — lembrete informativo de quotas, spec 008, PR #360):**
 
 | Variável | Valor |
 |----------|-------|
-| `TAG` (imagem nova) | `sha-b16773a08b8a` |
-| Tag git da release | `v0.5.35` (= `b16773a`, HEAD de `main`, merge #345) |
-| Rollback (prod anterior, v0.5.34) | `sha-4a78080aec1e` |
-| Teste decisivo desta release | `GET /api/brand/icon` via `-L` segue o 302 e devolve **200** (imagem — ícone atual ou o default `{FRONTEND_URL}/logo512.png`) **e** `GET /api/brand/public` inclui o campo **`icon_url`** (`null` enquanto não houver upload — o campo existir confirma o backend novo). Base: imagem = `sha-b16773a08b8a`, health 200, `openapi.json`/`docs` → 404, arranque sem tracebacks. |
+| `TAG` (imagem nova) | `sha-5cfff3c9b0e1` |
+| Tag git da release | `v0.5.39` (= `5cfff3c`, HEAD de `main`, merge #361) |
+| Rollback (prod anterior, v0.5.38) | `sha-960e0b5367b2` |
+| Teste decisivo desta release | **Sem rota nova** (a v0.5.39 modifica comportamento autenticado, não adiciona endpoint público) → o decisivo é a **imagem em execução = `sha-5cfff3c9b0e1`** (`docker inspect`, Up healthy) + arranque limpo. Sanidade: `PATCH /api/me/email-preferences` → **401** e `GET` → **405** (rota gated viva); `api/` → 200; `openapi.json`/`docs` → 404. **Validação funcional** do lembrete (gerar quotas → notificação por-sócio a abrir `/carteira`; toggle off → não recebe) = T006/T010 em navegador autenticado (Princípio VII, dono). |
 
-> **Nota:** a v0.5.35 **toca em `backend/`** (`models.py` — `icon_url` em
-> `BrandSettings`/`BrandSettingsUpdate` + `field_validator` que restringe URLs da
-> marca a `/uploads/` ou `https://`; `routes/brand.py` — `icon_url` no `_public_view`/
-> `url_fields`/audit e o novo endpoint público `GET /api/brand/icon` que faz 302 para
-> o ícone atual ou para `{FRONTEND_URL}/logo512.png`, `Cache-Control: public, max-age=3600`).
-> O backend em prod antes da v0.5.35 está na **v0.5.34** (`sha-4a78080aec1e`). **Sem
-> migração/pós-deploy** (campo aditivo, opcional, default `None`; endpoint aditivo).
-> Confirma sempre a imagem em execução antes de deploy: `docker compose ps` (coluna
-> IMAGE) ou `docker inspect accta-backend --format '{{.Config.Image}}'`.
+> **Nota:** a v0.5.39 **toca em `backend/`** (spec 008 — lembrete informativo de quotas,
+> PR #360): `routes/finances.py` (gerador de quotas passa a notificar **por sócio** que
+> recebeu quota nova — valor + total acumulado via 1 aggregate, link `/carteira` — em vez
+> do aviso genérico; respeita `quota_reminder_opt_out`); `models.py` (campo aditivo
+> `quota_reminder_opt_out` em `UserBase`, default `False`; `EmailPreferencesUpdate` com
+> ambos os toggles opcionais); `routes/comunicados.py` (`PATCH /me/email-preferences`
+> grava só os campos enviados); `database.py` (`insert_quotas_atomic` devolve os `user_id`
+> NOVOS — era `int` — e **fix W1** `_safe_float`: `$sum` ignora `amount` não-numérico → 0
+> em vez de `ValueError`/500, fiel ao Mongo). **Email = STOP/off no MVP.** O backend em
+> prod antes da v0.5.39 está na **v0.5.38** (`sha-960e0b5367b2`). **Sem migração/pós-deploy**
+> (campo aditivo, default `False`; sem schema destrutivo). Confirma sempre a imagem em
+> execução antes de deploy: `docker compose ps` (coluna IMAGE) ou
+> `docker inspect accta-backend --format '{{.Config.Image}}'`.
 
 ---
 
@@ -73,22 +77,22 @@ git fetch origin main && git rev-parse --short=12 main
 ```bash
 rm -rf /tmp/accta-build
 git clone https://github.com/hamiltonmoreno/accta.git /tmp/accta-build
-cd /tmp/accta-build && git checkout v0.5.35       # <- tag git da release
+cd /tmp/accta-build && git checkout v0.5.39       # <- tag git da release
 docker build -f backend/Dockerfile \
-  -t ghcr.io/hamiltonmoreno/accta-backend:sha-b16773a08b8a .   # <- TAG
+  -t ghcr.io/hamiltonmoreno/accta-backend:sha-5cfff3c9b0e1 .   # <- TAG
 ```
 
 ### 2.2 Arrancar via o compose canónico (só muda o TAG)
 ```bash
 cd /docker/accta
-export TAG=sha-b16773a08b8a
+export TAG=sha-5cfff3c9b0e1
 docker compose up -d --no-deps backend
 ```
 
 ### 2.3 Verificar
 ```bash
 docker compose ps                         # backend = Up (healthy)
-docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-b16773a08b8a
+docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-5cfff3c9b0e1
 docker compose logs --tail=80 backend     # arranque limpo: ensure_schema OK, sem tracebacks
 curl -fsS https://api.controlador.cv/api/ # 200
 
@@ -102,10 +106,13 @@ curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/api/finances
 # Regressão (spec 003, vivo desde v0.5.27): endpoints de finanças de evento.
 curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/api/events/nao-existe/expenses # esperado: 401 (NÃO 404)
 curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/api/events/nao-existe/receitas # esperado: 401 (NÃO 404)
-# Teste decisivo da v0.5.35: endpoint dinâmico do ícone + campo icon_url (aditivos).
-curl -s -o /dev/null -w '%{http_code}\n' -L https://api.controlador.cv/api/brand/icon  # esperado: 200 (segue 302 p/ imagem)
-curl -fsS https://api.controlador.cv/api/brand/public | grep -o '"icon_url"'           # esperado: presente (valor null se sem upload)
-# (favicon_url da v0.5.34 mantém-se exposto e inalterado.)
+# Teste decisivo da v0.5.39: sem rota nova → a confirmação é a imagem viva (acima) +
+# arranque limpo. Sanidade da rota de preferências (gated, viva): PATCH→401, GET→405.
+curl -s -o /dev/null -w '%{http_code}\n' -X PATCH https://api.controlador.cv/api/me/email-preferences  # esperado: 401
+curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/api/me/email-preferences           # esperado: 405 (só PATCH)
+# Spec 007 (v0.5.38) mantém-se viva:
+curl -s -o /dev/null -w '%{http_code}\n' https://api.controlador.cv/api/finances/me/quotas/pdf         # esperado: 401
+# Validação funcional do lembrete (T006/T010) = navegador autenticado, Princípio VII (dono).
 # Arranque limpo (mantém-se desde v0.5.24): zero hits de 'tuple concurrently updated'.
 docker compose logs --tail=200 backend 2>&1 | grep -E 'tuple concurrently updated' | wc -l            # esperado: 0
 docker compose logs --tail=200 backend 2>&1 | grep -cE 'audit_logs immutability trigger.*instalado'   # esperado: 2 (um por worker)
@@ -120,7 +127,7 @@ docker compose logs --tail=200 backend 2>&1 | grep -E 'pg_cron not configured'  
 A imagem anterior continua no VPS; só se troca o `TAG`:
 ```bash
 cd /docker/accta
-export TAG=sha-4a78080aec1e        # <- rollback (v0.5.34, imagem que corria antes da v0.5.35)
+export TAG=sha-960e0b5367b2        # <- rollback (v0.5.38, imagem que corria antes da v0.5.39)
 docker compose up -d --no-deps backend
 ```
 
@@ -159,11 +166,13 @@ Ver `DEPLOY.md` e `HOSTINGER_DEPLOY.md` para o setup completo (secrets SSH,
   (`sha-12d24165c36a`) → v0.5.23 (`sha-218a2bdf4e24`) → v0.5.24
   (`sha-9c056677f181`) → v0.5.25 (`sha-af16c566b25f`) → v0.5.26
   (`sha-7c38123185f9`) → v0.5.27 (`sha-e70d67cc58ed`) → v0.5.31
-  (`sha-678575f73905`) → v0.5.34 (`sha-4a78080aec1e`) → **v0.5.35
-  (`sha-b16773a08b8a`, este deploy)**. As v0.5.28/v0.5.29/v0.5.30 e
-  v0.5.32/v0.5.33 não tocaram no backend (docs/test/frontend-only). As
-  v0.5.1/v0.5.5/v0.5.6/v0.5.7, v0.5.9–v0.5.12, v0.5.14–v0.5.16 e
-  v0.5.19–v0.5.21 não tocaram no backend (só Vercel).
+  (`sha-678575f73905`) → v0.5.34 (`sha-4a78080aec1e`) → v0.5.35
+  (`sha-b16773a08b8a`) → v0.5.37 (`sha-482320bce1ca`) → v0.5.38
+  (`sha-960e0b5367b2`) → **v0.5.39 (`sha-5cfff3c9b0e1`, este deploy)**.
+  As v0.5.28/v0.5.29/v0.5.30, v0.5.32/v0.5.33 e v0.5.36 não tocaram no
+  backend (docs/test/frontend-only). As v0.5.1/v0.5.5/v0.5.6/v0.5.7,
+  v0.5.9–v0.5.12, v0.5.14–v0.5.16 e v0.5.19–v0.5.21 não tocaram no
+  backend (só Vercel).
 - Pós-deploy histórico (informativo, **já feitos**): v0.5.22 desbloqueou
   o **#281** (DROP da tabela órfã `invoices`, executado 2026-06-19 via
   `scripts/sql/2026-06-19-drop-invoices.sql`). v0.5.8 exigiu atribuir os

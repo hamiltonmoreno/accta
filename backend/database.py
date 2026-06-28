@@ -72,6 +72,8 @@ COLLECTIONS: tuple[str, ...] = (
     "gallery_albums",
     "gallery_photos",
     "notifications",
+    # subscrições de Web Push (notificação no celular via PWA):
+    "push_subscriptions",
     "audit_logs",
     # governança estatutária (spec-governanca):
     "assembleias",
@@ -395,6 +397,7 @@ def _order_by(sort_spec) -> str:
         sort_spec = [(sort_spec, 1)]
     elif isinstance(sort_spec, tuple):
         sort_spec = [sort_spec]
+
     def _lit(name: str) -> str:
         return "'" + name.replace("'", "''") + "'"
 
@@ -830,6 +833,9 @@ _INDEX_DDL: tuple[str, ...] = (
     'CREATE INDEX IF NOT EXISTS ix_notif_user_created ON "notifications" '
     "((doc->>'user_id'), (doc->>'created_at') DESC)",
     "CREATE INDEX IF NOT EXISTS ix_notif_user_read ON \"notifications\" ((doc->>'user_id'), (doc->>'read'))",
+    # push subscriptions (uma por endpoint/dispositivo; lookup por user_id)
+    "CREATE INDEX IF NOT EXISTS ix_push_user ON \"push_subscriptions\" ((doc->>'user_id'))",
+    "CREATE UNIQUE INDEX IF NOT EXISTS ux_push_endpoint ON \"push_subscriptions\" ((doc->>'endpoint'))",
     # wall
     'CREATE INDEX IF NOT EXISTS ix_wall_appr_pin_created ON "wall_posts" '
     "((doc->>'approved'), (doc->>'pinned') DESC, (doc->>'created_at') DESC)",
@@ -856,7 +862,7 @@ _INDEX_DDL: tuple[str, ...] = (
     # uma 2.ª receita com o mesmo sancao_id (aplicar_sancao captura a violação e
     # trata como no-op, dispensando compensação). UNIQUE parcial sobre receitas;
     # tolerante a duplicados pré-existentes (ensure_schema só avisa se falhar).
-    "CREATE UNIQUE INDEX IF NOT EXISTS ux_tx_sancao_receita ON \"transactions\" "
+    'CREATE UNIQUE INDEX IF NOT EXISTS ux_tx_sancao_receita ON "transactions" '
     "((doc->>'sancao_id')) WHERE doc ? 'sancao_id' AND doc->>'type' = 'receita'",
     # events (attendees is an array -> GIN for membership queries)
     "CREATE INDEX IF NOT EXISTS ix_events_date ON \"events\" ((doc->>'date'))",
@@ -1200,7 +1206,9 @@ async def ensure_schema() -> None:
                 await conn.execute("SELECT pg_advisory_xact_lock($1, $2)", _DDL_LOCK_NS, _DDL_LOCK_RLS_BACKFILL)
                 await conn.execute(_RLS_BACKFILL_DDL)
         except Exception as e:  # noqa: BLE001 - non-fatal, ver runbook F5.6
-            logger.warning("RLS backfill (defesa em profundidade) NAO aplicado — autoritativo via operador (runbook F5.6): %s", e)
+            logger.warning(
+                "RLS backfill (defesa em profundidade) NAO aplicado — autoritativo via operador (runbook F5.6): %s", e
+            )
         try:
             async with conn.transaction():
                 await conn.execute("SET LOCAL lock_timeout = '10s'")
@@ -1209,7 +1217,9 @@ async def ensure_schema() -> None:
                     await conn.execute(ddl)
             logger.info("RLS auto-enable event trigger (defesa em profundidade) instalado")
         except Exception as e:  # noqa: BLE001 - non-fatal, ver runbook F5.6
-            logger.warning("RLS auto-enable event trigger NAO instalado — autoritativo via operador (runbook F5.6): %s", e)
+            logger.warning(
+                "RLS auto-enable event trigger NAO instalado — autoritativo via operador (runbook F5.6): %s", e
+            )
     logger.info("PostgreSQL schema and indexes ensured")
 
 
@@ -1450,8 +1460,7 @@ async def register_presenca_locked(
         async with conn.transaction():
             await conn.execute("SET LOCAL lock_timeout = '2s'")
             row = await conn.fetchrow(
-                f"SELECT pk, doc FROM {_quote_ident('assembleias')} "
-                "WHERE doc->>'id' = $1 LIMIT 1 FOR UPDATE",
+                f"SELECT pk, doc FROM {_quote_ident('assembleias')} WHERE doc->>'id' = $1 LIMIT 1 FOR UPDATE",
                 assembleia_id,
             )
             if row is None:
