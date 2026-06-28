@@ -147,6 +147,44 @@ async def list_my_quotas(current_user: User = Depends(get_current_user)):
     return {"items": items, "total_pago": total_pago}
 
 
+@router.get("/me/quotas/pdf")
+async def export_my_quotas_pdf(current_user: User = Depends(get_current_user)):
+    """Exporta a carteira de quota/jóia do PRÓPRIO sócio em PDF (comprovativo
+    pessoal de uso interno, marca ACCTA).
+
+    Mesma fonte que `GET /me/quotas` — filtro fixo por `user_id` do próprio, sem
+    privilégio e SEM audit (leitura dos próprios dados). Não há parâmetro de "outro
+    sócio": é impossível, por construção, exportar a carteira de terceiros.
+    """
+    query = {
+        "user_id": current_user.id,
+        "type": "receita",
+        "category": {"$in": ["quotas", "joias"]},
+    }
+    items = await db.transactions.find(query, {"_id": 0}).sort("date", -1).to_list(None)
+
+    def _amount(t: dict) -> float:
+        try:
+            return float(t.get("amount") or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    total = sum(_amount(t) for t in items)
+
+    pdf = _new_relatorio_pdf()
+    _render_carteira(pdf, current_user, items, total)
+    buf = io.BytesIO()
+    pdf.output(buf)
+    buf.seek(0)
+    member_ref = getattr(current_user, "member_id", None) or "socio"
+    filename = f"Carteira_Quotas_ACCTA_{member_ref}.pdf"
+    return StreamingResponse(
+        buf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
 @router.post("/transactions")
 async def create_transaction(
     data: TransactionCreate,
@@ -745,6 +783,86 @@ def _new_relatorio_pdf() -> FPDF:
 def _fmt(v: float) -> str:
     """Formata um valor CVE com separador de milhares por ponto."""
     return f"{v:,.0f}".replace(",", ".")
+
+
+# Rótulos PT das categorias da carteira (apenas quota/jóia aparecem aqui).
+_CARTEIRA_CAT_LABELS = {"quotas": "Quota", "joias": "Joia"}
+
+
+def _latin1_safe(s) -> str:
+    """As core fonts do fpdf codificam em latin-1; PT cabe todo em latin-1. Isto é
+    só defesa contra um caractere inesperado fora de latin-1 (não rebenta o PDF)."""
+    return str(s or "").encode("latin-1", "replace").decode("latin-1")
+
+
+def _render_carteira(pdf: FPDF, member, items: list, total: float) -> None:
+    """Renderiza a carteira de quotas/jóia do sócio (comprovativo pessoal).
+    `member` é o User autenticado; `items` são os lançamentos (mais recente→antigo)."""
+    pdf.add_page()
+
+    # --- Header (marca ACCTA, igual ao DRE) ---
+    pdf.set_fill_color(199, 32, 47)  # Carmesim
+    pdf.rect(0, 0, 210, 40, "F")
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Helvetica", "B", 20)
+    pdf.set_y(10)
+    pdf.cell(0, 10, "ACCTA - Cabo Verde", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 11)
+    pdf.cell(0, 8, "Carteira de Quotas", align="C", new_x="LMARGIN", new_y="NEXT")
+
+    # --- Identificação do sócio ---
+    pdf.set_text_color(58, 58, 58)  # Grafite
+    pdf.set_y(48)
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 7, _latin1_safe(getattr(member, "name", None) or "-"), new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Helvetica", "", 9)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(0, 5, f"N. de socio: {_latin1_safe(getattr(member, 'member_id', None) or '-')}", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(
+        0, 5,
+        f"Emitido em {datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M')} UTC",
+        new_x="LMARGIN", new_y="NEXT",
+    )
+    pdf.ln(4)
+    pdf.set_text_color(58, 58, 58)
+
+    if not items:
+        pdf.set_font("Helvetica", "", 10)
+        pdf.cell(0, 8, "Sem lancamentos registados.", new_x="LMARGIN", new_y="NEXT")
+    else:
+        # Cabeçalho da tabela
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_fill_color(245, 245, 245)
+        pdf.cell(28, 7, "Data", fill=True)
+        pdf.cell(95, 7, "Descricao", fill=True)
+        pdf.cell(27, 7, "Categoria", fill=True)
+        pdf.cell(40, 7, "Valor (CVE)", fill=True, align="R", new_x="LMARGIN", new_y="NEXT")
+        # Linhas
+        pdf.set_font("Helvetica", "", 9)
+        for it in items:
+            date_str = (it.get("date") or "")[:10]
+            cat = _CARTEIRA_CAT_LABELS.get(it.get("category", ""), it.get("category", ""))
+            desc = _latin1_safe(it.get("description", ""))[:55]
+            try:
+                amt = float(it.get("amount") or 0)
+            except (TypeError, ValueError):
+                amt = 0.0
+            pdf.cell(28, 6, date_str)
+            pdf.cell(95, 6, desc)
+            pdf.cell(27, 6, cat)
+            pdf.cell(40, 6, _fmt(amt), align="R", new_x="LMARGIN", new_y="NEXT")
+
+    # --- Total ---
+    pdf.ln(3)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.cell(150, 8, "Total pago")
+    pdf.cell(40, 8, f"{_fmt(total)} CVE", align="R", new_x="LMARGIN", new_y="NEXT")
+
+    # --- Rodapé (uso interno) ---
+    pdf.ln(6)
+    pdf.set_font("Helvetica", "", 7)
+    pdf.set_text_color(120, 120, 120)
+    pdf.cell(0, 4, "Comprovativo pessoal de uso interno - sem valor fiscal.", new_x="LMARGIN", new_y="NEXT")
 
 
 def _render_dre(pdf: FPDF, year: int, dre: dict) -> None:

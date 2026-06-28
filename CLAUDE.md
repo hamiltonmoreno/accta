@@ -361,15 +361,27 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Feature Spec Kit ativa: `specs/006-ranking-perfil-ux/` (plano em
-`specs/006-ranking-perfil-ux/plan.md`) — revisão **frontend-only** de Ranking e Perfil:
-(US1) Ranking responsivo no telemóvel; (US2) distinção clara 1.º/2.º/3.º (escala de
-ênfase Carmesim→Grafite→muted + ordinal; metálicos reais = decisão de override do dono,
-research.md D2); (US3) fotos dos sócios via `UserAvatar` (`photo_url` já vem no payload do
-leaderboard — sem backend); (US4) painel de notificações sem corte à esquerda no mobile;
-(US5) Perfil — clarificar fronteira editável vs. gerido por admin (email admin-only, Q1).
-Sem alterações de backend/API/dados; sem deps novas; sem Via B. Próximo: `/speckit-tasks`.
-Last completed: `specs/005-icone-marca-pwa-concluido/` — ícone quadrado da marca
+Feature Spec Kit ativa: `specs/007-carteira-quotas-pdf/` (plano em
+`specs/007-carteira-quotas-pdf/plan.md`) — **exportar a carteira de quotas do próprio
+sócio em PDF** (comprovativo pessoal de uso interno, marca ACCTA, só os próprios dados).
+Reutiliza tudo: query `GET /me/quotas` (já RBAC-safe por `user_id`), o gerador PDF
+*branded* `fpdf` (`_new_relatorio_pdf`/`_fmt` em `routes/finances.py`) e o idioma de
+download por blob do frontend. Backend: 1 endpoint `GET /me/quotas/pdf` + `_render_carteira()`;
+frontend: botão na `CarteiraPage` + método `api.js`. Zero deps; sem schema/migração; toca
+`backend/` → release exige **Via B**. Nota de domínio: a carteira **não tem estado por
+quota** (todos os lançamentos são efetivos, quotas por folha). Próximo: `/speckit-tasks`.
+Last completed: `specs/006-ranking-perfil-ux-concluido/` — revisão **frontend-only** de
+Ranking e Perfil: (US1) ranking responsivo no telemóvel (sem overflow a 360px); (US2)
+distinção 1.º/2.º/3.º por forma+tom (Coroa carmesim / Medalha grafite / Award muted +
+`sr-only`) e **posições contínuas a negrito** (corrige o rank-com-empates do servidor
+4,4,4 → 4,5,6); (US3) fotos dos sócios via `UserAvatar` (`photo_url` já vinha no payload);
+(US4) painel de notificações com margem 16px nos dois bordos no mobile; (US5) Perfil —
+fronteira editável vs. gerido por admin (cadeados; email admin-only, Q1). Componente novo
+`components/RankBadge.js`. **CONCLUÍDA e RELEASED v0.5.37, em prod** (PR #354→develop;
+correção W1 do widget; release #355→main; frontend Vercel + backend Via B `sha-482320bce1ca`
+porque a release bundlou também #350/#351 de backend — ver [[prod-backend-deployed-state]]).
+20/20 tarefas verificadas em navegador (360/500px). Sem deps novas.
+Anterior: `specs/005-icone-marca-pwa-concluido/` — ícone quadrado da marca
 gerível pela UI (Aparência → Marca), distinto do favicon (`icon_url` novo), que alimenta
 a marca compacta in-app + o **ícone PWA** e a **imagem de partilha (og)** via um endpoint
 estável `GET /api/brand/icon` (servir dinâmico, sem deploy; 302 → ícone atual ou
