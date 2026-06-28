@@ -3,7 +3,7 @@
 // Ícones de nome fixo na raiz (/logo192.png, /favicon.ico, …) deixam de ser
 // pinados pelo SW e passam a respeitar o Cache-Control HTTP (revalidável) — uma
 // troca de logo propaga-se sem novo deploy do SW. O bump purga a cache v3.
-const CACHE_NAME = 'accta-wallet-v4';
+const CACHE_NAME = 'accta-wallet-v5';
 
 const STATIC_ASSETS = [
   '/carteira',
@@ -85,4 +85,47 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
+});
+
+// Web Push: o backend dispara um payload JSON { title, body, url }. Mostramos a
+// notificação na bandeja do SO (funciona com a app fechada no Android/desktop e
+// no iOS 16.4+ quando o PWA está na Tela de Início).
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = { body: event.data && event.data.text ? event.data.text() : '' };
+  }
+  const title = data.title || 'ACCTA';
+  const options = {
+    body: data.body || '',
+    icon: '/logo192.png',
+    badge: '/logo192.png',
+    data: { url: data.url || '/' },
+  };
+  // Só agrupa (substitui na bandeja) se o backend mandar um `tag` explícito.
+  // Sem tag, cada notificação aparece como entrada separada — senão um comunicado
+  // seguido de um evento colapsavam num só e o utilizador perdia o primeiro.
+  if (data.tag) options.tag = data.tag;
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Clique na notificação: foca uma janela já aberta da app (navegando para o
+// link) ou abre uma nova.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if ('focus' in client) {
+          client.navigate(targetUrl).catch(() => {});
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) return clients.openWindow(targetUrl);
+      return undefined;
+    })
+  );
 });

@@ -8,6 +8,7 @@ import os
 from fastapi import Request
 from database import db, UPLOAD_DIR, _json_default
 from models import AuditLog, Notification
+from push_service import dispatch_push
 
 
 async def coaprovacao_limiar() -> float:
@@ -273,6 +274,7 @@ async def create_notification(user_id: str, type: str, title: str, message: str,
     notification = Notification(user_id=user_id, type=type, title=title, message=message, link=link)
     notif_dict = notification.model_dump()
     await db.notifications.insert_one(notif_dict)
+    await dispatch_push([user_id], title, message, link)
 
 
 async def notify_users(
@@ -294,6 +296,7 @@ async def notify_users(
         notif_dict = notification.model_dump()
         notifications.append(notif_dict)
     await db.notifications.insert_many(notifications)
+    await dispatch_push(list(unique_ids), title, message, link)
 
 
 async def notify_all_active_users(type: str, title: str, message: str, link: Optional[str] = None):
@@ -313,6 +316,7 @@ async def notify_all_active_users(type: str, title: str, message: str, link: Opt
         notifications.append(notif_dict)
     if notifications:
         await db.notifications.insert_many(notifications)
+        await dispatch_push([u["id"] for u in users], title, message, link)
 
 
 async def notify_admins(

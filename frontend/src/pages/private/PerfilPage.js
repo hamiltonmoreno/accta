@@ -13,6 +13,7 @@ import { RightsSuspendedBanner } from './perfil/RightsSuspendedBanner';
 import { EditForm } from './perfil/EditForm';
 import { DetailsGrid } from './perfil/DetailsGrid';
 import { EmailPrefs } from './perfil/EmailPrefs';
+import { PushPrefs } from '../../components/PushPrefs';
 import { MeusCargosSection } from './perfil/MeusCargosSection';
 
 export const PerfilPage = () => {
@@ -134,6 +135,8 @@ export const PerfilPage = () => {
       <PrivilegesSection privileges={user.privileges} />
 
       <EmailPrefs user={user} refreshUser={refreshUser} />
+
+      <PushPrefs />
 
       <MeusCargosSection userId={user.id} structure={structure} />
     </div>
