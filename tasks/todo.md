@@ -109,3 +109,29 @@
 - [#279](https://github.com/hamiltonmoreno/accta/issues/279) — `fix(finances)`: joia/preview aceita `cta_qualified_since` no futuro sem validação.
 - [#280](https://github.com/hamiltonmoreno/accta/issues/280) — `fix(finances)`: audit logs de finanças sem IP/User-Agent (falta `request=`).
 - [#282](https://github.com/hamiltonmoreno/accta/issues/282) — `cleanup(ranking)`: comentário órfão menciona invoices (detetado na revisão pós-merge).
+
+---
+
+## Review — spec 010 aviso-deliberacao-pendente (2026-06-28)
+
+**Feito (14/14 tarefas, branch `feature/aviso-deliberacao-pendente`):** aviso à Direção de Ato
+(Art. 54) `pendente` há > X dias (X admin-configurável, default 7), **uma única vez** por Ato.
+
+- **Disparo**: loop in-process diário — `asyncio.create_task(overdue_atos_loop())` no
+  `@app.on_event("startup")` de `server.py` (padrão non-fatal dos seeds). Decisão confirmada pelo dono.
+- **Lógica** (`routes/atos.py` `notify_overdue_atos()`): lê `ato_overdue_dias`; varre Atos `pendente`
+  sem `overdue_notified_at`; idade > X (`.days` trunca → dispara a X+1 completos); destinatários
+  `members_of_orgao("direcao")` (exclui técnicos/inativos); `notify_users(..., "financeiro", ..., link)`;
+  grava a marca. Sem Direção ⇒ no-op sem marcar. `created_at` ausente/inválido ⇒ ignorado.
+- **Config** (`models.py` + `routes/finances.py`): `FinanceSettings.ato_overdue_dias` (default 7) +
+  `FinanceSettingsUpdate.ato_overdue_dias`; PATCH admin existente valida `>= 1`.
+- **Idempotência**: marca `Ato.overdue_notified_at` (aditivo); filtro `$exists:false`.
+- **Endpoint** (verificação/disparo manual): `POST /api/atos/notify-overdue` (admin-only).
+- **Testes**: `tests/test_atos_overdue.py` (8 casos, verdes); 159 testes in-process verdes; ruff limpo.
+  Falhas em `test_finance_improvements.py` = integração `import requests` sem servidor (ambiental).
+
+**Zero deps novas. Backend-only.** Campos aditivos ⇒ sem migração, sem STOP condition.
+
+**Por fechar (fora do âmbito de codificação):** release `develop→main` exige **Via B** (toca `backend/`);
+verificação prod = `POST /api/atos/notify-overdue` sem token → 401 + log de arranque do loop. Só após
+RELEASED+deployed renomear `specs/010-...` para `-concluido` (convenção do projeto).

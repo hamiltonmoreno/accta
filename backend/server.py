@@ -261,6 +261,15 @@ async def startup_event():
         await seed_ifatca()
     except Exception as e:  # noqa: BLE001 - seed non-fatal
         logger.warning(f"seed_ifatca warning (non-fatal): {e}")
+    # Agendador in-process: aviso à Direção de Atos pendentes atrasados (spec 010).
+    try:
+        import asyncio
+
+        from routes.atos import overdue_atos_loop
+
+        asyncio.create_task(overdue_atos_loop())
+    except Exception as e:  # noqa: BLE001 - agendador non-fatal
+        logger.warning(f"overdue_atos_loop scheduler warning (non-fatal): {e}")
 
 
 @app.on_event("shutdown")

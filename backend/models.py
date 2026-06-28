@@ -1343,6 +1343,9 @@ class FinanceSettings(BaseModel):
     # Pagamentos acima deste limiar exigem um Ato de co-aprovação aprovado
     # (spec-controlos §4.1, Art. 54). 0.0 = regra ainda não activada.
     coaprovacao_limiar: float = 0.0
+    # Limiar X (dias) a partir do qual um Ato pendente é sinalizado à Direção
+    # (spec 010). Default 7 quando nunca configurado.
+    ato_overdue_dias: int = 7
     # Alterar quota/jóia exige deliberação de AG por maioria 3/4.
     quota_fixed_by_assembleia_id: Optional[str] = None
     quota_fixed_by_deliberacao_id: Optional[str] = None
@@ -1360,6 +1363,8 @@ class FinanceSettingsUpdate(BaseModel):
     assembleia_id: Optional[str] = None
     deliberacao_id: Optional[str] = None
     effective_from: Optional[str] = None
+    # Limiar de dias do aviso de Ato pendente atrasado (spec 010). Aditivo.
+    ato_overdue_dias: Optional[int] = None
 
 
 # ===== ATOS — Co-aprovação / dupla assinatura (Art. 54; spec-controlos §4.1) =====
@@ -1418,6 +1423,10 @@ class Ato(BaseModel):
     created_by: str
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     source_article: str = "54"
+    # Marca de "já avisado" do aviso à Direção de pendência atrasada (spec 010).
+    # Ausente/None ⇒ ainda não avisado; gravado quando o ato cruza o limiar de
+    # dias, garantindo o "uma única vez" (não re-avisa em avaliações seguintes).
+    overdue_notified_at: Optional[str] = None
 
 
 # Estados válidos de conta. NÃO existe "inadimplente" (quotas são descontadas

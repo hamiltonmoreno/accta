@@ -14,6 +14,8 @@ RBAC:
 - ver:      quem vê finanças (admin/financeiro/CF) ou membro da Direcção
 """
 
+import asyncio
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -38,7 +40,14 @@ from atos_rules import evaluate_status, requisitos_for_tipo
 
 router = APIRouter(prefix="/atos", tags=["atos"])
 
+logger = logging.getLogger(__name__)
+
 _LINK = "/financeiro/co-aprovacoes"
+
+# Limiar default de dias (FR-004) quando finance_settings não o tem.
+_OVERDUE_DEFAULT_DIAS = 7
+# Cadência do agendador in-process (spec 010): uma avaliação por dia.
+_OVERDUE_LOOP_SECONDS = 24 * 60 * 60
 
 
 def _require_view(user: User):
@@ -263,3 +272,109 @@ async def cancel_ato(ato_id: str, request: Request, current_user: User = Depends
     await db.atos.update_one({"id": ato_id}, {"$set": {"status": "cancelado"}})
     await create_audit_log(current_user.id, f"Cancelou acto {ato_id}", ato_id, request=request)
     return await db.atos.find_one({"id": ato_id}, {"_id": 0})
+
+
+# ===== Aviso à Direção de Ato pendente atrasado (spec 010) ==================== #
+
+
+def _parse_created_at(value) -> Optional[datetime]:
+    """Parse defensivo do created_at (ISO-8601). Ausente/inválido ⇒ None (o ato
+    é ignorado com segurança, sem disparar com base em data não fiável)."""
+    if not isinstance(value, str):
+        return None
+    try:
+        dt = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+async def _overdue_limiar_dias() -> int:
+    """Limiar X em dias (FR-004), de finance_settings; default 7 se ausente/inválido."""
+    s = await db.finance_settings.find_one({"id": "finance_settings"}, {"_id": 0})
+    try:
+        dias = int((s or {}).get("ato_overdue_dias") or _OVERDUE_DEFAULT_DIAS)
+    except (TypeError, ValueError):
+        return _OVERDUE_DEFAULT_DIAS
+    return dias if dias >= 1 else _OVERDUE_DEFAULT_DIAS
+
+
+async def notify_overdue_atos() -> dict:
+    """Avalia os Atos pendentes e avisa a Direção dos que estão parados há MAIS
+    de X dias (X = finance_settings.ato_overdue_dias, default 7). Uma única vez
+    por Ato — grava `overdue_notified_at` e o filtro exclui os já avisados
+    (idempotência, FR-005). Reutilizada pelo loop diário e pelo endpoint de
+    disparo manual. Non-fatal por desenho (devolve contadores, não levanta)."""
+    dias = await _overdue_limiar_dias()
+    # Só pendentes ainda não avisados (sair de `pendente` ⇒ deixa de ser
+    # considerado, FR-006; marca presente ⇒ não re-avisa, FR-005).
+    atos = await db.atos.find({"status": "pendente", "overdue_notified_at": {"$exists": False}}, {"_id": 0}).to_list(
+        None
+    )
+
+    now = datetime.now(timezone.utc)
+    counters = {"evaluated": len(atos), "overdue": 0, "notified_atos": 0, "recipients": 0}
+
+    overdue = []
+    for ato in atos:
+        created = _parse_created_at(ato.get("created_at"))
+        if created is None:
+            continue  # data ausente/inválida ⇒ ignora com segurança
+        # `(now - created).days` trunca para dias inteiros, logo `> dias` só
+        # dispara a partir de dias+1 completos — semântica de "mais de X dias".
+        if (now - created).days > dias:
+            overdue.append((ato, (now - created).days))
+    counters["overdue"] = len(overdue)
+    if not overdue:
+        return counters
+
+    direcao_ids = await members_of_orgao("direcao")
+    if not direcao_ids:
+        # Sem destinatários ⇒ não avisa NEM marca: volta a qualificar quando a
+        # Direção existir (FR-009: sem erro, o sistema continua).
+        return counters
+    counters["recipients"] = len(direcao_ids)
+
+    for ato, idade in overdue:
+        tipo = ato.get("tipo") or "ato"
+        valor = ato.get("valor")
+        valor_txt = f", {valor:,.0f} CVE" if isinstance(valor, (int, float)) else ""
+        descricao = (ato.get("descricao") or "").strip() or "(sem descrição)"
+        await notify_users(
+            direcao_ids,
+            "financeiro",
+            f"Ato pendente há {idade} dias",
+            f'O ato "{descricao}" ({tipo}{valor_txt}) está pendente há {idade} dias e aguarda ação da Direção.',
+            _LINK,
+        )
+        await db.atos.update_one({"id": ato["id"]}, {"$set": {"overdue_notified_at": now.isoformat()}})
+        counters["notified_atos"] += 1
+
+    return counters
+
+
+async def overdue_atos_loop():
+    """Agendador in-process (spec 010): avalia 1x/dia os Atos pendentes
+    atrasados. Non-fatal — uma falha nunca derruba o arranque nem interrompe o
+    loop. Idempotente, pelo que reiniciar o relógio no arranque é inofensivo."""
+    logger.info("overdue_atos_loop: agendador de avisos de Atos pendentes iniciado")
+    while True:
+        try:
+            result = await notify_overdue_atos()
+            if result.get("notified_atos"):
+                logger.info("overdue_atos_loop: %s", result)
+        except Exception as e:  # noqa: BLE001 - loop non-fatal
+            logger.warning("overdue_atos_loop erro (non-fatal): %s", e)
+        await asyncio.sleep(_OVERDUE_LOOP_SECONDS)
+
+
+@router.post("/notify-overdue")
+async def notify_overdue_endpoint(current_user: User = Depends(get_current_user)):
+    """Disparo manual / verificação (admin) da avaliação de Atos pendentes
+    atrasados — corre o mesmo código do loop diário. Idempotente: uma 2.ª
+    chamada seguida devolve `notified_atos: 0`."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Apenas administradores podem disparar esta avaliação")
+    return await notify_overdue_atos()
