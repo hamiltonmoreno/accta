@@ -731,15 +731,26 @@ def _eval_accumulator(expr: Any, doc: dict) -> float:
     return float(expr or 0)
 
 
+def _safe_float(v: Any) -> float:
+    """Coerce a value to float, treating non-numeric as 0 — como o `$sum` real
+    do Mongo (que IGNORA valores não-numéricos em vez de rebentar). Sem isto, um
+    `amount` legado mal-formado num doc fazia o agregado levantar `ValueError` e
+    o endpoint 500. Leituras pontuais (ex. list_my_quotas) já se defendiam à mão."""
+    try:
+        return float(v or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def _eval_value(expr: Any, doc: dict) -> float:
     if isinstance(expr, (int, float)):
         return float(expr)
     if isinstance(expr, str) and expr.startswith("$"):
-        return float(doc.get(expr[1:]) or 0)
+        return _safe_float(doc.get(expr[1:]))
     if isinstance(expr, dict) and "$cond" in expr:
         cond, then, otherwise = expr["$cond"]
         return _eval_value(then, doc) if _eval_condition(cond, doc) else _eval_value(otherwise, doc)
-    return float(expr or 0)
+    return _safe_float(expr)
 
 
 def _eval_condition(cond: Any, doc: dict) -> bool:

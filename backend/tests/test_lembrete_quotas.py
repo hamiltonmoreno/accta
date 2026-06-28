@@ -169,3 +169,21 @@ class TestPreferenciaOptOut:
             current_user=socio_user,
         )
         assert captured["set"] == {"email_opt_out_informativos": True}
+
+
+class TestSumCoercaoAmountLegado:
+    """W1 (PR #360): o `$sum` do total acumulado não pode rebentar com um
+    `amount` legado mal-formado — o agregado já fez commit das quotas, um 500
+    aqui perderia os lembretes do mês. Fiel ao Mongo: não-numérico → 0."""
+
+    def test_sum_field_ignora_amount_nao_numerico(self):
+        import database
+
+        # Campo desreferenciado de um doc com amount string mal-formado.
+        assert database._eval_value("$amount", {"amount": "abc"}) == 0.0
+        assert database._eval_value("$amount", {"amount": "500"}) == 500.0
+        assert database._eval_value("$amount", {"amount": None}) == 0.0
+        assert database._eval_value("$amount", {"amount": 2000.0}) == 2000.0
+        # Pelo acumulador $sum (caminho usado no gerador de lembretes).
+        assert database._eval_accumulator({"$sum": "$amount"}, {"amount": "x"}) == 0.0
+        assert database._eval_accumulator({"$sum": "$amount"}, {"amount": 1500}) == 1500.0
