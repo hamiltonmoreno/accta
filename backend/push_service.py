@@ -8,10 +8,12 @@ ausência do pacote nunca impeça o arranque do servidor.
 """
 
 import asyncio
+import ipaddress
 import json
 import logging
 import os
 from typing import Iterable, Optional
+from urllib.parse import urlparse
 
 from database import db
 
@@ -30,6 +32,34 @@ _MAX_BODY = 180
 def push_enabled() -> bool:
     """True só quando o par VAPID está configurado."""
     return bool(VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY)
+
+
+def is_safe_push_endpoint(endpoint: str) -> bool:
+    """Aceita só endpoints de push plausíveis: HTTPS para um host público.
+
+    Defesa SSRF — um cliente autenticado podia contornar o browser, registar um
+    URL interno (ex.: http://169.254.169.254/…) e usar /push/test para forçar o
+    servidor a fazer POST nesse alvo. Rejeita não-HTTPS, localhost e IPs em gamas
+    privadas/reservadas.
+    """
+    if not endpoint or not isinstance(endpoint, str):
+        return False
+    try:
+        u = urlparse(endpoint)
+    except Exception:
+        return False
+    if u.scheme != "https" or not u.hostname:
+        return False
+    host = u.hostname.lower()
+    if host == "localhost" or host.endswith(".local") or host.endswith(".internal"):
+        return False
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return True  # hostname público (não-IP literal) — aceita
+    return not (
+        ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast or ip.is_unspecified
+    )
 
 
 def _send_one(subscription_info: dict, payload: str) -> None:
@@ -80,6 +110,8 @@ async def dispatch_push(
 
     async def _push(sub: dict) -> None:
         endpoint = sub.get("endpoint")
+        if not is_safe_push_endpoint(endpoint):
+            return  # defesa SSRF: nunca POSTa para um endpoint não-público
         sub_info = {
             "endpoint": endpoint,
             "keys": {"p256dh": sub.get("p256dh"), "auth": sub.get("auth")},

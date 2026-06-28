@@ -13,7 +13,7 @@ import push_service
 from auth import get_current_user
 from database import db
 from models import PushSubscriptionRequest
-from push_service import dispatch_push, push_enabled
+from push_service import dispatch_push, is_safe_push_endpoint, push_enabled
 
 router = APIRouter(prefix="/push", tags=["push"])
 
@@ -43,6 +43,8 @@ async def subscribe(
     """
     if not push_enabled():
         raise HTTPException(status_code=503, detail="Notificações push não estão configuradas.")
+    if not is_safe_push_endpoint(sub.endpoint):
+        raise HTTPException(status_code=400, detail="Endpoint de push inválido.")
     now = datetime.now(timezone.utc).isoformat()
     existing = await db.push_subscriptions.find_one({"endpoint": sub.endpoint}, {"_id": 0, "id": 1})
     doc = {

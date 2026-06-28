@@ -78,6 +78,48 @@ class TestSubscribe:
             await push_route.subscribe(_sub_payload(), _request(), socio_user_dict)
         assert getattr(exc.value, "status_code", None) == 503
 
+    async def test_400_endpoint_interno_ssrf(self, push_env, socio_user_dict):
+        # Endpoint para um alvo interno (SSRF) é rejeitado antes de gravar.
+        bad = PushSubscriptionRequest(
+            endpoint="https://169.254.169.254/latest/meta-data",
+            keys={"p256dh": "PPP", "auth": "AAA"},
+        )
+        with pytest.raises(Exception) as exc:
+            await push_route.subscribe(bad, _request(), socio_user_dict)
+        assert getattr(exc.value, "status_code", None) == 400
+        push_env.push_subscriptions.insert_one.assert_not_awaited()
+
+
+class TestEndpointSafety:
+    @pytest.mark.parametrize(
+        "endpoint",
+        [
+            "https://fcm.googleapis.com/fcm/send/abc",
+            "https://web.push.apple.com/xyz",
+            "https://updates.push.services.mozilla.com/wpush/v2/gg",
+        ],
+    )
+    def test_aceita_servicos_publicos(self, endpoint):
+        assert push_service.is_safe_push_endpoint(endpoint) is True
+
+    @pytest.mark.parametrize(
+        "endpoint",
+        [
+            "http://fcm.googleapis.com/x",  # não-HTTPS
+            "https://localhost/x",
+            "https://127.0.0.1/x",
+            "https://10.0.0.5/x",
+            "https://192.168.1.10/x",
+            "https://169.254.169.254/x",  # link-local (cloud metadata)
+            "https://[::1]/x",
+            "https://router.internal/x",
+            "ftp://fcm.googleapis.com/x",
+            "",
+        ],
+    )
+    def test_rejeita_alvos_inseguros(self, endpoint):
+        assert push_service.is_safe_push_endpoint(endpoint) is False
+
 
 class TestUnsubscribe:
     async def test_apaga_do_proprio(self, push_env, socio_user_dict):

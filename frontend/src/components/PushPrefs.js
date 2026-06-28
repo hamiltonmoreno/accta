@@ -15,7 +15,11 @@ import {
 // (o browser não permite pedir permissão sem gesto).
 export const PushPrefs = () => {
   const supported = isPushSupported();
-  const iosNeedsInstall = supported && getIosNeedsInstall();
+  // Independente do suporte a push: no iOS antes de instalar o PWA, o
+  // PushManager nem sequer existe (supported=false), por isso a dica de
+  // instalação tem de ser avaliada à parte — senão escondíamos o card
+  // justamente a quem precisa dela.
+  const iosNeedsInstall = getIosNeedsInstall();
 
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -37,8 +41,9 @@ export const PushPrefs = () => {
     };
   }, [supported]);
 
-  // Dispositivo sem suporte (ex.: browser antigo): não mostra o card.
-  if (!supported) return null;
+  // Sem suporte E sem ser o caso iOS-por-instalar (ex.: browser antigo de
+  // desktop): não há nada a mostrar.
+  if (!supported && !iosNeedsInstall) return null;
 
   const handleToggle = async (checked) => {
     setBusy(true);

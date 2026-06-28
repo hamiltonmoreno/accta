@@ -103,8 +103,11 @@ self.addEventListener('push', (event) => {
     icon: '/logo192.png',
     badge: '/logo192.png',
     data: { url: data.url || '/' },
-    tag: data.tag || 'accta-notification',
   };
+  // Só agrupa (substitui na bandeja) se o backend mandar um `tag` explícito.
+  // Sem tag, cada notificação aparece como entrada separada — senão um comunicado
+  // seguido de um evento colapsavam num só e o utilizador perdia o primeiro.
+  if (data.tag) options.tag = data.tag;
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
