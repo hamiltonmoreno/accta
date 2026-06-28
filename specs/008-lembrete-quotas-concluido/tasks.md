@@ -67,8 +67,9 @@ recebe **uma** notificação com valor+total e link `/carteira`; tom informativo
   financeiro): geração → `create_notification` chamado **1×/sócio novo** com link `/carteira`
   e corpo com valor+total; **idempotência** (insert devolve [] no 2.º run → 0 notificações);
   sócio **sem quota nova** não recebe. Desligar limiter se aplicável.
-- [ ] T006 [US1] Verificar em navegador (Princípio VII): como financeiro gerar um mês novo;
+- [~] T006 [US1] Verificar em navegador (Princípio VII): como financeiro gerar um mês novo;
   como sócio abrir o sino → ver o lembrete (valor+total, tom informativo) a abrir `/carteira`.
+  **Residual** — validação manual do dono pós-deploy (Princípio VII).
 
 **Checkpoint**: US1 funcional (MVP).
 
@@ -94,8 +95,8 @@ recebe; `False` → recebe. Toggle no Perfil reflete e persiste. (SC-006, FR-004
 - [x] T009 [US2] No `backend/tests/test_lembrete_quotas.py`, adicionar: sócio com
   `quota_reminder_opt_out=True` **não** é notificado; contas `technical` e `inativo` excluídos;
   e o endpoint de preferência grava o campo no próprio user. (FR-004/005)
-- [ ] T010 [US2] Verificar em navegador: desativar o toggle → gerar outro mês → o sócio não
-  recebe; reativar → volta a receber.
+- [~] T010 [US2] Verificar em navegador: desativar o toggle → gerar outro mês → o sócio não
+  recebe; reativar → volta a receber. **Residual** — validação manual do dono pós-deploy.
 
 ---
 

@@ -361,16 +361,20 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Feature Spec Kit ativa: `specs/008-lembrete-quotas/` (plano em
-`specs/008-lembrete-quotas/plan.md`) — **lembrete informativo de quotas** (transparência,
-**SEM inadimplência** — linguagem de cobrança proibida). Disparo **orientado a evento**
-(Q1): ao gerar as quotas do mês (`POST /finances/generate-quotas`), substitui o aviso
-genérico (que ainda linka `/financeiro`, gated — bug latente) por um **lembrete por sócio**
-(valor + total acumulado, link `/carteira`), só aos que receberam quota nova, respeitando
-um **opt-out dedicado** (`quota_reminder_opt_out`, aditivo). Email = **STOP/off** (não
-construído no MVP). Backend: `finances.py` (notify por-sócio), `database.py`
-(`insert_quotas_atomic` devolve user_ids criados), `models.py` (+campo). Frontend: toggle
-em `perfil/EmailPrefs.js`. Toca `backend/` → release **Via B**. Próximo: `/speckit-tasks`.
+Sem feature Spec Kit ativa (próximo `/speckit-specify`).
+Last completed: `specs/008-lembrete-quotas-concluido/` — **lembrete informativo de quotas**
+(transparência, **SEM inadimplência** — linguagem de cobrança proibida). Disparo **orientado
+a evento**: ao gerar as quotas do mês (`POST /finances/generate-quotas`) substitui o aviso
+genérico (que linkava `/financeiro`, gated — bug latente) por um **lembrete in-app por sócio**
+(valor do período + total acumulado, link `/carteira`), só aos que receberam quota nova,
+respeitando um **opt-out dedicado** (`quota_reminder_opt_out`, aditivo) e excluindo contas
+`technical`/`inativo`. Email = **STOP/off no MVP** (decisão do dono). Backend:
+`finances.py` (notify por-sócio + 1 aggregate de total, sem N+1), `database.py`
+(`insert_quotas_atomic` devolve os `user_id` NOVOS, era `int`), `models.py` (+campo aditivo),
+`comunicados.py` (`/me/email-preferences` grava só campos enviados). Frontend: 2.º toggle
+em `perfil/EmailPrefs.js`. **CONCLUÍDA na branch (PR #360→develop)**; 49 testes verdes,
+ruff/eslint limpos; T006/T010 (browser, Princípio VII) residual de validação manual do dono
+pós-deploy. Toca `backend/` → release `develop→main` precisa de **Via B**. Zero deps novas.
 Last completed: `specs/007-carteira-quotas-pdf-concluido/` — **exportar a carteira de
 quotas do próprio sócio em PDF** (comprovativo pessoal de uso interno, marca ACCTA, só os
 próprios dados). Endpoint self-service `GET /api/finances/me/quotas/pdf` + `_render_carteira`
