@@ -20,7 +20,7 @@ from models import (
 from finance_joia import joia_status
 from database import db, insert_quotas_atomic
 from auth import get_current_user, can_view_finances, can_manage_finances
-from helpers import coaprovacao_limiar, create_audit_log, notify_admins, notify_all_active_users
+from helpers import coaprovacao_limiar, create_audit_log, notify_admins, create_notification
 from fpdf import FPDF
 import io
 import uuid
@@ -621,7 +621,7 @@ async def generate_monthly_quotas(
     # gerada em silêncio. A dedup/inserção por mês é atómica em insert_quotas_atomic.
     active_users = await db.users.find(
         {"status": "ativo", "$or": [{"account_type": "member"}, {"account_type": {"$exists": False}}]},
-        {"_id": 0, "id": 1, "name": 1},
+        {"_id": 0, "id": 1, "name": 1, "quota_reminder_opt_out": 1},
     ).to_list(None)
 
     # Constrói um candidato por sócio activo. A deduplicação por mês (saltar
@@ -642,7 +642,8 @@ async def generate_monthly_quotas(
         ).model_dump()
         for user in active_users
     ]
-    created_count = await insert_quotas_atomic(year, month, candidate_docs)
+    created_user_ids = await insert_quotas_atomic(year, month, candidate_docs)
+    created_count = len(created_user_ids)
 
     await create_audit_log(
         current_user.id,
@@ -650,16 +651,36 @@ async def generate_monthly_quotas(
         request=request,
     )
 
-    # Notify all active users that quotas were generated
-    if created_count > 0:
+    # Lembrete informativo POR SÓCIO (spec-008-lembrete-quotas): só aos que
+    # receberam quota NOVA neste run (idempotente), respeitando o opt-out
+    # dedicado. Tom de transparência — SEM linguagem de dívida/atraso. Link
+    # /carteira (acessível ao sócio); o antigo aviso genérico apontava a
+    # /financeiro (gated a admin/financeiro — bug latente para o sócio).
+    # Email = STOP/off no MVP: ligar email é decisão explícita do dono e
+    # respeitará igualmente quota_reminder_opt_out.
+    if created_user_ids:
         MONTH_NAMES_SHORT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
         mes_label = MONTH_NAMES_SHORT[month - 1]
-        await notify_all_active_users(
-            "financeiro",
-            f"Quotas de {mes_label}/{year} Geradas",
-            f"As quotas mensais de {mes_label}/{year} ({quota_amount:,.0f} CVE) foram geradas e serao descontadas em folha de pagamento.",
-            "/financeiro",
-        )
+        # Total acumulado por sócio: 1 aggregate sobre transactions (coincide com
+        # o total_pago de /me/quotas). Evita N+1 — não uma query por sócio.
+        totals_pipeline = [
+            {"$match": {"type": "receita", "category": {"$in": ["quotas", "joias"]}, "user_id": {"$in": created_user_ids}}},
+            {"$group": {"_id": "$user_id", "total": {"$sum": "$amount"}}},
+        ]
+        totals = {r["_id"]: r["total"] async for r in db.transactions.aggregate(totals_pipeline)}
+        opted_out = {u["id"] for u in active_users if u.get("quota_reminder_opt_out")}
+        for uid in created_user_ids:
+            if uid in opted_out:
+                continue
+            total_pago = totals.get(uid, quota_amount)
+            await create_notification(
+                uid,
+                "financeiro",
+                f"Quota de {mes_label}/{year} registada",
+                f"A tua quota de {mes_label}/{year} ({quota_amount:,.0f} CVE) foi registada e "
+                f"será descontada em folha. Total acumulado pago: {total_pago:,.0f} CVE.",
+                "/carteira",
+            )
 
     return {
         "message": f"{created_count} quotas geradas para {month:02d}/{year}",

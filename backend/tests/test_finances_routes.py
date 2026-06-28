@@ -23,6 +23,18 @@ def _cursor(items, limit_supports=True):  # noqa: ARG001
     return cursor
 
 
+class _AsyncIter:
+    """Async-iterable que devolve `items` — emula `db.x.aggregate(...)` usado
+    em `async for r in db.transactions.aggregate(...)` (gerador de quotas)."""
+
+    def __init__(self, items):
+        self._items = items
+
+    async def __aiter__(self):
+        for item in self._items:
+            yield item
+
+
 def _request():
     """Fake Request para satisfazer a assinatura dos endpoints de escrita.
     create_audit_log lê client.host + headers via extract_request_meta."""
@@ -485,10 +497,14 @@ class TestGenerateQuotas:
         mock_db.finance_settings.find_one = AsyncMock(return_value={"quota_amount": 2000.0})
         # A inserção passa pelo helper atómico (advisory lock) — mock no estilo das
         # restantes funções de lock do database.py (ex. register_presenca_locked).
-        fake_insert = AsyncMock(return_value=1)
+        # Devolve a lista de user_id NOVOS (spec-008).
+        fake_insert = AsyncMock(return_value=["member-1"])
         monkeypatch.setattr(finances_route, "insert_quotas_atomic", fake_insert)
         monkeypatch.setattr(finances_route, "create_audit_log", AsyncMock())
-        monkeypatch.setattr(finances_route, "notify_all_active_users", AsyncMock())
+        fake_notify = AsyncMock()
+        monkeypatch.setattr(finances_route, "create_notification", fake_notify)
+        # Total acumulado por sócio (1 aggregate sobre transactions).
+        mock_db.transactions.aggregate = MagicMock(return_value=_AsyncIter([{"_id": "member-1", "total": 6000.0}]))
 
         result = await finances_route.generate_monthly_quotas(
             request=_request(), month=5, year=2026, current_user=admin_user
@@ -505,6 +521,11 @@ class TestGenerateQuotas:
         assert (call_year, call_month) == (2026, 5)
         assert [c["user_id"] for c in candidates] == ["member-1"]
         assert candidates[0]["category"] == "quotas"
+        # Lembrete informativo in-app por sócio novo, link /carteira (spec-008).
+        fake_notify.assert_awaited_once()
+        notify_args = fake_notify.await_args.args
+        assert notify_args[0] == "member-1"
+        assert notify_args[-1] == "/carteira"
 
     async def test_le_todos_os_socios_sem_teto(self, mock_db, admin_user, monkeypatch):
         # Regressão #278: o teto to_list(1000) deixava sócios excedentes sem quota
@@ -512,9 +533,9 @@ class TestGenerateQuotas:
         cursor = _cursor([])
         mock_db.users.find = MagicMock(return_value=cursor)
         mock_db.finance_settings.find_one = AsyncMock(return_value={"quota_amount": 2000.0})
-        monkeypatch.setattr(finances_route, "insert_quotas_atomic", AsyncMock(return_value=0))
+        monkeypatch.setattr(finances_route, "insert_quotas_atomic", AsyncMock(return_value=[]))
         monkeypatch.setattr(finances_route, "create_audit_log", AsyncMock())
-        monkeypatch.setattr(finances_route, "notify_all_active_users", AsyncMock())
+        monkeypatch.setattr(finances_route, "create_notification", AsyncMock())
 
         await finances_route.generate_monthly_quotas(
             request=_request(), month=5, year=2026, current_user=admin_user
@@ -569,7 +590,8 @@ class TestInsertQuotasAtomic:
         ]
         n = await database.insert_quotas_atomic(2026, 5, candidates)
 
-        assert n == 1
+        # Devolve a lista de user_id NOVOS (spec-008) — só member-2.
+        assert n == ["member-2"]
         assert [d["user_id"] for d in inserted] == ["member-2"]
         # Advisory lock pedido com (namespace, ano*100+mês) ANTES de inserir.
         lock_args = next(args for sql, args in executed if "pg_advisory_xact_lock" in sql)
@@ -580,7 +602,7 @@ class TestInsertQuotasAtomic:
 
         # Se tocar no pool, falha — candidatos vazios devem sair sem ligar.
         monkeypatch.setattr(database, "get_pool", AsyncMock(side_effect=AssertionError("não devia ligar")))
-        assert await database.insert_quotas_atomic(2026, 5, []) == 0
+        assert await database.insert_quotas_atomic(2026, 5, []) == []
 
 
 # --------------------------------------------------------------------------- #

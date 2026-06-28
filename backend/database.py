@@ -731,15 +731,26 @@ def _eval_accumulator(expr: Any, doc: dict) -> float:
     return float(expr or 0)
 
 
+def _safe_float(v: Any) -> float:
+    """Coerce a value to float, treating non-numeric as 0 — como o `$sum` real
+    do Mongo (que IGNORA valores não-numéricos em vez de rebentar). Sem isto, um
+    `amount` legado mal-formado num doc fazia o agregado levantar `ValueError` e
+    o endpoint 500. Leituras pontuais (ex. list_my_quotas) já se defendiam à mão."""
+    try:
+        return float(v or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def _eval_value(expr: Any, doc: dict) -> float:
     if isinstance(expr, (int, float)):
         return float(expr)
     if isinstance(expr, str) and expr.startswith("$"):
-        return float(doc.get(expr[1:]) or 0)
+        return _safe_float(doc.get(expr[1:]))
     if isinstance(expr, dict) and "$cond" in expr:
         cond, then, otherwise = expr["$cond"]
         return _eval_value(then, doc) if _eval_condition(cond, doc) else _eval_value(otherwise, doc)
-    return float(expr or 0)
+    return _safe_float(expr)
 
 
 def _eval_condition(cond: Any, doc: dict) -> bool:
@@ -1471,7 +1482,7 @@ async def register_presenca_locked(
 _QUOTA_LOCK_NS = 8421
 
 
-async def insert_quotas_atomic(year: int, month: int, candidate_docs: list[dict]) -> int:
+async def insert_quotas_atomic(year: int, month: int, candidate_docs: list[dict]) -> list[str]:
     """Insere as quotas mensais em falta SOB advisory lock transaction-scoped.
 
     Serializa execuções concorrentes do gerador para o MESMO (ano, mês):
@@ -1480,10 +1491,12 @@ async def insert_quotas_atomic(year: int, month: int, candidate_docs: list[dict]
     diferente dos statements seguintes). Dentro da transação trancada re-lê os
     `user_id` que já têm quota no mês e insere apenas os `candidate_docs` em
     falta — é idempotente e fecha a janela check-then-insert (dois geradores
-    concorrentes do mesmo mês deixam de duplicar). Devolve o nº inserido.
+    concorrentes do mesmo mês deixam de duplicar). Devolve a lista de `user_id`
+    efetivamente inseridos (só os NOVOS) — para notificar apenas esses
+    (spec-008-lembrete-quotas); re-gerar o mês → [] → 0 lembretes.
     """
     if not candidate_docs:
-        return 0
+        return []
     month_start = f"{year}-{month:02d}-01"
     next_month_start = f"{year + 1}-01-01" if month == 12 else f"{year}-{month + 1:02d}-01"
     table = _quote_ident("transactions")
@@ -1506,7 +1519,7 @@ async def insert_quotas_atomic(year: int, month: int, candidate_docs: list[dict]
             to_insert = [dict(d) for d in candidate_docs if d.get("user_id") not in existing]
             for doc in to_insert:
                 await conn.execute(f"INSERT INTO {table}(doc) VALUES($1)", doc)
-            return len(to_insert)
+            return [d["user_id"] for d in to_insert if d.get("user_id")]
 
 
 async def sign_ato_atomic(ato_id: str, user_id: str, assinatura: dict, compute_status) -> dict:
