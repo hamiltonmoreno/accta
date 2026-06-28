@@ -458,6 +458,14 @@ export const notificationsAPI = {
   getTypes: () => api.get('/notifications/types'),
 };
 
+// Web Push (notificações no celular via PWA)
+export const pushAPI = {
+  getVapidKey: () => api.get('/push/vapid-public-key'),
+  subscribe: (subscription) => api.post('/push/subscribe', subscription),
+  unsubscribe: (subscription) => api.post('/push/unsubscribe', subscription),
+  test: () => api.post('/push/test'),
+};
+
 // Events API
 export const eventsAPI = {
   getAll: (visibility) => api.get('/events', { params: { visibility } }),

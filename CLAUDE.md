@@ -183,7 +183,10 @@ python scripts/seed_gallery.py  # Seed gallery data
 - **No inadimplente status** — quotas are payroll-deducted; statuses are
   `ativo` / `inativo` / `pendente_convite` / `pendente_aprovacao` / `rejeitado`
 - **Photo approval workflow** — all gallery photos require admin approval before visibility
-- **Notifications** — SSE real-time stream; fallback to 30s polling
+- **Notifications** — SSE real-time stream; fallback to 30s polling; **Web Push**
+  (PWA) espelha todas as notificações in-app no celular (opt-in por dispositivo
+  no Perfil; helper `dispatch_push` em `push_service.py` engatado em
+  `create_notification`/`notify_*`)
 
 ---
 
@@ -192,7 +195,13 @@ python scripts/seed_gallery.py  # Seed gallery data
 | Scope | Variable |
 |-------|----------|
 | Frontend | `REACT_APP_BACKEND_URL` |
-| Backend | `SECRET_KEY`, `DATABASE_URL`, `CORS_ORIGINS`, `FRONTEND_URL`, `RESEND_API_KEY`, `SENDER_EMAIL` |
+| Backend | `SECRET_KEY`, `DATABASE_URL`, `CORS_ORIGINS`, `FRONTEND_URL`, `RESEND_API_KEY`, `SENDER_EMAIL`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` |
+
+> **Web Push (notificação no celular)** — `VAPID_*` alimentam o Web Push do PWA.
+> Gerar o par com `python scripts/generate_vapid_keys.py` e definir as 3 vars no
+> backend. **Sem elas, a feature fica desligada graciosamente** (endpoints
+> `/api/push/*` devolvem 503 e o toggle no Perfil mostra-se inativo). Frontend
+> obtém a chave pública via `GET /api/push/vapid-public-key` (sem rebuild).
 
 ---
 

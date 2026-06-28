@@ -968,6 +968,20 @@ class NotificationCreate(BaseModel):
     link: Optional[str] = None
 
 
+class PushSubscriptionKeys(BaseModel):
+    p256dh: str
+    auth: str
+
+
+class PushSubscriptionRequest(BaseModel):
+    """Subscrição Web Push tal como o browser a devolve em
+    PushSubscription.toJSON() — endpoint + chaves de cifra."""
+
+    model_config = ConfigDict(extra="ignore")
+    endpoint: str
+    keys: PushSubscriptionKeys
+
+
 # ===== COMUNICADOS (spec-comunicados-email) =====
 
 COMUNICADO_TIPOS = ["oficial", "informativo"]
@@ -1021,9 +1035,14 @@ class AudienceFilter(BaseModel):
     def _v_filter(self):
         if not any(
             [
-                self.cargos, self.orgaos, self.categorias, self.statuses,
-                self.joined_after, self.joined_before,
-                self.nominal_member_ids, self.nominal_emails,
+                self.cargos,
+                self.orgaos,
+                self.categorias,
+                self.statuses,
+                self.joined_after,
+                self.joined_before,
+                self.nominal_member_ids,
+                self.nominal_emails,
             ]
         ):
             raise ValueError("Defina pelo menos um critério de audiência")
@@ -1032,10 +1051,7 @@ class AudienceFilter(BaseModel):
             raise ValueError(f"Cargo(s) inválido(s): {', '.join(bad_cargos)}")
         bad_orgaos = [o for o in self.orgaos if o not in COMUNICADO_ORGAO_KEYS]
         if bad_orgaos:
-            raise ValueError(
-                f"Órgão(s) inválido(s): {', '.join(bad_orgaos)} — "
-                f"use {', '.join(COMUNICADO_ORGAO_KEYS)}"
-            )
+            raise ValueError(f"Órgão(s) inválido(s): {', '.join(bad_orgaos)} — use {', '.join(COMUNICADO_ORGAO_KEYS)}")
         bad_cats = [c for c in self.categorias if c not in MEMBER_CATEGORIES]
         if bad_cats:
             raise ValueError(f"Categoria(s) inválida(s): {', '.join(bad_cats)}")
