@@ -361,16 +361,31 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Feature Spec Kit ativa: `specs/007-carteira-quotas-pdf/` (plano em
-`specs/007-carteira-quotas-pdf/plan.md`) — **exportar a carteira de quotas do próprio
-sócio em PDF** (comprovativo pessoal de uso interno, marca ACCTA, só os próprios dados).
-Reutiliza tudo: query `GET /me/quotas` (já RBAC-safe por `user_id`), o gerador PDF
-*branded* `fpdf` (`_new_relatorio_pdf`/`_fmt` em `routes/finances.py`) e o idioma de
-download por blob do frontend. Backend: 1 endpoint `GET /me/quotas/pdf` + `_render_carteira()`;
-frontend: botão na `CarteiraPage` + método `api.js`. Zero deps; sem schema/migração; toca
-`backend/` → release exige **Via B**. Nota de domínio: a carteira **não tem estado por
-quota** (todos os lançamentos são efetivos, quotas por folha). Próximo: `/speckit-tasks`.
-Last completed: `specs/006-ranking-perfil-ux-concluido/` — revisão **frontend-only** de
+Sem feature Spec Kit ativa (próximo `/speckit-specify`).
+Last completed: `specs/008-lembrete-quotas-concluido/` — **lembrete informativo de quotas**
+(transparência, **SEM inadimplência** — linguagem de cobrança proibida). Disparo **orientado
+a evento**: ao gerar as quotas do mês (`POST /finances/generate-quotas`) substitui o aviso
+genérico (que linkava `/financeiro`, gated — bug latente) por um **lembrete in-app por sócio**
+(valor do período + total acumulado, link `/carteira`), só aos que receberam quota nova,
+respeitando um **opt-out dedicado** (`quota_reminder_opt_out`, aditivo) e excluindo contas
+`technical`/`inativo`. Email = **STOP/off no MVP** (decisão do dono). Backend:
+`finances.py` (notify por-sócio + 1 aggregate de total, sem N+1), `database.py`
+(`insert_quotas_atomic` devolve os `user_id` NOVOS, era `int`), `models.py` (+campo aditivo),
+`comunicados.py` (`/me/email-preferences` grava só campos enviados). Frontend: 2.º toggle
+em `perfil/EmailPrefs.js`. **CONCLUÍDA na branch (PR #360→develop)**; 49 testes verdes,
+ruff/eslint limpos; T006/T010 (browser, Princípio VII) residual de validação manual do dono
+pós-deploy. Toca `backend/` → release `develop→main` precisa de **Via B**. Zero deps novas.
+Last completed: `specs/007-carteira-quotas-pdf-concluido/` — **exportar a carteira de
+quotas do próprio sócio em PDF** (comprovativo pessoal de uso interno, marca ACCTA, só os
+próprios dados). Endpoint self-service `GET /api/finances/me/quotas/pdf` + `_render_carteira`
+em `routes/finances.py` (reutiliza a query de `/me/quotas` RBAC-safe + o gerador `fpdf`
+*branded*); frontend: botão "Exportar Quotas (PDF)" na **Carteira Digital** (`/carteira`,
+acessível a sócios — `MemberFinanceView`/`/financeiro` está gated). Nota de domínio: a
+carteira **não tem estado por quota** (lançamentos efetivos, quotas por folha). **CONCLUÍDA
+e RELEASED v0.5.38, em prod** (PR #357→develop; release #358→main; frontend Vercel + backend
+Via B `sha-960e0b5367b2`; decisivo `/me/quotas/pdf` 404→401 — ver [[prod-backend-deployed-state]]).
+14/14 tarefas, pytest 3/3, PDF verificado em navegador. Zero deps novas.
+Anterior: `specs/006-ranking-perfil-ux-concluido/` — revisão **frontend-only** de
 Ranking e Perfil: (US1) ranking responsivo no telemóvel (sem overflow a 360px); (US2)
 distinção 1.º/2.º/3.º por forma+tom (Coroa carmesim / Medalha grafite / Award muted +
 `sr-only`) e **posições contínuas a negrito** (corrige o rank-com-empates do servidor

@@ -109,11 +109,13 @@ async def preview_audience(payload: AudiencePreviewRequest,
 @router.patch("/me/email-preferences")
 async def update_email_preferences(payload: EmailPreferencesUpdate,
                                    current_user: User = Depends(get_current_user)):
-    await db.users.update_one(
-        {"id": current_user.id},
-        {"$set": {"email_opt_out_informativos": payload.email_opt_out_informativos}},
-    )
-    return {"email_opt_out_informativos": payload.email_opt_out_informativos}
+    # Self-service: grava só as preferências enviadas (não None) do próprio
+    # sócio. quota_reminder_opt_out = lembrete de quota in-app (spec-008).
+    updates = payload.model_dump(exclude_none=True)
+    if not updates:
+        raise HTTPException(status_code=400, detail="Nenhuma preferência fornecida.")
+    await db.users.update_one({"id": current_user.id}, {"$set": updates})
+    return updates
 
 
 @router.post("/comunicados")
