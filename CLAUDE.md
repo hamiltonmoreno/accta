@@ -361,7 +361,16 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Sem feature Spec Kit ativa (próximo `/speckit-specify`).
+Feature Spec Kit ativa: `specs/008-lembrete-quotas/` (plano em
+`specs/008-lembrete-quotas/plan.md`) — **lembrete informativo de quotas** (transparência,
+**SEM inadimplência** — linguagem de cobrança proibida). Disparo **orientado a evento**
+(Q1): ao gerar as quotas do mês (`POST /finances/generate-quotas`), substitui o aviso
+genérico (que ainda linka `/financeiro`, gated — bug latente) por um **lembrete por sócio**
+(valor + total acumulado, link `/carteira`), só aos que receberam quota nova, respeitando
+um **opt-out dedicado** (`quota_reminder_opt_out`, aditivo). Email = **STOP/off** (não
+construído no MVP). Backend: `finances.py` (notify por-sócio), `database.py`
+(`insert_quotas_atomic` devolve user_ids criados), `models.py` (+campo). Frontend: toggle
+em `perfil/EmailPrefs.js`. Toca `backend/` → release **Via B**. Próximo: `/speckit-tasks`.
 Last completed: `specs/007-carteira-quotas-pdf-concluido/` — **exportar a carteira de
 quotas do próprio sócio em PDF** (comprovativo pessoal de uso interno, marca ACCTA, só os
 próprios dados). Endpoint self-service `GET /api/finances/me/quotas/pdf` + `_render_carteira`

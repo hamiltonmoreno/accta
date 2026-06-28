@@ -75,6 +75,11 @@ class UserBase(BaseModel):
     # Opt-out do ranking (spec-ranking-socio §2.5): membro fora das LISTAS
     # públicas (leaderboard) mas continua a ver a sua própria posição (/me).
     ranking_opt_out: bool = False
+    # Opt-out dos lembretes informativos de quota (spec-008-lembrete-quotas):
+    # aditivo, default False (recebe). Distinto de email_opt_out_informativos
+    # (esse é só email de comunicados). Aplica-se ao lembrete in-app — e, se
+    # algum dia ligado, ao email do lembrete. Missing → False → recebe.
+    quota_reminder_opt_out: bool = False
     # ===== Perfil pessoal estendido (feature/perfil) =====
     # Campos opcionais geridos pelo próprio sócio (PATCH /users/me/profile) ou
     # por admin. Datas como string ISO "AAAA-MM-DD" (regra do projeto: nunca
@@ -1186,7 +1191,11 @@ class ComunicadoUpdate(BaseModel):
 
 
 class EmailPreferencesUpdate(BaseModel):
-    email_opt_out_informativos: bool
+    # Ambos opcionais: o cliente pode enviar só um toggle. O endpoint só grava
+    # os campos presentes (não None). quota_reminder_opt_out = lembrete de quota
+    # in-app (spec-008); email_opt_out_informativos = email de comunicados.
+    email_opt_out_informativos: Optional[bool] = None
+    quota_reminder_opt_out: Optional[bool] = None
 
 
 # ===== FINANCE MODELS =====
