@@ -48,6 +48,10 @@ _LINK = "/financeiro/co-aprovacoes"
 _OVERDUE_DEFAULT_DIAS = 7
 # Cadência do agendador in-process (spec 010): uma avaliação por dia.
 _OVERDUE_LOOP_SECONDS = 24 * 60 * 60
+# Serializa a avaliação in-process: se o loop diário e o disparo manual do
+# admin coincidirem, evita que ambos leiam o mesmo ato não-marcado e avisem em
+# duplicado (sem CAS; basta para single-process — assunção de single-runner).
+_overdue_lock = asyncio.Lock()
 
 
 def _require_view(user: User):
@@ -306,7 +310,13 @@ async def notify_overdue_atos() -> dict:
     de X dias (X = finance_settings.ato_overdue_dias, default 7). Uma única vez
     por Ato — grava `overdue_notified_at` e o filtro exclui os já avisados
     (idempotência, FR-005). Reutilizada pelo loop diário e pelo endpoint de
-    disparo manual. Non-fatal por desenho (devolve contadores, não levanta)."""
+    disparo manual; o lock serializa-os para não avisarem em duplicado.
+    Non-fatal por desenho (devolve contadores, não levanta)."""
+    async with _overdue_lock:
+        return await _notify_overdue_atos_locked()
+
+
+async def _notify_overdue_atos_locked() -> dict:
     dias = await _overdue_limiar_dias()
     # Só pendentes ainda não avisados (sair de `pendente` ⇒ deixa de ser
     # considerado, FR-006; marca presente ⇒ não re-avisa, FR-005). Match por
@@ -374,10 +384,17 @@ async def overdue_atos_loop():
 
 
 @router.post("/notify-overdue")
-async def notify_overdue_endpoint(current_user: User = Depends(get_current_user)):
+async def notify_overdue_endpoint(request: Request, current_user: User = Depends(get_current_user)):
     """Disparo manual / verificação (admin) da avaliação de Atos pendentes
     atrasados — corre o mesmo código do loop diário. Idempotente: uma 2.ª
     chamada seguida devolve `notified_atos: 0`."""
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Apenas administradores podem disparar esta avaliação")
-    return await notify_overdue_atos()
+    result = await notify_overdue_atos()
+    await create_audit_log(
+        current_user.id,
+        "Disparou a avaliação de Atos pendentes atrasados",
+        request=request,
+        details=result,
+    )
+    return result

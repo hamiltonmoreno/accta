@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from fastapi import HTTPException
 
 import routes.atos as atos_mod
 
@@ -188,3 +189,25 @@ async def test_marca_null_presente_ainda_qualifica(wired):
 
     assert result["overdue"] == 1 and result["notified_atos"] == 1
     assert docs[0]["overdue_notified_at"]  # marca real gravada
+
+
+async def test_endpoint_admin_audita_disparo(wired, admin_user, monkeypatch):
+    """O disparo manual é uma ação de admin que muta atos ⇒ tem de auditar."""
+    db, notify = wired
+    audit = AsyncMock()
+    monkeypatch.setattr(atos_mod, "create_audit_log", audit)
+    db.atos = _atos_coll([_ato("a1", created_at=_iso_days_ago(10))])
+
+    result = await atos_mod.notify_overdue_endpoint(MagicMock(), current_user=admin_user)
+
+    assert result["notified_atos"] == 1
+    audit.assert_awaited_once()
+
+
+async def test_endpoint_nega_nao_admin(wired, socio_user):
+    db, _ = wired
+    db.atos = _atos_coll([_ato("a1", created_at=_iso_days_ago(10))])
+
+    with pytest.raises(HTTPException) as exc:
+        await atos_mod.notify_overdue_endpoint(MagicMock(), current_user=socio_user)
+    assert exc.value.status_code == 403
