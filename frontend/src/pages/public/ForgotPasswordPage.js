@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Mail, ArrowLeft, Copy, ExternalLink, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { BrandLogo } from '../../components/BrandLogo';
+import { Turnstile } from '../../components/Turnstile';
 import api from '../../utils/api';
 import { forgotPasswordSchema } from '../../utils/authSchemas';
 
@@ -14,6 +15,8 @@ export const ForgotPasswordPage = () => {
   // demo flow); em prod a resposta e generica e mostra-se mensagem neutra.
   const [submitted, setSubmitted] = useState(null); // {email, token}
   const [copied, setCopied] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const turnstileRef = useRef(null);
   const {
     register,
     handleSubmit,
@@ -22,10 +25,13 @@ export const ForgotPasswordPage = () => {
 
   const onSubmit = async ({ email }) => {
     try {
-      const res = await api.post('/auth/forgot-password', { email });
+      const res = await api.post('/auth/forgot-password', { email, turnstile_token: turnstileToken });
       setSubmitted({ email, token: res.data.demo_token || null });
       toast.success('Pedido enviado!');
     } catch (error) {
+      // Token Turnstile é de uso único — renova-o para a próxima tentativa.
+      turnstileRef.current?.reset();
+      setTurnstileToken('');
       toast.error(error.response?.data?.detail || 'Erro ao processar pedido');
     }
   };
@@ -91,6 +97,8 @@ export const ForgotPasswordPage = () => {
                     <p className="mt-1 text-xs text-[#B91C1C]" role="alert">{errors.email.message}</p>
                   )}
                 </div>
+
+                <Turnstile ref={turnstileRef} onVerify={setTurnstileToken} />
 
                 <button
                   type="submit"
