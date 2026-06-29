@@ -23,7 +23,7 @@ export const HeroSection = ({ heroImg, alt }) => {
         <div className="absolute inset-0 bg-gradient-to-l from-grafite via-grafite/90 to-grafite/50 sm:from-grafite sm:via-grafite/85 sm:to-grafite/50" />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6 py-16 sm:py-20">
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-5 sm:px-6 py-16 sm:py-20">
         <div className="max-w-2xl ml-auto text-right">
           <div className="animate-fade-up">
             <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-carmesim/20 backdrop-blur-sm border border-carmesim/40 rounded-full mb-6 sm:mb-8">
