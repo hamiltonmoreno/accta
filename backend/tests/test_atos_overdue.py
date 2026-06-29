@@ -34,7 +34,11 @@ def _ato(_id: str, *, status="pendente", created_at=None, **extra) -> dict:
 
 
 def _atos_coll(docs: list[dict]) -> MagicMock:
-    """Coleção falsa que filtra por status + `$exists:false` e aplica update_one."""
+    """Coleção falsa que replica a semântica jsonb REAL do DAO (`_eq(None)`):
+    `{"overdue_notified_at": None}` casa a chave ausente OU o valor null — mas
+    NÃO uma marca não-null. (Antes a fake tratava null/ausente como o filtro
+    `$exists:false` legado, mascarando o bug de a chave `null` gravada pelo
+    `model_dump()` excluir todos os atos da app.)"""
     coll = MagicMock(name="atos")
 
     def _find(query=None, projection=None):
@@ -43,9 +47,9 @@ def _atos_coll(docs: list[dict]) -> MagicMock:
         for d in docs:
             if q.get("status") and d.get("status") != q["status"]:
                 continue
-            ex = q.get("overdue_notified_at")
-            if isinstance(ex, dict) and ex.get("$exists") is False:
-                if d.get("overdue_notified_at"):
+            if "overdue_notified_at" in q and q["overdue_notified_at"] is None:
+                # match por None: ausente ou explicitamente null (não marca truthy)
+                if d.get("overdue_notified_at") is not None:
                     continue
             res.append(dict(d))
         cur = MagicMock()
@@ -170,3 +174,17 @@ async def test_default_7_quando_settings_ausente(wired):
     result = await atos_mod.notify_overdue_atos()
 
     assert result["notified_atos"] == 1
+
+
+async def test_marca_null_presente_ainda_qualifica(wired):
+    """Regressão: `create_ato` faz `model_dump()`, que grava a chave
+    `overdue_notified_at` com valor `null`. O filtro tem de casar esse caso
+    (não `$exists:false`, que excluiria todos os atos da app)."""
+    db, notify = wired
+    docs = [_ato("a1", created_at=_iso_days_ago(10), overdue_notified_at=None)]
+    db.atos = _atos_coll(docs)
+
+    result = await atos_mod.notify_overdue_atos()
+
+    assert result["overdue"] == 1 and result["notified_atos"] == 1
+    assert docs[0]["overdue_notified_at"]  # marca real gravada

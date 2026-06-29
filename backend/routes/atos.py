@@ -309,10 +309,13 @@ async def notify_overdue_atos() -> dict:
     disparo manual. Non-fatal por desenho (devolve contadores, não levanta)."""
     dias = await _overdue_limiar_dias()
     # Só pendentes ainda não avisados (sair de `pendente` ⇒ deixa de ser
-    # considerado, FR-006; marca presente ⇒ não re-avisa, FR-005).
-    atos = await db.atos.find({"status": "pendente", "overdue_notified_at": {"$exists": False}}, {"_id": 0}).to_list(
-        None
-    )
+    # considerado, FR-006; marca presente ⇒ não re-avisa, FR-005). Match por
+    # `None` (não `$exists:false`): o `model_dump()` de `create_ato` grava a
+    # chave com valor `null`, logo o operador de presença de chave do DAO
+    # (`doc ? key`) excluiria TODOS os atos da app. `_eq(None)` casa
+    # corretamente chave-ausente (atos legados) OU valor-null (atos novos);
+    # a marca, depois de gravada como ISO string, deixa de casar (idempotência).
+    atos = await db.atos.find({"status": "pendente", "overdue_notified_at": None}, {"_id": 0}).to_list(None)
 
     now = datetime.now(timezone.utc)
     counters = {"evaluated": len(atos), "overdue": 0, "notified_atos": 0, "recipients": 0}
