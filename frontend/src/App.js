@@ -8,6 +8,7 @@ import { NotificationProvider } from './contexts/NotificationContext';
 import { Toaster } from './components/ui/sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { FaviconManager } from './components/FaviconManager';
+import { ScrollToTop } from './components/ScrollToTop';
 import { PublicLayout } from './layouts/PublicLayout';
 import { PrivateLayout } from './layouts/PrivateLayout';
 import { queryClient } from './lib/queryClient';
@@ -456,6 +457,7 @@ function App() {
         <AuthProvider>
           <NotificationProvider>
             <BrowserRouter>
+              <ScrollToTop />
               <div className="App">
                 <AppRoutes />
                 <Toaster position="top-right" richColors />
