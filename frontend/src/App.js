@@ -39,6 +39,7 @@ const PlataformaPage = lazy(() => import('./pages/public/PlataformaPage').then((
 // don't want their bundle weight on the public landing page.
 const NotificacoesPage = lazy(() => import('./pages/private/NotificacoesPage').then((m) => ({ default: m.NotificacoesPage })));
 const DashboardPage = lazy(() => import('./pages/private/DashboardPage').then((m) => ({ default: m.DashboardPage })));
+const PendenciasPage = lazy(() => import('./pages/private/PendenciasPage').then((m) => ({ default: m.PendenciasPage })));
 const RankingPage = lazy(() => import('./pages/private/RankingPage').then((m) => ({ default: m.RankingPage })));
 const CarteiraPage = lazy(() => import('./pages/private/CarteiraPage').then((m) => ({ default: m.CarteiraPage })));
 const FinanceiroPage = lazy(() => import('./pages/private/FinanceiroPage').then((m) => ({ default: m.FinanceiroPage })));
@@ -143,6 +144,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <PrivateLayout><DashboardPage /></PrivateLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/pendencias"
+          element={
+            <ProtectedRoute>
+              <PrivateLayout><PendenciasPage /></PrivateLayout>
             </ProtectedRoute>
           }
         />
