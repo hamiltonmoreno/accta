@@ -350,7 +350,7 @@ async def _notify_overdue_atos_locked() -> dict:
     atos = await db.atos.find({"status": "pendente", "overdue_notified_at": None}, {"_id": 0}).to_list(None)
 
     now = datetime.now(timezone.utc)
-    counters = {"evaluated": len(atos), "overdue": 0, "notified_atos": 0, "recipients": 0}
+    counters = {"evaluated": len(atos), "overdue": 0, "notified_atos": 0, "recipients": 0, "notified_proponentes": 0}
 
     overdue = []
     for ato in atos:
@@ -372,6 +372,19 @@ async def _notify_overdue_atos_locked() -> dict:
         return counters
     counters["recipients"] = len(direcao_ids)
 
+    # Proponentes elegíveis para o aviso a si próprios (spec 012): conta ativa e
+    # não-técnica. `created_by` é um id direto (não passa pelo filtro de
+    # members_of_orgao), logo filtra-se aqui — UMA query para o conjunto distinto,
+    # sem N+1. `$ne` casa também a chave ausente (= membro). Só dos Atos overdue.
+    proponente_ids = {ato.get("created_by") for ato, _ in overdue if ato.get("created_by")}
+    eligible_proponentes: set = set()
+    if proponente_ids:
+        rows = await db.users.find(
+            {"id": {"$in": list(proponente_ids)}, "status": "ativo", "account_type": {"$ne": "technical"}},
+            {"_id": 0, "id": 1},
+        ).to_list(None)
+        eligible_proponentes = {u["id"] for u in rows}
+
     for ato, idade in overdue:
         tipo = ato.get("tipo") or "ato"
         valor = ato.get("valor")
@@ -384,6 +397,26 @@ async def _notify_overdue_atos_locked() -> dict:
             f'O ato "{descricao}" ({tipo}{valor_txt}) está pendente há {idade} dias e aguarda ação da Direção.',
             _LINK,
         )
+
+        # Aviso ao próprio proponente (spec 012): só se NÃO for já destinatário
+        # Direção (dedup, FR-005 — o aviso à Direção fica intacto, SC-004) e for
+        # conta elegível. Identifica o Ato como o aviso à Direção (descrição+tipo+
+        # valor, FR-002). Notifica-se ANTES de gravar a marca — tal como o aviso à
+        # Direção — para que uma falha rara de entrega volte a tentar no dia
+        # seguinte (entrega ≥1×) em vez de marcar e perder o aviso em silêncio.
+        proponente = ato.get("created_by")
+        if proponente and proponente not in direcao_ids and proponente in eligible_proponentes:
+            await notify_users(
+                [proponente],
+                "financeiro",
+                "O seu ato continua pendente",
+                f'O ato que propôs ("{descricao}", {tipo}{valor_txt}) continua pendente há {idade} dias, a aguardar assinaturas da Direção.',
+                _LINK,
+            )
+            counters["notified_proponentes"] += 1
+
+        # Marca partilhada gravada só APÓS ambos os avisos (Direção + proponente)
+        # ⇒ uma única vez por Ato (Q1=A) e sem perda silenciosa de nenhum dos dois.
         await db.atos.update_one({"id": ato["id"]}, {"$set": {"overdue_notified_at": now.isoformat()}})
         counters["notified_atos"] += 1
 
