@@ -68,6 +68,34 @@ def _atos_coll(docs: list[dict]) -> MagicMock:
     return coll
 
 
+def _wire_users(mock_db, users: list[dict]) -> MagicMock:
+    """Coleção `users` falsa que honra o filtro de elegibilidade do proponente
+    (spec 012): `{"id": {"$in": [...]}, "status": "ativo", "account_type": {"$ne": "technical"}}`.
+    `users` = [{"id","status","account_type"?}]. `$ne` casa também account_type ausente."""
+    coll = MagicMock(name="users")
+
+    def _find(query=None, projection=None):
+        q = query or {}
+        ids = (q.get("id") or {}).get("$in")
+        res = []
+        for u in users:
+            if ids is not None and u["id"] not in ids:
+                continue
+            if q.get("status") and u.get("status") != q["status"]:
+                continue
+            ne = q.get("account_type")
+            if isinstance(ne, dict) and "$ne" in ne and u.get("account_type") == ne["$ne"]:
+                continue
+            res.append({"id": u["id"]})
+        cur = MagicMock()
+        cur.to_list = AsyncMock(return_value=res)
+        return cur
+
+    coll.find = MagicMock(side_effect=_find)
+    mock_db.users = coll
+    return coll
+
+
 @pytest.fixture
 def wired(mock_db, monkeypatch):
     """Liga os colaboradores: notify_users observável, Direção com 2 membros,
@@ -189,6 +217,114 @@ async def test_marca_null_presente_ainda_qualifica(wired):
 
     assert result["overdue"] == 1 and result["notified_atos"] == 1
     assert docs[0]["overdue_notified_at"]  # marca real gravada
+
+
+# ===== spec 012 — lembrete ao proponente ==================================== #
+
+
+def _proponente_call(notify, proponente_id):
+    """Devolve a chamada a notify_users cujo 1.º arg é [proponente_id], ou None."""
+    for c in notify.await_args_list:
+        if c.args and c.args[0] == [proponente_id]:
+            return c
+    return None
+
+
+async def test_proponente_socio_comum_avisado_uma_vez(wired):
+    db, notify = wired  # Direção = ["d1","d2"]
+    db.atos = _atos_coll([_ato("a1", created_at=_iso_days_ago(10), created_by="prop1")])
+    _wire_users(db, [{"id": "prop1", "status": "ativo"}])
+
+    result = await atos_mod.notify_overdue_atos()
+
+    assert result["notified_atos"] == 1 and result["notified_proponentes"] == 1
+    call = _proponente_call(notify, "prop1")
+    assert call is not None  # proponente avisado
+    assert "10 dias" in call.args[3]  # idade no corpo
+    # FR-002: identifica o Ato (descrição + tipo + valor), como o aviso à Direção
+    assert "Pagamento X" in call.args[3] and "pagamento" in call.args[3] and "50,000 CVE" in call.args[3]
+    assert call.args[4] == atos_mod._LINK  # link para agir
+    # spec 010 intacta: a Direção continua avisada
+    assert _proponente_call(notify, "prop1") is not None and notify.await_count == 2
+
+
+async def test_proponente_que_e_direcao_nao_duplica(wired):
+    db, notify = wired  # Direção = ["d1","d2"]
+    db.atos = _atos_coll([_ato("a1", created_at=_iso_days_ago(10), created_by="d1")])
+    _wire_users(db, [{"id": "d1", "status": "ativo"}])
+
+    result = await atos_mod.notify_overdue_atos()
+
+    assert result["notified_atos"] == 1 and result["notified_proponentes"] == 0
+    assert _proponente_call(notify, "d1") is None  # sem aviso de proponente separado
+    assert notify.await_count == 1  # só o aviso à Direção
+
+
+async def test_proponente_inativo_ou_tecnico_nao_avisado(wired):
+    db, notify = wired
+    db.atos = _atos_coll(
+        [
+            _ato("a1", created_at=_iso_days_ago(10), created_by="inativo1"),
+            _ato("a2", created_at=_iso_days_ago(10), created_by="tech1"),
+        ]
+    )
+    _wire_users(
+        db, [{"id": "inativo1", "status": "inativo"}, {"id": "tech1", "status": "ativo", "account_type": "technical"}]
+    )
+
+    result = await atos_mod.notify_overdue_atos()
+
+    assert result["notified_atos"] == 2 and result["notified_proponentes"] == 0
+    assert _proponente_call(notify, "inativo1") is None
+    assert _proponente_call(notify, "tech1") is None
+
+
+async def test_proponente_idempotente_nao_re_avisa(wired):
+    db, notify = wired
+    db.atos = _atos_coll([_ato("a1", created_at=_iso_days_ago(10), created_by="prop1")])
+    _wire_users(db, [{"id": "prop1", "status": "ativo"}])
+
+    first = await atos_mod.notify_overdue_atos()
+    second = await atos_mod.notify_overdue_atos()
+
+    assert first["notified_proponentes"] == 1
+    assert second["notified_atos"] == 0 and second["notified_proponentes"] == 0  # marca partilhada
+
+
+async def test_sem_direcao_nao_avisa_proponente(wired, monkeypatch):
+    db, notify = wired
+    monkeypatch.setattr(atos_mod, "members_of_orgao", AsyncMock(return_value=[]))
+    db.atos = _atos_coll([_ato("a1", created_at=_iso_days_ago(10), created_by="prop1")])
+    _wire_users(db, [{"id": "prop1", "status": "ativo"}])
+
+    result = await atos_mod.notify_overdue_atos()
+
+    # Sem destinatários Direção ⇒ não marca NEM avisa o proponente (invariante spec 010)
+    assert result["notified_atos"] == 0 and result["notified_proponentes"] == 0
+    notify.assert_not_awaited()
+
+
+async def test_proponente_falha_entrega_nao_marca_ato(wired):
+    """Ordenação de entrega: a marca de idempotência só é gravada APÓS o aviso ao
+    proponente (como o aviso à Direção). Se a entrega ao proponente falhar, o Ato
+    NÃO fica marcado ⇒ volta a qualificar no próximo varrimento (entrega ≥1×, sem
+    perda silenciosa)."""
+    db, notify = wired  # Direção = ["d1","d2"]
+    atos = [_ato("a1", created_at=_iso_days_ago(10), created_by="prop1")]
+    db.atos = _atos_coll(atos)
+    _wire_users(db, [{"id": "prop1", "status": "ativo"}])
+
+    async def _falha_so_no_proponente(user_ids, *a, **k):
+        if user_ids == ["prop1"]:
+            raise RuntimeError("falha de entrega no insert da notificação")
+
+    notify.side_effect = _falha_so_no_proponente
+
+    with pytest.raises(RuntimeError):
+        await atos_mod.notify_overdue_atos()
+
+    # marca ausente ⇒ o Ato continua a qualificar (sem perda silenciosa do aviso)
+    assert atos[0].get("overdue_notified_at") is None
 
 
 async def test_endpoint_admin_audita_disparo(wired, admin_user, monkeypatch):
