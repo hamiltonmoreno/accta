@@ -100,6 +100,13 @@ def no_network(monkeypatch):
     monkeypatch.setattr(turnstile.httpx, "AsyncClient", _boom)
 
 
+@pytest.fixture(autouse=True)
+def _no_frontend_url(monkeypatch):
+    """Por omissão a validação de hostname fica desligada (sem FRONTEND_URL), para
+    isolar os testes que não a exercem. Os testes de hostname re-definem-no."""
+    monkeypatch.delenv("FRONTEND_URL", raising=False)
+
+
 # --------------------------------------------------------------------------- #
 # turnstile_enabled / degradação graciosa
 # --------------------------------------------------------------------------- #
@@ -202,6 +209,67 @@ class TestEnabledVerification:
         )
         await turnstile.verify_turnstile("tok", _request(client=("5.6.7.8", 1)))
         assert captured["data"]["remoteip"] == "5.6.7.8"
+
+    async def test_non_dict_json_403(self, monkeypatch):
+        # JSON válido mas não-objeto (ex.: null numa falha de infra da CF) → 403,
+        # nunca 500 por chamar `.get` num não-dict.
+        monkeypatch.setenv("TURNSTILE_SECRET", "0xSECRET")
+        monkeypatch.setattr(turnstile.httpx, "AsyncClient", _client_factory(resp=_FakeResp(None)))
+        with pytest.raises(HTTPException) as exc:
+            await turnstile.verify_turnstile("tok", _request())
+        assert exc.value.status_code == 403
+
+
+# --------------------------------------------------------------------------- #
+# Validação de hostname (defesa-em-profundidade — site key é pública)
+# --------------------------------------------------------------------------- #
+
+
+class TestHostnameValidation:
+    async def test_hostname_match_passes(self, monkeypatch):
+        monkeypatch.setenv("TURNSTILE_SECRET", "0xSECRET")
+        monkeypatch.setenv("FRONTEND_URL", "https://controlador.cv")
+        monkeypatch.setattr(
+            turnstile.httpx,
+            "AsyncClient",
+            _client_factory(resp=_FakeResp({"success": True, "hostname": "controlador.cv"})),
+        )
+        await turnstile.verify_turnstile("tok", _request())  # não levanta
+
+    async def test_hostname_www_normalized_passes(self, monkeypatch):
+        # www.<host> normaliza para <host> dos dois lados → coincide.
+        monkeypatch.setenv("TURNSTILE_SECRET", "0xSECRET")
+        monkeypatch.setenv("FRONTEND_URL", "https://controlador.cv")
+        monkeypatch.setattr(
+            turnstile.httpx,
+            "AsyncClient",
+            _client_factory(resp=_FakeResp({"success": True, "hostname": "www.controlador.cv"})),
+        )
+        await turnstile.verify_turnstile("tok", _request())  # não levanta
+
+    async def test_hostname_mismatch_403(self, monkeypatch):
+        # Token resolvido noutro domínio com a mesma site key pública → rejeitado.
+        monkeypatch.setenv("TURNSTILE_SECRET", "0xSECRET")
+        monkeypatch.setenv("FRONTEND_URL", "https://controlador.cv")
+        monkeypatch.setattr(
+            turnstile.httpx,
+            "AsyncClient",
+            _client_factory(resp=_FakeResp({"success": True, "hostname": "attacker.example"})),
+        )
+        with pytest.raises(HTTPException) as exc:
+            await turnstile.verify_turnstile("tok", _request())
+        assert exc.value.status_code == 403
+
+    async def test_no_frontend_url_skips_hostname(self, monkeypatch):
+        # Sem FRONTEND_URL (autouse limpa-o) não há por onde comparar → o token
+        # com success passa, mesmo com hostname não coincidente.
+        monkeypatch.setenv("TURNSTILE_SECRET", "0xSECRET")
+        monkeypatch.setattr(
+            turnstile.httpx,
+            "AsyncClient",
+            _client_factory(resp=_FakeResp({"success": True, "hostname": "qualquer.dominio"})),
+        )
+        await turnstile.verify_turnstile("tok", _request())  # não levanta
 
 
 # --------------------------------------------------------------------------- #

@@ -11,10 +11,14 @@ liga-se automaticamente — sem necessidade de alterar o frontend. Isto evita
 partir o login de todos no momento do deploy (a secret só é definida depois).
 
 Quando ligada, a validação é fail-closed: 403 se o token vier ausente/inválido,
-502 se a própria Cloudflare estiver indisponível.
+502 se a própria Cloudflare estiver indisponível. Como a site key é pública,
+validamos ainda o `hostname` devolvido pela Cloudflare contra o nosso domínio
+(`FRONTEND_URL`) — defesa-em-profundidade contra tokens resolvidos noutro
+domínio que reutilize a mesma site key.
 """
 
 import os
+from urllib.parse import urlparse
 
 import httpx
 from fastapi import HTTPException, Request
@@ -29,11 +33,28 @@ def turnstile_enabled() -> bool:
     return bool(os.environ.get("TURNSTILE_SECRET"))
 
 
+def _norm_host(host: str | None) -> str | None:
+    """Normaliza um hostname para comparação (minúsculas, sem `www.`)."""
+    if not host:
+        return None
+    host = host.lower()
+    return host[4:] if host.startswith("www.") else host
+
+
+def _expected_hostname() -> str | None:
+    """Domínio onde o desafio DEVE ter sido resolvido, derivado de `FRONTEND_URL`.
+    None se `FRONTEND_URL` não estiver definido — aí não há por onde comparar e a
+    validação de hostname é ignorada (o check de `success` mantém-se)."""
+    raw = os.environ.get("FRONTEND_URL", "")
+    return _norm_host(urlparse(raw).hostname) if raw else None
+
+
 async def verify_turnstile(token: str, request: Request) -> None:
     """Valida o token Turnstile submetido com o formulário.
 
     No-op se a feature estiver desligada (sem `TURNSTILE_SECRET`). Quando ligada:
-    - 403 se o token vier ausente ou a Cloudflare o rejeitar (`success: false`);
+    - 403 se o token vier ausente, a Cloudflare o rejeitar (`success: false`), a
+      resposta não for um objeto, ou o `hostname` não bater com `FRONTEND_URL`;
     - 502 se não for possível contactar/parsear a resposta da Cloudflare.
     """
     secret = os.environ.get("TURNSTILE_SECRET")
@@ -58,5 +79,16 @@ async def verify_turnstile(token: str, request: Request) -> None:
     except (httpx.HTTPError, ValueError):
         raise HTTPException(status_code=502, detail="Falha ao validar a verificação anti-bot. Tente novamente.")
 
-    if not outcome.get("success"):
+    # `isinstance` protege contra JSON válido mas não-objeto (null/lista) numa
+    # falha de infra da Cloudflare: nunca deixa passar e devolve 403 em vez de
+    # rebentar com 500 ao chamar `.get` num não-dict.
+    if not isinstance(outcome, dict) or not outcome.get("success"):
         raise HTTPException(status_code=403, detail="Verificação anti-bot falhou. Tente novamente.")
+
+    # Defesa-em-profundidade: a site key é pública, logo um atacante poderia
+    # resolver o desafio noutro domínio com a mesma key e reenviar o token. A
+    # Cloudflare devolve o `hostname` onde foi resolvido — exigimo-lo igual ao
+    # nosso (FRONTEND_URL), independentemente da allowlist do painel.
+    expected = _expected_hostname()
+    if expected and _norm_host(outcome.get("hostname")) != expected:
+        raise HTTPException(status_code=403, detail="Verificação anti-bot inválida.")
