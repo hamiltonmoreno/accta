@@ -24,8 +24,17 @@ export const ScrollToTop = () => {
       // Link para uma secção: faz scroll até à âncora (#id).
       let frame;
       let tries = 0;
+      const raw = hash.slice(1);
+      // Hash pode vir com escapes inválidos (#%, #foo%zz) — decodeURIComponent
+      // rebentaria; nesse caso usamos o valor cru em vez de quebrar o efeito.
+      let id;
+      try {
+        id = decodeURIComponent(raw);
+      } catch {
+        id = raw;
+      }
       const scrollToAnchor = () => {
-        const el = document.getElementById(decodeURIComponent(hash.slice(1)));
+        const el = document.getElementById(id);
         if (el) {
           el.scrollIntoView();
         } else if (tries < 20) {
