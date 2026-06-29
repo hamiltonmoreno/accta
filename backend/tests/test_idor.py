@@ -67,7 +67,8 @@ async def test_delete_expense_non_manager_forbidden(mock_db, socio_user):
     mock_db.project_expenses = MagicMock()
     mock_db.project_expenses.delete_one = AsyncMock(return_value=MagicMock(deleted_count=1))
     with pytest.raises(HTTPException) as exc:
-        await projects.delete_expense("p1", "e1", current_user=socio_user)
+        # delete_expense exige `request` (auditoria); o 403 dispara antes de ser usado.
+        await projects.delete_expense("p1", "e1", MagicMock(), current_user=socio_user)
     assert exc.value.status_code == 403
 
 
