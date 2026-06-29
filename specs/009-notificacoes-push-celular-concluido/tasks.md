@@ -90,8 +90,8 @@
 - [X] T023 [P] Testes unitários `backend/tests/test_push_routes.py` — subscribe insert/update, unsubscribe scoping, vapid 503/200, test 400/200, `dispatch_push` no-op + poda 410, matriz `is_safe_push_endpoint` (10 testes; liga `push_subscriptions` no mock e injeta `pywebpush` falso)
 - [X] T024 [P] `ruff check .` limpo em `push_service.py`/`routes/push.py`/`tests/test_push_routes.py`
 - [X] T025 [P] Atualizar bloco SPECKIT em `CLAUDE.md` (feature ativa 009)
-- [ ] T026 [US2] **Operador**: gerar e definir `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT` em produção (`python scripts/generate_vapid_keys.py`)
-- [ ] T027 **Release**: cortar `develop→main` via **Via B** (toca `backend/`: `pywebpush`, coleção `push_subscriptions`)
+- [X] T026 [US2] **Operador**: VAPID gerado e definido em prod (2026-06-28) — chaves geradas no container, gravadas em `/docker/accta/.env`; `push_enabled()`=True no processo vivo. NÃO regenerar (parte subscrições)
+- [X] T027 **Release**: `develop→main` via **Via B** feito (release #364, tag v0.5.40, imagem `sha-fae22c0eaab2`, Up healthy; rollback `sha-5cfff3c9b0e1`)
 - [ ] T028 [US1] **Validação manual pós-deploy** (Princípio VII, quickstart Cenário 1): Android com app fechada → `POST /api/push/test` → confirmar aviso na bandeja + clique abre `/carteira`
 - [ ] T029 [US3] **Validação manual pós-deploy** (quickstart Cenário 4): iPhone com PWA na Tela de Início → ativar e receber; sem PWA → ver a instrução
 

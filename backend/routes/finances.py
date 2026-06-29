@@ -501,6 +501,10 @@ async def update_finance_settings(
     if "quota_amount" in updates and updates["quota_amount"] <= 0:
         raise HTTPException(status_code=400, detail="O valor da quota deve ser positivo")
 
+    # Limiar de dias do aviso de Ato pendente atrasado (spec 010). Fronteira: >= 1.
+    if "ato_overdue_dias" in updates and updates["ato_overdue_dias"] < 1:
+        raise HTTPException(status_code=400, detail="O limiar de dias deve ser pelo menos 1")
+
     # Inputs de governança (não são colunas de settings directas).
     assembleia_id = updates.pop("assembleia_id", None)
     deliberacao_id = updates.pop("deliberacao_id", None)

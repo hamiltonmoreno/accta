@@ -46,27 +46,30 @@ Antes de começar, obtém o SHA do `main` na release (na tua máquina):
 git fetch origin main && git rev-parse --short=12 main
 ```
 
-**Valores atuais (v0.5.39 — lembrete informativo de quotas, spec 008, PR #360):**
+**Valores atuais (v0.5.40 — notificações push no celular, spec 009, PR #364/#362):**
 
 | Variável | Valor |
 |----------|-------|
-| `TAG` (imagem nova) | `sha-5cfff3c9b0e1` |
-| Tag git da release | `v0.5.39` (= `5cfff3c`, HEAD de `main`, merge #361) |
-| Rollback (prod anterior, v0.5.38) | `sha-960e0b5367b2` |
-| Teste decisivo desta release | **Sem rota nova** (a v0.5.39 modifica comportamento autenticado, não adiciona endpoint público) → o decisivo é a **imagem em execução = `sha-5cfff3c9b0e1`** (`docker inspect`, Up healthy) + arranque limpo. Sanidade: `PATCH /api/me/email-preferences` → **401** e `GET` → **405** (rota gated viva); `api/` → 200; `openapi.json`/`docs` → 404. **Validação funcional** do lembrete (gerar quotas → notificação por-sócio a abrir `/carteira`; toggle off → não recebe) = T006/T010 em navegador autenticado (Princípio VII, dono). |
+| `TAG` (imagem nova) | `sha-fae22c0eaab2` |
+| Tag git da release | `v0.5.40` (= `fae22c0`, HEAD de `main`, merge #364) |
+| Rollback (prod anterior, v0.5.39) | `sha-5cfff3c9b0e1` |
+| Teste decisivo desta release | **Rotas novas `/api/push/*`** (router registado): sem auth `GET /api/push/vapid-public-key`, `POST /api/push/subscribe`, `POST /api/push/test` → **401**; `GET /api/push/test` → **405** (só POST → prova que a rota existe, não 404). Imagem em execução = `sha-fae22c0eaab2` (`docker inspect`, Up healthy) + arranque limpo. **Validação funcional** do push (ativar toggle no Perfil num Android/iPhone-PWA → `POST /api/push/test` → aviso na bandeja com app fechada) = T028/T029 em dispositivo real (Princípio VII, dono) **e exige as envs `VAPID_*` definidas** (sem elas as rotas respondem 503 e o dispatch é no-op — feature off graciosamente). |
 
-> **Nota:** a v0.5.39 **toca em `backend/`** (spec 008 — lembrete informativo de quotas,
-> PR #360): `routes/finances.py` (gerador de quotas passa a notificar **por sócio** que
-> recebeu quota nova — valor + total acumulado via 1 aggregate, link `/carteira` — em vez
-> do aviso genérico; respeita `quota_reminder_opt_out`); `models.py` (campo aditivo
-> `quota_reminder_opt_out` em `UserBase`, default `False`; `EmailPreferencesUpdate` com
-> ambos os toggles opcionais); `routes/comunicados.py` (`PATCH /me/email-preferences`
-> grava só os campos enviados); `database.py` (`insert_quotas_atomic` devolve os `user_id`
-> NOVOS — era `int` — e **fix W1** `_safe_float`: `$sum` ignora `amount` não-numérico → 0
-> em vez de `ValueError`/500, fiel ao Mongo). **Email = STOP/off no MVP.** O backend em
-> prod antes da v0.5.39 está na **v0.5.38** (`sha-960e0b5367b2`). **Sem migração/pós-deploy**
-> (campo aditivo, default `False`; sem schema destrutivo). Confirma sempre a imagem em
-> execução antes de deploy: `docker compose ps` (coluna IMAGE) ou
+> **Nota:** a v0.5.40 **toca em `backend/`** (spec 009 — notificações push no celular,
+> PR #362→develop, release #364→main): `push_service.py` (NOVO — VAPID/`pywebpush`,
+> `dispatch_push` best-effort engatado em `create_notification`/`notify_*`, anti-SSRF
+> `is_safe_push_endpoint`, poda de subscrições 404/410); `routes/push.py` (NOVO —
+> `/api/push/{vapid-public-key,subscribe,unsubscribe,test}`, todos autenticados);
+> `helpers.py` (engate de `dispatch_push` nos 3 pontos únicos de notificação);
+> `models.py` (`PushSubscriptionRequest`); `database.py` (coleção `push_subscriptions`
+> + índices `ix_push_user`/`ux_push_endpoint` via `ensure_schema()`); `requirements.txt`
+> (`pywebpush==2.0.0`). O backend em prod antes da v0.5.40 está na **v0.5.39**
+> (`sha-5cfff3c9b0e1`). **Sem migração destrutiva** (coleção + índices idempotentes;
+> sem schema destrutivo). **Pós-deploy (dono):** gerar e definir
+> `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT` em `backend/.env`
+> (`python scripts/generate_vapid_keys.py`) e reiniciar — sem isto a feature fica off
+> graciosamente, o resto funciona. Confirma sempre a imagem em execução antes de deploy:
+> `docker compose ps` (coluna IMAGE) ou
 > `docker inspect accta-backend --format '{{.Config.Image}}'`.
 
 ---
@@ -77,22 +80,22 @@ git fetch origin main && git rev-parse --short=12 main
 ```bash
 rm -rf /tmp/accta-build
 git clone https://github.com/hamiltonmoreno/accta.git /tmp/accta-build
-cd /tmp/accta-build && git checkout v0.5.39       # <- tag git da release
+cd /tmp/accta-build && git checkout v0.5.40       # <- tag git da release
 docker build -f backend/Dockerfile \
-  -t ghcr.io/hamiltonmoreno/accta-backend:sha-5cfff3c9b0e1 .   # <- TAG
+  -t ghcr.io/hamiltonmoreno/accta-backend:sha-fae22c0eaab2 .   # <- TAG
 ```
 
 ### 2.2 Arrancar via o compose canónico (só muda o TAG)
 ```bash
 cd /docker/accta
-export TAG=sha-5cfff3c9b0e1
+export TAG=sha-fae22c0eaab2
 docker compose up -d --no-deps backend
 ```
 
 ### 2.3 Verificar
 ```bash
 docker compose ps                         # backend = Up (healthy)
-docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-5cfff3c9b0e1
+docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-fae22c0eaab2
 docker compose logs --tail=80 backend     # arranque limpo: ensure_schema OK, sem tracebacks
 curl -fsS https://api.controlador.cv/api/ # 200
 
@@ -127,7 +130,7 @@ docker compose logs --tail=200 backend 2>&1 | grep -E 'pg_cron not configured'  
 A imagem anterior continua no VPS; só se troca o `TAG`:
 ```bash
 cd /docker/accta
-export TAG=sha-960e0b5367b2        # <- rollback (v0.5.38, imagem que corria antes da v0.5.39)
+export TAG=sha-5cfff3c9b0e1        # <- rollback (v0.5.39, imagem que corria antes da v0.5.40)
 docker compose up -d --no-deps backend
 ```
 
@@ -168,7 +171,8 @@ Ver `DEPLOY.md` e `HOSTINGER_DEPLOY.md` para o setup completo (secrets SSH,
   (`sha-7c38123185f9`) → v0.5.27 (`sha-e70d67cc58ed`) → v0.5.31
   (`sha-678575f73905`) → v0.5.34 (`sha-4a78080aec1e`) → v0.5.35
   (`sha-b16773a08b8a`) → v0.5.37 (`sha-482320bce1ca`) → v0.5.38
-  (`sha-960e0b5367b2`) → **v0.5.39 (`sha-5cfff3c9b0e1`, este deploy)**.
+  (`sha-960e0b5367b2`) → v0.5.39 (`sha-5cfff3c9b0e1`) → **v0.5.40
+  (`sha-fae22c0eaab2`, este deploy)**.
   As v0.5.28/v0.5.29/v0.5.30, v0.5.32/v0.5.33 e v0.5.36 não tocaram no
   backend (docs/test/frontend-only). As v0.5.1/v0.5.5/v0.5.6/v0.5.7,
   v0.5.9–v0.5.12, v0.5.14–v0.5.16 e v0.5.19–v0.5.21 não tocaram no
