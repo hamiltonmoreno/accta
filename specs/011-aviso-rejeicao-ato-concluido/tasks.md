@@ -43,7 +43,7 @@
 
 - [X] T009 [P] `cd backend && ruff check . && ruff format --check .` limpo; `cd frontend && npx eslint src/ --ext .js,.jsx --max-warnings=60` limpo para os ficheiros tocados.
 - [X] T010 Correr a suite backend completa `cd backend && pytest -q` sem regressões (em especial o fluxo de Atos existente: aprovar, executar, cancelar).
-- [ ] T011 Atualizar `tasks/todo.md` (secção de revisão) e, no fim e só após verificação, fechar a spec (renomear dir `-concluido`). Nota: toca `backend/` ⇒ release `develop→main` exige **Via B**; verificação prod = `POST /api/atos/<id>/assinar` `{"decisao":"rejeitado"}` sem motivo → 400 (e sem token → 401). Validação funcional ponta-a-ponta (Cenário B, navegador) = Princípio VII (dono).
+- [X] T011 Atualizar `tasks/todo.md` (secção de revisão) e, no fim e só após verificação, fechar a spec (renomear dir `-concluido`). Nota: toca `backend/` ⇒ release `develop→main` exige **Via B**; verificação prod = `POST /api/atos/<id>/assinar` `{"decisao":"rejeitado"}` sem motivo → 400 (e sem token → 401). Validação funcional ponta-a-ponta (Cenário B, navegador) = Princípio VII (dono).
 
 ---
 

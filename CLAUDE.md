@@ -370,15 +370,18 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Feature Spec Kit ativa: `specs/011-aviso-rejeicao-ato/` — **avisar o proponente de um Ato
-(Art. 54) quando é rejeitado, com o motivo**. Hoje o aviso de rejeição já existe mas sai sem o
-porquê. Q1 (dono): motivo **obrigatório** ao rejeitar. Desenho mínimo: o motivo vive **na
-assinatura de rejeição** em `Ato.assinaturas[]` (**sem schema/migração/DAO**); reutiliza o aviso
-de rejeição existente (in-app + push) + a auditoria. Backend (`models.py` `AtoSign.motivo`;
+**Sem feature Spec Kit ativa** (próximo `/speckit-specify`).
+Last completed: `specs/011-aviso-rejeicao-ato-concluido/` — **avisar o proponente de um Ato
+(Art. 54) quando é rejeitado, com o motivo**. O aviso de rejeição já existia mas saía sem o porquê.
+Q1 (dono): motivo **obrigatório** ao rejeitar (≤500). Desenho mínimo: o motivo vive **na assinatura
+de rejeição** em `Ato.assinaturas[]` (**sem schema/migração/DAO, zero deps**); reutiliza o aviso de
+rejeição existente (in-app + push, sem duplicar) + a auditoria. Backend (`models.py` `+AtoSign.motivo`;
 `routes/atos.py` `sign_ato` valida obrigatório/≤500, põe motivo na assinatura/aviso/auditoria) +
-frontend (`CoAprovacoesPage.js` diálogo de rejeição com textarea + mostra motivo; `utils/api.js`).
-Zero deps novas. PLAN feito ([plan.md](specs/011-aviso-rejeicao-ato/plan.md), branch
-`feature/aviso-rejeicao-ato`). Próximo: `/speckit-tasks`. Release `develop→main` exigirá **Via B**.
+frontend (`CoAprovacoesPage.js` diálogo de rejeição com textarea + mostra motivo/cargo; `utils/api.js`).
+**CONCLUÍDA, RELEASED v0.5.42 (PR #370→develop; release #372→main) e DEPLOYED em prod Via B**
+(`sha-5343480d5d64`, 2026-06-29; código confirmado no container + `POST /atos/x/assinar`→401); 42 testes
+de Atos verdes, suite unit 1346 passed. Release agrupou o fix tests-only #371 (`test_idor`). Residual:
+validação funcional do dono (issue #373, Princípio VII).
 Last completed: `specs/010-aviso-deliberacao-pendente-concluido/` — **aviso à Direção de Ato
 (Art. 54) pendente há > X dias** (X admin-configurável, default 7), **uma única vez** por Ato.
 Backend-only, zero deps novas. Disparo = **loop in-process diário** (`asyncio.create_task` no
