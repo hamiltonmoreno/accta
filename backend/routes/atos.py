@@ -159,12 +159,25 @@ async def sign_ato(ato_id: str, data: AtoSign, request: Request, current_user: U
     if data.decisao not in ATO_DECISOES:
         raise HTTPException(status_code=400, detail=f"Decisao invalida. Use: {ATO_DECISOES}")
 
+    # Motivo da rejeicao (spec 011): obrigatorio e nao-vazio ao rejeitar; ignorado
+    # ao aprovar. Limite de 500 carateres (recusa, nao trunca).
+    motivo = (data.motivo or "").strip()
+    if data.decisao == "rejeitado":
+        if not motivo:
+            raise HTTPException(status_code=400, detail="E obrigatorio indicar o motivo da rejeicao.")
+        if len(motivo) > 500:
+            raise HTTPException(status_code=400, detail="O motivo nao pode exceder 500 carateres.")
+    else:
+        motivo = ""  # aprovar nao grava motivo
+
     assinatura = {
         "user_id": current_user.id,
         "cargo": current_user.cargo,
         "decisao": data.decisao,
         "signed_at": datetime.now(timezone.utc).isoformat(),
     }
+    if motivo:
+        assinatura["motivo"] = motivo
     # Assinatura + reapuramento de estado SOB lock da linha do acto (fecha a race
     # TOCTOU de duas assinaturas concorrentes — ver database.sign_ato_atomic). A
     # regra estatutária (evaluate_status) entra como callable; o DAO não importa
@@ -183,22 +196,31 @@ async def sign_ato(ato_id: str, data: AtoSign, request: Request, current_user: U
 
     ato = result["ato"]
     novo_status = ato["status"]
+    details = {"decisao": data.decisao, "status": novo_status}
+    if motivo:
+        details["motivo"] = motivo
     await create_audit_log(
         current_user.id,
         f"Assinou acto {ato_id} ({data.decisao})",
         ato_id,
         request=request,
-        details={"decisao": data.decisao, "status": novo_status},
+        details=details,
     )
 
     if novo_status in ("aprovado", "rejeitado"):
         await create_audit_log(current_user.id, f"Acto {ato_id} {novo_status}", ato_id, request=request)
         label = "aprovado" if novo_status == "aprovado" else "rejeitado"
+        # Rejeicao: o aviso ao proponente inclui o motivo (spec 011, FR-003). Nao se
+        # cria um segundo aviso — enriquece-se o existente (FR-006).
+        if novo_status == "rejeitado" and motivo:
+            mensagem = f'O acto que propos foi rejeitado. Motivo: "{motivo}"'
+        else:
+            mensagem = f"O acto que propos foi {label}."
         await notify_users(
             [ato["created_by"]],
             "financeiro",
             f"Acto {label}",
-            f"O acto que propos foi {label}.",
+            mensagem,
             _LINK,
             exclude_id=current_user.id,
         )

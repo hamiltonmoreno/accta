@@ -370,7 +370,15 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-**Sem feature Spec Kit ativa** (próximo `/speckit-specify`).
+Feature Spec Kit ativa: `specs/011-aviso-rejeicao-ato/` — **avisar o proponente de um Ato
+(Art. 54) quando é rejeitado, com o motivo**. Hoje o aviso de rejeição já existe mas sai sem o
+porquê. Q1 (dono): motivo **obrigatório** ao rejeitar. Desenho mínimo: o motivo vive **na
+assinatura de rejeição** em `Ato.assinaturas[]` (**sem schema/migração/DAO**); reutiliza o aviso
+de rejeição existente (in-app + push) + a auditoria. Backend (`models.py` `AtoSign.motivo`;
+`routes/atos.py` `sign_ato` valida obrigatório/≤500, põe motivo na assinatura/aviso/auditoria) +
+frontend (`CoAprovacoesPage.js` diálogo de rejeição com textarea + mostra motivo; `utils/api.js`).
+Zero deps novas. PLAN feito ([plan.md](specs/011-aviso-rejeicao-ato/plan.md), branch
+`feature/aviso-rejeicao-ato`). Próximo: `/speckit-tasks`. Release `develop→main` exigirá **Via B**.
 Last completed: `specs/010-aviso-deliberacao-pendente-concluido/` — **aviso à Direção de Ato
 (Art. 54) pendente há > X dias** (X admin-configurável, default 7), **uma única vez** por Ato.
 Backend-only, zero deps novas. Disparo = **loop in-process diário** (`asyncio.create_task` no
@@ -379,8 +387,11 @@ startup do `server.py`, padrão non-fatal dos seeds); idempotência por marca ad
 `PATCH /api/finances/settings` admin existente, validado `>= 1`); destinatários via
 `members_of_orgao("direcao")` (exclui técnicos/inativos); entrega in-app (+push) reutilizada;
 **email fora do MVP**. Endpoint opcional admin `POST /api/atos/notify-overdue` p/ disparo
-manual/verificação. **CONCLUÍDA na branch (PR #365→develop)**; 14/14 tarefas, 8 testes verdes,
-ruff limpo. Toca `backend/` ⇒ release `develop→main` exigirá **Via B**; ainda **não released/deployed**.
+manual/verificação. **CONCLUÍDA, RELEASED v0.5.41 (PR #365→develop; release #366→main) e
+DEPLOYED em prod Via B** (`sha-c01198d08af2`, 2026-06-29; `POST /api/atos/notify-overdue`→401,
+log `overdue_atos_loop iniciado`); 11 testes verdes, ruff limpo. pr-review apanhou e corrigiu bug
+CRITICAL (filtro `$exists:False` vs chave `null` do `model_dump` → feature nunca disparava → match
+por `None`). Residual: validação funcional do dono (Princípio VII).
 Last completed: `specs/009-notificacoes-push-celular-concluido/` — **notificações push
 no celular (Web Push / PWA)**. Espelha **todas** as notificações in-app no dispositivo
 do sócio com a app fechada (Android/desktop; iOS 16.4+ via PWA na Tela de Início), com

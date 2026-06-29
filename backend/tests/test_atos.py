@@ -259,7 +259,10 @@ class TestSignAto:
         _wire_atos(mock_db, doc=doc)
         _wire_sign_atomic(monkeypatch, doc)
         await atos_route.sign_ato(
-            "a1", AtoSign(decisao="rejeitado"), _request(), current_user=_user("socio", "dir_presidente")
+            "a1",
+            AtoSign(decisao="rejeitado", motivo="Motivo de teste"),  # motivo obrigatório (spec 011)
+            _request(),
+            current_user=_user("socio", "dir_presidente"),
         )
         assert doc["status"] == "rejeitado"
 
