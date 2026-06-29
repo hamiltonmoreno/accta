@@ -9,6 +9,7 @@ import { Header } from './components/Header';
 import { BrandIcon } from '../components/BrandIcon';
 import {
   LayoutDashboard,
+  ClipboardCheck,
   Vote,
   FileText,
   Gift,
@@ -52,6 +53,7 @@ const menuSections = [
     title: 'Painel',
     items: [
       { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['all'] },
+      { label: 'As minhas pendências', path: '/pendencias', icon: ClipboardCheck, roles: ['all'] },
     ],
   },
   {
