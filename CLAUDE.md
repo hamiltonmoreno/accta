@@ -370,7 +370,17 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Sem feature Spec Kit ativa (próximo `/speckit-specify`).
+**Sem feature Spec Kit ativa** (próximo `/speckit-specify`).
+Last completed: `specs/010-aviso-deliberacao-pendente-concluido/` — **aviso à Direção de Ato
+(Art. 54) pendente há > X dias** (X admin-configurável, default 7), **uma única vez** por Ato.
+Backend-only, zero deps novas. Disparo = **loop in-process diário** (`asyncio.create_task` no
+startup do `server.py`, padrão non-fatal dos seeds); idempotência por marca aditiva
+`Ato.overdue_notified_at`; X em `FinanceSettings.ato_overdue_dias` (editável pelo
+`PATCH /api/finances/settings` admin existente, validado `>= 1`); destinatários via
+`members_of_orgao("direcao")` (exclui técnicos/inativos); entrega in-app (+push) reutilizada;
+**email fora do MVP**. Endpoint opcional admin `POST /api/atos/notify-overdue` p/ disparo
+manual/verificação. **CONCLUÍDA na branch (PR #365→develop)**; 14/14 tarefas, 8 testes verdes,
+ruff limpo. Toca `backend/` ⇒ release `develop→main` exigirá **Via B**; ainda **não released/deployed**.
 Last completed: `specs/009-notificacoes-push-celular-concluido/` — **notificações push
 no celular (Web Push / PWA)**. Espelha **todas** as notificações in-app no dispositivo
 do sócio com a app fechada (Android/desktop; iOS 16.4+ via PWA na Tela de Início), com
