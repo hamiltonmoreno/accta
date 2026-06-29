@@ -120,6 +120,9 @@ async def test_aviso_ao_proponente_inclui_motivo_e_exclui_quem_rejeita(mock_db, 
     assert args[0] == ["prop1"]  # destinatário = proponente
     assert "Documento em falta" in args[3]  # motivo no corpo do aviso
     assert kwargs.get("exclude_id") == "rej1"  # não auto-avisa quem rejeitou
+    # spec 015 (US2/C2): Ato DECIDIDO (rejeitado) mantém o link de co-aprovações
+    # (não vai para /pendencias — lá o Ato decidido já não aparece).
+    assert args[4] == atos_route._LINK
 
 
 async def test_auditoria_inclui_motivo(mock_db, monkeypatch):

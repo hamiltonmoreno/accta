@@ -130,7 +130,7 @@ async def test_pendente_atrasado_avisa_direcao_com_link(wired):
     assert notify.await_count == 1
     args = notify.await_args.args
     assert args[0] == ["d1", "d2"]  # destinatários = Direção
-    assert args[4] == atos_mod._LINK  # link para agir
+    assert args[4] == atos_mod._LINK_PENDENTE  # Ato pendente → painel acionável (spec 015)
     assert docs[0]["overdue_notified_at"]  # marca gravada
 
 
@@ -256,7 +256,7 @@ async def test_proponente_socio_comum_avisado_uma_vez(wired):
     assert "10 dias" in call.args[3]  # idade no corpo
     # FR-002: identifica o Ato (descrição + tipo + valor), como o aviso à Direção
     assert "Pagamento X" in call.args[3] and "pagamento" in call.args[3] and "50,000 CVE" in call.args[3]
-    assert call.args[4] == atos_mod._LINK  # link para agir
+    assert call.args[4] == atos_mod._LINK_PENDENTE  # Ato pendente → painel acionável (spec 015)
     # spec 010 intacta: a Direção continua avisada
     assert _proponente_call(notify, "prop1") is not None and notify.await_count == 2
 

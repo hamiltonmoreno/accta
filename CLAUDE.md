@@ -370,16 +370,21 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Feature Spec Kit ativa: `specs/014-painel-minhas-pendencias/` — **painel «As minhas pendências»**:
-vista do sócio que agrega num só sítio tudo o que aguarda **ação** dele (complemento acionável das
-notificações 010–013). Clarificações (dono, minimalista): **3 tipos** (Atos que propus pendentes +
-votações por votar + eventos por confirmar; eleições/deliberações-secretas **excluídas** por voto
-secreto), **inclui** "Atos à minha assinatura" da Direção, **página dedicada `/pendencias`** + item no
-menu, **reutilizar reads existentes + filtrar no frontend**. **Achado-chave do plano**: só Direção/admin
-propõem/veem Atos (`_require_create`/`_require_view`), logo o painel é **role-aware** (sócio comum vê
-votações+eventos; Direção vê +2 secções de Atos) e a feature é **frontend-only, ZERO backend ⇒ sem Via B**
-(Vercel). PLAN feito ([plan.md](specs/014-painel-minhas-pendencias/plan.md), branch
-`feature/painel-minhas-pendencias`). Próximo: `/speckit-tasks`.
+Feature Spec Kit **ATIVA**: `specs/015-pendencias-contador-avisos/` — plano em
+`specs/015-pendencias-contador-avisos/plan.md`. **Pendências v2**: (US1) contador role-aware no item
+de menu «As minhas pendências» (mesmo total do painel via hook partilhado `usePendencias`, cap "9+",
+frescura no carregamento) + (US2) re-apontar **só** os avisos de Atos **pendentes** (specs 010/012/013)
+a `/pendencias` (2.ª constante `_LINK_PENDENTE` em `routes/atos.py`; decididos ficam em co-aprovações).
+Toca frontend (badge sidebar) + backend (`atos.py`) ⇒ **Via B**. Próximo: `/speckit-tasks`.
+Last completed: `specs/014-painel-minhas-pendencias-concluido/` — **painel «As minhas pendências»**:
+página `/pendencias` que agrega num só sítio tudo o que aguarda **ação** do sócio (complemento acionável
+das notificações 010–013). **Role-aware** (achado do plano: só Direção/admin propõem/veem Atos via
+`_require_create`/`_require_view`): sócio comum vê votações por votar + eventos por confirmar; Direção vê
++2 secções de Atos (à minha assinatura + que propus). Eleições/deliberações-secretas **excluídas** (voto
+secreto). **Frontend-only, ZERO backend** — `pages/private/PendenciasPage.js` (TanStack Query, filtros no
+cliente, queries de Atos `enabled:isDir` p/ evitar 403), rota lazy em `App.js`, item de menu em
+`PrivateLayout.js`. Review 0C/1W/1S corrigidas (W: read falhado mostrava falso "tudo em dia" → +banner de
+erro). PR #382→develop. **RELEASED v0.5.45** (#383→main, frontend pela Vercel, **sem Via B**).
 Last completed: as specs **012 e 013 foram RELEASED em v0.5.43 e DEPLOYED em prod Via B** (2026-06-29,
 `sha-dab25397254e`, merge #377; Up healthy, `POST /api/atos/notify-overdue`→401, código de ambas no
 container, overdue loop 2×, 0 tracebacks). A **v0.5.44** (release #380) levou o frontend (hero da

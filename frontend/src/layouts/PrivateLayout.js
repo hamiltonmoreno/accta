@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { registrationAPI } from '../utils/api';
 import { queryKeys } from '../lib/queryClient';
+import { usePendencias } from '../hooks/usePendencias';
 import { buildNavContext, isNavItemVisible } from '../lib/nav/visibility';
 import { Header } from './components/Header';
 import { BrandIcon } from '../components/BrandIcon';
@@ -53,7 +54,7 @@ const menuSections = [
     title: 'Painel',
     items: [
       { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['all'] },
-      { label: 'As minhas pendências', path: '/pendencias', icon: ClipboardCheck, roles: ['all'] },
+      { label: 'As minhas pendências', path: '/pendencias', icon: ClipboardCheck, roles: ['all'], badge: 'pendencias' },
     ],
   },
   {
@@ -189,6 +190,12 @@ export const PrivateLayout = ({ children }) => {
     staleTime: 60 * 1000,
   });
   const registrationBadgeCount = Array.isArray(pendingRegistrations) ? pendingRegistrations.length : 0;
+
+  // Contador de «As minhas pendências» (spec 015) — mesma fonte que o painel
+  // `/pendencias` (SC-002), role-aware (Atos só p/ Direção dentro do hook). A
+  // barra lateral está em todas as páginas; o hook reutiliza a cache (staleTime
+  // 30s), sem stream/polling dedicado. Cap "9+" para não alargar o item.
+  const { total: pendenciasCount } = usePendencias();
 
   const [expanded, setExpanded] = useState(() => {
     if (typeof window === 'undefined') return true;
@@ -391,6 +398,20 @@ export const PrivateLayout = ({ children }) => {
                               aria-label={`${registrationBadgeCount} pedidos pendentes`}
                             >
                               {registrationBadgeCount}
+                            </span>
+                          )
+                        )}
+                        {item.badge === 'pendencias' && pendenciasCount > 0 && (
+                          collapsed && !isMobile ? (
+                            <span className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-carmesim" role="status" aria-label={`${pendenciasCount} pendências`} />
+                          ) : (
+                            <span
+                              className={`ml-auto mr-2 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center ${
+                                isActive ? 'bg-white text-carmesim' : 'bg-carmesim text-white'
+                              }`}
+                              aria-label={`${pendenciasCount} pendências`}
+                            >
+                              {pendenciasCount > 9 ? '9+' : pendenciasCount}
                             </span>
                           )
                         )}
