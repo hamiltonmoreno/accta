@@ -379,8 +379,11 @@ startup do `server.py`, padrão non-fatal dos seeds); idempotência por marca ad
 `PATCH /api/finances/settings` admin existente, validado `>= 1`); destinatários via
 `members_of_orgao("direcao")` (exclui técnicos/inativos); entrega in-app (+push) reutilizada;
 **email fora do MVP**. Endpoint opcional admin `POST /api/atos/notify-overdue` p/ disparo
-manual/verificação. **CONCLUÍDA na branch (PR #365→develop)**; 14/14 tarefas, 8 testes verdes,
-ruff limpo. Toca `backend/` ⇒ release `develop→main` exigirá **Via B**; ainda **não released/deployed**.
+manual/verificação. **CONCLUÍDA, RELEASED v0.5.41 (PR #365→develop; release #366→main) e
+DEPLOYED em prod Via B** (`sha-c01198d08af2`, 2026-06-29; `POST /api/atos/notify-overdue`→401,
+log `overdue_atos_loop iniciado`); 11 testes verdes, ruff limpo. pr-review apanhou e corrigiu bug
+CRITICAL (filtro `$exists:False` vs chave `null` do `model_dump` → feature nunca disparava → match
+por `None`). Residual: validação funcional do dono (Princípio VII).
 Last completed: `specs/009-notificacoes-push-celular-concluido/` — **notificações push
 no celular (Web Push / PWA)**. Espelha **todas** as notificações in-app no dispositivo
 do sócio com a app fechada (Android/desktop; iOS 16.4+ via PWA na Tela de Início), com
