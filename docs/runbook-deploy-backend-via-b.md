@@ -46,25 +46,25 @@ Antes de começar, obtém o SHA do `main` na release (na tua máquina):
 git fetch origin main && git rev-parse --short=12 main
 ```
 
-**Valores atuais (v0.5.42 — aviso de rejeição de Ato com o motivo, spec 011, PR #372/#370):**
+**Valores atuais (v0.5.43 — Atos: aviso ao proponente (spec 012) + lembretes recorrentes (spec 013), PR #377/#375/#376):**
 
 | Variável | Valor |
 |----------|-------|
-| `TAG` (imagem nova) | `sha-5343480d5d64` |
-| Tag git da release | `v0.5.42` (= `5343480`, HEAD de `main`, merge #372) |
-| Rollback (prod anterior, v0.5.41) | `sha-c01198d08af2` |
-| Teste decisivo desta release | **Sem rota nova** (estende `POST /api/atos/{id}/assinar`): a confirmação é a **imagem viva `sha-5343480d5d64`** (`docker inspect`, Up healthy) + **código presente no container** (`docker exec accta-backend grep -c 'obrigatorio indicar o motivo da rejeicao' routes/atos.py` → 1; `grep -c 'rejeitado. Motivo' routes/atos.py` → 1; `grep -c 'motivo: Optional' models.py` ≥ 1) + arranque limpo. Sanidade da rota: `POST /api/atos/x/assinar` sem auth → **401**. **Validação funcional** (autenticado como Direção: rejeitar um Ato **sem motivo** → **400**; com motivo → proponente recebe aviso com o motivo + vê-o no detalhe) = Princípio VII, dono (issue de validação). |
+| `TAG` (imagem nova) | `sha-dab25397254e` |
+| Tag git da release | `v0.5.43` (= `dab2539`, HEAD de `main`, merge #377) |
+| Rollback (prod anterior, v0.5.42) | `sha-5343480d5d64` |
+| Teste decisivo desta release | **Sem rota nova** (ambas as specs estendem o varrimento interno + o endpoint admin já existente): a confirmação é a **imagem viva `sha-dab25397254e`** (`docker inspect`, Up healthy) + **código presente no container** (`docker exec accta-backend grep -c 'cutoff' routes/atos.py` → ≥ 1 [spec 013]; `grep -c 'notified_proponentes' routes/atos.py` → ≥ 1 [spec 012]) + arranque limpo (`overdue_atos_loop ... iniciado` 2×). Sanidade da rota: `POST /api/atos/notify-overdue` sem auth → **401**. **Validação funcional** (deixar um Ato pendente atravessar 2 janelas de X dias → 2 lembretes; o proponente é avisado) = Princípio VII, dono. |
 
-> **Nota:** a v0.5.42 **toca em `backend/`** (spec 011 — aviso de rejeição de Ato com o
-> motivo, PR #370→develop, release #372→main): `models.py` (`+AtoSign.motivo`, aditivo);
-> `routes/atos.py` (`sign_ato` valida motivo obrigatório/≤500 ao rejeitar, põe-no na
-> assinatura, enriquece o aviso ao proponente e o `details` da auditoria). O delta
-> **frontend** (CoAprovacoesPage diálogo de rejeição + motivo no detalhe; api.js) vai pela
-> Vercel, não por aqui. A release inclui também o fix tests-only #371 (`test_idor`), sem
-> impacto runtime. O backend em prod antes da v0.5.42 está na **v0.5.41**
-> (`sha-c01198d08af2`). **Sem migração** (campo aditivo na assinatura jsonb, sem schema
-> novo, sem tocar no DAO, **zero deps novas**). **Sem pós-deploy obrigatório.** Confirma
-> sempre a imagem em execução antes de deploy: `docker compose ps` (coluna IMAGE) ou
+> **Nota:** a v0.5.43 **toca em `backend/`** (só `routes/atos.py`), agrupando duas specs:
+> **spec 012** (PR #375 — aviso ao proponente de Ato pendente > X dias, uma única vez,
+> deduplicado vs Direção; +counter `notified_proponentes`) e **spec 013** (PR #376 —
+> lembretes **recorrentes** a cada X dias: a marca `overdue_notified_at` passa de flag
+> single-shot a cursor "último lembrete"; o filtro do varrimento muda de
+> `{"overdue_notified_at": None}` para `{"$or": [{… None}, {… {"$lte": cutoff}}]}`). O backend
+> em prod antes da v0.5.43 está na **v0.5.42** (`sha-5343480d5d64`). **Sem migração** (reutiliza
+> a marca aditiva `overdue_notified_at`; sem schema novo, sem tocar no DAO, **zero deps novas**).
+> **Sem frontend** (nenhum delta Vercel). **Sem pós-deploy obrigatório.** Confirma sempre a
+> imagem em execução antes de deploy: `docker compose ps` (coluna IMAGE) ou
 > `docker inspect accta-backend --format '{{.Config.Image}}'`.
 
 ---
@@ -75,22 +75,22 @@ git fetch origin main && git rev-parse --short=12 main
 ```bash
 rm -rf /tmp/accta-build
 git clone https://github.com/hamiltonmoreno/accta.git /tmp/accta-build
-cd /tmp/accta-build && git checkout v0.5.42       # <- tag git da release
+cd /tmp/accta-build && git checkout v0.5.43       # <- tag git da release
 docker build -f backend/Dockerfile \
-  -t ghcr.io/hamiltonmoreno/accta-backend:sha-5343480d5d64 .   # <- TAG
+  -t ghcr.io/hamiltonmoreno/accta-backend:sha-dab25397254e .   # <- TAG
 ```
 
 ### 2.2 Arrancar via o compose canónico (só muda o TAG)
 ```bash
 cd /docker/accta
-export TAG=sha-5343480d5d64
+export TAG=sha-dab25397254e
 docker compose up -d --no-deps backend
 ```
 
 ### 2.3 Verificar
 ```bash
 docker compose ps                         # backend = Up (healthy)
-docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-5343480d5d64
+docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-dab25397254e
 docker compose logs --tail=80 backend     # arranque limpo: ensure_schema OK, sem tracebacks
 curl -fsS https://api.controlador.cv/api/ # 200
 
@@ -125,7 +125,7 @@ docker compose logs --tail=200 backend 2>&1 | grep -E 'pg_cron not configured'  
 A imagem anterior continua no VPS; só se troca o `TAG`:
 ```bash
 cd /docker/accta
-export TAG=sha-c01198d08af2        # <- rollback (v0.5.41, imagem que corria antes da v0.5.42)
+export TAG=sha-5343480d5d64        # <- rollback (v0.5.42, imagem que corria antes da v0.5.43)
 docker compose up -d --no-deps backend
 ```
 
@@ -167,7 +167,8 @@ Ver `DEPLOY.md` e `HOSTINGER_DEPLOY.md` para o setup completo (secrets SSH,
   (`sha-678575f73905`) → v0.5.34 (`sha-4a78080aec1e`) → v0.5.35
   (`sha-b16773a08b8a`) → v0.5.37 (`sha-482320bce1ca`) → v0.5.38
   (`sha-960e0b5367b2`) → v0.5.39 (`sha-5cfff3c9b0e1`) → v0.5.40
-  (`sha-fae22c0eaab2`) → v0.5.41 (`sha-c01198d08af2`) → **v0.5.42 (`sha-5343480d5d64`, este deploy)**.
+  (`sha-fae22c0eaab2`) → v0.5.41 (`sha-c01198d08af2`) → v0.5.42 (`sha-5343480d5d64`)
+  → **v0.5.43 (`sha-dab25397254e`, este deploy)**.
   As v0.5.28/v0.5.29/v0.5.30, v0.5.32/v0.5.33 e v0.5.36 não tocaram no
   backend (docs/test/frontend-only). As v0.5.1/v0.5.5/v0.5.6/v0.5.7,
   v0.5.9–v0.5.12, v0.5.14–v0.5.16 e v0.5.19–v0.5.21 não tocaram no
