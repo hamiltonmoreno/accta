@@ -357,6 +357,22 @@ async def test_recorrencia_re_avisa_apos_x_dias(wired):
     assert docs[0]["overdue_notified_at"] > _iso_days_ago(1)  # cursor avançou (≈ agora)
 
 
+async def test_recorrencia_re_avisa_tambem_o_proponente(wired):
+    """US1/FR-004: numa avaliação recorrente (marca antiga) o proponente — não só a
+    Direção — é re-avisado; os destinatários são Direção + proponente em CADA ciclo,
+    com a mesma dedup da spec 012."""
+    db, notify = wired
+    docs = [_ato("a1", created_at=_iso_days_ago(30), created_by="prop1", overdue_notified_at=_iso_days_ago(10))]
+    db.atos = _atos_coll(docs)
+    _wire_users(db, [{"id": "prop1", "status": "ativo"}])
+
+    result = await atos_mod.notify_overdue_atos()
+
+    assert result["notified_atos"] == 1 and result["notified_proponentes"] == 1
+    assert _proponente_call(notify, "prop1") is not None  # proponente re-avisado
+    assert notify.await_count == 2  # Direção + proponente
+
+
 async def test_primeiro_aviso_sem_marca_intacto(wired):
     """US1: Ato pendente sem marca (nunca avisado), idade > X ⇒ 1.º lembrete
     (comportamento das specs 010/012 preservado sob recorrência)."""
