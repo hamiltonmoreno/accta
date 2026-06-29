@@ -1,17 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { useQuery } from '@tanstack/react-query';
 import { Vote, Calendar, FileCheck, FileText, ChevronRight, ClipboardCheck, AlertTriangle } from 'lucide-react';
-import { pollsAPI, eventsAPI, atosAPI } from '../../utils/api';
-import { useAuth } from '../../contexts/AuthContext';
-import { queryKeys } from '../../lib/queryClient';
+import { usePendencias } from '../../hooks/usePendencias';
 
 // Painel «As minhas pendências» (spec 014): vista que agrega, num só sítio, tudo o
 // que aguarda a ação do sócio — DERIVADO do estado dos reads existentes (frontend-only).
-// Role-aware: sócio comum vê votações + eventos; Direção/admin vê também os Atos
-// (só Direção/admin propõem/listam Atos — um sócio comum levaria 403 em GET /atos,
-// por isso essas queries só correm com `enabled: isDir`).
+// A derivação vive no hook partilhado `usePendencias` (spec 015): a página e o contador
+// da barra lateral consomem a MESMA fonte ⇒ o badge coincide com o painel (SC-002).
+// Role-aware: sócio comum vê votações + eventos; Direção/admin vê também os Atos.
 
 const fmtDate = (value) => {
   try {
@@ -68,35 +64,8 @@ const SectionSkeleton = () => (
 );
 
 export const PendenciasPage = () => {
-  const { user, isAdmin, isDirecao } = useAuth();
-  const isDir = Boolean(isAdmin || isDirecao);
-
-  const { data: polls = [], isLoading: pollsLoading, isError: pollsError } = useQuery({
-    queryKey: queryKeys.polls.list(),
-    queryFn: async () => (await pollsAPI.getAll()).data,
-  });
-  const { data: events = [], isLoading: eventsLoading, isError: eventsError } = useQuery({
-    queryKey: queryKeys.events.upcoming(),
-    queryFn: async () => (await eventsAPI.getUpcoming()).data,
-  });
-  // Atos só para Direção/admin — evita o 403 de _require_view ao sócio comum.
-  const { data: assinatura, isLoading: assLoading, isError: assError } = useQuery({
-    queryKey: queryKeys.atos.list({ mine: true }),
-    queryFn: async () => (await atosAPI.list({ pendentes_para_mim: true })).data,
-    enabled: isDir,
-  });
-  const { data: propostos, isLoading: propLoading, isError: propError } = useQuery({
-    queryKey: queryKeys.atos.list({ status: 'pendente' }),
-    queryFn: async () => (await atosAPI.list({ status: 'pendente' })).data,
-    enabled: isDir,
-  });
-
-  const votacoes = (polls || []).filter((p) => p.status === 'aberta' && !p.has_voted);
-  const eventos = (events || []).filter((e) => !(e.attendees || []).includes(user?.id));
-  const assinaturaItems = isDir ? assinatura?.items || [] : [];
-  const propostosItems = isDir
-    ? (propostos?.items || []).filter((a) => a.created_by === user?.id)
-    : [];
+  const { votacoes, eventos, assinaturaItems, propostosItems, total, isLoading, anyError, isDir } =
+    usePendencias();
 
   const sections = [
     isDir && {
@@ -149,11 +118,6 @@ export const PendenciasPage = () => {
     },
   ].filter(Boolean);
 
-  const isLoading = pollsLoading || eventsLoading || (isDir && (assLoading || propLoading));
-  // Um read falhado não deve passar por "nada pendente" (evita um falso "tudo em dia").
-  const anyError = pollsError || eventsError || (isDir && (assError || propError));
-  const total = sections.reduce((n, s) => n + s.items.length, 0);
-
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
       <header className="mb-6">
@@ -183,16 +147,11 @@ export const PendenciasPage = () => {
               <p className="text-[#6B7280] mt-1">Não tem nada pendente neste momento.</p>
             </div>
           ) : (
-            <motion.div
-              className="space-y-5"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
+            <div className="space-y-5 animate-fadeIn">
               {sections.map((s) => (
                 <PendenciaSection key={s.key} icon={s.icon} title={s.title} items={s.items} />
               ))}
-            </motion.div>
+            </div>
           )}
         </div>
       )}

@@ -195,6 +195,19 @@ class TestCreateAto:
             await atos_route.create_ato(AtoCreate(tipo="xpto", descricao="Y"), _request(), current_user=_user("admin"))
         assert e.value.status_code == 400
 
+    async def test_aviso_de_criacao_aponta_pendencias(self, mock_db, monkeypatch):
+        """spec 015 (US2): o aviso de um Ato novo (pendente) à Direção leva ao
+        painel acionável `/pendencias`, não à área genérica de co-aprovações."""
+        _wire_atos(mock_db)
+        notify = AsyncMock()
+        monkeypatch.setattr(atos_route, "notify_users", notify)
+        monkeypatch.setattr(atos_route, "members_of_orgao", AsyncMock(return_value=["d1", "d2"]))
+        await atos_route.create_ato(
+            AtoCreate(tipo="vinculativo", descricao="Contrato"), _request(), current_user=_user("socio", "dir_vogal")
+        )
+        notify.assert_awaited_once()
+        assert notify.await_args.args[4] == atos_route._LINK_PENDENTE
+
 
 @pytest.mark.asyncio
 class TestSignAto:
@@ -247,12 +260,16 @@ class TestSignAto:
         doc = self._pendente(assinaturas=[_sig("dir_vogal", user_id="v1")])
         _wire_atos(mock_db, doc=doc)
         mock = _wire_sign_atomic(monkeypatch, doc)
+        notify = AsyncMock()
+        monkeypatch.setattr(atos_route, "notify_users", notify)
         await atos_route.sign_ato(
             "a1", AtoSign(decisao="aprovado"), _request(), current_user=_user("socio", "dir_presidente", uid="pres")
         )
         mock.assert_awaited_once()
         assert doc["status"] == "aprovado"
         assert len(doc["assinaturas"]) == 2
+        # spec 015 (C2): Ato DECIDIDO (aprovado) mantém o link de co-aprovações (não /pendencias)
+        assert notify.await_args.args[4] == atos_route._LINK
 
     async def test_rejeicao_fecha(self, mock_db, monkeypatch):
         doc = self._pendente()
@@ -312,8 +329,10 @@ class TestExecuteAto:
             await atos_route.execute_ato("a1", AtoExecute(), _request(), current_user=_user("admin"))
         assert e.value.status_code == 400
 
-    async def test_executa_cria_despesa_ligada(self, mock_db):
+    async def test_executa_cria_despesa_ligada(self, mock_db, monkeypatch):
         coll = _wire_atos(mock_db, doc=self._aprovado_pagamento())
+        notify = AsyncMock()
+        monkeypatch.setattr(atos_route, "notify_users", notify)
         await atos_route.execute_ato(
             "a1", AtoExecute(category="operacional"), _request(), current_user=_user("socio", "dir_tesoureiro", uid="tes")
         )
@@ -322,6 +341,8 @@ class TestExecuteAto:
         assert tx["type"] == "despesa" and tx["ato_id"] == "a1" and tx["amount"] == 5000.0
         upd = coll.update_one.call_args.args[1]["$set"]
         assert upd["status"] == "executado" and upd["transaction_id"]
+        # spec 015 (C2): Ato DECIDIDO (executado) mantém o link de co-aprovações (não /pendencias)
+        assert notify.await_args.args[4] == atos_route._LINK
 
     async def test_categoria_invalida_400(self, mock_db):
         _wire_atos(mock_db, doc=self._aprovado_pagamento())

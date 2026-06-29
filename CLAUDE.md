@@ -370,7 +370,12 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Sem feature Spec Kit ativa (próximo: `/speckit-specify`).
+Feature Spec Kit **ATIVA**: `specs/015-pendencias-contador-avisos/` — plano em
+`specs/015-pendencias-contador-avisos/plan.md`. **Pendências v2**: (US1) contador role-aware no item
+de menu «As minhas pendências» (mesmo total do painel via hook partilhado `usePendencias`, cap "9+",
+frescura no carregamento) + (US2) re-apontar **só** os avisos de Atos **pendentes** (specs 010/012/013)
+a `/pendencias` (2.ª constante `_LINK_PENDENTE` em `routes/atos.py`; decididos ficam em co-aprovações).
+Toca frontend (badge sidebar) + backend (`atos.py`) ⇒ **Via B**. Próximo: `/speckit-tasks`.
 Last completed: `specs/014-painel-minhas-pendencias-concluido/` — **painel «As minhas pendências»**:
 página `/pendencias` que agrega num só sítio tudo o que aguarda **ação** do sócio (complemento acionável
 das notificações 010–013). **Role-aware** (achado do plano: só Direção/admin propõem/veem Atos via

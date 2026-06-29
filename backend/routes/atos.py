@@ -42,7 +42,8 @@ router = APIRouter(prefix="/atos", tags=["atos"])
 
 logger = logging.getLogger(__name__)
 
-_LINK = "/financeiro/co-aprovacoes"
+_LINK = "/financeiro/co-aprovacoes"  # Atos DECIDIDOS (visíveis aqui)
+_LINK_PENDENTE = "/pendencias"  # Atos PENDENTES → painel acionável «As minhas pendências» (spec 015)
 
 # Limiar default de dias (FR-004) quando finance_settings não o tem.
 _OVERDUE_DEFAULT_DIAS = 7
@@ -117,7 +118,7 @@ async def create_ato(data: AtoCreate, request: Request, current_user: User = Dep
         "financeiro",
         "Acto a aguardar assinatura",
         f"{current_user.name} criou um acto ({data.tipo}) que aguarda a sua co-aprovacao.",
-        _LINK,
+        _LINK_PENDENTE,  # Ato pendente (spec 015) → painel acionável
         exclude_id=current_user.id,
     )
     return ato
@@ -407,7 +408,7 @@ async def _notify_overdue_atos_locked() -> dict:
             "financeiro",
             f"Ato pendente há {idade} dias",
             f'O ato "{descricao}" ({tipo}{valor_txt}) está pendente há {idade} dias e aguarda ação da Direção.',
-            _LINK,
+            _LINK_PENDENTE,  # Ato pendente (spec 015) → painel acionável
         )
 
         # Aviso ao próprio proponente (spec 012): só se NÃO for já destinatário
@@ -423,7 +424,7 @@ async def _notify_overdue_atos_locked() -> dict:
                 "financeiro",
                 "O seu ato continua pendente",
                 f'O ato que propôs ("{descricao}", {tipo}{valor_txt}) continua pendente há {idade} dias, a aguardar assinaturas da Direção.',
-                _LINK,
+                _LINK_PENDENTE,  # Ato pendente (spec 015) → painel acionável
             )
             counters["notified_proponentes"] += 1
 
