@@ -184,7 +184,9 @@ class TestEnabledVerification:
             await turnstile.verify_turnstile("tok", _request())
         assert exc.value.status_code == 502
 
-    async def test_uses_cf_connecting_ip(self, monkeypatch):
+    async def test_uses_cf_connecting_ip_behind_trusted_proxy(self, monkeypatch):
+        # Atrás de um proxy reverso de confiança (peer em loopback/RFC-1918) o
+        # cf-connecting-ip é honrado como IP real do visitante.
         monkeypatch.setenv("TURNSTILE_SECRET", "0xSECRET")
         captured = {}
         monkeypatch.setattr(
@@ -193,11 +195,27 @@ class TestEnabledVerification:
             _client_factory(resp=_FakeResp({"success": True}), captured=captured),
         )
         await turnstile.verify_turnstile(
-            "tok", _request(headers={"cf-connecting-ip": "9.9.9.9"}, client=("1.2.3.4", 1))
+            "tok", _request(headers={"cf-connecting-ip": "9.9.9.9"}, client=("127.0.0.1", 1))
         )
         assert captured["data"]["secret"] == "0xSECRET"
         assert captured["data"]["response"] == "tok"
-        assert captured["data"]["remoteip"] == "9.9.9.9"  # header tem prioridade
+        assert captured["data"]["remoteip"] == "9.9.9.9"  # header honrado atrás do proxy
+
+    async def test_untrusted_peer_ignores_spoofed_cf_header(self, monkeypatch):
+        # Exposto directamente (peer = IP público, não-proxy), o cf-connecting-ip
+        # é spoofável → ignora-se e usa-se o IP real da ligação (anti-spoof,
+        # alinhado com helpers._is_trusted_proxy).
+        monkeypatch.setenv("TURNSTILE_SECRET", "0xSECRET")
+        captured = {}
+        monkeypatch.setattr(
+            turnstile.httpx,
+            "AsyncClient",
+            _client_factory(resp=_FakeResp({"success": True}), captured=captured),
+        )
+        await turnstile.verify_turnstile(
+            "tok", _request(headers={"cf-connecting-ip": "9.9.9.9"}, client=("5.6.7.8", 1))
+        )
+        assert captured["data"]["remoteip"] == "5.6.7.8"  # header forjado descartado
 
     async def test_falls_back_to_client_host(self, monkeypatch):
         monkeypatch.setenv("TURNSTILE_SECRET", "0xSECRET")

@@ -64,9 +64,16 @@ async def verify_turnstile(token: str, request: Request) -> None:
     if not token:
         raise HTTPException(status_code=403, detail="Confirme que não é um robô.")
 
-    # IP real do visitante (atrás do Cloudflare + nginx-proxy-manager). Se o
-    # header não vier, cai para o client.host; nunca enviamos um valor vazio.
-    ip = request.headers.get("cf-connecting-ip") or (request.client.host if request.client else None)
+    # IP real do visitante. O cf-connecting-ip (definido pela edge da Cloudflare)
+    # só é fiável quando o peer TCP é um proxy reverso de confiança; exposto
+    # directamente é spoofável. Alinha com helpers._extract_ip / _is_trusted_proxy
+    # (import local — turnstile é um módulo leaf, não puxa a cadeia de helpers
+    # para o import scope). Sem header de confiança, usa o IP real da ligação.
+    from helpers import _is_trusted_proxy
+
+    peer = request.client.host if request.client else None
+    header_ip = request.headers.get("cf-connecting-ip")
+    ip = header_ip if (header_ip and _is_trusted_proxy(peer)) else peer
 
     payload = {"secret": secret, "response": token}
     if ip:

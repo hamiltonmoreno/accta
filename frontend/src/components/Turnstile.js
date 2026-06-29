@@ -12,7 +12,9 @@ const SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render
  * O token é de uso único: chame `ref.current.reset()` após cada submissão
  * (sucesso ou erro) para obter um novo. Em erro/expiração devolve `''`.
  *
- * Sem Site Key configurada, não renderiza nada (degrada graciosamente).
+ * Renderiza sempre (há SITE_KEY por env ou fallback embutido): a desativação
+ * graciosa é do lado do backend (no-op sem `TURNSTILE_SECRET`), pelo que o
+ * widget produz sempre um token quando a verificação for ligada.
  */
 export const Turnstile = forwardRef(function Turnstile({ onVerify, className = 'my-1' }, ref) {
   const containerRef = useRef(null);
@@ -38,8 +40,6 @@ export const Turnstile = forwardRef(function Turnstile({ onVerify, className = '
   );
 
   useEffect(() => {
-    if (!SITE_KEY) return undefined;
-
     // Injeta o script da API uma única vez (partilhado por todos os widgets).
     if (!document.getElementById(SCRIPT_ID)) {
       const s = document.createElement('script');
@@ -87,6 +87,5 @@ export const Turnstile = forwardRef(function Turnstile({ onVerify, className = '
     };
   }, []);
 
-  if (!SITE_KEY) return null;
   return <div ref={containerRef} className={className} />;
 });
