@@ -16,7 +16,7 @@ RBAC:
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -340,16 +340,28 @@ async def notify_overdue_atos() -> dict:
 
 async def _notify_overdue_atos_locked() -> dict:
     dias = await _overdue_limiar_dias()
-    # Só pendentes ainda não avisados (sair de `pendente` ⇒ deixa de ser
-    # considerado, FR-006; marca presente ⇒ não re-avisa, FR-005). Match por
-    # `None` (não `$exists:false`): o `model_dump()` de `create_ato` grava a
-    # chave com valor `null`, logo o operador de presença de chave do DAO
-    # (`doc ? key`) excluiria TODOS os atos da app. `_eq(None)` casa
-    # corretamente chave-ausente (atos legados) OU valor-null (atos novos);
-    # a marca, depois de gravada como ISO string, deixa de casar (idempotência).
-    atos = await db.atos.find({"status": "pendente", "overdue_notified_at": None}, {"_id": 0}).to_list(None)
-
     now = datetime.now(timezone.utc)
+    # Recorrência (spec 013): `overdue_notified_at` é o CURSOR do último lembrete, não
+    # um flag single-shot. Re-avalia um Ato pendente quando nunca foi avisado OU já
+    # passaram X dias desde o último lembrete — lembra a cada X dias enquanto pendente
+    # (FR-001/002); sair de `pendente` ⇒ deixa de qualificar (FR-007). Match por `None`
+    # (não `$exists:false`): o `model_dump()` de `create_ato` grava a chave com valor
+    # `null`, logo `doc ? key` excluiria os atos novos; `_eq(None)` casa chave-ausente
+    # (legados) OU valor-null. O cutoff compara strings ISO (UTC isoformat ⇒ ordem
+    # lexicográfica = cronológica); como cada lembrete grava `now`, o cursor avança e
+    # garante ≥ X dias entre lembretes (SC-002, sem re-disparo no mesmo dia).
+    cutoff = (now - timedelta(days=dias)).isoformat()
+    atos = await db.atos.find(
+        {
+            "status": "pendente",
+            "$or": [
+                {"overdue_notified_at": None},
+                {"overdue_notified_at": {"$lte": cutoff}},
+            ],
+        },
+        {"_id": 0},
+    ).to_list(None)
+
     counters = {"evaluated": len(atos), "overdue": 0, "notified_atos": 0, "recipients": 0, "notified_proponentes": 0}
 
     overdue = []

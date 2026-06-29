@@ -370,16 +370,27 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Feature Spec Kit ativa: `specs/012-aviso-proponente-ato-pendente/` — **lembrar o próprio
-proponente de um Ato (Art. 54) quando fica pendente > X dias** (hoje só a Direção é avisada,
-spec 010). Q1 (dono): aviso **uma única vez** por Ato, no mesmo evento da spec 010, **partilhando
-a marca `overdue_notified_at`**. Desenho minimalíssimo: estender `_notify_overdue_atos_locked()`
-em `routes/atos.py` para também avisar o `created_by` — **só se não for já destinatário Direção**
-(dedup que deixa o aviso à Direção 100% intacto, SC-004) e for conta ativa/não-técnica (1 query a
-`users`, sem N+1). **Sem schema/migração/agendador/limiar/campo novos, zero deps, sem frontend.**
-+counter `notified_proponentes`. PLAN feito ([plan.md](specs/012-aviso-proponente-ato-pendente/plan.md),
-branch `feature/aviso-proponente-ato-pendente`). Próximo: `/speckit-tasks`. Release `develop→main`
-exigirá **Via B**.
+Feature Spec Kit ativa: `specs/013-escalonamento-ato-pendente/` — **lembretes recorrentes de um
+Ato (Art. 54) que continua pendente além do limiar X** (hoje as specs 010/012 avisam **uma única
+vez** e calam). Clarificações (dono, minimalista): cadência **a cada X dias** (reutiliza
+`ato_overdue_dias`), pressão só no **tom/antiguidade** com os **mesmos destinatários** (Direção +
+proponente, dedup spec 012), paragem **até sair de `pendente`** (sem teto). Desenho de **1 linha**:
+em `_notify_overdue_atos_locked()` (`routes/atos.py`) a marca `overdue_notified_at` passa de *flag*
+single-shot a **cursor "último lembrete"** — a query muda de `{"overdue_notified_at": None}` para
+`{"$or": [{... None}, {... {"$lte": now − X dias}}]}`; o resto do loop (gate idade, avisos,
+dedup, exclusões, escrita `= now`) **já funciona** sem mudança. DAO: `$lte` = comparação de TEXTO
+ISO (lexicográfica = cronológica), `$or` suportado. **Sem schema/migração/campo/dep/frontend.**
+PLAN feito ([plan.md](specs/013-escalonamento-ato-pendente/plan.md), branch
+`feature/escalonamento-ato-pendente`). Próximo: `/speckit-tasks`. Release `develop→main` exigirá **Via B**.
+Last completed: `specs/012-aviso-proponente-ato-pendente/` — **lembrar o próprio proponente de um
+Ato (Art. 54) quando fica pendente > X dias** (a spec 010 só avisa a Direção). Aviso **uma única vez**
+por Ato, partilhando a marca `overdue_notified_at`; estendeu `_notify_overdue_atos_locked()` em
+`routes/atos.py` para avisar o `created_by` **só se não for já destinatário Direção** (dedup, aviso à
+Direção 100% intacto, SC-004) e for conta ativa/não-técnica (1 query a `users`, sem N+1). +counter
+`notified_proponentes`. pr-review apanhou 2 WARNING corrigidas (ordem da marca → perda silenciosa;
+FR-002 tipo/valor no corpo). **Sem schema/migração/dep/frontend.** 52 testes de Atos verdes.
+**MERGED em develop (PR #375, `c6f5876`); release SEGURADA pelo dono (batched com futuro backend) —
+ainda NÃO em prod.** Toca `backend/` ⇒ release `develop→main` exige **Via B**.
 Last completed: `specs/011-aviso-rejeicao-ato-concluido/` — **avisar o proponente de um Ato
 (Art. 54) quando é rejeitado, com o motivo**. O aviso de rejeição já existia mas saía sem o porquê.
 Q1 (dono): motivo **obrigatório** ao rejeitar (≤500). Desenho mínimo: o motivo vive **na assinatura
