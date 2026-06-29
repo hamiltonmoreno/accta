@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
-import { Vote, Calendar, FileCheck, FileText, ChevronRight, ClipboardCheck } from 'lucide-react';
+import { Vote, Calendar, FileCheck, FileText, ChevronRight, ClipboardCheck, AlertTriangle } from 'lucide-react';
 import { pollsAPI, eventsAPI, atosAPI } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { queryKeys } from '../../lib/queryClient';
@@ -71,21 +71,21 @@ export const PendenciasPage = () => {
   const { user, isAdmin, isDirecao } = useAuth();
   const isDir = Boolean(isAdmin || isDirecao);
 
-  const { data: polls = [], isLoading: pollsLoading } = useQuery({
+  const { data: polls = [], isLoading: pollsLoading, isError: pollsError } = useQuery({
     queryKey: queryKeys.polls.list(),
     queryFn: async () => (await pollsAPI.getAll()).data,
   });
-  const { data: events = [], isLoading: eventsLoading } = useQuery({
+  const { data: events = [], isLoading: eventsLoading, isError: eventsError } = useQuery({
     queryKey: queryKeys.events.upcoming(),
     queryFn: async () => (await eventsAPI.getUpcoming()).data,
   });
   // Atos só para Direção/admin — evita o 403 de _require_view ao sócio comum.
-  const { data: assinatura, isLoading: assLoading } = useQuery({
+  const { data: assinatura, isLoading: assLoading, isError: assError } = useQuery({
     queryKey: queryKeys.atos.list({ mine: true }),
     queryFn: async () => (await atosAPI.list({ pendentes_para_mim: true })).data,
     enabled: isDir,
   });
-  const { data: propostos, isLoading: propLoading } = useQuery({
+  const { data: propostos, isLoading: propLoading, isError: propError } = useQuery({
     queryKey: queryKeys.atos.list({ status: 'pendente' }),
     queryFn: async () => (await atosAPI.list({ status: 'pendente' })).data,
     enabled: isDir,
@@ -130,7 +130,7 @@ export const PendenciasPage = () => {
       items: votacoes.map((p) => ({
         id: p.id,
         to: '/votacoes',
-        title: p.title || p.question || 'Votação',
+        title: p.title || 'Votação',
         meta: null,
         cta: 'Votar',
       })),
@@ -150,6 +150,8 @@ export const PendenciasPage = () => {
   ].filter(Boolean);
 
   const isLoading = pollsLoading || eventsLoading || (isDir && (assLoading || propLoading));
+  // Um read falhado não deve passar por "nada pendente" (evita um falso "tudo em dia").
+  const anyError = pollsError || eventsError || (isDir && (assError || propError));
   const total = sections.reduce((n, s) => n + s.items.length, 0);
 
   return (
@@ -164,23 +166,35 @@ export const PendenciasPage = () => {
           <SectionSkeleton />
           <SectionSkeleton />
         </div>
-      ) : total === 0 ? (
-        <div className="bg-white rounded-lg border border-[#E5E7EB] shadow-sm py-16 px-6 text-center">
-          <ClipboardCheck className="w-12 h-12 text-[#15803D] mx-auto mb-4" aria-hidden="true" />
-          <p className="text-lg font-semibold text-[#3A3A3A]">Está tudo em dia</p>
-          <p className="text-[#6B7280] mt-1">Não tem nada pendente neste momento.</p>
-        </div>
       ) : (
-        <motion.div
-          className="space-y-5"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {sections.map((s) => (
-            <PendenciaSection key={s.key} icon={s.icon} title={s.title} items={s.items} />
-          ))}
-        </motion.div>
+        <div className="space-y-5">
+          {anyError && (
+            <div className="flex items-start gap-3 bg-[#FEF2F2] border border-[#FECACA] rounded-lg px-4 py-3">
+              <AlertTriangle className="w-5 h-5 text-[#B91C1C] shrink-0 mt-0.5" aria-hidden="true" />
+              <p className="text-sm text-[#B91C1C]">
+                Não foi possível carregar algumas pendências. Atualize a página para tentar de novo.
+              </p>
+            </div>
+          )}
+          {total === 0 && !anyError ? (
+            <div className="bg-white rounded-lg border border-[#E5E7EB] shadow-sm py-16 px-6 text-center">
+              <ClipboardCheck className="w-12 h-12 text-[#15803D] mx-auto mb-4" aria-hidden="true" />
+              <p className="text-lg font-semibold text-[#3A3A3A]">Está tudo em dia</p>
+              <p className="text-[#6B7280] mt-1">Não tem nada pendente neste momento.</p>
+            </div>
+          ) : (
+            <motion.div
+              className="space-y-5"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {sections.map((s) => (
+                <PendenciaSection key={s.key} icon={s.icon} title={s.title} items={s.items} />
+              ))}
+            </motion.div>
+          )}
+        </div>
       )}
     </div>
   );
