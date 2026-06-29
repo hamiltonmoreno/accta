@@ -46,28 +46,25 @@ Antes de começar, obtém o SHA do `main` na release (na tua máquina):
 git fetch origin main && git rev-parse --short=12 main
 ```
 
-**Valores atuais (v0.5.41 — aviso de Ato pendente, spec 010, PR #366/#365):**
+**Valores atuais (v0.5.42 — aviso de rejeição de Ato com o motivo, spec 011, PR #372/#370):**
 
 | Variável | Valor |
 |----------|-------|
-| `TAG` (imagem nova) | `sha-c01198d08af2` |
-| Tag git da release | `v0.5.41` (= `c01198d`, HEAD de `main`, merge #366) |
-| Rollback (prod anterior, v0.5.40) | `sha-fae22c0eaab2` |
-| Teste decisivo desta release | **Rota nova `POST /api/atos/notify-overdue`** (router registado): sem auth → **401** (em v0.5.40 seria 404/405). ⚠️ NÃO usar `GET` como prova: `GET /api/atos/notify-overdue` é capturado por `GET /atos/{ato_id}` (`ato_id="notify-overdue"`) e devolve 401, não 405. Confirmação complementar **decisiva**: log de arranque `overdue_atos_loop: agendador ... iniciado` (2×, um por worker — código só existe na v0.5.41) + imagem viva `sha-c01198d08af2` (`docker inspect`, Up healthy) + arranque limpo. **Validação funcional** (criar Ato pendente, esperar > X dias OU baixar `ato_overdue_dias`, disparar `POST /api/atos/notify-overdue` com token admin → Direção recebe aviso in-app/push) = Princípio VII, dono. **Nota:** com 2 workers há 2 loops; o `_overdue_lock` é por-processo, logo a serialização não cobre cross-worker — a marca `overdue_notified_at` é a salvaguarda real (os loops arrancam ~ms desfasados, o 1.º marca, o 2.º já exclui). |
+| `TAG` (imagem nova) | `sha-5343480d5d64` |
+| Tag git da release | `v0.5.42` (= `5343480`, HEAD de `main`, merge #372) |
+| Rollback (prod anterior, v0.5.41) | `sha-c01198d08af2` |
+| Teste decisivo desta release | **Sem rota nova** (estende `POST /api/atos/{id}/assinar`): a confirmação é a **imagem viva `sha-5343480d5d64`** (`docker inspect`, Up healthy) + **código presente no container** (`docker exec accta-backend grep -c 'obrigatorio indicar o motivo da rejeicao' routes/atos.py` → 1; `grep -c 'rejeitado. Motivo' routes/atos.py` → 1; `grep -c 'motivo: Optional' models.py` ≥ 1) + arranque limpo. Sanidade da rota: `POST /api/atos/x/assinar` sem auth → **401**. **Validação funcional** (autenticado como Direção: rejeitar um Ato **sem motivo** → **400**; com motivo → proponente recebe aviso com o motivo + vê-o no detalhe) = Princípio VII, dono (issue de validação). |
 
-> **Nota:** a v0.5.41 **toca em `backend/`** (spec 010 — aviso à Direção de Ato
-> pendente, PR #365→develop, release #366→main): `models.py` (`+Ato.overdue_notified_at`,
-> `+FinanceSettings.ato_overdue_dias=7`, `+FinanceSettingsUpdate.ato_overdue_dias`);
-> `routes/atos.py` (`notify_overdue_atos()` sob `asyncio.Lock`, loop diário
-> `overdue_atos_loop()` non-fatal, `POST /atos/notify-overdue` admin auditado);
-> `routes/finances.py` (validação `ato_overdue_dias >= 1` no `PATCH /settings`);
-> `server.py` (task do loop guardada em `app.state.overdue_atos_task`). O delta
-> **frontend** da release (#363, remover Benefícios/A Plataforma do header) vai pela
-> Vercel, não por aqui. O backend em prod antes da v0.5.41 está na **v0.5.40**
-> (`sha-fae22c0eaab2`). **Sem migração destrutiva** (campos aditivos, sem schema novo,
-> **zero deps novas**). **Sem pós-deploy obrigatório** (sem envs novas; o limiar X usa
-> o default 7 até ser configurado no `PATCH /api/finances/settings`). Confirma sempre a
-> imagem em execução antes de deploy: `docker compose ps` (coluna IMAGE) ou
+> **Nota:** a v0.5.42 **toca em `backend/`** (spec 011 — aviso de rejeição de Ato com o
+> motivo, PR #370→develop, release #372→main): `models.py` (`+AtoSign.motivo`, aditivo);
+> `routes/atos.py` (`sign_ato` valida motivo obrigatório/≤500 ao rejeitar, põe-no na
+> assinatura, enriquece o aviso ao proponente e o `details` da auditoria). O delta
+> **frontend** (CoAprovacoesPage diálogo de rejeição + motivo no detalhe; api.js) vai pela
+> Vercel, não por aqui. A release inclui também o fix tests-only #371 (`test_idor`), sem
+> impacto runtime. O backend em prod antes da v0.5.42 está na **v0.5.41**
+> (`sha-c01198d08af2`). **Sem migração** (campo aditivo na assinatura jsonb, sem schema
+> novo, sem tocar no DAO, **zero deps novas**). **Sem pós-deploy obrigatório.** Confirma
+> sempre a imagem em execução antes de deploy: `docker compose ps` (coluna IMAGE) ou
 > `docker inspect accta-backend --format '{{.Config.Image}}'`.
 
 ---
@@ -78,22 +75,22 @@ git fetch origin main && git rev-parse --short=12 main
 ```bash
 rm -rf /tmp/accta-build
 git clone https://github.com/hamiltonmoreno/accta.git /tmp/accta-build
-cd /tmp/accta-build && git checkout v0.5.41       # <- tag git da release
+cd /tmp/accta-build && git checkout v0.5.42       # <- tag git da release
 docker build -f backend/Dockerfile \
-  -t ghcr.io/hamiltonmoreno/accta-backend:sha-c01198d08af2 .   # <- TAG
+  -t ghcr.io/hamiltonmoreno/accta-backend:sha-5343480d5d64 .   # <- TAG
 ```
 
 ### 2.2 Arrancar via o compose canónico (só muda o TAG)
 ```bash
 cd /docker/accta
-export TAG=sha-c01198d08af2
+export TAG=sha-5343480d5d64
 docker compose up -d --no-deps backend
 ```
 
 ### 2.3 Verificar
 ```bash
 docker compose ps                         # backend = Up (healthy)
-docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-c01198d08af2
+docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-5343480d5d64
 docker compose logs --tail=80 backend     # arranque limpo: ensure_schema OK, sem tracebacks
 curl -fsS https://api.controlador.cv/api/ # 200
 
@@ -128,7 +125,7 @@ docker compose logs --tail=200 backend 2>&1 | grep -E 'pg_cron not configured'  
 A imagem anterior continua no VPS; só se troca o `TAG`:
 ```bash
 cd /docker/accta
-export TAG=sha-fae22c0eaab2        # <- rollback (v0.5.40, imagem que corria antes da v0.5.41)
+export TAG=sha-c01198d08af2        # <- rollback (v0.5.41, imagem que corria antes da v0.5.42)
 docker compose up -d --no-deps backend
 ```
 
@@ -170,7 +167,7 @@ Ver `DEPLOY.md` e `HOSTINGER_DEPLOY.md` para o setup completo (secrets SSH,
   (`sha-678575f73905`) → v0.5.34 (`sha-4a78080aec1e`) → v0.5.35
   (`sha-b16773a08b8a`) → v0.5.37 (`sha-482320bce1ca`) → v0.5.38
   (`sha-960e0b5367b2`) → v0.5.39 (`sha-5cfff3c9b0e1`) → v0.5.40
-  (`sha-fae22c0eaab2`) → **v0.5.41 (`sha-c01198d08af2`, este deploy)**.
+  (`sha-fae22c0eaab2`) → v0.5.41 (`sha-c01198d08af2`) → **v0.5.42 (`sha-5343480d5d64`, este deploy)**.
   As v0.5.28/v0.5.29/v0.5.30, v0.5.32/v0.5.33 e v0.5.36 não tocaram no
   backend (docs/test/frontend-only). As v0.5.1/v0.5.5/v0.5.6/v0.5.7,
   v0.5.9–v0.5.12, v0.5.14–v0.5.16 e v0.5.19–v0.5.21 não tocaram no

@@ -370,15 +370,38 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Feature Spec Kit ativa: `specs/011-aviso-rejeicao-ato/` — **avisar o proponente de um Ato
-(Art. 54) quando é rejeitado, com o motivo**. Hoje o aviso de rejeição já existe mas sai sem o
-porquê. Q1 (dono): motivo **obrigatório** ao rejeitar. Desenho mínimo: o motivo vive **na
-assinatura de rejeição** em `Ato.assinaturas[]` (**sem schema/migração/DAO**); reutiliza o aviso
-de rejeição existente (in-app + push) + a auditoria. Backend (`models.py` `AtoSign.motivo`;
+Feature Spec Kit ativa: `specs/013-escalonamento-ato-pendente/` — **lembretes recorrentes de um
+Ato (Art. 54) que continua pendente além do limiar X** (hoje as specs 010/012 avisam **uma única
+vez** e calam). Clarificações (dono, minimalista): cadência **a cada X dias** (reutiliza
+`ato_overdue_dias`), pressão só no **tom/antiguidade** com os **mesmos destinatários** (Direção +
+proponente, dedup spec 012), paragem **até sair de `pendente`** (sem teto). Desenho de **1 linha**:
+em `_notify_overdue_atos_locked()` (`routes/atos.py`) a marca `overdue_notified_at` passa de *flag*
+single-shot a **cursor "último lembrete"** — a query muda de `{"overdue_notified_at": None}` para
+`{"$or": [{... None}, {... {"$lte": now − X dias}}]}`; o resto do loop (gate idade, avisos,
+dedup, exclusões, escrita `= now`) **já funciona** sem mudança. DAO: `$lte` = comparação de TEXTO
+ISO (lexicográfica = cronológica), `$or` suportado. **Sem schema/migração/campo/dep/frontend.**
+PLAN feito ([plan.md](specs/013-escalonamento-ato-pendente/plan.md), branch
+`feature/escalonamento-ato-pendente`). Próximo: `/speckit-tasks`. Release `develop→main` exigirá **Via B**.
+Last completed: `specs/012-aviso-proponente-ato-pendente/` — **lembrar o próprio proponente de um
+Ato (Art. 54) quando fica pendente > X dias** (a spec 010 só avisa a Direção). Aviso **uma única vez**
+por Ato, partilhando a marca `overdue_notified_at`; estendeu `_notify_overdue_atos_locked()` em
+`routes/atos.py` para avisar o `created_by` **só se não for já destinatário Direção** (dedup, aviso à
+Direção 100% intacto, SC-004) e for conta ativa/não-técnica (1 query a `users`, sem N+1). +counter
+`notified_proponentes`. pr-review apanhou 2 WARNING corrigidas (ordem da marca → perda silenciosa;
+FR-002 tipo/valor no corpo). **Sem schema/migração/dep/frontend.** 52 testes de Atos verdes.
+**MERGED em develop (PR #375, `c6f5876`); release SEGURADA pelo dono (batched com futuro backend) —
+ainda NÃO em prod.** Toca `backend/` ⇒ release `develop→main` exige **Via B**.
+Last completed: `specs/011-aviso-rejeicao-ato-concluido/` — **avisar o proponente de um Ato
+(Art. 54) quando é rejeitado, com o motivo**. O aviso de rejeição já existia mas saía sem o porquê.
+Q1 (dono): motivo **obrigatório** ao rejeitar (≤500). Desenho mínimo: o motivo vive **na assinatura
+de rejeição** em `Ato.assinaturas[]` (**sem schema/migração/DAO, zero deps**); reutiliza o aviso de
+rejeição existente (in-app + push, sem duplicar) + a auditoria. Backend (`models.py` `+AtoSign.motivo`;
 `routes/atos.py` `sign_ato` valida obrigatório/≤500, põe motivo na assinatura/aviso/auditoria) +
-frontend (`CoAprovacoesPage.js` diálogo de rejeição com textarea + mostra motivo; `utils/api.js`).
-Zero deps novas. PLAN feito ([plan.md](specs/011-aviso-rejeicao-ato/plan.md), branch
-`feature/aviso-rejeicao-ato`). Próximo: `/speckit-tasks`. Release `develop→main` exigirá **Via B**.
+frontend (`CoAprovacoesPage.js` diálogo de rejeição com textarea + mostra motivo/cargo; `utils/api.js`).
+**CONCLUÍDA, RELEASED v0.5.42 (PR #370→develop; release #372→main) e DEPLOYED em prod Via B**
+(`sha-5343480d5d64`, 2026-06-29; código confirmado no container + `POST /atos/x/assinar`→401); 42 testes
+de Atos verdes, suite unit 1346 passed. Release agrupou o fix tests-only #371 (`test_idor`). Residual:
+validação funcional do dono (issue #373, Princípio VII).
 Last completed: `specs/010-aviso-deliberacao-pendente-concluido/` — **aviso à Direção de Ato
 (Art. 54) pendente há > X dias** (X admin-configurável, default 7), **uma única vez** por Ato.
 Backend-only, zero deps novas. Disparo = **loop in-process diário** (`asyncio.create_task` no
