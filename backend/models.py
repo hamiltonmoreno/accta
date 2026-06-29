@@ -1390,6 +1390,9 @@ class AtoCreate(BaseModel):
 
 class AtoSign(BaseModel):
     decisao: str
+    # Motivo da rejeição (spec 011). Obrigatório só quando decisao == "rejeitado"
+    # (validado na rota, com limite de 500 carateres); ignorado ao aprovar.
+    motivo: Optional[str] = None
 
 
 class AtoExecute(BaseModel):

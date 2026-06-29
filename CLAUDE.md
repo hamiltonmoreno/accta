@@ -370,7 +370,15 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-**Sem feature Spec Kit ativa** (próximo `/speckit-specify`).
+Feature Spec Kit ativa: `specs/011-aviso-rejeicao-ato/` — **avisar o proponente de um Ato
+(Art. 54) quando é rejeitado, com o motivo**. Hoje o aviso de rejeição já existe mas sai sem o
+porquê. Q1 (dono): motivo **obrigatório** ao rejeitar. Desenho mínimo: o motivo vive **na
+assinatura de rejeição** em `Ato.assinaturas[]` (**sem schema/migração/DAO**); reutiliza o aviso
+de rejeição existente (in-app + push) + a auditoria. Backend (`models.py` `AtoSign.motivo`;
+`routes/atos.py` `sign_ato` valida obrigatório/≤500, põe motivo na assinatura/aviso/auditoria) +
+frontend (`CoAprovacoesPage.js` diálogo de rejeição com textarea + mostra motivo; `utils/api.js`).
+Zero deps novas. PLAN feito ([plan.md](specs/011-aviso-rejeicao-ato/plan.md), branch
+`feature/aviso-rejeicao-ato`). Próximo: `/speckit-tasks`. Release `develop→main` exigirá **Via B**.
 Last completed: `specs/010-aviso-deliberacao-pendente-concluido/` — **aviso à Direção de Ato
 (Art. 54) pendente há > X dias** (X admin-configurável, default 7), **uma única vez** por Ato.
 Backend-only, zero deps novas. Disparo = **loop in-process diário** (`asyncio.create_task` no
