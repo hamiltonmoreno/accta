@@ -9,11 +9,11 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Confirmar a branch `feature/aviso-rejeicao-ato` ativa e que NÃO se adicionam dependências (não tocar `backend/requirements.txt` nem `frontend/package.json`).
+- [X] T001 Confirmar a branch `feature/aviso-rejeicao-ato` ativa e que NÃO se adicionam dependências (não tocar `backend/requirements.txt` nem `frontend/package.json`).
 
 ## Phase 2: Foundational (bloqueia as user stories)
 
-- [ ] T002 Adicionar campo aditivo `motivo: Optional[str] = None` à `class AtoSign` em `backend/models.py` (justificação da rejeição; comentário PT a explicar que é obrigatório só quando `decisao == "rejeitado"` e ignorado ao aprovar).
+- [X] T002 Adicionar campo aditivo `motivo: Optional[str] = None` à `class AtoSign` em `backend/models.py` (justificação da rejeição; comentário PT a explicar que é obrigatório só quando `decisao == "rejeitado"` e ignorado ao aprovar).
 
 ## Phase 3: User Story 1 — Proponente recebe aviso de rejeição com o motivo (P1) 🎯 MVP
 
@@ -21,11 +21,11 @@
 
 **Independent Test**: rejeitar um Ato com motivo → proponente recebe aviso com o motivo + link; rejeitar sem motivo → 400.
 
-- [ ] T003 [US1] Em `backend/routes/atos.py` (`sign_ato`): quando `data.decisao == "rejeitado"`, validar o motivo — obrigatório e não-vazio após `strip()` (400 PT «É obrigatório indicar o motivo da rejeição.») e `len(motivo.strip()) <= 500` (400 PT «O motivo não pode exceder 500 carateres.»); ao `aprovado`, ignorar o motivo. Incluir `motivo` (o `strip()`) no dict `assinatura` **antes** de `sign_ato_atomic` (persistência sem mudar o DAO). Validação corre antes do caminho `@limiter`/lock.
-- [ ] T004 [US1] Ainda em `sign_ato`, no ramo `novo_status == "rejeitado"`: enriquecer o aviso `notify_users([ato["created_by"]], "financeiro", …, exclude_id=current_user.id)` para a mensagem PT incluir o motivo («O ato que propôs foi rejeitado. Motivo: "<motivo>"») e acrescentar `motivo` ao `details` do `create_audit_log` da assinatura. Não criar segundo aviso (FR-006).
-- [ ] T005 [P] [US1] Em `frontend/src/utils/api.js`, fazer `atos.assinar(...)` enviar `{ decisao, motivo }` (motivo opcional na assinatura; presente na rejeição).
-- [ ] T006 [US1] Em `frontend/src/pages/private/CoAprovacoesPage.js`, a ação **Rejeitar** abre um confirm com **textarea de motivo** obrigatória (contador até 500; botão Confirmar desativado enquanto vazia/whitespace); botão destrutivo = **Carmesim sólido** dentro do diálogo irreversível, resto neutro, sem dark mode (`/frontend-design`). Submete `decisao:"rejeitado"` + `motivo`. **Aprovar** mantém-se sem diálogo de motivo.
-- [ ] T007 [US1] Escrever `backend/tests/test_atos_rejeicao_motivo.py` cobrindo o quickstart Cenário A: (1) rejeitar sem motivo→400; (2) motivo só-espaços→400; (3) motivo >500→400; (4) rejeitar com motivo→200, Ato `rejeitado`, assinatura contém `motivo`; (5) aviso ao proponente inclui o motivo + `exclude_id`; (6) auditoria com `motivo` no `details`; (7) aprovar não exige/grava motivo. Usar `mock_db` + fixtures de role; `monkeypatch.setattr(atos.limiter,"enabled",False)` + `Request` mínimo (ver CLAUDE.md Testing). `cd backend && pytest tests/test_atos_rejeicao_motivo.py -q`.
+- [X] T003 [US1] Em `backend/routes/atos.py` (`sign_ato`): quando `data.decisao == "rejeitado"`, validar o motivo — obrigatório e não-vazio após `strip()` (400 PT «É obrigatório indicar o motivo da rejeição.») e `len(motivo.strip()) <= 500` (400 PT «O motivo não pode exceder 500 carateres.»); ao `aprovado`, ignorar o motivo. Incluir `motivo` (o `strip()`) no dict `assinatura` **antes** de `sign_ato_atomic` (persistência sem mudar o DAO). Validação corre antes do caminho `@limiter`/lock.
+- [X] T004 [US1] Ainda em `sign_ato`, no ramo `novo_status == "rejeitado"`: enriquecer o aviso `notify_users([ato["created_by"]], "financeiro", …, exclude_id=current_user.id)` para a mensagem PT incluir o motivo («O ato que propôs foi rejeitado. Motivo: "<motivo>"») e acrescentar `motivo` ao `details` do `create_audit_log` da assinatura. Não criar segundo aviso (FR-006).
+- [X] T005 [P] [US1] Em `frontend/src/utils/api.js`, fazer `atos.assinar(...)` enviar `{ decisao, motivo }` (motivo opcional na assinatura; presente na rejeição).
+- [X] T006 [US1] Em `frontend/src/pages/private/CoAprovacoesPage.js`, a ação **Rejeitar** abre um confirm com **textarea de motivo** obrigatória (contador até 500; botão Confirmar desativado enquanto vazia/whitespace); botão destrutivo = **Carmesim sólido** dentro do diálogo irreversível, resto neutro, sem dark mode (`/frontend-design`). Submete `decisao:"rejeitado"` + `motivo`. **Aprovar** mantém-se sem diálogo de motivo.
+- [X] T007 [US1] Escrever `backend/tests/test_atos_rejeicao_motivo.py` cobrindo o quickstart Cenário A: (1) rejeitar sem motivo→400; (2) motivo só-espaços→400; (3) motivo >500→400; (4) rejeitar com motivo→200, Ato `rejeitado`, assinatura contém `motivo`; (5) aviso ao proponente inclui o motivo + `exclude_id`; (6) auditoria com `motivo` no `details`; (7) aprovar não exige/grava motivo. Usar `mock_db` + fixtures de role; `monkeypatch.setattr(atos.limiter,"enabled",False)` + `Request` mínimo (ver CLAUDE.md Testing). `cd backend && pytest tests/test_atos_rejeicao_motivo.py -q`.
 
 **Checkpoint US1**: rejeição com motivo funciona ponta-a-ponta (aviso + persistência + auditoria); MVP entregue.
 
@@ -35,14 +35,14 @@
 
 **Independent Test**: abrir um Ato rejeitado → vê o motivo + autor da rejeição; Ato pendente → sem motivo.
 
-- [ ] T008 [US2] Em `frontend/src/pages/private/CoAprovacoesPage.js`, nos Atos com `status === "rejeitado"`, mostrar o **motivo** e **quem** rejeitou, lidos da assinatura com `decisao === "rejeitado"` em `ato.assinaturas[]` (sem novo endpoint; o payload do Ato já traz as assinaturas). Ato `pendente`/`aprovado` não mostra bloco de motivo.
+- [X] T008 [US2] Em `frontend/src/pages/private/CoAprovacoesPage.js`, nos Atos com `status === "rejeitado"`, mostrar o **motivo** e **quem** rejeitou, lidos da assinatura com `decisao === "rejeitado"` em `ato.assinaturas[]` (sem novo endpoint; o payload do Ato já traz as assinaturas). Ato `pendente`/`aprovado` não mostra bloco de motivo.
 
 **Checkpoint US2**: o motivo é consultável no detalhe, não só no aviso momentâneo.
 
 ## Phase 5: Polish & Cross-Cutting
 
-- [ ] T009 [P] `cd backend && ruff check . && ruff format --check .` limpo; `cd frontend && npx eslint src/ --ext .js,.jsx --max-warnings=60` limpo para os ficheiros tocados.
-- [ ] T010 Correr a suite backend completa `cd backend && pytest -q` sem regressões (em especial o fluxo de Atos existente: aprovar, executar, cancelar).
+- [X] T009 [P] `cd backend && ruff check . && ruff format --check .` limpo; `cd frontend && npx eslint src/ --ext .js,.jsx --max-warnings=60` limpo para os ficheiros tocados.
+- [X] T010 Correr a suite backend completa `cd backend && pytest -q` sem regressões (em especial o fluxo de Atos existente: aprovar, executar, cancelar).
 - [ ] T011 Atualizar `tasks/todo.md` (secção de revisão) e, no fim e só após verificação, fechar a spec (renomear dir `-concluido`). Nota: toca `backend/` ⇒ release `develop→main` exige **Via B**; verificação prod = `POST /api/atos/<id>/assinar` `{"decisao":"rejeitado"}` sem motivo → 400 (e sem token → 401). Validação funcional ponta-a-ponta (Cenário B, navegador) = Princípio VII (dono).
 
 ---

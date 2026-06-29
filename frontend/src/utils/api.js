@@ -299,7 +299,7 @@ export const atosAPI = {
   list: (params) => api.get('/atos', { params }),
   get: (id) => api.get(`/atos/${id}`),
   create: (data) => api.post('/atos', data),
-  assinar: (id, decisao) => api.post(`/atos/${id}/assinar`, { decisao }),
+  assinar: (id, decisao, motivo) => api.post(`/atos/${id}/assinar`, { decisao, motivo }),
   executar: (id, data) => api.post(`/atos/${id}/executar`, data || {}),
   cancelar: (id) => api.post(`/atos/${id}/cancelar`),
 };

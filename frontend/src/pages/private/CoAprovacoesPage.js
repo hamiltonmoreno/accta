@@ -23,6 +23,8 @@ const STATUS = {
 
 const fmtCve = (v) => (v == null ? '—' : `${Number(v).toLocaleString('pt-PT')} CVE`);
 const fmtDate = (d) => (d ? format(new Date(d), 'dd MMM yyyy', { locale: ptBR }) : '');
+// Cargo canónico (ex.: dir_tesoureiro) → rótulo legível ("Tesoureiro") para o detalhe.
+const humanizeCargo = (c) => (c ? c.replace(/^dir_/, '').replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()) : '');
 
 // Estado das assinaturas para o cartão (espelha atos_rules no backend).
 const signatureState = (ato) => {
@@ -48,6 +50,9 @@ export const CoAprovacoesPage = () => {
   const [form, setForm] = useState({ tipo: 'pagamento', descricao: '', valor: '', beneficiario: '' });
   const [statusFilter, setStatusFilter] = useState('');
   const [execCat, setExecCat] = useState({}); // { [atoId]: category }
+  const [reject, setReject] = useState(null); // acto em rejeição (abre diálogo de motivo)
+  const [rejectMotivo, setRejectMotivo] = useState('');
+  const MOTIVO_MAX = 500;
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['atos'] });
   const signedByMe = (ato) => (ato.assinaturas || []).some((a) => a.user_id === user?.id);
@@ -94,8 +99,13 @@ export const CoAprovacoesPage = () => {
     onError: (e) => toast.error(e.response?.data?.detail || 'Erro ao criar acto'),
   });
   const assinarMut = useMutation({
-    mutationFn: ({ id, decisao }) => atosAPI.assinar(id, decisao),
-    onSuccess: (_d, v) => { toast.success(v.decisao === 'aprovado' ? 'Assinatura registada.' : 'Acto rejeitado.'); invalidate(); },
+    mutationFn: ({ id, decisao, motivo }) => atosAPI.assinar(id, decisao, motivo),
+    onSuccess: (_d, v) => {
+      toast.success(v.decisao === 'aprovado' ? 'Assinatura registada.' : 'Acto rejeitado.');
+      invalidate();
+      setReject(null);
+      setRejectMotivo('');
+    },
     onError: (e) => toast.error(e.response?.data?.detail || 'Erro ao assinar'),
   });
   const executarMut = useMutation({
@@ -121,6 +131,8 @@ export const CoAprovacoesPage = () => {
   const renderAto = (ato, { compact = false } = {}) => {
     const st = STATUS[ato.status] || STATUS.pendente;
     const sig = signatureState(ato);
+    // Assinatura que rejeitou (veto único) — alimenta o motivo no detalhe (spec 011).
+    const rej = ato.status === 'rejeitado' ? (ato.assinaturas || []).find((a) => a.decisao === 'rejeitado') : null;
     const podeAssinar = canSign && ato.status === 'pendente' && !signedByMe(ato);
     const podeExecutar = canExecute && ato.status === 'aprovado' && ato.tipo === 'pagamento' && !ato.transaction_id;
     const podeCancelar = ato.status === 'pendente' && (isAdmin || ato.created_by === user?.id);
@@ -156,6 +168,16 @@ export const CoAprovacoesPage = () => {
           )}
         </div>
 
+        {/* Motivo da rejeição (spec 011) — lido da assinatura que rejeitou */}
+        {rej?.motivo && (
+          <div className="rounded-md bg-[#FEF2F2] border border-[#FECACA] p-3 text-sm" data-testid={`ato-motivo-${ato.id}`}>
+            <p className="font-medium text-[#B91C1C]">
+              Motivo da rejeição{rej.cargo ? ` · ${humanizeCargo(rej.cargo)}` : ''}
+            </p>
+            <p className="text-grafite mt-0.5 whitespace-pre-wrap break-words">{rej.motivo}</p>
+          </div>
+        )}
+
         {/* Acções */}
         {!compact && (podeAssinar || podeExecutar || podeCancelar) && (
           <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -164,8 +186,8 @@ export const CoAprovacoesPage = () => {
                 <button onClick={() => assinarMut.mutate({ id: ato.id, decisao: 'aprovado' })} disabled={assinarMut.isPending} className="inline-flex items-center gap-1.5 border border-[#D1D5DB] text-grafite px-3 py-2 rounded-md text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`assinar-aprovar-${ato.id}`}>
                   <Check className="w-4 h-4 text-[#15803D]" aria-hidden="true" /> Aprovar
                 </button>
-                <button onClick={() => assinarMut.mutate({ id: ato.id, decisao: 'rejeitado' })} disabled={assinarMut.isPending} className="inline-flex items-center gap-1.5 border border-[#D1D5DB] text-grafite px-3 py-2 rounded-md text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`assinar-rejeitar-${ato.id}`}>
-                  <X className="w-4 h-4 text-[#6B7280]" aria-hidden="true" /> Rejeitar
+                <button onClick={() => { setReject(ato); setRejectMotivo(''); }} disabled={assinarMut.isPending} className="inline-flex items-center gap-1.5 bg-white border border-[#C7202F] text-[#C7202F] px-3 py-2 rounded-md text-sm font-medium hover:bg-[#FBEAEC] cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40" data-testid={`assinar-rejeitar-${ato.id}`}>
+                  <X className="w-4 h-4" aria-hidden="true" /> Rejeitar
                 </button>
               </>
             )}
@@ -268,6 +290,45 @@ export const CoAprovacoesPage = () => {
                 data-testid="ato-submit"
               >
                 {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />} Criar acto
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rejeitar acto — exige motivo (spec 011) */}
+      <Dialog open={!!reject} onOpenChange={(o) => { if (!o) { setReject(null); setRejectMotivo(''); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Rejeitar acto</DialogTitle>
+            <DialogDescription>
+              A rejeição fecha o acto e avisa o proponente. Indique o motivo — ajuda o proponente a perceber e a corrigir.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-[#6B7280] mb-1">Motivo da rejeição *</label>
+              <textarea
+                value={rejectMotivo}
+                maxLength={MOTIVO_MAX}
+                rows={4}
+                autoFocus
+                onChange={(e) => setRejectMotivo(e.target.value)}
+                placeholder="Ex.: Falta o comprovativo da despesa."
+                className="w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40"
+                data-testid="reject-motivo"
+              />
+              <p className="text-xs text-[#6B7280] mt-1 text-right">{rejectMotivo.length}/{MOTIVO_MAX}</p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => { setReject(null); setRejectMotivo(''); }} className="px-4 py-2 rounded-md border border-[#D1D5DB] text-grafite text-sm font-medium hover:bg-[#F5F5F5] cursor-pointer">Cancelar</button>
+              <button
+                onClick={() => assinarMut.mutate({ id: reject.id, decisao: 'rejeitado', motivo: rejectMotivo.trim() })}
+                disabled={assinarMut.isPending || rejectMotivo.trim().length === 0}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-[#C7202F] text-white text-sm font-semibold hover:bg-[#A51B27] cursor-pointer disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
+                data-testid="reject-confirm"
+              >
+                {assinarMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <X className="w-4 h-4" aria-hidden="true" />} Rejeitar acto
               </button>
             </div>
           </div>
