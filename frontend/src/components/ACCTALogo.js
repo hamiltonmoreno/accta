@@ -24,7 +24,11 @@ export const ACCTALogoHorizontal = ({ className = '', dark = false }) => (
 // compactos, ex.: sidebar recolhida); caso contrário → logótipo horizontal.
 export const ACCTALogo = ({ variant = 'full', className = '', dark = false }) => {
   if (variant === 'icon') {
-    return <img src={logoMark} alt="ACCTA" className={cn('object-contain', className)} />;
+    // Decorativa (alt=""): o ícone é sempre usado dentro de um controlo já
+    // rotulado (ex.: <Link aria-label="ACCTA">), evitando rótulo duplicado.
+    // Marca quadrada só na versão colorida — basta hoje (sidebar é clara); para
+    // fundo escuro seria preciso uma variante branca quadrada.
+    return <img src={logoMark} alt="" className={cn('object-contain', className)} />;
   }
   return <ACCTALogoHorizontal className={className} dark={dark} />;
 };
