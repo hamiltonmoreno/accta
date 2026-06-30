@@ -3,7 +3,7 @@ import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react
 // Widget Cloudflare Turnstile (anti-bot) para os formulários públicos.
 // A Site Key é PÚBLICA por natureza (vai no HTML) — fica num env opcional com
 // fallback para a key do projeto, para o widget funcionar sem rebuild/config.
-const SITE_KEY = process.env.REACT_APP_TURNSTILE_SITE_KEY || '0x4AAAAAAADs8kZrozSpCdz7g';
+const SITE_KEY = process.env.REACT_APP_TURNSTILE_SITE_KEY || '0x4AAAAAADs8kZrozSpCdz7g';
 const SCRIPT_ID = 'cf-turnstile-script';
 const SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
 
