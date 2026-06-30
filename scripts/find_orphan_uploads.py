@@ -78,19 +78,24 @@ def _human(n: int) -> str:
 
 async def collect_referenced_urls() -> set[str]:
     """Uma passagem por tabela: extrai todas as ocorrências de `/uploads/...`
-    do doc inteiro. O(linhas) total, não O(ficheiros×tabelas)."""
+    do doc inteiro. Filtra no servidor (`doc::text LIKE '%/uploads/%'`) para só
+    trazer as linhas relevantes — O(linhas) total e barato em memória.
+
+    Usa `fetch` e NÃO `cursor`: o pooler do Supabase (pgbouncer, transaction
+    mode) não suporta os prepared statements/portais que o cursor exige
+    (rebenta com `DuplicatePreparedStatementError`). O pool é criado com
+    `statement_cache_size=0`, com o qual `fetch` é pgbouncer-safe."""
     referenced: set[str] = set()
     pool = await get_pool()
     async with pool.acquire() as conn:
         for table in COLLECTIONS:
             if not _IDENT_RE.match(table):  # defesa: COLLECTIONS é constante confiável
                 continue
-            q = f'SELECT doc::text AS d FROM "{table}"'
-            async with conn.transaction():  # cursor exige transação (pgbouncer-safe)
-                async for record in conn.cursor(q):
-                    d = record["d"]
-                    if d and "/uploads/" in d:
-                        referenced.update(URL_RE.findall(d))
+            q = f"SELECT doc::text AS d FROM \"{table}\" WHERE doc::text LIKE '%/uploads/%'"
+            for record in await conn.fetch(q):
+                d = record["d"]
+                if d:
+                    referenced.update(URL_RE.findall(d))
     return referenced
 
 
