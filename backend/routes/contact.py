@@ -3,6 +3,7 @@ from pydantic import BaseModel, EmailStr
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from email_service import send_email, _base_template
+from turnstile import verify_turnstile
 from html import escape
 import os
 
@@ -21,6 +22,7 @@ class ContactRequest(BaseModel):
     email: EmailStr
     subject: str = "geral"
     message: str
+    turnstile_token: str = ""  # token Cloudflare Turnstile (anti-bot); validado na rota
 
 
 def _contact_email_html(name: str, email: str, subject: str, message: str) -> str:
@@ -68,6 +70,8 @@ def _contact_email_html(name: str, email: str, subject: str, message: str) -> st
 @limiter.limit("5/minute")
 @limiter.limit("20/day")  # tecto diário por IP — trava spam lento ao CONTACT_EMAIL
 async def submit_contact(request: Request, data: ContactRequest):
+    # Anti-bot Turnstile primeiro. No-op se a feature estiver desligada.
+    await verify_turnstile(data.turnstile_token, request)
     if len(data.message.strip()) < 10:
         raise HTTPException(status_code=400, detail="Mensagem demasiado curta")
 

@@ -194,8 +194,17 @@ python scripts/seed_gallery.py  # Seed gallery data
 
 | Scope | Variable |
 |-------|----------|
-| Frontend | `REACT_APP_BACKEND_URL` |
-| Backend | `SECRET_KEY`, `DATABASE_URL`, `CORS_ORIGINS`, `FRONTEND_URL`, `RESEND_API_KEY`, `SENDER_EMAIL`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` |
+| Frontend | `REACT_APP_BACKEND_URL`, `REACT_APP_TURNSTILE_SITE_KEY` |
+| Backend | `SECRET_KEY`, `DATABASE_URL`, `CORS_ORIGINS`, `FRONTEND_URL`, `RESEND_API_KEY`, `SENDER_EMAIL`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `TURNSTILE_SECRET` |
+
+> **Cloudflare Turnstile (anti-bot)** — protege os formulários públicos (login,
+> registo, recuperação de palavra-passe, contacto). A **Site Key** é pública e
+> vai no frontend (`REACT_APP_TURNSTILE_SITE_KEY`; há fallback embutido com a
+> key do projeto). A **`TURNSTILE_SECRET`** é confidencial e só vive no env do
+> backend — **nunca committada**. **Sem a secret, a verificação fica desligada
+> graciosamente** (helper `verify_turnstile` em `turnstile.py` vira no-op), pelo
+> que o deploy não parte o login antes de a secret ser configurada; uma vez
+> definida, a verificação liga-se sem alterar o frontend.
 
 > **Web Push (notificação no celular)** — `VAPID_*` alimentam o Web Push do PWA.
 > Gerar o par com `python scripts/generate_vapid_keys.py` e definir as 3 vars no
@@ -370,12 +379,20 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Feature Spec Kit **ATIVA**: `specs/015-pendencias-contador-avisos/` — plano em
-`specs/015-pendencias-contador-avisos/plan.md`. **Pendências v2**: (US1) contador role-aware no item
-de menu «As minhas pendências» (mesmo total do painel via hook partilhado `usePendencias`, cap "9+",
-frescura no carregamento) + (US2) re-apontar **só** os avisos de Atos **pendentes** (specs 010/012/013)
-a `/pendencias` (2.ª constante `_LINK_PENDENTE` em `routes/atos.py`; decididos ficam em co-aprovações).
-Toca frontend (badge sidebar) + backend (`atos.py`) ⇒ **Via B**. Próximo: `/speckit-tasks`.
+Sem feature Spec Kit ativa (próximo: `/speckit-specify`).
+Last completed: `specs/015-pendencias-contador-avisos-concluido/` — **Pendências v2** (completa a 014):
+(US1) contador role-aware no item de menu «As minhas pendências» via hook partilhado `usePendencias`
+(fonte única ⇒ contador ≡ painel, SC-002; cap "9+", escondido a 0, frescura no carregamento) +
+(US2) re-apontar **só** os avisos de Atos **pendentes** (criação + varrimento 010/012/013) a
+`/pendencias` (2.ª constante `_LINK_PENDENTE` em `routes/atos.py`; os **decididos** — `sign_ato`
+aprovação/rejeição incl. motivo 011, `execute_ato` — ficam em `_LINK`/co-aprovações: **não é swap
+cego**). **Achado fundamental:** a spec 014 estava **partida em prod** (`PendenciasPage` importava
+`framer-motion`, removido do projeto em `b84c832` → o build de v0.5.45 falhava → `/pendencias` nunca
+chegou a prod); v0.5.46 reparou-a (→`animate-fadeIn`). Review `code-reviewer` 0C/0W/1S resolvida;
+67 testes de Atos + suíte unit 1348 verdes; `craco build` OK. PR #385→develop; **RELEASED v0.5.46
+(#386→main, tag `v0.5.46`) e DEPLOYED em prod Via B** (`sha-c9c5430c1c2b`, 2026-06-29; `_LINK_PENDENTE`
+4× no container, `notify-overdue`→401, arranque limpo). Frontend pela Vercel. Residual = validação
+visual do dono (Princípio VII). Ver [[prod-backend-deployed-state]].
 Last completed: `specs/014-painel-minhas-pendencias-concluido/` — **painel «As minhas pendências»**:
 página `/pendencias` que agrega num só sítio tudo o que aguarda **ação** do sócio (complemento acionável
 das notificações 010–013). **Role-aware** (achado do plano: só Direção/admin propõem/veem Atos via
