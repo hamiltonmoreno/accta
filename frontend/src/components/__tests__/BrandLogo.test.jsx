@@ -27,7 +27,10 @@ test('semeado do localStorage: pinta a logo configurada já no 1.º render (sem 
   expect(screen.getByRole('img')).toHaveAttribute('src', '/media/uploads/logos/atual.png');
 });
 
-test('sem cache: cai no vetor por defeito, nunca uma logo errada', () => {
+test('sem cache: cai na logo por defeito (bundled), nunca uma logo carregada errada', () => {
   wrap(<BrandLogo />);
-  expect(screen.queryByRole('img')).toBeNull(); // ACCTALogoHorizontal é SVG inline, não <img>
+  const img = screen.getByRole('img');
+  // O fallback é a imagem da marca empacotada — nunca um /media/... carregado.
+  expect(img.getAttribute('src')).toEqual(expect.stringContaining('accta-logo'));
+  expect(img.getAttribute('src')).not.toContain('/media');
 });
