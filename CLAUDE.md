@@ -370,12 +370,20 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Feature Spec Kit **ATIVA**: `specs/015-pendencias-contador-avisos/` — plano em
-`specs/015-pendencias-contador-avisos/plan.md`. **Pendências v2**: (US1) contador role-aware no item
-de menu «As minhas pendências» (mesmo total do painel via hook partilhado `usePendencias`, cap "9+",
-frescura no carregamento) + (US2) re-apontar **só** os avisos de Atos **pendentes** (specs 010/012/013)
-a `/pendencias` (2.ª constante `_LINK_PENDENTE` em `routes/atos.py`; decididos ficam em co-aprovações).
-Toca frontend (badge sidebar) + backend (`atos.py`) ⇒ **Via B**. Próximo: `/speckit-tasks`.
+Sem feature Spec Kit ativa (próximo: `/speckit-specify`).
+Last completed: `specs/015-pendencias-contador-avisos-concluido/` — **Pendências v2** (completa a 014):
+(US1) contador role-aware no item de menu «As minhas pendências» via hook partilhado `usePendencias`
+(fonte única ⇒ contador ≡ painel, SC-002; cap "9+", escondido a 0, frescura no carregamento) +
+(US2) re-apontar **só** os avisos de Atos **pendentes** (criação + varrimento 010/012/013) a
+`/pendencias` (2.ª constante `_LINK_PENDENTE` em `routes/atos.py`; os **decididos** — `sign_ato`
+aprovação/rejeição incl. motivo 011, `execute_ato` — ficam em `_LINK`/co-aprovações: **não é swap
+cego**). **Achado fundamental:** a spec 014 estava **partida em prod** (`PendenciasPage` importava
+`framer-motion`, removido do projeto em `b84c832` → o build de v0.5.45 falhava → `/pendencias` nunca
+chegou a prod); v0.5.46 reparou-a (→`animate-fadeIn`). Review `code-reviewer` 0C/0W/1S resolvida;
+67 testes de Atos + suíte unit 1348 verdes; `craco build` OK. PR #385→develop; **RELEASED v0.5.46
+(#386→main, tag `v0.5.46`) e DEPLOYED em prod Via B** (`sha-c9c5430c1c2b`, 2026-06-29; `_LINK_PENDENTE`
+4× no container, `notify-overdue`→401, arranque limpo). Frontend pela Vercel. Residual = validação
+visual do dono (Princípio VII). Ver [[prod-backend-deployed-state]].
 Last completed: `specs/014-painel-minhas-pendencias-concluido/` — **painel «As minhas pendências»**:
 página `/pendencias` que agrega num só sítio tudo o que aguarda **ação** do sócio (complemento acionável
 das notificações 010–013). **Role-aware** (achado do plano: só Direção/admin propõem/veem Atos via

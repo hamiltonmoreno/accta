@@ -46,26 +46,25 @@ Antes de começar, obtém o SHA do `main` na release (na tua máquina):
 git fetch origin main && git rev-parse --short=12 main
 ```
 
-**Valores atuais (v0.5.43 — Atos: aviso ao proponente (spec 012) + lembretes recorrentes (spec 013), PR #377/#375/#376):**
+**Valores atuais (v0.5.46 — Pendências v2 / spec 015: avisos de Atos PENDENTES → `/pendencias`, PR #386/#385):**
 
 | Variável | Valor |
 |----------|-------|
-| `TAG` (imagem nova) | `sha-dab25397254e` |
-| Tag git da release | `v0.5.43` (= `dab2539`, HEAD de `main`, merge #377) |
-| Rollback (prod anterior, v0.5.42) | `sha-5343480d5d64` |
-| Teste decisivo desta release | **Sem rota nova** (ambas as specs estendem o varrimento interno + o endpoint admin já existente): a confirmação é a **imagem viva `sha-dab25397254e`** (`docker inspect`, Up healthy) + **código presente no container** (`docker exec accta-backend grep -c 'cutoff' routes/atos.py` → ≥ 1 [spec 013]; `grep -c 'notified_proponentes' routes/atos.py` → ≥ 1 [spec 012]) + arranque limpo (`overdue_atos_loop ... iniciado` 2×). Sanidade da rota: `POST /api/atos/notify-overdue` sem auth → **401**. **Validação funcional** (deixar um Ato pendente atravessar 2 janelas de X dias → 2 lembretes; o proponente é avisado) = Princípio VII, dono. |
+| `TAG` (imagem nova) | `sha-c9c5430c1c2b` |
+| Tag git da release | `v0.5.46` (= `c9c5430`, HEAD de `main`, merge #386) |
+| Rollback (prod anterior, v0.5.43) | `sha-dab25397254e` |
+| Teste decisivo desta release | **Sem rota nova** (a feature muda o valor do `link` de avisos já existentes): a confirmação é a **imagem viva `sha-c9c5430c1c2b`** (`docker inspect`, Up healthy) + **código presente no container** (`docker exec accta-backend grep -c '_LINK_PENDENTE' routes/atos.py` → **4** [1 def + 3 usos]; `grep -c '"/pendencias"' routes/atos.py` → 1) + arranque limpo (`overdue_atos_loop ... iniciado` 2×). Sanidade da rota: `POST /api/atos/notify-overdue` sem auth → **401**. **Validação funcional** (aviso de Ato pendente leva a `/pendencias`; aviso de Ato decidido leva a co-aprovações; contador da sidebar ≡ painel) = Princípio VII, dono. |
 
-> **Nota:** a v0.5.43 **toca em `backend/`** (só `routes/atos.py`), agrupando duas specs:
-> **spec 012** (PR #375 — aviso ao proponente de Ato pendente > X dias, uma única vez,
-> deduplicado vs Direção; +counter `notified_proponentes`) e **spec 013** (PR #376 —
-> lembretes **recorrentes** a cada X dias: a marca `overdue_notified_at` passa de flag
-> single-shot a cursor "último lembrete"; o filtro do varrimento muda de
-> `{"overdue_notified_at": None}` para `{"$or": [{… None}, {… {"$lte": cutoff}}]}`). O backend
-> em prod antes da v0.5.43 está na **v0.5.42** (`sha-5343480d5d64`). **Sem migração** (reutiliza
-> a marca aditiva `overdue_notified_at`; sem schema novo, sem tocar no DAO, **zero deps novas**).
-> **Sem frontend** (nenhum delta Vercel). **Sem pós-deploy obrigatório.** Confirma sempre a
-> imagem em execução antes de deploy: `docker compose ps` (coluna IMAGE) ou
-> `docker inspect accta-backend --format '{{.Config.Image}}'`.
+> **Nota:** a v0.5.46 **toca em `backend/`** (só `routes/atos.py`): nasce a 2.ª constante
+> `_LINK_PENDENTE = "/pendencias"` aplicada **só** aos 3 avisos de Atos **pendentes**
+> (`create_ato` + varrimento Direção + varrimento proponente, specs 010/012/013); os 2 avisos de
+> Atos **decididos** (`sign_ato` aprovação/rejeição incl. motivo spec 011; `execute_ato`) **mantêm**
+> `_LINK = "/financeiro/co-aprovacoes"` (**não é swap cego**). O backend em prod antes da v0.5.46
+> está na **v0.5.43** (`sha-dab25397254e`). **Sem migração/DAO/schema, zero deps novas.** O **frontend**
+> (contador na sidebar — hook `usePendencias` — + **fix do `framer-motion`** que repara o `/pendencias`
+> da spec 014, cujo build de v0.5.45 falhava) vai pela **Vercel**, fora desta Via B. **Sem pós-deploy
+> obrigatório.** Confirma sempre a imagem em execução antes de deploy: `docker compose ps` (coluna
+> IMAGE) ou `docker inspect accta-backend --format '{{.Config.Image}}'`.
 
 ---
 
@@ -75,22 +74,22 @@ git fetch origin main && git rev-parse --short=12 main
 ```bash
 rm -rf /tmp/accta-build
 git clone https://github.com/hamiltonmoreno/accta.git /tmp/accta-build
-cd /tmp/accta-build && git checkout v0.5.43       # <- tag git da release
+cd /tmp/accta-build && git checkout v0.5.46       # <- tag git da release
 docker build -f backend/Dockerfile \
-  -t ghcr.io/hamiltonmoreno/accta-backend:sha-dab25397254e .   # <- TAG
+  -t ghcr.io/hamiltonmoreno/accta-backend:sha-c9c5430c1c2b .   # <- TAG
 ```
 
 ### 2.2 Arrancar via o compose canónico (só muda o TAG)
 ```bash
 cd /docker/accta
-export TAG=sha-dab25397254e
+export TAG=sha-c9c5430c1c2b
 docker compose up -d --no-deps backend
 ```
 
 ### 2.3 Verificar
 ```bash
 docker compose ps                         # backend = Up (healthy)
-docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-dab25397254e
+docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-c9c5430c1c2b
 docker compose logs --tail=80 backend     # arranque limpo: ensure_schema OK, sem tracebacks
 curl -fsS https://api.controlador.cv/api/ # 200
 
@@ -125,7 +124,7 @@ docker compose logs --tail=200 backend 2>&1 | grep -E 'pg_cron not configured'  
 A imagem anterior continua no VPS; só se troca o `TAG`:
 ```bash
 cd /docker/accta
-export TAG=sha-5343480d5d64        # <- rollback (v0.5.42, imagem que corria antes da v0.5.43)
+export TAG=sha-dab25397254e        # <- rollback (v0.5.43, imagem que corria antes da v0.5.46)
 docker compose up -d --no-deps backend
 ```
 
@@ -168,9 +167,11 @@ Ver `DEPLOY.md` e `HOSTINGER_DEPLOY.md` para o setup completo (secrets SSH,
   (`sha-b16773a08b8a`) → v0.5.37 (`sha-482320bce1ca`) → v0.5.38
   (`sha-960e0b5367b2`) → v0.5.39 (`sha-5cfff3c9b0e1`) → v0.5.40
   (`sha-fae22c0eaab2`) → v0.5.41 (`sha-c01198d08af2`) → v0.5.42 (`sha-5343480d5d64`)
-  → **v0.5.43 (`sha-dab25397254e`, este deploy)**.
-  As v0.5.28/v0.5.29/v0.5.30, v0.5.32/v0.5.33 e v0.5.36 não tocaram no
-  backend (docs/test/frontend-only). As v0.5.1/v0.5.5/v0.5.6/v0.5.7,
+  → v0.5.43 (`sha-dab25397254e`) → **v0.5.46 (`sha-c9c5430c1c2b`, este deploy)**.
+  As v0.5.28/v0.5.29/v0.5.30, v0.5.32/v0.5.33, v0.5.36 e **v0.5.44/v0.5.45** não
+  tocaram no backend (docs/test/frontend-only). ⚠️ O frontend de **v0.5.45**
+  (painel `/pendencias`, spec 014) **falhava no build** (`framer-motion` removido em
+  `b84c832`) — reparado no frontend da v0.5.46. As v0.5.1/v0.5.5/v0.5.6/v0.5.7,
   v0.5.9–v0.5.12, v0.5.14–v0.5.16 e v0.5.19–v0.5.21 não tocaram no
   backend (só Vercel).
 - Pós-deploy histórico (informativo, **já feitos**): v0.5.22 desbloqueou
