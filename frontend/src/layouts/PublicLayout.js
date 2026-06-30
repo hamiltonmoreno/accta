@@ -138,7 +138,7 @@ export const PublicLayout = ({ children }) => {
                 {ASSOCIACAO_NOME}
               </p>
               <p className="text-white font-semibold italic text-sm">
-                "Segurança no céu, união em terra."
+                "As vozes que guiam os céus de Cabo Verde"
               </p>
             </div>
 
