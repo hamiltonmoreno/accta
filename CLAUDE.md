@@ -194,8 +194,17 @@ python scripts/seed_gallery.py  # Seed gallery data
 
 | Scope | Variable |
 |-------|----------|
-| Frontend | `REACT_APP_BACKEND_URL` |
-| Backend | `SECRET_KEY`, `DATABASE_URL`, `CORS_ORIGINS`, `FRONTEND_URL`, `RESEND_API_KEY`, `SENDER_EMAIL`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` |
+| Frontend | `REACT_APP_BACKEND_URL`, `REACT_APP_TURNSTILE_SITE_KEY` |
+| Backend | `SECRET_KEY`, `DATABASE_URL`, `CORS_ORIGINS`, `FRONTEND_URL`, `RESEND_API_KEY`, `SENDER_EMAIL`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `TURNSTILE_SECRET` |
+
+> **Cloudflare Turnstile (anti-bot)** — protege os formulários públicos (login,
+> registo, recuperação de palavra-passe, contacto). A **Site Key** é pública e
+> vai no frontend (`REACT_APP_TURNSTILE_SITE_KEY`; há fallback embutido com a
+> key do projeto). A **`TURNSTILE_SECRET`** é confidencial e só vive no env do
+> backend — **nunca committada**. **Sem a secret, a verificação fica desligada
+> graciosamente** (helper `verify_turnstile` em `turnstile.py` vira no-op), pelo
+> que o deploy não parte o login antes de a secret ser configurada; uma vez
+> definida, a verificação liga-se sem alterar o frontend.
 
 > **Web Push (notificação no celular)** — `VAPID_*` alimentam o Web Push do PWA.
 > Gerar o par com `python scripts/generate_vapid_keys.py` e definir as 3 vars no

@@ -284,6 +284,7 @@ class UserAdminUpdate(_EditableProfileFields):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+    turnstile_token: str = ""  # token Cloudflare Turnstile (anti-bot); validado na rota
 
 
 class Token(BaseModel):
@@ -340,6 +341,7 @@ class RegistrationRequest(BaseModel):
     cargo_declarado: str = Field(default="Sócio")  # validado contra CARGOS_DECLARADOS na rota
     consent_data: bool  # tem de ser True (RGPD)
     website: Optional[str] = Field(default=None, max_length=200)  # HONEYPOT — preenchido => descartar
+    turnstile_token: str = ""  # token Cloudflare Turnstile (anti-bot); validado na rota
 
 
 class RegistrationApprove(BaseModel):
@@ -1593,6 +1595,7 @@ class ProjectMilestoneUpdate(BaseModel):
 
 class PasswordResetRequest(BaseModel):
     email: EmailStr
+    turnstile_token: str = ""  # token Cloudflare Turnstile (anti-bot); validado na rota
 
 
 class PasswordResetConfirm(BaseModel):

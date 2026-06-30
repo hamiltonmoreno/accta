@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -6,6 +6,7 @@ import { LogIn, Shield, Plane, ArrowLeft, Lock } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import { BrandLogo } from '../../components/BrandLogo';
+import { Turnstile } from '../../components/Turnstile';
 import { unsplashSrcSet } from '../../utils/unsplash';
 import { loginSchema } from '../../utils/authSchemas';
 
@@ -30,6 +31,8 @@ export const LoginPage = () => {
   const { login } = useAuth();
   const [lockedUntil, setLockedUntil] = useState(null); // ms epoch
   const [now, setNow] = useState(Date.now());
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const turnstileRef = useRef(null);
   const {
     register,
     handleSubmit,
@@ -55,10 +58,13 @@ export const LoginPage = () => {
 
   const onSubmit = async (data) => {
     try {
-      const user = await login(data);
+      const user = await login({ ...data, turnstile_token: turnstileToken });
       toast.success(`Bem-vindo, ${user.name}!`);
       navigate('/dashboard');
     } catch (error) {
+      // Token Turnstile é de uso único — renova-o para a próxima tentativa.
+      turnstileRef.current?.reset();
+      setTurnstileToken('');
       const lockedUntilTs = parseLockedUntil(error);
       if (lockedUntilTs) {
         setLockedUntil(lockedUntilTs);
@@ -210,6 +216,8 @@ export const LoginPage = () => {
                   <p className="mt-1 text-xs text-[#B91C1C]" role="alert">{errors.password.message}</p>
                 )}
               </div>
+
+              <Turnstile ref={turnstileRef} onVerify={setTurnstileToken} />
 
               <button
                 type="submit"

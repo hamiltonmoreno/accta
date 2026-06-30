@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { contactAPI } from '../../utils/api';
 import {
@@ -15,6 +15,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { PageBanner } from '../../components/PageBanner';
+import { Turnstile } from '../../components/Turnstile';
 import { faq, contactosUteis, notaContactos } from '../../content/cta';
 
 export const ContactosPage = () => {
@@ -26,6 +27,8 @@ export const ContactosPage = () => {
   });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const turnstileRef = useRef(null);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -33,7 +36,7 @@ export const ContactosPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.email || !formData.message) {
       toast.error('Por favor, preencha todos os campos obrigatórios');
       return;
@@ -41,15 +44,18 @@ export const ContactosPage = () => {
 
     setSending(true);
     try {
-      await contactAPI.submit(formData);
+      await contactAPI.submit({ ...formData, turnstile_token: turnstileToken });
       setSent(true);
       toast.success('Mensagem enviada com sucesso!');
       setTimeout(() => {
         setFormData({ name: '', email: '', subject: 'geral', message: '' });
         setSent(false);
       }, 3000);
-    } catch {
-      toast.error('Erro ao enviar mensagem. Tente novamente.');
+    } catch (error) {
+      // Token Turnstile é de uso único — renova-o para a próxima tentativa.
+      turnstileRef.current?.reset();
+      setTurnstileToken('');
+      toast.error(error.response?.data?.detail || 'Erro ao enviar mensagem. Tente novamente.');
     } finally {
       setSending(false);
     }
@@ -251,6 +257,8 @@ export const ContactosPage = () => {
                         data-testid="contact-message"
                       />
                     </div>
+
+                    <Turnstile ref={turnstileRef} onVerify={setTurnstileToken} />
 
                     {/* Submit */}
                     <button

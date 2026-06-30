@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { registrationAPI } from '../../utils/api';
 import { registrationSchema } from '../../utils/authSchemas';
 import { Input } from '../../components/ui/input';
+import { Turnstile } from '../../components/Turnstile';
 
 // Fallback caso o endpoint público de opções falhe — mantém o form utilizável.
 const CARGOS_FALLBACK = [
@@ -17,6 +18,8 @@ const CARGOS_FALLBACK = [
 export const CriarContaPage = () => {
   const [cargos, setCargos] = useState(CARGOS_FALLBACK);
   const [success, setSuccess] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const turnstileRef = useRef(null);
 
   const {
     register,
@@ -40,9 +43,12 @@ export const CriarContaPage = () => {
 
   const onSubmit = async (values) => {
     try {
-      await registrationAPI.submit(values);
+      await registrationAPI.submit({ ...values, turnstile_token: turnstileToken });
       setSuccess(true);
     } catch (err) {
+      // Token Turnstile é de uso único — renova-o para a próxima tentativa.
+      turnstileRef.current?.reset();
+      setTurnstileToken('');
       toast.error(err.response?.data?.detail || 'Erro ao enviar o pedido. Tente novamente.');
     }
   };
@@ -196,6 +202,8 @@ export const CriarContaPage = () => {
               O nº de associado será atribuído automaticamente após aprovação.
             </p>
           </div>
+
+          <Turnstile ref={turnstileRef} onVerify={setTurnstileToken} />
 
           <button
             type="submit"

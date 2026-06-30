@@ -38,6 +38,7 @@ from helpers import (
 )
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from turnstile import verify_turnstile
 import uuid
 
 
@@ -48,6 +49,9 @@ limiter = Limiter(key_func=get_remote_address)
 @router.post("/login", response_model=Token)
 @limiter.limit("10/minute")
 async def login(request: Request, response: Response, credentials: UserLogin):
+    # Anti-bot Turnstile primeiro — recusa tráfego de bots antes de gastar
+    # recursos com lockout/lookup/bcrypt. No-op se a feature estiver desligada.
+    await verify_turnstile(credentials.turnstile_token, request)
     # Account-level lockout — verifica antes de tudo (precede ate user lookup,
     # para que tentativas em emails inexistentes nao consigam confirmar
     # existencia indirectamente atraves do timing do bcrypt).
@@ -88,7 +92,8 @@ async def login(request: Request, response: Response, credentials: UserLogin):
         await create_audit_log(user_doc["id"], "login_failed", request=request, details={"reason": f"status_{status}"})
         if status == "pendente_convite":
             raise HTTPException(
-                status_code=403, detail="Conta pendente de ativacao. Use o link de convite para definir a sua palavra-passe."
+                status_code=403,
+                detail="Conta pendente de ativacao. Use o link de convite para definir a sua palavra-passe.",
             )
         raise HTTPException(status_code=403, detail="Conta inativa. Contacte a administracao.")
 
@@ -161,6 +166,9 @@ async def register(request: Request, data: RegistrationRequest):
     NÃO ativa a conta nem define password (isso só após aprovação do admin,
     via o fluxo `setup-account` existente). Anti-spam: rate-limit + honeypot.
     """
+    # Anti-bot Turnstile antes do honeypot — bloqueia o bot na primeira camada.
+    # No-op se a feature estiver desligada (sem TURNSTILE_SECRET).
+    await verify_turnstile(data.turnstile_token, request)
     # Honeypot: campo `website` é escondido no form. Bots preenchem-no →
     # devolvemos 201 falso e descartamos silenciosamente (não cria registo).
     if data.website:
@@ -320,6 +328,8 @@ async def validate_invite(token: str):
 @router.post("/forgot-password")
 @limiter.limit("3/minute")
 async def forgot_password(request: Request, data: PasswordResetRequest):
+    # Anti-bot Turnstile primeiro. No-op se a feature estiver desligada.
+    await verify_turnstile(data.turnstile_token, request)
     # Resposta genérica em todos os casos para evitar user enumeration.
     generic_response = {
         "message": "Se o email existir, instrucoes de recuperacao serao enviadas",
