@@ -46,14 +46,15 @@ Antes de começar, obtém o SHA do `main` na release (na tua máquina):
 git fetch origin main && git rev-parse --short=12 main
 ```
 
-**Valores atuais (v0.5.47 — Cloudflare Turnstile anti-bot / spec/PR #381, release #388):**
+**Valores atuais (v0.5.49 — fix(stats): painel exclui contas técnicas / PR #392, release #393):**
 
 | Variável | Valor |
 |----------|-------|
-| `TAG` (imagem nova) | `sha-d6ed27688efd` |
-| Tag git da release | `v0.5.47` (= `d6ed276`, HEAD de `main`, merge #388) |
-| Rollback (prod anterior, v0.5.46) | `sha-c9c5430c1c2b` |
-| Teste decisivo desta release | **Sem rota nova** (o Turnstile envolve rotas existentes): confirmação = **imagem viva `sha-d6ed27688efd`** (`docker inspect`, Up healthy) + **código no container** (`docker exec accta-backend ls turnstile.py`; `grep -c verify_turnstile routes/contact.py routes/auth_routes.py` → 2/4) + `api/`→200. **Ativação (feita):** `TURNSTILE_SECRET` no `.env` → `docker exec accta-backend sh -c 'test -n "$TURNSTILE_SECRET" && echo on'` = on. **Enforcement ao vivo:** `POST /api/auth/login` com `turnstile_token:""` → **403**; com token real (do widget) + creds falsas → **401** (passa o gate). |
+| `TAG` (imagem nova) | `sha-a1b6bd7be7b3` |
+| Tag git da release | `v0.5.49` (= `a1b6bd7`, HEAD de `main`, merge #393) |
+| Rollback (prod anterior, v0.5.47) | `sha-d6ed27688efd` |
+| Teste decisivo desta release | **Sem rota nova** (muda só o filtro de `GET /stats`): confirmação = **imagem viva `sha-a1b6bd7be7b3`** (`docker inspect`, Up healthy) + **código no container** (`docker exec accta-backend grep -c _MEMBER_FILTER routes/stats.py` → 3) + `api/`→200. **Prova E2E:** correr as queries do endpoint contra a BD de prod — `count_documents(_MEMBER_FILTER)` (Total Socios) e `{$and:[{status:ativo},_MEMBER_FILTER]}` (Ativos) devolvem **0** quando só existe a conta técnica (`count_documents({})`=1). |
+> ℹ️ Turnstile (v0.5.47) **continua ativo** — a env `TURNSTILE_SECRET` é preservada no `.env`. Procedimento de ativação documentado abaixo (mantém-se válido).
 
 > **Nota:** a v0.5.47 **toca em `backend/`** (`turnstile.py` novo + `routes/auth_routes.py` +
 > `routes/contact.py`): `verify_turnstile` corre **antes** das credenciais nos formulários públicos.
@@ -86,22 +87,22 @@ git fetch origin main && git rev-parse --short=12 main
 ```bash
 rm -rf /tmp/accta-build
 git clone https://github.com/hamiltonmoreno/accta.git /tmp/accta-build
-cd /tmp/accta-build && git checkout v0.5.47       # <- tag git da release
+cd /tmp/accta-build && git checkout v0.5.49       # <- tag git da release
 docker build -f backend/Dockerfile \
-  -t ghcr.io/hamiltonmoreno/accta-backend:sha-d6ed27688efd .   # <- TAG
+  -t ghcr.io/hamiltonmoreno/accta-backend:sha-a1b6bd7be7b3 .   # <- TAG
 ```
 
 ### 2.2 Arrancar via o compose canónico (só muda o TAG)
 ```bash
 cd /docker/accta
-export TAG=sha-d6ed27688efd
+export TAG=sha-a1b6bd7be7b3
 docker compose up -d --no-deps backend
 ```
 
 ### 2.3 Verificar
 ```bash
 docker compose ps                         # backend = Up (healthy)
-docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-d6ed27688efd
+docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-a1b6bd7be7b3
 docker compose logs --tail=80 backend     # arranque limpo: ensure_schema OK, sem tracebacks
 curl -fsS https://api.controlador.cv/api/ # 200
 
@@ -136,7 +137,7 @@ docker compose logs --tail=200 backend 2>&1 | grep -E 'pg_cron not configured'  
 A imagem anterior continua no VPS; só se troca o `TAG`:
 ```bash
 cd /docker/accta
-export TAG=sha-c9c5430c1c2b        # <- rollback (v0.5.46, imagem que corria antes da v0.5.47)
+export TAG=sha-d6ed27688efd        # <- rollback (v0.5.47, imagem que corria antes da v0.5.49)
 docker compose up -d --no-deps backend
 ```
 
@@ -179,8 +180,9 @@ Ver `DEPLOY.md` e `HOSTINGER_DEPLOY.md` para o setup completo (secrets SSH,
   (`sha-b16773a08b8a`) → v0.5.37 (`sha-482320bce1ca`) → v0.5.38
   (`sha-960e0b5367b2`) → v0.5.39 (`sha-5cfff3c9b0e1`) → v0.5.40
   (`sha-fae22c0eaab2`) → v0.5.41 (`sha-c01198d08af2`) → v0.5.42 (`sha-5343480d5d64`)
-  → v0.5.43 (`sha-dab25397254e`) → v0.5.46 (`sha-c9c5430c1c2b`) → **v0.5.47
-  (`sha-d6ed27688efd`, este deploy — Cloudflare Turnstile anti-bot, ATIVADO em prod)**.
+  → v0.5.43 (`sha-dab25397254e`) → v0.5.46 (`sha-c9c5430c1c2b`) → v0.5.47
+  (`sha-d6ed27688efd`, Cloudflare Turnstile anti-bot, ATIVADO) → **v0.5.49
+  (`sha-a1b6bd7be7b3`, este deploy — fix(stats) painel exclui contas técnicas)**.
   As v0.5.28/v0.5.29/v0.5.30, v0.5.32/v0.5.33, v0.5.36, **v0.5.44/v0.5.45** e
   **v0.5.48** (fix do typo na site key Turnstile, `Turnstile.js` — frontend) não
   tocaram no backend (docs/test/frontend-only). ⚠️ O frontend de **v0.5.45**
