@@ -1,14 +1,16 @@
 import React from 'react';
 import { cn } from '../lib/utils';
-import logoColor from '../assets/accta-logo.png';
+import logoColor from '../assets/accta-logo.jpg';
 import logoWhite from '../assets/accta-logo-white.png';
 import logoMark from '../assets/accta-logo-mark.png';
 
 /**
- * Logótipo institucional da ACCTA (símbolo "A" + trajetória/avião) como imagem
- * da marca — substitui o antigo vetor desenhado à mão. `dark` escolhe a versão
- * branca para fundos escuros. Serve de fallback do BrandLogo/BrandIcon quando
- * não há logótipo carregado na Aparência, pelo que a marca nunca fica vazia.
+ * Logótipo institucional da ACCTA como imagem da marca (substitui o antigo vetor
+ * desenhado à mão), alinhado com o que a Aparência serve: o wordmark completo
+ * ("ACCTA" + subtítulo) no logótipo horizontal — `dark` escolhe a versão branca
+ * para fundos escuros — e o símbolo quadrado (A + avião) no `variant='icon'`.
+ * Serve de fallback do BrandLogo/BrandIcon quando não há logótipo carregado na
+ * Aparência, pelo que a marca nunca fica vazia.
  */
 
 // Logótipo horizontal. `dark` → versão branca (fundo escuro).
