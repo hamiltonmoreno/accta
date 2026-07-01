@@ -113,18 +113,34 @@ class TestInviteUser:
         mock_db.users.insert_one.assert_awaited_once()
 
     async def test_invalid_role_rejected_422(self, mock_db, admin_user, monkeypatch):
-        """Role 'admin' NAO pode ser convidado via invite — 422 explicito (o
-        antigo fallback silencioso p/ socio mascarava erros do chamador)."""
+        """Role desconhecido — 422 explicito (o antigo fallback silencioso p/
+        socio mascarava erros do chamador)."""
         from models import InviteCreate
 
         mock_db.users.find_one = AsyncMock(return_value=None)
         monkeypatch.setattr(admin_route, "next_member_id", AsyncMock(return_value="ACCTA-0042"))
 
-        data = InviteCreate(name="X", email="x@y.com", role="admin")
+        data = InviteCreate(name="X", email="x@y.com", role="superuser")
         with pytest.raises(HTTPException) as exc:
             await admin_route.invite_user(request=_mock_request(), data=data, current_user=admin_user)
         assert exc.value.status_code == 422
         mock_db.users.insert_one.assert_not_awaited()
+
+    async def test_admin_role_invitavel(self, mock_db, admin_user, monkeypatch):
+        """spec-016 FR-004/SC-002 (decisão do dono): 'admin' passou a ser
+        convidável — endpoint admin-only + auditado, sem escalada."""
+        from models import InviteCreate
+
+        mock_db.users.find_one = AsyncMock(return_value=None)
+        monkeypatch.setattr(admin_route, "next_member_id", AsyncMock(return_value="ACCTA-0042"))
+        monkeypatch.setattr(admin_route, "send_invite_email", AsyncMock(return_value={"status": "sent"}))
+
+        data = InviteCreate(name="X", email="x@y.com", role="admin")
+        result = await admin_route.invite_user(request=_mock_request(), data=data, current_user=admin_user)
+        assert result["email"] == "x@y.com"
+        mock_db.users.insert_one.assert_awaited_once()
+        inserted = mock_db.users.insert_one.await_args.args[0]
+        assert inserted["role"] == "admin"
 
     async def test_direct_invite_rejects_statutory_cargo(self, mock_db, admin_user, monkeypatch):
         from models import InviteCreate

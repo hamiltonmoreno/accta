@@ -84,7 +84,9 @@ class TestConstantes:
         # (spec-ranking-socio §7) são overlays aditivos posteriores.
         assert "send_comunicados" in PRIVILEGES
         assert "manage_ranking" in PRIVILEGES
-        assert len(PRIVILEGES) == 11
+        # comunicar_intra_orgao (spec-comunicados-segmentados US4/D1) elevou a lista a 12.
+        assert "comunicar_intra_orgao" in PRIVILEGES
+        assert len(PRIVILEGES) == 12
         assert len(PRIVILEGES) == len(set(PRIVILEGES))
 
     def test_cargo_defaults_e_seats_keyed_by_key(self):
