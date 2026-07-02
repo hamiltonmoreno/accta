@@ -46,14 +46,18 @@ Antes de começar, obtém o SHA do `main` na release (na tua máquina):
 git fetch origin main && git rev-parse --short=12 main
 ```
 
-**Valores atuais (v0.5.49 — fix(stats): painel exclui contas técnicas / PR #392, release #393):**
+**Valores atuais (v0.5.53 — spec 016 gestão de sócios: departamentos + convite 4 roles / PR #400, release #401):**
 
 | Variável | Valor |
 |----------|-------|
-| `TAG` (imagem nova) | `sha-a1b6bd7be7b3` |
-| Tag git da release | `v0.5.49` (= `a1b6bd7`, HEAD de `main`, merge #393) |
-| Rollback (prod anterior, v0.5.47) | `sha-d6ed27688efd` |
-| Teste decisivo desta release | **Sem rota nova** (muda só o filtro de `GET /stats`): confirmação = **imagem viva `sha-a1b6bd7be7b3`** (`docker inspect`, Up healthy) + **código no container** (`docker exec accta-backend grep -c _MEMBER_FILTER routes/stats.py` → 3) + `api/`→200. **Prova E2E:** correr as queries do endpoint contra a BD de prod — `count_documents(_MEMBER_FILTER)` (Total Socios) e `{$and:[{status:ativo},_MEMBER_FILTER]}` (Ativos) devolvem **0** quando só existe a conta técnica (`count_documents({})`=1). |
+| `TAG` (imagem nova) | `sha-aa15736d5221` |
+| Tag git da release | `v0.5.53` (= `aa15736`, HEAD de `main`, merge #401) |
+| Rollback (prod anterior, v0.5.49) | `sha-a1b6bd7be7b3` |
+| Teste decisivo desta release | **Endpoint público muda de payload**: `curl -fsS https://api.controlador.cv/api/auth/registration-options` passa a devolver **`departamentos`** (9 valores) além de `cargos` — prova E2E direta, sem auth. Complemento no container: `grep -c DEPARTAMENTOS models.py`→1; `grep -c '"admin", "socio", "financeiro", "moderador"' routes/admin.py`→1 (admin convidável, decisão do dono spec 016). |
+
+> ℹ️ **Executado 2026-07-02** — todas as verificações da Etapa 2.3 verdes (registration-options
+> com `departamentos`; invariantes 200/404/404/404/401×; arranque limpo 0 tracebacks, triggers 2×,
+> overdue loop 2×; `TURNSTILE_SECRET`/`VAPID_*` preservadas no recreate).
 > ℹ️ Turnstile (v0.5.47) **continua ativo** — a env `TURNSTILE_SECRET` é preservada no `.env`. Procedimento de ativação documentado abaixo (mantém-se válido).
 
 > **Nota:** a v0.5.47 **toca em `backend/`** (`turnstile.py` novo + `routes/auth_routes.py` +
@@ -87,15 +91,15 @@ git fetch origin main && git rev-parse --short=12 main
 ```bash
 rm -rf /tmp/accta-build
 git clone https://github.com/hamiltonmoreno/accta.git /tmp/accta-build
-cd /tmp/accta-build && git checkout v0.5.49       # <- tag git da release
+cd /tmp/accta-build && git checkout v0.5.53       # <- tag git da release
 docker build -f backend/Dockerfile \
-  -t ghcr.io/hamiltonmoreno/accta-backend:sha-a1b6bd7be7b3 .   # <- TAG
+  -t ghcr.io/hamiltonmoreno/accta-backend:sha-aa15736d5221 .   # <- TAG
 ```
 
 ### 2.2 Arrancar via o compose canónico (só muda o TAG)
 ```bash
 cd /docker/accta
-export TAG=sha-a1b6bd7be7b3
+export TAG=sha-aa15736d5221
 docker compose up -d --no-deps backend
 ```
 
@@ -137,7 +141,7 @@ docker compose logs --tail=200 backend 2>&1 | grep -E 'pg_cron not configured'  
 A imagem anterior continua no VPS; só se troca o `TAG`:
 ```bash
 cd /docker/accta
-export TAG=sha-d6ed27688efd        # <- rollback (v0.5.47, imagem que corria antes da v0.5.49)
+export TAG=sha-a1b6bd7be7b3        # <- rollback (v0.5.49, imagem que corria antes da v0.5.53)
 docker compose up -d --no-deps backend
 ```
 
@@ -181,8 +185,13 @@ Ver `DEPLOY.md` e `HOSTINGER_DEPLOY.md` para o setup completo (secrets SSH,
   (`sha-960e0b5367b2`) → v0.5.39 (`sha-5cfff3c9b0e1`) → v0.5.40
   (`sha-fae22c0eaab2`) → v0.5.41 (`sha-c01198d08af2`) → v0.5.42 (`sha-5343480d5d64`)
   → v0.5.43 (`sha-dab25397254e`) → v0.5.46 (`sha-c9c5430c1c2b`) → v0.5.47
-  (`sha-d6ed27688efd`, Cloudflare Turnstile anti-bot, ATIVADO) → **v0.5.49
-  (`sha-a1b6bd7be7b3`, este deploy — fix(stats) painel exclui contas técnicas)**.
+  (`sha-d6ed27688efd`, Cloudflare Turnstile anti-bot, ATIVADO) → v0.5.49
+  (`sha-a1b6bd7be7b3`, fix(stats) painel exclui contas técnicas) → **v0.5.53
+  (`sha-aa15736d5221`, este deploy — spec 016: `DEPARTAMENTOS` em
+  registration-options + convite aceita `role=admin` + rótulos de privilégio;
+  backend tocado em `models.py`/`routes/auth_routes.py`/`routes/admin.py`)**.
+  As **v0.5.50–v0.5.52** (brand refresh: favicon/logos/tagline/wordmark) foram
+  frontend-only (Vercel).
   As v0.5.28/v0.5.29/v0.5.30, v0.5.32/v0.5.33, v0.5.36, **v0.5.44/v0.5.45** e
   **v0.5.48** (fix do typo na site key Turnstile, `Turnstile.js` — frontend) não
   tocaram no backend (docs/test/frontend-only). ⚠️ O frontend de **v0.5.45**
