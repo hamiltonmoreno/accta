@@ -10,6 +10,7 @@ from models import (
     SetupAccount,
     RegistrationRequest,
     CARGOS_DECLARADOS,
+    DEPARTAMENTOS,
 )
 from database import db, next_member_id
 from auth import (
@@ -155,8 +156,9 @@ async def logout(
 @router.get("/registration-options")
 async def registration_options():
     """Opções públicas para o formulário de auto-registo (cargos declaráveis).
-    Evita hardcode no frontend — fonte única em models.CARGOS_DECLARADOS."""
-    return {"cargos": CARGOS_DECLARADOS}
+    Evita hardcode no frontend — fonte única em models.CARGOS_DECLARADOS /
+    models.DEPARTAMENTOS."""
+    return {"cargos": CARGOS_DECLARADOS, "departamentos": DEPARTAMENTOS}
 
 
 @router.post("/register", status_code=201)

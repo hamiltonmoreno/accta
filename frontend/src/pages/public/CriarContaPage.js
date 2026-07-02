@@ -15,8 +15,24 @@ const CARGOS_FALLBACK = [
   'Vice-Presidente', 'Presidente', 'Direcção', 'Conselho Fiscal',
 ];
 
+// Fallback dos departamentos (espelha models.DEPARTAMENTOS) caso o endpoint falhe.
+const DEPARTAMENTOS_FALLBACK = [
+  'Formação e Certificação',
+  'Segurança Operacional (Safety)',
+  'Assuntos Profissionais e Laborais',
+  'Assuntos Técnicos e Operacionais',
+  'Relações Institucionais e Internacionais',
+  'Comunicação e Imagem',
+  'Assuntos Jurídicos',
+  'Tesouraria e Finanças',
+  'Eventos, Cultura e Ação Social',
+];
+const DEPARTAMENTO_OUTRO = 'Outro';
+
 export const CriarContaPage = () => {
   const [cargos, setCargos] = useState(CARGOS_FALLBACK);
+  const [departamentos, setDepartamentos] = useState(DEPARTAMENTOS_FALLBACK);
+  const [deptChoice, setDeptChoice] = useState('');
   const [success, setSuccess] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState('');
   const turnstileRef = useRef(null);
@@ -24,6 +40,7 @@ export const CriarContaPage = () => {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(registrationSchema),
@@ -37,9 +54,19 @@ export const CriarContaPage = () => {
         if (Array.isArray(res.data?.cargos) && res.data.cargos.length) {
           setCargos(res.data.cargos);
         }
+        if (Array.isArray(res.data?.departamentos) && res.data.departamentos.length) {
+          setDepartamentos(res.data.departamentos);
+        }
       })
       .catch(() => {/* mantém fallback */});
   }, []);
+
+  // Departamento por lista + «Outro» (texto livre). O valor resolvido vai para
+  // o campo RHF `department`; opcional (vazio é aceite).
+  const onDeptSelect = (v) => {
+    setDeptChoice(v);
+    setValue('department', v === DEPARTAMENTO_OUTRO ? '' : v);
+  };
 
   const onSubmit = async (values) => {
     try {
@@ -156,15 +183,30 @@ export const CriarContaPage = () => {
               <label htmlFor="reg-dept" className="block text-xs font-medium text-gray-600 mb-1.5">Departamento</label>
               <div className="relative">
                 <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
-                <Input
+                <select
                   id="reg-dept"
-                  type="text"
-                  {...register('department')}
-                  placeholder="(opcional)"
-                  className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none"
+                  value={deptChoice}
+                  onChange={(e) => onDeptSelect(e.target.value)}
+                  className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-lg text-sm bg-white focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none"
                   data-testid="reg-dept"
-                />
+                >
+                  <option value="">(opcional) Selecionar…</option>
+                  {departamentos.map((d) => <option key={d} value={d}>{d}</option>)}
+                  <option value={DEPARTAMENTO_OUTRO}>Outro</option>
+                </select>
               </div>
+              {deptChoice === DEPARTAMENTO_OUTRO && (
+                <div className="relative mt-2">
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
+                  <Input
+                    type="text"
+                    {...register('department')}
+                    placeholder="Especifique o departamento"
+                    className="w-full pl-9 pr-3 py-3 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none"
+                    data-testid="reg-dept-outro"
+                  />
+                </div>
+              )}
             </div>
           </div>
 

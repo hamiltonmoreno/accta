@@ -18,6 +18,9 @@ export const PRIVILEGE_LABELS = {
   manage_benefits: 'Gerir Benefícios',
   view_audit_logs: 'Ver Audit Logs',
   view_finances_readonly: 'Ver Finanças (leitura)',
+  emit_cf_parecer: 'Emitir Parecer (Conselho Fiscal)',
+  send_comunicados: 'Enviar Comunicados',
+  comunicar_intra_orgao: 'Comunicar entre Órgãos',
   manage_ranking: 'Gerir Ranking',
 };
 

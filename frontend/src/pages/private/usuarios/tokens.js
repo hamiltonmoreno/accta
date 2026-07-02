@@ -3,6 +3,23 @@
 export const ROLES = ['admin', 'socio', 'financeiro', 'moderador'];
 export const STATUSES = ['ativo', 'inativo', 'pendente_convite'];
 
+// Departamentos internos da associação (espelha models.DEPARTAMENTOS no backend).
+// Etiqueta organizacional; a UI acrescenta «Outro» (texto livre).
+export const DEPARTAMENTOS = [
+  'Formação e Certificação',
+  'Segurança Operacional (Safety)',
+  'Assuntos Profissionais e Laborais',
+  'Assuntos Técnicos e Operacionais',
+  'Relações Institucionais e Internacionais',
+  'Comunicação e Imagem',
+  'Assuntos Jurídicos',
+  'Tesouraria e Finanças',
+  'Eventos, Cultura e Ação Social',
+];
+
+// Sentinela de UI para permitir um valor fora da lista (texto livre).
+export const DEPARTAMENTO_OUTRO = 'Outro';
+
 export const formatHistoryDate = (iso) => {
   if (!iso) return null;
   try {

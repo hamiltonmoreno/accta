@@ -1,16 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Shield, BadgeCheck, Briefcase, Save, Trash2, History } from 'lucide-react';
+import { Shield, BadgeCheck, Briefcase, Save, Trash2, History, Wand2 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription,
   DialogHeader, DialogTitle,
 } from '../../../components/ui/dialog';
 import { Input } from '../../../components/ui/input';
 import { UserAvatar } from '../../../components/UserAvatar';
-import { cargosAPI } from '../../../utils/api';
+import { cargosAPI, governanceAPI } from '../../../utils/api';
 import { queryKeys } from '../../../lib/queryClient';
-import { ROLE_LABELS, PRIVILEGE_LABELS } from '../../../lib/cargoLabels';
-import { ROLES, STATUSES, formatHistoryDate } from './tokens';
+import { ROLE_LABELS, privilegeLabel } from '../../../lib/cargoLabels';
+import { ROLES, STATUSES, DEPARTAMENTOS, DEPARTAMENTO_OUTRO, formatHistoryDate } from './tokens';
 
 export const EditUserModal = ({
   editingUser,
@@ -27,6 +27,39 @@ export const EditUserModal = ({
     queryFn: async () => (await cargosAPI.history(editingUser.id)).data.cargo_history,
     enabled: !!editingUser?.id,
   });
+
+  // Estrutura de governança — defaults de cargo (role + privilégios) já existentes.
+  const { data: structure } = useQuery({
+    queryKey: queryKeys.governance.structure(),
+    queryFn: async () => (await governanceAPI.structure()).data,
+  });
+  const cargoEntry = (structure?.cargos || []).find((c) => c.key === editingUser?.cargo);
+  // Contas técnicas não têm cargo estatutário → sem predefinições.
+  const canApplyCargoDefaults = editingUser?.account_type !== 'technical' && Boolean(cargoEntry);
+
+  const applyCargoDefaults = () => {
+    if (!cargoEntry) return;
+    setEditingUser({
+      ...editingUser,
+      role: cargoEntry.role_default,
+      privileges: [...(cargoEntry.privileges_default || [])],
+    });
+  };
+
+  // Departamento: «Outro» ativo quando o valor atual não pertence à lista canónica
+  // (preserva registos legados / texto livre — FR-013).
+  const [deptOutro, setDeptOutro] = useState(
+    Boolean(editingUser?.department) && !DEPARTAMENTOS.includes(editingUser.department),
+  );
+  const onDeptSelect = (v) => {
+    if (v === DEPARTAMENTO_OUTRO) {
+      setDeptOutro(true);
+      setEditingUser({ ...editingUser, department: '' });
+    } else {
+      setDeptOutro(false);
+      setEditingUser({ ...editingUser, department: v });
+    }
+  };
 
   const togglePrivilege = (priv) => {
     const current = editingUser.privileges || [];
@@ -146,10 +179,23 @@ export const EditUserModal = ({
 
           {/* Privileges */}
           <div>
-            <label className="block text-xs uppercase tracking-widest text-[#6B7280] font-semibold mb-2">
-              <Shield className="w-3 h-3 inline mr-1" />
-              Privilégios
-            </label>
+            <div className="flex items-center justify-between mb-2 gap-2">
+              <label className="block text-xs uppercase tracking-widest text-[#6B7280] font-semibold">
+                <Shield className="w-3 h-3 inline mr-1" />
+                Privilégios
+              </label>
+              {canApplyCargoDefaults && (
+                <button
+                  type="button"
+                  onClick={applyCargoDefaults}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-grafite border border-[#D1D5DB] px-2.5 py-1.5 rounded-md hover:bg-gray-50 transition-colors shrink-0"
+                  data-testid="apply-cargo-defaults-btn"
+                >
+                  <Wand2 className="w-3.5 h-3.5" aria-hidden="true" />
+                  Aplicar predefinições do cargo
+                </button>
+              )}
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {privileges.map((priv) => {
                 const checked = (editingUser.privileges || []).includes(priv);
@@ -176,7 +222,7 @@ export const EditUserModal = ({
                         </svg>
                       )}
                     </div>
-                    <span className="text-xs font-medium">{PRIVILEGE_LABELS[priv]}</span>
+                    <span className="text-xs font-medium">{privilegeLabel(priv)}</span>
                   </label>
                 );
               })}
@@ -218,12 +264,27 @@ export const EditUserModal = ({
             </div>
             <div>
               <label className="block text-xs uppercase tracking-widest text-[#6B7280] font-semibold mb-1">Departamento</label>
-              <Input
-                value={editingUser.department || ''}
-                onChange={(e) => setEditingUser({ ...editingUser, department: e.target.value })}
-                placeholder="Ex: Torre de Controlo Sal"
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 outline-none"
-              />
+              <select
+                value={deptOutro ? DEPARTAMENTO_OUTRO : (editingUser.department || '')}
+                onChange={(e) => onDeptSelect(e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 outline-none bg-white"
+                data-testid="modal-edit-department"
+              >
+                <option value="">Selecionar…</option>
+                {DEPARTAMENTOS.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+                <option value={DEPARTAMENTO_OUTRO}>Outro</option>
+              </select>
+              {deptOutro && (
+                <Input
+                  value={editingUser.department || ''}
+                  onChange={(e) => setEditingUser({ ...editingUser, department: e.target.value })}
+                  placeholder="Especifique o departamento"
+                  className="mt-2 w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 outline-none"
+                  data-testid="modal-edit-department-outro"
+                />
+              )}
             </div>
           </div>
         </div>

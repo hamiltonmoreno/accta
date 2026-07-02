@@ -216,3 +216,43 @@ class TestLoginStatusAllowlist:
         result = await auth_routes.login(_request(), Response(), UserLogin(email="x@y.cv", password="segredo123"))
         assert result.access_token
         assert result.user.id == "u1"
+
+
+# --------------------------------------------------------------------------- #
+# registration-options + auto-registo (spec-016 departamentos)
+# --------------------------------------------------------------------------- #
+
+
+class TestRegistrationOptions:
+    async def test_options_incluem_departamentos(self):
+        from models import CARGOS_DECLARADOS, DEPARTAMENTOS
+
+        result = await auth_routes.registration_options()
+        assert result["cargos"] == CARGOS_DECLARADOS
+        assert result["departamentos"] == DEPARTAMENTOS
+        assert result["departamentos"]  # nao-vazio
+
+    async def test_departamentos_constante_estavel(self):
+        from models import DEPARTAMENTOS
+
+        assert len(DEPARTAMENTOS) == 9
+        assert "Formação e Certificação" in DEPARTAMENTOS
+        assert all(isinstance(d, str) and d for d in DEPARTAMENTOS)
+
+
+class TestRegisterHoneypot:
+    async def test_honeypot_preenchido_nao_cria_utilizador(self, setup_env, mock_db, monkeypatch):
+        """FR-017/SC-006: honeypot `website` preenchido -> 201 falso, sem criar registo."""
+        from models import RegistrationRequest
+
+        monkeypatch.setattr(auth_routes, "verify_turnstile", AsyncMock())
+        data = RegistrationRequest(
+            name="Bot Spam",
+            email="bot@spam.cv",
+            consent_data=True,
+            website="http://spam.example",  # honeypot preenchido
+            turnstile_token="x",
+        )
+        result = await auth_routes.register(_request(), data)
+        assert "request_id" in result
+        mock_db.users.insert_one.assert_not_awaited()
