@@ -141,6 +141,11 @@ class TestInviteUser:
         mock_db.users.insert_one.assert_awaited_once()
         inserted = mock_db.users.insert_one.await_args.args[0]
         assert inserted["role"] == "admin"
+        # Ação sensível (admin a convidar admin) — o audit trail é obrigatório.
+        mock_db.audit_logs.insert_one.assert_awaited_once()
+        audit = mock_db.audit_logs.insert_one.await_args.args[0]
+        assert audit["action"] == "user_invited"
+        assert audit["details"]["role"] == "admin"
 
     async def test_direct_invite_rejects_statutory_cargo(self, mock_db, admin_user, monkeypatch):
         from models import InviteCreate

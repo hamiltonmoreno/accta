@@ -50,7 +50,7 @@ export const InviteModal = ({
               {inviteResult.email_sent ? (
                 <p className="text-xs text-[#15803D] font-medium">Email de convite enviado com sucesso!</p>
               ) : (
-                <p className="text-xs text-[#B45309] font-medium">Convite criado, mas o email nao foi enviado. Reenvie o convite quando o servico de email estiver disponivel.</p>
+                <p className="text-xs text-[#B45309] font-medium">Convite criado, mas o email não foi enviado. Reenvie o convite quando o serviço de email estiver disponível.</p>
               )}
             </div>
 
