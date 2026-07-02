@@ -332,6 +332,24 @@ CARGOS_DECLARADOS = [
     "Conselho Fiscal",
 ]
 
+# Departamentos internos da associação (etiqueta organizacional; independente de
+# role/cargo/privilégios e dos órgãos sociais). Escolhidos na inscrição e
+# editáveis pelo admin. A UI oferece ainda «Outro» (texto livre); por isso o
+# campo `department` continua string livre (sem enum-enforcement) — legado e
+# «Outro» permanecem válidos. Fonte única do backend (exposta em
+# GET /auth/registration-options).
+DEPARTAMENTOS = [
+    "Formação e Certificação",
+    "Segurança Operacional (Safety)",
+    "Assuntos Profissionais e Laborais",
+    "Assuntos Técnicos e Operacionais",
+    "Relações Institucionais e Internacionais",
+    "Comunicação e Imagem",
+    "Assuntos Jurídicos",
+    "Tesouraria e Finanças",
+    "Eventos, Cultura e Ação Social",
+]
+
 
 class RegistrationRequest(BaseModel):
     name: str = Field(min_length=2, max_length=100)
