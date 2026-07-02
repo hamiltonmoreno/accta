@@ -379,19 +379,21 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Feature Spec Kit ativa: `specs/016-privilegios-cargo-departamento/` — **implementada na branch**
-(`feature/016-privilegios-cargo-departamento`; tasks T001–T016 ✓, resta T017 validação do dono).
-Gestão de sócios: (US1/P1) privilégios legíveis (+3 rótulos em `cargoLabels.js`, `EditUserModal` usa
-`privilegeLabel()`); (US2/P2) departamento como lista suspensa (9 valores + «Outro», opcional) na
-inscrição/convite/edição — fonte `models.DEPARTAMENTOS` exposta aditivamente em
-`GET /auth/registration-options`; (US3/P2) convite com 4 roles + rótulo «Função no Sistema» — **a
-review apanhou W1**: `POST /admin/invite` bloqueava `role=admin` por contrato; **decisão do dono:
-admin passou a ser convidável** (`routes/admin.py`, endpoint admin-only + auditado); (US4/P3) botão
-«Aplicar predefinições do cargo» no `EditUserModal` (lê defaults via `/governance/structure`,
-explícito, escondido a contas técnicas). Backend = 3 ficheiros aditivos (`models.py`,
-`routes/auth_routes.py`, `routes/admin.py`) ⇒ release por **Via B**; zero deps, zero migração.
-De caminho: assertion stale `len(PRIVILEGES)==11`→12 corrigida em `test_identidade_cargos_models.py`.
-Suíte unit 1374 verdes; craco build limpo.
+Nenhuma feature Spec Kit ativa — próxima via `/speckit-specify`.
+Last completed: `specs/016-privilegios-cargo-departamento-concluido/` — **Gestão de Sócios**:
+(US1) privilégios sempre legíveis (+3 rótulos em `cargoLabels.js`; `EditUserModal` usa
+`privilegeLabel()` com fallback à chave — zero células em branco); (US2) departamento como lista
+suspensa (9 valores canónicos + «Outro» texto livre, opcional) na inscrição/convite/edição —
+fonte única `models.DEPARTAMENTOS` exposta aditivamente em `GET /auth/registration-options`
+(espelho frontend em `usuarios/tokens.js`; `department` continua string livre, legado preservado);
+(US3) convite com as 4 roles + rótulo «Função no Sistema» — **review W1 + decisão do dono:
+`POST /admin/invite` passou a aceitar `role=admin`** (`routes/admin.py`, admin-only + auditado,
+422 mantido p/ roles desconhecidas — não reverter); (US4) botão «Aplicar predefinições do cargo»
+no `EditUserModal` (defaults via `/governance/structure`; explícito; escondido a contas técnicas).
+Backend = 3 ficheiros aditivos ⇒ **RELEASED v0.5.53** (PR #400→develop, release #401→main, tag) e
+**DEPLOYED em prod Via B** (`sha-aa15736d5221`, 2026-07-02; teste decisivo: registration-options
+público devolve `departamentos`; rollback `sha-a1b6bd7be7b3` v0.5.49). De caminho: assertion stale
+`len(PRIVILEGES)==11`→12 corrigida. 18/18 tarefas; T017 validada pelo dono no navegador. CONCLUÍDA.
 Last completed: `specs/015-pendencias-contador-avisos-concluido/` — **Pendências v2** (completa a 014):
 (US1) contador role-aware no item de menu «As minhas pendências» via hook partilhado `usePendencias`
 (fonte única ⇒ contador ≡ painel, SC-002; cap "9+", escondido a 0, frescura no carregamento) +
