@@ -68,6 +68,14 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
     if data.role not in ("admin", "socio", "financeiro", "moderador"):
         raise HTTPException(status_code=422, detail="Role inválido: use admin, socio, financeiro ou moderador")
 
+    # Função personalizada (spec 017): o convidado nasce socio + privilégios da
+    # função (ligação viva); ignora `role` (base é sempre "socio" — decisão Q2).
+    custom_role = None
+    if data.custom_role_id:
+        custom_role = await db.custom_roles.find_one({"id": data.custom_role_id}, {"_id": 0})
+        if not custom_role:
+            raise HTTPException(status_code=400, detail="Função personalizada inválida")
+
     # member_id fornecido manualmente: verifica colisão antes de escrever (é
     # imutável e único por sócio). Backstop de BD: ux_users_member_id (best-effort).
     if data.member_id:
@@ -82,7 +90,7 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
         "name": data.name,
         "email": data.email,
         "password": "",
-        "role": data.role,
+        "role": "socio" if custom_role else data.role,
         "status": "pendente_convite",
         "account_type": "member",
         "cargo": cargo_key,
@@ -92,7 +100,8 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
         "department": data.department or "",
         "phone_number": data.phone_number or "",
         "admission_date": now.isoformat(),
-        "privileges": [],
+        "privileges": list(custom_role["privileges"]) if custom_role else [],
+        "custom_role_id": data.custom_role_id if custom_role else None,
         "consent_data": False,
         "qr_code_hash": generate_qr_hash(user_id),
         "last_login_at": None,
@@ -119,8 +128,9 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
         details={
             "name": data.name,
             "email": data.email,
-            "role": data.role,
+            "role": user_doc["role"],
             "cargo": data.cargo,
+            "custom_role": custom_role.get("name") if custom_role else None,
             "joia_devida": user_doc["joia_devida"],
         },
     )
@@ -446,6 +456,9 @@ async def promote_user(
                 "orgao": orgao_of_cargo(cargo_key),
                 "privileges": privileges,
                 "cargo_history": history,
+                # spec 017: promover destaca de qualquer função personalizada
+                # (cargo estatutário tem precedência — decisão D5).
+                "custom_role_id": None,
             }
         },
     )
@@ -485,7 +498,17 @@ async def demote_user(
     history = _close_active_mandates(user.get("cargo_history"), effective)
     await db.users.update_one(
         {"id": user_id},
-        {"$set": {"role": "socio", "cargo": "socio", "orgao": None, "privileges": [], "cargo_history": history}},
+        {
+            "$set": {
+                "role": "socio",
+                "cargo": "socio",
+                "orgao": None,
+                "privileges": [],
+                "cargo_history": history,
+                # spec 017: fim de mandato limpa qualquer função personalizada (D5).
+                "custom_role_id": None,
+            }
+        },
     )
     await create_audit_log(
         current_user.id,
@@ -547,6 +570,8 @@ async def transfer_cargo_endpoint(
         d["orgao"] = None
         d["privileges"] = []
         d["cargo_history"] = _close_active_mandates(d.get("cargo_history"), effective)
+        # spec 017: transferência limpa custom_role_id em ambos os lados (D5).
+        d["custom_role_id"] = None
         return d
 
     def _promote(doc: dict) -> dict:
@@ -558,6 +583,7 @@ async def transfer_cargo_endpoint(
         d["orgao"] = orgao_of_cargo(cargo_key)
         d["privileges"] = privileges
         d["cargo_history"] = history
+        d["custom_role_id"] = None
         return d
 
     await transfer_cargo(data.from_user_id, data.to_user_id, _demote, _promote)

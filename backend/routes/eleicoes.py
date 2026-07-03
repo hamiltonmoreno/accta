@@ -495,7 +495,18 @@ async def _proclaim_list(eleicao: dict, lista: dict, by_id: str) -> tuple[str, l
             hist = _close_active(h.get("cargo_history"), posse)
             await db.users.update_one(
                 {"id": h["id"]},
-                {"$set": {"role": "socio", "cargo": "socio", "orgao": None, "privileges": [], "cargo_history": hist}},
+                {
+                    "$set": {
+                        "role": "socio",
+                        "cargo": "socio",
+                        "orgao": None,
+                        "privileges": [],
+                        "cargo_history": hist,
+                        # spec 017: cessantes de mandato eleitoral perdem qualquer
+                        # função personalizada (D5).
+                        "custom_role_id": None,
+                    }
+                },
             )
 
     # 2. Promove titulares eleitos.
@@ -536,6 +547,9 @@ async def _proclaim_list(eleicao: dict, lista: dict, by_id: str) -> tuple[str, l
                     "orgao": orgao_of_cargo(cargo_key),
                     "privileges": privileges_for_cargo(cargo_key),
                     "cargo_history": hist,
+                    # spec 017: proclamação destaca de qualquer função
+                    # personalizada — cargo eleitoral tem precedência (D5).
+                    "custom_role_id": None,
                 }
             },
         )

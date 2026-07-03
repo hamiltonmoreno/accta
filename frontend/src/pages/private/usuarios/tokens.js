@@ -33,6 +33,7 @@ export const EMPTY_INVITE = {
   name: '',
   email: '',
   role: 'socio',
+  custom_role_id: '',
   member_id: '',
   license_number: '',
   department: '',

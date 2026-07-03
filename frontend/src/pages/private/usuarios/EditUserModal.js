@@ -16,6 +16,7 @@ export const EditUserModal = ({
   editingUser,
   setEditingUser,
   privileges,
+  customRoles = [],
   onSave,
   onAskDelete,
   onRemovePhoto,
@@ -39,11 +40,32 @@ export const EditUserModal = ({
 
   const applyCargoDefaults = () => {
     if (!cargoEntry) return;
+    // FR-010 (spec 017): aplicar predefinições substitui a função personalizada.
+    if (editingUser.custom_role_id
+      && !window.confirm('Este sócio tem uma função personalizada. Aplicar as predefinições do cargo substitui-a. Continuar?')) {
+      return;
+    }
     setEditingUser({
       ...editingUser,
+      custom_role_id: null,
       role: cargoEntry.role_default,
       privileges: [...(cargoEntry.privileges_default || [])],
     });
+  };
+
+  // Função personalizada selecionada (spec 017): o valor do seletor usa a
+  // sentinela `custom:<id>`; ao selecionar, materializa socio + privilégios
+  // da função (read-only); ao voltar a uma fixa, destaca (custom_role_id=null).
+  const selectedCustomRole = customRoles.find((r) => r.id === editingUser.custom_role_id);
+  const roleValue = selectedCustomRole ? `custom:${selectedCustomRole.id}` : editingUser.role;
+  const onRoleChange = (v) => {
+    if (v.startsWith('custom:')) {
+      const cr = customRoles.find((r) => r.id === v.slice(7));
+      if (!cr) return;
+      setEditingUser({ ...editingUser, custom_role_id: cr.id, role: 'socio', privileges: [...(cr.privileges || [])] });
+    } else {
+      setEditingUser({ ...editingUser, custom_role_id: null, role: v });
+    }
   };
 
   // Departamento: «Outro» ativo quando o valor atual não pertence à lista canónica
@@ -62,6 +84,7 @@ export const EditUserModal = ({
   };
 
   const togglePrivilege = (priv) => {
+    if (selectedCustomRole) return; // privilégios geridos pela função (ligação viva)
     const current = editingUser.privileges || [];
     const updated = current.includes(priv)
       ? current.filter((p) => p !== priv)
@@ -132,14 +155,21 @@ export const EditUserModal = ({
                 Função no Sistema
               </label>
               <select
-                value={editingUser.role}
-                onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
+                value={roleValue}
+                onChange={(e) => onRoleChange(e.target.value)}
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 outline-none bg-white"
                 data-testid="modal-edit-role"
               >
                 {ROLES.map((r) => (
                   <option key={r} value={r}>{ROLE_LABELS[r]}</option>
                 ))}
+                {customRoles.length > 0 && (
+                  <optgroup label="Funções personalizadas">
+                    {customRoles.map((r) => (
+                      <option key={r.id} value={`custom:${r.id}`}>{r.name}</option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </div>
             <div>
@@ -196,13 +226,20 @@ export const EditUserModal = ({
                 </button>
               )}
             </div>
+            {selectedCustomRole && (
+              <p className="text-[11px] text-[#9CA3AF] mb-2" data-testid="custom-role-privileges-note">
+                Privilégios definidos pela função «{selectedCustomRole.name}» — editam-se na função e propagam a todos os sócios que a têm.
+              </p>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {privileges.map((priv) => {
                 const checked = (editingUser.privileges || []).includes(priv);
                 return (
                   <label
                     key={priv}
-                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border cursor-pointer transition-all ${
+                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border transition-all ${
+                      selectedCustomRole ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'
+                    } ${
                       checked ? 'border-carmesim bg-carmesim/5 text-carmesim' : 'border-gray-200 text-gray-600 hover:border-gray-300'
                     }`}
                     data-testid={`privilege-${priv}`}
@@ -210,6 +247,7 @@ export const EditUserModal = ({
                     <input
                       type="checkbox"
                       checked={checked}
+                      disabled={!!selectedCustomRole}
                       onChange={() => togglePrivilege(priv)}
                       className="sr-only"
                     />

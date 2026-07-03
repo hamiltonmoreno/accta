@@ -17,6 +17,7 @@ from routes.projects import router as projects_router
 from routes.activity import router as activity_router
 from routes.report import router as report_router
 from routes.admin import router as admin_router
+from routes.custom_roles import router as custom_roles_router
 from routes.contact import router as contact_router
 from routes.governance import router as governance_router
 from routes.assembleias import router as assembleias_router
@@ -53,6 +54,7 @@ api_router.include_router(projects_router)
 api_router.include_router(activity_router)
 api_router.include_router(report_router)
 api_router.include_router(admin_router)
+api_router.include_router(custom_roles_router)
 api_router.include_router(contact_router)
 api_router.include_router(governance_router)
 api_router.include_router(assembleias_router)
