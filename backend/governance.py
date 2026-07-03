@@ -112,12 +112,15 @@ CARGOS_CATALOG: list[dict] = [
         "privileges": "ALL",
     },
     {
+        # spec 018 D3: só Presidente/Vice mantêm role admin por default de
+        # cargo; o Secretário desce para privilégios granulares (lista
+        # inalterada — validar com o dono no PR).
         "key": "dir_secretario",
         "label": "Secretário da Direcção",
         "orgao": DIRECAO,
         "ordem": 3,
         "seats": 1,
-        "role": "admin",
+        "role": "socio",
         "privileges": ["manage_users", "manage_events", "manage_documents", "moderate_content"],
     },
     {
@@ -126,7 +129,7 @@ CARGOS_CATALOG: list[dict] = [
         "orgao": DIRECAO,
         "ordem": 4,
         "seats": 1,
-        "role": "financeiro",
+        "role": "socio",
         "privileges": ["manage_finances", "view_audit_logs"],
     },
     {
@@ -135,7 +138,7 @@ CARGOS_CATALOG: list[dict] = [
         "orgao": DIRECAO,
         "ordem": 5,
         "seats": 3,
-        "role": "moderador",
+        "role": "socio",
         "privileges": ["moderate_content", "manage_events"],
     },
     {
@@ -212,21 +215,37 @@ PRIVILEGES = [
     "manage_ranking",
 ]
 
-ROLES = ["admin", "financeiro", "moderador", "socio"]
+# spec 018 D1: níveis de acesso do sistema. Os antigos financeiro/moderador
+# deixaram de ser níveis — são funções personalizadas seed (LEGACY_ROLE_SEEDS);
+# a API traduz roles legados durante 1 release de transição (D4) e a migração
+# `scripts/migrate_roles_018.py` converte os utilizadores existentes.
+ROLES = ["admin", "socio"]
+
+# Funções seed que empacotam os roles legados (D1/R4). Privilégios DERIVADOS DA
+# MATRIZ de acessos (tests/test_access_matrix.py, baseline F1 — medidos nos
+# gates, não intuídos dos labels): o role financeiro passava em
+# finances_view/finances_manage E users_list — manage_users é o privilégio que
+# preserva a listagem (nota: também concede gestão de utilizadores; delta
+# assinalado ao dono na migração). O moderador passava na moderação de conteúdo
+# (galeria/mural/fotos de perfil) → moderate_content.
+LEGACY_ROLE_SEEDS = {
+    "financeiro": {"name": "Financeiro", "privileges": ["manage_finances", "manage_users"]},
+    "moderador": {"name": "Moderador", "privileges": ["moderate_content"]},
+}
+
 MANDATO_ANOS = 3
 
 # --------------------------------------------------------------------------- #
-# Tabela canónica módulo → acesso (spec 018, F1).
+# Tabela canónica módulo → acesso (spec 018).
 #
-# Fonte única de QUEM passa em cada módulo do sistema: `privilege` é o
-# privilégio granular que governa o módulo; `legacy_roles` são os roles que
-# TAMBÉM passam no gate (semântica atual `role OU privilégio`, medida na
-# matriz `tests/test_access_matrix.py` — não intuída dos labels).
+# Fonte única de QUEM passa em cada módulo do sistema, no modelo consolidado:
+# `admin` passa sempre (nível de gestão total); `privilege` é o privilégio
+# granular que governa o módulo; `extra_privileges` são privilégios adicionais
+# que também passam (ex.: leitura de finanças pelo Conselho Fiscal). Os antigos
+# níveis financeiro/moderador NÃO passam por role — o seu acesso vive nas
+# funções seed (LEGACY_ROLE_SEEDS) e nos privilégios migrados.
 #
-# Na F1 a tabela é documental (alimenta a matriz e os helpers de finanças);
-# na F2 `legacy_roles` encolhe para {"admin"} quando financeiro/moderador
-# migrarem para funções personalizadas seed.
-#
+# A matriz `tests/test_access_matrix.py` é o contrato testável desta tabela.
 # Gates por CARGO (atos, eleições, assembleias, ranking-Direcção…) ficam FORA
 # da tabela — vivem em `permissions.py` e não mudam na spec 018.
 # --------------------------------------------------------------------------- #
@@ -236,22 +255,23 @@ MODULE_ACCESS: dict[str, dict] = {
         # leitura aceita também o Conselho Fiscal (view_finances_readonly)
         "privilege": "manage_finances",
         "extra_privileges": ("view_finances_readonly",),
-        "legacy_roles": ("admin", "financeiro"),
     },
-    "finances_manage": {"privilege": "manage_finances", "legacy_roles": ("admin", "financeiro")},
-    "users_list": {"privilege": "manage_users", "legacy_roles": ("admin", "financeiro")},
-    "users_manage": {"privilege": "manage_users", "legacy_roles": ("admin",)},
-    # gate assimétrico (remoção de foto): roles admin/moderador, privilégio manage_users
-    "users_photo_moderation": {"privilege": "manage_users", "legacy_roles": ("admin", "moderador")},
-    "events_manage": {"privilege": "manage_events", "legacy_roles": ("admin",)},
-    "documents_restricted": {"privilege": "manage_documents", "legacy_roles": ("admin",)},
-    "benefits_manage": {"privilege": "manage_benefits", "legacy_roles": ("admin",)},
-    "moderation_gallery": {"privilege": "moderate_content", "legacy_roles": ("admin", "moderador")},
-    "moderation_wall": {"privilege": "moderate_content", "legacy_roles": ("admin", "moderador")},
-    "comunicados_send": {"privilege": "send_comunicados", "legacy_roles": ("admin",)},
-    "audit_view": {"privilege": "view_audit_logs", "legacy_roles": ("admin",)},
-    "ranking_manage": {"privilege": "manage_ranking", "legacy_roles": ("admin",)},
-    "regulamentos_manage": {"privilege": "manage_documents", "legacy_roles": ("admin",)},
+    "finances_manage": {"privilege": "manage_finances"},
+    "users_list": {"privilege": "manage_users"},
+    "users_manage": {"privilege": "manage_users"},
+    # remoção de foto de perfil: gestão de utilizadores OU moderação de
+    # conteúdo (o antigo role moderador entrava aqui — o acesso preserva-se
+    # via moderate_content da seed «Moderador»)
+    "users_photo_moderation": {"privilege": "manage_users", "extra_privileges": ("moderate_content",)},
+    "events_manage": {"privilege": "manage_events"},
+    "documents_restricted": {"privilege": "manage_documents"},
+    "benefits_manage": {"privilege": "manage_benefits"},
+    "moderation_gallery": {"privilege": "moderate_content"},
+    "moderation_wall": {"privilege": "moderate_content"},
+    "comunicados_send": {"privilege": "send_comunicados"},
+    "audit_view": {"privilege": "view_audit_logs"},
+    "ranking_manage": {"privilege": "manage_ranking"},
+    "regulamentos_manage": {"privilege": "manage_documents"},
 }
 
 # Default de titulares da Direcção por mandato (spec decisão #3: 5 ou 7).

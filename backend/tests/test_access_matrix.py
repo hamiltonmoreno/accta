@@ -1,19 +1,26 @@
-"""Matriz de equivalência de acessos — spec 018, F1 (R10).
+"""Matriz de equivalência de acessos — spec 018 (R10).
 
-BASELINE capturada ANTES de qualquer alteração aos checks (T002): cada célula
-perfil × módulo afirma o comportamento do gate REAL no código atual. Esta
-matriz é o contrato de equivalência de toda a spec 018:
+BASELINE F1 capturada ANTES de qualquer alteração aos checks (T002) e provada
+inalterada após a higiene (SC-005). Esta versão é a ATUALIZAÇÃO DELIBERADA da
+F2 (T011): o `git diff` deste ficheiro entre a baseline e agora é a lista
+exata das mudanças de acesso decididas (SC-001, revisável pelo dono):
 
-- F1 (higiene): a matriz corre INALTERADA depois da unificação dos checks —
-  prova de zero mudança de comportamento (SC-005).
-- F2 (modelo): a matriz é atualizada DELIBERADAMENTE — o diff deste ficheiro
-  é a lista exata das mudanças de acesso decididas (SC-001, revisável).
+1. Os roles legados financeiro/moderador DEIXAM de passar em qualquer gate —
+   um doc que ainda os tenha (janela deploy→migração) fica como socio puro;
+   o acesso vive nas funções seed (perfis seed_* abaixo) após a migração.
+2. seed «Financeiro» = manage_finances + manage_users: preserva finanças e a
+   listagem de utilizadores; ⚠ GANHA gestão de utilizadores e remoção de
+   fotos (não existe privilégio só-de-listagem) — delta a validar pelo dono.
+3. seed «Moderador» = moderate_content: preserva exatamente o acesso antigo —
+   a remoção de fotos de perfil passou a aceitar também moderate_content
+   (semanticamente é moderação de conteúdo).
+4. Módulos que eram só-por-role ganharam o privilégio correspondente (posts/
+   banners/brand → moderate_content; stats/atividade-financeira →
+   manage_finances; PII de terceiros → manage_users) — fora da matriz, ver
+   os testes dos módulos respetivos.
 
 Os gates por CARGO (atos, eleições, assembleias — `permissions.is_*`) ficam
 fora da matriz: não mudam na spec 018 e têm testes próprios.
-
-Perfis: admin, financeiro, moderador, socio puro, socio+privilégio relevante
-do módulo, socio+view_finances_readonly (Conselho Fiscal), conta técnica.
 """
 
 import re
@@ -35,6 +42,7 @@ import routes.ranking as ranking_routes
 import routes.regulamentos as regulamentos_routes
 import routes.users as users_routes
 import routes.wall as wall_routes
+from governance import LEGACY_ROLE_SEEDS
 from models import GalleryAlbumUpdate, User, UserAdminUpdate
 
 pytestmark = pytest.mark.unit
@@ -63,7 +71,9 @@ def _user(role: str = "socio", privileges: list | None = None, **overrides) -> U
 
 def _profile(name: str, module_priv: str) -> User:
     """Constrói o utilizador-perfil. `socio_priv` recebe o privilégio relevante
-    do módulo em teste; os restantes perfis são fixos."""
+    do módulo em teste; os restantes perfis são fixos. Os perfis financeiro/
+    moderador representam docs LEGADOS ainda não migrados (janela) — negam
+    tudo; os seed_* são o destino da migração (privilégios das seeds)."""
     if name == "admin":
         return _user("admin")
     if name == "financeiro":
@@ -80,10 +90,24 @@ def _profile(name: str, module_priv: str) -> User:
         # Conta técnica (ex.: admin@controlador.cv): a camada RBAC decide por
         # role/privileges e IGNORA account_type — facto documentado na matriz.
         return _user("admin", account_type="technical", member_id=None)
+    if name == "seed_financeiro":
+        return _user("socio", list(LEGACY_ROLE_SEEDS["financeiro"]["privileges"]))
+    if name == "seed_moderador":
+        return _user("socio", list(LEGACY_ROLE_SEEDS["moderador"]["privileges"]))
     raise AssertionError(f"perfil desconhecido: {name}")
 
 
-PROFILES = ["admin", "financeiro", "moderador", "socio", "socio_priv", "readonly", "tecnico"]
+PROFILES = [
+    "admin",
+    "financeiro",
+    "moderador",
+    "socio",
+    "socio_priv",
+    "readonly",
+    "tecnico",
+    "seed_financeiro",
+    "seed_moderador",
+]
 
 
 # --------------------------------------------------------------------------- #
@@ -142,34 +166,35 @@ async def _gate(module: str, user: User) -> bool:
 
 
 # --------------------------------------------------------------------------- #
-# A MATRIZ (baseline 2026-07-03, código pré-F1)
+# A MATRIZ (modelo F2 — spec 018; diff vs baseline F1 = mudanças decididas)
 # `priv` = privilégio relevante dado ao perfil socio_priv.
-# `allow` = perfis que o gate deixa passar HOJE.
+# `allow` = perfis que o gate deixa passar.
 # --------------------------------------------------------------------------- #
 
 MATRIX = {
     "finances_view": {
         "priv": "manage_finances",
-        "allow": {"admin", "financeiro", "socio_priv", "readonly", "tecnico"},
+        "allow": {"admin", "socio_priv", "readonly", "tecnico", "seed_financeiro"},
     },
     "finances_manage": {
         "priv": "manage_finances",
-        "allow": {"admin", "financeiro", "socio_priv", "tecnico"},
+        "allow": {"admin", "socio_priv", "tecnico", "seed_financeiro"},
     },
     "users_list": {
-        # users.py: o role financeiro passa na listagem de utilizadores.
         "priv": "manage_users",
-        "allow": {"admin", "financeiro", "socio_priv", "tecnico"},
+        "allow": {"admin", "socio_priv", "tecnico", "seed_financeiro"},
     },
     "users_manage": {
+        # ⚠ seed_financeiro passa por manage_users — GANHO vs role antigo
+        # (financeiro só listava); delta assinalado ao dono (docstring §2).
         "priv": "manage_users",
-        "allow": {"admin", "socio_priv", "tecnico"},
+        "allow": {"admin", "socio_priv", "tecnico", "seed_financeiro"},
     },
     "users_photo_moderation": {
-        # users.py: gate assimétrico — roles (admin, moderador) mas privilégio
-        # manage_users (não moderate_content). Input direto da seed «Moderador».
+        # F2: o gate aceita manage_users OU moderate_content (remoção de foto
+        # é moderação de conteúdo) — preserva o acesso do antigo moderador.
         "priv": "manage_users",
-        "allow": {"admin", "moderador", "socio_priv", "tecnico"},
+        "allow": {"admin", "socio_priv", "tecnico", "seed_financeiro", "seed_moderador"},
     },
     "events_manage": {
         "priv": "manage_events",
@@ -185,11 +210,11 @@ MATRIX = {
     },
     "moderation_gallery": {
         "priv": "moderate_content",
-        "allow": {"admin", "moderador", "socio_priv", "tecnico"},
+        "allow": {"admin", "socio_priv", "tecnico", "seed_moderador"},
     },
     "moderation_wall": {
         "priv": "moderate_content",
-        "allow": {"admin", "moderador", "socio_priv", "tecnico"},
+        "allow": {"admin", "socio_priv", "tecnico", "seed_moderador"},
     },
     "comunicados_send": {
         "priv": "send_comunicados",
@@ -221,14 +246,15 @@ async def test_access_matrix(mock_db, module, profile, expected):
     user = _profile(profile, MATRIX[module]["priv"])
     assert await _gate(module, user) is expected, (
         f"{module} × {profile}: esperado {'ALLOW' if expected else 'DENY'} "
-        f"(baseline pré-F1 — se isto mudou, a equivalência quebrou)"
+        f"(matriz F2 — mudanças só via edição deliberada deste ficheiro)"
     )
 
 
 # --------------------------------------------------------------------------- #
-# Derivação das seeds F2 (R4): o acesso REAL dos roles financeiro/moderador,
-# medido nos gates — não intuído dos labels. É daqui que saem os privilégios
-# das funções seed «Financeiro»/«Moderador» na migração.
+# Equivalência das seeds (SC-001): o acesso medido dos perfis seed_* vs o que
+# os roles legados tinham na baseline F1 (financeiro = {finances_view,
+# finances_manage, users_list}; moderador = {moderation_gallery,
+# moderation_wall, users_photo_moderation}).
 # --------------------------------------------------------------------------- #
 
 
@@ -236,15 +262,25 @@ async def _allowed_modules(mock_db_unused, user: User) -> set:
     return {m for m in MATRIX if await _gate(m, user)}
 
 
-async def test_role_financeiro_measured_access(mock_db):
-    """O role financeiro passa HOJE em exatamente estes módulos."""
-    allowed = await _allowed_modules(mock_db, _user("financeiro"))
-    assert allowed == {"finances_view", "finances_manage", "users_list"}
+async def test_legacy_roles_grant_nothing(mock_db):
+    """Docs com role legado (janela pré-migração) são socio puro nos gates."""
+    assert await _allowed_modules(mock_db, _user("financeiro")) == set()
+    assert await _allowed_modules(mock_db, _user("moderador")) == set()
 
 
-async def test_role_moderador_measured_access(mock_db):
-    """O role moderador passa HOJE em exatamente estes módulos."""
-    allowed = await _allowed_modules(mock_db, _user("moderador"))
+async def test_seed_financeiro_equivalence(mock_db):
+    """Seed «Financeiro» cobre TODO o acesso do antigo role (⊇ baseline).
+    Delta assinalado: +users_manage e +users_photo_moderation vêm de
+    manage_users (não existe privilégio só-de-listagem) — validação do dono."""
+    allowed = await _allowed_modules(mock_db, _profile("seed_financeiro", ""))
+    baseline = {"finances_view", "finances_manage", "users_list"}
+    assert baseline <= allowed
+    assert allowed - baseline == {"users_manage", "users_photo_moderation"}
+
+
+async def test_seed_moderador_equivalence(mock_db):
+    """Seed «Moderador» = exatamente o acesso do antigo role (equivalência exata)."""
+    allowed = await _allowed_modules(mock_db, _profile("seed_moderador", ""))
     assert allowed == {"moderation_gallery", "moderation_wall", "users_photo_moderation"}
 
 
@@ -269,5 +305,5 @@ def test_no_inline_role_checks():
     ]
     assert not offenders, (
         "Checks de role inline fora dos helpers (spec 018, FR-008) — usar "
-        "has_role_or_privilege/is_admin/has_any_role de auth.py:\n" + "\n".join(offenders)
+        "has_role_or_privilege/is_admin/module_gate de auth.py:\n" + "\n".join(offenders)
     )

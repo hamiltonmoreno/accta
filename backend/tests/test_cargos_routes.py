@@ -153,7 +153,9 @@ class TestPromote:
             data=PromoteUserRequest(cargo="Tesoureiro", role="financeiro"),
             current_user=admin_user,
         )
-        assert captured["role"] == "financeiro"
+        # spec 018 D4: cliente antigo a enviar role legado degrada para socio
+        # (o acesso do Tesoureiro vem dos privilégios do cargo)
+        assert captured["role"] == "socio"
         # input por label legado, gravado como key canónica + órgão denormalizado
         assert captured["cargo"] == "dir_tesoureiro"
         assert captured["orgao"] == "direcao"

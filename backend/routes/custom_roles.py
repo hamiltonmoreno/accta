@@ -18,14 +18,15 @@ from models import CustomRole, CustomRoleCreate, CustomRoleUpdate, User
 
 router = APIRouter(prefix="/admin/custom-roles", tags=["custom-roles"])
 
-# Nomes reservados: keys e rótulos PT das 4 funções fixas (comparação normalizada).
+# Nomes reservados: keys e rótulos PT dos NÍVEIS de acesso (comparação
+# normalizada). spec 018 R5: «financeiro»/«moderador» deixaram de ser níveis —
+# saíram dos reservados porque passam a existir como funções seed («Financeiro»
+# /«Moderador»), protegidas pela unicidade normal de nomes.
 _RESERVED_NAMES = {
     "admin",
     "administracao",
     "administração",
     "administrador",
-    "financeiro",
-    "moderador",
     "socio",
     "sócio",
 }

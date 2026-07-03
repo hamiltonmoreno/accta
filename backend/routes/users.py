@@ -19,8 +19,14 @@ from governance import (
     orgao_of_cargo,
 )
 from database import db
-from auth import get_current_user, has_any_role, is_admin, has_role_or_privilege
-from helpers import create_audit_log, create_notification, delete_upload_file
+from auth import get_current_user, has_role_or_privilege, is_admin, module_gate
+from helpers import (
+    alert_admins_privilege_escalation,
+    create_audit_log,
+    create_notification,
+    delete_upload_file,
+    resolve_legacy_role,
+)
 
 router = APIRouter(tags=["users"])
 
@@ -62,7 +68,7 @@ async def get_users(
     include_technical: bool = False,
     current_user: User = Depends(get_current_user),
 ):
-    if not has_role_or_privilege(current_user, ("admin", "financeiro"), "manage_users"):
+    if not has_role_or_privilege(current_user, ("admin",), "manage_users"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     query = {}
@@ -107,7 +113,7 @@ async def get_users(
 async def get_user(user_id: str, current_user: User = Depends(get_current_user)):
     # Self ou staff (admin/financeiro) — restantes não veem PII de terceiros
     is_self = current_user.id == user_id
-    is_staff = has_any_role(current_user, "admin", "financeiro")
+    is_staff = has_role_or_privilege(current_user, ("admin",), "manage_users")
     if not (is_self or is_staff):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
@@ -215,10 +221,23 @@ async def admin_update_user(
         if invalid:
             raise HTTPException(status_code=400, detail=f"Privilégios inválidos: {', '.join(invalid)}")
 
-    # Validate role
+    # Validate role — spec 018 D4 (release de transição): financeiro/moderador
+    # continuam aceites mas são traduzidos abaixo; a release seguinte remove-os.
     valid_roles = ["admin", "socio", "financeiro", "moderador"]
     if "role" in update_data and update_data["role"] not in valid_roles:
         raise HTTPException(status_code=400, detail=f"Role inválido. Opções: {', '.join(valid_roles)}")
+
+    # spec 018 D4: role legado traduz para socio + função personalizada seed
+    # (criada on-demand) — mesma precedência de função da spec 017: os
+    # privilégios materializados são os da seed.
+    legacy_role_translated = None
+    if "role" in update_data:
+        seed = await resolve_legacy_role(update_data["role"])
+        if seed:
+            legacy_role_translated = update_data["role"]
+            update_data["role"] = "socio"
+            update_data["privileges"] = list(seed["privileges"])
+            update_data["custom_role_id"] = seed["id"]
 
     # Validate status (invariante: sem "inadimplente")
     if "status" in update_data and update_data["status"] not in USER_STATUSES:
@@ -241,8 +260,21 @@ async def admin_update_user(
             "changes": list(update_data.keys()),
             "before": before or None,
             "after": after or None,
+            **({"legacy_role_translated": legacy_role_translated} if legacy_role_translated else {}),
         },
     )
+
+    # Alerta de escalada (§8.2.c / spec 018 R8): role admin novo OU novos
+    # privilégios sensíveis — incl. quando chegam via função personalizada.
+    if {"role", "privileges", "custom_role_id"} & set(update_data.keys()):
+        await alert_admins_privilege_escalation(
+            current_user.id,
+            existing.get("name", "Utilizador"),
+            existing.get("role"),
+            update_data.get("role", existing.get("role")),
+            existing.get("privileges"),
+            update_data.get("privileges", existing.get("privileges")),
+        )
 
     # Notify user of role/cargo changes
     notify_fields = {"role", "privileges", "status"}
@@ -310,7 +342,7 @@ async def remove_user_photo(
     """Admin/moderador removem a foto de perfil de um membro (foto inadequada).
     Apenas REMOVEM — não definem fotos (spec-foto-de-perfil §5.2). Volta às
     iniciais, apaga o ficheiro, regista audit e notifica o utilizador."""
-    if not has_role_or_privilege(current_user, ("admin", "moderador"), "manage_users"):
+    if not module_gate(current_user, "users_photo_moderation"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     existing = await db.users.find_one({"id": user_id}, {"_id": 0, "photo_url": 1, "name": 1})

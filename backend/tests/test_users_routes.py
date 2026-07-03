@@ -33,10 +33,12 @@ class TestListUsers:
         result = await users_route.get_users(current_user=admin_user)
         assert result == []
 
-    async def test_financeiro_can_list(self, mock_db, financeiro_user):
-        mock_db.users.find().skip().limit().to_list = AsyncMock(return_value=[])
-        result = await users_route.get_users(current_user=financeiro_user)
-        assert result == []
+    async def test_financeiro_role_403(self, mock_db, financeiro_user):
+        # spec 018: o role legado deixou de conceder listagem — o acesso do
+        # ex-financeiro vem da seed «Financeiro» (manage_users), ver matriz.
+        with pytest.raises(HTTPException) as exc:
+            await users_route.get_users(current_user=financeiro_user)
+        assert exc.value.status_code == 403
 
     async def test_socio_403(self, mock_db, socio_user):
         with pytest.raises(HTTPException) as exc:
@@ -124,9 +126,19 @@ class TestGetUser:
         result = await users_route.get_user(user_id="other-id", current_user=admin_user)
         assert result is not None
 
-    async def test_financeiro_can_view_other(self, mock_db, financeiro_user, socio_user_dict):
+    async def test_financeiro_role_cannot_view_other(self, mock_db, financeiro_user):
+        # spec 018: PII de terceiros passa a exigir manage_users (a seed
+        # «Financeiro» inclui-o; o role legado sozinho já não).
+        with pytest.raises(HTTPException) as exc:
+            await users_route.get_user(user_id="other-id", current_user=financeiro_user)
+        assert exc.value.status_code == 403
+
+    async def test_manage_users_privilege_can_view_other(self, mock_db, socio_user_dict):
+        from models import User
+
+        staff = User(**{**socio_user_dict, "privileges": ["manage_users"]})
         mock_db.users.find_one = AsyncMock(return_value=socio_user_dict)
-        result = await users_route.get_user(user_id="other-id", current_user=financeiro_user)
+        result = await users_route.get_user(user_id="other-id", current_user=staff)
         assert result is not None
 
     async def test_socio_cannot_view_other(self, mock_db, socio_user):

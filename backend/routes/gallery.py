@@ -107,7 +107,7 @@ async def get_gallery_album(album_id: str, current_user: User = Depends(get_curr
 
 @router.post("/albums")
 async def create_gallery_album(album_data: GalleryAlbumCreate, current_user: User = Depends(get_current_user)):
-    if not has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content"):
+    if not has_role_or_privilege(current_user, ("admin",), "moderate_content"):
         raise HTTPException(status_code=403, detail="Sem permissão para moderar conteúdo")
     album = GalleryAlbum(**album_data.model_dump())
     album_dict = album.model_dump()
@@ -120,7 +120,7 @@ async def create_gallery_album(album_data: GalleryAlbumCreate, current_user: Use
 async def update_gallery_album(
     album_id: str, album_data: GalleryAlbumUpdate, current_user: User = Depends(get_current_user)
 ):
-    if not has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content"):
+    if not has_role_or_privilege(current_user, ("admin",), "moderate_content"):
         raise HTTPException(status_code=403, detail="Sem permissão para moderar conteúdo")
     existing = await db.gallery_albums.find_one({"id": album_id}, {"_id": 0})
     if not existing:
@@ -137,7 +137,7 @@ async def update_gallery_album(
 
 @router.delete("/albums/{album_id}")
 async def delete_gallery_album(album_id: str, current_user: User = Depends(get_current_user)):
-    if not has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content"):
+    if not has_role_or_privilege(current_user, ("admin",), "moderate_content"):
         raise HTTPException(status_code=403, detail="Sem permissão para moderar conteúdo")
 
     photos = await db.gallery_photos.find({"album_id": album_id}, {"_id": 0, "url": 1}).to_list(None)
@@ -169,7 +169,7 @@ async def get_gallery_photos(
     # status — antes só `admin` podia, e o moderador que listava fotos de um
     # álbum não via as pendentes que lhe compete moderar (incoerente com
     # /photos/pending, que já aceita moderador).
-    is_staff = has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content")
+    is_staff = has_role_or_privilege(current_user, ("admin",), "moderate_content")
     if status and is_staff:
         query["status"] = status
     elif not is_staff:
@@ -181,7 +181,7 @@ async def get_gallery_photos(
 
 @router.get("/photos/pending")
 async def get_pending_photos(current_user: User = Depends(get_current_user)):
-    if not has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content"):
+    if not has_role_or_privilege(current_user, ("admin",), "moderate_content"):
         raise HTTPException(status_code=403, detail="Sem permissão para moderar conteúdo")
     photos = await db.gallery_photos.find({"status": "pending"}, {"_id": 0}).sort("created_at", -1).to_list(200)
 
@@ -255,7 +255,7 @@ async def upload_gallery_photo(
 
 @router.patch("/photos/{photo_id}/approve")
 async def approve_photo(photo_id: str, current_user: User = Depends(get_current_user)):
-    if not has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content"):
+    if not has_role_or_privilege(current_user, ("admin",), "moderate_content"):
         raise HTTPException(status_code=403, detail="Sem permissão para moderar conteúdo")
     photo = await db.gallery_photos.find_one({"id": photo_id}, {"_id": 0})
     if not photo:
@@ -283,7 +283,7 @@ async def approve_photo(photo_id: str, current_user: User = Depends(get_current_
 
 @router.patch("/photos/{photo_id}/reject")
 async def reject_photo(photo_id: str, current_user: User = Depends(get_current_user)):
-    if not has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content"):
+    if not has_role_or_privilege(current_user, ("admin",), "moderate_content"):
         raise HTTPException(status_code=403, detail="Sem permissão para moderar conteúdo")
     photo = await db.gallery_photos.find_one({"id": photo_id}, {"_id": 0})
     if not photo:
@@ -313,7 +313,7 @@ async def delete_gallery_photo(photo_id: str, current_user: User = Depends(get_c
     if not photo:
         raise HTTPException(status_code=404, detail="Foto nao encontrada")
 
-    is_staff = has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content")
+    is_staff = has_role_or_privilege(current_user, ("admin",), "moderate_content")
     is_owner = photo.get("uploaded_by") == current_user.id
     if not is_staff and not is_owner:
         raise HTTPException(status_code=403, detail="Sem permissao")

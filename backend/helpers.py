@@ -7,8 +7,31 @@ import json
 import os
 from fastapi import Request
 from database import db, UPLOAD_DIR, _json_default
-from models import AuditLog, Notification
+from governance import LEGACY_ROLE_SEEDS
+from models import AuditLog, CustomRole, Notification
 from push_service import dispatch_push
+
+
+async def resolve_legacy_role(role: Optional[str]) -> Optional[dict]:
+    """spec 018 D4 (release de transição): se `role` é um nível legado
+    (financeiro/moderador), devolve o doc da função personalizada seed
+    equivalente — criando-a on-demand se ainda não existir (janela
+    deploy→migração: a tradução nunca falha por ordem de operações).
+    Devolve None para níveis não-legados (admin/socio/desconhecidos)."""
+    seed_def = LEGACY_ROLE_SEEDS.get(role or "")
+    if not seed_def:
+        return None
+    doc = await db.custom_roles.find_one({"name": seed_def["name"]}, {"_id": 0})
+    if not doc:
+        doc = CustomRole(
+            name=seed_def["name"],
+            description="Função seed da transição do modelo de acessos (spec 018)",
+            privileges=list(seed_def["privileges"]),
+            created_by="system",
+        ).model_dump()
+        await db.custom_roles.insert_one(doc)
+        doc.pop("_id", None)
+    return doc
 
 
 async def coaprovacao_limiar() -> float:
@@ -334,7 +357,10 @@ async def notify_admins(
 # escalada de privilégio; (b) IPs distintos e (d) picos 4xx/429 ficam diferidos.
 # --------------------------------------------------------------------------- #
 
-_ELEVATED_ROLES = frozenset({"admin", "financeiro", "moderador"})
+# spec 018 R8: os níveis financeiro/moderador deixaram de existir — a
+# sensibilidade vive nos PRIVILÉGIOS (incl. atribuídos via função
+# personalizada), não no role. Substitui o antigo _ELEVATED_ROLES.
+_SENSITIVE_PRIVILEGES = frozenset({"manage_users", "manage_finances", "view_audit_logs"})
 
 
 async def alert_admins_account_locked(email: str) -> None:
@@ -358,12 +384,13 @@ async def alert_admins_privilege_escalation(
     new_privileges: Optional[List[str]] = None,
 ) -> None:
     """Alerta os admins (exceto o ator) quando uma conta GANHA acesso elevado —
-    `role` para {admin,financeiro,moderador} ou novos `privileges` (§8.2.c).
-    Defesa contra escalada (admin comprometido a promover cúmplice; abuso de
-    poder). De-escalada (demote/expulsão) não alerta."""
+    role `admin` novo OU novos privilégios sensíveis (§8.2.c, redefinido pela
+    spec 018 R8). Defesa contra escalada (admin comprometido a promover
+    cúmplice; abuso de poder). De-escalada (demote/expulsão) não alerta."""
     gained = sorted(set(new_privileges or []) - set(old_privileges or []))
-    role_up = new_role != old_role and new_role in _ELEVATED_ROLES
-    if not role_up and not gained:
+    gained_sensitive = [p for p in gained if p in _SENSITIVE_PRIVILEGES]
+    role_up = new_role != old_role and new_role == "admin"
+    if not role_up and not gained_sensitive:
         return
     parts = []
     if role_up:

@@ -18,6 +18,7 @@ from models import (
 from finance_joia import compute_joia
 from governance import (
     CARGO_KEYS,
+    LEGACY_ROLE_SEEDS,
     normalize_cargo,
     cargo_label,
     orgao_of_cargo,
@@ -26,11 +27,19 @@ from governance import (
 )
 from database import db, transfer_cargo, next_member_id
 from auth import get_current_user, is_admin, generate_qr_hash, has_role_or_privilege
-from helpers import alert_admins_privilege_escalation, create_audit_log, resolve_link_base, notify_users
+from helpers import (
+    alert_admins_privilege_escalation,
+    create_audit_log,
+    notify_users,
+    resolve_legacy_role,
+    resolve_link_base,
+)
 from email_service import send_invite_email, send_registration_rejected_email
 import uuid
 import secrets
 
+# spec 018 D4 (release de transição): financeiro/moderador continuam aceites
+# mas são TRADUZIDOS para socio + função seed; a release seguinte remove-os.
 VALID_APPROVE_ROLES = ["socio", "financeiro", "moderador", "admin"]
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -71,10 +80,17 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
     # Função personalizada (spec 017): o convidado nasce socio + privilégios da
     # função (ligação viva); ignora `role` (base é sempre "socio" — decisão Q2).
     custom_role = None
+    legacy_role_translated = None
     if data.custom_role_id:
         custom_role = await db.custom_roles.find_one({"id": data.custom_role_id}, {"_id": 0})
         if not custom_role:
             raise HTTPException(status_code=400, detail="Função personalizada inválida")
+    else:
+        # spec 018 D4 (release de transição): role legado financeiro/moderador
+        # traduz para socio + função seed equivalente (criada on-demand).
+        custom_role = await resolve_legacy_role(data.role)
+        if custom_role:
+            legacy_role_translated = data.role
 
     # member_id fornecido manualmente: verifica colisão antes de escrever (é
     # imutável e único por sócio). Backstop de BD: ux_users_member_id (best-effort).
@@ -101,7 +117,7 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
         "phone_number": data.phone_number or "",
         "admission_date": now.isoformat(),
         "privileges": list(custom_role["privileges"]) if custom_role else [],
-        "custom_role_id": data.custom_role_id if custom_role else None,
+        "custom_role_id": custom_role["id"] if custom_role else None,
         "consent_data": False,
         "qr_code_hash": generate_qr_hash(user_id),
         "last_login_at": None,
@@ -132,6 +148,7 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
             "cargo": data.cargo,
             "custom_role": custom_role.get("name") if custom_role else None,
             "joia_devida": user_doc["joia_devida"],
+            **({"legacy_role_translated": legacy_role_translated} if legacy_role_translated else {}),
         },
     )
 
@@ -234,6 +251,13 @@ async def approve_registration(
     if data.role not in VALID_APPROVE_ROLES:
         raise HTTPException(status_code=422, detail="Role invalido")
 
+    # spec 018 D4 (release de transição): role legado financeiro/moderador
+    # traduz para socio + função seed equivalente (criada on-demand).
+    role = data.role
+    seed_role = await resolve_legacy_role(role)
+    if seed_role:
+        role = "socio"
+
     user = await db.users.find_one({"id": user_id, "status": "pendente_aprovacao"}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Pedido nao encontrado ou ja processado")
@@ -243,7 +267,7 @@ async def approve_registration(
     expires_at = now + timedelta(days=INVITE_TOKEN_TTL_DAYS)
     raw_cargo = data.cargo or user.get("cargo_declarado") or user.get("cargo") or "socio"
     cargo_key = normalize_cargo(raw_cargo) or "socio"
-    _validate_cargo_role_privs(cargo_key, data.role, None)
+    _validate_cargo_role_privs(cargo_key, role, None)
 
     seats = CARGO_SEATS.get(cargo_key, 0)
     if seats > 0 and await _count_cargo_holders(cargo_key, exclude_ids={user_id}) >= seats:
@@ -251,7 +275,7 @@ async def approve_registration(
 
     set_fields = {
         "status": "pendente_convite",
-        "role": data.role,
+        "role": role,
         "cargo": cargo_key,
         "orgao": orgao_of_cargo(cargo_key),
         "invite_token": invite_token,
@@ -259,12 +283,15 @@ async def approve_registration(
         "registration_review_at": now.isoformat(),
         "registration_reviewer_id": current_user.id,
     }
+    if seed_role:
+        set_fields["privileges"] = list(seed_role["privileges"])
+        set_fields["custom_role_id"] = seed_role["id"]
     # spec-governanca: aprovar com cargo estatutário (de órgão social) cria a 1ª
     # entrada no cargo_history. Cargo "socio" (estado base) não gera mandato.
     if is_estatutary_cargo(cargo_key):
         mandate = _build_mandate(
             cargo_key,
-            data.role,
+            role,
             now.isoformat(),
             current_user.id,
             notes="Atribuído na aprovação do auto-registo",
@@ -288,7 +315,12 @@ async def approve_registration(
         "registration_approved",
         user_id,
         request=request,
-        details={"role": data.role, "cargo": cargo_key, "member_id": user.get("member_id")},
+        details={
+            "role": role,
+            "cargo": cargo_key,
+            "member_id": user.get("member_id"),
+            **({"legacy_role_translated": data.role} if seed_role else {}),
+        },
     )
 
     if joia is not None:
@@ -426,7 +458,11 @@ async def promote_user(
     """Atribui um cargo institucional a um sócio activo (abre novo mandato)."""
     _require_manage_users(current_user)
     cargo_key = normalize_cargo(data.cargo)
-    _validate_cargo_role_privs(cargo_key, data.role, data.privileges)
+    # spec 018 D4: cliente antigo a promover com role legado (ex.: tesoureiro →
+    # financeiro, defaults pré-018) degrada para socio — o acesso vem dos
+    # privilégios do cargo; cargo estatutário não usa função personalizada (D5).
+    role = "socio" if data.role in LEGACY_ROLE_SEEDS else data.role
+    _validate_cargo_role_privs(cargo_key, role, data.privileges)
     label = cargo_label(cargo_key)
 
     user = await db.users.find_one({"id": user_id}, {"_id": 0})
@@ -444,14 +480,14 @@ async def promote_user(
     effective = data.effective_date or _now_iso()
     privileges = _resolve_privileges(cargo_key, data.privileges)
     history = _close_active_mandates(user.get("cargo_history"), effective)
-    mandate = _build_mandate(cargo_key, data.role, effective, current_user.id, data.elected_by, data.notes)
+    mandate = _build_mandate(cargo_key, role, effective, current_user.id, data.elected_by, data.notes)
     history.append(mandate)
 
     await db.users.update_one(
         {"id": user_id},
         {
             "$set": {
-                "role": data.role,
+                "role": role,
                 "cargo": cargo_key,
                 "orgao": orgao_of_cargo(cargo_key),
                 "privileges": privileges,
@@ -467,13 +503,13 @@ async def promote_user(
         "cargo_promote",
         user_id,
         request=request,
-        details={"cargo": cargo_key, "role": data.role, "mandate_id": mandate["id"], "privileges": privileges},
+        details={"cargo": cargo_key, "role": role, "mandate_id": mandate["id"], "privileges": privileges},
     )
     await alert_admins_privilege_escalation(
         current_user.id,
         user.get("name", "Utilizador"),
         user.get("role"),
-        data.role,
+        role,
         user.get("privileges"),
         privileges,
     )
@@ -529,7 +565,10 @@ async def transfer_cargo_endpoint(
     presidente). Despromove `from_user` e promove `to_user` numa só transacção."""
     _require_manage_users(current_user)
     cargo_key = normalize_cargo(data.cargo)
-    _validate_cargo_role_privs(cargo_key, data.role, data.privileges)
+    # spec 018 D4: role legado de cliente antigo degrada para socio (o acesso
+    # vem dos privilégios do cargo — mesma regra do promote).
+    role = "socio" if data.role in LEGACY_ROLE_SEEDS else data.role
+    _validate_cargo_role_privs(cargo_key, role, data.privileges)
     label = cargo_label(cargo_key)
     if data.from_user_id == data.to_user_id:
         raise HTTPException(status_code=400, detail="Origem e destino têm de ser sócios diferentes")
@@ -560,7 +599,7 @@ async def transfer_cargo_endpoint(
     # transação (sobre o doc bloqueado, via transfer_cargo) para não sofrer
     # lost-update contra promote/demote concorrentes — por isso passamos
     # transformações doc->doc, não arrays pré-calculados a partir das leituras.
-    mandate = _build_mandate(cargo_key, data.role, effective, current_user.id, data.elected_by, data.notes)
+    mandate = _build_mandate(cargo_key, role, effective, current_user.id, data.elected_by, data.notes)
     mandate["transition_id"] = transition_id
 
     def _demote(doc: dict) -> dict:
@@ -578,7 +617,7 @@ async def transfer_cargo_endpoint(
         d = dict(doc)
         history = _close_active_mandates(d.get("cargo_history"), effective)
         history.append(mandate)
-        d["role"] = data.role
+        d["role"] = role
         d["cargo"] = cargo_key
         d["orgao"] = orgao_of_cargo(cargo_key)
         d["privileges"] = privileges
@@ -611,7 +650,7 @@ async def transfer_cargo_endpoint(
         current_user.id,
         to_user.get("name", "Utilizador"),
         to_user.get("role"),
-        data.role,
+        role,
         to_user.get("privileges"),
         privileges,
     )

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pathlib import Path
 from models import User
 from database import UPLOAD_DIR
-from auth import get_current_user, has_any_role, is_admin
+from auth import get_current_user, has_role_or_privilege, is_admin
 from helpers import create_audit_log
 from file_validation import validate_file_content
 import asyncio
@@ -65,7 +65,7 @@ async def upload_file(category: str, file: UploadFile = File(...), current_user:
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     # Banners, marca e capas de notícia: gestão de conteúdo (admin+moderador).
-    if category in ("banners", "brand", "covers") and not has_any_role(current_user, "admin", "moderador"):
+    if category in ("banners", "brand", "covers") and not has_role_or_privilege(current_user, ("admin",), "moderate_content"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     # Comprovativos e avatares: qualquer membro, mas só se estiver ativo

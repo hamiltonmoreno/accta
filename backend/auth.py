@@ -94,35 +94,28 @@ def is_admin(user) -> bool:
     return _uattr(user, "role") == "admin"
 
 
-def has_any_role(user, *roles: str) -> bool:
-    """Check puro por role, SEM privilégio — só para os poucos gates que hoje
-    não têm privilégio granular associado (posts, banners, brand, stats…).
-    A spec 018/F2 decide o privilégio destes módulos via matriz de acessos."""
-    return _uattr(user, "role") in roles
-
-
 def module_gate(user, module: str) -> bool:
     """Gate por módulo lido da tabela canónica `governance.MODULE_ACCESS`
-    (spec 018 F1): role legado OU privilégio do módulo OU privilégios extra
+    (spec 018): admin OU privilégio do módulo OU privilégios extra
     (ex.: view_finances_readonly na leitura de finanças)."""
     from governance import MODULE_ACCESS
 
     spec = MODULE_ACCESS[module]
     return (
-        _uattr(user, "role") in spec["legacy_roles"]
+        is_admin(user)
         or has_privilege(user, spec["privilege"])
         or any(has_privilege(user, p) for p in spec.get("extra_privileges", ()))
     )
 
 
 def can_view_finances(user) -> bool:
-    """Pode VER o módulo financeiro: admin/financeiro, ou quem tem
-    view_finances_readonly (Conselho Fiscal) ou manage_finances."""
+    """Pode VER o módulo financeiro: admin, ou quem tem view_finances_readonly
+    (Conselho Fiscal) ou manage_finances."""
     return module_gate(user, "finances_view")
 
 
 def can_manage_finances(user) -> bool:
-    """Pode ESCREVER no módulo financeiro: admin/financeiro ou manage_finances.
+    """Pode ESCREVER no módulo financeiro: admin ou manage_finances.
     view_finances_readonly NÃO concede escrita (separação de poderes)."""
     return module_gate(user, "finances_manage")
 

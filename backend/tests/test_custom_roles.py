@@ -145,7 +145,9 @@ class TestCreateCustomRole:
             )
         assert exc.value.status_code == 400
 
-    @pytest.mark.parametrize("reserved", ["Administração", "admin", "Financeiro", "moderador", "Sócio"])
+    # spec 018 R5: «Financeiro»/«moderador» saíram dos reservados — passam a
+    # existir como funções seed, protegidas pela unicidade normal de nomes.
+    @pytest.mark.parametrize("reserved", ["Administração", "admin", "Sócio"])
     async def test_collision_with_fixed_400(self, mock_db, admin_user, reserved):
         from models import CustomRoleCreate
 
