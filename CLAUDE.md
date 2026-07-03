@@ -402,10 +402,15 @@ quickstart. **F1** = `tests/test_access_matrix.py` baseline ANTES de tocar check
 sozinha). **F2** = enum {admin,socio} + defaults R7 + `scripts/migrate_roles_018.py`
 (dry-run/apply, backup, audit) + UI D2/US3 + **emenda constitucional v1.1.0 OBRIGATÓRIA**
 (constituição fixa o enum antigo em Stack & Data Constraints) + 3 STOPs do dono na execução
-(migração prod, modelo, main). **tasks.md gerado: 20 tarefas** (T001 setup; T002–T007 US4/F1
-gate — matriz baseline PRIMEIRO; T008–T013 US1 modelo+emenda; T014–T016 US2 migração local;
-T017–T018 US3 UI; T019–T020 polish/validação). Próximo: `/speckit-analyze` (recomendado pela
-constituição) ou `/speckit-implement`.
+(migração prod, modelo, main). **tasks.md: 20 tarefas**; `/speckit-analyze` corrido e findings
+aplicados (M1 seed on-demand, M2 scan-test, M3 --restore; commit `8283df3`). **F1 (T001–T007)
+IMPLEMENTADA e verde 2026-07-03** (commits `2cfaa04` baseline + `5264582` refactor): matriz
+`tests/test_access_matrix.py` (100 células, committada ANTES do refactor e INALTERADA depois =
+prova de equivalência; mede acesso real dos roles legados — input das seeds R4), `MODULE_ACCESS`
+(14 módulos) em governance.py, `is_admin`/`has_any_role`/`module_gate` em auth.py, `user_can`
+alias, 25 route files sem comparações inline de role, tripwire `test_no_inline_role_checks`;
+`pytest -m unit` 1503 passed, ruff limpo. Branch sem push/PR. Próximo: decisão do dono sobre
+release própria da F1 (invisível, encurta o delta) e arranque da F2 (T008–T020, 3 STOPs).
 Em espera: `specs/017-funcoes-personalizadas/` — **MERGED em develop (PR #402, `bdea385`),
 NÃO released** (release v0.5.54 suspensa pela D7 da spec 018). Falta T018 = validação manual
 do dono (quickstart 1–6) — ambiente local isolado montado (Docker `accta-pg-dev` porta 5433,
