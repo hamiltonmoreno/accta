@@ -379,7 +379,21 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Nenhuma feature Spec Kit ativa — próxima via `/speckit-specify`.
+Feature ativa: `specs/017-funcoes-personalizadas/` — **Funções personalizadas com privilégios à
+medida**: o admin cria funções nomeadas (pacotes de privilégios do catálogo canónico, ex.:
+«Coordenador de Eventos») e aplica-as a sócios no seletor «Função no Sistema» (edição + convite).
+Decisões do dono: Q1 = **ligação viva** (editar a função propaga a todos os sócios que a têm);
+Q2 = base sempre «Sócio» + privilégios (nunca concede nível Financeiro/Moderador/Admin).
+Desenho (plan.md): denormalização com propagação — user ganha `custom_role_id` aditivo +
+`privileges` materializados; edição da função faz `update_many`; **RBAC runtime intocado**.
+Nova coleção `custom_roles` + `routes/custom_roles.py` (`/api/admin/custom-roles`, admin-only,
+auditado); atribuição via `PATCH /users/{id}` e `POST /admin/invite` (campos aditivos); escrita
+explícita de role/privileges/cargo **destaca** a função. Plano: `specs/017-funcoes-personalizadas/plan.md`
+(+ research/data-model/contracts/quickstart/tasks). **IMPLEMENTADA 17/18** (backend + frontend;
+`pytest -m unit` 1403 passed, eslint 0 erros, build OK; de caminho: +global `Notification` no
+`eslint.config.js` corrige 3 erros pré-existentes da spec 009). Falta só T018 = validação manual
+do dono nos cenários do quickstart (Princípio VII). Toca `backend/` ⇒ release precisa de Via B
+(sem migração: `ensure_schema()` cria `custom_roles` no arranque).
 Last completed: `specs/016-privilegios-cargo-departamento-concluido/` — **Gestão de Sócios**:
 (US1) privilégios sempre legíveis (+3 rótulos em `cargoLabels.js`; `EditUserModal` usa
 `privilegeLabel()` com fallback à chave — zero células em branco); (US2) departamento como lista

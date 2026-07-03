@@ -74,6 +74,9 @@ export const queryKeys = {
     requests: (status) => ['registration', 'requests', status || 'pendente_aprovacao'],
     joiaPreview: (userId, since) => ['registration', 'joia-preview', userId || null, since || null],
   },
+  customRoles: {
+    list: () => ['custom-roles'],
+  },
   cargos: {
     meta: () => ['cargos', 'meta'],
     list: () => ['cargos', 'list'],

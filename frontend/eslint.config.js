@@ -42,6 +42,7 @@ module.exports = [
         btoa: 'readonly',
         atob: 'readonly',
         Event: 'readonly',
+        Notification: 'readonly',
         CustomEvent: 'readonly',
         MouseEvent: 'readonly',
         KeyboardEvent: 'readonly',

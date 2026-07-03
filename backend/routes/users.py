@@ -185,6 +185,21 @@ async def admin_update_user(
     if not update_data:
         raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
 
+    # Função personalizada (spec 017): tem precedência sobre role/privileges no
+    # mesmo payload — materializa role="socio" + privilégios da função. Escrita
+    # explícita de role/privileges SEM custom_role_id limpa a referência ao
+    # sócio que a tinha (destaque, D3/D5).
+    custom_role_id = update_data.pop("custom_role_id", None)
+    if custom_role_id:
+        role_doc = await db.custom_roles.find_one({"id": custom_role_id}, {"_id": 0})
+        if not role_doc:
+            raise HTTPException(status_code=400, detail="Função personalizada inválida")
+        update_data["role"] = "socio"
+        update_data["privileges"] = list(role_doc["privileges"])
+        update_data["custom_role_id"] = custom_role_id
+    elif ("role" in update_data or "privileges" in update_data) and existing.get("custom_role_id"):
+        update_data["custom_role_id"] = None
+
     # Validate cargo: aceita key/label/alias legado, grava sempre a key canónica
     # e denormaliza o órgão social (spec-governanca §4).
     if "cargo" in update_data:
@@ -211,8 +226,9 @@ async def admin_update_user(
 
     await db.users.update_one({"id": user_id}, {"$set": update_data})
 
-    # Audit log estruturado: details captura before/after dos campos sensiveis (role/status/privileges).
-    sensitive = {"role", "status", "privileges"}
+    # Audit log estruturado: details captura before/after dos campos sensiveis
+    # (role/status/privileges + custom_role_id da spec 017).
+    sensitive = {"role", "status", "privileges", "custom_role_id"}
     before = {k: existing.get(k) for k in update_data if k in sensitive}
     after = {k: v for k, v in update_data.items() if k in sensitive}
     await create_audit_log(

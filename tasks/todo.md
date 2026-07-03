@@ -1,51 +1,42 @@
-# Task — Integração Cloudflare Turnstile (anti-bot) nos formulários públicos
+# Task — Spec 017: Funções personalizadas com privilégios à medida
 
 ## Contexto
-Widget Turnstile criado no Cloudflare (modo Gerenciado). Integrar nos
-formulários sensíveis: **login, registo, recuperação de password e contacto**.
+O admin cria funções nomeadas (pacotes de privilégios do catálogo canónico,
+ex.: «Coordenador de Eventos») e aplica-as a sócios no seletor «Função no
+Sistema» (edição + convite). Decisões do dono: Q1 = ligação viva (editar a
+função propaga a todos os sócios que a têm); Q2 = base sempre «Sócio» +
+privilégios (nunca concede nível Financeiro/Moderador/Admin).
+Plano: `specs/017-funcoes-personalizadas/plan.md`; tarefas: `tasks.md` (18).
 
-- Site Key (pública, vai no frontend): `0x4AAAAAAADs8kZrozSpCdz7g`
-- Secret Key (confidencial): **NUNCA committada** — só no env do backend.
+## Progresso (17/18)
 
-## Decisão de desenho — degradação graciosa (igual ao Web Push)
-`TURNSTILE_SECRET` ainda **não está configurada em produção**. Fazer
-*fail-closed* (503 sem secret) **partiria o login de todos** ao fazer deploy.
-Por isso: **sem secret → verificação é no-op** (feature desligada); uma vez
-configurada a secret, passa a exigir/validar o token. Sem alterações de
-frontend para ligar. Na validação real (secret presente) é fail-closed:
-403 token ausente/inválido, 502 se a Cloudflare estiver indisponível.
+### Backend — completo, 29/29 testes verdes
+- [x] T002 `database.py` — coleção `custom_roles`
+- [x] T003 `models.py` — `CustomRoleCreate/Update/CustomRole` + `custom_role_id` aditivo em `UserBase`/`UserAdminUpdate`/`InviteCreate`
+- [x] T004/T005 `routes/custom_roles.py` — CRUD `/api/admin/custom-roles` (admin-only, auditado, nomes reservados, 409 em uso, `user_count` sem N+1)
+- [x] T010 `routes/users.py` — atribuição com precedência (materializa socio+privilégios) e destaque por escrita explícita; `custom_role_id` no audit sensitive
+- [x] T011 `routes/admin.py` + `routes/eleicoes.py` — convite com função; promote/demote/transfer/proclamação limpam `custom_role_id` (D5)
+- [x] T014 propagação viva no PATCH (update_many + notificações, `propagated_to`)
+- [x] T006/T012/T015 `tests/test_custom_roles.py` — 29 testes (CRUD, RBAC 403, validações 422, 409, propagação, atribuição, convite, promote)
 
-## Plano
-### Backend
-- [x] `backend/turnstile.py` — helper `verify_turnstile` + `turnstile_enabled`
-- [x] `models.py` — `turnstile_token: str = ""` em UserLogin / RegistrationRequest / PasswordResetRequest
-- [x] `routes/auth_routes.py` — `verify_turnstile` como 1.ª linha de login/register/forgot-password
-- [x] `routes/contact.py` — `turnstile_token` no ContactRequest + verify no submit
-- [x] `tests/test_turnstile.py` — unitários do helper + wiring das rotas (16 testes)
+### Frontend — completo, eslint 0 erros, build OK
+- [x] T007 `utils/api.js` `customRolesAPI` + queryKey `customRoles.list`
+- [x] T008/T016 `usuarios/CustomRolesManager.js` — lista+form num Dialog, rótulos via `privilegeLabel()`, aviso de impacto «aplica-se a N sócio(s)», delete destrutivo com 409 legível
+- [x] T009 `AdminUsuariosPage.js` — botão «Funções Personalizadas» (secundário neutro) + query partilhada + `custom_role_id` no payload de guardar
+- [x] T013 `EditUserModal.js` (optgroup, privilégios read-only com nota, confirm no botão de predefinições — FR-010) + `InviteModal.js` (optgroup) + `tokens.js` (EMPTY_INVITE)
 
-### Frontend
-- [x] `components/Turnstile.js` — widget reutilizável (render explícito, reset via ref)
-- [x] `pages/public/LoginPage.js` — widget + `turnstile_token` no payload
-- [x] `pages/public/CriarContaPage.js` — idem
-- [x] `pages/public/ForgotPasswordPage.js` — idem
-- [x] `pages/public/ContactosPage.js` — idem
+### Verificação (T017) — feita
+- backend: `ruff check` limpo; `ruff format --check` limpo nos ficheiros da spec
+  (deriva pré-existente noutros 80 ficheiros = versão do ruff, fora de âmbito);
+  `pytest -m unit` **1403 passed** (suíte inteira, SC-002 guardada)
+- frontend: `eslint --max-warnings=60` → 0 erros / 22 warnings; `yarn build` OK
+- de caminho: `eslint.config.js` +1 global `Notification` (corrige 3 erros
+  pré-existentes da spec 009 em push.js/PushPrefs.js)
 
-### Docs / env
-- [x] `backend/.env.example` — `TURNSTILE_SECRET=` (placeholder, sem valor)
-- [x] `CLAUDE.md` — tabela de env vars + nota Turnstile
+## Por fazer
+- [ ] T018 — Validação manual dos cenários 1–6 do `quickstart.md` no navegador
+  + validação final do dono (Princípio VII) antes de fechar a spec.
 
-## Verificação
-- [x] `pytest tests/test_turnstile.py` → 16 passed
-- [x] suite unit completa: **1363 passed** (falhas só em test_invite_auth.py = live/integration sem servidor, documentado)
-- [x] `ruff check` + `ruff format` limpos nos ficheiros backend
-- [ ] `eslint` / `build` frontend — bloqueado por flakiness de rede do proxy ao instalar devDeps; diffs revistos manualmente
-
-## Review
-- **Decisão central**: degradação graciosa (sem `TURNSTILE_SECRET` → no-op).
-  Evita partir o login no deploy antes de a secret estar configurada; alinhado
-  com o precedente do Web Push (VAPID). Quando ligada: 403 token ausente/inválido,
-  502 Cloudflare indisponível. IP real via `cf-connecting-ip` (fallback client.host).
-- **Segurança**: secret key NUNCA committada — só placeholder no `.env.example`.
-  Site key é pública (frontend), com fallback embutido.
-- **Token de uso único**: cada form reseta o widget no `catch` (novo token).
-- Verify corre como 1.ª linha de cada handler (testes provam que corta antes de DB/email).
+## Notas de release
+- Toca `backend/` ⇒ release precisa de **Via B**. Sem migração:
+  `ensure_schema()` cria a tabela no arranque; campos novos são aditivos.

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { usersAPI, adminAPI, cargosAPI } from '../../utils/api';
+import { usersAPI, adminAPI, cargosAPI, customRolesAPI } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
 import { PRIVILEGE_LABELS } from '../../lib/cargoLabels';
 import { toast } from 'sonner';
-import { Users, UserPlus } from 'lucide-react';
+import { Users, UserPlus, Layers } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -19,6 +19,7 @@ import { UsersTable } from './usuarios/UsersTable';
 import { UsersCards } from './usuarios/UsersCards';
 import { EditUserModal } from './usuarios/EditUserModal';
 import { InviteModal } from './usuarios/InviteModal';
+import { CustomRolesManager } from './usuarios/CustomRolesManager';
 
 export const AdminUsuariosPage = () => {
   const qc = useQueryClient();
@@ -31,6 +32,7 @@ export const AdminUsuariosPage = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteData, setInviteData] = useState(EMPTY_INVITE);
   const [inviteResult, setInviteResult] = useState(null);
+  const [showCustomRoles, setShowCustomRoles] = useState(false);
 
   // Debounce search 300ms — evita re-fetch a cada tecla.
   useEffect(() => {
@@ -58,6 +60,13 @@ export const AdminUsuariosPage = () => {
     staleTime: 60 * 60 * 1000,
   });
   const PRIVILEGES = meta?.privileges || Object.keys(PRIVILEGE_LABELS);
+
+  // Funções personalizadas (spec 017) — alimentam o seletor «Função no
+  // Sistema» dos modais de edição/convite e o gestor.
+  const { data: customRoles = [] } = useQuery({
+    queryKey: queryKeys.customRoles.list(),
+    queryFn: async () => (await customRolesAPI.list()).data.custom_roles,
+  });
 
   const invalidateUsers = () => qc.invalidateQueries({ queryKey: ['users'] });
 
@@ -115,6 +124,9 @@ export const AdminUsuariosPage = () => {
         role: editingUser.role,
         status: editingUser.status,
         privileges: editingUser.privileges || [],
+        // Função personalizada (spec 017): quando definida, o backend
+        // materializa role="socio" + privilégios da função; null destaca.
+        custom_role_id: editingUser.custom_role_id || null,
         department: editingUser.department,
         phone_number: editingUser.phone_number,
       },
@@ -142,14 +154,24 @@ export const AdminUsuariosPage = () => {
           <h1 className="page-title" data-testid="admin-users-title">Gestão de Membros</h1>
           <p className="page-subtitle">{users.length} membro{users.length !== 1 ? 's' : ''} registado{users.length !== 1 ? 's' : ''}</p>
         </div>
-        <button
-          onClick={() => setShowInviteModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-floresta hover:bg-floresta-dark text-white rounded-lg text-sm font-semibold transition-colors"
-          data-testid="invite-user-btn"
-        >
-          <UserPlus className="w-4 h-4" />
-          Convidar Socio
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setShowCustomRoles(true)}
+            className="flex items-center gap-2 px-4 py-2.5 border border-[#D1D5DB] text-grafite hover:bg-gray-50 rounded-lg text-sm font-semibold transition-colors"
+            data-testid="custom-roles-btn"
+          >
+            <Layers className="w-4 h-4" />
+            Funções Personalizadas
+          </button>
+          <button
+            onClick={() => setShowInviteModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-floresta hover:bg-floresta-dark text-white rounded-lg text-sm font-semibold transition-colors"
+            data-testid="invite-user-btn"
+          >
+            <UserPlus className="w-4 h-4" />
+            Convidar Socio
+          </button>
+        </div>
       </div>
 
       <FiltersBar
@@ -188,6 +210,7 @@ export const AdminUsuariosPage = () => {
           editingUser={editingUser}
           setEditingUser={setEditingUser}
           privileges={PRIVILEGES}
+          customRoles={customRoles}
           onSave={handleSaveUser}
           onAskDelete={() => setDeleteConfirm(editingUser.id)}
           onRemovePhoto={() => removePhotoMutation.mutate(editingUser.id)}
@@ -214,10 +237,17 @@ export const AdminUsuariosPage = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      <CustomRolesManager
+        open={showCustomRoles}
+        onClose={() => setShowCustomRoles(false)}
+        privileges={PRIVILEGES}
+      />
+
       {showInviteModal && (
         <InviteModal
           inviteData={inviteData}
           setInviteData={setInviteData}
+          customRoles={customRoles}
           inviteResult={inviteResult}
           inviting={inviteMutation.isPending}
           onSend={handleInvite}

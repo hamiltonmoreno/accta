@@ -122,6 +122,8 @@ COLLECTIONS: tuple[str, ...] = (
     # fins profissionais Cat 5 F3 (spec-fins-profissionais §5/§7):
     "defesa_profissional",
     "relacoes_externas",
+    # funções personalizadas — pacotes nomeados de privilégios (spec 017):
+    "custom_roles",
     # no Pydantic model — schema derived from usage:
     "password_resets",
     "tokens_revoked",

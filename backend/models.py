@@ -59,6 +59,10 @@ class UserBase(BaseModel):
     orgao: Optional[str] = None
     cargo: str = "socio"  # key canónica (governance.py); nunca o label.
     privileges: List[str] = []
+    # Função personalizada (spec 017): referência viva a custom_roles.id.
+    # Quando definida, role=="socio" e privileges são os da função (materializados
+    # e propagados na edição da função). None/ausente = sem função personalizada.
+    custom_role_id: Optional[str] = None
     cargo_history: List[dict] = []
     # Perda de direitos disciplinar (spec §13): afecta voto/elegibilidade sem
     # tornar a conta inactiva. ISO-8601 string.
@@ -278,7 +282,80 @@ class UserAdminUpdate(_EditableProfileFields):
     role: Optional[str] = None
     status: Optional[str] = None
     privileges: Optional[List[str]] = None
+    # Função personalizada (spec 017): tem precedência sobre role/privileges no
+    # mesmo payload; "" limpa (destaque explícito).
+    custom_role_id: Optional[str] = None
     department: Optional[str] = Field(default=None, max_length=80)
+
+
+# ===== FUNÇÕES PERSONALIZADAS (spec 017) =====
+# Pacotes nomeados de privilégios do catálogo canónico (governance.PRIVILEGES),
+# criados pelo admin e aplicados a sócios com ligação viva (editar a função
+# propaga aos sócios que a têm). Base de acesso sempre "socio" — uma função
+# personalizada nunca concede role admin/financeiro/moderador (decisão Q2).
+
+
+def _validate_custom_role_privileges(v):
+    if v is None:
+        return v
+    if not v:
+        raise ValueError("A função tem de incluir pelo menos um privilégio")
+    if len(set(v)) != len(v):
+        raise ValueError("Privilégios duplicados")
+    invalid = [p for p in v if p not in PRIVILEGES]
+    if invalid:
+        raise ValueError(f"Privilégios inválidos: {', '.join(invalid)}")
+    return v
+
+
+class CustomRoleCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    description: Optional[str] = Field(default=None, max_length=200)
+    privileges: List[str]
+
+    @field_validator("name")
+    @classmethod
+    def _v_name(cls, v):
+        v = v.strip()
+        if not v:
+            raise ValueError("Nome obrigatório")
+        return v
+
+    @field_validator("privileges")
+    @classmethod
+    def _v_privileges(cls, v):
+        return _validate_custom_role_privileges(v)
+
+
+class CustomRoleUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=60)
+    description: Optional[str] = Field(default=None, max_length=200)
+    privileges: Optional[List[str]] = None
+
+    @field_validator("name")
+    @classmethod
+    def _v_name(cls, v):
+        if v is None:
+            return v
+        v = v.strip()
+        if not v:
+            raise ValueError("Nome obrigatório")
+        return v
+
+    @field_validator("privileges")
+    @classmethod
+    def _v_privileges(cls, v):
+        return _validate_custom_role_privileges(v)
+
+
+class CustomRole(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: Optional[str] = None
+    privileges: List[str] = []
+    created_by: str
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class UserLogin(BaseModel):
@@ -297,6 +374,9 @@ class InviteCreate(BaseModel):
     name: str
     email: EmailStr
     role: str = "socio"
+    # Função personalizada (spec 017): se presente, o convidado nasce socio +
+    # privilégios da função; ignora `role`.
+    custom_role_id: Optional[str] = None
     cargo: Optional[str] = None
     member_id: Optional[str] = None
     license_number: Optional[str] = None
