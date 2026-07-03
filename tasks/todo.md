@@ -67,11 +67,24 @@ UI. Plano: `specs/018-consolidacao-acessos/plan.md`; tarefas: `tasks.md` (20).
   pending 200 + finanças 403; convite com `role=financeiro` → doc socio +
   privilégios da seed + `custom_role_id` ✓
 
-## Por fazer
-- [ ] T017–T018 US3 UI («Nível de acesso», secções Acesso/Identidade, ajuda)
-- [ ] T019 verificação completa + rever diff da matriz com o dono
-- [ ] T020 validação manual do dono (cenários 3–8) — release/migração prod =
-  cerimónia à parte com STOPs
+### US3 — UI (T017–T018) COMPLETA
+- [x] T017 «Nível de acesso» (D2) + modal em 2 secções com proveniência dos
+  privilégios (função «X» / manuais) + nota D5 no departamento (Edit+Invite)
+- [x] T018 ajuda (gates Aparência/Finanças + texto) e páginas restantes
+
+### Polish
+- [x] T019 gate final: ruff limpo + `pytest -m unit` **1567 passed** +
+  eslint 0 erros + jest (AuthContext 8/8, ajuda/visibility 29/29) + build OK
+
+## Por fazer (dono)
+- [ ] T020 validação manual dos cenários 3–8 do quickstart no navegador
+  (ambiente isolado) + rever o **diff da matriz F1→F2** — em particular o
+  delta da seed «Financeiro» (+users_manage/+users_photo_moderation, não há
+  privilégio só-de-listagem) e a lista do Secretário (D3)
+- [ ] Decisão P1: emenda constitucional em PR próprio (commit isolado,
+  cherry-pickável) ou no PR da feature
+- [ ] Push + PR para develop; release/migração prod = cerimónia à parte
+  (backup → dry-run → confirmação → apply → teste decisivo) com STOPs
 
 ## Pendente de outras specs
 - [ ] Spec 017 T018 — validação manual do dono (quickstart 1–6) no ambiente

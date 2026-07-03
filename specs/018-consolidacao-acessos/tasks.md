@@ -68,8 +68,8 @@
 
 **Independent Test**: quickstart cenários 3–4 — um admin não-técnico identifica a origem de cada privilégio e o que cada campo controla.
 
-- [ ] T017 [US3] `frontend/src/pages/private/usuarios/EditUserModal.js` + `InviteModal.js`: rótulo «Nível de acesso» (D2) com Administrador/Sócio + grupo «Funções personalizadas»; modal reorganizado em «Acesso ao sistema» (nível, função, privilégios com origem: «da função X» / «manuais») e «Identidade associativa» (cargo, categoria, departamento + nota «organizacional — não altera acessos», D5); `FiltersBar.js` filtro por nível novo (valores antigos `role=financeiro/moderador` vindos de estado/URL degradam para «todos» sem erro — finding A1); design `frontend-design`
-- [ ] T018 [P] [US3] Texto e páginas restantes: `frontend/src/content/ajuda/*.js` (perfis descritos pelo modelo novo), `frontend/src/layouts/PrivateLayout.js` e páginas pontuais com referências a roles antigos (`MuralPage`, `NotificacoesPage`, `AdminPedidosInscricaoPage`, `AdminCargosPage` — inventário R1)
+- [X] T017 [US3] `frontend/src/pages/private/usuarios/EditUserModal.js` + `InviteModal.js`: rótulo «Nível de acesso» (D2) com Administrador/Sócio + grupo «Funções personalizadas»; modal reorganizado em «Acesso ao sistema» (nível, função, privilégios com origem: «da função X» / «manuais») e «Identidade associativa» (cargo, categoria, departamento + nota «organizacional — não altera acessos», D5); `FiltersBar.js` filtro por nível novo (valores antigos `role=financeiro/moderador` vindos de estado/URL degradam para «todos» sem erro — finding A1); design `frontend-design`
+- [X] T018 [P] [US3] Texto e páginas restantes: `frontend/src/content/ajuda/*.js` (perfis descritos pelo modelo novo), `frontend/src/layouts/PrivateLayout.js` e páginas pontuais com referências a roles antigos (`MuralPage`, `NotificacoesPage`, `AdminPedidosInscricaoPage`, `AdminCargosPage` — inventário R1)
 
 **Checkpoint**: todas as user stories completas em código.
 
@@ -77,7 +77,7 @@
 
 ## Phase 6: Polish & verificação
 
-- [ ] T019 Verificação local completa: `cd backend && ruff check . && ruff format --check <ficheiros tocados> && pytest -m unit` + `cd frontend && npx eslint src/ --ext .js,.jsx --max-warnings=60 && yarn build` (CI billing-locked — isto É o gate); rever o diff da matriz F1→F2 com o dono
+- [X] T019 Verificação local completa: `cd backend && ruff check . && ruff format --check <ficheiros tocados> && pytest -m unit` + `cd frontend && npx eslint src/ --ext .js,.jsx --max-warnings=60 && yarn build` (CI billing-locked — isto É o gate); rever o diff da matriz F1→F2 com o dono
 - [ ] T020 Validação manual dos cenários 3–8 do `quickstart.md` no navegador (ambiente isolado) e registo em `tasks/todo.md`; validação final do dono (Princípio VII). **A release develop→main, o deploy Via B e a migração em prod (backup → dry-run → confirmação do dono → apply → teste decisivo) são cerimónia à parte com STOPs explícitos — fora destas tasks**
 
 ## Dependencies
