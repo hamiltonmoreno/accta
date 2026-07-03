@@ -37,12 +37,41 @@ UI. Plano: `specs/018-consolidacao-acessos/plan.md`; tarefas: `tasks.md` (20).
     pré-existente nos 10 ficheiros de rotas já falhava em develop — fora de
     âmbito)
 
-## Por fazer (F2 — só após decisão de release da F1)
-- [ ] T008–T013 US1 modelo (enum, defaults cargo, tradução, emenda
-  constitucional v1.1.0 = gate duro)
-- [ ] T014–T016 US2 migração local; T017–T018 US3 UI; T019–T020 polish
-- F1 é releasable sozinha (invisível) — decisão do dono se sai em release
-  própria para encurtar o delta da F2
+## Progresso F2
+
+### US1 — modelo (T008–T013) COMPLETA
+- [x] T008 defaults de cargo D3 (só presidente/vice mantêm admin)
+- [x] T009 enum {admin,socio} + tradução D4 em **4 superfícies** (invite,
+  PATCH /users, approve de registo, promote/transfer — o research R6
+  subcontava 2); `resolve_legacy_role` com seed on-demand (M1); audit
+  `legacy_role_translated`
+- [x] T010 alerta R8 (`_SENSITIVE_PRIVILEGES`) + reserved names R5
+- [x] T011 matriz atualizada DELIBERADAMENTE (perfis seed_*; legados negam
+  tudo; equivalência: Moderador exata, Financeiro ⊇ com delta
+  +users_manage/+photo assinalado) + `test_role_transition_018.py` (20) +
+  8 testes existentes atualizados; **suíte 1552+15 passed, ruff limpo**
+- [x] T012 frontend por privilégios (AuthContext flags de compat, 3 rotas,
+  nav, tokens ROLES=2, Mural, FiltersBar degradação A1); eslint 0 erros,
+  jest 8/8, build OK
+- [x] T013 emenda constitucional **v1.1.0** + CLAUDE.md + rules/api.md
+  reconciliados (commit isolado p/ cherry-pick se o dono quiser PR próprio)
+
+### US2 — migração (T014–T016) COMPLETA
+- [x] T014 `scripts/migrate_roles_018.py` (dry-run/apply/--restore, backup,
+  audit, R3, idempotente) · T015 15 testes verdes
+- [x] T016 **validação local (quickstart 1–2) no `accta-pg-dev`**: 3+1 users
+  legados → dry-run correto → apply (seeds criadas, 4 migrados, backup, 4
+  audits `role_model_migrated`) → re-run = 0 (idempotente) → **restore live
+  repõe os 4 → re-apply** → teste decisivo via API: ex-financeiro login →
+  finanças 200 + listagem users 200 + audit-logs 403; ex-moderador → wall
+  pending 200 + finanças 403; convite com `role=financeiro` → doc socio +
+  privilégios da seed + `custom_role_id` ✓
+
+## Por fazer
+- [ ] T017–T018 US3 UI («Nível de acesso», secções Acesso/Identidade, ajuda)
+- [ ] T019 verificação completa + rever diff da matriz com o dono
+- [ ] T020 validação manual do dono (cenários 3–8) — release/migração prod =
+  cerimónia à parte com STOPs
 
 ## Pendente de outras specs
 - [ ] Spec 017 T018 — validação manual do dono (quickstart 1–6) no ambiente
