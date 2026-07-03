@@ -379,9 +379,35 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Feature ativa: `specs/017-funcoes-personalizadas/` — **Funções personalizadas com privilégios à
-medida**: o admin cria funções nomeadas (pacotes de privilégios do catálogo canónico, ex.:
-«Coordenador de Eventos») e aplica-as a sócios no seletor «Função no Sistema» (edição + convite).
+Feature ativa: `specs/018-consolidacao-acessos/` — **Consolidação do modelo de acessos e
+identidade** (revisão profunda 2026-07-03): eliminar a redundância entre role/privilégios/
+funções personalizadas/cargos/departamentos. Diagnóstico: financeiro/moderador são pacotes de
+1–2 privilégios disfarçados (checks = role OU privilégio); 4 caminhos p/ o mesmo acesso; UI
+com «Função no Sistema»/«Funções personalizadas»/«Cargo» quase sinónimos; 3 estilos de check
++ ~28 inline. Alvo: role ∈ {admin,socio}, privilégios = única fonte granular, funções (017)
+= empacotamento canónico, cargo só *sugere*, departamento declarativo explícito, UI «Acesso
+ao sistema» (c/ proveniência) vs «Identidade associativa», helper único + tabela
+módulo→privilégio, migração prod auditada c/ equivalência exata. **Decisões D1–D7 CONFIRMADAS
+pelo dono (2026-07-03, aceitou todas as recomendações)**: D1 enum={admin,socio} + migração p/
+funções seed «Financeiro»/«Moderador»; D2 seletor renomeado «Nível de acesso» (2 níveis +
+funções); D3 só Presidente/Vice mantêm admin por default de cargo (Secretário desce p/
+granulares); D4 API traduz roles antigos 1 release, rejeita na seguinte; D5 departamento
+declarativo p/ sempre (UI di-lo); D6 duas fases (F1 higiene invisível = gate da F2
+modelo+migração); D7 release da 017 suspensa. **PLANEADA**: plan.md + research.md (R1–R10:
+inventário de checks, regra de migração p/ extras manuais = privilégios diretos s/ função,
+seeds derivadas da MATRIZ F1 e não de intuição, `_ELEVATED_ROLES`→privilégios sensíveis,
+tradução `_LEGACY_ROLE_MAP` só em invite+PATCH) + data-model + contracts/api-changes +
+quickstart. **F1** = `tests/test_access_matrix.py` baseline ANTES de tocar checks + tabela
+`MODULE_ACCESS` em governance.py + unificação em `has_role_or_privilege` (releasable
+sozinha). **F2** = enum {admin,socio} + defaults R7 + `scripts/migrate_roles_018.py`
+(dry-run/apply, backup, audit) + UI D2/US3 + **emenda constitucional v1.1.0 OBRIGATÓRIA**
+(constituição fixa o enum antigo em Stack & Data Constraints) + 3 STOPs do dono na execução
+(migração prod, modelo, main). Próximo: `/speckit-tasks`.
+Em espera: `specs/017-funcoes-personalizadas/` — **MERGED em develop (PR #402, `bdea385`),
+NÃO released** (release v0.5.54 suspensa pela D7 da spec 018). Falta T018 = validação manual
+do dono (quickstart 1–6) — ambiente local isolado montado (Docker `accta-pg-dev` porta 5433,
+`backend/.env.dev`, admin@dev.cv / socio1-2@dev.cv). ⚠️ `backend/.env` aponta para o Supabase
+de PRODUÇÃO (dados reais desde o reset de 2026-06-30) — nunca usar p/ testes de escrita.
 Decisões do dono: Q1 = **ligação viva** (editar a função propaga a todos os sócios que a têm);
 Q2 = base sempre «Sócio» + privilégios (nunca concede nível Financeiro/Moderador/Admin).
 Desenho (plan.md): denormalização com propagação — user ganha `custom_role_id` aditivo +
