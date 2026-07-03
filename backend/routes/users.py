@@ -19,7 +19,7 @@ from governance import (
     orgao_of_cargo,
 )
 from database import db
-from auth import get_current_user, has_role_or_privilege
+from auth import get_current_user, has_any_role, is_admin, has_role_or_privilege
 from helpers import create_audit_log, create_notification, delete_upload_file
 
 router = APIRouter(tags=["users"])
@@ -107,7 +107,7 @@ async def get_users(
 async def get_user(user_id: str, current_user: User = Depends(get_current_user)):
     # Self ou staff (admin/financeiro) — restantes não veem PII de terceiros
     is_self = current_user.id == user_id
-    is_staff = current_user.role in ("admin", "financeiro")
+    is_staff = has_any_role(current_user, "admin", "financeiro")
     if not (is_self or is_staff):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
@@ -363,7 +363,7 @@ async def get_user_sancoes(user_id: str, current_user: User = Depends(get_curren
     from routes.sancoes import _redact
 
     is_self = current_user.id == user_id
-    privileged = current_user.role == "admin" or is_direcao(current_user)
+    privileged = is_admin(current_user) or is_direcao(current_user)
     if not (is_self or privileged):
         raise HTTPException(status_code=403, detail="Sem permissão")
     rows = await db.sancoes.find({"user_id": user_id}, {"_id": 0}).sort("created_at", -1).to_list(200)

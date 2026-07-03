@@ -16,8 +16,10 @@ Perfis: admin, financeiro, moderador, socio puro, socio+privilégio relevante
 do módulo, socio+view_finances_readonly (Conselho Fiscal), conta técnica.
 """
 
+import re
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 from fastapi import HTTPException
@@ -115,9 +117,7 @@ async def _gate(module: str, user: User) -> bool:
     if module == "users_list":
         return await _route_gate(users_routes.get_users(current_user=user))
     if module == "users_manage":
-        return await _route_gate(
-            users_routes.admin_update_user("x", UserAdminUpdate(), None, current_user=user)
-        )
+        return await _route_gate(users_routes.admin_update_user("x", UserAdminUpdate(), None, current_user=user))
     if module == "users_photo_moderation":
         return await _route_gate(users_routes.remove_user_photo("x", None, current_user=user))
     if module == "events_manage":
@@ -127,9 +127,7 @@ async def _gate(module: str, user: User) -> bool:
     if module == "benefits_manage":
         return await _route_gate(benefits_routes.delete_benefit("x", current_user=user))
     if module == "moderation_gallery":
-        return await _route_gate(
-            gallery_routes.update_gallery_album("x", GalleryAlbumUpdate(), current_user=user)
-        )
+        return await _route_gate(gallery_routes.update_gallery_album("x", GalleryAlbumUpdate(), current_user=user))
     if module == "moderation_wall":
         return await _route_gate(wall_routes.get_pending_wall_posts(current_user=user))
     if module == "comunicados_send":
@@ -211,11 +209,7 @@ MATRIX = {
     },
 }
 
-_CASES = [
-    (module, profile, profile in spec["allow"])
-    for module, spec in MATRIX.items()
-    for profile in PROFILES
-]
+_CASES = [(module, profile, profile in spec["allow"]) for module, spec in MATRIX.items() for profile in PROFILES]
 
 
 @pytest.mark.parametrize(
@@ -252,3 +246,28 @@ async def test_role_moderador_measured_access(mock_db):
     """O role moderador passa HOJE em exatamente estes módulos."""
     allowed = await _allowed_modules(mock_db, _user("moderador"))
     assert allowed == {"moderation_gallery", "moderation_wall", "users_photo_moderation"}
+
+
+# --------------------------------------------------------------------------- #
+# FR-008 (spec 018): nenhum route compara `user.role` diretamente — todos os
+# checks de acesso passam pelos helpers (`auth.py`/`permissions.py`). Tripwire
+# automatizado contra regressões; a matriz acima é o contrato de comportamento.
+# --------------------------------------------------------------------------- #
+
+# Casa `user.role`/`current_user.role` (e qualquer *_user.role) comparado com
+# ==, !=, in ou not in. NÃO casa validação de input (ex.: `data.role not in`).
+_INLINE_ROLE_CHECK = re.compile(r"user\.role\s*(?:==|!=|not\s+in\b|in\b)")
+
+
+def test_no_inline_role_checks():
+    routes_dir = Path(__file__).resolve().parent.parent / "routes"
+    offenders = [
+        f"{py.name}:{lineno}: {line.strip()}"
+        for py in sorted(routes_dir.glob("*.py"))
+        for lineno, line in enumerate(py.read_text(encoding="utf-8").splitlines(), 1)
+        if _INLINE_ROLE_CHECK.search(line)
+    ]
+    assert not offenders, (
+        "Checks de role inline fora dos helpers (spec 018, FR-008) — usar "
+        "has_role_or_privilege/is_admin/has_any_role de auth.py:\n" + "\n".join(offenders)
+    )

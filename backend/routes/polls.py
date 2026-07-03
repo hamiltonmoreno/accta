@@ -4,7 +4,7 @@ from typing import List, Optional
 from asyncpg.exceptions import UniqueViolationError
 from models import User, Poll, PollWithVote, PollCreate, PollStatusUpdate, UserVote, VoteCreate
 from database import db
-from auth import get_current_user
+from auth import get_current_user, is_admin
 from helpers import create_audit_log, notify_all_active_users
 from permissions import is_voting_member
 
@@ -54,7 +54,7 @@ async def _voted_poll_ids(user_id: str, poll_ids: list[str]) -> set[str]:
 @router.get("/polls", response_model=List[PollWithVote])
 async def get_polls(skip: int = 0, limit: int = 100, current_user: User = Depends(get_current_user)):
     limit = min(limit, 100)
-    query = {} if current_user.role == "admin" else {"status": {"$ne": "rascunho"}}
+    query = {} if is_admin(current_user) else {"status": {"$ne": "rascunho"}}
     polls = await db.polls.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(None)
     voted = await _voted_poll_ids(current_user.id, [p["id"] for p in polls if p.get("id")])
     for p in polls:
@@ -64,7 +64,7 @@ async def get_polls(skip: int = 0, limit: int = 100, current_user: User = Depend
 
 @router.post("/polls", response_model=Poll)
 async def create_poll(poll_data: PollCreate, current_user: User = Depends(get_current_user)):
-    if current_user.role != "admin":
+    if not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     poll = Poll(**poll_data.model_dump())
@@ -97,7 +97,7 @@ async def update_poll_status(
     data: PollStatusUpdate,
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role != "admin":
+    if not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     poll = await db.polls.find_one({"id": poll_id}, {"_id": 0})
@@ -177,7 +177,7 @@ async def get_poll_results(poll_id: str, current_user: User = Depends(get_curren
 
     # Sigilo: totais parciais só após o encerramento (ou para admin). Ver
     # resultados durante a votação aberta permitiria voto estratégico informado.
-    if poll.get("status") != "encerrada" and current_user.role != "admin":
+    if poll.get("status") != "encerrada" and not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Resultados disponíveis após o encerramento da votação")
 
     # Sem teto: um cap de 1000 subcontava silenciosamente acima de 1000 votantes

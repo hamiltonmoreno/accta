@@ -215,6 +215,45 @@ PRIVILEGES = [
 ROLES = ["admin", "financeiro", "moderador", "socio"]
 MANDATO_ANOS = 3
 
+# --------------------------------------------------------------------------- #
+# Tabela canónica módulo → acesso (spec 018, F1).
+#
+# Fonte única de QUEM passa em cada módulo do sistema: `privilege` é o
+# privilégio granular que governa o módulo; `legacy_roles` são os roles que
+# TAMBÉM passam no gate (semântica atual `role OU privilégio`, medida na
+# matriz `tests/test_access_matrix.py` — não intuída dos labels).
+#
+# Na F1 a tabela é documental (alimenta a matriz e os helpers de finanças);
+# na F2 `legacy_roles` encolhe para {"admin"} quando financeiro/moderador
+# migrarem para funções personalizadas seed.
+#
+# Gates por CARGO (atos, eleições, assembleias, ranking-Direcção…) ficam FORA
+# da tabela — vivem em `permissions.py` e não mudam na spec 018.
+# --------------------------------------------------------------------------- #
+
+MODULE_ACCESS: dict[str, dict] = {
+    "finances_view": {
+        # leitura aceita também o Conselho Fiscal (view_finances_readonly)
+        "privilege": "manage_finances",
+        "extra_privileges": ("view_finances_readonly",),
+        "legacy_roles": ("admin", "financeiro"),
+    },
+    "finances_manage": {"privilege": "manage_finances", "legacy_roles": ("admin", "financeiro")},
+    "users_list": {"privilege": "manage_users", "legacy_roles": ("admin", "financeiro")},
+    "users_manage": {"privilege": "manage_users", "legacy_roles": ("admin",)},
+    # gate assimétrico (remoção de foto): roles admin/moderador, privilégio manage_users
+    "users_photo_moderation": {"privilege": "manage_users", "legacy_roles": ("admin", "moderador")},
+    "events_manage": {"privilege": "manage_events", "legacy_roles": ("admin",)},
+    "documents_restricted": {"privilege": "manage_documents", "legacy_roles": ("admin",)},
+    "benefits_manage": {"privilege": "manage_benefits", "legacy_roles": ("admin",)},
+    "moderation_gallery": {"privilege": "moderate_content", "legacy_roles": ("admin", "moderador")},
+    "moderation_wall": {"privilege": "moderate_content", "legacy_roles": ("admin", "moderador")},
+    "comunicados_send": {"privilege": "send_comunicados", "legacy_roles": ("admin",)},
+    "audit_view": {"privilege": "view_audit_logs", "legacy_roles": ("admin",)},
+    "ranking_manage": {"privilege": "manage_ranking", "legacy_roles": ("admin",)},
+    "regulamentos_manage": {"privilege": "manage_documents", "legacy_roles": ("admin",)},
+}
+
 # Default de titulares da Direcção por mandato (spec decisão #3: 5 ou 7).
 # Os 2 vogais extra (afectos a órgãos ATC fora da sede) activam-se com 7.
 DEFAULT_DIRECAO_TITULARES = 5

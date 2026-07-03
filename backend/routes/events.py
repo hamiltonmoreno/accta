@@ -12,7 +12,7 @@ from models import (
     EXPENSE_CATEGORIES,
 )
 from database import db, register_event_attendee
-from auth import get_current_user, has_role_or_privilege
+from auth import get_current_user, has_any_role, is_admin, has_role_or_privilege
 from helpers import coaprovacao_limiar, create_audit_log, create_notification, notify_all_active_users
 
 router = APIRouter(tags=["events"])
@@ -22,9 +22,9 @@ MEMBER_EVENT_ROLES = {"socio", "financeiro", "moderador"}
 
 
 def get_allowed_event_visibilities(user: User) -> set[str]:
-    if user.role == "admin":
+    if is_admin(user):
         return VALID_EVENT_VISIBILITIES
-    if user.role in MEMBER_EVENT_ROLES:
+    if has_any_role(user, *MEMBER_EVENT_ROLES):
         return {"publico", "socios"}
     return {"publico"}
 
@@ -88,7 +88,7 @@ def build_event_visibility_filter(user: User, requested_visibility: Optional[str
         if requested_visibility not in allowed:
             raise HTTPException(status_code=403, detail="Sem permissao para esta visibilidade")
         return requested_visibility
-    if user.role == "admin":
+    if is_admin(user):
         return None
     if len(allowed) == 1:
         return next(iter(allowed))

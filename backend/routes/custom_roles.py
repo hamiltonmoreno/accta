@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from auth import get_current_user
+from auth import get_current_user, is_admin
 from database import db
 from helpers import create_audit_log, create_notification
 from models import CustomRole, CustomRoleCreate, CustomRoleUpdate, User
@@ -32,7 +32,7 @@ _RESERVED_NAMES = {
 
 
 def _require_admin(user: User):
-    if user.role != "admin":
+    if not is_admin(user):
         raise HTTPException(status_code=403, detail="Apenas administradores podem gerir funções personalizadas")
 
 

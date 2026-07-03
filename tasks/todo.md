@@ -1,42 +1,50 @@
-# Task — Spec 017: Funções personalizadas com privilégios à medida
+# Task — Spec 018: Consolidação do modelo de acessos (F1 — higiene invisível)
 
 ## Contexto
-O admin cria funções nomeadas (pacotes de privilégios do catálogo canónico,
-ex.: «Coordenador de Eventos») e aplica-as a sócios no seletor «Função no
-Sistema» (edição + convite). Decisões do dono: Q1 = ligação viva (editar a
-função propaga a todos os sócios que a têm); Q2 = base sempre «Sócio» +
-privilégios (nunca concede nível Financeiro/Moderador/Admin).
-Plano: `specs/017-funcoes-personalizadas/plan.md`; tarefas: `tasks.md` (18).
+Decisões D1–D7 do dono (2026-07-03). D6: duas fases — **F1 = higiene sem
+mudança de comportamento** (gate da F2); F2 = enum {admin,socio} + migração +
+UI. Plano: `specs/018-consolidacao-acessos/plan.md`; tarefas: `tasks.md` (20).
 
-## Progresso (17/18)
+## Progresso F1 (T001–T007) — COMPLETA
 
-### Backend — completo, 29/29 testes verdes
-- [x] T002 `database.py` — coleção `custom_roles`
-- [x] T003 `models.py` — `CustomRoleCreate/Update/CustomRole` + `custom_role_id` aditivo em `UserBase`/`UserAdminUpdate`/`InviteCreate`
-- [x] T004/T005 `routes/custom_roles.py` — CRUD `/api/admin/custom-roles` (admin-only, auditado, nomes reservados, 409 em uso, `user_count` sem N+1)
-- [x] T010 `routes/users.py` — atribuição com precedência (materializa socio+privilégios) e destaque por escrita explícita; `custom_role_id` no audit sensitive
-- [x] T011 `routes/admin.py` + `routes/eleicoes.py` — convite com função; promote/demote/transfer/proclamação limpam `custom_role_id` (D5)
-- [x] T014 propagação viva no PATCH (update_many + notificações, `propagated_to`)
-- [x] T006/T012/T015 `tests/test_custom_roles.py` — 29 testes (CRUD, RBAC 403, validações 422, 409, propagação, atribuição, convite, promote)
+- [x] T001 branch `feature/018-consolidacao-acessos` em dia com develop (0 atrás)
+- [x] T002 `tests/test_access_matrix.py` — matriz baseline escrita ANTES de
+  tocar em qualquer check e committada isolada: **100 células perfil×módulo
+  verdes no código pré-F1** + medição do acesso real dos roles legados
+  (financeiro = {finances_view, finances_manage, users_list}; moderador =
+  {moderation_gallery, moderation_wall, users_photo_moderation}) — input R4
+  das seeds F2
+- [x] T003 `governance.py` `MODULE_ACCESS` — tabela canónica módulo→
+  {privilege, legacy_roles} (14 módulos; gates por cargo ficam em permissions)
+- [x] T004 helpers unificados: `auth.py` ganha `is_admin`/`has_any_role`/
+  `module_gate` (duck-typed dict|User via `_uattr`); `can_view_finances`/
+  `can_manage_finances` reescritos sobre MODULE_ACCESS; `permissions.user_can`
+  vira alias fino de `has_role_or_privilege`
+- [x] T005/T006 sweep: TODAS as comparações `user.role`/`current_user.role`
+  eliminadas de `routes/*.py` (25 ficheiros — os 13 do plano + activity,
+  stats, gallery, finances, polls, banners, brand, custom_roles, comunicados,
+  notifications, admin, profissional, participacao); `documents.py`/`report.py`
+  → `has_role_or_privilege`; `events.py` MEMBER_EVENT_ROLES → `has_any_role`;
+  gallery: var local `is_admin` renomeada `uploaded_by_admin` (colisão com o
+  helper)
+- [x] T007 **Gate F1 verde**:
+  - matriz corre **INALTERADA** pós-refactor: 100/100 (prova de equivalência,
+    SC-005)
+  - `test_no_inline_role_checks` (tripwire FR-008): scan de `routes/*.py` = 0
+    ocorrências
+  - `pytest -m unit` → **1503 passed** (1403 pré-existentes + 98 matriz + scan)
+  - `ruff check .` limpo; `ruff format --check` limpo no ficheiro novo (deriva
+    pré-existente nos 10 ficheiros de rotas já falhava em develop — fora de
+    âmbito)
 
-### Frontend — completo, eslint 0 erros, build OK
-- [x] T007 `utils/api.js` `customRolesAPI` + queryKey `customRoles.list`
-- [x] T008/T016 `usuarios/CustomRolesManager.js` — lista+form num Dialog, rótulos via `privilegeLabel()`, aviso de impacto «aplica-se a N sócio(s)», delete destrutivo com 409 legível
-- [x] T009 `AdminUsuariosPage.js` — botão «Funções Personalizadas» (secundário neutro) + query partilhada + `custom_role_id` no payload de guardar
-- [x] T013 `EditUserModal.js` (optgroup, privilégios read-only com nota, confirm no botão de predefinições — FR-010) + `InviteModal.js` (optgroup) + `tokens.js` (EMPTY_INVITE)
+## Por fazer (F2 — só após decisão de release da F1)
+- [ ] T008–T013 US1 modelo (enum, defaults cargo, tradução, emenda
+  constitucional v1.1.0 = gate duro)
+- [ ] T014–T016 US2 migração local; T017–T018 US3 UI; T019–T020 polish
+- F1 é releasable sozinha (invisível) — decisão do dono se sai em release
+  própria para encurtar o delta da F2
 
-### Verificação (T017) — feita
-- backend: `ruff check` limpo; `ruff format --check` limpo nos ficheiros da spec
-  (deriva pré-existente noutros 80 ficheiros = versão do ruff, fora de âmbito);
-  `pytest -m unit` **1403 passed** (suíte inteira, SC-002 guardada)
-- frontend: `eslint --max-warnings=60` → 0 erros / 22 warnings; `yarn build` OK
-- de caminho: `eslint.config.js` +1 global `Notification` (corrige 3 erros
-  pré-existentes da spec 009 em push.js/PushPrefs.js)
-
-## Por fazer
-- [ ] T018 — Validação manual dos cenários 1–6 do `quickstart.md` no navegador
-  + validação final do dono (Princípio VII) antes de fechar a spec.
-
-## Notas de release
-- Toca `backend/` ⇒ release precisa de **Via B**. Sem migração:
-  `ensure_schema()` cria a tabela no arranque; campos novos são aditivos.
+## Pendente de outras specs
+- [ ] Spec 017 T018 — validação manual do dono (quickstart 1–6) no ambiente
+  local isolado (Docker `accta-pg-dev` :5433; admin@dev.cv / socio1-2@dev.cv);
+  release v0.5.54 suspensa (D7)

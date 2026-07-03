@@ -21,7 +21,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from auth import can_view_finances, get_current_user
+from auth import can_view_finances, get_current_user, is_admin
 from database import db, sign_ato_atomic
 from helpers import create_audit_log, members_of_orgao, notify_users
 from models import (
@@ -61,7 +61,7 @@ def _require_view(user: User):
 
 
 def _require_create(user: User):
-    if not (user.role == "admin" or is_direcao(user)):
+    if not (is_admin(user) or is_direcao(user)):
         raise HTTPException(status_code=403, detail="Apenas a Direccao ou admin pode criar actos")
 
 
@@ -71,7 +71,7 @@ def _require_sign(user: User):
 
 
 def _require_execute(user: User):
-    if not (user.role == "admin" or is_tesoureiro(user)):
+    if not (is_admin(user) or is_tesoureiro(user)):
         raise HTTPException(status_code=403, detail="Apenas o Tesoureiro ou admin pode executar")
 
 
@@ -291,7 +291,7 @@ async def cancel_ato(ato_id: str, request: Request, current_user: User = Depends
     ato = await db.atos.find_one({"id": ato_id}, {"_id": 0})
     if not ato:
         raise HTTPException(status_code=404, detail="Acto nao encontrado")
-    if not (current_user.role == "admin" or ato.get("created_by") == current_user.id):
+    if not (is_admin(current_user) or ato.get("created_by") == current_user.id):
         raise HTTPException(status_code=403, detail="So o proponente ou admin pode cancelar")
     if ato.get("status") != "pendente":
         raise HTTPException(status_code=400, detail="So actos pendentes podem ser cancelados")
@@ -456,7 +456,7 @@ async def notify_overdue_endpoint(request: Request, current_user: User = Depends
     """Disparo manual / verificação (admin) da avaliação de Atos pendentes
     atrasados — corre o mesmo código do loop diário. Idempotente: uma 2.ª
     chamada seguida devolve `notified_atos: 0`."""
-    if current_user.role != "admin":
+    if not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Apenas administradores podem disparar esta avaliação")
     result = await notify_overdue_atos()
     await create_audit_log(

@@ -53,8 +53,11 @@ def _cargo_key(user) -> str:
 
 
 def user_can(user, privilege: str) -> bool:
-    """admin OU detentor do privilégio granular (RBAC aditivo)."""
-    return _attr(user, "role") == "admin" or privilege in (_attr(user, "privileges") or [])
+    """admin OU detentor do privilégio granular (RBAC aditivo). Alias fino de
+    `auth.has_role_or_privilege` (spec 018 F1 — helper único)."""
+    from auth import has_role_or_privilege
+
+    return has_role_or_privilege(user, ("admin",), privilege)
 
 
 def can_comunicar_intra_orgao(user) -> bool:

@@ -25,7 +25,7 @@ from governance import (
     is_estatutary_cargo,
 )
 from database import db, transfer_cargo, next_member_id
-from auth import get_current_user, generate_qr_hash, has_role_or_privilege
+from auth import get_current_user, is_admin, generate_qr_hash, has_role_or_privilege
 from helpers import alert_admins_privilege_escalation, create_audit_log, resolve_link_base, notify_users
 from email_service import send_invite_email, send_registration_rejected_email
 import uuid
@@ -41,7 +41,7 @@ INVITE_TOKEN_TTL_DAYS = 7
 @router.post("/invite")
 async def invite_user(request: Request, data: InviteCreate, current_user: User = Depends(get_current_user)):
     """Admin creates a new user account and sends invite email."""
-    if current_user.role != "admin":
+    if not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Apenas administradores podem convidar utilizadores")
 
     existing = await db.users.find_one({"email": data.email}, {"_id": 0})
@@ -158,7 +158,7 @@ async def invite_user(request: Request, data: InviteCreate, current_user: User =
 @router.get("/invites/pending")
 async def get_pending_invites(current_user: User = Depends(get_current_user)):
     """List all users with pending invites."""
-    if current_user.role != "admin":
+    if not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Sem permissao")
 
     users = await db.users.find(
@@ -172,7 +172,7 @@ async def get_pending_invites(current_user: User = Depends(get_current_user)):
 @router.delete("/invite/{user_id}")
 async def revoke_invite(user_id: str, request: Request, current_user: User = Depends(get_current_user)):
     """Revoke a pending invite."""
-    if current_user.role != "admin":
+    if not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Sem permissao")
 
     user = await db.users.find_one({"id": user_id, "status": "pendente_convite"})
@@ -202,7 +202,7 @@ async def list_registration_requests(
     skip: int = 0,
 ):
     """Lista pedidos de auto-registo. `status`: pendente_aprovacao (default) ou rejeitado."""
-    if current_user.role != "admin":
+    if not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Sem permissao")
 
     if status not in ("pendente_aprovacao", "rejeitado"):
@@ -228,7 +228,7 @@ async def approve_registration(
 ):
     """Aprova um pedido: gera invite e reusa o fluxo `setup-account` existente.
     NÃO ativa a conta directamente — o candidato define a password via o link."""
-    if current_user.role != "admin":
+    if not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Apenas administradores podem aprovar pedidos")
 
     if data.role not in VALID_APPROVE_ROLES:
@@ -316,7 +316,7 @@ async def reject_registration(
     user_id: str, request: Request, data: RegistrationReject, current_user: User = Depends(get_current_user)
 ):
     """Rejeita um pedido: mantém o documento (auditoria + evita re-registo trivial)."""
-    if current_user.role != "admin":
+    if not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Apenas administradores podem rejeitar pedidos")
 
     user = await db.users.find_one({"id": user_id, "status": "pendente_aprovacao"}, {"_id": 0})

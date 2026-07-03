@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from asyncpg.exceptions import UniqueViolationError
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from auth import get_current_user
+from auth import get_current_user, is_admin
 from database import db
 from helpers import create_audit_log, notify_users
 from models import (
@@ -40,7 +40,7 @@ def _close_active(history, fim: str) -> list:
 
 
 def _can_manage(user: User) -> bool:
-    return user.role == "admin" or is_direcao(user)
+    return is_admin(user) or is_direcao(user)
 
 
 def _require_disciplina(current_user: User):

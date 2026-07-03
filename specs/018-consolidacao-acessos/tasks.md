@@ -12,7 +12,7 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Confirmar branch `feature/018-consolidacao-acessos` atualizada sobre `develop` (já criada; `git fetch && git rebase origin/develop` se develop tiver avançado)
+- [X] T001 Confirmar branch `feature/018-consolidacao-acessos` atualizada sobre `develop` (já criada; `git fetch && git rebase origin/develop` se develop tiver avançado)
 
 ## Phase 2: User Story 4 — Unificação interna dos checks (P3, mas **F1 = gate de tudo**, D6) 🎯
 
@@ -20,12 +20,12 @@
 
 **Independent Test**: a matriz escrita ANTES das mudanças corre INALTERADA depois delas; suíte inteira verde; grep não encontra checks de acesso fora do helper.
 
-- [ ] T002 [US4] Escrever `backend/tests/test_access_matrix.py` **ANTES de tocar em qualquer check** (R10): perfis (admin, financeiro, moderador, socio puro, socio+priv relevante por módulo, view_finances_readonly, técnico) × módulos (finances view/manage, users, events, documents, benefits, moderação gallery/wall, comunicados, audit em notifications.py, ranking, regulamentos) → allow/deny; mock_db; verde no código ATUAL (é a baseline/contrato de equivalência)
-- [ ] T003 [US4] Tabela canónica `MODULE_ACCESS` em `backend/governance.py` (módulo → {privilege, legacy_roles}; docstring PT; ver data-model.md) — documental na F1, alimenta a matriz e a F2
-- [ ] T004 [US4] Unificar helpers: `backend/auth.py` (`can_view_finances`/`can_manage_finances` reescritos sobre `MODULE_ACCESS`; `has_role_or_privilege` mantém-se o ponto único) + `backend/permissions.py` (`user_can` vira alias fino de `has_role_or_privilege` ou é absorvido — decidir no diff, ranking/regulamentos ajustados)
-- [ ] T005 [US4] Eliminar checks inline (lote 1): `backend/routes/{projects,participacao,prestacao_contas,eleicoes,atos}.py` → `has_role_or_privilege`/helpers de domínio (R1; sem mudar resultados — cuidado com gates por CARGO em atos/eleições, que ficam em `permissions.py` e NÃO entram na tabela)
-- [ ] T006 [US4] Eliminar checks inline (lote 2): `backend/routes/{users,regulamentos,posts,events,upload,sancoes,report}.py` + `backend/routes/documents.py:19` (check à mão → helper)
-- [ ] T007 [US4] **Gate F1**: `pytest tests/test_access_matrix.py` verde SEM edições à matriz + `cd backend && ruff check . && pytest -m unit` (suíte inteira) + **teste automatizado de scan** em `test_access_matrix.py` (`test_no_inline_role_checks`: varre `routes/*.py` por `role == "`/`role in (` fora dos helpers = 0) — cumpre o «guardadas por teste» de FR-008 (finding M2) e impede regressões futuras; registar resultado em `tasks/todo.md`. F1 pode ir em release própria (invisível) se o dono quiser reduzir risco
+- [X] T002 [US4] Escrever `backend/tests/test_access_matrix.py` **ANTES de tocar em qualquer check** (R10): perfis (admin, financeiro, moderador, socio puro, socio+priv relevante por módulo, view_finances_readonly, técnico) × módulos (finances view/manage, users, events, documents, benefits, moderação gallery/wall, comunicados, audit em notifications.py, ranking, regulamentos) → allow/deny; mock_db; verde no código ATUAL (é a baseline/contrato de equivalência)
+- [X] T003 [US4] Tabela canónica `MODULE_ACCESS` em `backend/governance.py` (módulo → {privilege, legacy_roles}; docstring PT; ver data-model.md) — documental na F1, alimenta a matriz e a F2
+- [X] T004 [US4] Unificar helpers: `backend/auth.py` (`can_view_finances`/`can_manage_finances` reescritos sobre `MODULE_ACCESS`; `has_role_or_privilege` mantém-se o ponto único) + `backend/permissions.py` (`user_can` vira alias fino de `has_role_or_privilege` ou é absorvido — decidir no diff, ranking/regulamentos ajustados)
+- [X] T005 [US4] Eliminar checks inline (lote 1): `backend/routes/{projects,participacao,prestacao_contas,eleicoes,atos}.py` → `has_role_or_privilege`/helpers de domínio (R1; sem mudar resultados — cuidado com gates por CARGO em atos/eleições, que ficam em `permissions.py` e NÃO entram na tabela)
+- [X] T006 [US4] Eliminar checks inline (lote 2): `backend/routes/{users,regulamentos,posts,events,upload,sancoes,report}.py` + `backend/routes/documents.py:19` (check à mão → helper)
+- [X] T007 [US4] **Gate F1**: `pytest tests/test_access_matrix.py` verde SEM edições à matriz + `cd backend && ruff check . && pytest -m unit` (suíte inteira) + **teste automatizado de scan** em `test_access_matrix.py` (`test_no_inline_role_checks`: varre `routes/*.py` por `role == "`/`role in (` fora dos helpers = 0) — cumpre o «guardadas por teste» de FR-008 (finding M2) e impede regressões futuras; registar resultado em `tasks/todo.md`. F1 pode ir em release própria (invisível) se o dono quiser reduzir risco
 
 **Checkpoint**: F1 completa — baseline capturada, comportamento provadamente intacto. NADA da F2 começa antes deste checkpoint.
 

@@ -65,34 +65,66 @@ def generate_qr_hash(user_id: str) -> str:
 # ===== Authorization helpers (spec-identidade-cargos) =====
 # RBAC ADITIVO: um privilégio concede acesso EXTRA além do role já permitido.
 # Quem já tinha acesso por `role` continua exactamente igual → zero regressão.
-# `user` é um models.User (duck-typed: basta ter .role e .privileges).
+# `user` é um models.User OU um dict (duck-typed: basta ter role e privileges).
+
+
+def _uattr(user, name: str, default=None):
+    """Lê um atributo de um User Pydantic ou de um dict (spec 018 F1 — os
+    helpers de RBAC aceitam ambos, como `permissions.py` sempre aceitou)."""
+    if isinstance(user, dict):
+        return user.get(name, default)
+    return getattr(user, name, default)
 
 
 def has_privilege(user, privilege: str) -> bool:
     """True se o utilizador tem o privilégio granular indicado."""
-    return privilege in (getattr(user, "privileges", None) or [])
+    return privilege in (_uattr(user, "privileges") or [])
 
 
 def has_role_or_privilege(user, roles, privilege: str) -> bool:
     """RBAC aditivo genérico: True se o role está em `roles` OU se o utilizador
     tem o `privilege`. Base dos checks de escrita por módulo."""
-    return user.role in roles or has_privilege(user, privilege)
+    return _uattr(user, "role") in roles or has_privilege(user, privilege)
+
+
+def is_admin(user) -> bool:
+    """Check puro de administrador — ponto único para os gates admin-only e
+    para as expressões compostas `admin OU cargo` (spec 018 F1: nenhum route
+    compara `user.role` diretamente)."""
+    return _uattr(user, "role") == "admin"
+
+
+def has_any_role(user, *roles: str) -> bool:
+    """Check puro por role, SEM privilégio — só para os poucos gates que hoje
+    não têm privilégio granular associado (posts, banners, brand, stats…).
+    A spec 018/F2 decide o privilégio destes módulos via matriz de acessos."""
+    return _uattr(user, "role") in roles
+
+
+def module_gate(user, module: str) -> bool:
+    """Gate por módulo lido da tabela canónica `governance.MODULE_ACCESS`
+    (spec 018 F1): role legado OU privilégio do módulo OU privilégios extra
+    (ex.: view_finances_readonly na leitura de finanças)."""
+    from governance import MODULE_ACCESS
+
+    spec = MODULE_ACCESS[module]
+    return (
+        _uattr(user, "role") in spec["legacy_roles"]
+        or has_privilege(user, spec["privilege"])
+        or any(has_privilege(user, p) for p in spec.get("extra_privileges", ()))
+    )
 
 
 def can_view_finances(user) -> bool:
     """Pode VER o módulo financeiro: admin/financeiro, ou quem tem
     view_finances_readonly (Conselho Fiscal) ou manage_finances."""
-    return (
-        user.role in ("admin", "financeiro")
-        or has_privilege(user, "view_finances_readonly")
-        or has_privilege(user, "manage_finances")
-    )
+    return module_gate(user, "finances_view")
 
 
 def can_manage_finances(user) -> bool:
     """Pode ESCREVER no módulo financeiro: admin/financeiro ou manage_finances.
     view_finances_readonly NÃO concede escrita (separação de poderes)."""
-    return user.role in ("admin", "financeiro") or has_privilege(user, "manage_finances")
+    return module_gate(user, "finances_manage")
 
 
 def create_access_token(data: dict) -> str:

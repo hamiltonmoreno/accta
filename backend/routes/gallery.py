@@ -3,7 +3,7 @@ from typing import Optional
 from pathlib import Path
 from models import User, GalleryAlbum, GalleryAlbumCreate, GalleryAlbumUpdate, GalleryPhoto
 from database import db, UPLOAD_DIR
-from auth import get_current_user, has_role_or_privilege
+from auth import get_current_user, is_admin, has_role_or_privilege
 from helpers import notify_admins, create_notification, create_audit_log, delete_upload_file
 from file_validation import validate_file_content
 import asyncio
@@ -199,7 +199,7 @@ async def get_pending_photos(current_user: User = Depends(get_current_user)):
 async def upload_gallery_photo(
     album_id: str, caption: str = "", file: UploadFile = File(...), current_user: User = Depends(get_current_user)
 ):
-    if current_user.status != "ativo" and current_user.role != "admin":
+    if current_user.status != "ativo" and not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Apenas socios ativos podem submeter fotos")
 
     album = await db.gallery_albums.find_one({"id": album_id}, {"_id": 0})
@@ -225,20 +225,20 @@ async def upload_gallery_photo(
     await asyncio.to_thread(file_path.write_bytes, contents)
 
     photo_url = f"/uploads/gallery/{unique_filename}"
-    is_admin = current_user.role == "admin"
+    uploaded_by_admin = is_admin(current_user)
 
     photo = GalleryPhoto(
         album_id=album_id,
         url=photo_url,
         caption=caption,
-        status="approved" if is_admin else "pending",
+        status="approved" if uploaded_by_admin else "pending",
         uploaded_by=current_user.id,
         uploaded_by_name=current_user.name,
     )
     photo_dict = photo.model_dump()
     await db.gallery_photos.insert_one(photo_dict)
 
-    if is_admin:
+    if uploaded_by_admin:
         count = await db.gallery_photos.count_documents({"album_id": album_id, "status": "approved"})
         if count == 1:
             await db.gallery_albums.update_one({"id": album_id}, {"$set": {"cover_url": photo_url}})
