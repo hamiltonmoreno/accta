@@ -12,8 +12,10 @@ Nenhum endpoint muda de comportamento; a matriz de testes (R10) é a prova.
 
 - `role` aceita `admin | socio`. **Release de transição**: `financeiro`/`moderador` são
   aceites e traduzidos → `role="socio"` + `custom_role_id=<seed>` + privilégios da seed;
-  audit `details.legacy_role_translated: true`. Release seguinte: 400 «Nível de acesso
-  inválido: use admin ou socio».
+  audit `details.legacy_role_translated: true`. Se a função seed ainda não existir
+  (janela deploy→migração), o helper de tradução **cria-a on-demand** com os privilégios
+  da matriz — a tradução nunca falha por ordem de operações. Release seguinte: 400
+  «Nível de acesso inválido: use admin ou socio».
 - Resto do contrato (custom_role_id da 017, destaque, sensitive audit) inalterado.
 
 ### `POST /api/admin/invite` (admin)

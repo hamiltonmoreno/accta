@@ -181,8 +181,8 @@ módulos; zero verificações de acesso fora do helper canónico.
   sistema» (com proveniência de cada privilégio) de «Identidade associativa».
 - **FR-007**: A API MUST aceitar e traduzir valores de nível antigos
   (financeiro/moderador) para o modelo novo durante uma release de transição, e
-  rejeitá-los com mensagem clara na release seguinte *(D4)* — de forma consistente em
-  todas as superfícies (edição, convite, registo).
+  rejeitá-los com mensagem clara na release seguinte *(D4)* — de forma consistente nas
+  superfícies que aceitam nível (edição e convite; o registo público nunca aceita nível).
 - **FR-008**: Todas as verificações de acesso MUST passar por um único ponto canónico
   alimentado por uma tabela módulo→privilégio; verificações avulsas ficam proibidas e
   guardadas por teste.
