@@ -37,6 +37,10 @@ export const isNavItemVisible = (item, ctx) => {
   const roles = item.roles || [];
   if (roles.includes('all')) return true;
   if (roles.includes('admin') && ctx.isAdmin) return true;
+  // spec 018: 'financeiro'/'moderador' já não são níveis — os descritores que
+  // ainda os usem (ex.: gates de artigos de Ajuda) resolvem pelas flags de
+  // compat do AuthContext, que derivam de PRIVILÉGIOS (manage_finances /
+  // moderate_content), não do role.
   if (roles.includes('financeiro') && (ctx.isFinanceiro || ctx.isAdmin)) return true;
   if (roles.includes('moderador') && (ctx.isModerador || ctx.isAdmin)) return true;
   if (roles.includes('socio') && ctx.role === 'socio') return true;

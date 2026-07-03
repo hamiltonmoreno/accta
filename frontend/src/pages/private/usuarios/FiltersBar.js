@@ -19,7 +19,7 @@ export const FiltersBar = ({ search, setSearch, filterRole, setFilterRole, filte
       </div>
       <div className="flex gap-2">
         <select
-          value={filterRole}
+          value={ROLES.includes(filterRole) ? filterRole : ''}
           onChange={(e) => setFilterRole(e.target.value)}
           className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 outline-none bg-white"
           data-testid="filter-role"

@@ -12,7 +12,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
 import { MemberPicker as CandidatePicker } from '../../components/MemberPicker';
 
-const ROLE_OPTIONS = ['admin', 'financeiro', 'moderador', 'socio'];
+const ROLE_OPTIONS = ['admin', 'socio']; // spec 018 D1
 
 const formatDate = (iso) => {
   if (!iso) return '—';

@@ -113,7 +113,7 @@ const CommentSection = ({ postId, commentCount, user }) => {
                           <span className="text-xs text-muted-auto">
                             {format(new Date(comment.created_at), "dd MMM HH:mm", { locale: ptBR })}
                           </span>
-                          {(user?.role === 'admin' || user?.role === 'moderador' || user?.id === comment.user_id) && (
+                          {(user?.role === 'admin' || (user?.privileges || []).includes('moderate_content') || user?.id === comment.user_id) && (
                             <button
                               onClick={() => deleteMutation.mutate(comment.id)}
                               className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-carmesim transition-all"
