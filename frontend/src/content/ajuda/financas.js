@@ -1,10 +1,10 @@
 import { DollarSign } from 'lucide-react';
 
-// E. Finanças — visível a admin/financeiro e a quem tenha privilégios
+// E. Finanças — visível a admin e a quem tenha privilégios
 // financeiros (Conselho Fiscal em leitura). Campos/categorias espelham
 // backend/models.py (INCOME_CATEGORIES/EXPENSE_CATEGORIES) e o gate de
 // co-aprovação por Atos (Art. 54). Cada artigo herda o gate da secção.
-const FINANCE_GATE = { roles: ['admin', 'financeiro'], privileges: ['view_finances_readonly', 'manage_finances'] };
+const FINANCE_GATE = { roles: ['admin'], privileges: ['view_finances_readonly', 'manage_finances'] };
 
 export const financas = {
   id: 'financas',

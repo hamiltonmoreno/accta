@@ -98,7 +98,7 @@ export const InviteModal = ({
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Função no Sistema</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Nível de acesso</label>
                 <select
                   value={roleValue}
                   onChange={(e) => onRoleChange(e.target.value)}
@@ -151,6 +151,7 @@ export const InviteModal = ({
                   ))}
                   <option value={DEPARTAMENTO_OUTRO}>Outro</option>
                 </select>
+                <p className="text-[11px] text-[#9CA3AF] mt-1">Etiqueta organizacional — não altera acessos.</p>
                 {deptOutro && (
                   <Input
                     value={inviteData.department}
