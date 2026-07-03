@@ -402,7 +402,10 @@ quickstart. **F1** = `tests/test_access_matrix.py` baseline ANTES de tocar check
 sozinha). **F2** = enum {admin,socio} + defaults R7 + `scripts/migrate_roles_018.py`
 (dry-run/apply, backup, audit) + UI D2/US3 + **emenda constitucional v1.1.0 OBRIGATÓRIA**
 (constituição fixa o enum antigo em Stack & Data Constraints) + 3 STOPs do dono na execução
-(migração prod, modelo, main). Próximo: `/speckit-tasks`.
+(migração prod, modelo, main). **tasks.md gerado: 20 tarefas** (T001 setup; T002–T007 US4/F1
+gate — matriz baseline PRIMEIRO; T008–T013 US1 modelo+emenda; T014–T016 US2 migração local;
+T017–T018 US3 UI; T019–T020 polish/validação). Próximo: `/speckit-analyze` (recomendado pela
+constituição) ou `/speckit-implement`.
 Em espera: `specs/017-funcoes-personalizadas/` — **MERGED em develop (PR #402, `bdea385`),
 NÃO released** (release v0.5.54 suspensa pela D7 da spec 018). Falta T018 = validação manual
 do dono (quickstart 1–6) — ambiente local isolado montado (Docker `accta-pg-dev` porta 5433,
