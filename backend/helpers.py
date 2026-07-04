@@ -22,16 +22,26 @@ async def resolve_legacy_role(role: Optional[str]) -> Optional[dict]:
     if not seed_def:
         return None
     doc = await db.custom_roles.find_one({"name": seed_def["name"]}, {"_id": 0})
-    if not doc:
-        doc = CustomRole(
-            name=seed_def["name"],
-            description="Função seed da transição do modelo de acessos (spec 018)",
-            privileges=list(seed_def["privileges"]),
-            created_by="system",
-        ).model_dump()
+    if doc:
+        return doc
+    doc = CustomRole(
+        name=seed_def["name"],
+        description="Função seed da transição do modelo de acessos (spec 018)",
+        privileges=list(seed_def["privileges"]),
+        created_by="system",
+    ).model_dump()
+    try:
         await db.custom_roles.insert_one(doc)
         doc.pop("_id", None)
-    return doc
+        return doc
+    except Exception:  # noqa: BLE001
+        # Corrida com outro pedido concorrente: o índice único ux_custom_roles_name
+        # rejeitou o 2.º insert — re-lê o vencedor em vez de rebentar (a seed
+        # existe agora, garantidamente).
+        existing = await db.custom_roles.find_one({"name": seed_def["name"]}, {"_id": 0})
+        if existing:
+            return existing
+        raise
 
 
 async def coaprovacao_limiar() -> float:

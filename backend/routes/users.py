@@ -191,6 +191,17 @@ async def admin_update_user(
     if not update_data:
         raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
 
+    # spec 018: CONCEDER acesso (nível/privilégios/função) é ato de administrador,
+    # não de quem apenas gere dados de utilizadores. `manage_users` (ex.: seed
+    # «Financeiro», Secretário no modelo D3) edita perfil/estado mas NÃO pode
+    # escrever role/privileges/custom_role_id — senão promovia-se a admin,
+    # contornando D3. O admin continua a poder tudo.
+    if {"role", "privileges", "custom_role_id"} & set(update_data.keys()) and not is_admin(current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Apenas administradores podem alterar o nível de acesso, os privilégios ou a função",
+        )
+
     # Função personalizada (spec 017): tem precedência sobre role/privileges no
     # mesmo payload — materializa role="socio" + privilégios da função. Escrita
     # explícita de role/privileges SEM custom_role_id limpa a referência ao

@@ -171,6 +171,40 @@ class TestPatchLegacyRole:
             )
         assert exc.value.status_code == 400
 
+    async def test_manage_users_priv_cannot_write_role(self, mock_db, socio_user_dict, monkeypatch):
+        # spec 018 W1: quem tem manage_users (ex.: seed «Financeiro», Secretário)
+        # mas NÃO é admin não pode escrever role/privileges/custom_role_id —
+        # senão promovia-se a admin contornando D3.
+        from models import User
+
+        actor = User(**{**socio_user_dict, "privileges": ["manage_users"]})
+        mock_db.users.find_one = AsyncMock(return_value=_existing_socio())
+        with pytest.raises(HTTPException) as exc:
+            await users_route.admin_update_user(
+                "u1", UserAdminUpdate(role="admin"), _mock_request(), current_user=actor
+            )
+        assert exc.value.status_code == 403
+
+    async def test_manage_users_priv_can_edit_profile_fields(self, mock_db, socio_user_dict, monkeypatch):
+        # …mas continua a poder editar dados/estado do perfil (não é escalada)
+        from models import User
+
+        actor = User(**{**socio_user_dict, "privileges": ["manage_users"]})
+        existing = _existing_socio()
+        mock_db.users.find_one = AsyncMock(side_effect=[existing, {**existing, "status": "inativo"}])
+        captured = {}
+
+        async def capture_update(filt, update):
+            captured.update(update["$set"])
+            return None
+
+        mock_db.users.update_one = capture_update
+        monkeypatch.setattr(users_route, "create_audit_log", AsyncMock())
+        await users_route.admin_update_user(
+            existing["id"], UserAdminUpdate(status="inativo"), _mock_request(), current_user=actor
+        )
+        assert captured["status"] == "inativo"
+
     async def test_patch_role_fires_escalation_alert(self, mock_db, admin_user, monkeypatch):
         existing = _existing_socio()
         mock_db.users.find_one = AsyncMock(side_effect=[existing, {**existing, "role": "admin"}])
