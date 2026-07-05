@@ -80,7 +80,10 @@ async def seed_database():
         "name": "João Rodrigues",
         "email": "financeiro@controlador.cv",
         "password": hash_password("fin123"),
-        "role": "financeiro",
+        # spec 018: financeiro deixou de ser nível de acesso — é socio +
+        # privilégios da função seed «Financeiro» (governance.LEGACY_ROLE_SEEDS).
+        "role": "socio",
+        "privileges": ["manage_finances", "manage_users"],
         "status": "ativo",
         "member_id": "ACCTA-002",
         "license_number": "ATC-CV-2016-002",
