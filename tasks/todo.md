@@ -101,8 +101,11 @@ unit` 1572 passed**, ruff+eslint limpos.
 - [ ] **Dono — janela deploy→migração**: user `role=financeiro`/`priv=[]` perde
   acesso até a migração correr (prod=no-op, 0 legados). Correr `--apply` na
   mesma janela do deploy, antes de servir tráfego.
-- [ ] **Opcional — tripwire regex** `test_no_inline_role_checks`: endurecer
-  contra ordem-Yoda/aliasing (árvore atual limpa).
+- [x] **Tripwire regex — ENDURECIDO**: `_INLINE_ROLE_CHECK` passou de casar só
+  `user.role <op>` para casar QUALQUER `*user.role` (o refactor F1 deixou 0
+  acessos nos routes) → apanha comparação direta + ordem-Yoda + fonte do
+  aliasing, sem operador. +`test_tripwire_catches_evasions` (guarda contra
+  enfraquecer o regex). Resíduo (AST): aliasing do objeto / `getattr`.
 
 ## Por fazer (dono)
 - [ ] T020 validação manual dos cenários 3–8 do quickstart no navegador

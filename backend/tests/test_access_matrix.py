@@ -290,9 +290,16 @@ async def test_seed_moderador_equivalence(mock_db):
 # automatizado contra regressões; a matriz acima é o contrato de comportamento.
 # --------------------------------------------------------------------------- #
 
-# Casa `user.role`/`current_user.role` (e qualquer *_user.role) comparado com
-# ==, !=, in ou not in. NÃO casa validação de input (ex.: `data.role not in`).
-_INLINE_ROLE_CHECK = re.compile(r"user\.role\s*(?:==|!=|not\s+in\b|in\b)")
+# Casa QUALQUER acesso a `*user.role` (current_user.role, user.role, to_user.role…)
+# em qualquer posição da linha — apanha a comparação direta (`user.role ==`), a
+# ordem-Yoda (`"admin" == user.role`) e a FONTE do aliasing
+# (`r = current_user.role`; a comparação não pode alias sem primeiro ler `.role`).
+# Como o refactor F1 deixou 0 acessos a `user.role` nos routes, o invariante é
+# "os routes não tocam em user.role — decidem via helpers", mais estrito que só
+# comparações. NÃO casa `data.role`/`.get("role")` (validação de input / dict).
+# Resíduo conhecido (exigiria AST): aliasing do OBJETO (`u = current_user; u.role`)
+# ou `getattr(current_user, "role")` — sem uso hoje; a matriz acima é o contrato.
+_INLINE_ROLE_CHECK = re.compile(r"user\.role\b")
 
 
 def test_no_inline_role_checks():
@@ -304,6 +311,26 @@ def test_no_inline_role_checks():
         if _INLINE_ROLE_CHECK.search(line)
     ]
     assert not offenders, (
-        "Checks de role inline fora dos helpers (spec 018, FR-008) — usar "
+        "Acesso a user.role fora dos helpers (spec 018, FR-008) — decidir via "
         "has_role_or_privilege/is_admin/module_gate de auth.py:\n" + "\n".join(offenders)
     )
+
+
+def test_tripwire_catches_evasions():
+    """O tripwire tem de apanhar as formas de evasão além da comparação direta,
+    e ignorar validação de input / leitura de dicts (guarda contra alguém
+    enfraquecer o regex no futuro)."""
+    caught = [
+        'if current_user.role == "admin":',  # direta
+        'if "admin" == current_user.role:',  # ordem-Yoda
+        'if "financeiro" != user.role:',  # Yoda com !=
+        "role = current_user.role",  # fonte de aliasing
+        'if to_user.role in ("admin", "socio"):',  # sufixo *_user
+    ]
+    ignored = [
+        "if data.role not in valid_roles:",  # validação de input
+        'details={"role": user.get("role")}',  # leitura de dict
+        'return {"role": current.role_label}',  # campo diferente
+    ]
+    assert all(_INLINE_ROLE_CHECK.search(s) for s in caught)
+    assert not any(_INLINE_ROLE_CHECK.search(s) for s in ignored)
