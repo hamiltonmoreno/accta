@@ -383,7 +383,13 @@ async def reject_registration(
 
 # ===== CARGOS / MANDATOS (spec-identidade-cargos) =====
 #
-# RBAC: admin OU privilégio manage_users. Só contas account_type="member"
+# RBAC: LER o estado dos cargos (listagens) = admin OU manage_users; MUTAR um
+# cargo (promote/demote/transfer) grava role+privilégios num sócio = CONCEDER
+# acesso → só admin (spec 018 W3, mesma invariante do fix W1 em
+# admin_update_user). manage_users (seed «Financeiro»/Secretário no modelo D3)
+# gere DADOS de utilizadores mas NÃO atribui cargos institucionais — senão
+# promovia-se a admin (role/privilégios do corpo do pedido são gravados no
+# alvo, que pode ser o próprio), contornando D3. Só contas account_type="member"
 # participam em mandatos — contas técnicas nunca recebem cargo.
 
 # Sócios reais: account_type "member" ou ausente (retro-compat).
@@ -391,8 +397,18 @@ _MEMBER_FILTER = {"$or": [{"account_type": "member"}, {"account_type": {"$exists
 
 
 def _require_manage_users(current_user: User):
+    """LEITURA de cargos (listar estado/elegíveis): admin OU manage_users."""
     if not has_role_or_privilege(current_user, ("admin",), "manage_users"):
         raise HTTPException(status_code=403, detail="Sem permissão para gerir cargos")
+
+
+def _require_cargo_admin(current_user: User):
+    """MUTAÇÃO de cargo (promote/demote/transfer) grava role+privilégios =
+    conceder acesso → só admin (spec 018 W3). Fecha a escalada em que um
+    detentor de manage_users se auto-promovia a admin por estes endpoints,
+    contornando o fix W1 (que só cobria admin_update_user) e a decisão D3."""
+    if not is_admin(current_user):
+        raise HTTPException(status_code=403, detail="Apenas administradores podem atribuir cargos institucionais")
 
 
 def _is_member(user: dict) -> bool:
@@ -456,7 +472,7 @@ async def promote_user(
     user_id: str, request: Request, data: PromoteUserRequest, current_user: User = Depends(get_current_user)
 ):
     """Atribui um cargo institucional a um sócio activo (abre novo mandato)."""
-    _require_manage_users(current_user)
+    _require_cargo_admin(current_user)
     cargo_key = normalize_cargo(data.cargo)
     # spec 018 D4: cliente antigo a promover com role legado (ex.: tesoureiro →
     # financeiro, defaults pré-018) degrada para socio — o acesso vem dos
@@ -522,7 +538,7 @@ async def demote_user(
     user_id: str, request: Request, data: DemoteUserRequest, current_user: User = Depends(get_current_user)
 ):
     """Encerra o mandato activo do sócio (fim de mandato sem substituto)."""
-    _require_manage_users(current_user)
+    _require_cargo_admin(current_user)
 
     user = await db.users.find_one({"id": user_id}, {"_id": 0})
     if not user:
@@ -563,7 +579,7 @@ async def transfer_cargo_endpoint(
 ):
     """Transição atómica de mandato de um sócio para outro (ex.: AGA elege novo
     presidente). Despromove `from_user` e promove `to_user` numa só transacção."""
-    _require_manage_users(current_user)
+    _require_cargo_admin(current_user)
     cargo_key = normalize_cargo(data.cargo)
     # spec 018 D4: role legado de cliente antigo degrada para socio (o acesso
     # vem dos privilégios do cargo — mesma regra do promote).

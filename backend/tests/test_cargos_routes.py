@@ -15,10 +15,16 @@ from fastapi import HTTPException
 
 from routes import admin as admin_route
 from routes import users as users_route
-from models import PromoteUserRequest, DemoteUserRequest, TransferCargoRequest, CARGOS
+from models import PromoteUserRequest, DemoteUserRequest, TransferCargoRequest, CARGOS, User
 
 
 pytestmark = [pytest.mark.unit, pytest.mark.asyncio]
+
+
+def _manage_users_socio(socio_user_dict):
+    """Ator não-admin com manage_users (ex.: seed «Financeiro»/Secretário D3) —
+    o vetor de escalada da spec 018 W3."""
+    return User(**{**socio_user_dict, "privileges": ["manage_users"]})
 
 
 def _admin_request():
@@ -59,6 +65,19 @@ class TestPromote:
                 request=_admin_request(),
                 data=PromoteUserRequest(cargo="Tesoureiro", role="financeiro"),
                 current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_manage_users_cannot_self_promote_to_admin_403(self, cargo_env, socio_user_dict):
+        # spec 018 W3: um detentor de manage_users NÃO pode promover-se a admin
+        # por este endpoint (senão contornava o fix W1 e a decisão D3).
+        actor = _manage_users_socio(socio_user_dict)
+        with pytest.raises(HTTPException) as exc:
+            await admin_route.promote_user(
+                user_id=actor.id,
+                request=_admin_request(),
+                data=PromoteUserRequest(cargo="Presidente", role="admin"),
+                current_user=actor,
             )
         assert exc.value.status_code == 403
 
@@ -223,6 +242,18 @@ class TestDemote:
             )
         assert exc.value.status_code == 403
 
+    async def test_manage_users_403(self, cargo_env, socio_user_dict):
+        # spec 018 W3: despromover (encerrar mandato de outrem) também é
+        # mutação de cargo → só admin; manage_users não pode sabotar mandatos.
+        with pytest.raises(HTTPException) as exc:
+            await admin_route.demote_user(
+                user_id="u1",
+                request=_admin_request(),
+                data=DemoteUserRequest(),
+                current_user=_manage_users_socio(socio_user_dict),
+            )
+        assert exc.value.status_code == 403
+
     async def test_not_found_404(self, cargo_env, admin_user):
         cargo_env.users.find_one = AsyncMock(return_value=None)
         with pytest.raises(HTTPException) as exc:
@@ -283,6 +314,18 @@ class TestTransfer:
                 request=_admin_request(),
                 data=TransferCargoRequest(from_user_id="a", to_user_id="b", cargo="Presidente", role="admin"),
                 current_user=socio_user,
+            )
+        assert exc.value.status_code == 403
+
+    async def test_manage_users_cannot_transfer_to_self_403(self, cargo_env, socio_user_dict):
+        # spec 018 W3: transferir um cargo para si próprio (grava role/privilégios
+        # do corpo no to_user) é escalada — bloqueada a não-admin.
+        actor = _manage_users_socio(socio_user_dict)
+        with pytest.raises(HTTPException) as exc:
+            await admin_route.transfer_cargo_endpoint(
+                request=_admin_request(),
+                data=TransferCargoRequest(from_user_id="pres", to_user_id=actor.id, cargo="Presidente", role="admin"),
+                current_user=actor,
             )
         assert exc.value.status_code == 403
 
