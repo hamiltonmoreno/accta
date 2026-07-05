@@ -11,8 +11,18 @@ const SELECT_CLASS =
   'w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 outline-none bg-white';
 
 export const InviteModal = ({
-  inviteData, setInviteData, inviteResult, inviting, onSend, onClose,
+  inviteData, setInviteData, inviteResult, inviting, onSend, onClose, customRoles = [],
 }) => {
+  // Função personalizada (spec 017): sentinela `custom:<id>` no seletor; o
+  // convidado nasce socio + privilégios da função (o backend materializa).
+  const roleValue = inviteData.custom_role_id ? `custom:${inviteData.custom_role_id}` : inviteData.role;
+  const onRoleChange = (v) => {
+    if (v.startsWith('custom:')) {
+      setInviteData({ ...inviteData, custom_role_id: v.slice(7), role: 'socio' });
+    } else {
+      setInviteData({ ...inviteData, custom_role_id: '', role: v });
+    }
+  };
   // «Outro» ativo quando o departamento atual não pertence à lista canónica.
   const [deptOutro, setDeptOutro] = useState(
     Boolean(inviteData.department) && !DEPARTAMENTOS.includes(inviteData.department),
@@ -88,16 +98,23 @@ export const InviteModal = ({
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Função no Sistema</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Nível de acesso</label>
                 <select
-                  value={inviteData.role}
-                  onChange={(e) => setInviteData({ ...inviteData, role: e.target.value })}
+                  value={roleValue}
+                  onChange={(e) => onRoleChange(e.target.value)}
                   className={SELECT_CLASS}
                   data-testid="invite-role"
                 >
                   {ROLES.map((r) => (
                     <option key={r} value={r}>{ROLE_LABELS[r]}</option>
                   ))}
+                  {customRoles.length > 0 && (
+                    <optgroup label="Funções personalizadas">
+                      {customRoles.map((r) => (
+                        <option key={r.id} value={`custom:${r.id}`}>{r.name}</option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
               </div>
               <div>
@@ -134,6 +151,7 @@ export const InviteModal = ({
                   ))}
                   <option value={DEPARTAMENTO_OUTRO}>Outro</option>
                 </select>
+                <p className="text-[11px] text-[#9CA3AF] mt-1">Etiqueta organizacional — não altera acessos.</p>
                 {deptOutro && (
                   <Input
                     value={inviteData.department}

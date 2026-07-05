@@ -232,7 +232,10 @@ class TestApproveRegistration:
             current_user=admin_user,
         )
         assert captured["status"] == "pendente_convite"
-        assert captured["role"] == "financeiro"  # admin escala no approve
+        # spec 018 D4: role legado no approve traduz para socio + função seed
+        assert captured["role"] == "socio"
+        assert captured["privileges"] == ["manage_finances", "manage_users"]
+        assert captured["custom_role_id"]
         # herda o cargo_declarado ("Tesoureiro"), normalizado p/ key canónica
         assert captured["cargo"] == "dir_tesoureiro"
         assert captured["orgao"] == "direcao"

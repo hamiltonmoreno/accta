@@ -59,6 +59,14 @@ export const adminAPI = {
   revokeInvite: (userId) => api.delete(`/admin/invite/${userId}`),
 };
 
+// Funções personalizadas — pacotes de privilégios (spec 017, admin-only)
+export const customRolesAPI = {
+  list: () => api.get('/admin/custom-roles'),
+  create: (data) => api.post('/admin/custom-roles', data),
+  update: (id, data) => api.patch(`/admin/custom-roles/${id}`, data),
+  remove: (id) => api.delete(`/admin/custom-roles/${id}`),
+};
+
 // Auto-registo de sócios (spec-auto-registo)
 export const registrationAPI = {
   options: () => api.get('/auth/registration-options'),

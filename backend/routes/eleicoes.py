@@ -18,7 +18,7 @@ import asyncpg
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 
 import comunicados_service
-from auth import SECRET_KEY, get_current_user
+from auth import SECRET_KEY, get_current_user, is_admin
 from database import cast_ballot, db
 from governance import (
     cargo_label,
@@ -79,12 +79,12 @@ def _is_comissao(user: User, eleicao: dict) -> bool:
 
 
 def _require_create(current_user: User):
-    if not (current_user.role == "admin" or is_mesa_ag(current_user)):
+    if not (is_admin(current_user) or is_mesa_ag(current_user)):
         raise HTTPException(status_code=403, detail="Apenas a Mesa da AG ou admin podem criar eleições")
 
 
 def _require_manage(current_user: User, eleicao: dict):
-    if current_user.role == "admin" or is_mesa_ag(current_user) or _is_comissao(current_user, eleicao):
+    if is_admin(current_user) or is_mesa_ag(current_user) or _is_comissao(current_user, eleicao):
         return
     raise HTTPException(status_code=403, detail="Sem permissão para gerir esta eleição")
 
@@ -495,7 +495,18 @@ async def _proclaim_list(eleicao: dict, lista: dict, by_id: str) -> tuple[str, l
             hist = _close_active(h.get("cargo_history"), posse)
             await db.users.update_one(
                 {"id": h["id"]},
-                {"$set": {"role": "socio", "cargo": "socio", "orgao": None, "privileges": [], "cargo_history": hist}},
+                {
+                    "$set": {
+                        "role": "socio",
+                        "cargo": "socio",
+                        "orgao": None,
+                        "privileges": [],
+                        "cargo_history": hist,
+                        # spec 017: cessantes de mandato eleitoral perdem qualquer
+                        # função personalizada (D5).
+                        "custom_role_id": None,
+                    }
+                },
             )
 
     # 2. Promove titulares eleitos.
@@ -536,6 +547,9 @@ async def _proclaim_list(eleicao: dict, lista: dict, by_id: str) -> tuple[str, l
                     "orgao": orgao_of_cargo(cargo_key),
                     "privileges": privileges_for_cargo(cargo_key),
                     "cargo_history": hist,
+                    # spec 017: proclamação destaca de qualquer função
+                    # personalizada — cargo eleitoral tem precedência (D5).
+                    "custom_role_id": None,
                 }
             },
         )
@@ -579,7 +593,7 @@ async def _proclaim_list(eleicao: dict, lista: dict, by_id: str) -> tuple[str, l
 async def proclamar(eleicao_id: str, request: Request, current_user: User = Depends(get_current_user)):
     """Proclama a lista vencedora e cria os mandatos (posse)."""
     eleicao = await _get_eleicao(eleicao_id)
-    if not (current_user.role == "admin" or is_mesa_ag(current_user)):
+    if not (is_admin(current_user) or is_mesa_ag(current_user)):
         raise HTTPException(status_code=403, detail="Apenas a Mesa da AG ou admin proclamam")
     if eleicao["status"] != "apurada":
         raise HTTPException(status_code=400, detail="Só se proclama após o apuramento")

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from database import db
-from auth import get_current_user
+from auth import get_current_user, has_role_or_privilege
 from models import User
 from ranking import gather_signal_counts
 
@@ -32,7 +32,7 @@ async def get_personal_report(current_user: User = Depends(get_current_user)):
 
     # Documentos disponíveis para o utilizador.
     document_visibilities = ["publico", "socios"]
-    if current_user.role == "admin" or "manage_documents" in (current_user.privileges or []):
+    if has_role_or_privilege(current_user, ("admin",), "manage_documents"):
         document_visibilities.extend(["direcao", "privado"])
     documents_count = await db.documents.count_documents({"visibility": {"$in": document_visibilities}})
 

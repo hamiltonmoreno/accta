@@ -166,7 +166,7 @@ function AppRoutes() {
         <Route
           path="/financeiro"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'financeiro']} allowedPrivileges={['view_finances_readonly', 'manage_finances']}>
+            <ProtectedRoute allowedRoles={['admin']} allowedPrivileges={['view_finances_readonly', 'manage_finances']}>
               <PrivateLayout><FinanceiroPage /></PrivateLayout>
             </ProtectedRoute>
           }
@@ -384,7 +384,7 @@ function AppRoutes() {
         <Route
           path="/admin/aparencia"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'moderador']}>
+            <ProtectedRoute allowedRoles={['admin']} allowedPrivileges={['moderate_content']}>
               <PrivateLayout><AdminAparenciaPage /></PrivateLayout>
             </ProtectedRoute>
           }
@@ -392,7 +392,7 @@ function AppRoutes() {
         <Route
           path="/admin/noticias"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'moderador']}>
+            <ProtectedRoute allowedRoles={['admin']} allowedPrivileges={['moderate_content']}>
               <PrivateLayout><AdminNoticiasPage /></PrivateLayout>
             </ProtectedRoute>
           }

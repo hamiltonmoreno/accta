@@ -122,6 +122,8 @@ COLLECTIONS: tuple[str, ...] = (
     # fins profissionais Cat 5 F3 (spec-fins-profissionais §5/§7):
     "defesa_profissional",
     "relacoes_externas",
+    # funções personalizadas — pacotes nomeados de privilégios (spec 017):
+    "custom_roles",
     # no Pydantic model — schema derived from usage:
     "password_resets",
     "tokens_revoked",
@@ -836,6 +838,11 @@ _INDEX_DDL: tuple[str, ...] = (
     # push subscriptions (uma por endpoint/dispositivo; lookup por user_id)
     "CREATE INDEX IF NOT EXISTS ix_push_user ON \"push_subscriptions\" ((doc->>'user_id'))",
     "CREATE UNIQUE INDEX IF NOT EXISTS ux_push_endpoint ON \"push_subscriptions\" ((doc->>'endpoint'))",
+    # funções personalizadas (spec 017/018): nome único por nome EXATO — backstop
+    # de BD contra a corrida TOCTOU na criação on-demand das seeds «Financeiro»/
+    # «Moderador» (resolve_legacy_role). A app impõe unicidade case-insensitive
+    # (mais estrita), por isso este índice nunca rejeita o que a app aceitaria.
+    "CREATE UNIQUE INDEX IF NOT EXISTS ux_custom_roles_name ON \"custom_roles\" ((doc->>'name'))",
     # wall
     'CREATE INDEX IF NOT EXISTS ix_wall_appr_pin_created ON "wall_posts" '
     "((doc->>'approved'), (doc->>'pinned') DESC, (doc->>'created_at') DESC)",

@@ -14,7 +14,7 @@ from typing import Optional
 from asyncpg.exceptions import UniqueViolationError
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 
-from auth import generate_qr_hash, get_current_user
+from auth import generate_qr_hash, get_current_user, is_admin
 from database import db, next_member_id
 from email_service import send_invite_email
 from helpers import (
@@ -163,7 +163,7 @@ async def retirar_assinatura(peticao_id: str, request: Request, current_user: Us
 async def encaminhar_peticao(
     peticao_id: str, data: PeticaoEncaminhar, request: Request, current_user: User = Depends(get_current_user)
 ):
-    if not (current_user.role == "admin" or is_mesa_ag(current_user)):
+    if not (is_admin(current_user) or is_mesa_ag(current_user)):
         raise HTTPException(status_code=403, detail="Apenas a Mesa da AG ou admin podem encaminhar")
     p = await db.peticoes.find_one({"id": peticao_id}, {"_id": 0})
     if not p:
@@ -316,7 +316,7 @@ async def obter_reclamacao(rec_id: str, current_user: User = Depends(get_current
 async def responder_reclamacao(
     rec_id: str, data: ReclamacaoResponder, request: Request, current_user: User = Depends(get_current_user)
 ):
-    if not (current_user.role == "admin" or is_direcao(current_user)):
+    if not (is_admin(current_user) or is_direcao(current_user)):
         raise HTTPException(status_code=403, detail="Apenas a Direcção (ou admin) pode responder")
     r = await db.reclamacoes.find_one({"id": rec_id}, {"_id": 0})
     if not r:
@@ -374,7 +374,7 @@ async def abrir_recurso(rec_id: str, request: Request, current_user: User = Depe
 async def decidir_recurso(
     rec_id: str, data: RecursoDecisao, request: Request, current_user: User = Depends(get_current_user)
 ):
-    if not (current_user.role == "admin" or is_mesa_ag(current_user)):
+    if not (is_admin(current_user) or is_mesa_ag(current_user)):
         raise HTTPException(status_code=403, detail="Apenas a Mesa da AG (ou admin) pode decidir o recurso")
     r = await db.reclamacoes.find_one({"id": rec_id}, {"_id": 0})
     if not r:
@@ -499,7 +499,7 @@ async def triar_proposta(
 async def incluir_proposta(
     proposta_id: str, data: PropostaIncluir, request: Request, current_user: User = Depends(get_current_user)
 ):
-    if not (current_user.role == "admin" or is_mesa_ag(current_user)):
+    if not (is_admin(current_user) or is_mesa_ag(current_user)):
         raise HTTPException(
             status_code=403, detail="Apenas a Mesa da AG (ou admin) podem incluir na ordem de trabalhos"
         )

@@ -124,8 +124,14 @@ description: "Task list — Spec 016: Gestão de Sócios (privilégios, função
 - [X] T014 [P] Lint frontend: `cd frontend && npx eslint src/ --ext .js,.jsx --max-warnings=60`
 - [X] T015 [P] Build frontend: `cd frontend && yarn build` (craco build limpo)
 - [X] T016 [P] Testes backend: `cd backend && pytest tests/test_auth_routes.py tests/test_identidade_cargos_models.py` (e suíte relevante)
-- [ ] T017 Validação no navegador (dono) do `quickstart.md`: US1 (12 rótulos), US2 (dropdown+«Outro»+legado em inscrição/convite/edição; `curl registration-options`), US3 (4 roles), US4 (botão + escondido em conta técnica)
-- [ ] T018 Se surgir alguma correção do dono durante a validação, registar em `tasks/lessons.md` (e memória se for insight de longa duração) antes de nova tentativa
+- [X] T017 Validação no navegador (dono) do `quickstart.md`: US1 (12 rótulos), US2 (dropdown+«Outro»+legado em inscrição/convite/edição; `curl registration-options`), US3 (4 roles), US4 (botão + escondido em conta técnica)
+- [X] T018 Se surgir alguma correção do dono durante a validação, registar em `tasks/lessons.md` (e memória se for insight de longa duração) antes de nova tentativa
+
+> **Fecho (2026-07-02):** T017 validada pelo dono no navegador; T018 sem correções a registar.
+> RELEASED **v0.5.53** (PR #400→develop, release #401→main, tag) e **DEPLOYED em prod Via B**
+> (`sha-aa15736d5221`; teste decisivo: `registration-options` público devolve `departamentos`).
+> Review 2 rondas — W1 (convite-admin 422) resolvida por decisão do dono (admin convidável).
+> **SPEC CONCLUÍDA.**
 
 ---
 

@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 from asyncpg.exceptions import UniqueViolationError
 from fastapi import APIRouter, Depends, HTTPException
 
-from auth import get_current_user
+from auth import get_current_user, is_admin
 from database import db
 from helpers import create_audit_log, notify_all_active_users
 from models import (
@@ -44,7 +44,7 @@ def _now() -> str:
 def _can_manage(user: User) -> bool:
     """Mesma verificação de role/privilégio do gate `_require_manage`, mas sem
     levantar exceção — usada para decidir o que um leitor pode ver."""
-    return user.role == "admin" or is_direcao(user) or user_can(user, "manage_documents")
+    return is_admin(user) or is_direcao(user) or user_can(user, "manage_documents")
 
 
 def _require_manage(user: User):
@@ -234,7 +234,7 @@ async def aprovar_versao(
 
     # RBAC por competência (antes de mexer na versão).
     if competencia == "assembleia_geral":
-        if not (current_user.role == "admin" or is_mesa_ag(current_user)):
+        if not (is_admin(current_user) or is_mesa_ag(current_user)):
             raise HTTPException(
                 status_code=403, detail="Competencia da AG: apenas a Mesa da AG ou admin aprova"
             )

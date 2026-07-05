@@ -148,8 +148,11 @@ describe('AuthContext', () => {
     await waitFor(() => expect(screen.getByTestId('auth')).toHaveTextContent('no'));
   });
 
-  test('role flags reflect user role', async () => {
-    authAPI.getMe.mockResolvedValueOnce({ data: { id: 'u1', role: 'financeiro', status: 'ativo' } });
+  test('role flags reflect privileges (spec 018)', async () => {
+    // spec 018: isFinanceiro deriva de manage_finances (o role legado morreu)
+    authAPI.getMe.mockResolvedValueOnce({
+      data: { id: 'u1', role: 'socio', status: 'ativo', privileges: ['manage_finances'] },
+    });
 
     let captured;
     render(

@@ -19,8 +19,14 @@ from governance import (
     orgao_of_cargo,
 )
 from database import db
-from auth import get_current_user, has_role_or_privilege
-from helpers import create_audit_log, create_notification, delete_upload_file
+from auth import get_current_user, has_role_or_privilege, is_admin, module_gate
+from helpers import (
+    alert_admins_privilege_escalation,
+    create_audit_log,
+    create_notification,
+    delete_upload_file,
+    resolve_legacy_role,
+)
 
 router = APIRouter(tags=["users"])
 
@@ -62,7 +68,7 @@ async def get_users(
     include_technical: bool = False,
     current_user: User = Depends(get_current_user),
 ):
-    if not has_role_or_privilege(current_user, ("admin", "financeiro"), "manage_users"):
+    if not has_role_or_privilege(current_user, ("admin",), "manage_users"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     query = {}
@@ -107,7 +113,7 @@ async def get_users(
 async def get_user(user_id: str, current_user: User = Depends(get_current_user)):
     # Self ou staff (admin/financeiro) — restantes não veem PII de terceiros
     is_self = current_user.id == user_id
-    is_staff = current_user.role in ("admin", "financeiro")
+    is_staff = has_role_or_privilege(current_user, ("admin",), "manage_users")
     if not (is_self or is_staff):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
@@ -185,6 +191,32 @@ async def admin_update_user(
     if not update_data:
         raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
 
+    # spec 018: CONCEDER acesso (nível/privilégios/função) é ato de administrador,
+    # não de quem apenas gere dados de utilizadores. `manage_users` (ex.: seed
+    # «Financeiro», Secretário no modelo D3) edita perfil/estado mas NÃO pode
+    # escrever role/privileges/custom_role_id — senão promovia-se a admin,
+    # contornando D3. O admin continua a poder tudo.
+    if {"role", "privileges", "custom_role_id"} & set(update_data.keys()) and not is_admin(current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Apenas administradores podem alterar o nível de acesso, os privilégios ou a função",
+        )
+
+    # Função personalizada (spec 017): tem precedência sobre role/privileges no
+    # mesmo payload — materializa role="socio" + privilégios da função. Escrita
+    # explícita de role/privileges SEM custom_role_id limpa a referência ao
+    # sócio que a tinha (destaque, D3/D5).
+    custom_role_id = update_data.pop("custom_role_id", None)
+    if custom_role_id:
+        role_doc = await db.custom_roles.find_one({"id": custom_role_id}, {"_id": 0})
+        if not role_doc:
+            raise HTTPException(status_code=400, detail="Função personalizada inválida")
+        update_data["role"] = "socio"
+        update_data["privileges"] = list(role_doc["privileges"])
+        update_data["custom_role_id"] = custom_role_id
+    elif ("role" in update_data or "privileges" in update_data) and existing.get("custom_role_id"):
+        update_data["custom_role_id"] = None
+
     # Validate cargo: aceita key/label/alias legado, grava sempre a key canónica
     # e denormaliza o órgão social (spec-governanca §4).
     if "cargo" in update_data:
@@ -200,10 +232,23 @@ async def admin_update_user(
         if invalid:
             raise HTTPException(status_code=400, detail=f"Privilégios inválidos: {', '.join(invalid)}")
 
-    # Validate role
+    # Validate role — spec 018 D4 (release de transição): financeiro/moderador
+    # continuam aceites mas são traduzidos abaixo; a release seguinte remove-os.
     valid_roles = ["admin", "socio", "financeiro", "moderador"]
     if "role" in update_data and update_data["role"] not in valid_roles:
         raise HTTPException(status_code=400, detail=f"Role inválido. Opções: {', '.join(valid_roles)}")
+
+    # spec 018 D4: role legado traduz para socio + função personalizada seed
+    # (criada on-demand) — mesma precedência de função da spec 017: os
+    # privilégios materializados são os da seed.
+    legacy_role_translated = None
+    if "role" in update_data:
+        seed = await resolve_legacy_role(update_data["role"])
+        if seed:
+            legacy_role_translated = update_data["role"]
+            update_data["role"] = "socio"
+            update_data["privileges"] = list(seed["privileges"])
+            update_data["custom_role_id"] = seed["id"]
 
     # Validate status (invariante: sem "inadimplente")
     if "status" in update_data and update_data["status"] not in USER_STATUSES:
@@ -211,8 +256,9 @@ async def admin_update_user(
 
     await db.users.update_one({"id": user_id}, {"$set": update_data})
 
-    # Audit log estruturado: details captura before/after dos campos sensiveis (role/status/privileges).
-    sensitive = {"role", "status", "privileges"}
+    # Audit log estruturado: details captura before/after dos campos sensiveis
+    # (role/status/privileges + custom_role_id da spec 017).
+    sensitive = {"role", "status", "privileges", "custom_role_id"}
     before = {k: existing.get(k) for k in update_data if k in sensitive}
     after = {k: v for k, v in update_data.items() if k in sensitive}
     await create_audit_log(
@@ -225,8 +271,21 @@ async def admin_update_user(
             "changes": list(update_data.keys()),
             "before": before or None,
             "after": after or None,
+            **({"legacy_role_translated": legacy_role_translated} if legacy_role_translated else {}),
         },
     )
+
+    # Alerta de escalada (§8.2.c / spec 018 R8): role admin novo OU novos
+    # privilégios sensíveis — incl. quando chegam via função personalizada.
+    if {"role", "privileges", "custom_role_id"} & set(update_data.keys()):
+        await alert_admins_privilege_escalation(
+            current_user.id,
+            existing.get("name", "Utilizador"),
+            existing.get("role"),
+            update_data.get("role", existing.get("role")),
+            existing.get("privileges"),
+            update_data.get("privileges", existing.get("privileges")),
+        )
 
     # Notify user of role/cargo changes
     notify_fields = {"role", "privileges", "status"}
@@ -294,7 +353,7 @@ async def remove_user_photo(
     """Admin/moderador removem a foto de perfil de um membro (foto inadequada).
     Apenas REMOVEM — não definem fotos (spec-foto-de-perfil §5.2). Volta às
     iniciais, apaga o ficheiro, regista audit e notifica o utilizador."""
-    if not has_role_or_privilege(current_user, ("admin", "moderador"), "manage_users"):
+    if not module_gate(current_user, "users_photo_moderation"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     existing = await db.users.find_one({"id": user_id}, {"_id": 0, "photo_url": 1, "name": 1})
@@ -347,7 +406,7 @@ async def get_user_sancoes(user_id: str, current_user: User = Depends(get_curren
     from routes.sancoes import _redact
 
     is_self = current_user.id == user_id
-    privileged = current_user.role == "admin" or is_direcao(current_user)
+    privileged = is_admin(current_user) or is_direcao(current_user)
     if not (is_self or privileged):
         raise HTTPException(status_code=403, detail="Sem permissão")
     rows = await db.sancoes.find({"user_id": user_id}, {"_id": 0}).sort("created_at", -1).to_list(200)

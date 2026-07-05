@@ -19,7 +19,7 @@ from models import (
 )
 from finance_joia import joia_status
 from database import db, insert_quotas_atomic
-from auth import get_current_user, can_view_finances, can_manage_finances
+from auth import get_current_user, is_admin, can_view_finances, can_manage_finances
 from helpers import coaprovacao_limiar, create_audit_log, notify_admins, create_notification
 from fpdf import FPDF
 import io
@@ -491,7 +491,7 @@ async def update_finance_settings(
     request: Request,
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role != "admin":
+    if not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Apenas administradores podem alterar configuracoes")
 
     updates = {k: v for k, v in data.model_dump().items() if v is not None}

@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from typing import List, Optional
 from models import User, Notification, NotificationCreate, AuditLog
 from database import db
-from auth import _extract_token, get_current_user, get_user_from_token, has_role_or_privilege
+from auth import _extract_token, get_current_user, is_admin, get_user_from_token, has_role_or_privilege
 from helpers import create_audit_log, notify_all_active_users, verify_audit_entry
 import asyncio
 import json
@@ -158,7 +158,7 @@ async def clear_all_notifications(current_user: User = Depends(get_current_user)
 
 @router.post("/notifications/broadcast")
 async def broadcast_notification(notif_data: NotificationCreate, current_user: User = Depends(get_current_user)):
-    if current_user.role != "admin":
+    if not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Sem permissao")
 
     await notify_all_active_users(
@@ -170,7 +170,7 @@ async def broadcast_notification(notif_data: NotificationCreate, current_user: U
 
 @router.post("/notifications", response_model=Notification)
 async def create_notification_route(notif_data: NotificationCreate, current_user: User = Depends(get_current_user)):
-    if current_user.role != "admin":
+    if not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Sem permissao")
 
     notification = Notification(**notif_data.model_dump())

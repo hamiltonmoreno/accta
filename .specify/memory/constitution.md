@@ -1,22 +1,26 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: (none) → 1.0.0 (initial ratification)
-Modified principles: N/A (first ratification)
-Added sections:
-  - Core Principles (I–VII)
-  - Stack & Data Constraints
-  - Development Workflow & Stop Conditions
-  - Governance
-Removed sections: N/A
+Version change: 1.0.0 → 1.1.0 (MINOR — material change to a Stack & Data constraint;
+  principles intact)
+Modified principles: none
+Modified sections:
+  - Stack & Data Constraints → Auth: role enum consolidado {admin, socio} (spec 018,
+    decisões D1–D7 do dono, 2026-07-03). Os antigos níveis financeiro/moderador passam
+    a funções personalizadas seed («Financeiro»/«Moderador», spec 017) + privilégios;
+    a API traduz roles legados durante 1 release de transição (D4) e rejeita-os na
+    seguinte. Cargos estatutários deixam de conceder role elevado exceto Presidente/
+    Vice da Direcção (D3).
+Added sections: none
+Removed sections: none
 Templates requiring updates:
-  ✅ .specify/templates/plan-template.md — Constitution Check gate is placeholder, populated
-     dynamically during /speckit-plan; no static edit required
-  ✅ .specify/templates/spec-template.md — no constitution-coupled sections
-  ✅ .specify/templates/tasks-template.md — no constitution-coupled categorization
-  ⚠ CLAUDE.md — runtime guidance file already encodes these principles in operational form;
-     no edit required, but the constitution now formally supersedes it on conflicts (see Governance)
+  ✅ .specify/templates/* — sem secções acopladas ao enum de roles
+  ✅ CLAUDE.md — §Auth/§Roles & Privileges reconciliado na mesma release
+  ✅ .claude/rules/api.md — exemplo de check por role é ilustrativo; regra canónica
+     passa a ser o helper único (auth.has_role_or_privilege/module_gate)
 Deferred TODOs: none
+Previous report (1.0.0, initial ratification): Core Principles I–VII, Stack & Data
+Constraints, Development Workflow & Stop Conditions, Governance.
 -->
 
 # Portal ACCTA Constitution
@@ -143,9 +147,15 @@ sloppier.
 - **Frontend**: React 19 + Tailwind CSS 3 + shadcn/ui (New York style) + Framer
   Motion + Recharts + Craco. Functional components + hooks only. No CSS modules,
   no inline styles, no styled-components.
-- **Auth**: JWT HS256, 24h expiry. Roles {`admin`, `financeiro`, `moderador`,
-  `socio`}. Additive `privileges[]` overlays (e.g., `view_finances_readonly` for
-  Conselho Fiscal). MFA/2FA is removed and MUST NOT be reimplemented.
+- **Auth**: JWT HS256, 24h expiry. Roles {`admin`, `socio`} (spec 018 — amended
+  v1.1.0): `admin` = full management, `socio` = member; ALL granular access
+  comes from additive `privileges[]` overlays (e.g., `view_finances_readonly`
+  for Conselho Fiscal), packaged via custom roles (spec 017 — seeds
+  «Financeiro»/«Moderador» replace the former levels). Every access check MUST
+  go through the canonical helpers (`auth.has_role_or_privilege` /
+  `auth.module_gate` over `governance.MODULE_ACCESS`) — inline `user.role`
+  comparisons in routes are forbidden and guarded by test. MFA/2FA is removed
+  and MUST NOT be reimplemented.
 - **Email**: Resend API. Sending to real users is a STOP condition (Principle VI).
 - **Deploy**: GitFlow → tag → Via B manual fallback (`docs/runbook-deploy-backend-via-b.md`)
   while GitHub Actions billing-locked. Frontend ships independently via Vercel on
@@ -222,4 +232,4 @@ that updates.
   non-trivial feature to check cross-artifact consistency against this
   constitution.
 
-**Version**: 1.0.0 | **Ratified**: 2026-06-20 | **Last Amended**: 2026-06-20
+**Version**: 1.1.0 | **Ratified**: 2026-06-20 | **Last Amended**: 2026-07-03

@@ -78,8 +78,9 @@ export const AuthProvider = ({ children }) => {
     // acesso EXTRA além do role. Espelha auth.can_view/manage_finances do backend.
     const privileges = user?.privileges || [];
     const isAdmin = user?.role === 'admin';
-    const canManageFinances =
-      isAdmin || user?.role === 'financeiro' || privileges.includes('manage_finances');
+    // spec 018: os privilégios são a única fonte granular — o nível
+    // financeiro/moderador deixou de existir (viraram funções personalizadas).
+    const canManageFinances = isAdmin || privileges.includes('manage_finances');
     const canViewFinances = canManageFinances || privileges.includes('view_finances_readonly');
 
     // Governança (spec-governanca §15): órgão derivado da KEY canónica do cargo.
@@ -111,8 +112,10 @@ export const AuthProvider = ({ children }) => {
       logout,
       isAuthenticated: !!user,
       isAdmin,
-      isFinanceiro: user?.role === 'financeiro',
-      isModerador: user?.role === 'moderador',
+      // Compat spec 018: flags derivadas de PRIVILÉGIOS (o role legado já não
+      // existe) — consumidores antigos (isAdmin || isFinanceiro) continuam certos.
+      isFinanceiro: privileges.includes('manage_finances'),
+      isModerador: privileges.includes('moderate_content'),
       isAtivo: user?.status === 'ativo',
       hasPrivilege: (p) => privileges.includes(p),
       can,

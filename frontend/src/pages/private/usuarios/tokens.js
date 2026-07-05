@@ -1,6 +1,9 @@
 // CARGOS e PRIVILEGES vêm do backend (GET /users/meta/cargos). Aqui só os
 // conjuntos pequenos e estáveis; rótulos PT em lib/cargoLabels.
-export const ROLES = ['admin', 'socio', 'financeiro', 'moderador'];
+// spec 018 D1/D2: níveis de acesso = Admin/Sócio; o acesso granular vem de
+// privilégios e funções personalizadas (as antigas «Financeiro»/«Moderador»
+// existem como funções seed).
+export const ROLES = ['admin', 'socio'];
 export const STATUSES = ['ativo', 'inativo', 'pendente_convite'];
 
 // Departamentos internos da associação (espelha models.DEPARTAMENTOS no backend).
@@ -33,6 +36,7 @@ export const EMPTY_INVITE = {
   name: '',
   email: '',
   role: 'socio',
+  custom_role_id: '',
   member_id: '',
   license_number: '',
   department: '',

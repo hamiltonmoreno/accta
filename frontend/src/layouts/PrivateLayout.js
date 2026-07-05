@@ -64,8 +64,8 @@ const menuSections = [
       { label: 'Eventos', path: '/eventos', icon: Calendar, roles: ['all'] },
       { label: 'Projetos', path: '/projetos', icon: FolderKanban, roles: ['all'] },
       { label: 'Documentos', path: '/documentos', icon: FileText, roles: ['all'] },
-      { label: 'Financeiro', path: '/financeiro', icon: DollarSign, roles: ['admin', 'financeiro'], privileges: ['view_finances_readonly', 'manage_finances'] },
-      { label: 'Co-aprovações', path: '/financeiro/co-aprovacoes', icon: FileCheck, roles: ['admin', 'financeiro'], privileges: ['view_finances_readonly', 'manage_finances'], match: 'direcao' },
+      { label: 'Financeiro', path: '/financeiro', icon: DollarSign, roles: ['admin'], privileges: ['view_finances_readonly', 'manage_finances'] },
+      { label: 'Co-aprovações', path: '/financeiro/co-aprovacoes', icon: FileCheck, roles: ['admin'], privileges: ['view_finances_readonly', 'manage_finances'], match: 'direcao' },
     ],
   },
   {
@@ -92,7 +92,7 @@ const menuSections = [
     items: [
       { label: 'Galeria', path: '/galeria-admin', icon: Camera, roles: ['all'] },
       { label: 'Benefícios', path: '/beneficios', icon: Gift, roles: ['all'] },
-      { label: 'Notícias', path: '/admin/noticias', icon: Newspaper, roles: ['admin', 'moderador'] },
+      { label: 'Notícias', path: '/admin/noticias', icon: Newspaper, roles: ['admin'], privileges: ['moderate_content'] },
     ],
   },
   {
@@ -118,7 +118,7 @@ const menuSections = [
       // Sub-rótulo dentro de Administração (fundido da antiga secção
       // "Configurações do sistema"). Sem RBAC próprio — segue os itens abaixo.
       { subheader: 'Configurações do sistema' },
-      { label: 'Aparência', path: '/admin/aparencia', icon: Palette, roles: ['admin', 'moderador'] },
+      { label: 'Aparência', path: '/admin/aparencia', icon: Palette, roles: ['admin'], privileges: ['moderate_content'] },
     ],
   },
 ];

@@ -72,8 +72,13 @@ class TestCargoAttributes:
         assert g.privileges_for_cargo("xpto") == []
 
     def test_role_for_cargo(self):
-        assert g.role_for_cargo("dir_tesoureiro") == "financeiro"
+        # spec 018 D3: cargos deixam de conceder nível elevado — só
+        # Presidente/Vice da Direcção mantêm admin; o resto é socio+privilégios.
+        assert g.role_for_cargo("dir_tesoureiro") == "socio"
         assert g.role_for_cargo("dir_presidente") == "admin"
+        assert g.role_for_cargo("dir_vice_presidente") == "admin"
+        assert g.role_for_cargo("dir_secretario") == "socio"
+        assert g.role_for_cargo("dir_vogal") == "socio"
         assert g.role_for_cargo("xpto") == "socio"
 
     def test_orgao_of_cargo(self):
@@ -227,7 +232,8 @@ class TestStructure:
     def test_cargo_inclui_role_e_privileges_default(self):
         st = g.governance_structure()
         tes = next(c for c in st["cargos"] if c["key"] == "dir_tesoureiro")
-        assert tes["role_default"] == "financeiro"
+        # spec 018 D3: Tesoureiro deixa de conceder nível — socio + privilégios
+        assert tes["role_default"] == "socio"
         assert set(tes["privileges_default"]) == {"manage_finances", "view_audit_logs"}
         assert tes["orgao"] == "direcao"
 

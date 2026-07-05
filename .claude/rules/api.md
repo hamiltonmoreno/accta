@@ -15,8 +15,12 @@ paths:
 
 ## Authentication & Authorization
 - Every protected endpoint MUST use `get_current_user` dependency
-- Check roles explicitly: `if current_user["role"] not in ["admin", "financeiro"]`
-- Return 403 for unauthorized role access
+- Access checks go through the canonical helpers (spec 018 — NEVER compare
+  `user.role` inline in routes; guarded by `test_no_inline_role_checks`):
+  `if not has_role_or_privilege(current_user, ("admin",), "manage_x")` /
+  `is_admin(current_user)` / `module_gate(current_user, "<module>")`
+  (table: `governance.MODULE_ACCESS`). Roles are {admin, socio} only.
+- Return 403 for unauthorized access
 - Return 401 for missing/invalid token
 
 ## Database

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from datetime import datetime, timezone
 from database import db
-from auth import get_current_user
+from auth import get_current_user, has_role_or_privilege
 from models import User
 from routes.events import get_allowed_event_visibilities
 from routes.projects import can_view_project
@@ -22,7 +22,7 @@ async def _visible_projects(proj_ids: list, user: User) -> dict:
 
 @router.get("/activity/recent")
 async def get_recent_activity(limit: int = Query(15, ge=1, le=50), current_user: User = Depends(get_current_user)):
-    is_financeiro = current_user.role in ("admin", "financeiro")
+    is_financeiro = has_role_or_privilege(current_user, ("admin",), "manage_finances")
     activities = []
 
     # 1. Recent wall posts (approved, public)
