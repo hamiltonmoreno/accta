@@ -112,8 +112,9 @@ unit` 1572 passed**, ruff+eslint limpos.
   (ambiente isolado) + rever o **diff da matriz F1→F2** — em particular o
   delta da seed «Financeiro» (+users_manage/+users_photo_moderation, não há
   privilégio só-de-listagem) e a lista do Secretário (D3)
-- [ ] Decisão P1: emenda constitucional em PR próprio (commit isolado,
-  cherry-pickável) ou no PR da feature
+- [x] Decisão P1: emenda constitucional — **RESOLVIDA no PR da feature** (não em
+  PR próprio). Já em `develop` E `main` a v1.1.0 (commit `aea6932`, spec 018 T013:
+  role enum {admin, socio}). Nada a criar.
 - [ ] Push + PR para develop; release/migração prod = cerimónia à parte
   (backup → dry-run → confirmação → apply → teste decisivo) com STOPs
 
