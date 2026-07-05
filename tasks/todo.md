@@ -108,7 +108,7 @@ unit` 1572 passed**, ruff+eslint limpos.
   enfraquecer o regex). Resíduo (AST): aliasing do objeto / `getattr`.
 
 ## Por fazer (dono)
-- [ ] T020 validação manual dos cenários 3–8 do quickstart no navegador
+- [x] T020 validação manual dos cenários 3–8 do quickstart no navegador
   (ambiente isolado) + rever o **diff da matriz F1→F2** — em particular o
   delta da seed «Financeiro» (+users_manage/+users_photo_moderation, não há
   privilégio só-de-listagem) e a lista do Secretário (D3)
@@ -118,6 +118,54 @@ unit` 1572 passed**, ruff+eslint limpos.
   (backup → dry-run → confirmação → apply → teste decisivo) com STOPs
 
 ## Pendente de outras specs
-- [ ] Spec 017 T018 — validação manual do dono (quickstart 1–6) no ambiente
+- [x] Spec 017 T018 — validação manual do dono (quickstart 1–6) no ambiente
   local isolado (Docker `accta-pg-dev` :5433; admin@dev.cv / socio1-2@dev.cv);
   release v0.5.54 suspensa (D7)
+
+---
+
+## Validação 017/018 — 2026-07-05 (ambiente dev isolado :5433 / :8001 / :3000)
+
+**Stack**: `accta-pg-dev` (Postgres :5433) + backend `--env-file .env.dev` :8001
++ frontend craco :3000. Contas `admin@dev.cv` / `socio1-2@dev.cv` / `puro` etc.
+
+### Backend (API determinística) — 16/16 asserções PASS
+Spec 017 (T018) — cenários 1,2,3,4,6:
+- S1 criar «Coordenador de Eventos» → 200 + `user_count=0`; duplicado → 400
+  «Já existe uma função com este nome».
+- S2 aplicar via `custom_role_id` → user vira `socio` + privilégios materializados
+  da função.
+- S3 **ligação viva**: editar a função (remover `manage_documents`) → holder
+  atualizado (`propagated_to=1`) + notificação «Perfil Atualizado».
+- S4 delete-in-use → **409**; após retirar a função (escrita explícita limpa
+  `custom_role_id`) → delete 200.
+- S6 auditoria `custom_role_created/updated/deleted`.
+
+Spec 018 (T020) — cenários 5,7,8:
+- S5 **tradução D4**: `PATCH /users/{id}` `role=financeiro` → `socio` + seed
+  «Financeiro» + audit `legacy_role_translated=financeiro`; `role` desconhecido
+  → **400** («Opções: admin, socio, financeiro, moderador»).
+- S7 **alerta de escalada R8**: com um 2.º admin, conceder `manage_finances` →
+  +1 «Escalada de privilégio» ao 2.º admin; retirar → 0 (de-escalada não alerta).
+  (O 1.º teste deu 0 porque o único admin é o ator, corretamente excluído.)
+- S8 auditoria contém `user_updated` (traduções/edições) + `role_model_migrated`.
+
+### Frontend (smoke visual no navegador) — evidência capturada
+- 017-S1: modal «Funções Personalizadas» lista Financeiro (2 sócios) / Moderador
+  (1 sócio) com rótulos PT + nota da ligação viva.
+- 017-S2 + 018-S3/S4 (modal de edição, fin.puro): secção **«Acesso ao sistema»**
+  com seletor **«Nível de acesso» = Financeiro**, **proveniência** «Origem: função
+  Financeiro — editam-se na função e propagam…», checkboxes **read-only** com os
+  privilégios da função; secção separada **«Identidade associativa»** (cargo «gerido
+  em Cargos & Mandatos», departamento «etiqueta organizacional — não altera acessos»).
+- 018-S3/4/6 (seletor, proveniência, design/PT) já confirmados 15:36.
+
+### Estado da BD dev após validação
+Limpo/baseline: `custom_roles = [Financeiro, Moderador]` (seeds), sem leftover
+«Coordenador de Eventos», socios de teste repostos (privilégios vazios).
+
+### Migração prod (P1) — dry-run reconfirmado
+`python scripts/migrate_roles_018.py` → **0 utilizadores com role legado** →
+`--apply` é no-op para `users`. STOP: **DECISÃO DO DONO (2026-07-05, durável) = SKIP `--apply`** — o dry-run já
+prova o enum {admin,socio} seguro (0 legados); as funções seed nascem on-demand
+quando forem atribuídas. Nenhuma escrita em prod. P1 fechado.

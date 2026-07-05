@@ -72,7 +72,7 @@
 ## Phase 6: Polish & verificação
 
 - [X] T017 Verificação local completa: `cd backend && ruff check . && ruff format --check . && pytest -m unit` (suíte inteira, guarda SC-002) + `cd frontend && npx eslint src/ --ext .js,.jsx --max-warnings=60 && yarn build` (CI está billing-locked — isto É o gate)
-- [ ] T018 Validação manual dos cenários do `quickstart.md` no navegador (cenários 1–6) e registo do resultado em `tasks/todo.md`; validação final do dono (Princípio VII) antes de fechar a spec
+- [x] T018 Validação manual dos cenários do `quickstart.md` no navegador (cenários 1–6) e registo do resultado em `tasks/todo.md`; validação final do dono (Princípio VII) antes de fechar a spec — **validado 2026-07-05** (ambiente dev isolado; API 6/6 + smoke UI: lista de funções c/ contagens, checkboxes read-only c/ proveniência «Origem: função Financeiro», ligação viva `propagated_to=1`, delete-in-use 409). Ver `tasks/todo.md` § Validação 017/018
 
 ## Dependencies
 
