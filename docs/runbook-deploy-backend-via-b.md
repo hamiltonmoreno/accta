@@ -46,18 +46,22 @@ Antes de começar, obtém o SHA do `main` na release (na tua máquina):
 git fetch origin main && git rev-parse --short=12 main
 ```
 
-**Valores atuais (v0.5.53 — spec 016 gestão de sócios: departamentos + convite 4 roles / PR #400, release #401):**
+**Valores atuais (v0.5.54 — spec 017 funções personalizadas + spec 018 consolidação de acessos / release #404):**
 
 | Variável | Valor |
 |----------|-------|
-| `TAG` (imagem nova) | `sha-aa15736d5221` |
-| Tag git da release | `v0.5.53` (= `aa15736`, HEAD de `main`, merge #401) |
-| Rollback (prod anterior, v0.5.49) | `sha-a1b6bd7be7b3` |
-| Teste decisivo desta release | **Endpoint público muda de payload**: `curl -fsS https://api.controlador.cv/api/auth/registration-options` passa a devolver **`departamentos`** (9 valores) além de `cargos` — prova E2E direta, sem auth. Complemento no container: `grep -c DEPARTAMENTOS models.py`→1; `grep -c '"admin", "socio", "financeiro", "moderador"' routes/admin.py`→1 (admin convidável, decisão do dono spec 016). |
+| `TAG` (imagem nova) | `sha-28053ebe074f` |
+| Tag git da release | `v0.5.54` (= `28053eb`, HEAD de `main`, merge #404) |
+| Rollback (prod anterior, v0.5.53) | `sha-aa15736d5221` |
+| Teste decisivo desta release | **Rota nova gated (spec 017)**: `curl -s -o /dev/null -w '%{http_code}' https://api.controlador.cv/api/admin/custom-roles` passa de **404** (antes) a **401** (rota viva, exige admin) — prova E2E sem auth. Complemento no container: `docker exec accta-backend grep -c _require_cargo_admin routes/admin.py`→**4** (1 def + 3 usos = fix escalada W3); `ls routes/custom_roles.py`→OK. |
 
-> ℹ️ **Executado 2026-07-02** — todas as verificações da Etapa 2.3 verdes (registration-options
-> com `departamentos`; invariantes 200/404/404/404/401×; arranque limpo 0 tracebacks, triggers 2×,
-> overdue loop 2×; `TURNSTILE_SECRET`/`VAPID_*` preservadas no recreate).
+> ℹ️ **Executado 2026-07-05** — todas as verificações da Etapa 2.3 verdes (custom-roles 404→401;
+> W3 no container ×4; invariantes 200/404/404/404/401/401; arranque limpo 0 tracebacks, 0 "tuple
+> concurrently updated", audit/RLS triggers 2×, pg_cron OK; `.env` c/ `TURNSTILE_SECRET`/`VAPID_*`
+> preservado no recreate).
+> ⚠️ **Pós-deploy PENDENTE (STOP do dono): migração de dados `scripts/migrate_roles_018.py`** (traduz
+> roles legados → socio + função seed): backup → `--dry-run` → confirmação → `--apply` → teste decisivo,
+> na mesma janela. **Prod = no-op** (0 utilizadores legados após o reset de 2026-06-30; só `admin@controlador.cv`).
 > ℹ️ Turnstile (v0.5.47) **continua ativo** — a env `TURNSTILE_SECRET` é preservada no `.env`. Procedimento de ativação documentado abaixo (mantém-se válido).
 
 > **Nota:** a v0.5.47 **toca em `backend/`** (`turnstile.py` novo + `routes/auth_routes.py` +
@@ -91,22 +95,22 @@ git fetch origin main && git rev-parse --short=12 main
 ```bash
 rm -rf /tmp/accta-build
 git clone https://github.com/hamiltonmoreno/accta.git /tmp/accta-build
-cd /tmp/accta-build && git checkout v0.5.53       # <- tag git da release
+cd /tmp/accta-build && git checkout v0.5.54       # <- tag git da release
 docker build -f backend/Dockerfile \
-  -t ghcr.io/hamiltonmoreno/accta-backend:sha-aa15736d5221 .   # <- TAG
+  -t ghcr.io/hamiltonmoreno/accta-backend:sha-28053ebe074f .   # <- TAG
 ```
 
 ### 2.2 Arrancar via o compose canónico (só muda o TAG)
 ```bash
 cd /docker/accta
-export TAG=sha-aa15736d5221
+export TAG=sha-28053ebe074f
 docker compose up -d --no-deps backend
 ```
 
 ### 2.3 Verificar
 ```bash
 docker compose ps                         # backend = Up (healthy)
-docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-a1b6bd7be7b3
+docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-28053ebe074f
 docker compose logs --tail=80 backend     # arranque limpo: ensure_schema OK, sem tracebacks
 curl -fsS https://api.controlador.cv/api/ # 200
 
@@ -141,7 +145,7 @@ docker compose logs --tail=200 backend 2>&1 | grep -E 'pg_cron not configured'  
 A imagem anterior continua no VPS; só se troca o `TAG`:
 ```bash
 cd /docker/accta
-export TAG=sha-a1b6bd7be7b3        # <- rollback (v0.5.49, imagem que corria antes da v0.5.53)
+export TAG=sha-aa15736d5221        # <- rollback (v0.5.53, imagem que corria antes da v0.5.54)
 docker compose up -d --no-deps backend
 ```
 
@@ -186,10 +190,14 @@ Ver `DEPLOY.md` e `HOSTINGER_DEPLOY.md` para o setup completo (secrets SSH,
   (`sha-fae22c0eaab2`) → v0.5.41 (`sha-c01198d08af2`) → v0.5.42 (`sha-5343480d5d64`)
   → v0.5.43 (`sha-dab25397254e`) → v0.5.46 (`sha-c9c5430c1c2b`) → v0.5.47
   (`sha-d6ed27688efd`, Cloudflare Turnstile anti-bot, ATIVADO) → v0.5.49
-  (`sha-a1b6bd7be7b3`, fix(stats) painel exclui contas técnicas) → **v0.5.53
-  (`sha-aa15736d5221`, este deploy — spec 016: `DEPARTAMENTOS` em
-  registration-options + convite aceita `role=admin` + rótulos de privilégio;
-  backend tocado em `models.py`/`routes/auth_routes.py`/`routes/admin.py`)**.
+  (`sha-a1b6bd7be7b3`, fix(stats) painel exclui contas técnicas) → v0.5.53
+  (`sha-aa15736d5221`, spec 016: `DEPARTAMENTOS` em registration-options + convite
+  aceita `role=admin` + rótulos de privilégio; `models.py`/`routes/auth_routes.py`/
+  `routes/admin.py`) → **v0.5.54 (`sha-28053ebe074f`, este deploy — spec 017 funções
+  personalizadas + spec 018 consolidação de acessos, release #404: role∈{admin,socio},
+  `custom_roles`, tradução de legados, `MODULE_ACCESS`, fix escalada crítica W3
+  `_require_cargo_admin`; 33 ficheiros backend. Pós-deploy PENDENTE: migração
+  `migrate_roles_018.py`, prod=no-op)**.
   As **v0.5.50–v0.5.52** (brand refresh: favicon/logos/tagline/wordmark) foram
   frontend-only (Vercel).
   As v0.5.28/v0.5.29/v0.5.30, v0.5.32/v0.5.33, v0.5.36, **v0.5.44/v0.5.45** e
