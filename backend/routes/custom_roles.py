@@ -18,10 +18,15 @@ from models import CustomRole, CustomRoleCreate, CustomRoleUpdate, User
 
 router = APIRouter(prefix="/admin/custom-roles", tags=["custom-roles"])
 
-# Nomes reservados: keys e rótulos PT dos NÍVEIS de acesso (comparação
-# normalizada). spec 018 R5: «financeiro»/«moderador» deixaram de ser níveis —
-# saíram dos reservados porque passam a existir como funções seed («Financeiro»
-# /«Moderador»), protegidas pela unicidade normal de nomes.
+# Nomes reservados (comparação normalizada por _norm): keys/rótulos PT dos
+# NÍVEIS de acesso + os nomes das funções seed de transição. spec 018:
+# «Financeiro»/«Moderador» são a IDENTIDADE das seeds que a tradução D4
+# (`helpers.resolve_legacy_role`) resolve POR NOME — reservá-los impede que um
+# admin crie uma função homónima que a tradução captaria em vez da seed. (A R5
+# original tinha-os removido, confiando na unicidade "depois de a seed existir",
+# mas há uma janela antes de a seed ser criada on-demand/pela migração em que a
+# homónima passaria.) As seeds são inseridas direto na coleção, logo esta reserva
+# — que só atua na API — nunca as bloqueia.
 _RESERVED_NAMES = {
     "admin",
     "administracao",
@@ -29,6 +34,8 @@ _RESERVED_NAMES = {
     "administrador",
     "socio",
     "sócio",
+    "financeiro",
+    "moderador",
 }
 
 

@@ -64,12 +64,16 @@ final das seeds é um output da F1.
 
 ## R5 — Nomes reservados vs funções seed («Financeiro»/«Moderador»)
 
-**Decision**: a migração cria as seeds diretamente na coleção (script, não via API) — o
-`_RESERVED_NAMES` de `routes/custom_roles.py` não se aplica a inserções do script. Após a
-migração, remover `financeiro`/`moderador` de `_RESERVED_NAMES` (a unicidade normal passa a
-proteger os nomes, porque as seeds existem); `admin`/`socio` continuam reservados.
-**Rationale**: reserva existia para evitar confusão com níveis fixos; esses níveis deixam de
-existir.
+**Decision (revista na revisão pré-release 2026-07-05)**: a migração/`resolve_legacy_role`
+criam as seeds diretamente na coleção (não via API) — `_RESERVED_NAMES` não bloqueia essas
+inserções. `financeiro`/`moderador` **MANTÊM-SE reservados** (além de `admin`/`socio`): são
+a IDENTIDADE que a tradução D4 (`resolve_legacy_role`) resolve **por nome**, logo reservá-los
+impede que um admin crie uma função homónima que a tradução captaria em vez da seed.
+**Rationale**: a versão original desta R5 removia-os, confiando na unicidade "depois de a seed
+existir" — mas há uma janela (antes de a seed ser criada on-demand/pela migração) em que uma
+homónima passaria a validação e capturaria a tradução (quebra de equivalência silenciosa,
+apanhada em revisão adversarial). Reservar o nome honra o objetivo original (proteger a
+identidade da seed) sem a fragilidade de ordem.
 
 ## R6 — Mecânica da transição da API (D4)
 

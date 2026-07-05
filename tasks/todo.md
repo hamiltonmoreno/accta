@@ -76,6 +76,34 @@ UI. Plano: `specs/018-consolidacao-acessos/plan.md`; tarefas: `tasks.md` (20).
 - [x] T019 gate final: ruff limpo + `pytest -m unit` **1567 passed** +
   eslint 0 erros + jest (AuthContext 8/8, ajuda/visibility 29/29) + build OK
 
+### Revisão adversarial pré-release (2026-07-05) — findings + fixes
+Revisão de 5 dimensões sobre `develop...HEAD`. Gate reverificado: **`pytest -m
+unit` 1572 passed**, ruff+eslint limpos.
+- [x] **W3 (CRÍTICO) — escalada via promote/transfer/demote FECHADA**: o fix W1
+  só cobria `admin_update_user`; `promote_user`/`demote_user`/
+  `transfer_cargo_endpoint` gravavam `role`/`privileges` do corpo guardados só
+  por `_require_manage_users` → um `manage_users` não-admin promovia-se a admin
+  (D3 contornada). Fix: helper `_require_cargo_admin` (admin-only) nas 3
+  mutações; leituras ficam em `_require_manage_users`; proclamação de eleições
+  (escreve direto) intacta. +3 testes de regressão em `test_cargos_routes.py`.
+  Ver [[L16]].
+- [x] **MÉDIO — `scripts/seed_data.py`**: `financeiro@controlador.cv` era
+  `role="financeiro"` sem privilégios (não-funcional pós-018 + role legado
+  persistido) → `role="socio"` + `[manage_finances, manage_users]`.
+- [x] **Colisão de nome `resolve_legacy_role` — RESOLVIDA**: reservei de novo
+  «financeiro»/«moderador» em `_RESERVED_NAMES` (`routes/custom_roles.py`) — são
+  a identidade que a tradução D4 resolve por nome; reservar impede uma homónima
+  que a tradução captaria (corrige a janela pré-seed da R5). Seeds criadas direto
+  (bypassam a reserva). +3 casos no parametrize `test_collision_with_fixed_400`;
+  R5 (research.md) sincronizada. Escolhi reservar (não `seed_key`) porque a
+  unicidade de nome já garante 1 só «Financeiro» — `seed_key` sozinho não fecha
+  a colisão do índice único de nome.
+- [ ] **Dono — janela deploy→migração**: user `role=financeiro`/`priv=[]` perde
+  acesso até a migração correr (prod=no-op, 0 legados). Correr `--apply` na
+  mesma janela do deploy, antes de servir tráfego.
+- [ ] **Opcional — tripwire regex** `test_no_inline_role_checks`: endurecer
+  contra ordem-Yoda/aliasing (árvore atual limpa).
+
 ## Por fazer (dono)
 - [ ] T020 validação manual dos cenários 3–8 do quickstart no navegador
   (ambiente isolado) + rever o **diff da matriz F1→F2** — em particular o
