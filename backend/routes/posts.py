@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from auth import get_current_user, get_optional_user
+from auth import get_current_user, get_optional_user, has_role_or_privilege
 from database import db
 from helpers import create_audit_log, delete_upload_file, notify_all_active_users
 from models import POST_TYPES, Post, PostCreate, PostUpdate, User
@@ -54,7 +54,7 @@ async def get_posts(
 ):
     # Anónimos: apenas posts publicos+publicados. Socios autenticados: publicos +
     # socios (publicados). Staff (admin/moderador): tudo, incluindo rascunhos.
-    is_staff = current_user is not None and current_user.role in ("admin", "moderador")
+    is_staff = current_user is not None and has_role_or_privilege(current_user, ("admin",), "moderate_content")
     is_authed = current_user is not None
 
     query: dict = {}
@@ -99,7 +99,7 @@ async def get_posts(
 
 @router.get("/posts/{id_or_slug}", response_model=Post)
 async def get_post(id_or_slug: str, current_user: Optional[User] = Depends(get_optional_user)):
-    is_staff = current_user is not None and current_user.role in ("admin", "moderador")
+    is_staff = current_user is not None and has_role_or_privilege(current_user, ("admin",), "moderate_content")
     is_authed = current_user is not None
 
     post = await db.posts.find_one({"slug": id_or_slug}, {"_id": 0})
@@ -124,7 +124,7 @@ async def get_post(id_or_slug: str, current_user: Optional[User] = Depends(get_o
 
 @router.post("/posts", response_model=Post)
 async def create_post(post_data: PostCreate, current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["admin", "moderador"]:
+    if not has_role_or_privilege(current_user, ("admin",), "moderate_content"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     data = post_data.model_dump()
@@ -156,7 +156,7 @@ async def create_post(post_data: PostCreate, current_user: User = Depends(get_cu
 
 @router.patch("/posts/{post_id}", response_model=Post)
 async def update_post(post_id: str, payload: PostUpdate, current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["admin", "moderador"]:
+    if not has_role_or_privilege(current_user, ("admin",), "moderate_content"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     existing = await db.posts.find_one({"id": post_id}, {"_id": 0})
@@ -192,7 +192,7 @@ async def update_post(post_id: str, payload: PostUpdate, current_user: User = De
 
 @router.delete("/posts/{post_id}")
 async def delete_post(post_id: str, current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["admin", "moderador"]:
+    if not has_role_or_privilege(current_user, ("admin",), "moderate_content"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     existing = await db.posts.find_one({"id": post_id}, {"_id": 0})

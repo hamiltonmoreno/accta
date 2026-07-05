@@ -181,6 +181,9 @@ def mock_db(monkeypatch):
         "tokens_revoked",
         "failed_logins",
         "comunicados",
+        # spec 018: resolve_legacy_role (helpers) toca custom_roles em
+        # invite/approve/PATCH — pré-ligada para todos os testes de rotas.
+        "custom_roles",
     ):
         coll = MagicMock(name=collection)
         coll.find_one = AsyncMock(return_value=None)

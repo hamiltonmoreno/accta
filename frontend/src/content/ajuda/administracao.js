@@ -2,7 +2,7 @@ import { Settings } from 'lucide-react';
 
 // F. Administração — cada artigo tem o seu gate (admin + privilégio/órgão).
 // A secção aparece se o utilizador puder ver pelo menos um dos seus artigos
-// (ex.: um moderador vê só Aparência). Campos/fluxos espelham os models reais
+// (ex.: quem só tem moderate_content vê só Aparência). Campos/fluxos espelham os models reais
 // (ComunicadoCreate, SancaoCreate/Comissao, /admin/cargos, honorários 2/3).
 export const administracao = {
   id: 'administracao',
@@ -44,7 +44,7 @@ export const administracao = {
       passos: [
         'Abra "Utilizadores" na barra lateral.',
         'Procure o utilizador e abra o seu perfil administrativo.',
-        'Edite os dados permitidos, o papel (role), os privilégios e o estado da conta.',
+        'Edite os dados permitidos, o nível de acesso (Administrador/Sócio ou uma função personalizada), os privilégios e o estado da conta.',
       ],
       dicas: [
         'O número de membro é imutável e não é editável pela administração.',
@@ -62,7 +62,7 @@ export const administracao = {
         'Vai dar posse, exonerar ou transferir um titular de um cargo (Presidente, Tesoureiro, etc.).',
       ],
       quandoNaoUsar: [
-        'Quer só mudar o papel de acesso (role) de alguém — isso é em "Utilizadores".',
+        'Quer só mudar o nível de acesso de alguém — isso é em "Utilizadores".',
       ],
       passos: [
         'Abra "Cargos & Mandatos" na barra lateral.',
@@ -225,7 +225,7 @@ export const administracao = {
       titulo: 'Aparência: marca, banners e notícias',
       resumo: 'Personalizar o logótipo, os banners das páginas públicas e as notícias.',
       rota: '/admin/aparencia',
-      gate: { roles: ['admin', 'moderador'] },
+      gate: { roles: ['admin'], privileges: ['moderate_content'] },
       passos: [
         'Abra "Aparência" na barra lateral.',
         'No separador Logótipo, substitua a marca (PNG transparente recomendado).',

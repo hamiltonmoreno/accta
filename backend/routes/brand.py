@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 
-from auth import get_current_user
+from auth import get_current_user, has_role_or_privilege
 from database import db
 from helpers import create_audit_log, delete_upload_file
 from models import BrandSettings, BrandSettingsUpdate, User
@@ -30,7 +30,7 @@ def _now_iso() -> str:
 
 
 def _require_manager(current_user: User):
-    if current_user.role not in ("admin", "moderador"):
+    if not has_role_or_privilege(current_user, ("admin",), "moderate_content"):
         raise HTTPException(status_code=403, detail="Sem permissão para gerir a marca")
 
 

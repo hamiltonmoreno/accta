@@ -11,10 +11,10 @@ import {
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
 
+// spec 018 D1/D2: só os níveis de acesso reais; acesso granular atribui-se
+// depois via privilégios/funções personalizadas na gestão de utilizadores.
 const ROLE_OPTIONS = [
   { value: 'socio', label: 'Sócio' },
-  { value: 'moderador', label: 'Moderador' },
-  { value: 'financeiro', label: 'Financeiro' },
   { value: 'admin', label: 'Administrador' },
 ];
 

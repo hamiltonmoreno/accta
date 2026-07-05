@@ -35,7 +35,9 @@ class TestConstantes:
         assert ACCOUNT_TYPES == ["member", "technical"]
 
     def test_roles_valid(self):
-        assert set(ROLES_VALID) == {"admin", "financeiro", "moderador", "socio"}
+        # spec 018 D1: níveis de acesso consolidados — financeiro/moderador
+        # viraram funções personalizadas seed (LEGACY_ROLE_SEEDS).
+        assert set(ROLES_VALID) == {"admin", "socio"}
 
     def test_catalogo_tem_12_cargos_canonicos(self):
         # 3 Mesa AG + 5 Direcção + 3 Conselho Fiscal + Sócio (base).

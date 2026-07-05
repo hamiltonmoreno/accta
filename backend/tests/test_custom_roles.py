@@ -145,7 +145,11 @@ class TestCreateCustomRole:
             )
         assert exc.value.status_code == 400
 
-    @pytest.mark.parametrize("reserved", ["Administração", "admin", "Financeiro", "moderador", "Sócio"])
+    # spec 018: níveis de acesso + NOMES das funções seed de transição
+    # («Financeiro»/«Moderador» são a identidade que resolve_legacy_role resolve
+    # por nome) ficam reservados — impede uma homónima que a tradução D4
+    # captaria em vez da seed (corrige a janela pré-seed da R5 original).
+    @pytest.mark.parametrize("reserved", ["Administração", "admin", "Sócio", "Financeiro", "moderador", "FINANCEIRO"])
     async def test_collision_with_fixed_400(self, mock_db, admin_user, reserved):
         from models import CustomRoleCreate
 

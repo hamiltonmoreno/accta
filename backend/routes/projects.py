@@ -24,7 +24,7 @@ from models import (
     TASK_STATUSES,
 )
 from database import db
-from auth import get_current_user
+from auth import get_current_user, is_admin
 from permissions import is_direcao
 from helpers import (
     coaprovacao_limiar,
@@ -65,13 +65,13 @@ def reject_disallowed_fields(updates: dict, allowed_fields: set[str]):
 
 
 def can_manage_project(user: User, project: dict) -> bool:
-    return user.role == "admin" or project.get("created_by") == user.id or project.get("responsible_id") == user.id
+    return is_admin(user) or project.get("created_by") == user.id or project.get("responsible_id") == user.id
 
 
 def can_view_project(user: User, project: dict) -> bool:
     if project.get("visibility") == "publico" and project.get("status") != "proposta":
         return True
-    return user.role == "admin" or project.get("created_by") == user.id or project.get("responsible_id") == user.id
+    return is_admin(user) or project.get("created_by") == user.id or project.get("responsible_id") == user.id
 
 
 # ===== SPENT DERIVADO (spec-fluxo-financeiro-unificado) =====
@@ -129,7 +129,7 @@ async def list_projects(
         query["tipo"] = tipo
 
     # Non-admin: only see published public projects + own/responsible projects.
-    if current_user.role != "admin":
+    if not is_admin(current_user):
         query["$or"] = [
             {"visibility": "publico", "status": {"$ne": "proposta"}},
             {"created_by": current_user.id},
@@ -168,7 +168,7 @@ async def create_project(
     data: ProjectCreate,
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.status != "ativo" and current_user.role != "admin":
+    if current_user.status != "ativo" and not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Apenas socios ativos podem propor projetos")
 
     if data.visibility not in PROJECT_VISIBILITIES:
@@ -177,12 +177,12 @@ async def create_project(
     # Cat 5 F1: grupos/comissões (Art. 31.e) são criados pela Direcção/admin e
     # ficam logo `aprovado` — saltam o fluxo `proposta→aprovado` dos projetos comuns.
     is_organizational = data.tipo in ORGANIZATIONAL_TIPOS
-    if is_organizational and current_user.role != "admin" and not is_direcao(current_user):
+    if is_organizational and not is_admin(current_user) and not is_direcao(current_user):
         raise HTTPException(
             status_code=403,
             detail="Apenas a Direcao ou admin pode criar grupos de trabalho/comissoes",
         )
-    initial_status = "aprovado" if (is_organizational or current_user.role == "admin") else "proposta"
+    initial_status = "aprovado" if (is_organizational or is_admin(current_user)) else "proposta"
 
     project = Project(
         **data.model_dump(),
@@ -263,7 +263,7 @@ async def update_project(
         raise HTTPException(status_code=403, detail="Sem permissao para editar este projeto")
 
     updates = {k: v for k, v in data.model_dump().items() if v is not None}
-    allowed_fields = ADMIN_PROJECT_UPDATE_FIELDS if current_user.role == "admin" else PROJECT_MANAGER_UPDATE_FIELDS
+    allowed_fields = ADMIN_PROJECT_UPDATE_FIELDS if is_admin(current_user) else PROJECT_MANAGER_UPDATE_FIELDS
     reject_disallowed_fields(updates, allowed_fields)
 
     if "status" in updates and updates["status"] not in PROJECT_STATUSES:
@@ -326,7 +326,7 @@ async def approve_project(
     project_id: str,
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role != "admin":
+    if not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Apenas admin pode aprovar projetos")
 
     project = await db.projects.find_one({"id": project_id}, {"_id": 0})
@@ -363,7 +363,7 @@ async def delete_project(
     project_id: str,
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role != "admin":
+    if not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Apenas admin pode remover projetos")
 
     project = await db.projects.find_one({"id": project_id}, {"_id": 0})
@@ -561,7 +561,7 @@ async def delete_comment(
     comment = await db.project_comments.find_one({"id": comment_id, "project_id": project_id}, {"_id": 0})
     if not comment:
         raise HTTPException(status_code=404, detail="Comentario nao encontrado")
-    if comment["user_id"] != current_user.id and current_user.role != "admin":
+    if comment["user_id"] != current_user.id and not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Sem permissao")
     await db.project_comments.delete_one({"id": comment_id})
     return {"message": "Comentario removido"}

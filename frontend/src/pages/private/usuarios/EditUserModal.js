@@ -147,12 +147,22 @@ export const EditUserModal = ({
             </div>
           </div>
 
-          {/* Role + Status */}
+          {/* ===== Acesso ao sistema (spec 018 US3/D2) ===== */}
+          <div className="pt-4 border-t border-gray-100">
+            <p className="text-xs uppercase tracking-[0.12em] font-bold text-grafite" data-testid="section-acesso">
+              Acesso ao sistema
+            </p>
+            <p className="text-[11px] text-[#9CA3AF] mt-0.5">
+              Nível, função e privilégios — é isto que determina o que o sócio pode fazer no portal.
+            </p>
+          </div>
+
+          {/* Nível de acesso + Status */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs uppercase tracking-widest text-[#6B7280] font-semibold mb-1">
                 <Shield className="w-3 h-3 inline mr-1" />
-                Função no Sistema
+                Nível de acesso
               </label>
               <select
                 value={roleValue}
@@ -190,23 +200,6 @@ export const EditUserModal = ({
             </div>
           </div>
 
-          {/* Cargo — só-leitura: atribuído via Cargos & Mandatos (regista histórico) */}
-          <div>
-            <label className="block text-xs uppercase tracking-widest text-[#6B7280] font-semibold mb-1">
-              <Briefcase className="w-3 h-3 inline mr-1" />
-              Cargo na Associação
-            </label>
-            <div
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-[#F5F5F5] text-grafite"
-              data-testid="modal-edit-cargo"
-            >
-              {editingUser.cargo || 'Sócio'}
-            </div>
-            <p className="text-[11px] text-[#9CA3AF] mt-1">
-              O cargo é gerido em <span className="text-grafite font-medium">Cargos &amp; Mandatos</span> (atribui mandato e valida vagas).
-            </p>
-          </div>
-
           {/* Privileges */}
           <div>
             <div className="flex items-center justify-between mb-2 gap-2">
@@ -226,9 +219,13 @@ export const EditUserModal = ({
                 </button>
               )}
             </div>
-            {selectedCustomRole && (
+            {selectedCustomRole ? (
               <p className="text-[11px] text-[#9CA3AF] mb-2" data-testid="custom-role-privileges-note">
-                Privilégios definidos pela função «{selectedCustomRole.name}» — editam-se na função e propagam a todos os sócios que a têm.
+                Origem: função «{selectedCustomRole.name}» — editam-se na função e propagam a todos os sócios que a têm.
+              </p>
+            ) : (
+              <p className="text-[11px] text-[#9CA3AF] mb-2" data-testid="manual-privileges-note">
+                Origem: atribuídos manualmente (sem função associada).
               </p>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -265,6 +262,33 @@ export const EditUserModal = ({
                 );
               })}
             </div>
+          </div>
+
+          {/* ===== Identidade associativa (spec 018 US3/D5) ===== */}
+          <div className="pt-4 border-t border-gray-100">
+            <p className="text-xs uppercase tracking-[0.12em] font-bold text-grafite" data-testid="section-identidade">
+              Identidade associativa
+            </p>
+            <p className="text-[11px] text-[#9CA3AF] mt-0.5">
+              Quem o sócio é na associação — organizacional, não altera acessos (o cargo apenas <em>sugere</em> predefinições).
+            </p>
+          </div>
+
+          {/* Cargo — só-leitura: atribuído via Cargos & Mandatos (regista histórico) */}
+          <div>
+            <label className="block text-xs uppercase tracking-widest text-[#6B7280] font-semibold mb-1">
+              <Briefcase className="w-3 h-3 inline mr-1" />
+              Cargo na Associação
+            </label>
+            <div
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-[#F5F5F5] text-grafite"
+              data-testid="modal-edit-cargo"
+            >
+              {editingUser.cargo || 'Sócio'}
+            </div>
+            <p className="text-[11px] text-[#9CA3AF] mt-1">
+              O cargo é gerido em <span className="text-grafite font-medium">Cargos &amp; Mandatos</span> (atribui mandato e valida vagas).
+            </p>
           </div>
 
           {/* Histórico de Cargos (timeline só-leitura) */}
@@ -314,6 +338,7 @@ export const EditUserModal = ({
                 ))}
                 <option value={DEPARTAMENTO_OUTRO}>Outro</option>
               </select>
+              <p className="text-[11px] text-[#9CA3AF] mt-1">Etiqueta organizacional — não altera acessos.</p>
               {deptOutro && (
                 <Input
                   value={editingUser.department || ''}

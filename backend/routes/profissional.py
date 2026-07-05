@@ -19,7 +19,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from auth import get_current_user
+from auth import get_current_user, is_admin
 from database import db
 from helpers import create_audit_log, create_notification
 from models import (
@@ -56,7 +56,7 @@ router = APIRouter(tags=["profissional"])
 
 def _can_manage(user: User) -> bool:
     """Direcção/admin podem gerir catálogo/publicações (spec §3.5, decisão §14.2)."""
-    return user.role == "admin" or is_direcao(user)
+    return is_admin(user) or is_direcao(user)
 
 
 async def _ensure_document_exists(document_id: Optional[str]) -> None:

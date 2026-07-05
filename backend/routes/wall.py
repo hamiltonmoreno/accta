@@ -30,7 +30,7 @@ async def get_wall_posts(category: Optional[str] = None, current_user: User = De
 
 @router.get("/wall/pending")
 async def get_pending_wall_posts(current_user: User = Depends(get_current_user)):
-    if not has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content"):
+    if not has_role_or_privilege(current_user, ("admin",), "moderate_content"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     posts = await db.wall_posts.find({"approved": False}, {"_id": 0}).sort("created_at", -1).to_list(100)
@@ -47,7 +47,7 @@ async def create_wall_post(post_data: WallPostCreate, current_user: User = Depen
     if current_user.status != "ativo":
         raise HTTPException(status_code=403, detail="Apenas sócios ativos podem postar")
 
-    auto_approve = has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content")
+    auto_approve = has_role_or_privilege(current_user, ("admin",), "moderate_content")
 
     post = WallPost(
         user_id=current_user.id, user_name=current_user.name, approved=auto_approve, **post_data.model_dump()
@@ -73,7 +73,7 @@ async def create_wall_post(post_data: WallPostCreate, current_user: User = Depen
 
 @router.patch("/wall/{post_id}/approve")
 async def approve_wall_post(post_id: str, current_user: User = Depends(get_current_user)):
-    if not has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content"):
+    if not has_role_or_privilege(current_user, ("admin",), "moderate_content"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     post = await db.wall_posts.find_one({"id": post_id}, {"_id": 0})
@@ -99,7 +99,7 @@ async def delete_wall_post(post_id: str, current_user: User = Depends(get_curren
         raise HTTPException(status_code=404, detail="Post não encontrado")
 
     if (
-        not has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content")
+        not has_role_or_privilege(current_user, ("admin",), "moderate_content")
         and current_user.id != post["user_id"]
     ):
         raise HTTPException(status_code=403, detail="Sem permissão")
@@ -112,7 +112,7 @@ async def delete_wall_post(post_id: str, current_user: User = Depends(get_curren
 
 @router.patch("/wall/{post_id}/pin")
 async def pin_wall_post(post_id: str, current_user: User = Depends(get_current_user)):
-    if not has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content"):
+    if not has_role_or_privilege(current_user, ("admin",), "moderate_content"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     post = await db.wall_posts.find_one({"id": post_id}, {"_id": 0})
@@ -142,7 +142,7 @@ async def toggle_like_wall_post(post_id: str, current_user: User = Depends(get_c
     # aprovados) só são visíveis ao staff de moderação e ao próprio autor, tal
     # como em `create_wall_comment`. Para o sócio comum o post não existe (404).
     if not post.get("approved"):
-        is_staff = has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content")
+        is_staff = has_role_or_privilege(current_user, ("admin",), "moderate_content")
         is_author = post.get("user_id") == current_user.id
         if not is_staff and not is_author:
             raise HTTPException(status_code=404, detail="Post não encontrado")
@@ -167,7 +167,7 @@ async def get_wall_comments(post_id: str, current_user: User = Depends(get_curre
     post = await db.wall_posts.find_one({"id": post_id}, {"_id": 0, "approved": 1})
     if not post:
         raise HTTPException(status_code=404, detail="Post não encontrado")
-    is_staff = has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content")
+    is_staff = has_role_or_privilege(current_user, ("admin",), "moderate_content")
     if not post.get("approved") and not is_staff:
         raise HTTPException(status_code=403, detail="Sem permissão")
     comments = await db.wall_comments.find({"post_id": post_id}, {"_id": 0}).sort("created_at", 1).to_list(100)
@@ -191,7 +191,7 @@ async def create_wall_comment(
     # notificava o autor de comentários que ficariam órfãos se o post fosse
     # rejeitado. Staff de moderação (role OU privilégio moderate_content, igual
     # ao resto da rota) pode comentar no âmbito da moderação.
-    if not post.get("approved") and not has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content"):
+    if not post.get("approved") and not has_role_or_privilege(current_user, ("admin",), "moderate_content"):
         raise HTTPException(status_code=403, detail="Não é possível comentar um post em moderação")
 
     comment = WallComment(
@@ -222,7 +222,7 @@ async def delete_wall_comment(post_id: str, comment_id: str, current_user: User 
         raise HTTPException(status_code=404, detail="Comentário não encontrado")
 
     if (
-        not has_role_or_privilege(current_user, ("admin", "moderador"), "moderate_content")
+        not has_role_or_privilege(current_user, ("admin",), "moderate_content")
         and current_user.id != comment["user_id"]
     ):
         raise HTTPException(status_code=403, detail="Sem permissão")

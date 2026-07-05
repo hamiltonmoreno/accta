@@ -5,6 +5,8 @@
 export const ROLE_LABELS = {
   admin: 'Administrador',
   socio: 'Sócio',
+  // spec 018: já não são níveis atribuíveis (viraram funções seed) — os
+  // rótulos ficam só para exibir dados históricos (audit logs, mandatos).
   financeiro: 'Financeiro',
   moderador: 'Moderador',
 };

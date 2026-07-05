@@ -243,6 +243,29 @@ dono, validar ownership (autor-ou-admin) — não basta o RBAC de papel.
 
 ---
 
+### L16 — Fechar uma escalada de privilégios num endpoint = fechá-la em TODOS os irmãos que escrevem o mesmo campo
+**Mistake**: Na spec 018, o fix W1 (`ddd902d`) fechou a auto-promoção via
+`manage_users` **só** em `PATCH /users` (`admin_update_user`), mas
+`promote_user`/`demote_user`/`transfer_cargo_endpoint` (`routes/admin.py`)
+gravam `role`/`privileges` do corpo e continuavam guardados só por
+`_require_manage_users` (admin OU manage_users). Um detentor de `manage_users`
+(seed «Financeiro»/Secretário D3) chamava `transfer` com `to_user_id=próprio,
+role=admin` → tornava-se admin, contornando exatamente a invariante que o W1 e a
+D3 dizem proteger. A spec ainda **agravou** o alcance ao criar (seed+migração)
+uma população não-admin com `manage_users`. Apanhado em revisão adversarial, não
+pelo W1.
+**Rule**: Ao corrigir uma escalada por uma capacidade partilhada (aqui:
+escrever `role`/`privileges`), fazer `grep` de **todos** os endpoints que
+escrevem esse campo e aplicar o guard onde **todos** os caminhos passam — não só
+o do ticket. O fix root-cause é um guard partilhado, não um remendo por rota. Se
+uma decisão (D3) cria uma nova população com um privilégio, reavaliar **todos**
+os pontos que esse privilégio agora desbloqueia.
+**Context**: `routes/admin.py` mutação de cargo → `_require_cargo_admin`
+(admin-only; leituras ficam em `_require_manage_users`). Liga a
+[[consolidacao-acessos-spec-state]].
+
+---
+
 ## Ranking: posição de exibição é CONTÍNUA, não o rank do servidor (2026-06-26)
 
 **Correção do dono** (spec 006): ao mostrar a lista do ranking, NÃO usar

@@ -11,7 +11,7 @@ from models import (
 )
 from config import IS_PROD
 from database import db
-from auth import get_current_user, has_role_or_privilege
+from auth import get_current_user, is_admin, has_role_or_privilege
 from permissions import can_comunicar_intra_orgao
 from helpers import create_audit_log
 import comunicados_service
@@ -50,7 +50,7 @@ def _guard_full(user: User):
 def _assert_owner_or_admin(doc: dict, user: User, action: str):
     """Só o autor do rascunho ou um admin pode editá-lo/enviá-lo/cancelá-lo —
     mesma regra do DELETE (evita que um emissor altere o rascunho de outro)."""
-    if doc.get("created_by") != user.id and user.role != "admin":
+    if doc.get("created_by") != user.id and not is_admin(user):
         raise HTTPException(status_code=403, detail=f"Sem permissão para {action} este rascunho")
 
 

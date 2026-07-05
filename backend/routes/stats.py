@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timezone
 from models import User, MFA_SECRET_FIELDS
 from database import db
-from auth import get_current_user
+from auth import get_current_user, has_role_or_privilege
 
 router = APIRouter(tags=["stats"])
 
@@ -15,7 +15,7 @@ _MEMBER_FILTER = {"$or": [{"account_type": "member"}, {"account_type": {"$exists
 
 @router.get("/stats")
 async def get_statistics(current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["admin", "financeiro"]:
+    if not has_role_or_privilege(current_user, ("admin",), "manage_finances"):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     total_users = await db.users.count_documents(_MEMBER_FILTER)

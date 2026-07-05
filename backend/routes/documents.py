@@ -16,7 +16,7 @@ RESTRICTED_DOCUMENT_VISIBILITIES = {"direcao", "privado"}
 
 
 def can_access_restricted_documents(user: User) -> bool:
-    return user.role == "admin" or "manage_documents" in (user.privileges or [])
+    return has_role_or_privilege(user, ("admin",), "manage_documents")
 
 
 def get_allowed_document_visibilities(user: User) -> set[str]:

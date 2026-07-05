@@ -21,7 +21,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 
-from auth import can_manage_finances, can_view_finances, get_current_user
+from auth import can_manage_finances, can_view_finances, get_current_user, is_admin
 from database import db
 from helpers import (
     create_audit_log,
@@ -91,7 +91,7 @@ def _can_upload_kind(kind: str, user: User) -> bool:
     impede falsificação cruzada de órgão (ex.: manage_finances a criar 'Parecer
     do CF', ou CF a criar 'Relatório e Contas')."""
     if kind in ("relatorio", "orcamento", "plano"):
-        return user.role == "admin" or is_direcao(user)
+        return is_admin(user) or is_direcao(user)
     if kind == "balancete":
         return can_manage_finances(user)
     if kind == "parecer":
@@ -292,12 +292,12 @@ _EDITAVEL = ("aberto", "relatorio_submetido", "parecer_emitido", "reaberto")
 
 
 def _require_direcao(user: User):
-    if not (user.role == "admin" or is_direcao(user)):
+    if not (is_admin(user) or is_direcao(user)):
         raise HTTPException(status_code=403, detail="Apenas a Direccao ou admin")
 
 
 def _require_mesa_ag(user: User):
-    if not (user.role == "admin" or is_mesa_ag(user)):
+    if not (is_admin(user) or is_mesa_ag(user)):
         raise HTTPException(status_code=403, detail="Apenas a Mesa da AG ou admin")
 
 

@@ -11,28 +11,36 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from auth import get_current_user
+from auth import get_current_user, is_admin
 from database import db
 from helpers import create_audit_log, create_notification
 from models import CustomRole, CustomRoleCreate, CustomRoleUpdate, User
 
 router = APIRouter(prefix="/admin/custom-roles", tags=["custom-roles"])
 
-# Nomes reservados: keys e rótulos PT das 4 funções fixas (comparação normalizada).
+# Nomes reservados (comparação normalizada por _norm): keys/rótulos PT dos
+# NÍVEIS de acesso + os nomes das funções seed de transição. spec 018:
+# «Financeiro»/«Moderador» são a IDENTIDADE das seeds que a tradução D4
+# (`helpers.resolve_legacy_role`) resolve POR NOME — reservá-los impede que um
+# admin crie uma função homónima que a tradução captaria em vez da seed. (A R5
+# original tinha-os removido, confiando na unicidade "depois de a seed existir",
+# mas há uma janela antes de a seed ser criada on-demand/pela migração em que a
+# homónima passaria.) As seeds são inseridas direto na coleção, logo esta reserva
+# — que só atua na API — nunca as bloqueia.
 _RESERVED_NAMES = {
     "admin",
     "administracao",
     "administração",
     "administrador",
-    "financeiro",
-    "moderador",
     "socio",
     "sócio",
+    "financeiro",
+    "moderador",
 }
 
 
 def _require_admin(user: User):
-    if user.role != "admin":
+    if not is_admin(user):
         raise HTTPException(status_code=403, detail="Apenas administradores podem gerir funções personalizadas")
 
 
