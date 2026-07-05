@@ -59,9 +59,12 @@ git fetch origin main && git rev-parse --short=12 main
 > W3 no container ×4; invariantes 200/404/404/404/401/401; arranque limpo 0 tracebacks, 0 "tuple
 > concurrently updated", audit/RLS triggers 2×, pg_cron OK; `.env` c/ `TURNSTILE_SECRET`/`VAPID_*`
 > preservado no recreate).
-> ⚠️ **Pós-deploy PENDENTE (STOP do dono): migração de dados `scripts/migrate_roles_018.py`** (traduz
-> roles legados → socio + função seed): backup → `--dry-run` → confirmação → `--apply` → teste decisivo,
-> na mesma janela. **Prod = no-op** (0 utilizadores legados após o reset de 2026-06-30; só `admin@controlador.cv`).
+> ✅ **Pós-deploy RESOLVIDO (decisão durável do dono, 2026-07-05): migração `scripts/migrate_roles_018.py` = SKIP `--apply`.**
+> Dry-run reconfirmado 2026-07-05 = **0 utilizadores com role legado** (após o reset de 2026-06-30 só existe
+> `admin@controlador.cv`) → `--apply` é no-op para `users`; as funções seed «Financeiro»/«Moderador» nascem
+> **on-demand** quando forem atribuídas. **Nenhuma escrita em prod.** (Caminho `--restore <backup.json>` documentado
+> no script, caso se corra no futuro.) **Specs 017 + 018 validadas (T018/T020) e fechadas (`-concluido`);
+> emenda constitucional v1.1.0 já merged (`aea6932`).**
 > ℹ️ Turnstile (v0.5.47) **continua ativo** — a env `TURNSTILE_SECRET` é preservada no `.env`. Procedimento de ativação documentado abaixo (mantém-se válido).
 
 > **Nota:** a v0.5.47 **toca em `backend/`** (`turnstile.py` novo + `routes/auth_routes.py` +
@@ -196,8 +199,10 @@ Ver `DEPLOY.md` e `HOSTINGER_DEPLOY.md` para o setup completo (secrets SSH,
   `routes/admin.py`) → **v0.5.54 (`sha-28053ebe074f`, este deploy — spec 017 funções
   personalizadas + spec 018 consolidação de acessos, release #404: role∈{admin,socio},
   `custom_roles`, tradução de legados, `MODULE_ACCESS`, fix escalada crítica W3
-  `_require_cargo_admin`; 33 ficheiros backend. Pós-deploy PENDENTE: migração
-  `migrate_roles_018.py`, prod=no-op)**.
+  `_require_cargo_admin`; 33 ficheiros backend. **Pós-deploy RESOLVIDO**: migração
+  `migrate_roles_018.py` = **SKIP `--apply`** (decisão do dono 2026-07-05; prod=no-op,
+  0 legados). Specs 017+018 validadas (T018/T020) e fechadas (`-concluido`);
+  constituição v1.1.0 já merged (`aea6932`))**.
   As **v0.5.50–v0.5.52** (brand refresh: favicon/logos/tagline/wordmark) foram
   frontend-only (Vercel).
   As v0.5.28/v0.5.29/v0.5.30, v0.5.32/v0.5.33, v0.5.36, **v0.5.44/v0.5.45** e
