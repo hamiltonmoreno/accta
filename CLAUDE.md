@@ -391,7 +391,23 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Feature ativa: `specs/018-consolidacao-acessos/` — **Consolidação do modelo de acessos e
+Feature ativa: `specs/019-revisao-seguranca-codigo/` — **Revisão de Segurança do Código**
+(planeada 2026-07-05; plano em `specs/019-revisao-seguranca-codigo/plan.md`). Revisão
+sistemática de todo o código sobre base já endurecida: survey de 9 domínios + desenho de
+remediação de 7 workstreams (A–G), fundamentados no código real. **8 HIGH + ~17 MEDIUM** com
+correção concreta. Decisões do dono (2026-07-05): auditar+corrigir+testar; backend+frontend+config
+de deploy versionada (edge do VPS = recomendação com STOP); remediar HIGH+MEDIUM, LOW adiado.
+Achados-chave: H1 `proofs` públicos → gated como `documents`; H2/H3 rate-limit nunca aplicado +
+chaveado no IP do proxy; H4 postura de prod cai numa env var; H5 fuga de hash por projeção vazia
+→ `response_model`+tripwire; **H6 CSRF = verify-only** (middleware já cobre tudo); H7/H8 CVEs de
+DoS multipart (bump coordenado fastapi/starlette + mitigação `max_part_size`). 3 fases (US1
+confidencialidade → US2 perímetro → US3/US4 SSRF/deps); registo de achados em `research.md`.
+STOPs: nginx do VPS + verificação `ENVIRONMENT`/`SECRET_KEY≥32` em prod + Via B. Próximo:
+`/speckit-tasks`.
+
+---
+
+Feature anterior (concluída): `specs/018-consolidacao-acessos/` — **Consolidação do modelo de acessos e
 identidade** (revisão profunda 2026-07-03): eliminar a redundância entre role/privilégios/
 funções personalizadas/cargos/departamentos. Diagnóstico: financeiro/moderador são pacotes de
 1–2 privilégios disfarçados (checks = role OU privilégio); 4 caminhos p/ o mesmo acesso; UI

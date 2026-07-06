@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from datetime import date, datetime, timezone
+from pathlib import Path
 from typing import Optional
+from urllib.parse import urlparse
 import re
 from models import (
     User,
@@ -18,7 +20,7 @@ from models import (
     MFA_SECRET_FIELDS,
 )
 from finance_joia import joia_status
-from database import db, insert_quotas_atomic
+from database import db, insert_quotas_atomic, UPLOAD_DIR
 from auth import get_current_user, is_admin, can_view_finances, can_manage_finances
 from helpers import coaprovacao_limiar, create_audit_log, notify_admins, create_notification
 from fpdf import FPDF
@@ -117,6 +119,31 @@ async def count_transactions(
         query["category"] = category
     count = await db.transactions.count_documents(query)
     return {"count": count}
+
+
+@router.get("/transactions/{transaction_id}/proof")
+async def get_transaction_proof(transaction_id: str, current_user: User = Depends(get_current_user)):
+    """Serve o comprovativo (proof) de uma transação atrás da MESMA gate de leitura
+    financeira que `GET /transactions` (H1: os `proofs` deixaram de ser públicos no
+    mount estático + nginx). Autoriza pelo ID da transação — nunca pelo filename —
+    e resolve o ficheiro com traversal guard sob UPLOAD_DIR/proofs (espelha
+    documents.get_document_file_path)."""
+    require_view_finances(current_user)
+    tx = await db.transactions.find_one({"id": transaction_id}, {"_id": 0, "proof_url": 1})
+    if not tx:
+        raise HTTPException(status_code=404, detail="Transação não encontrada")
+
+    parsed_path = urlparse(tx.get("proof_url") or "").path
+    if not parsed_path.startswith("/uploads/proofs/"):
+        raise HTTPException(status_code=404, detail="Comprovativo não encontrado")
+    proofs_dir = (UPLOAD_DIR / "proofs").resolve()
+    file_path = (proofs_dir / Path(parsed_path).name).resolve()
+    if not file_path.is_relative_to(proofs_dir) or not file_path.is_file():
+        raise HTTPException(status_code=404, detail="Comprovativo não encontrado")
+
+    response = FileResponse(file_path)
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @router.get("/me/quotas")

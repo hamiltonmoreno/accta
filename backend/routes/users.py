@@ -109,7 +109,7 @@ async def get_users(
 
 
 # ===== GET SINGLE USER =====
-@router.get("/users/{user_id}")
+@router.get("/users/{user_id}", response_model=User)
 async def get_user(user_id: str, current_user: User = Depends(get_current_user)):
     # Self ou staff (admin/financeiro) — restantes não veem PII de terceiros
     is_self = current_user.id == user_id
@@ -125,7 +125,7 @@ async def get_user(user_id: str, current_user: User = Depends(get_current_user))
 
 
 # ===== UPDATE OWN PROFILE =====
-@router.patch("/users/me/profile")
+@router.patch("/users/me/profile", response_model=User)
 async def update_own_profile(data: UserProfileUpdate, current_user: User = Depends(get_current_user)):
     dumped = data.model_dump()
 

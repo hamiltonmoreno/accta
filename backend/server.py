@@ -61,11 +61,18 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 class UploadsStaticFiles(StaticFiles):
-    """Serve public uploads, but keep documents behind the authenticated API."""
+    """Serve public uploads, but keep confidential categories behind the
+    authenticated API. `documents` are served by routes/documents.py e os
+    `proofs` (comprovativos financeiros) por routes/finances.py — o mount
+    estático 404-a ambos para o gating RBAC não ser contornável por URL direto.
+    Nota: em prod o nginx serve /uploads ANTES do uvicorn, logo a regra
+    load-bearing vive em deploy/nginx/accta.conf; este 404 é defesa-em-profundidade."""
+
+    _PROTECTED_PREFIXES = ("documents", "proofs")
 
     async def get_response(self, path, scope):
         normalized = path.replace("\\", "/").lstrip("/")
-        if normalized == "documents" or normalized.startswith("documents/"):
+        if normalized.split("/", 1)[0] in self._PROTECTED_PREFIXES:
             return JSONResponse(status_code=404, content={"detail": "Not found"})
         return await super().get_response(path, scope)
 

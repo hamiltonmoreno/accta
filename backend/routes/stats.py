@@ -40,10 +40,13 @@ async def validate_wallet(qr_hash: str):
     if not user:
         raise HTTPException(status_code=404, detail="Carteira não encontrada")
 
+    # Endpoint público (sem auth) — minimiza a colheita de PII (M-QR). Devolve só
+    # o estritamente necessário para validar a carteira presencialmente: a quem
+    # pertence (nome + nº de sócio) e se está ativa. `admission_date` removido —
+    # não é necessário para validar e era PII gratuita num endpoint aberto.
     return {
         "valid": True,
         "name": user["name"],
         "member_id": user.get("member_id"),
         "status": user["status"],
-        "admission_date": user.get("admission_date"),
     }
