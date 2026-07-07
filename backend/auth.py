@@ -15,6 +15,13 @@ security = HTTPBearer()
 SECRET_KEY = os.environ.get("SECRET_KEY")
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY environment variable is required. Set it in backend/.env")
+# Piso de entropia para HS256: uma chave < 256 bits é força-brutável offline a
+# partir de um único JWT emitido. Fail-closed em TODOS os ambientes (spec 019, E).
+if len(SECRET_KEY) < 32:
+    raise RuntimeError(
+        f"SECRET_KEY tem de ter >= 32 chars (piso HS256); atual = {len(SECRET_KEY)}. "
+        'Gere: python -c "import secrets; print(secrets.token_urlsafe(48))"'
+    )
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 

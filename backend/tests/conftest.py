@@ -34,6 +34,20 @@ os.environ.setdefault("SECRET_KEY", "unit-test-secret-key-do-not-use-in-prod")
 os.environ.setdefault("CORS_ORIGINS", "*")
 
 
+@pytest.fixture(autouse=True)
+def _disable_global_rate_limit(monkeypatch):
+    """Desliga o rate-limiter GLOBAL (SlowAPIMiddleware, default 200/min — spec 019)
+    nos testes. Sem isto, todos os TestClient(app) partilham o storage memory://
+    do limiter e a acumulação cross-teste (ex.: matriz RBAC, centenas de pedidos
+    com a mesma key "testclient") daria 429 espúrios. Só desliga se `server` já
+    está importado (o global só existe aí); os limiters POR-ROTA (auth_routes/
+    contact/comunicados) NÃO são afetados — continuam exercitados nos seus testes
+    (login 10→429, forgot 3→429, etc.)."""
+    server = sys.modules.get("server")
+    if server is not None and hasattr(server, "limiter"):
+        monkeypatch.setattr(server.limiter, "enabled", False)
+
+
 # --------------------------------------------------------------------------- #
 # Smoke-test fixture (preserved from main)
 # --------------------------------------------------------------------------- #

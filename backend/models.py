@@ -360,7 +360,10 @@ class CustomRole(BaseModel):
 
 class UserLogin(BaseModel):
     email: EmailStr
-    password: str
+    # Cap de comprimento (spec 019, FR-011): bcrypt só usa os primeiros 72 bytes;
+    # um corpo de password de vários KB seria rejeitado (422) antes de chegar ao
+    # verify — fecha a amplificação de custo. reset/setup já capam a 72.
+    password: str = Field(max_length=72)
     turnstile_token: str = ""  # token Cloudflare Turnstile (anti-bot); validado na rota
 
 

@@ -4,11 +4,13 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from urllib.parse import urlparse
 from auth import COOKIE_NAME
 from config import IS_PROD
 from database import db, UPLOAD_DIR, ensure_schema, close_pool, ping
+from helpers import rate_limit_key
 from routes import api_router
 import governance
 import os
@@ -17,7 +19,12 @@ import uuid
 import hashlib
 from datetime import datetime, timezone
 
-limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
+# key_func=rate_limit_key: chaveia o rate-limit no IP REAL do cliente (não no do
+# proxy) — H3. O default 200/min só passa a aplicar-se a todas as rotas com o
+# SlowAPIMiddleware abaixo (H2). ponytail: storage memory:// é por-worker
+# (uvicorn --workers 2) ⇒ teto efetivo ~2× o nominal; aceitável (o lockout
+# por-email em Postgres é o controlo exato). Upgrade: storage Redis ou --workers 1.
+limiter = Limiter(key_func=rate_limit_key, default_limits=["200/minute"])
 # Em produção, Swagger/ReDoc/openapi.json ficam desligados: expõem o mapa
 # completo da API a anónimos e não recebem a CSP (ver SecurityHeadersMiddleware).
 app = FastAPI(
@@ -160,6 +167,33 @@ if not cors_origins and IS_PROD:
         "Set CORS_ORIGINS=https://your.domain (separe por virgulas para varias)."
     )
 
+
+def _looks_like_production() -> bool:
+    """True se a config aparenta um deploy público (HTTPS não-local em
+    FRONTEND_URL ou CORS_ORIGINS). Serve para EXIGIR ENVIRONMENT=production
+    afirmativo — senão os controlos degradáveis (cookie Secure, HSTS, docs-off,
+    CORS estrito) caem todos numa env não definida (H4)."""
+    candidates = [os.environ.get("FRONTEND_URL", "")]
+    candidates += [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",")]
+    for c in candidates:
+        if not c or c == "*":
+            continue
+        parsed = urlparse(c)
+        host = (parsed.hostname or "").lower()
+        if parsed.scheme == "https" and host and host not in ("localhost", "127.0.0.1", "::1") and not host.endswith(".local"):
+            return True
+    return False
+
+
+# Fail-closed: um deploy HTTPS público sem ENVIRONMENT=production teria cookie
+# não-Secure / HSTS-off / docs expostos. Recusa arrancar (H4) em vez de degradar.
+if _looks_like_production() and not IS_PROD:
+    raise RuntimeError(
+        "Deploy aparenta produção (HTTPS público em FRONTEND_URL/CORS_ORIGINS) mas "
+        "ENVIRONMENT != 'production'. Defina ENVIRONMENT=production (ativa cookie "
+        "Secure, HSTS, docs desligados e CORS estrito)."
+    )
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=len(cors_origins) > 0,
@@ -171,6 +205,11 @@ app.add_middleware(
 # CSRF middleware corre ANTES da resolucao do route — protege todos os
 # endpoints state-changing que usem cookie auth.
 app.add_middleware(CSRFOriginCheckMiddleware, allowed_origins=cors_origins)
+
+# SlowAPIMiddleware aplica os `default_limits` do Limiter a TODAS as rotas (H2:
+# sem ele, o default 200/min era código morto — só os @limiter.limit explícitos
+# corriam). Adicionado por último ⇒ é o middleware mais externo (corre primeiro).
+app.add_middleware(SlowAPIMiddleware)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)

@@ -6,6 +6,7 @@ import ipaddress
 import json
 import os
 from fastapi import Request
+from slowapi.util import get_remote_address
 from database import db, UPLOAD_DIR, _json_default
 from governance import LEGACY_ROLE_SEEDS
 from models import AuditLog, CustomRole, Notification
@@ -120,6 +121,26 @@ def _is_trusted_proxy(host: Optional[str]) -> bool:
     return any(ip in net for net in _TRUSTED_PROXY_NETS)
 
 
+def client_ip(request: Optional[Request]) -> Optional[str]:
+    """IP real do cliente. Honra X-Forwarded-For SÓ se o peer TCP for um proxy
+    reverso confiável (senão o XFF é spoofável). Cap a 64 chars. Fonte ÚNICA do
+    IP para auditoria (extract_request_meta) e para o rate-limit (rate_limit_key)."""
+    if request is None or request.client is None:
+        return None
+    peer = request.client.host
+    xff = request.headers.get("x-forwarded-for", "")
+    ip = xff.split(",")[0].strip() if (xff and _is_trusted_proxy(peer)) else peer
+    return ip[:64] if ip else None
+
+
+def rate_limit_key(request: Request) -> str:
+    """key_func do slowapi — chaveia o rate-limit no IP REAL do cliente, não no
+    IP do proxy (que colapsaria todos os clientes atrás do edge num só balde e
+    tornaria o brute-force distribuído indetetável — H3). Fallback para
+    get_remote_address quando a request não tem cliente (ex.: testes)."""
+    return client_ip(request) or get_remote_address(request)
+
+
 def resolve_link_base(request: Optional[Request]) -> str:
     """Base URL segura para links enviados por email (reset/convite).
 
@@ -205,25 +226,14 @@ async def is_account_locked(email: str) -> Optional[datetime]:
 
 
 def extract_request_meta(request: Optional[Request]) -> dict:
-    """Extrai IP e User-Agent de uma Request. Honra X-Forwarded-For (atrás do nginx).
-    Se request=None, devolve dict vazio (mantém backward-compat de call-sites antigos).
+    """Extrai IP e User-Agent de uma Request para auditoria. O IP vem de
+    `client_ip` (honra X-Forwarded-For só atrás de proxy confiável, cap 64).
+    Se request=None, devolve dict vazio (backward-compat de call-sites antigos).
     """
     if request is None:
         return {}
-    # X-Forwarded-For só é confiável se o peer TCP for um proxy reverso
-    # legítimo (Nginx em loopback/rede privada). Exposto directamente, o
-    # XFF é spoofável → usa-se o IP real da ligação.
-    peer = request.client.host if request.client else None
-    xff = request.headers.get("x-forwarded-for", "")
-    if xff and _is_trusted_proxy(peer):
-        ip = xff.split(",")[0].strip()
-    else:
-        ip = peer
     ua = request.headers.get("user-agent", "")[:500]  # cap UA length
-    # Cap também ao IP: um XFF malformado atrás do proxy confiável não pode
-    # despejar um valor arbitrariamente longo no audit log (IPv6 max ~45).
-    ip = ip[:64] if ip else None
-    return {"ip": ip, "user_agent": ua or None}
+    return {"ip": client_ip(request), "user_agent": ua or None}
 
 
 # === AUDIT LOG TAMPER-EVIDENCE (spec-verificacao-seguranca-saas §8.1, F4) ====

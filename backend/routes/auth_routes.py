@@ -38,13 +38,13 @@ from helpers import (
     resolve_link_base,
 )
 from slowapi import Limiter
-from slowapi.util import get_remote_address
+from helpers import rate_limit_key
 from turnstile import verify_turnstile
 import uuid
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=rate_limit_key)
 
 
 @router.post("/login", response_model=Token)

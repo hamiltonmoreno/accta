@@ -20,11 +20,11 @@ cookie httpOnly + `CSRFOriginCheckMiddleware`, parametrização anti-SQLi no DAO
 | ID | Sev | Achado | WS | Estado |
 |----|-----|--------|----|--------|
 | H1 | HIGH | `proofs` (comprovativos financeiros) servidos sem auth pelo mount estático + nginx edge | A | **corrigido** (US1; guard `test_proof_serving.py`; nginx VPS = STOP no deploy) |
-| H2 | HIGH | `SlowAPIMiddleware` ausente → default 200/min nunca aplicado (dead code) | D | aberto |
-| H3 | HIGH | Rate-limit chaveia no IP do proxy → todos num balde; brute-force distribuído indetetável | D | aberto |
-| H4 | HIGH | Postura de prod cai toda numa `ENVIRONMENT` mal definida (cookie/HSTS/docs/CORS) | E | aberto |
+| H2 | HIGH | `SlowAPIMiddleware` ausente → default 200/min nunca aplicado (dead code) | D | **corrigido** (US2; `app.add_middleware(SlowAPIMiddleware)`; guard `test_rate_limit.py`) |
+| H3 | HIGH | Rate-limit chaveia no IP do proxy → todos num balde; brute-force distribuído indetetável | D | **corrigido** (US2; `rate_limit_key`=IP real via `client_ip`, key_func nos 4 Limiters; `test_rate_limit.py`) |
+| H4 | HIGH | Postura de prod cai toda numa `ENVIRONMENT` mal definida (cookie/HSTS/docs/CORS) | E | **corrigido** (US2; boot gate `_looks_like_production()` fail-closed; `test_prod_posture.py` subprocess) |
 | H5 | HIGH | DAO devolve doc inteiro (hash password + `mfa_secret*`) em projeção `{"_id":0}`; sem chokepoint | B | **corrigido** (US1; `response_model=User` em GET /users/{id} + PATCH /me/profile; guard `test_users_secret_projection.py`) |
-| H6 | HIGH→**verify** | CSRF em métodos de escrita — **middleware já cobre tudo e não é contornável** | E | verify-only |
+| H6 | HIGH→**verify** | CSRF em métodos de escrita — **middleware já cobre tudo e não é contornável** | E | **verificado** (US2; `test_csrf_middleware.py` parametrizado PUT/PATCH/DELETE — FR-009) |
 | H7 | HIGH | CVE-2024-47874 `starlette` 0.37.2 multipart DoS (público) | G | aberto |
 | H8 | HIGH | CVE-2024-53981 `python-multipart` 0.0.9 DoS (público) | G | aberto |
 | M-IDOR | MED | Módulos grandes nunca auditados endpoint-a-endpoint (posse de objeto) | C | **corrigido** (US1; 185 rotas classificadas — SC-001=100%; `test_idor_coverage.py` + negativos em `test_idor.py`) |
@@ -33,14 +33,14 @@ cookie httpOnly + `CSRFOriginCheckMiddleware`, parametrização anti-SQLi no DAO
 | M-UPL-hdr | MED | Nginx serve `/uploads` sem os security headers da app | A/D | recomendação-infra |
 | M-SSRF-dns | MED | Guarda SSRF do push cega a DNS (rebinding) | F | aberto |
 | M-SSRF-redir | MED | Push segue redireções (contorna a guarda) | F | aberto |
-| M-SECRET | MED | `SECRET_KEY` sem mínimo de entropia | E | aberto |
+| M-SECRET | MED | `SECRET_KEY` sem mínimo de entropia | E | **corrigido** (US2; `len(SECRET_KEY) < 32` → raise no arranque, `auth.py`; `test_prod_posture.py`) |
 | M-PROXY | MED | Confiança em `cf-connecting-ip`/proxy a validar no VPS | D | recomendação-infra |
 | M-QR | MED | Validador QR público colhe PII sem rate-limit | D/US1 | **corrigido** (US1: resposta reduzida — `admission_date` removido; `stats.py`). Rate-limit vem do default de US2 (T021) |
 | M-PII | MED | Gating de PII sensível só em `users.py` | B | **corrigido/aceite** (US1; auditadas as agregações fora de `users.py` — todas allowlists sem PII sensível ⇒ superfície nula; guard `test_pii_projection_guard.py`) |
 | M-AUDIT | MED | `audit_logs.details` acumula PII sem retenção | (US5) | **parcial** (US1: guard de segredos `test_audit_no_secrets.py` — details sem password/token/secret); **retenção/redação = adiado** (data-model) |
 | M-REGEX | MED | `$regex` = ReDoS latente (seguro só por disciplina do chamador) | FR-013 | aberto |
 | M-HREF | MED | `javascript:`/`data:` em `href` de campos da BD | F | aberto |
-| M-CSP | MED | Sem CSP + scripts terceiros no `index.html` (SPA) | US2 (T025) | aberto |
+| M-CSP | MED | Sem CSP + scripts terceiros no `index.html` (SPA) | US2 (T025) | **parcial** (US2; CSP `Report-Only` em `vercel.json` — scoped a fonts/posthog/turnstile/api; scripts dev-tooling já inertes por X-Frame-Options DENY). **Enforce = ação do dono** após validar no browser que 0 violações partem login/Turnstile/fontes/API) |
 | M-DEPS | MED | Pillow/Jinja2 desatualizados; sem lockfile/scanning | G | aberto |
 | M-CRA | MED | `react-scripts` (CRA) EOL arrasta árvore vulnerável build-time | G | adiado-LOW |
 | M-STORE | MED | Contadores de rate-limit por-worker (`--workers 2`) | D | aceite (ceiling) |

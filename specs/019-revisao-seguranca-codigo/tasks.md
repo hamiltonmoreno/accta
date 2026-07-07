@@ -84,20 +84,20 @@ o essencial.
 
 ### Tests for User Story 2 (primeiro) ⚠️
 
-- [ ] T017 [P] [US2] `backend/tests/test_rate_limit.py`: `rate_limit_key` (peer não-confiável+XFF→peer; peer confiável+XFF→primeiro hop); `SlowAPIMiddleware` presente + `_default_limits` não-vazio (H2); manter verdes login 10→429 / forgot 3→429
-- [ ] T018 [P] [US2] `backend/tests/test_prod_posture.py`: gate levanta com FRONTEND_URL/CORS https público + `ENVIRONMENT` unset; NÃO levanta em localhost/dev nem com `ENVIRONMENT=production`; `SECRET_KEY`<32 → RuntimeError, ≥32 → OK
-- [ ] T019 [P] [US2] Parametrizar `backend/tests/test_csrf_middleware.py` sobre {PUT, PATCH, DELETE}: cookie+origem hostil → 403, cookie+origem permitida → 200, no-cookie+hostil → passa (FR-009; H6 verify-only)
+- [X] T017 [P] [US2] `backend/tests/test_rate_limit.py`: `rate_limit_key` (peer não-confiável+XFF→peer; peer confiável+XFF→primeiro hop; clientless→fallback); `SlowAPIMiddleware` montado + key_func=`rate_limit_key` + `_default_limits` não-vazio; login 10→429 / forgot 3→429 mantidos verdes
+- [X] T018 [P] [US2] `backend/tests/test_prod_posture.py`: `_looks_like_production` (https público→True; localhost/*/vazio→False) + arranque em subprocesso — recusa com https público sem `ENVIRONMENT` e com `SECRET_KEY`<32; arranca com `ENVIRONMENT=production` e em dev local
+- [X] T019 [P] [US2] `backend/tests/test_csrf_middleware.py` parametrizado {POST,PUT,PATCH,DELETE}: cookie+origem hostil → 403, cookie+permitida → 200, no-cookie+hostil → passa (FR-009; H6 verify-only)
 
 ### Implementation for User Story 2
 
-- [ ] T020 [US2] `backend/helpers.py`: extrair `client_ip(request)` da lógica inline de `extract_request_meta` (reusa `_is_trusted_proxy`/`_TRUSTED_PROXY_NETS`) + `rate_limit_key(request)`; refatorar `extract_request_meta` para chamar `client_ip`
-- [ ] T021 [US2] `backend/server.py`: `app.add_middleware(SlowAPIMiddleware)` (outermost, após o CSRF) + `key_func=rate_limit_key` no Limiter (mantém `default_limits=['200/minute']`) + comentário `ponytail:` a nomear o teto ~2× por-worker e o upgrade (Redis/`--workers 1`)
-- [ ] T022 [US2] `backend/routes/auth_routes.py` + `contact.py` + `comunicados.py`: trocar `key_func=get_remote_address` → `rate_limit_key` (importar de helpers; remover o import não usado)
-- [ ] T023 [US2] `backend/server.py`: helper `_looks_like_production()` (urlparse; https não-local em FRONTEND_URL/CORS) + `if _looks_like_production() and not IS_PROD: raise RuntimeError(...)`, logo após o boot gate de CORS
-- [ ] T024 [US2] `backend/auth.py`: `if len(SECRET_KEY) < 32: raise RuntimeError(...)` a seguir ao check de not-set (piso 256-bit HS256)
-- [ ] T025 [P] [US2] `frontend/public/index.html`: adicionar CSP (header via Vercel preferível a meta) + rever/remover os scripts de dev-tooling só-em-frame (emergent.sh/tailwind CDN) do prod (M-CSP)
-- [ ] T050 [US2] **(G1/FR-010)** Revogação de sessão — teste + decisão explícita em `backend/tests/test_auth_hardening.py`: provar que `get_current_user`/`get_user_from_token` rejeitam (a) token de conta `status!='ativo'`, (b) token com `iat` anterior a `password_changed_at`, (c) `jti` na blocklist pós-logout; **decidir e registar** o edge de granularidade-ao-segundo (token cunhado no mesmo segundo do reset pode sobreviver) — corrigir (comparação `<=`/versioning) ou aceitar com justificação (FR-022)
-- [ ] T051 [US2] **(G2/FR-011)** Cap de comprimento de password consistente — `backend/models.py`: adicionar `max_length` a `UserLogin.password` (reset/setup já capam a 72); teste que um corpo de password de vários KB é rejeitado (422) sem chegar ao `bcrypt.verify` (fecha a amplificação de custo do edge case)
+- [X] T020 [US2] `backend/helpers.py`: `client_ip(request)` + `rate_limit_key(request)` (reusam `_is_trusted_proxy`/`_TRUSTED_PROXY_NETS`); `extract_request_meta` refatorado para `client_ip`
+- [X] T021 [US2] `backend/server.py`: `app.add_middleware(SlowAPIMiddleware)` (outermost, após CSRF) + `key_func=rate_limit_key` no Limiter (default 200/min) + comentário `ponytail:` (teto ~2× por-worker; upgrade Redis/`--workers 1`)
+- [X] T022 [US2] `routes/auth_routes.py` + `contact.py` + `comunicados.py`: `key_func=rate_limit_key` (import de helpers; `get_remote_address` removido). **De caminho:** fixture autouse `_disable_global_rate_limit` no conftest (o SlowAPIMiddleware global daria 429 espúrios nos TestClient partilhados, ex. matriz RBAC)
+- [X] T023 [US2] `backend/server.py`: `_looks_like_production()` (urlparse; https não-local) + `if _looks_like_production() and not IS_PROD: raise` após o gate de CORS
+- [X] T024 [US2] `backend/auth.py`: `if len(SECRET_KEY) < 32: raise RuntimeError(...)` a seguir ao check de not-set
+- [X] T025 [P] [US2] `frontend/vercel.json`: CSP **`Report-Only`** (header, scoped a fonts/posthog/turnstile/api); scripts dev-tooling deixados inertes (X-Frame-Options DENY já os mata em prod). Enforce = ação do dono após validar 0 violações no browser
+- [X] T050 [US2] **(G1/FR-010)** Revogação de sessão: as 3 propriedades (status≠ativo / iat<password_changed_at / jti na blocklist) **já estavam testadas** em `test_auth_hardening.py`; +teste da **decisão do edge mesmo-segundo** — token com `iat==changed_ts` **sobrevive** (aceite, FR-022; `<=` arriscava falso-logout pós-reset)
+- [X] T051 [US2] **(G2/FR-011)** `backend/models.py`: `UserLogin.password = Field(max_length=72)` (reset/setup já capam) — corpo de vários KB → 422 antes do `bcrypt.verify`
 
 **Checkpoint US2**: `pytest -m unit` verde → **RELEASE Fase 2 (Via B)**. **STOP**: antes do release, verificar no `/docker/accta/.env` do VPS que `ENVIRONMENT=production` e `SECRET_KEY` ≥32 chars (senão o container não arranca — é o comportamento desejado).
 
