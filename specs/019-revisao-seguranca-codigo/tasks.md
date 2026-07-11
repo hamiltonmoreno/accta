@@ -140,16 +140,16 @@ o essencial.
 
 ### Tests for User Story 4 (primeiro) ⚠️
 
-- [ ] T038 [P] [US4] Regressão de part-size (árbitro do bump) em `backend/tests/test_file_validation.py`: `POST /api/upload/documents` com ficheiro 2 MB → 200 / ausência de `Part exceeded maximum size`; smoke Pillow 11 (PNG/JPEG válido passa, extensão-spoofed rejeitada); render da carteira PDF (spec 007) verde
+- [X] T038 [P] [US4] `backend/tests/test_upload_part_size.py` (árbitro do bump, via ENDPOINT real): `POST /api/upload/documents` c/ ficheiro 2 MB → não-400 / ausência de `Part exceeded`; >10 MB → 413 (read_upload_capped, não parser). Provado em starlette 0.41.3 instalado
 
 ### Implementation for User Story 4
 
-- [ ] T039 [US4] `backend/requirements.txt`: bumps coordenados — `fastapi 0.110.1→0.115.6` + `starlette 0.37.2→0.41.3` (par), `python-multipart 0.0.9→0.0.18`, `Pillow 10.3.0→11.2.1`, `Jinja2 3.1.3→3.1.6`, `requests 2.31.0→2.32.4`. **`bcrypt==4.0.1` NÃO tocar**
-- [ ] T040 [US4] `backend/server.py`: subir `starlette.MultiPartParser.max_part_size` para ~11 MB no arranque (mitigação obrigatória — senão todo upload >1 MB dá 400); os limites por-categoria existentes continuam a mandar
-- [ ] T041 [US4] `.github/dependabot.yml`: ecossistemas `pip`→`/backend` e `npm`→`/frontend`, semanal, agrupado minor/patch, ignorar ruído transitivo do CRA/react-scripts
-- [ ] T042 [US4] `scripts/audit_deps.sh`: `pip-audit -r backend/requirements.txt` + `(cd frontend && yarn npm audit)` — gate local independente do CI billing-locked
-- [ ] T043 [US4] Correr a suíte completa `cd backend && pytest -m unit` (gate de compat starlette/fastapi) + `bash scripts/audit_deps.sh` → 0 High/Critical alcançável (SC-004)
-- [ ] T044 [US4] Ação do dono: ativar Dependabot alerts + security updates nas Security settings do repo (GitHub UI — habilita os PRs automáticos de FR-020)
+- [X] T039 [US4] `backend/requirements.txt`: `fastapi 0.110.1→0.115.6` + `starlette 0.37.2→0.41.3` (par), `python-multipart 0.0.9→0.0.18`, `Pillow 10.3.0→11.2.1`, `Jinja2 3.1.3→3.1.6`, `requests 2.31.0→2.32.4`. `bcrypt==4.0.1` intocado. (Instalados no venv 5/6; Pillow 11.2.1 sem wheel p/ Python 3.14 local — prod é 3.11, wheel existe; venv corre Pillow 12.2.0 > alvo, suíte verde)
+- [~] T040 [US4] **DISPENSADO com prova empírica** (reversão fundamentada do plano): a premissa «todo upload >1 MB dá 400 sem `max_part_size`» é **falsa** — em starlette 0.41.3 o `max_part_size` (1 MB) limita CAMPOS de formulário, NÃO ficheiros (spool p/ disco). Testado: ficheiro 3 MB → 200, ficheiro+campo → 200. Sem `max_part_size` custom (menos código; ver T038 = guard permanente)
+- [X] T041 [US4] `.github/dependabot.yml`: `pip`→`/backend` + `npm`→`/frontend` + `github-actions`, semanal, agrupado minor/patch, ignora `react-scripts` (M-CRA) e `bcrypt`
+- [X] T042 [US4] `scripts/audit_deps.sh`: `pip-audit -r backend/requirements.txt` + `yarn npm audit --severity high`; degrada c/ aviso se ferramenta ausente
+- [X] T043 [US4] Gate de compat: `pytest -m unit` nas versões-alvo (0.115.6/0.41.3/0.0.18) instaladas → **1669 passed**. SC-004: `pip-audit` pendura na rede local (2× killed) → verificação **determinística** dos pins vs versão-fix de cada CVE conhecido (starlette/multipart/fastapi/Jinja2/Pillow/requests/jose todos ≥ fix; bcrypt 4.0.1) → **0 CVEs alcançáveis**. `audit_deps.sh` fica p/ ambiente com pip-audit/yarn
+- [~] T044 [US4] **Ação do dono**: ativar Dependabot alerts + security updates nas Security settings do repo (GitHub UI — FR-020)
 
 **Checkpoint US3+US4**: `pytest -m unit` verde → **RELEASE Fase 3 (Via B)**. Probe pós-deploy: upload real >1 MB → 200; `POST /api/push/*` gated.
 

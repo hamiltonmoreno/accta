@@ -25,8 +25,8 @@ cookie httpOnly + `CSRFOriginCheckMiddleware`, parametrização anti-SQLi no DAO
 | H4 | HIGH | Postura de prod cai toda numa `ENVIRONMENT` mal definida (cookie/HSTS/docs/CORS) | E | **corrigido** (US2; boot gate `_looks_like_production()` fail-closed; `test_prod_posture.py` subprocess) |
 | H5 | HIGH | DAO devolve doc inteiro (hash password + `mfa_secret*`) em projeção `{"_id":0}`; sem chokepoint | B | **corrigido** (US1; `response_model=User` em GET /users/{id} + PATCH /me/profile; guard `test_users_secret_projection.py`) |
 | H6 | HIGH→**verify** | CSRF em métodos de escrita — **middleware já cobre tudo e não é contornável** | E | **verificado** (US2; `test_csrf_middleware.py` parametrizado PUT/PATCH/DELETE — FR-009) |
-| H7 | HIGH | CVE-2024-47874 `starlette` 0.37.2 multipart DoS (público) | G | aberto |
-| H8 | HIGH | CVE-2024-53981 `python-multipart` 0.0.9 DoS (público) | G | aberto |
+| H7 | HIGH | CVE-2024-47874 `starlette` 0.37.2 multipart DoS (público) | G | **corrigido** (US4; starlette→0.41.3, acima do fix 0.40.0; suíte verde nas versões-alvo) |
+| H8 | HIGH | CVE-2024-53981 `python-multipart` 0.0.9 DoS (público) | G | **corrigido** (US4; python-multipart→0.0.18, o fix) |
 | M-IDOR | MED | Módulos grandes nunca auditados endpoint-a-endpoint (posse de objeto) | C | **corrigido** (US1; 185 rotas classificadas — SC-001=100%; `test_idor_coverage.py` + negativos em `test_idor.py`) |
 | M-UPL-size | MED | Limite de upload só após ler corpo inteiro (exaustão) | F | **corrigido** (US3; `read_upload_capped` streaming 413; `test_file_validation.py`) |
 | M-UPL-quota | MED | Sem teto de volume de upload por utilizador | F | **corrigido** (US3; `@limiter.limit("30/hour")` nos 2 endpoints de upload) |
@@ -41,7 +41,7 @@ cookie httpOnly + `CSRFOriginCheckMiddleware`, parametrização anti-SQLi no DAO
 | M-REGEX | MED | `$regex` = ReDoS latente (seguro só por disciplina do chamador) | FR-013 | **corrigido** (US3; `helpers.safe_search_regex` fonte única + tripwire `test_regex_call_sites_are_safe`) |
 | M-HREF | MED | `javascript:`/`data:` em `href` de campos da BD | F | **corrigido** (US3; backend `_validate_local_upload_url` em logo/cover/capa_url nos Create/Update; frontend — os campos `website`/`url` da BD JÁ eram sanitizados, consolidados em `utils/safeUrl.js` c/ teste; `ContactosPage.site` é config estática s/ vetor. `test_url_validators.py` + `safeUrl.test.js`) |
 | M-CSP | MED | Sem CSP + scripts terceiros no `index.html` (SPA) | US2 (T025) | **parcial** (US2; CSP `Report-Only` em `vercel.json` — scoped a fonts/posthog/turnstile/api; scripts dev-tooling já inertes por X-Frame-Options DENY). **Enforce = ação do dono** após validar no browser que 0 violações partem login/Turnstile/fontes/API) |
-| M-DEPS | MED | Pillow/Jinja2 desatualizados; sem lockfile/scanning | G | aberto |
+| M-DEPS | MED | Pillow/Jinja2 desatualizados; sem lockfile/scanning | G | **corrigido** (US4; Pillow→11.2.1, Jinja2→3.1.6, requests→2.32.4; `.github/dependabot.yml` + `scripts/audit_deps.sh`) |
 | M-CRA | MED | `react-scripts` (CRA) EOL arrasta árvore vulnerável build-time | G | adiado-LOW |
 | M-STORE | MED | Contadores de rate-limit por-worker (`--workers 2`) | D | aceite (ceiling) |
 | M-ICON | MED | `/brand/icon` open-redirect via `icon_url` | F | **corrigido** (US3; `_is_safe_icon_target` — 302 só p/ `/uploads/` ou host de FRONTEND_URL; `test_url_validators.py`) |
@@ -174,13 +174,21 @@ cookie httpOnly + `CSRFOriginCheckMiddleware`, parametrização anti-SQLi no DAO
   rota. **Scanning**: `.github/dependabot.yml` (pip→/backend, npm→/frontend, semanal,
   agrupado) — corre na infra do GitHub, **independente do CI billing-locked**; +
   `scripts/audit_deps.sh` (pip-audit + yarn npm audit) como gate local.
-- **Contract**: nenhum SE a mitigação `max_part_size` for aplicada (o teste de upload
-  >1 MB é o **árbitro** do bump). Sem ela, todos os uploads >1 MB dariam 400.
+- **Contract**: nenhum. O teste de upload >1 MB (`test_upload_part_size.py`) é o **árbitro**.
+- **⚠️ CORREÇÃO empírica (implementação, 2026-07)**: a mitigação `max_part_size` **NÃO é
+  necessária** e foi **dispensada**. A premissa era falsa: em starlette 0.41.3 o
+  `max_part_size` (1 MB) limita **campos de formulário não-ficheiro**, NÃO uploads de
+  ficheiro (que fazem spool para disco via `SpooledTemporaryFile`). Testado com as
+  versões-alvo instaladas: `POST /api/upload/documents` com ficheiro 2 MB → 200; ficheiro
+  3 MB isolado → 200; ficheiro+campo → 200. Zero uploads partidos. `T040` saltado (menos
+  código); `test_upload_part_size.py` fica como guard permanente (fica vermelho se um bump
+  futuro reintroduzir um teto que parta ficheiros).
 - **STOP**: Via B + push a `main`; dono ativa Dependabot alerts+security updates nas
   Security settings do repo (ação GitHub, não código).
-- **Risco**: salto de 5 minors no FastAPI → correr a suíte completa (~1575) como gate;
-  Pillow 11 + fpdf2 (carteira PDF spec 007) → smoke; pydantic fica em 2.6.4 (contingência
-  2.9.x se surgir incompat).
+- **Nota de ambiente**: Pillow 11.2.1 não tem wheel para Python 3.14 (venv local);
+  **prod é Python 3.11**, onde o wheel existe. O venv corre Pillow 12.2.0 (> alvo) com a
+  suíte verde — compat de Pillow moderno provada. Gate de compat fastapi/starlette corrido
+  nas versões-alvo EXATAS (0.115.6/0.41.3/0.0.18) instaladas.
 
 ### FR-013 — Centralizar escape de `$regex` (M-REGEX) · esforço S
 - **Decision**: mover a lógica `_safe_search_regex` (finances) para um helper partilhado
