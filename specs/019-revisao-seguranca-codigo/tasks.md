@@ -159,11 +159,20 @@ o essencial.
 
 **Goal**: registo de achados fechado, backlog dos LOW, prova de que as guardas travam regressões.
 
-- [ ] T045 [P] [US5] Atualizar o registo em `specs/019-revisao-seguranca-codigo/research.md`: todos os HIGH+MEDIUM → `corrigido` (com `regression_guard`) ou `aceite`/`adiado` com justificação (SC-007)
-- [ ] T046 [P] [US5] Registar os ~30 LOW num backlog rastreado (secção em `research.md` ou `specs/019-revisao-seguranca-codigo/backlog-low.md`) com condição de reabertura; **(U2/FR-012)** registar a **decisão explícita** (corrigir vs. aceitar, com porquê) para cada oráculo de enumeração/timing (login bcrypt-skip, mensagens distintas do registo) e para o bloqueio-de-conta-como-DoS
-- [ ] T047 [US5] Meta-check SC-008: reverter deliberadamente uma correção (ex.: remover `response_model=User`, ou repor `{"role":"moderador"}` numa query) e confirmar que um tripwire fica **vermelho**; documentar
-- [ ] T048 [US5] Verificação final (Princípio VII): `pytest -m unit` + `ruff check .` + eslint verdes; smoke no navegador das áreas tocadas (finanças, perfil, uploads) sem regressão (SC-009)
-- [ ] T049 [US5] Atualizar `tasks/todo.md` (secção de review) + memória do projeto com o estado final e os LOW adiados
+- [X] T045 [P] [US5] Registo em `research.md` atualizado a cada US: **0 achados abertos** (19 corrigidos c/ `regression_guard`, 2 aceites, 2 parciais, 2 infra, 1 verificado; LOW em backlog) — SC-007
+- [X] T046 [P] [US5] `backlog-low.md`: LOW L1-L10 com condição de reabertura + **(U2/FR-012)** decisões explícitas O1-O3 (timing bcrypt-skip / mensagens do registo / lockout-DoS = **aceitar** com porquê). Tabnabbing verificado = 0 casos
+- [X] T047 [US5] Meta-check SC-008 provado **2×**: remover `response_model=User` → `test_users_secret_projection` vermelho; repor `{"role":"moderador"}` → `test_no_legacy_role_in_db_query` vermelho; ambos restaurados, árvore limpa
+- [X] T048 [US5] Verificação final: `pytest -m unit` **1669✓** (versões-alvo), `ruff` limpo, `eslint` 0 erros (22 warnings <60). Smoke no navegador (SC-009) = residual do dono (Princípio VII)
+- [X] T049 [US5] `tasks/todo.md` (review) + memória do projeto (`spec-019-seguranca-codigo-state.md` + índice) atualizados
+
+---
+
+## Estado final (2026-07)
+
+**53 tarefas**: 48 **[X]** feitas · 3 **[~]** = ação/validação do dono (T037 dados prod, T040
+dispensado-com-prova, T044 Dependabot settings) · T043 verde. **Todas as US implementadas**
+na branch `feature/019-revisao-seguranca-codigo` (4 commits, 1669 testes verdes). **Não
+released** — STOPs de release por confirmar com o dono (nginx edge / env prod / Dependabot).
 
 ---
 
