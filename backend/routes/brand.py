@@ -10,6 +10,7 @@ campo ausente mantém o valor; uma URL substitui.
 
 import os
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -55,6 +56,19 @@ async def get_brand_public():
     return _public_view(await _get_doc())
 
 
+def _is_safe_icon_target(icon) -> bool:
+    """302 só para /uploads/… OU um host == FRONTEND_URL — neutraliza um
+    open-redirect via `icon_url` (spec 019, FR-018). Senão cai no default estático."""
+    if not icon:
+        return False
+    if icon.startswith("/uploads/"):
+        return True
+    target = (urlparse(icon).hostname or "").lower()
+    front = os.environ.get("FRONTEND_URL", "")
+    front_host = (urlparse(front).hostname or "").lower() if front else ""
+    return bool(target and front_host and target == front_host)
+
+
 @router.get("/icon")
 async def get_brand_icon():
     """Público: URL estável do ícone quadrado da marca (PWA/og). Redireciona para o
@@ -62,7 +76,7 @@ async def get_brand_icon():
     que o manifest/og apontem para um URL fixo e o ícone troque pela UI sem novo deploy."""
     doc = await _get_doc()
     icon = doc.get("icon_url")
-    if not icon:
+    if not _is_safe_icon_target(icon):
         # Default = logo512 do frontend. FRONTEND_URL em prod; sem ele, evitar um
         # Location relativo (resolveria para o host do backend, onde o ficheiro não
         # existe) caindo no domínio público conhecido.

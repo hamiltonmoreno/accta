@@ -10,10 +10,47 @@ import pytest
 from fastapi import HTTPException
 from PIL import Image
 
-from file_validation import validate_file_content
+from file_validation import validate_file_content, read_upload_capped
 
 
 pytestmark = pytest.mark.unit
+
+
+# ---------- spec 019 / T027: cap de upload em streaming (413 antes de buffrar) ----------
+class _FakeUploadFile:
+    """UploadFile falso que devolve `total` bytes em pedaços de `chunk` — conta
+    quantos bytes foram efetivamente lidos (prova que abortamos cedo)."""
+
+    def __init__(self, total: int, chunk: int = 64 * 1024):
+        self._left = total
+        self._chunk = chunk
+        self.bytes_read = 0
+
+    async def read(self, size: int = -1) -> bytes:
+        if self._left <= 0:
+            return b""
+        n = self._left if size in (-1, None) else min(size, self._left)
+        self._left -= n
+        self.bytes_read += n
+        return b"x" * n
+
+
+@pytest.mark.asyncio
+async def test_read_upload_capped_accepts_within_limit():
+    f = _FakeUploadFile(total=1000)
+    data = await read_upload_capped(f, max_size=5000)
+    assert len(data) == 1000
+
+
+@pytest.mark.asyncio
+async def test_read_upload_capped_aborts_over_limit_without_buffering():
+    max_size = 256 * 1024
+    f = _FakeUploadFile(total=50 * 1024 * 1024)  # 50 MB "stream"
+    with pytest.raises(HTTPException) as exc:
+        await read_upload_capped(f, max_size=max_size)
+    assert exc.value.status_code == 413
+    # Nunca materializou o corpo inteiro: parou pouco depois de exceder o limite.
+    assert f.bytes_read <= max_size + 64 * 1024
 
 
 def _png_bytes(size=(10, 10), color=(255, 0, 0)) -> bytes:

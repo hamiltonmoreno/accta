@@ -4,7 +4,6 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
-import re
 from models import (
     User,
     Transaction,
@@ -22,7 +21,7 @@ from models import (
 from finance_joia import joia_status
 from database import db, insert_quotas_atomic, UPLOAD_DIR
 from auth import get_current_user, is_admin, can_view_finances, can_manage_finances
-from helpers import coaprovacao_limiar, create_audit_log, notify_admins, create_notification
+from helpers import coaprovacao_limiar, create_audit_log, notify_admins, create_notification, safe_search_regex
 from fpdf import FPDF
 import io
 import uuid
@@ -31,12 +30,10 @@ import uuid
 _QUOTA_MAJORIAS = ("qualificada_3_4_presentes", "qualificada_3_4_universo")
 
 
-def _safe_search_regex(s: str) -> str:
-    """Escape regex metachars + cap length to prevent ReDoS.
-    Trunca o input bruto antes do escape — escapar primeiro e cortar depois
-    podia partir uma sequencia '\\X' a meio e produzir regex invalida.
-    """
-    return re.escape(s.strip()[:100])
+# `safe_search_regex` (fonte única de padrões $regex seguros — spec 019 FR-013)
+# vive em helpers.py; alias local mantido para retrocompat dos call sites internos
+# e de test_sql_injection_fuzz.
+_safe_search_regex = safe_search_regex
 
 
 router = APIRouter(prefix="/finances", tags=["finances"])

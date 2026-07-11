@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { safeUrl } from '../../utils/safeUrl';
 import {
   Gift,
   QrCode,
@@ -41,15 +42,8 @@ export const BeneficiosPublicoPage = () => {
 
   // Codex P2 #27: backend model nao valida scheme, "www.x.cv" sem http://
   // seria interpretado como path relativo (navegar para /beneficios-publico/...).
-  // Prepend https:// quando falta scheme; filtra schemes invalidos (javascript:).
-  const safeWebsite = (url) => {
-    if (!url || typeof url !== 'string') return null;
-    const trimmed = url.trim();
-    if (/^https?:\/\//i.test(trimmed)) return trimmed;
-    // Bloqueia schemes perigosos (javascript:, data:, file:, etc).
-    if (/^[a-z][a-z0-9+\-.]*:/i.test(trimmed)) return null;
-    return `https://${trimmed}`;
-  };
+  // safeWebsite: fonte única em utils/safeUrl (spec 019 M-HREF).
+  const safeWebsite = safeUrl;
 
   const partnerCategories = [
     { icon: Hotel, label: 'Hotelaria', color: 'bg-[#EFF6FF] text-[#1D4ED8]' },

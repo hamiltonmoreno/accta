@@ -28,23 +28,24 @@ cookie httpOnly + `CSRFOriginCheckMiddleware`, parametrização anti-SQLi no DAO
 | H7 | HIGH | CVE-2024-47874 `starlette` 0.37.2 multipart DoS (público) | G | aberto |
 | H8 | HIGH | CVE-2024-53981 `python-multipart` 0.0.9 DoS (público) | G | aberto |
 | M-IDOR | MED | Módulos grandes nunca auditados endpoint-a-endpoint (posse de objeto) | C | **corrigido** (US1; 185 rotas classificadas — SC-001=100%; `test_idor_coverage.py` + negativos em `test_idor.py`) |
-| M-UPL-size | MED | Limite de upload só após ler corpo inteiro (exaustão) | F | aberto |
-| M-UPL-quota | MED | Sem teto de volume de upload por utilizador | F | aberto |
+| M-UPL-size | MED | Limite de upload só após ler corpo inteiro (exaustão) | F | **corrigido** (US3; `read_upload_capped` streaming 413; `test_file_validation.py`) |
+| M-UPL-quota | MED | Sem teto de volume de upload por utilizador | F | **corrigido** (US3; `@limiter.limit("30/hour")` nos 2 endpoints de upload) |
 | M-UPL-hdr | MED | Nginx serve `/uploads` sem os security headers da app | A/D | recomendação-infra |
-| M-SSRF-dns | MED | Guarda SSRF do push cega a DNS (rebinding) | F | aberto |
-| M-SSRF-redir | MED | Push segue redireções (contorna a guarda) | F | aberto |
+| M-SSRF-dns | MED | Guarda SSRF do push cega a DNS (rebinding) | F | **corrigido** (US3; `_endpoint_resolves_public` getaddrinfo fail-closed; `test_push_service.py`) |
+| M-SSRF-redir | MED | Push segue redireções (contorna a guarda) | F | **corrigido** (US3; sessão `requests` com `allow_redirects=False`) |
 | M-SECRET | MED | `SECRET_KEY` sem mínimo de entropia | E | **corrigido** (US2; `len(SECRET_KEY) < 32` → raise no arranque, `auth.py`; `test_prod_posture.py`) |
 | M-PROXY | MED | Confiança em `cf-connecting-ip`/proxy a validar no VPS | D | recomendação-infra |
 | M-QR | MED | Validador QR público colhe PII sem rate-limit | D/US1 | **corrigido** (US1: resposta reduzida — `admission_date` removido; `stats.py`). Rate-limit vem do default de US2 (T021) |
 | M-PII | MED | Gating de PII sensível só em `users.py` | B | **corrigido/aceite** (US1; auditadas as agregações fora de `users.py` — todas allowlists sem PII sensível ⇒ superfície nula; guard `test_pii_projection_guard.py`) |
 | M-AUDIT | MED | `audit_logs.details` acumula PII sem retenção | (US5) | **parcial** (US1: guard de segredos `test_audit_no_secrets.py` — details sem password/token/secret); **retenção/redação = adiado** (data-model) |
-| M-REGEX | MED | `$regex` = ReDoS latente (seguro só por disciplina do chamador) | FR-013 | aberto |
-| M-HREF | MED | `javascript:`/`data:` em `href` de campos da BD | F | aberto |
+| M-REGEX | MED | `$regex` = ReDoS latente (seguro só por disciplina do chamador) | FR-013 | **corrigido** (US3; `helpers.safe_search_regex` fonte única + tripwire `test_regex_call_sites_are_safe`) |
+| M-HREF | MED | `javascript:`/`data:` em `href` de campos da BD | F | **corrigido** (US3; backend `_validate_local_upload_url` em logo/cover/capa_url nos Create/Update; frontend — os campos `website`/`url` da BD JÁ eram sanitizados, consolidados em `utils/safeUrl.js` c/ teste; `ContactosPage.site` é config estática s/ vetor. `test_url_validators.py` + `safeUrl.test.js`) |
 | M-CSP | MED | Sem CSP + scripts terceiros no `index.html` (SPA) | US2 (T025) | **parcial** (US2; CSP `Report-Only` em `vercel.json` — scoped a fonts/posthog/turnstile/api; scripts dev-tooling já inertes por X-Frame-Options DENY). **Enforce = ação do dono** após validar no browser que 0 violações partem login/Turnstile/fontes/API) |
 | M-DEPS | MED | Pillow/Jinja2 desatualizados; sem lockfile/scanning | G | aberto |
 | M-CRA | MED | `react-scripts` (CRA) EOL arrasta árvore vulnerável build-time | G | adiado-LOW |
 | M-STORE | MED | Contadores de rate-limit por-worker (`--workers 2`) | D | aceite (ceiling) |
-| LOW ×~30 | LOW | timing/enum, lockout-DoS, tokens em claro at-rest, `/brand/icon` open-redirect, `python-jose`/`passlib`, tabnabbing, COOP/CORP, `/api/health` unthrottled, etc. | — | **adiado (backlog)** |
+| M-ICON | MED | `/brand/icon` open-redirect via `icon_url` | F | **corrigido** (US3; `_is_safe_icon_target` — 302 só p/ `/uploads/` ou host de FRONTEND_URL; `test_url_validators.py`) |
+| LOW ×~30 | LOW | timing/enum, lockout-DoS, tokens em claro at-rest, `python-jose`/`passlib`, tabnabbing, COOP/CORP, `/api/health` unthrottled, etc. | — | **adiado (backlog)** |
 
 > Nota de escopo: alguns MEDIUM de infra/frontend (M-UPL-hdr, M-PROXY, M-CSP)
 > resolvem-se parcialmente no VPS/edge → entregues como **recomendação com STOP**

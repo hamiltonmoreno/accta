@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
+from slowapi import Limiter
 from pathlib import Path
 from models import User
 from database import UPLOAD_DIR
 from auth import get_current_user, has_role_or_privilege, is_admin
-from helpers import create_audit_log
-from file_validation import validate_file_content
+from helpers import create_audit_log, rate_limit_key
+from file_validation import validate_file_content, read_upload_capped
 import asyncio
 import logging
 import uuid
@@ -12,6 +13,7 @@ import uuid
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["upload"])
+limiter = Limiter(key_func=rate_limit_key)
 
 ALLOWED_EXTENSIONS = {
     "documents": [".pdf", ".doc", ".docx"],
@@ -57,7 +59,13 @@ async def save_validated_upload(category: str, contents: bytes, filename: str) -
 
 
 @router.post("/upload/{category}")
-async def upload_file(category: str, file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
+@limiter.limit("30/hour")
+async def upload_file(
+    request: Request,
+    category: str,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
     if category not in ["documents", "proofs", "logos", "avatars", "banners", "brand", "covers"]:
         raise HTTPException(status_code=400, detail="Categoria inválida")
 
@@ -73,11 +81,10 @@ async def upload_file(category: str, file: UploadFile = File(...), current_user:
     if category in ("proofs", "avatars") and current_user.status != "ativo":
         raise HTTPException(status_code=403, detail="Sem permissão")
 
-    # Le tudo em memoria (limite por categoria, max 10MB) — necessario para
-    # validacao de magic bytes / Pillow.verify(). A validacao de tamanho/
-    # extensao/conteudo + gravacao off-loaded para thread vive em
-    # save_validated_upload (reutilizado fora deste endpoint).
-    contents = await file.read()
+    # Lê em streaming com teto por categoria (413 ao exceder, ANTES de materializar
+    # o corpo — spec 019 FR-015). A validação de extensão/conteúdo + gravação
+    # off-loaded para thread vive em save_validated_upload (reutilizado noutros sítios).
+    contents = await read_upload_capped(file, MAX_FILE_SIZES.get(category, 5 * 1024 * 1024))
     try:
         file_url = await save_validated_upload(category, contents, file.filename)
     except HTTPException:

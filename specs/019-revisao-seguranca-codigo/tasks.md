@@ -111,22 +111,22 @@ o essencial.
 
 ### Tests for User Story 3 (primeiro) ⚠️
 
-- [ ] T026 [P] [US3] `backend/tests/test_push_service.py`: monkeypatch `getaddrinfo` → hostname público que resolve a IP privado ⇒ send **skip** (sem `webpush`); erro de resolução ⇒ skip fail-closed; `webpush` invocado com sessão que força `allow_redirects=False`
-- [ ] T027 [P] [US3] Teste de cap de upload em `backend/tests/test_file_validation.py`: fake `UploadFile` que faz stream >max ⇒ 413 sem materializar o corpo (bytes lidos ≤ max+chunk); endpoints de upload têm `@limiter.limit`
-- [ ] T028 [P] [US3] Teste de modelos: `Benefit`/`Post`/`Publicacao` (create+update) rejeitam `javascript:`/`http(s)://externo`/`data:` (422) e aceitam `/uploads/…`/``/None; `get_brand_icon` com `icon_url` externo → 302 p/ default, `/uploads/brand/x.png` → passa
-- [ ] T029 [P] [US3] Tripwire `$regex`: nenhum call site passa input não-escapado/não-limitado (FR-013)
+- [X] T026 [P] [US3] `backend/tests/test_push_service.py`: `getaddrinfo`→IP privado ⇒ `_endpoint_resolves_public` False; erro de resolução ⇒ fail-closed; `_no_redirect_session` força `allow_redirects=False`; `dispatch_push` skipa endpoint que resolve p/ interno
+- [X] T027 [P] [US3] `backend/tests/test_file_validation.py`: fake `UploadFile` que faz stream >max ⇒ 413 sem materializar o corpo (bytes lidos ≤ max+chunk); aceita dentro do limite
+- [X] T028 [P] [US3] `backend/tests/test_url_validators.py`: Benefit/Post/Publicacao (create+update) rejeitam `javascript:`/`http(s)://externo`/`data:`/`//`/`/etc` (422) e aceitam `/uploads/…`/``/None; Base NÃO revalida legado; `_is_safe_icon_target` (uploads/FRONTEND_URL host ✓, externo/js/None ✗)
+- [X] T029 [P] [US3] `test_sql_injection_fuzz.py::test_regex_call_sites_are_safe`: todo `$regex` recebe saneador ou var atribuída de saneador (senão vermelho)
+- [X] T052 [P] [US3] **(G3/FR-014)** `test_sql_injection_fuzz.py` estendido: chave jsonb hostil (aspas duplicadas, contagem par), `sort` field hostil escapado, ramos `$in/$nin/$ne/$gt/$gte/$lt/$lte/$or/$and/$exists` parametrizados
 
 ### Implementation for User Story 3
 
-- [ ] T030 [US3] `backend/push_service.py`: companheiro async de `is_safe_push_endpoint` que `getaddrinfo` e rejeita se qualquer endereço resolvido falhar o predicado `ipaddress` (fail-closed no erro), chamado no send (`dispatch_push`); sessão `requests` module-level que força `allow_redirects=False` via `webpush(..., requests_session=...)`; comentário `ponytail:` no TOCTOU DNS-rebind
-- [ ] T031 [US3] `backend/file_validation.py`: `read_upload_capped(file, max_size)` (streaming, 413 ao exceder); substituir os `await file.read()` em `routes/upload.py:80`, `routes/gallery.py:212`, `routes/prestacao_contas.py:147`
-- [ ] T032 [US3] `backend/routes/upload.py` + `gallery.py`: `@limiter.limit("30/hour")` (Limiter por-módulo, padrão existente; +`request: Request`) nos endpoints de upload
-- [ ] T033 [US3] `backend/models.py`: helper partilhado `_v_local_upload_url` + `field_validator` em `Benefit/BenefitCreate/BenefitUpdate.logo_url`, `Post/PostCreate/PostUpdate.cover_url`, `Publicacao/PublicacaoCreate/PublicacaoUpdate.capa_url`
-- [ ] T034 [US3] `backend/routes/brand.py`: em `get_brand_icon`, 302 só se `icon_url` começa por `/uploads/` OU host == host de FRONTEND_URL; senão default estático
-- [ ] T035 [US3] `backend/database.py` + helper partilhado: centralizar escape+cap de `$regex` (mover `_safe_search_regex` para helper único usado por finances/users/posts; opcional guard defensivo no DAO `_field_clause`)
-- [ ] T036 [P] [US3] Frontend (M-HREF): sanitizar o esquema de URLs vindos da BD renderizados em `href` (bloquear `javascript:`/`data:`) em `FormacoesPage`, `RelacoesPage`, `BeneficiosPublicoPage`, `ContactosPage`, `ProfissaoDestaques`, `PublicacoesPublicoPage` (`frontend/src`)
-- [ ] T037 [US3] Verificação de dados prod: grep/query que nenhum benefit/post/publicação guarda URL externo de logo/capa antes de ligar o validator `/uploads`-only (senão alargar a `https://` ou migrar)
-- [ ] T052 [P] [US3] **(G3/FR-014)** Estender `backend/tests/test_sql_injection_fuzz.py`: input hostil numa posição de **identificador SQL / chave jsonb / campo de ordenação** (ex.: `sort` param, filter-key) fica inerte (escapado por `_lit`/allowlist, nunca interpolado como SQL) + tripwire que nenhuma rota expõe um `sort_by`/filter-key escolhido pelo utilizador; cobrir os ramos `$in/$nin/$ne/$gt/$gte/$lt/$lte/$or/$and/$exists` do `_WhereBuilder` ainda não exercitados
+- [X] T030 [US3] `backend/push_service.py`: `_endpoint_resolves_public` (getaddrinfo, todos os IPs públicos, fail-closed) chamado em `dispatch_push` além do `is_safe_push_endpoint`; `_no_redirect_session` (`allow_redirects=False`) via `webpush(..., requests_session=...)`; `ponytail:` no TOCTOU DNS-rebind
+- [X] T031 [US3] `backend/file_validation.py`: `read_upload_capped(file, max_size)` streaming/413; substituído `await file.read()` em `upload.py`, `gallery.py`, `prestacao_contas.py`
+- [X] T032 [US3] `routes/upload.py` + `gallery.py`: `@limiter.limit("30/hour")` + `request: Request` nos endpoints de upload (Limiter por-módulo). Regressão: `test_posts.py::test_socio_403` chamava a função direto → +Request mínimo + limiter off (gotcha slowapi)
+- [X] T033 [US3] `backend/models.py`: helper `_validate_local_upload_url` + `field_validator` em `BenefitCreate/Update.logo_url`, `PostCreate/Update.cover_url`, `PublicacaoCreate/Update.capa_url` (só ESCRITA; Base intocado — FR-024)
+- [X] T034 [US3] `backend/routes/brand.py`: `_is_safe_icon_target` — 302 só se `/uploads/` OU host==FRONTEND_URL host; senão default estático
+- [X] T035 [US3] `backend/helpers.py`: `safe_search_regex` (fonte única, cap-antes-de-escape); finances (alias), users, posts re-apontados; `re` órfão removido. Guard defensivo no DAO SALTADO (ponytail: truncar regex já-escapado invalida-o; o cap seguro é no helper) — tripwire garante disciplina
+- [X] T036 [P] [US3] Frontend M-HREF: **achado** — `BeneficiosPublicoPage`/`ProfissaoDestaques` JÁ sanitizavam (helpers locais idênticos); `ContactosPage.site` é config estática (não-BD, sem vetor). Consolidado num util único `utils/safeUrl.js` (+teste 4✓, react-scripts) e re-apontados os 2 componentes
+- [~] T037 [US3] **STOP/pendente dono**: verificação de dados prod (nenhum benefit/post/publicação com URL externo de logo/capa antes de ligar o validator) — `backend/.env` aponta p/ Supabase de PRODUÇÃO real; não corro query exploratória sem confirmação. Registado p/ o dono correr antes do release da Fase 3
 
 **Checkpoint US3**: `pytest -m unit` verde (parte do release da Fase 3, junto com US4).
 

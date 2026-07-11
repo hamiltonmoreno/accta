@@ -5,6 +5,7 @@ import hmac
 import ipaddress
 import json
 import os
+import re
 from fastapi import Request
 from slowapi.util import get_remote_address
 from database import db, UPLOAD_DIR, _json_default
@@ -139,6 +140,15 @@ def rate_limit_key(request: Request) -> str:
     tornaria o brute-force distribuído indetetável — H3). Fallback para
     get_remote_address quando a request não tem cliente (ex.: testes)."""
     return client_ip(request) or get_remote_address(request)
+
+
+def safe_search_regex(s: str) -> str:
+    """Fonte ÚNICA de padrões `$regex` seguros (spec 019, FR-013). Trunca ANTES de
+    escapar (cap 100) — truncar depois podia cortar a meio uma sequência escapada
+    (`\\x..`) e produzir um padrão inválido; o cap limita o custo de matching
+    (ReDoS defensivo). TODO call site de `$regex` de pesquisa passa por aqui
+    (guardado por `test_regex_call_sites_are_safe`)."""
+    return re.escape((s or "").strip()[:100])
 
 
 def resolve_link_base(request: Optional[Request]) -> str:

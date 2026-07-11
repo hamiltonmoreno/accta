@@ -1,13 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, Request
+from slowapi import Limiter
 from typing import Optional
 from pathlib import Path
 from models import User, GalleryAlbum, GalleryAlbumCreate, GalleryAlbumUpdate, GalleryPhoto
 from database import db, UPLOAD_DIR
 from auth import get_current_user, is_admin, has_role_or_privilege
-from helpers import notify_admins, create_notification, create_audit_log, delete_upload_file
-from file_validation import validate_file_content
+from helpers import notify_admins, create_notification, create_audit_log, delete_upload_file, rate_limit_key
+from file_validation import validate_file_content, read_upload_capped
 import asyncio
 import uuid
+
+limiter = Limiter(key_func=rate_limit_key)
 
 GALLERY_ALLOWED_EXTS = [".jpg", ".jpeg", ".png", ".webp"]
 GALLERY_MAX_SIZE = 10 * 1024 * 1024  # 10 MB
@@ -196,8 +199,13 @@ async def get_pending_photos(current_user: User = Depends(get_current_user)):
 
 
 @router.post("/photos/upload")
+@limiter.limit("30/hour")
 async def upload_gallery_photo(
-    album_id: str, caption: str = "", file: UploadFile = File(...), current_user: User = Depends(get_current_user)
+    request: Request,
+    album_id: str,
+    caption: str = "",
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
 ):
     if current_user.status != "ativo" and not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Apenas socios ativos podem submeter fotos")
@@ -209,9 +217,7 @@ async def upload_gallery_photo(
     if not file.filename:
         raise HTTPException(status_code=400, detail="Nome de ficheiro em falta")
 
-    contents = await file.read()
-    if len(contents) > GALLERY_MAX_SIZE:
-        raise HTTPException(status_code=413, detail="Ficheiro excede o limite de 10 MB")
+    contents = await read_upload_capped(file, GALLERY_MAX_SIZE)
 
     # Defense-in-depth: Pillow.verify() bloqueia .exe -> .png e tambem
     # cross-checks que o formato real bate com a extensao.
