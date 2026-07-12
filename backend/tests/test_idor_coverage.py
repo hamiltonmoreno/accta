@@ -132,6 +132,8 @@ AUDIT: dict[tuple[str, str], tuple[str, str]] = {
     ('POST', '/api/admin/registration-requests/{user_id}/reject'): ('role', 'if not is_admin(current_user): 403'),
     ('POST', '/api/admin/users/{user_id}/demote'): ('role', '_require_cargo_admin(current_user) -> is_admin(current_user)'),
     ('POST', '/api/admin/users/{user_id}/promote'): ('role', '_require_cargo_admin(current_user) -> is_admin(current_user)'),
+    ('POST', '/api/admin/users/{user_id}/send-reset'): ('role', 'if not is_admin(current_user): 403 (admin-only: dispara email de reset)'),
+    ('POST', '/api/admin/users/{user_id}/unlock'): ('role', 'if not is_admin(current_user): 403 (admin-only: anula lockout brute-force)'),
     ('POST', '/api/assembleias/{assembleia_id}/checkin'): ('authenticated', 'self_checkin: get_current_user; self-action for current_user.id, member-only, no role/ownership on existing object'),
     ('POST', '/api/assembleias/{assembleia_id}/checkin/abrir'): ('role', 'abrir_checkin: _require_convene (can_convene_assembleia)'),
     ('POST', '/api/assembleias/{assembleia_id}/checkin/fechar'): ('role', 'fechar_checkin: _require_convene (can_convene_assembleia)'),
