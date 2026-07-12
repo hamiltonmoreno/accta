@@ -46,14 +46,23 @@ Antes de começar, obtém o SHA do `main` na release (na tua máquina):
 git fetch origin main && git rev-parse --short=12 main
 ```
 
-**Valores atuais (v0.5.54 — spec 017 funções personalizadas + spec 018 consolidação de acessos / release #404):**
+**Valores atuais (v0.5.57 — fix #352 `visibility`→`Literal` + bumps CVE arrastados da v0.5.56 / release #423):**
 
 | Variável | Valor |
 |----------|-------|
-| `TAG` (imagem nova) | `sha-28053ebe074f` |
-| Tag git da release | `v0.5.54` (= `28053eb`, HEAD de `main`, merge #404) |
-| Rollback (prod anterior, v0.5.53) | `sha-aa15736d5221` |
-| Teste decisivo desta release | **Rota nova gated (spec 017)**: `curl -s -o /dev/null -w '%{http_code}' https://api.controlador.cv/api/admin/custom-roles` passa de **404** (antes) a **401** (rota viva, exige admin) — prova E2E sem auth. Complemento no container: `docker exec accta-backend grep -c _require_cargo_admin routes/admin.py`→**4** (1 def + 3 usos = fix escalada W3); `ls routes/custom_roles.py`→OK. |
+| `TAG` (imagem nova) | `sha-94e5273f8162` |
+| Tag git da release | `v0.5.57` (= `94e5273`, HEAD de `main`, merge #423) |
+| Rollback (prod anterior, v0.5.55) | `sha-29265a0d6da9` |
+| Teste decisivo desta release | **Sem rota nova** (#352 é validação-only): a confirmação é a **imagem viva** (`docker inspect accta-backend --format '{{.Config.Image}}'` = `…:sha-94e5273f8162`) + arranque limpo + invariantes. O build **tem de instalar `Pillow-12.2.0` + `python-multipart-0.0.30`** (bumps de CVE arrastados da v0.5.56, que foi *released mas nunca deployada isolada* — prod estava em v0.5.55). Prova funcional do Literal (criar Event/Project c/ `visibility` inválida → 422) = navegador (Princípio VII), coberta pelos 1673 testes pré-merge. |
+
+> ℹ️ **Executado 2026-07-12 (v0.5.57)** — build no VPS OK (`Pillow-12.2.0`+`python-multipart-0.0.30`
+> instalados; fastapi/starlette inalterados); container Up (healthy) em `sha-94e5273f8162`; Etapa 2.3
+> toda verde (invariantes 200/404/404/404/401/401/401/401; `/uploads/proofs/x.jpg`→404 = **H1 mount gate
+> spec 019 sobreviveu ao rebuild**; `POST /api/auth/login` sem token→**403** = Turnstile ainda ON); arranque
+> 100% limpo (0 tracebacks, 0 "tuple concurrently updated", audit/RLS/schema triggers 2×, pg_cron OK,
+> `overdue_atos_loop` iniciado 2×). `.env` c/ `TURNSTILE_SECRET`/`VAPID_*` preservado no recreate.
+> **Pós-deploy: nenhum obrigatório.** ⚠️ **A v0.5.56 (hotfix CVE, release #420) nunca chegou a prod
+> sozinha** — este deploy da v0.5.57 traz ambas (v0.5.57 ⊃ v0.5.56 ⊃ v0.5.55).
 
 > ℹ️ **Executado 2026-07-05** — todas as verificações da Etapa 2.3 verdes (custom-roles 404→401;
 > W3 no container ×4; invariantes 200/404/404/404/401/401; arranque limpo 0 tracebacks, 0 "tuple
@@ -98,22 +107,22 @@ git fetch origin main && git rev-parse --short=12 main
 ```bash
 rm -rf /tmp/accta-build
 git clone https://github.com/hamiltonmoreno/accta.git /tmp/accta-build
-cd /tmp/accta-build && git checkout v0.5.54       # <- tag git da release
+cd /tmp/accta-build && git checkout v0.5.57       # <- tag git da release
 docker build -f backend/Dockerfile \
-  -t ghcr.io/hamiltonmoreno/accta-backend:sha-28053ebe074f .   # <- TAG
+  -t ghcr.io/hamiltonmoreno/accta-backend:sha-94e5273f8162 .   # <- TAG
 ```
 
 ### 2.2 Arrancar via o compose canónico (só muda o TAG)
 ```bash
 cd /docker/accta
-export TAG=sha-28053ebe074f
+export TAG=sha-94e5273f8162
 docker compose up -d --no-deps backend
 ```
 
 ### 2.3 Verificar
 ```bash
 docker compose ps                         # backend = Up (healthy)
-docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-28053ebe074f
+docker inspect accta-backend --format '{{.Config.Image}}'   # confirmação decisiva: ...:sha-94e5273f8162
 docker compose logs --tail=80 backend     # arranque limpo: ensure_schema OK, sem tracebacks
 curl -fsS https://api.controlador.cv/api/ # 200
 
@@ -148,7 +157,7 @@ docker compose logs --tail=200 backend 2>&1 | grep -E 'pg_cron not configured'  
 A imagem anterior continua no VPS; só se troca o `TAG`:
 ```bash
 cd /docker/accta
-export TAG=sha-aa15736d5221        # <- rollback (v0.5.53, imagem que corria antes da v0.5.54)
+export TAG=sha-29265a0d6da9        # <- rollback (v0.5.55, imagem que corria antes da v0.5.57)
 docker compose up -d --no-deps backend
 ```
 
@@ -196,13 +205,21 @@ Ver `DEPLOY.md` e `HOSTINGER_DEPLOY.md` para o setup completo (secrets SSH,
   (`sha-a1b6bd7be7b3`, fix(stats) painel exclui contas técnicas) → v0.5.53
   (`sha-aa15736d5221`, spec 016: `DEPARTAMENTOS` em registration-options + convite
   aceita `role=admin` + rótulos de privilégio; `models.py`/`routes/auth_routes.py`/
-  `routes/admin.py`) → **v0.5.54 (`sha-28053ebe074f`, este deploy — spec 017 funções
+  `routes/admin.py`) → v0.5.54 (`sha-28053ebe074f` — spec 017 funções
   personalizadas + spec 018 consolidação de acessos, release #404: role∈{admin,socio},
   `custom_roles`, tradução de legados, `MODULE_ACCESS`, fix escalada crítica W3
   `_require_cargo_admin`; 33 ficheiros backend. **Pós-deploy RESOLVIDO**: migração
   `migrate_roles_018.py` = **SKIP `--apply`** (decisão do dono 2026-07-05; prod=no-op,
   0 legados). Specs 017+018 validadas (T018/T020) e fechadas (`-concluido`);
-  constituição v1.1.0 já merged (`aea6932`))**.
+  constituição v1.1.0 já merged (`aea6932`))
+  → v0.5.55 (`sha-29265a0d6da9`, spec 019 revisão de segurança do código, release #419:
+  8 HIGH + ~17 MEDIUM em 4 US — H1 confidencialidade/proofs gated, H2/H3 perímetro/rate-limit
+  real, SSRF/DoS upload, `response_model` guard; 18 ficheiros backend)
+  → **v0.5.57 (`sha-94e5273f8162`, este deploy — fix #352 `visibility`→`Literal` em
+  Event/Project/Document [`models.py`] + arrasta os bumps de CVE da v0.5.56 [`requirements.txt`:
+  `python-multipart` 0.0.18→0.0.30, `Pillow` 11.2.1→12.2.0], release #423. ⚠️ A **v0.5.56**
+  [hotfix CVE, release #420] foi *released mas nunca deployada isolada* — prod estava em v0.5.55;
+  a v0.5.57 traz ambas. **Pós-deploy: nenhum obrigatório**)**.
   As **v0.5.50–v0.5.52** (brand refresh: favicon/logos/tagline/wordmark) foram
   frontend-only (Vercel).
   As v0.5.28/v0.5.29/v0.5.30, v0.5.32/v0.5.33, v0.5.36, **v0.5.44/v0.5.45** e
