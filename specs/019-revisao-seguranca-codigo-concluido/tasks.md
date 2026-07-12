@@ -126,7 +126,7 @@ o essencial.
 - [X] T034 [US3] `backend/routes/brand.py`: `_is_safe_icon_target` — 302 só se `/uploads/` OU host==FRONTEND_URL host; senão default estático
 - [X] T035 [US3] `backend/helpers.py`: `safe_search_regex` (fonte única, cap-antes-de-escape); finances (alias), users, posts re-apontados; `re` órfão removido. Guard defensivo no DAO SALTADO (ponytail: truncar regex já-escapado invalida-o; o cap seguro é no helper) — tripwire garante disciplina
 - [X] T036 [P] [US3] Frontend M-HREF: **achado** — `BeneficiosPublicoPage`/`ProfissaoDestaques` JÁ sanitizavam (helpers locais idênticos); `ContactosPage.site` é config estática (não-BD, sem vetor). Consolidado num util único `utils/safeUrl.js` (+teste 4✓, react-scripts) e re-apontados os 2 componentes
-- [~] T037 [US3] **STOP/pendente dono**: verificação de dados prod (nenhum benefit/post/publicação com URL externo de logo/capa antes de ligar o validator) — `backend/.env` aponta p/ Supabase de PRODUÇÃO real; não corro query exploratória sem confirmação. Registado p/ o dono correr antes do release da Fase 3
+- [X] T037 [US3] **VERIFICADO em prod 2026-07-12**: scan read-only via `database.db` (find + filtro em Python, sem writes) — `benefits.logo_url`=0/0, `posts.cover_url`=0/0, `publicacoes.capa_url`=0/0 (docs com valor). **Zero URLs externos**. Validator FR-016 não parte dados existentes. (BD foi reset 2026-06-30 p/ go-live real → superfície mínima.) Script: `scratchpad/scan_external_urls.py`
 
 **Checkpoint US3**: `pytest -m unit` verde (parte do release da Fase 3, junto com US4).
 
@@ -149,7 +149,7 @@ o essencial.
 - [X] T041 [US4] `.github/dependabot.yml`: `pip`→`/backend` + `npm`→`/frontend` + `github-actions`, semanal, agrupado minor/patch, ignora `react-scripts` (M-CRA) e `bcrypt`
 - [X] T042 [US4] `scripts/audit_deps.sh`: `pip-audit -r backend/requirements.txt` + `yarn npm audit --severity high`; degrada c/ aviso se ferramenta ausente
 - [X] T043 [US4] Gate de compat: `pytest -m unit` nas versões-alvo (0.115.6/0.41.3/0.0.18) instaladas → **1669 passed**. SC-004: `pip-audit` pendura na rede local (2× killed) → verificação **determinística** dos pins vs versão-fix de cada CVE conhecido (starlette/multipart/fastapi/Jinja2/Pillow/requests/jose todos ≥ fix; bcrypt 4.0.1) → **0 CVEs alcançáveis**. `audit_deps.sh` fica p/ ambiente com pip-audit/yarn
-- [~] T044 [US4] **Ação do dono**: ativar Dependabot alerts + security updates nas Security settings do repo (GitHub UI — FR-020)
+- [X] T044 [US4] **VERIFICADO 2026-07-12**: Dependabot `vulnerability-alerts` ATIVADO via `gh api --method PUT` (204 No Content); `automated-security-fixes` já estava ativo (200); `dependabot/alerts?state=open` = `[]` (0 alertas abertos). FR-020 cumprido
 
 **Checkpoint US3+US4**: `pytest -m unit` verde → **RELEASE Fase 3 (Via B)**. Probe pós-deploy: upload real >1 MB → 200; `POST /api/push/*` gated.
 
@@ -169,8 +169,9 @@ o essencial.
 
 ## Estado final (2026-07)
 
-**53 tarefas**: 48 **[X]** feitas · 3 **[~]** = ação/validação do dono (T037 dados prod, T040
-dispensado-com-prova, T044 Dependabot settings) · T043 verde. **Todas as US implementadas**
+**53 tarefas**: 50 **[X]** feitas · 1 **[~]** = T040 dispensado-com-prova · T043 verde.
+T037 verificado em prod 2026-07-12 (0 externos) e T044 Dependabot ativado (0 alertas).
+**Todas as US implementadas e verificadas**
 na branch `feature/019-revisao-seguranca-codigo` (4 commits, 1669 testes verdes). **Não
 released** — STOPs de release por confirmar com o dono (nginx edge / env prod / Dependabot).
 
