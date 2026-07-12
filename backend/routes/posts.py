@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from auth import get_current_user, get_optional_user, has_role_or_privilege
 from database import db
-from helpers import create_audit_log, delete_upload_file, notify_all_active_users
+from helpers import create_audit_log, delete_upload_file, notify_all_active_users, safe_search_regex
 from models import POST_TYPES, Post, PostCreate, PostUpdate, User
 
 router = APIRouter(tags=["posts"])
@@ -82,7 +82,7 @@ async def get_posts(
         query["type"] = type_
 
     if q:
-        query["title"] = {"$regex": re.escape(q), "$options": "i"}
+        query["title"] = {"$regex": safe_search_regex(q), "$options": "i"}
 
     # Ordenação + paginação no DB por data efetiva (COALESCE published_at→
     # created_at — um rascunho antigo publicado hoje aparece como recente):

@@ -360,7 +360,10 @@ class CustomRole(BaseModel):
 
 class UserLogin(BaseModel):
     email: EmailStr
-    password: str
+    # Cap de comprimento (spec 019, FR-011): bcrypt só usa os primeiros 72 bytes;
+    # um corpo de password de vários KB seria rejeitado (422) antes de chegar ao
+    # verify — fecha a amplificação de custo. reset/setup já capam a 72.
+    password: str = Field(max_length=72)
     turnstile_token: str = ""  # token Cloudflare Turnstile (anti-bot); validado na rota
 
 
@@ -744,6 +747,19 @@ POST_VISIBILITIES = ["publico", "socios", "privado"]
 POST_STATUSES = ["rascunho", "publicado"]
 
 
+def _validate_local_upload_url(v: Optional[str]) -> Optional[str]:
+    """URL de imagem local: None/"" (manter/limpar) ou /uploads/… carregado pelo
+    portal. Bloqueia javascript:/data:/http(s) externo — impede beacons de tracking
+    e a injeção de esquemas perigosos em href/src de campos guardados (spec 019,
+    FR-016). Aplicado só nos modelos de ESCRITA (Create/Update): os Base serializam
+    documentos legados sem revalidar (FR-024)."""
+    if v in (None, ""):
+        return v
+    if not v.startswith("/uploads/"):
+        raise ValueError("URL inválida: apenas /uploads/… (carregado pelo portal)")
+    return v
+
+
 class Post(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -776,6 +792,11 @@ class PostCreate(BaseModel):
     # D5 — toggle in-app (não email): notifica sócios ao publicar visibility=socios.
     notify_socios: bool = False
 
+    @field_validator("cover_url")
+    @classmethod
+    def _v_cover_url(cls, v):
+        return _validate_local_upload_url(v)
+
 
 class PostUpdate(BaseModel):
     # Todos opcionais (semântica PATCH). Só os campos enviados são aplicados.
@@ -789,6 +810,11 @@ class PostUpdate(BaseModel):
     tags: Optional[List[str]] = Field(default=None, max_length=10)
     # Flag de comando: só respeitada enquanto rascunho; nunca persistida no doc.
     regenerate_slug: bool = False
+
+    @field_validator("cover_url")
+    @classmethod
+    def _v_cover_url(cls, v):
+        return _validate_local_upload_url(v)
 
 
 # ===== DOCUMENT MODELS =====
@@ -852,6 +878,11 @@ class BenefitCreate(BaseModel):
     website: Optional[str] = None
     locations: List[BenefitPartnerLocation] = []
 
+    @field_validator("logo_url")
+    @classmethod
+    def _v_logo_url(cls, v):
+        return _validate_local_upload_url(v)
+
 
 class BenefitUpdate(BaseModel):
     name: Optional[str] = None
@@ -862,6 +893,11 @@ class BenefitUpdate(BaseModel):
     website: Optional[str] = None
     locations: Optional[List[BenefitPartnerLocation]] = None
     active: Optional[bool] = None
+
+    @field_validator("logo_url")
+    @classmethod
+    def _v_logo_url(cls, v):
+        return _validate_local_upload_url(v)
 
 
 # ===== WALL MODELS =====
@@ -2742,6 +2778,11 @@ class PublicacaoCreate(BaseModel):
     a_venda: bool = False
     preco: Optional[float] = Field(default=None, ge=0)
 
+    @field_validator("capa_url")
+    @classmethod
+    def _v_capa_url(cls, v):
+        return _validate_local_upload_url(v)
+
 
 class PublicacaoUpdate(BaseModel):
     titulo: Optional[str] = Field(default=None, min_length=1)
@@ -2754,6 +2795,11 @@ class PublicacaoUpdate(BaseModel):
     a_venda: Optional[bool] = None
     preco: Optional[float] = Field(default=None, ge=0)
     # tipo é imutável após criação (define listagem/filtros); não está aqui.
+
+    @field_validator("capa_url")
+    @classmethod
+    def _v_capa_url(cls, v):
+        return _validate_local_upload_url(v)
 
 
 # ============================================================================

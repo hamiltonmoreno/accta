@@ -1,0 +1,42 @@
+# Dependabot — alertas + PRs de atualização de segurança (spec 019, WS-G / FR-020).
+# Corre na infraestrutura do GitHub, independente do CI (que está billing-locked).
+# [ação do dono] ativar "Dependabot alerts" + "Dependabot security updates" nas
+# Security settings do repo para habilitar os PRs automáticos de vulnerabilidades.
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      # Agrupa minor/patch num só PR para reduzir ruído; majors vêm à parte.
+      backend-minor-patch:
+        update-types: ["minor", "patch"]
+    ignore:
+      # bcrypt fixo em 4.0.1 (passlib backend probe parte em versões novas — ver
+      # CLAUDE.md). SCOPE limitado a version-updates ⇒ security-only advisories
+      # continuam a abrir PR (fail-open para CVEs, fail-closed para bumps).
+      - dependency-name: "bcrypt"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
+
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      frontend-minor-patch:
+        update-types: ["minor", "patch"]
+    ignore:
+      # react-scripts (CRA) arrasta uma árvore transitiva volumosa e EOL; os seus
+      # avisos build-time são ruído (M-CRA, adiado-LOW) — não abrir PRs por isso.
+      - dependency-name: "react-scripts"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

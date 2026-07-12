@@ -57,8 +57,16 @@ async def create_wall_post(post_data: WallPostCreate, current_user: User = Depen
     await db.wall_posts.insert_one(post_dict)
 
     if not auto_approve:
-        admins = await db.users.find({"role": {"$in": ["admin", "moderador"]}}, {"_id": 0, "id": 1}).to_list(100)
-        for admin in admins:
+        # Destinatários = quem PODE moderar: admin OU privilégio `moderate_content`
+        # (inclui a função seed «Moderador» e os cargos da Direção que o herdam).
+        # Espelha has_role_or_privilege(..., "moderate_content"); o literal de role
+        # morto `moderador` (spec 018) já não seleciona ninguém. `{"privileges": v}`
+        # casa por pertença em array via o operador `?` do DAO.
+        moderators = await db.users.find(
+            {"$or": [{"role": "admin"}, {"privileges": "moderate_content"}]},
+            {"_id": 0, "id": 1},
+        ).to_list(100)
+        for admin in moderators:
             await create_notification(
                 admin["id"],
                 "wall_post_pending",

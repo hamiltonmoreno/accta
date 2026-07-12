@@ -12,9 +12,11 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi import HTTPException
 
+import routes.atos as atos
 import routes.gallery as gallery
 import routes.notifications as notifications
 import routes.projects as projects
+import routes.sancoes as sancoes
 import routes.wall as wall
 from models import ProjectMilestoneUpdate
 
@@ -141,3 +143,62 @@ async def test_delete_wall_post_of_other_forbidden(mock_db, socio_user):
 async def test_non_admin_cannot_query_pending_photos(mock_db, socio_user):
     await gallery.get_gallery_photos(album_id=None, status="pending", current_user=socio_user)
     assert mock_db.gallery_photos.find.call_args.args[0]["status"] == "approved"
+
+
+# ---- spec 019 / T006: negativos owner adicionais (registados em test_idor_coverage) ----
+@pytest.mark.asyncio
+async def test_delete_gallery_photo_of_other_forbidden(mock_db, socio_user):
+    # B (nem staff nem uploader) não apaga a foto de A (gallery.py: is_owner por uploaded_by).
+    mock_db.gallery_photos.find_one = AsyncMock(
+        return_value={"id": "ph1", "uploaded_by": "dono-A", "album_id": "al1", "url": "/uploads/gallery/x.jpg"}
+    )
+    with pytest.raises(HTTPException) as exc:
+        await gallery.delete_gallery_photo("ph1", current_user=socio_user)
+    assert exc.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_delete_wall_comment_of_other_forbidden(mock_db, socio_user):
+    # B (nem moderador nem autor) não apaga o comentário de A (wall.py: user_id do comentário).
+    mock_db.wall_comments.find_one = AsyncMock(return_value={"id": "c1", "post_id": "p1", "user_id": "dono-A"})
+    with pytest.raises(HTTPException) as exc:
+        await wall.delete_wall_comment("p1", "c1", current_user=socio_user)
+    assert exc.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_get_sancao_of_other_forbidden(mock_db, socio_user):
+    # Um sócio que não é o visado nem tem poder disciplinar não vê o processo de A.
+    mock_db.sancoes = MagicMock(name="sancoes")
+    mock_db.sancoes.find_one = AsyncMock(
+        return_value={"id": "s1", "user_id": "visado-A", "tipo": "multa", "status": "decidida"}
+    )
+    with pytest.raises(HTTPException) as exc:
+        await sancoes.get_sancao("s1", current_user=socio_user)
+    assert exc.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_recurso_sancao_of_other_forbidden(mock_db, socio_user):
+    # Só o visado (ou a Direcção) recorre — B não recorre da sanção de A.
+    from models import SancaoRecurso
+
+    mock_db.sancoes = MagicMock(name="sancoes")
+    mock_db.sancoes.find_one = AsyncMock(
+        return_value={"id": "s1", "user_id": "visado-A", "tipo": "multa", "status": "decidida"}
+    )
+    with pytest.raises(HTTPException) as exc:
+        await sancoes.recurso_sancao(
+            "s1", MagicMock(), SancaoRecurso(fundamentacao="Recurso à AG"), current_user=socio_user
+        )
+    assert exc.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_cancel_ato_of_other_forbidden(mock_db, socio_user):
+    # Só o proponente (ou admin) cancela — B não cancela o Ato proposto por A.
+    mock_db.atos = MagicMock(name="atos")
+    mock_db.atos.find_one = AsyncMock(return_value={"id": "at1", "created_by": "proponente-A", "status": "pendente"})
+    with pytest.raises(HTTPException) as exc:
+        await atos.cancel_ato("at1", MagicMock(), current_user=socio_user)
+    assert exc.value.status_code == 403

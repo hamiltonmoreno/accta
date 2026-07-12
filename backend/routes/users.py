@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from typing import List, Optional
-import re
 from models import (
     User,
     UserProfileUpdate,
@@ -26,6 +25,7 @@ from helpers import (
     create_notification,
     delete_upload_file,
     resolve_legacy_role,
+    safe_search_regex,
 )
 
 router = APIRouter(tags=["users"])
@@ -76,10 +76,8 @@ async def get_users(
     # sem colisão de chaves (um dict só pode ter um `$or`).
     and_clauses = []
     if search:
-        # Truncar ANTES de escape — re.escape pode duplicar bytes (ex: '*' -> '\\*')
-        # e cortar a meio uma sequencia escapada deixaria backslash final = regex
-        # invalido. Cap input bruto a 100 chars (ReDoS guard) + escape.
-        safe = re.escape(search.strip()[:100])
+        # Fonte única de $regex seguro (cap-antes-de-escape; spec 019 FR-013).
+        safe = safe_search_regex(search)
         and_clauses.append(
             {
                 "$or": [
@@ -109,7 +107,7 @@ async def get_users(
 
 
 # ===== GET SINGLE USER =====
-@router.get("/users/{user_id}")
+@router.get("/users/{user_id}", response_model=User)
 async def get_user(user_id: str, current_user: User = Depends(get_current_user)):
     # Self ou staff (admin/financeiro) — restantes não veem PII de terceiros
     is_self = current_user.id == user_id
@@ -125,7 +123,7 @@ async def get_user(user_id: str, current_user: User = Depends(get_current_user))
 
 
 # ===== UPDATE OWN PROFILE =====
-@router.patch("/users/me/profile")
+@router.patch("/users/me/profile", response_model=User)
 async def update_own_profile(data: UserProfileUpdate, current_user: User = Depends(get_current_user)):
     dumped = data.model_dump()
 

@@ -65,3 +65,22 @@ def test_no_cookie_bearer_client_bypasses_csrf():
         "/x", headers={"Origin": "https://attacker.com", "Authorization": "Bearer xyz"}
     )
     assert r.status_code == 200
+
+
+# --- spec 019 / T019: H6 verify-only — o middleware cobre TODOS os métodos
+# inseguros (FR-009), não só POST.
+@pytest.mark.parametrize("method", ["POST", "PUT", "PATCH", "DELETE"])
+def test_all_unsafe_methods_csrf_checked(method):
+    app = FastAPI()
+    app.add_middleware(CSRFOriginCheckMiddleware, allowed_origins=[ALLOWED])
+
+    @app.api_route("/y", methods=["POST", "PUT", "PATCH", "DELETE"])
+    async def _y():
+        return {"ok": True}
+
+    c = TestClient(app)
+    c.cookies.set(COOKIE_NAME, "fake-session")
+    assert c.request(method, "/y", headers={"Origin": "https://attacker.com"}).status_code == 403
+    assert c.request(method, "/y", headers={"Origin": ALLOWED}).status_code == 200
+    # sem cookie (cliente Bearer) → passa mesmo com origem hostil
+    assert TestClient(app).request(method, "/y", headers={"Origin": "https://attacker.com"}).status_code == 200

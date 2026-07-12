@@ -180,7 +180,8 @@ class TestDispatchPush:
 
         calls = []
 
-        def fake_webpush(subscription_info, data, vapid_private_key, vapid_claims, timeout):
+        def fake_webpush(subscription_info, data, vapid_private_key, vapid_claims, timeout, **kwargs):
+            # **kwargs aceita o requests_session (spec 019: sessão no-redirect).
             calls.append(subscription_info["endpoint"])
             if subscription_info["endpoint"].endswith("dead"):
                 raise WebPushException("gone", response=FakeResponse(410))
@@ -189,6 +190,11 @@ class TestDispatchPush:
         fake_mod.webpush = fake_webpush
         fake_mod.WebPushException = WebPushException
         monkeypatch.setitem(sys.modules, "pywebpush", fake_mod)
+        # A guarda SSRF DNS-aware (spec 019) resolve o hostname; os endpoints de
+        # teste não resolvem por DNS real → mockar getaddrinfo p/ um IP público.
+        monkeypatch.setattr(
+            push_service.socket, "getaddrinfo", lambda *a, **k: [(2, 1, 6, "", ("93.184.216.34", 443))]
+        )
 
         cursor = MagicMock()
         cursor.to_list = AsyncMock(
