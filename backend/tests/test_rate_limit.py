@@ -97,3 +97,46 @@ def test_slowapi_middleware_mounted_and_default_wired():
     key_func = getattr(limiter, "_key_func", None) or getattr(limiter, "key_func", None)
     assert key_func is rate_limit_key, "limiter global não chaveia por rate_limit_key (H3)"
     assert getattr(limiter, "_default_limits", None), "default_limits vazio (H2)"
+
+
+# --- spec 019 / T017 (extra): E2E do default-limit + CORS em 429 ------------
+# Guarda contra as duas classes de regressão que os asserts de wiring não cobrem:
+#  (a) middleware montado mas storage/key_func partidos ⇒ default nunca dispara;
+#  (b) SlowAPI a correr FORA do CORSMiddleware ⇒ 429s sem headers CORS (o browser
+#      cross-origin bloqueia a resposta e a UI nunca vê o status para reagir).
+def _enable_limiter(monkeypatch):
+    # Contraria o autouse `_disable_global_rate_limit` (conftest) — precisamos
+    # do middleware efetivamente ligado para provar o fluxo E2E.
+    monkeypatch.setattr(limiter, "enabled", True)
+
+
+def _first_429(client, path="/api/", origin=None, cap=210):
+    headers = {"Origin": origin} if origin else {}
+    for i in range(cap):
+        r = client.get(path, headers=headers)
+        if r.status_code == 429:
+            return i, r
+    return None, None
+
+
+def test_default_limit_actually_fires_429(reset_limiter, monkeypatch):
+    # E2E do default 200/minute — flood até apanhar o 429. Sem isto, uma
+    # regressão que mate o storage do limiter (H2) passa todos os asserts de
+    # wiring.
+    _enable_limiter(monkeypatch)
+    client = TestClient(app)
+    idx, r = _first_429(client)
+    assert idx is not None, "default_limits nunca disparou 429 em 210 pedidos — middleware não aplica limites"
+    assert 199 <= idx <= 202, f"429 disparou no pedido {idx+1} (esperado ~201.º)"
+
+
+def test_429_response_carries_cors_headers(reset_limiter, monkeypatch):
+    # W1: se CORSMiddleware voltar a ficar por dentro de SlowAPI, browsers
+    # cross-origin bloqueiam o 429 e a UI perde o sinal.
+    _enable_limiter(monkeypatch)
+    client = TestClient(app)
+    idx, r = _first_429(client, origin="http://localhost:3000")
+    assert idx is not None, "nunca chegou a 429 para testar CORS"
+    assert "access-control-allow-origin" in {k.lower() for k in r.headers.keys()}, (
+        "429 sem header CORS — SlowAPIMiddleware está por fora do CORSMiddleware (W1)"
+    )

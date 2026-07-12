@@ -194,6 +194,30 @@ if _looks_like_production() and not IS_PROD:
         "Secure, HSTS, docs desligados e CORS estrito)."
     )
 
+# Edge-case do H4: FRONTEND_URL e CORS_ORIGINS ambos ausentes ⇒ o heurístico
+# acima não deteta nada e o app arrancaria em modo degradado (cookie non-Secure,
+# docs abertos, `allow_origins=["*"]`). Exigir escolha explícita via ENVIRONMENT.
+if not os.environ.get("FRONTEND_URL") and not cors_origins_raw and os.environ.get("ENVIRONMENT") not in ("development", "test"):
+    raise RuntimeError(
+        "FRONTEND_URL e CORS_ORIGINS estão ambos ausentes. Se é local, defina "
+        "ENVIRONMENT=development. Em produção, defina ENVIRONMENT=production + "
+        "CORS_ORIGINS=https://sua.dominio (ver H4)."
+    )
+
+# SlowAPIMiddleware aplica os `default_limits` do Limiter a TODAS as rotas (H2:
+# sem ele, o default 200/min era código morto — só os @limiter.limit explícitos
+# corriam).
+app.add_middleware(SlowAPIMiddleware)
+
+# CSRF middleware corre ANTES da resolucao do route — protege todos os
+# endpoints state-changing que usem cookie auth.
+app.add_middleware(CSRFOriginCheckMiddleware, allowed_origins=cors_origins)
+
+# CORSMiddleware é adicionado POR ÚLTIMO ⇒ é o middleware mais externo. Isto é
+# fundamental para que respostas 429 do SlowAPIMiddleware e 403 do CSRF (que
+# fazem short-circuit sem chamar `call_next`) recebam headers CORS — senão
+# browsers cross-origin (Vercel → api.controlador.cv) bloqueiam a resposta e o
+# frontend nunca vê o status para mostrar "muitos pedidos, tente novamente".
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=len(cors_origins) > 0,
@@ -201,15 +225,6 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept"],
 )
-
-# CSRF middleware corre ANTES da resolucao do route — protege todos os
-# endpoints state-changing que usem cookie auth.
-app.add_middleware(CSRFOriginCheckMiddleware, allowed_origins=cors_origins)
-
-# SlowAPIMiddleware aplica os `default_limits` do Limiter a TODAS as rotas (H2:
-# sem ele, o default 200/min era código morto — só os @limiter.limit explícitos
-# corriam). Adicionado por último ⇒ é o middleware mais externo (corre primeiro).
-app.add_middleware(SlowAPIMiddleware)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)

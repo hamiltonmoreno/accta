@@ -14,8 +14,14 @@ updates:
       backend-minor-patch:
         update-types: ["minor", "patch"]
     ignore:
-      # bcrypt fixo em 4.0.1 (passlib backend probe parte em versões novas — ver CLAUDE.md).
+      # bcrypt fixo em 4.0.1 (passlib backend probe parte em versões novas — ver
+      # CLAUDE.md). SCOPE limitado a version-updates ⇒ security-only advisories
+      # continuam a abrir PR (fail-open para CVEs, fail-closed para bumps).
       - dependency-name: "bcrypt"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
 
   - package-ecosystem: "npm"
     directory: "/frontend"

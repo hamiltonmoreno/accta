@@ -46,6 +46,8 @@ def test_looks_like_production_false_for_local_or_star(monkeypatch, cors):
 def _boot(**env_overrides) -> subprocess.CompletedProcess:
     env = dict(os.environ)
     env.pop("ENVIRONMENT", None)
+    env.pop("FRONTEND_URL", None)
+    env.pop("CORS_ORIGINS", None)
     env["PYTHONPATH"] = str(BACKEND)
     env.setdefault("DATABASE_URL", "postgresql://p:p@localhost:5432/t")
     env.update(env_overrides)
@@ -73,4 +75,19 @@ def test_boot_refuses_short_secret_key():
 
 def test_boot_ok_local_dev():
     r = _boot(SECRET_KEY=GOOD_KEY, CORS_ORIGINS="http://localhost:3000")
+    assert r.returncode == 0, r.stderr
+
+
+# --- spec 019 / W2: fecha o edge-case do heurístico do H4 -------------------
+# Com FRONTEND_URL e CORS_ORIGINS ambos ausentes, `_looks_like_production()` não
+# consegue detetar produção e o app arrancaria em modo degradado (cookie
+# non-Secure, docs abertos, CORS=*). Exigir ENVIRONMENT explícito.
+def test_boot_refuses_blank_env_without_explicit_environment():
+    r = _boot(SECRET_KEY=GOOD_KEY)  # sem FRONTEND_URL, sem CORS_ORIGINS, sem ENVIRONMENT
+    assert r.returncode != 0
+    assert "FRONTEND_URL" in r.stderr and "CORS_ORIGINS" in r.stderr, r.stderr
+
+
+def test_boot_ok_blank_env_with_explicit_development():
+    r = _boot(SECRET_KEY=GOOD_KEY, ENVIRONMENT="development")
     assert r.returncode == 0, r.stderr
