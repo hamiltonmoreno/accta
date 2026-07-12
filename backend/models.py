@@ -826,7 +826,7 @@ class Document(BaseModel):
     title: str
     file_url: str
     type: str
-    visibility: str = "socios"
+    visibility: Literal["publico", "socios", "direcao", "privado"] = "socios"
     tags: List[str] = []
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -835,7 +835,7 @@ class DocumentCreate(BaseModel):
     title: str
     file_url: str
     type: str
-    visibility: str = "socios"
+    visibility: Literal["publico", "socios", "direcao", "privado"] = "socios"
     tags: List[str] = []
 
 
@@ -1005,7 +1005,7 @@ class Event(BaseModel):
     date: str
     end_date: Optional[str] = None
     location: str
-    visibility: str = "socios"
+    visibility: Literal["publico", "socios", "direcao"] = "socios"
     max_attendees: Optional[int] = None
     attendees: List[str] = []
     created_by: str
@@ -1019,7 +1019,7 @@ class EventCreate(BaseModel):
     date: str
     end_date: Optional[str] = None
     location: str
-    visibility: str = "socios"
+    visibility: Literal["publico", "socios", "direcao"] = "socios"
     max_attendees: Optional[int] = None
 
     @field_validator("date", "end_date", mode="before")
@@ -1051,7 +1051,7 @@ class EventUpdate(BaseModel):
     date: Optional[str] = None
     end_date: Optional[str] = None
     location: Optional[str] = None
-    visibility: Optional[str] = None
+    visibility: Optional[Literal["publico", "socios", "direcao"]] = None
     max_attendees: Optional[int] = None
 
     @field_validator("date", "end_date", mode="before")
@@ -1593,7 +1593,7 @@ class Project(BaseModel):
     title: str
     description: str = ""
     status: str = "proposta"
-    visibility: str = "publico"
+    visibility: Literal["publico", "privado"] = "publico"
     category: str = ""
     tipo: Literal["projeto", "grupo_trabalho", "comissao"] = "projeto"
     created_by: str = ""
@@ -1612,7 +1612,7 @@ class Project(BaseModel):
 class ProjectCreate(BaseModel):
     title: str
     description: str = ""
-    visibility: str = "publico"
+    visibility: Literal["publico", "privado"] = "publico"
     category: str = ""
     tipo: Literal["projeto", "grupo_trabalho", "comissao"] = "projeto"
     budget: float = 0.0
@@ -1624,7 +1624,7 @@ class ProjectUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
-    visibility: Optional[str] = None
+    visibility: Optional[Literal["publico", "privado"]] = None
     category: Optional[str] = None
     responsible_id: Optional[str] = None
     budget: Optional[float] = None

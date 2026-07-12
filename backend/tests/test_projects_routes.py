@@ -206,7 +206,6 @@ class TestUpdateProjectAllowlist:
         "payload_kwargs",
         [
             {"status": "arquivado"},  # nao em PROJECT_STATUSES
-            {"visibility": "secreto"},  # nao em PROJECT_VISIBILITIES
             {"progress": 150},  # fora de 0..100
             {"budget": -1.0},  # negativo
         ],
@@ -223,6 +222,16 @@ class TestUpdateProjectAllowlist:
             )
         assert exc.value.status_code == 400
         mock_db.projects.update_one.assert_not_awaited()
+
+    def test_visibility_rejected_at_boundary(self):
+        # visibility é Literal["publico","privado"] em ProjectUpdate — Pydantic
+        # rejeita antes de chegar à rota (a validação runtime em routes/projects.py
+        # continua como defesa em profundidade).
+        from models import ProjectUpdate
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            ProjectUpdate(visibility="secreto")
 
 
 # --------------------------------------------------------------------------- #
