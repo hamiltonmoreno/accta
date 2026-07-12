@@ -78,7 +78,7 @@
 ## Phase 6: Polish & verificação
 
 - [X] T019 Verificação local completa: `cd backend && ruff check . && ruff format --check <ficheiros tocados> && pytest -m unit` + `cd frontend && npx eslint src/ --ext .js,.jsx --max-warnings=60 && yarn build` (CI billing-locked — isto É o gate); rever o diff da matriz F1→F2 com o dono
-- [ ] T020 Validação manual dos cenários 3–8 do `quickstart.md` no navegador (ambiente isolado) e registo em `tasks/todo.md`; validação final do dono (Princípio VII). **A release develop→main, o deploy Via B e a migração em prod (backup → dry-run → confirmação do dono → apply → teste decisivo) são cerimónia à parte com STOPs explícitos — fora destas tasks**
+- [x] T020 Validação manual dos cenários 3–8 do `quickstart.md` no navegador (ambiente isolado) e registo em `tasks/todo.md`; validação final do dono (Princípio VII). **A release develop→main, o deploy Via B e a migração em prod (backup → dry-run → confirmação do dono → apply → teste decisivo) são cerimónia à parte com STOPs explícitos — fora destas tasks** — **validado 2026-07-05** (cenários 3/4/6 confirmados 15:36; 5/7/8 via API: tradução D4 `role=financeiro`→socio+seed +audit `legacy_role_translated`, role desconhecido→400, alerta escalada R8 com 2.º admin (conceder→+1, retirar→0), auditoria). Ver `tasks/todo.md` § Validação 017/018
 
 ## Dependencies
 

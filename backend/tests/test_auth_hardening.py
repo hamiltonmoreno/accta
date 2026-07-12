@@ -142,6 +142,17 @@ def test_token_predates_password_change_missing_iat_after_reset_is_stale():
     assert auth.token_predates_password_change({}, {"password_changed_at": changed}) is True
 
 
+def test_token_predates_password_change_same_second_survives_decision():
+    """DECISÃO FR-022 (spec 019 / G1): um token cunhado no MESMO segundo do reset
+    SOBREVIVE — `int(iat) < changed_ts` é False em `iat == changed_ts`. **Aceite**:
+    janela de 1s; `<=` arriscaria expulsar o token legítimo emitido logo após o
+    reset; a blocklist (jti) cobre a revogação explícita. Um segundo ANTES → stale."""
+    changed = "2026-01-01T12:00:00+00:00"
+    ts = int(datetime.fromisoformat(changed).timestamp())
+    assert auth.token_predates_password_change({"iat": ts}, {"password_changed_at": changed}) is False
+    assert auth.token_predates_password_change({"iat": ts - 1}, {"password_changed_at": changed}) is True
+
+
 def _mock_request_for(token: str):
     class _MockRequest:
         headers = {"Authorization": f"Bearer {token}"}

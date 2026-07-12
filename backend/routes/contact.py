@@ -1,14 +1,14 @@
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 from slowapi import Limiter
-from slowapi.util import get_remote_address
+from helpers import rate_limit_key
 from email_service import send_email, _base_template
 from turnstile import verify_turnstile
 from html import escape
 import os
 
 router = APIRouter(tags=["contact"])
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=rate_limit_key)
 
 CONTACT_EMAIL = os.environ.get("CONTACT_EMAIL", "secretariado@controlador.cv")
 

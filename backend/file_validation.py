@@ -12,8 +12,28 @@ from io import BytesIO
 from pathlib import Path
 from typing import Iterable
 
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
 from PIL import Image, UnidentifiedImageError
+
+_READ_CHUNK = 64 * 1024
+
+
+async def read_upload_capped(file: UploadFile, max_size: int) -> bytes:
+    """Lê um UploadFile em streaming, abortando com 413 assim que o total exceder
+    `max_size` — nunca materializa mais de max_size+chunk em memória. Substitui o
+    `await file.read()` que lia o corpo INTEIRO antes de qualquer check de tamanho
+    (exaustão de memória; spec 019, FR-015)."""
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        chunk = await file.read(_READ_CHUNK)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_size:
+            raise HTTPException(status_code=413, detail=f"Ficheiro excede o limite de {max_size // (1024 * 1024)} MB")
+        chunks.append(chunk)
+    return b"".join(chunks)
 
 
 # Magic byte signatures por extensao. Cada entrada e uma lista de prefixos

@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 from models import (
     User, ComunicadoCreate, ComunicadoUpdate, RecipientsCountRequest,
@@ -13,11 +12,11 @@ from config import IS_PROD
 from database import db
 from auth import get_current_user, is_admin, has_role_or_privilege
 from permissions import can_comunicar_intra_orgao
-from helpers import create_audit_log
+from helpers import create_audit_log, rate_limit_key
 import comunicados_service
 
 router = APIRouter(tags=["comunicados"])
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=rate_limit_key)
 
 # Órgãos a que um emissor restrito (só `comunicar_intra_orgao`) se pode dirigir
 # (US4 U2). Espelha as keys aceites por helpers.members_of_orgao.

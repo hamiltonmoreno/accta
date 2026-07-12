@@ -12,6 +12,7 @@ import ipaddress
 import json
 import logging
 import os
+import socket
 from typing import Iterable, Optional
 from urllib.parse import urlparse
 
@@ -54,12 +55,63 @@ def is_safe_push_endpoint(endpoint: str) -> bool:
     if host == "localhost" or host.endswith(".local") or host.endswith(".internal"):
         return False
     try:
-        ip = ipaddress.ip_address(host)
+        ipaddress.ip_address(host)
     except ValueError:
-        return True  # hostname público (não-IP literal) — aceita
+        return True  # hostname público (não-IP literal) — a resolução é validada em _endpoint_resolves_public
+    return _ip_is_public(host)
+
+
+def _ip_is_public(ip_str: str) -> bool:
+    try:
+        ip = ipaddress.ip_address(ip_str)
+    except ValueError:
+        return False
     return not (
         ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast or ip.is_unspecified
     )
+
+
+async def _endpoint_resolves_public(endpoint: str) -> bool:
+    """Companheiro DNS-aware de is_safe_push_endpoint: resolve o hostname e exige
+    que TODOS os endereços resolvidos sejam públicos — defesa contra DNS-rebinding
+    (um host público que resolve para um IP interno). Fail-closed em erro de
+    resolução. ponytail: TOCTOU inerente (o pywebpush resolve de novo ao ligar) —
+    aceite; fecha o vetor prático, um pin resolver+socket seria desproporcionado."""
+    host = (urlparse(endpoint).hostname or "").lower() if endpoint else ""
+    if not host:
+        return False
+    try:
+        ipaddress.ip_address(host)
+        return True  # IP literal já validado por is_safe_push_endpoint
+    except ValueError:
+        pass
+    try:
+        infos = await asyncio.to_thread(socket.getaddrinfo, host, 443, 0, socket.SOCK_STREAM)
+    except Exception:
+        return False  # não resolveu → fail-closed (não envia)
+    return bool(infos) and all(_ip_is_public(info[4][0]) for info in infos)
+
+
+_session = None
+
+
+def _no_redirect_session():
+    """Sessão `requests` que NUNCA segue redireções — uma redireção do endpoint de
+    push podia contornar a guarda anti-SSRF apontando para um alvo interno (spec 019)."""
+    global _session
+    if _session is None:
+        import requests
+
+        s = requests.Session()
+        _orig_post = s.post
+
+        def _post(*args, **kwargs):
+            kwargs["allow_redirects"] = False
+            return _orig_post(*args, **kwargs)
+
+        s.post = _post
+        _session = s
+    return _session
 
 
 def _send_one(subscription_info: dict, payload: str) -> None:
@@ -72,6 +124,7 @@ def _send_one(subscription_info: dict, payload: str) -> None:
         vapid_private_key=VAPID_PRIVATE_KEY,
         vapid_claims={"sub": VAPID_SUBJECT},
         timeout=10,
+        requests_session=_no_redirect_session(),
     )
 
 
@@ -110,8 +163,8 @@ async def dispatch_push(
 
     async def _push(sub: dict) -> None:
         endpoint = sub.get("endpoint")
-        if not is_safe_push_endpoint(endpoint):
-            return  # defesa SSRF: nunca POSTa para um endpoint não-público
+        if not is_safe_push_endpoint(endpoint) or not await _endpoint_resolves_public(endpoint):
+            return  # defesa SSRF: nem endpoint não-público, nem host que resolve p/ IP interno
         sub_info = {
             "endpoint": endpoint,
             "keys": {"p256dh": sub.get("p256dh"), "auth": sub.get("auth")},

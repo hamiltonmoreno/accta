@@ -2,6 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Megaphone, Globe, FileText, GraduationCap, ExternalLink, Download } from 'lucide-react';
 import { defesaAPI, relacoesAPI, formacoesAPI, documentsAPI, mediaUrl } from '../utils/api';
+import { safeUrl } from '../utils/safeUrl';
 
 // Cat 5 F4 — secções dinâmicas da ProfissaoPage pública. Cada bloco só renderiza
 // quando há conteúdo já marcado como público (defesa publicada, relações/formações
@@ -35,13 +36,7 @@ const fmtData = (iso) => {
   return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString('pt-PT');
 };
 
-const safeUrl = (url) => {
-  if (!url || typeof url !== 'string') return null;
-  const t = url.trim();
-  if (/^https?:\/\//i.test(t)) return t;
-  if (/^[a-z][a-z0-9+\-.]*:/i.test(t)) return null; // bloqueia javascript:, data:, …
-  return `https://${t}`;
-};
+// safeUrl: fonte única em utils/safeUrl (spec 019 M-HREF).
 
 const STALE = 5 * 60 * 1000; // conteúdo quase estático
 

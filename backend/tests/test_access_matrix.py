@@ -334,3 +334,47 @@ def test_tripwire_catches_evasions():
     ]
     assert all(_INLINE_ROLE_CHECK.search(s) for s in caught)
     assert not any(_INLINE_ROLE_CHECK.search(s) for s in ignored)
+
+
+# --- spec 019 / T007: nenhuma QUERY à BD filtra por role legado --------------
+# Após a spec 018 financeiro/moderador não são roles — destinatários/filtros
+# resolvem-se por privilégio (ex.: {"privileges": "moderate_content"}), nunca por
+# {"role": "moderador"} (que já não seleciona ninguém → bug silencioso). Só apanha
+# FILTROS de role (chave "role":), não listas de validação de input (valid_roles)
+# nem categorias de notificação ({"value": "financeiro"}).
+_LEGACY_ROLE_QUERY = re.compile(
+    r'"role"\s*:\s*(?:"(?:moderador|financeiro)"'
+    r'|\{\s*"\$n?in"\s*:\s*\[[^\]]*"(?:moderador|financeiro)")'
+)
+
+
+def test_no_legacy_role_in_db_query():
+    routes_dir = Path(__file__).resolve().parent.parent / "routes"
+    offenders = [
+        f"{py.name}:{lineno}: {line.strip()}"
+        for py in sorted(routes_dir.glob("*.py"))
+        for lineno, line in enumerate(py.read_text(encoding="utf-8").splitlines(), 1)
+        if _LEGACY_ROLE_QUERY.search(line)
+    ]
+    assert not offenders, (
+        "Query à BD filtra por role legado (spec 018/019) — resolver por privilégio "
+        '(ex.: {"privileges": "moderate_content"}), não {"role": "moderador"}:\n' + "\n".join(offenders)
+    )
+
+
+def test_legacy_role_query_tripwire_scoping():
+    """Apanha filtros de role legado; ignora validação de input / categorias de
+    notificação / o novo filtro por privilégio (guarda contra enfraquecer o regex)."""
+    caught = [
+        '{"role": "moderador"}',
+        '{"role": {"$in": ["admin", "moderador"]}}',
+        'db.users.find({"role": {"$in": ["admin", "financeiro"]}})',
+    ]
+    ignored = [
+        'valid_roles = ["admin", "socio", "financeiro", "moderador"]',
+        'if data.role not in ("admin", "socio", "financeiro", "moderador"):',
+        '{"value": "financeiro", "label": "Financeiro"}',
+        '{"$or": [{"role": "admin"}, {"privileges": "moderate_content"}]}',
+    ]
+    assert all(_LEGACY_ROLE_QUERY.search(s) for s in caught)
+    assert not any(_LEGACY_ROLE_QUERY.search(s) for s in ignored)

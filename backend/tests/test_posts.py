@@ -297,8 +297,16 @@ class TestCoversCategory:
         assert ".svg" not in upload_route.ALLOWED_EXTENSIONS["covers"]  # SVG bloqueado (XSS)
         assert upload_route.MAX_FILE_SIZES["covers"] == 2 * 1024 * 1024
 
-    async def test_socio_403(self, socio_user):
+    async def test_socio_403(self, socio_user, monkeypatch):
         # RBAC corre antes de tocar no ficheiro — file pode ser um stub.
+        # O @limiter.limit (spec 019 T032) exige um Request real e corre primeiro;
+        # desligar o limiter do módulo e passar um Request mínimo (gotcha slowapi).
+        monkeypatch.setattr(upload_route.limiter, "enabled", False)
+        from starlette.requests import Request
+
+        req = Request({"type": "http", "method": "POST", "path": "/api/upload/covers", "headers": []})
         with pytest.raises(HTTPException) as exc:
-            await upload_route.upload_file(category="covers", file=MagicMock(), current_user=socio_user)
+            await upload_route.upload_file(
+                req, category="covers", file=MagicMock(), current_user=socio_user
+            )
         assert exc.value.status_code == 403
