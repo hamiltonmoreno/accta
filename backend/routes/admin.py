@@ -31,10 +31,12 @@ from helpers import (
     alert_admins_privilege_escalation,
     create_audit_log,
     notify_users,
+    reset_failed_logins,
     resolve_legacy_role,
     resolve_link_base,
 )
 from email_service import send_invite_email, send_registration_rejected_email
+from routes.auth_routes import issue_password_reset
 import uuid
 import secrets
 
@@ -753,3 +755,49 @@ async def list_cargo_candidates(
         if len(out) >= limit:
             break
     return {"candidates": out}
+
+
+@router.post("/users/{user_id}/unlock")
+async def unlock_user(user_id: str, request: Request, current_user: User = Depends(get_current_user)):
+    """Desbloqueia uma conta trancada por tentativas de login falhadas — limpa o
+    histórico de `login_attempts` (o mesmo que um login com sucesso faria). O
+    lockout é derivado dessa contagem (helpers.is_account_locked), por isso limpá-la
+    levanta o bloqueio. Idempotente numa conta não trancada; não toca senha nem estado."""
+    # Admin-only (não `manage_users`): desbloquear anula a defesa de brute-force de
+    # QUALQUER conta, incl. admin — mesmo raciocínio do W3/spec 018 que reservou as
+    # mutações sensíveis a admin (_require_cargo_admin). O dono pediu "ações do admin".
+    if not is_admin(current_user):
+        raise HTTPException(status_code=403, detail="Apenas administradores podem desbloquear contas")
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "id": 1, "name": 1, "email": 1})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilizador não encontrado")
+    await reset_failed_logins(user["email"])
+    await create_audit_log(
+        current_user.id, "account_unlocked", user_id, request=request, details={"email": user["email"]}
+    )
+    return {"message": f"Conta de {user.get('name') or user['email']} desbloqueada."}
+
+
+@router.post("/users/{user_id}/send-reset")
+async def admin_send_password_reset(
+    user_id: str, request: Request, current_user: User = Depends(get_current_user)
+):
+    """Envia (ou reenvia) o email de redefinição de palavra-passe a um sócio,
+    reutilizando o fluxo self-service (token TTL 1h + link clicável). O admin nunca
+    vê nem define a senha — o sócio define-a pelo link. Só contas ativas (as outras
+    não fazem login de qualquer forma)."""
+    # Admin-only, por simetria com o unlock e com o pedido do dono ("ações do admin").
+    if not is_admin(current_user):
+        raise HTTPException(status_code=403, detail="Apenas administradores podem enviar redefinição de senha")
+    user = await db.users.find_one(
+        {"id": user_id}, {"_id": 0, "id": 1, "name": 1, "email": 1, "status": 1}
+    )
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilizador não encontrado")
+    if user.get("status") != "ativo":
+        raise HTTPException(status_code=400, detail="Só é possível enviar redefinição a contas ativas")
+    await issue_password_reset(user["email"], user.get("name", ""), request)
+    await create_audit_log(
+        current_user.id, "password_reset_sent_by_admin", user_id, request=request, details={"email": user["email"]}
+    )
+    return {"message": f"Email de redefinição enviado para {user['email']}."}

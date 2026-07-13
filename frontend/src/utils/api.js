@@ -57,6 +57,8 @@ export const adminAPI = {
   invite: (data) => api.post('/admin/invite', data),
   getPendingInvites: () => api.get('/admin/invites/pending'),
   revokeInvite: (userId) => api.delete(`/admin/invite/${userId}`),
+  unlockUser: (userId) => api.post(`/admin/users/${userId}/unlock`),
+  sendPasswordReset: (userId) => api.post(`/admin/users/${userId}/send-reset`),
 };
 
 // Funções personalizadas — pacotes de privilégios (spec 017, admin-only)

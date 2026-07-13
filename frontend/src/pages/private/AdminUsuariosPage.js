@@ -29,6 +29,7 @@ export const AdminUsuariosPage = () => {
   const [filterStatus, setFilterStatus] = useState('');
   const [editingUser, setEditingUser] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [resetConfirm, setResetConfirm] = useState(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteData, setInviteData] = useState(EMPTY_INVITE);
   const [inviteResult, setInviteResult] = useState(null);
@@ -101,6 +102,29 @@ export const AdminUsuariosPage = () => {
       invalidateUsers();
     },
     onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao remover a foto'),
+  });
+
+  // Desbloquear conta trancada por tentativas de login (limpa login_attempts).
+  const unlockMutation = useMutation({
+    mutationFn: (userId) => adminAPI.unlockUser(userId),
+    onSuccess: (res) => {
+      toast.success(res.data?.message || 'Conta desbloqueada');
+      invalidateUsers();
+    },
+    onError: (err) => toast.error(err.response?.data?.detail || 'Erro ao desbloquear conta'),
+  });
+
+  // Reenvia o email de redefinição de senha (o sócio define a senha pelo link).
+  const sendResetMutation = useMutation({
+    mutationFn: (userId) => adminAPI.sendPasswordReset(userId),
+    onSuccess: (res) => {
+      toast.success(res.data?.message || 'Email de redefinição enviado');
+      setResetConfirm(null);
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.detail || 'Erro ao enviar redefinição');
+      setResetConfirm(null);
+    },
   });
 
   const inviteMutation = useMutation({
@@ -215,6 +239,9 @@ export const AdminUsuariosPage = () => {
           onAskDelete={() => setDeleteConfirm(editingUser.id)}
           onRemovePhoto={() => removePhotoMutation.mutate(editingUser.id)}
           removingPhoto={removePhotoMutation.isPending}
+          onUnlock={() => unlockMutation.mutate(editingUser.id)}
+          unlocking={unlockMutation.isPending}
+          onSendReset={() => setResetConfirm(editingUser)}
         />
       )}
 
@@ -232,6 +259,29 @@ export const AdminUsuariosPage = () => {
               data-testid="confirm-delete-btn"
             >
               Sim, remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!resetConfirm} onOpenChange={(o) => { if (!o) setResetConfirm(null); }}>
+        <AlertDialogContent className="max-w-sm" data-testid="send-reset-confirm-modal">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enviar email de redefinição?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Será enviado para <span className="font-medium text-grafite">{resetConfirm?.email}</span> um
+              link para o sócio definir uma nova palavra-passe (válido 1 hora).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setResetConfirm(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => sendResetMutation.mutate(resetConfirm.id)}
+              disabled={sendResetMutation.isPending}
+              className="bg-floresta text-white hover:bg-floresta-dark"
+              data-testid="confirm-send-reset-btn"
+            >
+              Enviar email
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
