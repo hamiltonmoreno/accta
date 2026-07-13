@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict, EmailStr, field_validator, model_validator
-from typing import List, Literal, Optional
+from typing import Dict, List, Literal, Optional
 from datetime import datetime, timezone, date
 import re
 import uuid
@@ -2951,3 +2951,75 @@ class CorpoSocialOrgao(BaseModel):
 
 class CorposSociaisResponse(BaseModel):
     orgaos: List[CorpoSocialOrgao] = []
+
+
+# ===== Dashboard unificado (spec 020) =====
+# Contrato do payload do endpoint GET /api/dashboard/overview, universal
+# (qualquer autenticado). Zero PII — a tripwire test_overview_no_pii garante
+# que nunca aparece email/phone/member_id/name/photo_url no payload.
+
+
+class MonthlyPoint(BaseModel):
+    """Ponto mensal do gráfico receitas × despesas."""
+
+    month: int
+    receitas: float
+    despesas: float
+
+
+class FinanceOverview(BaseModel):
+    """Bloco financeiro agregado — sem lançamentos individuais."""
+
+    saldo_atual: float
+    receitas_ano: float
+    despesas_ano: float
+    resultado_ano: float
+    quotas_mes: float
+    monthly: List[MonthlyPoint]
+    despesas_por_categoria: Dict[str, float]
+    mes_atual: Dict[str, float]
+    mes_anterior: Dict[str, float]
+
+
+class SociosOverview(BaseModel):
+    ativos: int
+    novos_90d: int
+
+
+class AtosOverview(BaseModel):
+    # Pendentes = actos por decidir (todos aguardam a Direção no modelo actual —
+    # não há estado separado "aguarda proposta"). Um único contador cobre-o.
+    pendentes: int
+
+
+class UltimaVotacao(BaseModel):
+    id: str
+    titulo: str
+    participacao_pct: int
+    fechada_em: str
+
+
+class VotacoesOverview(BaseModel):
+    abertas: int
+    ultima_fechada: Optional[UltimaVotacao] = None
+
+
+class ProximaAssembleia(BaseModel):
+    id: str
+    titulo: str
+    data: str
+    tipo: str
+
+
+class AssembleiasOverview(BaseModel):
+    proximas: List[ProximaAssembleia] = []
+
+
+class DashboardOverview(BaseModel):
+    """Payload agregado do Dashboard universal (spec 020)."""
+
+    finance: FinanceOverview
+    socios: SociosOverview
+    atos: AtosOverview
+    votacoes: VotacoesOverview
+    assembleias: AssembleiasOverview

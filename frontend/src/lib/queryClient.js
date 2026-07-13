@@ -189,4 +189,7 @@ export const queryKeys = {
     me: (period) => ['ranking', 'me', period],
     settings: () => ['ranking', 'settings'],
   },
+  dashboard: {
+    overview: () => ['dashboard', 'overview'],
+  },
 };

@@ -51,13 +51,15 @@ const FinanceCharts = ({ monthlyChartData, expensePieData, currentYear, onViewAl
           title="Evolucao Financeira"
           subtitle={`Receitas vs Despesas - ${currentYear}`}
           action={
-            <button
-              onClick={onViewAll}
-              className="text-xs text-carmesim font-semibold hover:text-carmesim-dark flex items-center gap-1"
-              data-testid="chart-view-all"
-            >
-              Ver tudo <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+            onViewAll ? (
+              <button
+                onClick={onViewAll}
+                className="text-xs text-carmesim font-semibold hover:text-carmesim-dark flex items-center gap-1"
+                data-testid="chart-view-all"
+              >
+                Ver tudo <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            ) : null
           }
         >
           <div className="h-[280px] -ml-2" data-testid="monthly-chart" style={{ minWidth: 0 }}>
