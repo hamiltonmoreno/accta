@@ -391,7 +391,27 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Feature ativa: `specs/019-revisao-seguranca-codigo/` — **Revisão de Segurança do Código**
+Feature ativa: `specs/020-dashboard-unificado/` — **Dashboard unificado para todos os sócios**
+(planeada 2026-07-13; plano em `specs/020-dashboard-unificado/plan.md`). Uniformizar o Dashboard:
+mesmos widgets para admin/financeiro/moderador/sócio comum, **incluindo evolução financeira
+agregada** (saldo, receitas×despesas mensal, resultado, quotas mês, pizza categorias) + KPIs de
+vida associativa (sócios activos, novos 90d, próximas AGAs, atos pendentes agregados, participação
+em votações). Decisões do dono (2026-07-13): **Q1 = Sweet-spot** (Grupo B finanças agregadas B.8–B.12
++ Grupo A vida associativa A.1/A.2/A.3/A.5/A.7); **Q2 = universalizar RankingTopN** (Top-N com
+nomes a todos). `/financeiro` e drill-down **continuam gated** pelos privilégios existentes; widgets
+são read-only sem afordância de clique para quem não tem privilégio (US2). Diagnóstico do research
+(R1): 4 endpoints hoje rejeitam sócio comum com 403 (`/stats`, `/finances/summary`, `/finances/dre`,
+`/atos`) — logo entrega **não pode** ser frontend-only. **Abordagem (R2)**: 1 endpoint agregador
+`GET /api/dashboard/overview` (autenticado, sem role check) com `response_model` estrito
+(`DashboardOverview`) + tripwire PII, reutiliza `compute_financial_summary`/`compute_dre_report`
+já modulares. Endpoints antigos **inalterados**. Frontend: remove gate `hasFinance` no
+`DashboardPage.js`, widgets financeiros ficam read-only para quem não tem `hasFinance`. Zero deps
+novas, zero migração, zero campo novo em `users`. Toca `backend/` ⇒ release **Via B obrigatória**.
+Próximo: `/speckit-tasks`.
+
+---
+
+Feature anterior (planeada): `specs/019-revisao-seguranca-codigo/` — **Revisão de Segurança do Código**
 (planeada 2026-07-05; plano em `specs/019-revisao-seguranca-codigo/plan.md`). Revisão
 sistemática de todo o código sobre base já endurecida: survey de 9 domínios + desenho de
 remediação de 7 workstreams (A–G), fundamentados no código real. **8 HIGH + ~17 MEDIUM** com
@@ -402,8 +422,8 @@ chaveado no IP do proxy; H4 postura de prod cai numa env var; H5 fuga de hash po
 → `response_model`+tripwire; **H6 CSRF = verify-only** (middleware já cobre tudo); H7/H8 CVEs de
 DoS multipart (bump coordenado fastapi/starlette + mitigação `max_part_size`). 3 fases (US1
 confidencialidade → US2 perímetro → US3/US4 SSRF/deps); registo de achados em `research.md`.
-STOPs: nginx do VPS + verificação `ENVIRONMENT`/`SECRET_KEY≥32` em prod + Via B. Próximo:
-`/speckit-tasks`.
+STOPs: nginx do VPS + verificação `ENVIRONMENT`/`SECRET_KEY≥32` em prod + Via B. **CONCLUÍDA na
+memória — v0.5.55 released 2026-07-12.**
 
 ---
 
