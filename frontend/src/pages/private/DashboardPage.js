@@ -3,12 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
-import { statsAPI, pollsAPI, eventsAPI, financesAPI, activityAPI, reportAPI, rankingAPI } from '../../utils/api';
+import { pollsAPI, eventsAPI, activityAPI, reportAPI, rankingAPI, dashboardAPI } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
 import { Skeleton } from '../../components/ui/skeleton';
 
 import { MONTH_LABELS, CATEGORY_LABELS } from './dashboard/tokens';
-import { AdminStats } from './dashboard/AdminStats';
 import { FinanceSummary } from './dashboard/FinanceSummary';
 import { Contribuicoes } from './dashboard/Contribuicoes';
 import { ActivePolls } from './dashboard/ActivePolls';
@@ -17,6 +16,9 @@ import { PersonalReport } from './dashboard/PersonalReport';
 import { RankingTopN } from './dashboard/RankingTopN';
 import { ActivityFeed } from './dashboard/ActivityFeed';
 import { NotificationsList } from './dashboard/NotificationsList';
+import { VidaAssociativa } from './dashboard/VidaAssociativa';
+import { ProximasAssembleias } from './dashboard/ProximasAssembleias';
+import { QuotasMes } from './dashboard/QuotasMes';
 
 // Recharts (~334KB) só carregado para utilizadores com finance, via Suspense.
 const FinanceCharts = lazy(() => import('./dashboard/FinanceCharts'));
@@ -27,7 +29,17 @@ export const DashboardPage = () => {
   const navigate = useNavigate();
 
   const currentYear = new Date().getFullYear();
+  // ponytail: hasFinance controla apenas AFORDÂNCIA DE CLIQUE (drill-down
+  // para /financeiro) — não a visibilidade dos widgets. Spec 020 uniformizou
+  // o conteúdo do Dashboard para todos os sócios.
   const hasFinance = isAdmin || isFinanceiro;
+
+  // Dashboard universal (spec 020): 1 round-trip agregado para finance +
+  // socios + atos + votacoes + assembleias.
+  const overviewQuery = useQuery({
+    queryKey: queryKeys.dashboard.overview(),
+    queryFn: async () => (await dashboardAPI.overview()).data,
+  });
 
   // Queries always-on para todos os utilizadores.
   // Cada uma corre em paralelo (sem await sequencial); cache cross-page;
@@ -70,25 +82,29 @@ export const DashboardPage = () => {
     retry: false, // 403 (visibility=direcao_only) → esconde o widget sem 3 retries
   });
 
-  // Queries gated por hasFinance — `enabled` evita request desnecessario
-  // para socios. Quando false, isLoading=false e data=undefined.
-  const statsQuery = useQuery({
-    queryKey: ['stats'],
-    queryFn: async () => (await statsAPI.get()).data,
-    enabled: hasFinance,
-  });
-
-  const financeSummaryQuery = useQuery({
-    queryKey: queryKeys.transactions.summary(currentYear, undefined),
-    queryFn: async () => (await financesAPI.getSummary({ year: currentYear })).data,
-    enabled: hasFinance,
-  });
-
-  const dreQuery = useQuery({
-    queryKey: ['finance', 'dre', currentYear],
-    queryFn: async () => (await financesAPI.getDRE(currentYear)).data,
-    enabled: hasFinance,
-  });
+  // Adaptador: extrai `financeSummary`/`dreData` do payload agregado para os
+  // componentes FinanceSummary/FinanceCharts continuarem com a sua API estável.
+  // (AdminStats foi retirado — os seus KPIs vivem agora em VidaAssociativa,
+  // ProximasAssembleias e FinanceSummary.) Memoizado — o useMemo do
+  // monthlyChartData depende de `dreData` e queremos estabilidade referencial.
+  const overview = overviewQuery.data;
+  const { financeSummary, dreData } = useMemo(() => {
+    if (!overview) return { financeSummary: null, dreData: null };
+    return {
+      financeSummary: {
+        total_receitas: overview.finance.receitas_ano,
+        total_despesas: overview.finance.despesas_ano,
+        resultado_liquido: overview.finance.resultado_ano,
+      },
+      dreData: {
+        monthly: overview.finance.monthly.reduce((acc, p) => {
+          acc[p.month] = { receitas: p.receitas, despesas: p.despesas };
+          return acc;
+        }, {}),
+        despesas_por_categoria: overview.finance.despesas_por_categoria,
+      },
+    };
+  }, [overview]);
 
   const activePolls = (pollsQuery.data || []).filter((p) => p.status === 'aberta');
   const upcomingEvents = (upcomingEventsQuery.data || []).slice(0, 3);
@@ -108,9 +124,6 @@ export const DashboardPage = () => {
     .filter((e) => e.status !== 'inativo')
     .slice(0, topN);
   const maxScore = topEntries.length ? Math.max(...topEntries.map((e) => e.score || 0), 1) : 1;
-  const stats = statsQuery.data;
-  const financeSummary = financeSummaryQuery.data;
-  const dreData = dreQuery.data;
 
   // Loading apenas das queries criticas para o paint inicial.
   // personalReport carrega em background; ate chegar, render parcial e ok.
@@ -118,7 +131,7 @@ export const DashboardPage = () => {
     pollsQuery.isLoading ||
     upcomingEventsQuery.isLoading ||
     recentActivityQuery.isLoading ||
-    (hasFinance && (statsQuery.isLoading || financeSummaryQuery.isLoading || dreQuery.isLoading));
+    overviewQuery.isLoading;
 
   // Prepare chart data — memoizado por dreData (evita recriar arrays a cada render).
   const monthlyChartData = useMemo(() => (
@@ -168,13 +181,9 @@ export const DashboardPage = () => {
         <p className="page-subtitle">Resumo da sua conta e atividades</p>
       </div>
 
-      {/* Admin/Financeiro: stat cards */}
-      {hasFinance && stats && (
-        <AdminStats stats={stats} financeSummary={financeSummary} />
-      )}
-
-      {/* Charts grid — recharts em chunk lazy só carrega para finance users */}
-      {hasFinance && dreData && (
+      {/* Charts grid — recharts em chunk lazy. Universal em conteúdo (spec 020);
+          drill-down "Ver detalhes" só é passado se o utilizador tiver privilégio. */}
+      {dreData && (
         <Suspense fallback={
           <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 h-[320px] flex items-center justify-center">
             <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
@@ -184,14 +193,28 @@ export const DashboardPage = () => {
             monthlyChartData={monthlyChartData}
             expensePieData={expensePieData}
             currentYear={currentYear}
-            onViewAll={() => navigate('/financeiro')}
+            onViewAll={hasFinance ? () => navigate('/financeiro') : undefined}
           />
         </Suspense>
       )}
 
-      {/* Financial summary banner */}
-      {hasFinance && financeSummary && (
-        <FinanceSummary financeSummary={financeSummary} currentYear={currentYear} />
+      {/* Financial summary banner — universal em conteúdo, clique só a hasFinance */}
+      {financeSummary && (
+        <FinanceSummary financeSummary={financeSummary} currentYear={currentYear} clickable={hasFinance} />
+      )}
+
+      {/* Vida associativa + quotas do mês (spec 020 US3) — universal */}
+      {overview && (
+        <>
+          <QuotasMes valor={overview.finance.quotas_mes} clickable={hasFinance} />
+          <VidaAssociativa
+            socios={overview.socios}
+            atos={overview.atos}
+            votacoes={overview.votacoes}
+            canViewAtos={hasFinance}
+          />
+          <ProximasAssembleias proximas={overview.assembleias.proximas} />
+        </>
       )}
 
       {/* Main grid: Contribuicoes + Active Polls */}

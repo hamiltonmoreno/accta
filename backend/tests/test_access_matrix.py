@@ -27,12 +27,14 @@ import re
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import HTTPException
 
 import routes.benefits as benefits_routes
 import routes.comunicados as comunicados_routes
+import routes.dashboard as dashboard_routes
 import routes.documents as documents_routes
 import routes.events as events_routes
 import routes.finances as finances_routes
@@ -162,6 +164,10 @@ async def _gate(module: str, user: User) -> bool:
         return ranking_routes._can_manage_ranking(user)
     if module == "regulamentos_manage":
         return regulamentos_routes._can_manage(user)
+    if module == "dashboard_overview":
+        # Spec 020: endpoint universal — só depende de get_current_user.
+        # Chegar aqui já significa autenticado; nunca lança 403 no gate.
+        return await _route_gate(dashboard_routes.get_overview(current_user=user))
     raise AssertionError(f"módulo desconhecido: {module}")
 
 
@@ -232,9 +238,32 @@ MATRIX = {
         "priv": "manage_documents",
         "allow": {"admin", "socio_priv", "tecnico"},
     },
+    # Spec 020: Dashboard unificado. Endpoint universal — TODOS os perfis
+    # autenticados passam (incl. legacy financeiro/moderador que continuam a
+    # ser socios puros até migração; e conta técnica). É a evidência estrutural
+    # de SC-001 (paridade) que a spec pede: qualquer regressão que introduza
+    # role check no endpoint parte esta linha.
+    "dashboard_overview": {
+        "priv": "",  # nenhum privilégio necessário
+        "allow": set(PROFILES),
+    },
 }
 
 _CASES = [(module, profile, profile in spec["allow"]) for module, spec in MATRIX.items() for profile in PROFILES]
+
+
+def _wire_dashboard_collections(mock_db):
+    """Spec 020: `atos` e `assembleias` não são pré-configuradas no fixture
+    canónico. O endpoint /dashboard/overview toca ambas — wire mínimo aqui."""
+    for name in ("atos", "assembleias"):
+        coll = MagicMock(name=name)
+        coll.count_documents = AsyncMock(return_value=0)
+        find_cursor = MagicMock()
+        find_cursor.to_list = AsyncMock(return_value=[])
+        find_cursor.sort = MagicMock(return_value=find_cursor)
+        find_cursor.limit = MagicMock(return_value=find_cursor)
+        coll.find = MagicMock(return_value=find_cursor)
+        setattr(mock_db, name, coll)
 
 
 @pytest.mark.parametrize(
@@ -243,6 +272,8 @@ _CASES = [(module, profile, profile in spec["allow"]) for module, spec in MATRIX
     ids=[f"{m}-{p}-{'allow' if e else 'deny'}" for m, p, e in _CASES],
 )
 async def test_access_matrix(mock_db, module, profile, expected):
+    if module == "dashboard_overview":
+        _wire_dashboard_collections(mock_db)
     user = _profile(profile, MATRIX[module]["priv"])
     assert await _gate(module, user) is expected, (
         f"{module} × {profile}: esperado {'ALLOW' if expected else 'DENY'} "
@@ -258,29 +289,40 @@ async def test_access_matrix(mock_db, module, profile, expected):
 # --------------------------------------------------------------------------- #
 
 
-async def _allowed_modules(mock_db_unused, user: User) -> set:
+async def _allowed_modules(mock_db, user: User) -> set:
+    # dashboard_overview toca `atos`/`assembleias` — wire mínimo (spec 020).
+    _wire_dashboard_collections(mock_db)
     return {m for m in MATRIX if await _gate(m, user)}
 
 
+# Módulos universais (autenticado-sim, gate-nenhum) — excluídos das
+# equivalências de role. Alterar esta lista requer decisão explícita.
+_UNIVERSAL_MODULES = {"dashboard_overview"}
+
+
 async def test_legacy_roles_grant_nothing(mock_db):
-    """Docs com role legado (janela pré-migração) são socio puro nos gates."""
-    assert await _allowed_modules(mock_db, _user("financeiro")) == set()
-    assert await _allowed_modules(mock_db, _user("moderador")) == set()
+    """Docs com role legado (janela pré-migração) são socio puro nos gates
+    role-based. Módulos universais (dashboard) ficam sempre visíveis a
+    qualquer autenticado — excluídos aqui por design (spec 020)."""
+    assert await _allowed_modules(mock_db, _user("financeiro")) - _UNIVERSAL_MODULES == set()
+    assert await _allowed_modules(mock_db, _user("moderador")) - _UNIVERSAL_MODULES == set()
 
 
 async def test_seed_financeiro_equivalence(mock_db):
     """Seed «Financeiro» cobre TODO o acesso do antigo role (⊇ baseline).
     Delta assinalado: +users_manage e +users_photo_moderation vêm de
-    manage_users (não existe privilégio só-de-listagem) — validação do dono."""
-    allowed = await _allowed_modules(mock_db, _profile("seed_financeiro", ""))
+    manage_users (não existe privilégio só-de-listagem) — validação do dono.
+    Módulos universais (spec 020) excluídos da equivalência."""
+    allowed = await _allowed_modules(mock_db, _profile("seed_financeiro", "")) - _UNIVERSAL_MODULES
     baseline = {"finances_view", "finances_manage", "users_list"}
     assert baseline <= allowed
     assert allowed - baseline == {"users_manage", "users_photo_moderation"}
 
 
 async def test_seed_moderador_equivalence(mock_db):
-    """Seed «Moderador» = exatamente o acesso do antigo role (equivalência exata)."""
-    allowed = await _allowed_modules(mock_db, _profile("seed_moderador", ""))
+    """Seed «Moderador» = exatamente o acesso do antigo role (equivalência exata).
+    Módulos universais (spec 020) excluídos."""
+    allowed = await _allowed_modules(mock_db, _profile("seed_moderador", "")) - _UNIVERSAL_MODULES
     assert allowed == {"moderation_gallery", "moderation_wall", "users_photo_moderation"}
 
 

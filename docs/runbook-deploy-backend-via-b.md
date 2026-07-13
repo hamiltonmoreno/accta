@@ -46,14 +46,23 @@ Antes de começar, obtém o SHA do `main` na release (na tua máquina):
 git fetch origin main && git rev-parse --short=12 main
 ```
 
-**Valores atuais (v0.5.58 — recuperação de conta bloqueada + fix do fluxo de reset / release #425):**
+**Valores atuais (v0.5.59 — identidade PDA nos emails + limpeza + hero copy / release #427):**
 
 | Variável | Valor |
 |----------|-------|
-| `TAG` (imagem nova) | `sha-fb7064d8d031` |
-| Tag git da release | `v0.5.58` (= `fb7064d`, HEAD de `main`, merge #425) |
-| Rollback (prod anterior, v0.5.57) | `sha-94e5273f8162` |
-| Teste decisivo desta release | **Rotas novas gated**: `POST /api/admin/users/{id}/unlock` e `/send-reset` → **401** sem token (existem + admin-only). + imagem viva (`docker inspect accta-backend --format '{{.Config.Image}}'` = `…:sha-fb7064d8d031`) + arranque limpo. Prova funcional (email de reset **com link**, desbloquear/reenviar no modal) = navegador (Princípio VII), coberta pelos 1683 testes pré-merge. |
+| `TAG` (imagem nova) | `sha-19f89e40c31c` |
+| Tag git da release | `v0.5.59` (= `19f89e4`, HEAD de `main`, merge #427) |
+| Rollback (prod anterior, v0.5.58) | `sha-fb7064d8d031` |
+| Teste decisivo desta release | Sem rotas novas → imagem viva (`docker inspect accta-backend --format '{{.Config.Image}}'` = `…:sha-19f89e40c31c`) + arranque limpo + rotas admin da v0.5.58 continuam gated (`POST /api/admin/users/x/unlock` e `/send-reset` → **401**). Prova funcional dos emails com identidade PDA + logo = envio real a partir da UI (STOP do dono; templates só mudam **o próximo email enviado**). |
+
+> ℹ️ **Executado 2026-07-13 (v0.5.59)** — build no VPS OK (Dockerfile 100% cache até ao COPY do backend);
+> container Up (healthy) em `sha-19f89e40c31c`; Etapa 2.3 toda verde: `/api/`→200, `openapi`/`docs`→404,
+> `/api/invoices`→404, `/api/finances/me/quotas`→401, `/api/events/nao-existe/expenses`→401,
+> `/api/finances/me/quotas/pdf`→401, `/uploads/proofs/x.jpg`→404 (H1 sobreviveu),
+> `POST /api/admin/users/x/unlock` e `/send-reset`→401 (v0.5.58 sobreviveu), arranque limpo
+> (0 tracebacks, 0 "tuple concurrently updated", audit trigger 2×, RLS trigger 2×, `overdue_atos_loop`
+> agendador iniciado 2×). `.env` (`TURNSTILE_SECRET`/`VAPID_*`) preservado.
+> **Pós-deploy: nenhum obrigatório** (sem schema/migração; templates de email só afetam envios futuros).
 
 > ℹ️ **Executado 2026-07-13 (v0.5.58)** — build no VPS OK; container Up (healthy) em
 > `sha-fb7064d8d031`; Etapa 2.3 toda verde: `/api/`→200, `openapi`/`docs`→404, **rotas novas
@@ -115,15 +124,15 @@ git fetch origin main && git rev-parse --short=12 main
 ```bash
 rm -rf /tmp/accta-build
 git clone https://github.com/hamiltonmoreno/accta.git /tmp/accta-build
-cd /tmp/accta-build && git checkout v0.5.58       # <- tag git da release
+cd /tmp/accta-build && git checkout v0.5.59       # <- tag git da release
 docker build -f backend/Dockerfile \
-  -t ghcr.io/hamiltonmoreno/accta-backend:sha-fb7064d8d031 .   # <- TAG
+  -t ghcr.io/hamiltonmoreno/accta-backend:sha-19f89e40c31c .   # <- TAG
 ```
 
 ### 2.2 Arrancar via o compose canónico (só muda o TAG)
 ```bash
 cd /docker/accta
-export TAG=sha-fb7064d8d031
+export TAG=sha-19f89e40c31c
 docker compose up -d --no-deps backend
 ```
 
@@ -165,7 +174,7 @@ docker compose logs --tail=200 backend 2>&1 | grep -E 'pg_cron not configured'  
 A imagem anterior continua no VPS; só se troca o `TAG`:
 ```bash
 cd /docker/accta
-export TAG=sha-94e5273f8162        # <- rollback (v0.5.57, imagem que corria antes da v0.5.58)
+export TAG=sha-fb7064d8d031        # <- rollback (v0.5.58, imagem que corria antes da v0.5.59)
 docker compose up -d --no-deps backend
 ```
 
@@ -228,11 +237,16 @@ Ver `DEPLOY.md` e `HOSTINGER_DEPLOY.md` para o setup completo (secrets SSH,
   `python-multipart` 0.0.18→0.0.30, `Pillow` 11.2.1→12.2.0], release #423. ⚠️ A **v0.5.56**
   [hotfix CVE, release #420] foi *released mas nunca deployada isolada* — prod estava em v0.5.55;
   a v0.5.57 traz ambas. **Pós-deploy: nenhum obrigatório**)**
-  → **v0.5.58 (`sha-fb7064d8d031`, este deploy — recuperação de conta bloqueada + fix do
+  → v0.5.58 (`sha-fb7064d8d031`, recuperação de conta bloqueada + fix do
   fluxo de reset, release #425: email de reset com **link clicável** [`email_service.py`],
   `reset_password` levanta o lockout [`routes/auth_routes.py`], admin `unlock`/`send-reset`
   admin-only+auditado [`routes/admin.py`]; 3 ficheiros backend + frontend. **Pós-deploy: nenhum
-  obrigatório**)**.
+  obrigatório**)
+  → **v0.5.59 (`sha-19f89e40c31c`, este deploy — identidade PDA nos emails + limpeza de código
+  morto + hero copy, release #427: `email_service.py` [templates PDA + logótipo real],
+  `routes/auth_routes.py` [ajuste], `permissions.py` [-6L residual]; frontend limpa ~2.9k linhas de
+  componentes shadcn/ui não usados + `use-toast` + unificação de datas em `lib/date.js` + hero copy.
+  **Pós-deploy: nenhum obrigatório**; templates de email só afetam envios **futuros**)**.
   As **v0.5.50–v0.5.52** (brand refresh: favicon/logos/tagline/wordmark) foram
   frontend-only (Vercel).
   As v0.5.28/v0.5.29/v0.5.30, v0.5.32/v0.5.33, v0.5.36, **v0.5.44/v0.5.45** e

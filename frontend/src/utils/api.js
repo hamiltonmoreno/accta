@@ -568,6 +568,12 @@ export const reportAPI = {
 };
 
 
+// Dashboard unificado (spec 020) — payload agregado universal.
+export const dashboardAPI = {
+  overview: () => api.get('/dashboard/overview'),
+};
+
+
 // Cat 5 F2 — fins profissionais (formações + publicações)
 export const formacoesAPI = {
   getAll: (params) => api.get('/formacoes', { params }),
