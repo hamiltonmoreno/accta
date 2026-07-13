@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Shield, BadgeCheck, Briefcase, Save, Trash2, History, Wand2 } from 'lucide-react';
+import { Shield, BadgeCheck, Briefcase, Save, Trash2, History, Wand2, LockOpen, KeyRound } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription,
   DialogHeader, DialogTitle,
@@ -21,6 +21,9 @@ export const EditUserModal = ({
   onAskDelete,
   onRemovePhoto,
   removingPhoto,
+  onUnlock,
+  unlocking,
+  onSendReset,
 }) => {
   // Histórico de mandatos do utilizador em edição (timeline só-leitura).
   const { data: cargoHistory = [] } = useQuery({
@@ -348,6 +351,37 @@ export const EditUserModal = ({
                   data-testid="modal-edit-department-outro"
                 />
               )}
+            </div>
+          </div>
+
+          {/* ===== Acesso à conta: recuperação (não altera acessos nem identidade) ===== */}
+          <div className="pt-4 border-t border-gray-100">
+            <p className="text-xs uppercase tracking-[0.12em] font-bold text-grafite" data-testid="section-conta">
+              Acesso à conta
+            </p>
+            <p className="text-[11px] text-[#9CA3AF] mt-0.5">
+              Recuperação de entrada — desbloquear após tentativas falhadas ou reenviar o link de redefinição de senha.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2 mt-3">
+              <button
+                type="button"
+                onClick={onUnlock}
+                disabled={unlocking}
+                className="inline-flex items-center justify-center gap-1.5 text-sm font-medium text-grafite border border-[#D1D5DB] px-3 py-2 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50"
+                data-testid="unlock-account-btn"
+              >
+                <LockOpen className="w-4 h-4" aria-hidden="true" />
+                {unlocking ? 'A desbloquear…' : 'Desbloquear conta'}
+              </button>
+              <button
+                type="button"
+                onClick={onSendReset}
+                className="inline-flex items-center justify-center gap-1.5 text-sm font-medium text-grafite border border-[#D1D5DB] px-3 py-2 rounded-md hover:bg-gray-50 transition-colors"
+                data-testid="send-reset-btn"
+              >
+                <KeyRound className="w-4 h-4" aria-hidden="true" />
+                Enviar redefinição de senha
+              </button>
             </div>
           </div>
         </div>

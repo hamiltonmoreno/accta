@@ -327,6 +327,24 @@ async def validate_invite(token: str):
     return {"name": user_doc["name"], "email": user_doc["email"]}
 
 
+async def issue_password_reset(email: str, name: str, request: Request) -> None:
+    """Gera um token de reset (TTL 1h), substitui os anteriores e envia o email
+    com o link. Partilhado por /forgot-password (self-service) e pelo endpoint de
+    admin (reenvio proativo) — mesma lógica, TTL e limpeza de tokens antigos.
+    Base do link via resolve_link_base (FRONTEND_URL / allowlist CORS); sem origem
+    confiável → reset_url vazio (o template instrui a pedir novo, não envia link
+    envenenado)."""
+    token = str(uuid.uuid4())
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+    await db.password_resets.delete_many({"email": email})
+    await db.password_resets.insert_one(
+        {"email": email, "token": token, "expires_at": expires_at.isoformat(), "used": False}
+    )
+    origin = resolve_link_base(request)
+    reset_url = f"{origin}/reset-password?token={token}" if origin else ""
+    await send_password_reset_email(name, email, reset_url, token)
+
+
 @router.post("/forgot-password")
 @limiter.limit("3/minute")
 async def forgot_password(request: Request, data: PasswordResetRequest):
@@ -344,19 +362,7 @@ async def forgot_password(request: Request, data: PasswordResetRequest):
     if not user or user.get("status") != "ativo":
         return generic_response
 
-    token = str(uuid.uuid4())
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
-
-    await db.password_resets.delete_many({"email": data.email})
-    await db.password_resets.insert_one(
-        {"email": data.email, "token": token, "expires_at": expires_at.isoformat(), "used": False}
-    )
-
-    # Base segura: FRONTEND_URL ou Origin/Referer só se na allowlist CORS.
-    # Sem origem confiável → reset_url vazio (não envia link envenenado).
-    origin = resolve_link_base(request)
-    reset_url = f"{origin}/reset-password?token={token}" if origin else ""
-    await send_password_reset_email(user.get("name", ""), data.email, reset_url, token)
+    await issue_password_reset(data.email, user.get("name", ""), request)
 
     # Resposta IDENTICA ao caso de email-nao-existe (anti-enumeration por response body).
     return generic_response
@@ -391,6 +397,11 @@ async def reset_password(request: Request, data: PasswordResetConfirm):
         {"email": reset_doc["email"]},
         {"$set": {"password": hashed, "password_changed_at": datetime.now(timezone.utc).isoformat()}},
     )
+
+    # Levanta o lockout: quem provou posse do email e redefiniu a senha recuperou
+    # o acesso legítimo. Sem isto, o login seguinte continua a devolver 423 (o gate
+    # de lockout corre ANTES da verificação da senha) até a janela de 15 min expirar.
+    await reset_failed_logins(reset_doc["email"])
 
     # Audit log da reset bem-sucedida — util para investigacao de account takeover.
     user_doc = await db.users.find_one({"email": reset_doc["email"]}, {"_id": 0, "id": 1})

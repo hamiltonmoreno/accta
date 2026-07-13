@@ -85,21 +85,36 @@ def invite_email_html(name: str, setup_url: str) -> str:
 
 def password_reset_email_html(name: str, reset_url: str, token: str) -> str:
     name = escape(name or "", quote=True)
+    # `token` mantém-se na assinatura por compatibilidade, mas o email é agora
+    # um LINK clicável (`reset_url`) — a página /reset-password lê o token do
+    # `?token=` do URL, não há campo para colar um código à mão. O botão é a
+    # via primária; o URL em texto é o fallback para clientes que não renderizam
+    # o botão. Sem `reset_url` (base não confiável) não há link envenenado —
+    # instrui a pedir novo pela página pública.
+    if reset_url:
+        safe_url = escape(reset_url, quote=True)
+        action_block = f"""
+    <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
+      <a href="{safe_url}" style="display:inline-block;padding:12px 32px;background-color:#166534;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:8px;">
+        Redefinir palavra-passe
+      </a>
+    </td></tr></table>
+    <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;line-height:1.6;word-break:break-all;">
+      Se o botao nao funcionar, copie este endereco para o navegador:<br>{safe_url}
+    </p>"""
+    else:
+        action_block = """
+    <p style="margin:0 0 0;font-size:14px;color:#6b7280;line-height:1.6;">
+      Aceda a pagina de recuperacao no portal e solicite um novo link.
+    </p>"""
     content = f"""
     <h2 style="margin:0 0 8px;font-size:20px;color:#3A3A3A;">Recuperacao de palavra-passe</h2>
-    <p style="margin:0 0 20px;font-size:14px;color:#6b7280;line-height:1.6;">
-      Ola {name}, recebemos um pedido para redefinir a sua palavra-passe no Portal ACCTA.
-    </p>
     <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">
-      Use o codigo abaixo na pagina de recuperacao:
-    </p>
-    <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
-      <div style="display:inline-block;padding:14px 28px;background-color:#f4f6fa;border:2px dashed #d1d5db;border-radius:8px;font-family:monospace;font-size:18px;font-weight:700;color:#3A3A3A;letter-spacing:2px;">
-        {token}
-      </div>
-    </td></tr></table>
+      Ola {name}, recebemos um pedido para redefinir a sua palavra-passe no Portal ACCTA.
+      Clique no botao abaixo para definir uma nova palavra-passe.
+    </p>{action_block}
     <p style="margin:24px 0 0;font-size:12px;color:#9ca3af;">
-      Este codigo expira em 1 hora. Se nao solicitou a recuperacao, ignore este email.
+      Este link expira em 1 hora. Se nao solicitou a recuperacao, ignore este email.
     </p>"""
     return _base_template(content)
 
