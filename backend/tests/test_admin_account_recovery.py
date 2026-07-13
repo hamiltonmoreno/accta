@@ -70,13 +70,13 @@ def wire_login_attempts(mock_db):
 class TestPasswordResetEmailHasLink:
     def test_contains_clickable_link(self):
         url = "https://controlador.cv/reset-password?token=abc123"
-        html = password_reset_email_html("Maria", url, "abc123")
+        html = password_reset_email_html("Maria", url)
         assert f'href="{url}"' in html
         assert "reset-password?token=abc123" in html
 
     def test_no_url_degrades_without_poisoned_link(self):
         # Sem base confiável (reset_url="") não deve inventar um link.
-        html = password_reset_email_html("Maria", "", "abc123")
+        html = password_reset_email_html("Maria", "")
         assert "href=" not in html
 
 

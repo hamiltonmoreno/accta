@@ -13,7 +13,11 @@ logger = logging.getLogger(__name__)
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "noreply@controlador.cv")
-APP_NAME = "Portal ACCTA"
+APP_NAME = "Plataforma Digital da ACCTA"  # nome oficial (PDA)
+# URL estável do ícone da marca — o mesmo endpoint que o manifest/PWA usam: resolve
+# sempre para o ícone carregado na Aparência ou, na sua ausência, para logo512.png.
+# Absoluto e sem auth → serve directamente como <img> no email. Override por env.
+BRAND_ICON_URL = os.environ.get("BRAND_ICON_URL", "https://api.controlador.cv/api/brand/icon")
 _BATCH_CHUNK_SIZE = 100  # Resend Batch aceita até 100 por chamada
 
 if RESEND_API_KEY:
@@ -32,12 +36,10 @@ def _base_template(content: str) -> str:
 <table width="560" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
 
 <!-- Header -->
-<tr><td style="background-color:#3A3A3A;padding:24px 32px;text-align:center;">
-  <table cellpadding="0" cellspacing="0" align="center"><tr>
-    <td style="width:8px;height:28px;background-color:#C7202F;border-radius:4px;"></td>
-    <td style="padding-left:12px;font-size:18px;font-weight:700;color:#ffffff;letter-spacing:1px;">ACCTA</td>
-  </tr></table>
-  <p style="margin:6px 0 0;font-size:11px;color:#94a3b8;letter-spacing:0.5px;">Associacao dos Controladores de Trafego Aereo</p>
+<tr><td style="background-color:#ffffff;padding:28px 32px 20px;text-align:center;border-bottom:3px solid #C7202F;">
+  <img src="{BRAND_ICON_URL}" width="56" height="56" alt="Plataforma Digital da ACCTA (PDA)" style="display:block;margin:0 auto 12px;width:56px;height:56px;object-fit:contain;border:0;outline:none;text-decoration:none;">
+  <div style="font-size:18px;font-weight:700;color:#3A3A3A;letter-spacing:0.5px;">Plataforma Digital da ACCTA</div>
+  <p style="margin:4px 0 0;font-size:11px;color:#9ca3af;letter-spacing:0.5px;">Associacao dos Controladores de Trafego Aereo — Cabo Verde</p>
 </td></tr>
 
 <!-- Content -->
@@ -47,7 +49,7 @@ def _base_template(content: str) -> str:
 
 <!-- Footer -->
 <tr><td style="padding:20px 32px;background-color:#f9fafb;border-top:1px solid #e5e7eb;text-align:center;">
-  <p style="margin:0;font-size:11px;color:#9ca3af;">Este email foi enviado automaticamente pelo {APP_NAME}.</p>
+  <p style="margin:0;font-size:11px;color:#9ca3af;">Este email foi enviado automaticamente pela Plataforma Digital da ACCTA (PDA).</p>
   <p style="margin:4px 0 0;font-size:11px;color:#9ca3af;">Cabo Verde</p>
 </td></tr>
 
@@ -83,14 +85,13 @@ def invite_email_html(name: str, setup_url: str) -> str:
     return _base_template(content)
 
 
-def password_reset_email_html(name: str, reset_url: str, token: str) -> str:
+def password_reset_email_html(name: str, reset_url: str) -> str:
     name = escape(name or "", quote=True)
-    # `token` mantém-se na assinatura por compatibilidade, mas o email é agora
-    # um LINK clicável (`reset_url`) — a página /reset-password lê o token do
-    # `?token=` do URL, não há campo para colar um código à mão. O botão é a
-    # via primária; o URL em texto é o fallback para clientes que não renderizam
-    # o botão. Sem `reset_url` (base não confiável) não há link envenenado —
-    # instrui a pedir novo pela página pública.
+    # O email é um LINK clicável (`reset_url`) — a página /reset-password lê o
+    # token do `?token=` do URL, não há campo para colar um código à mão. O botão
+    # é a via primária; o URL em texto é o fallback para clientes que não
+    # renderizam o botão. Sem `reset_url` (base não confiável) não há link
+    # envenenado — instrui a pedir novo pela página pública.
     if reset_url:
         safe_url = escape(reset_url, quote=True)
         action_block = f"""
@@ -110,7 +111,7 @@ def password_reset_email_html(name: str, reset_url: str, token: str) -> str:
     content = f"""
     <h2 style="margin:0 0 8px;font-size:20px;color:#3A3A3A;">Recuperacao de palavra-passe</h2>
     <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">
-      Ola {name}, recebemos um pedido para redefinir a sua palavra-passe no Portal ACCTA.
+      Ola {name}, recebemos um pedido para redefinir a sua palavra-passe na Plataforma Digital da ACCTA.
       Clique no botao abaixo para definir uma nova palavra-passe.
     </p>{action_block}
     <p style="margin:24px 0 0;font-size:12px;color:#9ca3af;">
@@ -137,7 +138,7 @@ def welcome_email_html(name: str) -> str:
     content = f"""
     <h2 style="margin:0 0 8px;font-size:20px;color:#3A3A3A;">Conta Ativada!</h2>
     <p style="margin:0 0 20px;font-size:14px;color:#6b7280;line-height:1.6;">
-      Ola {name}, a sua conta no Portal ACCTA foi ativada com sucesso.
+      Ola {name}, a sua conta na Plataforma Digital da ACCTA foi ativada com sucesso.
     </p>
     <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">
       Agora tem acesso a todas as funcionalidades da area reservada: dashboard, votacoes, eventos, documentos, mural e muito mais.
@@ -208,8 +209,8 @@ async def send_invite_email(name: str, email: str, setup_url: str) -> dict:
     return await send_email(email, f"Convite — {APP_NAME}", html)
 
 
-async def send_password_reset_email(name: str, email: str, reset_url: str, token: str) -> dict:
-    html = password_reset_email_html(name, reset_url, token)
+async def send_password_reset_email(name: str, email: str, reset_url: str) -> dict:
+    html = password_reset_email_html(name, reset_url)
     return await send_email(email, f"Recuperacao de palavra-passe — {APP_NAME}", html)
 
 
@@ -263,7 +264,7 @@ def comunicado_email_html(
     if tipo == "informativo":
         optout_note = (
             '<p style="margin:20px 0 0;font-size:12px;color:#6b7280;line-height:1.5;">'
-            "Pode desactivar estes avisos informativos no seu perfil no Portal ACCTA.</p>"
+            "Pode desactivar estes avisos informativos no seu perfil na Plataforma Digital da ACCTA.</p>"
         )
     content = f"""
     <h2 style="margin:0 0 16px;font-size:20px;color:#3A3A3A;">{safe_subject}</h2>
