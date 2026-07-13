@@ -129,15 +129,15 @@ partilhado — bloqueio único para todas as user stories.
 
 **Purpose**: universalização do RankingTopN (Q2), validação final e release Via B.
 
-- [ ] T026 [P] Verificar em prod (via `GET /api/ranking/settings` como admin) o valor de `visibility`. Se `direcao_only` → `PATCH /api/ranking/settings` com `{"visibility": "all_members"}` (endpoint existente, admin-only, auditado). Zero código a mudar; **decisão Q2** aplicada por configuração
+- [X] T026 [P] Verificar em prod (via `GET /api/ranking/settings` como admin) o valor de `visibility`. Se `direcao_only` → `PATCH /api/ranking/settings` com `{"visibility": "all_members"}` (endpoint existente, admin-only, auditado). Zero código a mudar; **decisão Q2** aplicada por configuração
 - [X] T027 [P] Correr `cd backend && ruff check . && ruff format --check .` e `cd frontend && npx eslint src/ --ext .js,.jsx --max-warnings=60` — verde
 - [X] T028 [P] Correr `cd backend && pytest -m unit` — verde (baseline de T003 + N novos testes de dashboard)
-- [ ] T029 Rodar validação end-to-end do [quickstart.md](./quickstart.md) passos 1–5 em dev — todos os checks verdes (paridade admin/sócio, tripwire PII no browser, universalização do Top-N)
-- [ ] T030 **STOP p/ dono** (Princípio VI): confirmar release. Merge `feature/dashboard-unificado → develop` via PR (CodeRabbit opcional); depois `release/vX.Y.Z → main` via PR de release
-- [ ] T031 **STOP p/ dono**: deploy backend por **Via B** ([[prod-backend-deployed-state]] + `docs/runbook-deploy-backend-via-b.md`) — Vercel deploya frontend automaticamente na `main`
-- [ ] T032 **Teste decisivo em prod** ([quickstart.md#6](./quickstart.md)): 3 curls a `api.controlador.cv/api/dashboard/overview` (admin 200, sócio comum 200 com payload idêntico, sem-token 401); confirmar em navegador como sócio comum que os widgets financeiros aparecem e `/financeiro` continua 403
+- [X] T029 Rodar validação end-to-end do [quickstart.md](./quickstart.md) passos 1–5 em dev — todos os checks verdes (paridade admin/sócio, tripwire PII no browser, universalização do Top-N)
+- [X] T030 **STOP p/ dono** (Princípio VI): confirmar release. Merge `feature/dashboard-unificado → develop` via PR (CodeRabbit opcional); depois `release/vX.Y.Z → main` via PR de release
+- [X] T031 **STOP p/ dono**: deploy backend por **Via B** ([[prod-backend-deployed-state]] + `docs/runbook-deploy-backend-via-b.md`) — Vercel deploya frontend automaticamente na `main`
+- [X] T032 **Teste decisivo em prod** ([quickstart.md#6](./quickstart.md)): 3 curls a `api.controlador.cv/api/dashboard/overview` (admin 200, sócio comum 200 com payload idêntico, sem-token 401); confirmar em navegador como sócio comum que os widgets financeiros aparecem e `/financeiro` continua 403
 - [ ] T033 **Validação funcional pelo dono** (Princípio VII): abrir Dashboard como sócio comum em `controlador.cv` no navegador e confirmar visualmente todos os cenários de aceitação (US1/US2/US3 na spec)
-- [ ] T034 Actualizar memória (`memory/prod-backend-deployed-state.md` — nova versão) + `memory/MEMORY.md` (linha de spec 020 concluída) + `CLAUDE.md` (mover 020 para "concluída")
+- [X] T034 Actualizar memória (`memory/prod-backend-deployed-state.md` — nova versão) + `memory/MEMORY.md` (linha de spec 020 concluída) + `CLAUDE.md` (mover 020 para "concluída")
 
 ---
 

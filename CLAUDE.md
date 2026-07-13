@@ -391,23 +391,21 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Feature ativa: `specs/020-dashboard-unificado/` — **Dashboard unificado para todos os sócios**
-(planeada 2026-07-13; plano em `specs/020-dashboard-unificado/plan.md`). Uniformizar o Dashboard:
-mesmos widgets para admin/financeiro/moderador/sócio comum, **incluindo evolução financeira
-agregada** (saldo, receitas×despesas mensal, resultado, quotas mês, pizza categorias) + KPIs de
-vida associativa (sócios activos, novos 90d, próximas AGAs, atos pendentes agregados, participação
-em votações). Decisões do dono (2026-07-13): **Q1 = Sweet-spot** (Grupo B finanças agregadas B.8–B.12
-+ Grupo A vida associativa A.1/A.2/A.3/A.5/A.7); **Q2 = universalizar RankingTopN** (Top-N com
-nomes a todos). `/financeiro` e drill-down **continuam gated** pelos privilégios existentes; widgets
-são read-only sem afordância de clique para quem não tem privilégio (US2). Diagnóstico do research
-(R1): 4 endpoints hoje rejeitam sócio comum com 403 (`/stats`, `/finances/summary`, `/finances/dre`,
-`/atos`) — logo entrega **não pode** ser frontend-only. **Abordagem (R2)**: 1 endpoint agregador
-`GET /api/dashboard/overview` (autenticado, sem role check) com `response_model` estrito
-(`DashboardOverview`) + tripwire PII, reutiliza `compute_financial_summary`/`compute_dre_report`
-já modulares. Endpoints antigos **inalterados**. Frontend: remove gate `hasFinance` no
-`DashboardPage.js`, widgets financeiros ficam read-only para quem não tem `hasFinance`. Zero deps
-novas, zero migração, zero campo novo em `users`. Toca `backend/` ⇒ release **Via B obrigatória**.
-Próximo: `/speckit-tasks`.
+Feature ativa (concluída): `specs/020-dashboard-unificado/` — **Dashboard unificado para todos os
+sócios**. **RELEASED v0.5.60 (PR #429→main, `sha-836bd309ee91`) e DEPLOYED em prod Via B 2026-07-13**
+(rollback `sha-19f89e40c31c` v0.5.59). Uniformiza o Dashboard: mesmos widgets para todos os sócios,
+incluindo evolução financeira agregada + KPIs de vida associativa. Decisões do dono aplicadas:
+Q1=Sweet-spot (B.8–B.12 finanças + A.1/A.2/A.3/A.5/A.7 vida associativa), Q2=universalizar
+RankingTopN (já era default `all_members` em prod, sem PATCH). Endpoint agregador
+`GET /api/dashboard/overview` (universal-authenticated, `response_model=DashboardOverview` +
+tripwire PII); reutiliza `compute_financial_summary`/`compute_dre_report`. Endpoints antigos
+inalterados. Frontend: `hasFinance` reintroduzido como flag de **afordância de clique** apenas
+(não visibilidade); `AdminStats` retirado (KPIs redistribuídos por VidaAssociativa/ProximasAssembleias/
+FinanceSummary). Backend tocado: `models.py` (+9 response models), `routes/dashboard.py` (novo, ~150L),
+`routes/__init__.py`. Zero deps novas, zero migração, zero campo novo. `pytest -m unit` 1692 passed
+(baseline 1683 + 9 novos: tripwire PII, paridade admin/sócio, mock-tracker anti-duplicação, matriz de
+acessos +universal). Teste decisivo em prod: `GET /api/dashboard/overview`→401 sem token, HEAD→405
+(endpoint vivo). Residual: validação em navegador (Princípio VII — dono).
 
 ---
 
