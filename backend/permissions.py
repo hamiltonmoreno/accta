@@ -12,7 +12,6 @@ from __future__ import annotations
 from typing import Optional
 
 from governance import (
-    ASSEMBLEIA_GERAL,
     CONSELHO_FISCAL,
     DIRECAO,
     is_eligible_for_office as _is_eligible_doc,
@@ -87,11 +86,6 @@ def is_presidente(user) -> bool:
 
 def is_tesoureiro(user) -> bool:
     return _cargo_key(user) == "dir_tesoureiro"
-
-
-def is_assembleia_geral(user) -> bool:
-    """Pertence à Mesa da AG (alias semântico para o órgão AG)."""
-    return orgao_of_cargo(_cargo_key(user)) == ASSEMBLEIA_GERAL
 
 
 def can_convene_assembleia(user) -> bool:

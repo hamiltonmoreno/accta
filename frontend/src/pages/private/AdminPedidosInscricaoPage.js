@@ -10,6 +10,7 @@ import {
 } from '../../components/ui/dialog';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
+import { formatDate } from '../../lib/date';
 
 // spec 018 D1/D2: só os níveis de acesso reais; acesso granular atribui-se
 // depois via privilégios/funções personalizadas na gestão de utilizadores.
@@ -22,15 +23,6 @@ const TABS = [
   { value: 'pendente_aprovacao', label: 'Pendentes' },
   { value: 'rejeitado', label: 'Rejeitados' },
 ];
-
-const formatDate = (iso) => {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  } catch {
-    return '—';
-  }
-};
 
 export const AdminPedidosInscricaoPage = () => {
   const qc = useQueryClient();

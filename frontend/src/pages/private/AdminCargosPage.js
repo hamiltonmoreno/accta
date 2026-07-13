@@ -11,17 +11,9 @@ import {
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
 import { MemberPicker as CandidatePicker } from '../../components/MemberPicker';
+import { formatDate } from '../../lib/date';
 
 const ROLE_OPTIONS = ['admin', 'socio']; // spec 018 D1
-
-const formatDate = (iso) => {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  } catch {
-    return '—';
-  }
-};
 
 // Campos partilhados pelos modais de atribuir/transferir: role + privilégios + meta.
 const MandateFields = ({ form, setForm, privileges }) => (

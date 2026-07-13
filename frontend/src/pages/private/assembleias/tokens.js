@@ -1,16 +1,7 @@
 export const TIPO_OPTIONS = ['ordinaria', 'extraordinaria', 'eleitoral'];
 export const MAIORIA_OPTIONS = ['absoluta', 'qualificada_2_3', 'qualificada_3_4_presentes', 'qualificada_3_4_universo'];
 
-export const formatDateTime = (iso) => {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleString('pt-PT', {
-      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
-    });
-  } catch {
-    return '—';
-  }
-};
+export { formatDateTime } from '../../../lib/date';
 
 export const fieldCls = 'w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none';
 export const labelCls = 'block text-xs font-medium text-[#6B7280] mb-1.5';

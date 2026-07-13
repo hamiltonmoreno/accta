@@ -32,7 +32,7 @@ export const HeroSection = ({ heroImg, alt }) => {
             </div>
 
             <h1 className="font-bold text-3xl sm:text-5xl lg:text-6xl xl:text-7xl text-white leading-tight mb-4 sm:mb-6" data-testid="hero-title">
-              O controlo de tráfego aéreo em Cabo Verde.
+              As vozes que guiam os céus de Cabo Verde.
             </h1>
 
             <p className="text-base sm:text-xl lg:text-2xl text-white leading-relaxed mb-8 sm:mb-10 max-w-xl [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]">

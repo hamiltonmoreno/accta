@@ -33,13 +33,5 @@ export const STATUS_CONFIG = {
   falhado: { label: 'Falhado', icon: XCircle, className: 'bg-[#FEF2F2] text-[#B91C1C] border-[#C7202F]/40' },
 };
 
-export const formatDate = (iso) => {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleString('pt-PT', {
-      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
-    });
-  } catch {
-    return '—';
-  }
-};
+// `formatDate` aqui inclui hora (comportamento histórico) → mapeia para formatDateTime.
+export { formatDateTime as formatDate } from '../../../lib/date';

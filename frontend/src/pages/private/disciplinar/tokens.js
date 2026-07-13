@@ -27,14 +27,7 @@ export const STATUS_META = {
   anulada: { icon: XCircle, cls: 'bg-[#F5F5F5] text-[#6B7280] border-[#E5E7EB]' },
 };
 
-export const formatDate = (iso) => {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  } catch {
-    return '—';
-  }
-};
+export { formatDate } from '../../../lib/date';
 
 export const formatEscudo = (v) => {
   if (v === null || v === undefined || v === '') return '—';

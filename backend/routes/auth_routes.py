@@ -342,7 +342,7 @@ async def issue_password_reset(email: str, name: str, request: Request) -> None:
     )
     origin = resolve_link_base(request)
     reset_url = f"{origin}/reset-password?token={token}" if origin else ""
-    await send_password_reset_email(name, email, reset_url, token)
+    await send_password_reset_email(name, email, reset_url)
 
 
 @router.post("/forgot-password")

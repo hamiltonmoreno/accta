@@ -28,14 +28,7 @@ export const ESTADO_LISTA_STYLE = {
   rejeitada: { fg: 'text-[#B91C1C]', bg: 'bg-[#FEF2F2]', label: 'Rejeitada' },
 };
 
-export const formatDate = (iso) => {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  } catch {
-    return '—';
-  }
-};
+export { formatDate } from '../../../lib/date';
 
 export const fieldClass = 'w-full px-3 py-2 border border-[#E5E7EB] rounded-md text-sm focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 outline-none';
 export const labelClass = 'block text-xs font-medium text-[#6B7280] mb-1.5';

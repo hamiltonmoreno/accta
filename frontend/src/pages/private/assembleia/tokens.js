@@ -21,13 +21,4 @@ export const STATUS_STYLES = {
   anulada: { cls: 'bg-[#FEF2F2] text-[#B91C1C] border-[#FECACA]', Icon: XCircle },
 };
 
-export const formatDateTime = (iso) => {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleString('pt-PT', {
-      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
-    });
-  } catch {
-    return '—';
-  }
-};
+export { formatDateTime } from '../../../lib/date';
