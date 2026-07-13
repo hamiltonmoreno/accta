@@ -3,6 +3,8 @@
 // spec 018 D1/D2: níveis de acesso = Admin/Sócio; o acesso granular vem de
 // privilégios e funções personalizadas (as antigas «Financeiro»/«Moderador»
 // existem como funções seed).
+import { formatDate } from '../../../lib/date';
+
 export const ROLES = ['admin', 'socio'];
 export const STATUSES = ['ativo', 'inativo', 'pendente_convite'];
 
@@ -23,14 +25,8 @@ export const DEPARTAMENTOS = [
 // Sentinela de UI para permitir um valor fora da lista (texto livre).
 export const DEPARTAMENTO_OUTRO = 'Outro';
 
-export const formatHistoryDate = (iso) => {
-  if (!iso) return null;
-  try {
-    return new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  } catch {
-    return null;
-  }
-};
+// Histórico esconde o campo quando não há data → fallback null (não '—').
+export const formatHistoryDate = (iso) => formatDate(iso, null);
 
 export const EMPTY_INVITE = {
   name: '',
