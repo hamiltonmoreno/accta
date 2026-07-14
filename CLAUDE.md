@@ -391,8 +391,8 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Feature ativa (concluída): `specs/020-dashboard-unificado/` — **Dashboard unificado para todos os
-sócios**. **RELEASED v0.5.60 (PR #429→main, `sha-836bd309ee91`) e DEPLOYED em prod Via B 2026-07-13**
+Last completed: `specs/020-dashboard-unificado-concluido/` — **Dashboard unificado para todos os
+sócios**. **RELEASED v0.5.60 (PR #429→main, `sha-836bd309ee91`) e DEPLOYED em prod Via B 2026-07-13; VALIDADO pelo dono em navegador 2026-07-14 (T033 ✓)**
 (rollback `sha-19f89e40c31c` v0.5.59). Uniformiza o Dashboard: mesmos widgets para todos os sócios,
 incluindo evolução financeira agregada + KPIs de vida associativa. Decisões do dono aplicadas:
 Q1=Sweet-spot (B.8–B.12 finanças + A.1/A.2/A.3/A.5/A.7 vida associativa), Q2=universalizar
