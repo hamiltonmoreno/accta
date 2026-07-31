@@ -139,7 +139,7 @@ jobs:
           echo "sha-tag=${SHA_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Build & push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           # Contexto = raiz do repo: o Dockerfile faz COPY backend/ e scripts/.
           context: .
