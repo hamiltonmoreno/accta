@@ -1,1 +1,24 @@
-export default {};
+export default {
+  meta: {
+    title: 'Nova palavra-passe | ACCTA',
+    description: 'Defina uma nova palavra-passe de acesso ao portal da ACCTA.',
+  },
+  successToast: 'Palavra-passe alterada com sucesso!',
+  errorGeneric: 'Erro ao redefinir palavra-passe',
+  missingTokenTitle: 'Token em falta',
+  missingTokenBody: 'O link de recuperação é inválido ou não contém um token.',
+  requestNewLink: 'Solicitar novo link',
+  backToLogin: 'Voltar ao login',
+  title: 'Nova palavra-passe',
+  subtitle: 'Defina a sua nova palavra-passe de acesso ao portal.',
+  passwordLabel: 'Nova palavra-passe',
+  passwordPlaceholder: 'Mínimo 6 caracteres',
+  hidePassword: 'Esconder palavra-passe',
+  showPassword: 'Mostrar palavra-passe',
+  confirmLabel: 'Confirmar palavra-passe',
+  confirmPlaceholder: 'Repita a palavra-passe',
+  submit: 'Redefinir palavra-passe',
+  successTitle: 'Palavra-passe alterada!',
+  successBody: 'A sua palavra-passe foi redefinida com sucesso. Já pode fazer login com a nova palavra-passe.',
+  goToLogin: 'Ir para o login',
+};

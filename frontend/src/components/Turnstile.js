@@ -1,4 +1,5 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { useI18n } from '../i18n';
 
 // Widget Cloudflare Turnstile (anti-bot) para os formulários públicos.
 // A Site Key é PÚBLICA por natureza (vai no HTML) — fica num env opcional com
@@ -6,6 +7,8 @@ import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react
 const SITE_KEY = process.env.REACT_APP_TURNSTILE_SITE_KEY || '0x4AAAAAADs8kZrozSpCdz7g';
 const SCRIPT_ID = 'cf-turnstile-script';
 const SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+// PT mantém 'auto' (comportamento anterior); EN/FR forçam a língua da página.
+const WIDGET_LANGUAGE = { pt: 'auto', en: 'en', fr: 'fr' };
 
 /**
  * Renderiza o widget Turnstile e devolve o token via `onVerify(token)`.
@@ -17,6 +20,8 @@ const SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render
  * widget produz sempre um token quando a verificação for ligada.
  */
 export const Turnstile = forwardRef(function Turnstile({ onVerify, className = 'my-1' }, ref) {
+  const { locale } = useI18n();
+  const language = WIDGET_LANGUAGE[locale] || 'auto';
   const containerRef = useRef(null);
   const widgetIdRef = useRef(null);
   // Guarda o callback numa ref para não re-correr o effect (nem stale closures).
@@ -56,6 +61,7 @@ export const Turnstile = forwardRef(function Turnstile({ onVerify, className = '
       if (window.turnstile && containerRef.current) {
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: SITE_KEY,
+          language,
           callback: (token) => onVerifyRef.current?.(token),
           'error-callback': () => onVerifyRef.current?.(''),
           'expired-callback': () => onVerifyRef.current?.(''),
@@ -85,7 +91,7 @@ export const Turnstile = forwardRef(function Turnstile({ onVerify, className = '
         widgetIdRef.current = null;
       }
     };
-  }, []);
+  }, [language]);
 
   return <div ref={containerRef} className={className} />;
 });

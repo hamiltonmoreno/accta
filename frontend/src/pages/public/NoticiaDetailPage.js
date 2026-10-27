@@ -2,16 +2,19 @@ import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Calendar, Tag, User, Newspaper } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { postsAPI, mediaUrl } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
 import { EmptyState } from '../../components/EmptyState';
-
-const TYPE_LABELS = { noticia: 'Notícia', institucional: 'Institucional', educativo: 'Educativo' };
+import { PortugueseContentNotice } from '../../components/PortugueseContentNotice';
+import { useI18n } from '../../i18n';
+import { useFormatDate } from '../../i18n/dates';
+import { usePageMeta } from '../../i18n/usePageMeta';
 
 export const NoticiaDetailPage = () => {
   const { slug } = useParams();
+  const { t, lp } = useI18n();
+  const formatDate = useFormatDate();
+  usePageMeta('noticias');
 
   const { data: post, isLoading, isError } = useQuery({
     queryKey: queryKeys.posts.detail(slug),
@@ -36,13 +39,13 @@ export const NoticiaDetailPage = () => {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <EmptyState
           icon={Newspaper}
-          title="Notícia não encontrada"
-          description="O artigo que procura não existe ou já não está disponível."
+          title={t('noticias.detail.notFoundTitle')}
+          description={t('noticias.detail.notFoundBody')}
           testId="noticia-not-found"
           action={
-            <Link to="/noticias"
+            <Link to={lp('/noticias')}
               className="inline-flex items-center gap-2 bg-grafite text-white px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-grafite-dark transition-colors">
-              <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Voltar às notícias
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" /> {t('noticias.detail.back')}
             </Link>
           }
         />
@@ -55,10 +58,10 @@ export const NoticiaDetailPage = () => {
   return (
     <article className="py-12 sm:py-16">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Link to="/noticias"
+        <Link to={lp('/noticias')}
           className="inline-flex items-center gap-2 text-sm text-carmesim font-semibold hover:text-carmesim-dark transition-colors mb-8"
           data-testid="back-to-noticias">
-          <ArrowLeft className="w-4 h-4" aria-hidden="true" /> Voltar às notícias
+          <ArrowLeft className="w-4 h-4" aria-hidden="true" /> {t('noticias.detail.back')}
         </Link>
 
         {post.cover_url && (
@@ -72,12 +75,12 @@ export const NoticiaDetailPage = () => {
 
         <div className="flex flex-wrap items-center gap-3 mb-4">
           <span className="px-3 py-1 bg-[#FBEAEC] text-carmesim rounded-full text-xs font-semibold uppercase tracking-wider">
-            {TYPE_LABELS[post.type] || post.type}
+            {t('noticias.types')[post.type] || post.type}
           </span>
           {dateStr && (
             <span className="inline-flex items-center gap-1 text-xs text-[#6B7280]">
               <Calendar className="w-3.5 h-3.5" aria-hidden="true" />
-              {format(new Date(dateStr), 'dd MMM yyyy', { locale: ptBR })}
+              {formatDate(new Date(dateStr), t('noticias.dateFormat'))}
             </span>
           )}
           {post.author_name && (
@@ -86,6 +89,8 @@ export const NoticiaDetailPage = () => {
             </span>
           )}
         </div>
+
+        <PortugueseContentNotice className="mb-4" />
 
         <h1 className="font-bold text-3xl sm:text-4xl text-grafite leading-tight mb-6" data-testid="noticia-title">
           {post.title}

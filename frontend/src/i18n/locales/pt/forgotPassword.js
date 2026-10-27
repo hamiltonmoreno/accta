@@ -1,1 +1,23 @@
-export default {};
+export default {
+  meta: {
+    title: 'Recuperar palavra-passe | ACCTA',
+    description: 'Peça um link para redefinir a palavra-passe do portal da ACCTA.',
+  },
+  sentToast: 'Pedido enviado!',
+  errorGeneric: 'Erro ao processar pedido',
+  copiedToast: 'Link copiado!',
+  backToLogin: 'Voltar ao login',
+  title: 'Recuperar palavra-passe',
+  subtitle: 'Introduza o email associado à sua conta para receber instruções de recuperação.',
+  emailLabel: 'Email',
+  emailPlaceholder: 'seu@email.cv',
+  submit: 'Enviar',
+  successTitle: 'Pedido recebido',
+  successBefore: 'Se a conta',
+  successAfter: 'existir, um email com instruções de recuperação será enviado em breve.',
+  demoLinkLabel: 'Link de recuperação (modo demo)',
+  copied: 'Copiado',
+  copy: 'Copiar',
+  resetNow: 'Redefinir palavra-passe agora',
+  tryAnother: 'Tentar com outro email',
+};

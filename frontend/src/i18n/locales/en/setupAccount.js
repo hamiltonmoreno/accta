@@ -1,1 +1,23 @@
-export default {};
+export default {
+  meta: {
+    title: 'Activate account | ACCTA',
+    description: 'Set your password to activate your ACCTA portal account.',
+  },
+  successToast: 'Account activated successfully!',
+  errorGeneric: 'Unable to activate the account',
+  invalidTitle: 'Invalid Invitation',
+  invalidBody: 'This invitation link is invalid or has already been used. Please contact the ACCTA administrator.',
+  backToLogin: 'Back to Sign in',
+  successTitle: 'Account Activated!',
+  redirecting: 'Redirecting to the dashboard...',
+  welcome: 'Welcome to ACCTA',
+  intro: '{name}, set your password to activate your account.',
+  passwordLabel: 'Password',
+  passwordPlaceholder: 'At least 6 characters',
+  hidePassword: 'Hide password',
+  showPassword: 'Show password',
+  confirmLabel: 'Confirm Password',
+  confirmPlaceholder: 'Repeat the password',
+  activating: 'Activating...',
+  submit: 'Activate Account',
+};

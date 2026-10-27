@@ -23,34 +23,38 @@ import { ProfissaoDestaques } from '../../components/ProfissaoDestaques';
 import { TextoInstituicoes } from '../../components/TextoInstituicoes';
 import { FontesOficiais } from '../../components/FontesOficiais';
 import { FirMap } from '../../components/FirMap';
-import {
-  definicaoCTA,
-  responsabilidades,
-  tiposControlo,
-  qualificacoes,
-  caminhoCTA,
-  camadas,
-  fir,
-  unidades,
-  infraestrutura,
-  requisitos,
-  recencia,
-  reentrada,
-  conversao,
-  notaRegulatoria,
-  ato,
-  caminhos,
-  academico,
-  notaFonte
-} from '../../content/cta';
+import { useI18n, useCta } from '../../i18n';
+import { usePageMeta } from '../../i18n/usePageMeta';
 
 const TIPO_ICONS = { TWR: Building2, APP: Radar, ACC: Globe };
 const REQ_ICONS = [Users, GraduationCap, Radio, Languages, Heart];
 
 export const ProfissaoPage = () => {
+  const { t, lp } = useI18n();
+  const {
+    definicaoCTA,
+    responsabilidades,
+    tiposControlo,
+    qualificacoes,
+    caminhoCTA,
+    camadas,
+    fir,
+    unidades,
+    infraestrutura,
+    requisitos,
+    recencia,
+    reentrada,
+    conversao,
+    notaRegulatoria,
+    ato,
+    caminhos,
+    academico,
+    notaFonte,
+  } = useCta();
+  usePageMeta('profissao');
   return (
     <div className="min-h-screen bg-gray-50">
-      <PageBanner pageKey="profissao" title="O que é ser um Controlador de Tráfego Aéreo?" subtitle="Uma profissão de raciocínio rápido, alta responsabilidade e precisão absoluta" />
+      <PageBanner pageKey="profissao" title={t('profissao.banner.title')} subtitle={t('profissao.banner.subtitle')} />
 
       {/* Introduction */}
       <section className="py-12 sm:py-20 lg:py-24">
@@ -58,24 +62,23 @@ export const ProfissaoPage = () => {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="animate-fade-up">
               <h2 className="font-sans font-bold text-3xl md:text-4xl text-grafite mb-8">
-                O profissional que guia os{' '}
-                <span className="text-carmesim">Céus</span>
+                {t('profissao.intro.titleA')}{' '}
+                <span className="text-carmesim">{t('profissao.intro.titleHighlight')}</span>
               </h2>
               <div className="space-y-6 text-lg text-gray-600 leading-relaxed">
                 <p>{definicaoCTA.resumo}</p>
                 <p>
-                  É uma profissão que exige <span className="text-carmesim font-semibold">concentração extrema</span>,
-                  capacidade de decidir rapidamente sob pressão e comunicação clara e precisa em inglês técnico.
+                  {t('profissao.intro.p2a')} <span className="text-carmesim font-semibold">{t('profissao.intro.p2Highlight')}</span>{t('profissao.intro.p2b')}
                 </p>
                 <p className="text-sm text-gray-500">
-                  Base legal: {definicaoCTA.baseLegal}.
+                  {t('profissao.baseLegal')} {definicaoCTA.baseLegal}.
                 </p>
               </div>
             </div>
 
             <div className="animate-fade-up">
               <div className="bg-white card-technical rounded-2xl p-8">
-                <h3 className="font-sans font-bold text-2xl text-grafite mb-6">Principais Responsabilidades</h3>
+                <h3 className="font-sans font-bold text-2xl text-grafite mb-6">{t('profissao.intro.responsibilities')}</h3>
                 <ul className="space-y-4">
                   {responsabilidades.map((item, index) => (
                     <li key={index} className="flex items-start gap-3">
@@ -95,14 +98,13 @@ export const ProfissaoPage = () => {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
-              Tipos de Controlo
+              {t('profissao.tipos.badge')}
             </span>
             <h2 className="font-sans font-bold text-3xl md:text-4xl text-grafite mb-4">
-              Os Tipos de Controlo em Cabo Verde
+              {t('profissao.tipos.title')}
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              O serviço de controlo de tráfego aéreo desdobra-se, no CV-CAR 17, em controlo de aeródromo,
-              de aproximação e de área
+              {t('profissao.tipos.subtitle')}
             </p>
           </div>
 
@@ -131,9 +133,9 @@ export const ProfissaoPage = () => {
           {/* Qualificações */}
           <div className="mt-16 max-w-4xl mx-auto">
             <h3 className="font-sans font-bold text-2xl text-grafite mb-2 text-center">
-              As cinco qualificações de CTA
+              {t('profissao.tipos.qualificacoes')}
             </h3>
-            <p className="text-sm text-gray-500 text-center mb-8">Base legal: {qualificacoes.baseLegal}</p>
+            <p className="text-sm text-gray-500 text-center mb-8">{t('profissao.baseLegal')} {qualificacoes.baseLegal}</p>
             <div className="grid sm:grid-cols-2 gap-4">
               {qualificacoes.lista.map((q) => (
                 <div key={q.sigla} className="flex items-start gap-3 card-technical card-hover rounded-xl p-5 animate-fade-up">
@@ -154,13 +156,13 @@ export const ProfissaoPage = () => {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-6">
-              Estrutura ATS
+              {t('profissao.ats.badge')}
             </span>
             <h2 className="font-sans font-bold text-3xl md:text-4xl text-grafite mb-4">
-              Quem faz o quê na navegação aérea
+              {t('profissao.ats.title')}
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              A navegação aérea de Cabo Verde organiza-se em quatro camadas funcionais
+              {t('profissao.ats.subtitle')}
             </p>
           </div>
 
@@ -191,9 +193,9 @@ export const ProfissaoPage = () => {
                 <TextoInstituicoes texto={fir.descricao} />
               </p>
               <ul className="space-y-2 text-sm text-gray-600">
-                <li><strong className="text-grafite">Base legal:</strong> {fir.baseLegal}</li>
-                <li><strong className="text-grafite">Comunicações:</strong> {fir.comunicacoes}</li>
-                <li><strong className="text-grafite">Vigilância:</strong> {fir.vigilancia}</li>
+                <li><strong className="text-grafite">{t('profissao.baseLegal')}</strong> {fir.baseLegal}</li>
+                <li><strong className="text-grafite">{t('profissao.ats.comunicacoes')}</strong> {fir.comunicacoes}</li>
+                <li><strong className="text-grafite">{t('profissao.ats.vigilancia')}</strong> {fir.vigilancia}</li>
                 <li><strong className="text-grafite">UTA/UIR:</strong> {fir.utaUir}</li>
               </ul>
             </div>
@@ -203,19 +205,19 @@ export const ProfissaoPage = () => {
               <div className="card-technical card-hover rounded-2xl p-8 animate-fade-up">
                 <div className="flex items-center gap-3 mb-4">
                   <MapPin className="w-7 h-7 text-carmesim" />
-                  <h3 className="font-sans font-bold text-2xl text-grafite">Órgãos ATS (operados pela ASA)</h3>
+                  <h3 className="font-sans font-bold text-2xl text-grafite">{t('profissao.ats.orgaos')}</h3>
                 </div>
                 <dl className="space-y-3 text-sm">
                   <div>
-                    <dt className="text-xs text-gray-500 uppercase tracking-wider">Centro de Controlo</dt>
+                    <dt className="text-xs text-gray-500 uppercase tracking-wider">{t('profissao.ats.acc')}</dt>
                     <dd className="text-grafite font-medium">{unidades.acc.join(' · ')}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-gray-500 uppercase tracking-wider">Torres de Controlo</dt>
+                    <dt className="text-xs text-gray-500 uppercase tracking-wider">{t('profissao.ats.twr')}</dt>
                     <dd className="text-grafite font-medium">{unidades.twr.join(' · ')}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-gray-500 uppercase tracking-wider">Serviço de Informação de Voo</dt>
+                    <dt className="text-xs text-gray-500 uppercase tracking-wider">{t('profissao.ats.fis')}</dt>
                     <dd className="text-grafite font-medium">{unidades.fis.join(' · ')}</dd>
                   </div>
                 </dl>
@@ -223,7 +225,7 @@ export const ProfissaoPage = () => {
               <div className="card-technical card-hover rounded-2xl p-8 animate-fade-up">
                 <div className="flex items-center gap-3 mb-3">
                   <Plane className="w-7 h-7 text-carmesim" />
-                  <h3 className="font-sans font-bold text-xl text-grafite">Infraestrutura aeroportuária</h3>
+                  <h3 className="font-sans font-bold text-xl text-grafite">{t('profissao.ats.infraestrutura')}</h3>
                 </div>
                 <p className="text-sm text-gray-600">{infraestrutura.resumo}</p>
               </div>
@@ -237,13 +239,13 @@ export const ProfissaoPage = () => {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
-              Carreira
+              {t('profissao.carreira.badge')}
             </span>
             <h2 className="font-sans font-bold text-3xl md:text-4xl text-grafite mb-4">
-              Como se tornar um Controlador
+              {t('profissao.carreira.title')}
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              <TextoInstituicoes texto="É um percurso seletivo e exigente, que segue padrões internacionais (ICAO) e é regulado pela AAC — Agência de Aviação Civil (Decreto-Lei n.º 47/2019), com a disciplina técnica a vir dos regulamentos CV-CAR" />
+              <TextoInstituicoes texto={t('profissao.carreira.subtitle')} />
             </p>
           </div>
 
@@ -271,7 +273,7 @@ export const ProfissaoPage = () => {
 
           {/* Requisitos */}
           <div className="max-w-4xl mx-auto">
-            <h3 className="font-sans font-semibold text-2xl text-grafite mb-8 text-center">Requisitos essenciais</h3>
+            <h3 className="font-sans font-semibold text-2xl text-grafite mb-8 text-center">{t('profissao.carreira.requisitos')}</h3>
             <div className="grid sm:grid-cols-2 gap-6">
               {requisitos.map((req, index) => {
                 const Icon = REQ_ICONS[index] || CheckCircle;
@@ -298,10 +300,10 @@ export const ProfissaoPage = () => {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-6">
-              Licenciamento
+              {t('profissao.licenciamento.badge')}
             </span>
             <h2 className="font-sans font-bold text-3xl md:text-4xl text-grafite mb-4">
-              Licenciamento, recência e validade
+              {t('profissao.licenciamento.title')}
             </h2>
           </div>
 
@@ -315,7 +317,7 @@ export const ProfissaoPage = () => {
             <div className="card-technical card-hover rounded-2xl p-8 animate-fade-up">
               <div className="flex items-center gap-3 mb-4">
                 <Clock className="w-7 h-7 text-carmesim" />
-                <h3 className="font-sans font-bold text-xl text-grafite">Recência e validade</h3>
+                <h3 className="font-sans font-bold text-xl text-grafite">{t('profissao.licenciamento.recencia')}</h3>
               </div>
               <ul className="space-y-3">
                 {recencia.pontos.map((p, i) => (
@@ -325,14 +327,14 @@ export const ProfissaoPage = () => {
                   </li>
                 ))}
               </ul>
-              <p className="text-xs text-gray-500 mt-4">Base legal: {recencia.baseLegal}</p>
+              <p className="text-xs text-gray-500 mt-4">{t('profissao.baseLegal')} {recencia.baseLegal}</p>
             </div>
 
             {/* Reentrada */}
             <div className="card-technical card-hover rounded-2xl p-8 animate-fade-up">
               <div className="flex items-center gap-3 mb-4">
                 <Scale className="w-7 h-7 text-carmesim" />
-                <h3 className="font-sans font-bold text-xl text-grafite">Reentrada operacional</h3>
+                <h3 className="font-sans font-bold text-xl text-grafite">{t('profissao.licenciamento.reentrada')}</h3>
               </div>
               <p className="text-sm text-gray-600 mb-4">{reentrada.intro}</p>
               <ul className="space-y-3">
@@ -343,14 +345,14 @@ export const ProfissaoPage = () => {
                   </li>
                 ))}
               </ul>
-              <p className="text-xs text-gray-500 mt-4">Base legal: {reentrada.baseLegal}</p>
+              <p className="text-xs text-gray-500 mt-4">{t('profissao.baseLegal')} {reentrada.baseLegal}</p>
             </div>
 
             {/* Conversão */}
             <div className="card-technical card-hover rounded-2xl p-8 animate-fade-up">
               <div className="flex items-center gap-3 mb-4">
                 <FileText className="w-7 h-7 text-carmesim" />
-                <h3 className="font-sans font-bold text-xl text-grafite">Conversão de licença estrangeira</h3>
+                <h3 className="font-sans font-bold text-xl text-grafite">{t('profissao.licenciamento.conversao')}</h3>
               </div>
               <ol className="space-y-3 list-decimal list-inside">
                 {conversao.passos.map((p, i) => (
@@ -368,10 +370,10 @@ export const ProfissaoPage = () => {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
-              Formação
+              {t('profissao.formacao.badge')}
             </span>
             <h2 className="font-sans font-bold text-3xl md:text-4xl text-grafite mb-4">
-              Onde formar-se
+              {t('profissao.formacao.title')}
             </h2>
             <p className="text-sm text-gray-500 max-w-2xl mx-auto">{notaFonte}</p>
           </div>
@@ -388,7 +390,7 @@ export const ProfissaoPage = () => {
                 </div>
                 <p className="text-sm text-gray-600 mb-3">{a.escopo}</p>
                 <p className="text-xs text-gray-500">
-                  Validade do certificado (à data desta publicação): {a.validade}
+                  {t('profissao.formacao.validade', { validade: a.validade })}
                 </p>
               </div>
             ))}
@@ -424,26 +426,25 @@ export const ProfissaoPage = () => {
 
             <div className="animate-fade-up">
               <span className="inline-block px-4 py-2 bg-white/10 text-white rounded-full text-sm uppercase tracking-wider mb-6">
-                Espaço Aéreo
+                {t('profissao.espaco.badge')}
               </span>
               <h2 className="font-sans font-bold text-3xl md:text-4xl text-white mb-6">
-                A {fir.nome}: um espaço estratégico
+                {t('profissao.espaco.title', { fir: fir.nome })}
               </h2>
               <p className="text-xl text-white/80 leading-relaxed mb-6">
                 {fir.descricao}
               </p>
               <p className="text-lg text-white/85 leading-relaxed mb-8">
-                Os controladores cabo-verdianos asseguram diariamente a passagem segura de voos
-                intercontinentais por este corredor vital entre a Europa, África e as Américas.
+                {t('profissao.espaco.texto')}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
                   <div className="font-sans font-bold text-2xl text-white mb-1">DL 9/80</div>
-                  <div className="text-xs text-white/60 uppercase tracking-wider">Decreto que criou a FIR</div>
+                  <div className="text-xs text-white/60 uppercase tracking-wider">{t('profissao.espaco.decreto')}</div>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
                   <div className="font-sans font-bold text-3xl text-white mb-1">24/7</div>
-                  <div className="text-xs text-white/60 uppercase tracking-wider">Operação contínua</div>
+                  <div className="text-xs text-white/60 uppercase tracking-wider">{t('profissao.espaco.operacao')}</div>
                 </div>
               </div>
             </div>
@@ -461,24 +462,24 @@ export const ProfissaoPage = () => {
       <section className="py-12 sm:py-20 lg:py-24 bg-white">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="font-sans font-bold text-3xl md:text-4xl text-grafite mb-6">
-            Quer conhecer a nossa associação?
+            {t('profissao.cta.title')}
           </h2>
           <p className="text-xl text-gray-600 mb-10">
-            A ACCTA representa e defende os interesses dos controladores de tráfego aéreo em Cabo Verde
+            {t('profissao.cta.subtitle')}
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link
-              to="/sobre"
+              to={lp('/sobre')}
               className="inline-flex items-center gap-2 bg-floresta text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-floresta-dark transition-all"
             >
-              Sobre a ACCTA
+              {t('profissao.cta.sobre')}
               <ArrowRight className="w-5 h-5" />
             </Link>
             <Link
-              to="/contactos"
+              to={lp('/contactos')}
               className="inline-flex items-center gap-2 border-2 border-[#D1D5DB] text-grafite px-8 py-4 rounded-lg font-bold text-lg hover:bg-gray-50 transition-all"
             >
-              Entre em Contacto
+              {t('profissao.cta.contacto')}
             </Link>
           </div>
         </div>

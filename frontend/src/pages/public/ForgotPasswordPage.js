@@ -8,6 +8,10 @@ import { BrandLogo } from '../../components/BrandLogo';
 import { Turnstile } from '../../components/Turnstile';
 import api from '../../utils/api';
 import { forgotPasswordSchema } from '../../utils/authSchemas';
+import { LanguageSwitcher } from '../../components/LanguageSwitcher';
+import { useI18n } from '../../i18n';
+import { usePageMeta } from '../../i18n/usePageMeta';
+import { useValidationMessage } from '../../i18n/validation';
 
 export const ForgotPasswordPage = () => {
   // Captura o email submetido para mostrar na branch de sucesso (mesmo
@@ -17,6 +21,9 @@ export const ForgotPasswordPage = () => {
   const [copied, setCopied] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState('');
   const turnstileRef = useRef(null);
+  const { t, lp } = useI18n();
+  const tv = useValidationMessage();
+  usePageMeta('forgotPassword');
   const {
     register,
     handleSubmit,
@@ -27,12 +34,12 @@ export const ForgotPasswordPage = () => {
     try {
       const res = await api.post('/auth/forgot-password', { email, turnstile_token: turnstileToken });
       setSubmitted({ email, token: res.data.demo_token || null });
-      toast.success('Pedido enviado!');
+      toast.success(t('forgotPassword.sentToast'));
     } catch (error) {
       // Token Turnstile é de uso único — renova-o para a próxima tentativa.
       turnstileRef.current?.reset();
       setTurnstileToken('');
-      toast.error(error.response?.data?.detail || 'Erro ao processar pedido');
+      toast.error(error.response?.data?.detail || t('forgotPassword.errorGeneric'));
     }
   };
 
@@ -43,36 +50,39 @@ export const ForgotPasswordPage = () => {
   const handleCopy = () => {
     navigator.clipboard.writeText(resetLink);
     setCopied(true);
-    toast.success('Link copiado!');
+    toast.success(t('forgotPassword.copiedToast'));
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-5 py-8">
+      <div className="fixed top-4 right-4 z-20">
+        <LanguageSwitcher className="bg-white/90 border border-gray-200" />
+      </div>
       <div className="w-full max-w-md animate-fade-up">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex justify-center mb-5">
+          <Link to={lp('/')} className="inline-flex justify-center mb-5">
             <BrandLogo />
           </Link>
         </div>
 
         <Link
-          to="/login"
+          to={lp('/login')}
           className="inline-flex items-center gap-1.5 text-sm text-[#6B7280] hover:text-grafite transition-colors mb-6"
           data-testid="back-to-login"
         >
           <ArrowLeft className="w-4 h-4" />
-          Voltar ao login
+          {t('forgotPassword.backToLogin')}
         </Link>
 
         {!submitted ? (
           <>
             <div className="mb-6">
               <h1 className="font-bold text-2xl text-grafite mb-1" data-testid="forgot-title">
-                Recuperar palavra-passe
+                {t('forgotPassword.title')}
               </h1>
               <p className="text-sm text-gray-500">
-                Introduza o email associado à sua conta para receber instruções de recuperação.
+                {t('forgotPassword.subtitle')}
               </p>
             </div>
 
@@ -80,7 +90,7 @@ export const ForgotPasswordPage = () => {
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
                 <div>
                   <label htmlFor="email" className="block text-xs uppercase tracking-widest text-[#6B7280] mb-2 font-semibold">
-                    Email
+                    {t('forgotPassword.emailLabel')}
                   </label>
                   <input
                     id="email"
@@ -90,11 +100,11 @@ export const ForgotPasswordPage = () => {
                     aria-invalid={errors.email ? 'true' : 'false'}
                     {...register('email')}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
-                    placeholder="seu@email.cv"
+                    placeholder={t('forgotPassword.emailPlaceholder')}
                     data-testid="forgot-email-input"
                   />
                   {errors.email && (
-                    <p className="mt-1 text-xs text-[#B91C1C]" role="alert">{errors.email.message}</p>
+                    <p className="mt-1 text-xs text-[#B91C1C]" role="alert">{tv(errors.email.message)}</p>
                   )}
                 </div>
 
@@ -111,7 +121,7 @@ export const ForgotPasswordPage = () => {
                   ) : (
                     <>
                       <Mail className="w-4 h-4" />
-                      Enviar
+                      {t('forgotPassword.submit')}
                     </>
                   )}
                 </button>
@@ -125,17 +135,17 @@ export const ForgotPasswordPage = () => {
                 <CheckCircle className="w-7 h-7 text-[#15803D]" />
               </div>
               <h1 className="font-bold text-2xl text-grafite mb-1" data-testid="forgot-success-title">
-                Pedido recebido
+                {t('forgotPassword.successTitle')}
               </h1>
               <p className="text-sm text-gray-500">
-                Se a conta <strong className="text-grafite">{submitted.email}</strong> existir, um email com instruções de recuperação será enviado em breve.
+                {t('forgotPassword.successBefore')} <strong className="text-grafite">{submitted.email}</strong> {t('forgotPassword.successAfter')}
               </p>
             </div>
 
             {submitted.token && (
               <div className="card-technical p-5">
                 <label className="block text-xs uppercase tracking-widest text-[#6B7280] mb-2 font-semibold">
-                  Link de recuperação (modo demo)
+                  {t('forgotPassword.demoLinkLabel')}
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -151,17 +161,17 @@ export const ForgotPasswordPage = () => {
                     data-testid="copy-link-btn"
                   >
                     {copied ? <CheckCircle className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    {copied ? 'Copiado' : 'Copiar'}
+                    {copied ? t('forgotPassword.copied') : t('forgotPassword.copy')}
                   </button>
                 </div>
 
                 <Link
-                  to={`/reset-password?token=${submitted.token}`}
+                  to={`${lp('/reset-password')}?token=${submitted.token}`}
                   className="mt-4 w-full bg-floresta text-white hover:bg-floresta-dark h-11 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2"
                   data-testid="go-to-reset-btn"
                 >
                   <ExternalLink className="w-4 h-4" />
-                  Redefinir palavra-passe agora
+                  {t('forgotPassword.resetNow')}
                 </Link>
               </div>
             )}
@@ -171,7 +181,7 @@ export const ForgotPasswordPage = () => {
               className="mt-4 text-sm text-[#6B7280] hover:text-grafite transition-colors"
               data-testid="try-another-email"
             >
-              Tentar com outro email
+              {t('forgotPassword.tryAnother')}
             </button>
           </>
         )}

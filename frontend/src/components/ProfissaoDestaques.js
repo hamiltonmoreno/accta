@@ -3,37 +3,18 @@ import { useQuery } from '@tanstack/react-query';
 import { Megaphone, Globe, FileText, GraduationCap, ExternalLink, Download } from 'lucide-react';
 import { defesaAPI, relacoesAPI, formacoesAPI, documentsAPI, mediaUrl } from '../utils/api';
 import { safeUrl } from '../utils/safeUrl';
+import { useI18n } from '../i18n';
 
 // Cat 5 F4 — secções dinâmicas da ProfissaoPage pública. Cada bloco só renderiza
 // quando há conteúdo já marcado como público (defesa publicada, relações/formações
 // `publico`); caso contrário não aparece (evita secções vazias numa landing).
 
-const DEFESA_TIPO_LABELS = {
-  representacao: 'Representação',
-  tomada_posicao: 'Tomada de Posição',
-  comunicado: 'Comunicado',
-};
-const RELACAO_TIPO_LABELS = {
-  federacao_internacional: 'Federação Internacional',
-  associacao_congenere: 'Associação Congénere',
-  parceiro: 'Parceiro',
-};
-const ESTADO_LABELS = {
-  filiado: 'Filiado',
-  em_negociacao: 'Em negociação',
-  nao_filiado: 'Não filiado',
-  suspenso: 'Suspenso',
-};
-const FORMACAO_TIPO_LABELS = {
-  formacao: 'Formação',
-  certificacao: 'Certificação',
-  material: 'Material',
-};
+const DATE_LOCALE = { pt: 'pt-PT', en: 'en-GB', fr: 'fr-FR' };
 
-const fmtData = (iso) => {
+const fmtData = (iso, locale) => {
   if (!iso) return null;
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString('pt-PT');
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString(DATE_LOCALE[locale]);
 };
 
 // safeUrl: fonte única em utils/safeUrl (spec 019 M-HREF).
@@ -51,6 +32,11 @@ const gridClass = (n) =>
       : 'grid gap-6 sm:grid-cols-2 lg:grid-cols-3';
 
 export const ProfissaoDestaques = () => {
+  const { t, locale } = useI18n();
+  const DEFESA_TIPO_LABELS = t('profissao.destaques.defesaTipos');
+  const RELACAO_TIPO_LABELS = t('profissao.destaques.relacaoTipos');
+  const ESTADO_LABELS = t('profissao.destaques.estados');
+  const FORMACAO_TIPO_LABELS = t('profissao.destaques.formacaoTipos');
   const { data: defesa = [] } = useQuery({
     queryKey: ['public', 'defesa-profissional'],
     queryFn: async () => (await defesaAPI.getPublic({ limit: 6 })).data.items,
@@ -75,19 +61,19 @@ export const ProfissaoDestaques = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
-                Defesa Profissional
+                {t('profissao.destaques.defesaBadge')}
               </span>
               <h2 className="font-sans font-bold text-2xl md:text-4xl text-grafite mb-4">
-                Posições públicas da ACCTA
+                {t('profissao.destaques.defesaTitle')}
               </h2>
               <p className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
-                Representações e tomadas de posição em defesa dos interesses dos controladores
+                {t('profissao.destaques.defesaSubtitle')}
               </p>
             </div>
 
             <div className={gridClass(defesa.length)}>
               {defesa.map((d) => {
-                const data = fmtData(d.data);
+                const data = fmtData(d.data, locale);
                 return (
                   <article key={d.id} className="card-technical rounded-2xl p-6 animate-fade-up flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
@@ -107,7 +93,7 @@ export const ProfissaoDestaques = () => {
                         className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-carmesim hover:underline"
                       >
                         <FileText className="w-4 h-4" />
-                        Ler documento
+                        {t('profissao.destaques.lerDocumento')}
                       </a>
                     )}
                   </article>
@@ -124,13 +110,13 @@ export const ProfissaoDestaques = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-6">
-                Cooperação Internacional
+                {t('profissao.destaques.relacoesBadge')}
               </span>
               <h2 className="font-sans font-bold text-2xl md:text-4xl text-grafite mb-4">
-                Relações e filiações
+                {t('profissao.destaques.relacoesTitle')}
               </h2>
               <p className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
-                A ACCTA coopera com a IFATCA e congéneres na defesa da profissão
+                {t('profissao.destaques.relacoesSubtitle')}
               </p>
             </div>
 
@@ -168,9 +154,9 @@ export const ProfissaoDestaques = () => {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-sm font-semibold text-carmesim hover:underline"
-                          aria-label={`Visitar website de ${r.nome}`}
+                          aria-label={t('profissao.destaques.visitarWebsite', { nome: r.nome })}
                         >
-                          Website
+                          {t('profissao.destaques.website')}
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
                       )}
@@ -189,10 +175,10 @@ export const ProfissaoDestaques = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
-                Desenvolvimento Profissional
+                {t('profissao.destaques.formacoesBadge')}
               </span>
               <h2 className="font-sans font-bold text-2xl md:text-4xl text-grafite mb-4">
-                Formação e certificação
+                {t('profissao.destaques.formacoesTitle')}
               </h2>
             </div>
 
@@ -216,7 +202,7 @@ export const ProfissaoDestaques = () => {
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-sm font-semibold text-carmesim hover:underline"
                         >
-                          Saber mais
+                          {t('profissao.destaques.saberMais')}
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
                       )}
@@ -228,7 +214,7 @@ export const ProfissaoDestaques = () => {
                           className="inline-flex items-center gap-1 text-sm font-semibold text-grafite hover:underline"
                         >
                           <Download className="w-3.5 h-3.5" />
-                          Material
+                          {t('profissao.destaques.material')}
                         </a>
                       )}
                     </div>

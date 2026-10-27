@@ -14,8 +14,10 @@ import { PathSection } from './home/PathSection';
 import { FAQSection } from './home/FAQSection';
 import { NewsSection } from './home/NewsSection';
 import { CTASection } from './home/CTASection';
+import { usePageMeta } from '../../i18n/usePageMeta';
 
 export const HomePage = () => {
+  usePageMeta('home');
   // Imagem do hero editável via config (chave "home"), com fallback embebido
   // (spec-padronizacao-banners §4.2). A Home mantém o seu tamanho próprio.
   const { data: bannerCfg } = useQuery({

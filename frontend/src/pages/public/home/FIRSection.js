@@ -1,13 +1,15 @@
 import React from 'react';
 import { Globe, Navigation, Plane, Radio, Waves } from 'lucide-react';
-import { fir } from '../../../content/cta';
+import { useI18n } from '../../../i18n';
 
 export const FIRSection = () => {
+  const { t, cta } = useI18n();
+  const { fir } = cta;
   const stats = [
-    { icon: Globe, label: 'Cobertura', value: 'Atlântico Médio' },
-    { icon: Radio, label: 'Comunicações', value: fir.comunicacoes },
-    { icon: Navigation, label: 'Vigilância', value: 'Radar + ADS-C' },
-    { icon: Plane, label: 'Rotas', value: 'Europa ↔ Américas' },
+    { icon: Globe, label: t('home.fir.coverage'), value: t('home.fir.coverageValue') },
+    { icon: Radio, label: t('home.fir.communications'), value: fir.comunicacoes },
+    { icon: Navigation, label: t('home.fir.surveillance'), value: t('home.fir.surveillanceValue') },
+    { icon: Plane, label: t('home.fir.routes'), value: t('home.fir.routesValue') },
   ];
 
   return (
@@ -18,13 +20,13 @@ export const FIRSection = () => {
           <div className="animate-fade-up">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 border border-white/20 rounded-full mb-4 sm:mb-5">
               <Waves className="w-3.5 h-3.5 text-white" />
-              <span className="text-xs text-white font-semibold uppercase tracking-wider">Espaço aéreo</span>
+              <span className="text-xs text-white font-semibold uppercase tracking-wider">{t('home.fir.badge')}</span>
             </div>
             <h2 className="font-bold text-2xl sm:text-3xl lg:text-4xl text-white mb-3 sm:mb-4">
               {fir.nome}
             </h2>
             <p className="text-sm sm:text-base text-white/70 leading-relaxed max-w-xl">
-              Uma das maiores regiões de informação de voo do Atlântico, operada pela ASA a partir da ilha do Sal.
+              {t('home.fir.lead')}
             </p>
           </div>
 

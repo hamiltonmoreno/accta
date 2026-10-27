@@ -6,19 +6,23 @@ import { postsAPI, mediaUrl } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
 import { EmptyState } from '../../components/EmptyState';
 import { PageBanner } from '../../components/PageBanner';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { useI18n } from '../../i18n';
+import { useFormatDate } from '../../i18n/dates';
+import { usePageMeta } from '../../i18n/usePageMeta';
 
-const TYPE_LABELS = { noticia: 'Notícia', institucional: 'Institucional', educativo: 'Educativo' };
 const FILTERS = [
-  { value: 'all', label: 'Todas', testId: 'filter-all' },
-  { value: 'noticia', label: 'Notícias', testId: 'filter-news' },
-  { value: 'institucional', label: 'Institucional', testId: 'filter-institutional' },
-  { value: 'educativo', label: 'Educativo', testId: 'filter-educational' },
+  { value: 'all', testId: 'filter-all' },
+  { value: 'noticia', testId: 'filter-news' },
+  { value: 'institucional', testId: 'filter-institutional' },
+  { value: 'educativo', testId: 'filter-educational' },
 ];
 
 export const NoticiasPage = () => {
   const [filter, setFilter] = useState('all');
+  const { t, lp } = useI18n();
+  const formatDate = useFormatDate();
+  usePageMeta('noticias');
+  const typeLabels = t('noticias.types');
 
   const { data: posts = [], isLoading } = useQuery({
     queryKey: queryKeys.posts.list({ visibility: 'publico', status: 'publicado' }),
@@ -31,10 +35,10 @@ export const NoticiasPage = () => {
     <>
       <PageBanner
         pageKey="noticias"
-        badge="Notícias"
+        badge={t('noticias.banner.badge')}
         icon={Newspaper}
-        title="Notícias e Atualizações"
-        subtitle="Acompanhe as últimas novidades da ACCTA e da aviação em Cabo Verde"
+        title={t('noticias.banner.title')}
+        subtitle={t('noticias.banner.subtitle')}
       />
       <div className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -49,7 +53,7 @@ export const NoticiasPage = () => {
                 }`}
                 data-testid={f.testId}
               >
-                {f.label}
+                {t(`noticias.filters.${f.value}`)}
               </button>
             ))}
           </div>
@@ -60,13 +64,13 @@ export const NoticiasPage = () => {
               <div className="inline-block w-8 h-8 border-4 border-carmesim border-t-transparent rounded-full animate-spin" />
             </div>
           ) : filteredPosts.length === 0 ? (
-            <EmptyState icon={Newspaper} title="Nenhuma notícia disponível no momento" testId="no-posts" />
+            <EmptyState icon={Newspaper} title={t('noticias.empty')} testId="no-posts" />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredPosts.map((post) => (
                 <Link
                   key={post.id}
-                  to={`/noticias/${post.slug ?? post.id}`}
+                  to={lp(`/noticias/${post.slug ?? post.id}`)}
                   className="card-technical rounded-xl overflow-hidden hover:shadow-xl transition-shadow animate-fade-up block focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2"
                   data-testid={`post-${post.id}`}
                 >
@@ -78,11 +82,11 @@ export const NoticiasPage = () => {
                   <div className="p-6">
                     <div className="flex items-center gap-2 mb-4">
                       <span className="px-3 py-1 bg-[#FBEAEC] text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold">
-                        {TYPE_LABELS[post.type] || post.type}
+                        {typeLabels[post.type] || post.type}
                       </span>
                       <span className="flex items-center gap-1 text-xs text-gray-500 font-mono">
                         <Calendar className="w-3 h-3" aria-hidden="true" />
-                        {format(new Date(post.published_at || post.created_at), 'dd MMM yyyy', { locale: ptBR })}
+                        {formatDate(new Date(post.published_at || post.created_at), t('noticias.dateFormat'))}
                       </span>
                     </div>
 

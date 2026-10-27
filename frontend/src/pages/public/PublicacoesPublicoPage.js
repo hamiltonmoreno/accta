@@ -4,33 +4,34 @@ import { useQuery } from '@tanstack/react-query';
 import { BookOpen, Download, FileText, Calendar, User } from 'lucide-react';
 import { publicacoesAPI, documentsAPI, mediaUrl } from '../../utils/api';
 import { Skeleton } from '../../components/ui/skeleton';
+import { PortugueseContentNotice } from '../../components/PortugueseContentNotice';
+import { useI18n } from '../../i18n';
+import { usePageMeta } from '../../i18n/usePageMeta';
 
 // Cat 5 F4 — catálogo público de publicações formais (revista/boletim/artigo/
 // relatório técnico) com visibility="publico". Download via /documents/public,
 // que exige que o próprio documento também seja público.
 
-const TIPO_LABELS = {
-  revista: 'Revista',
-  boletim: 'Boletim',
-  artigo: 'Artigo',
-  relatorio_tecnico: 'Relatório Técnico',
-};
 const FILTROS = [
-  { key: '', label: 'Todas' },
-  { key: 'revista', label: 'Revistas' },
-  { key: 'boletim', label: 'Boletins' },
-  { key: 'artigo', label: 'Artigos' },
-  { key: 'relatorio_tecnico', label: 'Relatórios' },
+  { key: '', id: 'todas' },
+  { key: 'revista', id: 'revista' },
+  { key: 'boletim', id: 'boletim' },
+  { key: 'artigo', id: 'artigo' },
+  { key: 'relatorio_tecnico', id: 'relatorio_tecnico' },
 ];
 
-const fmtData = (iso) => {
+const fmtData = (iso, intlLocale) => {
   if (!iso) return null;
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString('pt-PT');
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString(intlLocale);
 };
 
 export const PublicacoesPublicoPage = () => {
   const [tipo, setTipo] = useState('');
+  const { t, lp } = useI18n();
+  usePageMeta('publicacoes');
+  const intlLocale = t('publicacoes.intlLocale');
+  const tipoLabels = t('publicacoes.types');
 
   const { data: publicacoes = [], isLoading } = useQuery({
     queryKey: ['public', 'publicacoes', tipo || 'all'],
@@ -46,13 +47,13 @@ export const PublicacoesPublicoPage = () => {
           <div className="max-w-2xl animate-fade-up">
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-carmesim/20 border border-carmesim/40 text-white rounded-full text-xs uppercase tracking-wider font-semibold mb-4">
               <BookOpen className="w-3.5 h-3.5" aria-hidden="true" />
-              Publicações
+              {t('publicacoes.header.badge')}
             </span>
             <h1 className="font-bold text-3xl sm:text-4xl lg:text-5xl text-white">
-              Publicações da ACCTA
+              {t('publicacoes.header.title')}
             </h1>
             <p className="mt-3 text-base sm:text-lg text-white/80 leading-relaxed">
-              Revistas, boletins, artigos e relatórios técnicos de acesso público
+              {t('publicacoes.header.subtitle')}
             </p>
           </div>
         </div>
@@ -73,7 +74,7 @@ export const PublicacoesPublicoPage = () => {
                     : 'bg-white text-grafite border-[#D1D5DB] hover:bg-gray-50'
                 }`}
               >
-                {f.label}
+                {t(`publicacoes.filters.${f.id}`)}
               </button>
             ))}
           </div>
@@ -87,12 +88,14 @@ export const PublicacoesPublicoPage = () => {
           ) : publicacoes.length === 0 ? (
             <div className="text-center py-20">
               <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" aria-hidden="true" />
-              <p className="text-gray-500">Ainda não há publicações públicas disponíveis.</p>
+              <p className="text-gray-500">{t('publicacoes.empty')}</p>
             </div>
           ) : (
+            <>
+            <PortugueseContentNotice className="mb-6" />
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {publicacoes.map((p) => {
-                const data = fmtData(p.data_publicacao);
+                const data = fmtData(p.data_publicacao, intlLocale);
                 return (
                   <article
                     key={p.id}
@@ -112,7 +115,7 @@ export const PublicacoesPublicoPage = () => {
                     )}
                     <div className="p-5 flex flex-col flex-1">
                       <span className="inline-flex items-center self-start px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-grafite border border-gray-200 mb-2">
-                        {TIPO_LABELS[p.tipo] || p.tipo}
+                        {tipoLabels[p.tipo] || p.tipo}
                       </span>
                       <h2 className="font-sans font-semibold text-lg text-grafite mb-1">{p.titulo}</h2>
                       <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 mb-3">
@@ -136,15 +139,15 @@ export const PublicacoesPublicoPage = () => {
                         <div className="mt-4">
                           <div className="flex items-baseline gap-1 mb-2">
                             <span className="text-lg font-bold text-grafite">
-                              {Number(p.preco).toLocaleString('pt-PT')}
+                              {Number(p.preco).toLocaleString(intlLocale)}
                             </span>
                             <span className="text-xs text-gray-500">CVE</span>
                           </div>
                           <Link
-                            to="/contactos"
+                            to={lp('/contactos')}
                             className="inline-flex items-center justify-center gap-2 w-full bg-floresta text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-floresta-dark transition-colors"
                           >
-                            Adquirir — contactar ACCTA
+                            {t('publicacoes.buy')}
                           </Link>
                         </div>
                       ) : (
@@ -156,7 +159,7 @@ export const PublicacoesPublicoPage = () => {
                             className="mt-4 inline-flex items-center justify-center gap-2 w-full border border-[#D1D5DB] text-grafite rounded-lg py-2.5 text-sm font-semibold hover:bg-gray-50 transition-colors"
                           >
                             <Download className="w-4 h-4" />
-                            Descarregar
+                            {t('publicacoes.download')}
                           </a>
                         )
                       )}
@@ -165,6 +168,7 @@ export const PublicacoesPublicoPage = () => {
                 );
               })}
             </div>
+            </>
           )}
         </div>
       </section>

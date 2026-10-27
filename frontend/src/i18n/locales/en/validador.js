@@ -1,1 +1,31 @@
-export default {};
+export default {
+  meta: {
+    title: 'Card Validator | ACCTA',
+    description: 'Check the authenticity of an ACCTA membership card using its QR code.',
+  },
+  banner: {
+    badge: 'Validation',
+    title: 'Card Validator',
+    subtitle: 'Enter the QR code to validate an ACCTA membership card',
+  },
+  qrLabel: 'QR code',
+  qrPlaceholder: 'Paste the QR code here',
+  submit: 'Validate Card',
+  notFound: 'Card not found',
+  valid: 'Valid Card',
+  invalid: 'Invalid Card',
+  authentic: 'This card is authentic',
+  name: 'Name',
+  memberId: 'Member No.',
+  notAvailable: 'N/A',
+  status: 'Status',
+  admission: 'Admission',
+  dateFormat: 'MM/dd/yyyy',
+  statusLabels: {
+    ativo: 'active',
+    inativo: 'inactive',
+    pendente_convite: 'invitation pending',
+    pendente_aprovacao: 'approval pending',
+    rejeitado: 'rejected',
+  },
+};

@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { QrCode, Search } from 'lucide-react';
 import { validatorAPI } from '../../utils/api';
 import { PageBanner } from '../../components/PageBanner';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { useI18n } from '../../i18n';
+import { useFormatDate } from '../../i18n/dates';
+import { usePageMeta } from '../../i18n/usePageMeta';
 import {
   WALLET_VALIDATION_CONFIG,
   USER_STATUS_CONFIG, USER_STATUS_FALLBACK, getStatusConfig,
@@ -13,6 +14,9 @@ const VALID = WALLET_VALIDATION_CONFIG.valida;
 const INVALID = WALLET_VALIDATION_CONFIG.invalida;
 
 export const ValidadorPage = () => {
+  const { t } = useI18n();
+  const formatDate = useFormatDate();
+  usePageMeta('validador');
   const [qrHash, setQrHash] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -30,7 +34,7 @@ export const ValidadorPage = () => {
       const response = await validatorAPI.validate(qrHash.trim());
       setResult(response.data);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Carteira não encontrada');
+      setError(err.response?.data?.detail || t('validador.notFound'));
     } finally {
       setLoading(false);
     }
@@ -40,10 +44,10 @@ export const ValidadorPage = () => {
     <>
       <PageBanner
         pageKey="validador"
-        badge="Validação"
+        badge={t('validador.banner.badge')}
         icon={QrCode}
-        title="Validador de Carteira"
-        subtitle="Insira o código QR para validar a carteira de sócio ACCTA"
+        title={t('validador.banner.title')}
+        subtitle={t('validador.banner.subtitle')}
       />
       <div className="py-16 min-h-[70vh]">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -52,14 +56,14 @@ export const ValidadorPage = () => {
           <form onSubmit={handleValidate} className="space-y-6">
             <div>
               <label htmlFor="qr-hash" className="block text-xs uppercase tracking-widest text-gray-500 mb-2">
-                Código QR
+                {t('validador.qrLabel')}
               </label>
               <input
                 id="qr-hash"
                 type="text"
                 value={qrHash}
                 onChange={(e) => setQrHash(e.target.value)}
-                placeholder="Cole o código QR aqui"
+                placeholder={t('validador.qrPlaceholder')}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 transition-all"
                 data-testid="qr-input"
               />
@@ -76,7 +80,7 @@ export const ValidadorPage = () => {
               ) : (
                 <>
                   <Search className="w-5 h-5" />
-                  Validar Carteira
+                  {t('validador.submit')}
                 </>
               )}
             </button>
@@ -93,7 +97,7 @@ export const ValidadorPage = () => {
                 <INVALID.icon className="w-6 h-6 text-[#B91C1C]" aria-hidden="true" />
               </div>
               <div>
-                <h3 className="font-sans font-semibold text-xl text-[#B91C1C]">{INVALID.label}</h3>
+                <h3 className="font-sans font-semibold text-xl text-[#B91C1C]">{t('validador.invalid')}</h3>
                 <p className="text-gray-600">{error}</p>
               </div>
             </div>
@@ -110,8 +114,8 @@ export const ValidadorPage = () => {
                 <VALID.icon className="w-6 h-6 text-[#15803D]" aria-hidden="true" />
               </div>
               <div>
-                <h3 className="font-sans font-semibold text-xl text-[#15803D]">{VALID.label}</h3>
-                <p className="text-gray-600">Esta carteira é autêntica</p>
+                <h3 className="font-sans font-semibold text-xl text-[#15803D]">{t('validador.valid')}</h3>
+                <p className="text-gray-600">{t('validador.authentic')}</p>
               </div>
             </div>
 
@@ -120,19 +124,19 @@ export const ValidadorPage = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs uppercase tracking-widest text-gray-500 mb-1">
-                      Nome
+                      {t('validador.name')}
                     </label>
                     <p className="font-sans font-semibold text-grafite" data-testid="validated-name">{result.name}</p>
                   </div>
                   <div>
                     <label className="block text-xs uppercase tracking-widest text-gray-500 mb-1">
-                      Nº Sócio
+                      {t('validador.memberId')}
                     </label>
-                    <p className="font-semibold text-grafite" data-testid="validated-member-id">{result.member_id || 'N/A'}</p>
+                    <p className="font-semibold text-grafite" data-testid="validated-member-id">{result.member_id || t('validador.notAvailable')}</p>
                   </div>
                   <div>
                     <label className="block text-xs uppercase tracking-widest text-gray-500 mb-1">
-                      Status
+                      {t('validador.status')}
                     </label>
                     {(() => {
                       const sc = getStatusConfig(USER_STATUS_CONFIG, result.status, USER_STATUS_FALLBACK);
@@ -143,7 +147,7 @@ export const ValidadorPage = () => {
                           data-testid="validated-status"
                         >
                           <ScIcon className="w-3 h-3" aria-hidden="true" />
-                          {result.status}
+                          {t('validador.statusLabels')[result.status] || result.status}
                         </span>
                       );
                     })()}
@@ -151,10 +155,10 @@ export const ValidadorPage = () => {
                   {result.admission_date && (
                     <div>
                       <label className="block text-xs uppercase tracking-widest text-gray-500 mb-1">
-                        Admissão
+                        {t('validador.admission')}
                       </label>
                       <p className="text-grafite">
-                        {format(new Date(result.admission_date), 'dd/MM/yyyy', { locale: ptBR })}
+                        {formatDate(new Date(result.admission_date), t('validador.dateFormat'))}
                       </p>
                     </div>
                   )}

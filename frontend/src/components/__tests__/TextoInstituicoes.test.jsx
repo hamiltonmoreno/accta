@@ -2,6 +2,8 @@ import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import { TextoInstituicoes } from '../TextoInstituicoes';
 
+jest.mock('react-router-dom', () => ({ useLocation: () => ({ pathname: '/' }) }), { virtual: true });
+
 const links = (container) => Array.from(container.querySelectorAll('a'));
 
 test('linka uma instituição conhecida com o URL oficial e abre noutro separador', () => {

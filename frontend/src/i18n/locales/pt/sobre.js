@@ -1,1 +1,56 @@
-export default {};
+export default {
+  meta: {
+    title: 'Sobre | ACCTA',
+    description: 'Quem somos: a associação profissional dos controladores de tráfego aéreo de Cabo Verde — missão, visão, valores e corpos sociais.',
+  },
+  banner: {
+    badge: 'A Associação',
+    title: 'Quem Somos',
+    subtitle: 'A associação profissional dos controladores de tráfego aéreo de Cabo Verde',
+  },
+  intro: {
+    titleA: 'Unidos pela',
+    titleHighlight: 'Segurança Aérea',
+    p1a: 'A',
+    p1b: 'é a associação de representação profissional dos controladores de tráfego aéreo no arquipélago. Reúne os profissionais que asseguram a gestão de um dos espaços aéreos mais estratégicos do Atlântico, atuando na valorização da carreira, na promoção da excelência técnica e na cooperação com as autoridades nacionais e os parceiros do setor.',
+    p2a: 'Mais do que uma estrutura associativa, somos um',
+    p2Highlight: 'parceiro técnico',
+    p2b: 'no desenvolvimento da aviação civil nacional.',
+    firText: 'Os nossos profissionais atuam na {fir}, uma das maiores regiões de informação de voo do Atlântico, coordenando voos entre a Europa, a África e as Américas. A prestação dos serviços de tráfego aéreo é operada pela {asa}.',
+  },
+  pillars: {
+    badge: 'Os Nossos Pilares',
+    title: 'Missão, Visão e Valores',
+    missionTitle: 'A Nossa Missão',
+    missionA: 'Representar e valorizar os controladores de tráfego aéreo, promovendo a',
+    missionS1: 'segurança operacional',
+    missionB: ', o',
+    missionS2: 'desenvolvimento contínuo',
+    missionC: 'da profissão e o',
+    missionS3: 'bem-estar',
+    missionD: 'dos associados.',
+    visionTitle: 'A Nossa Visão',
+    visionA: 'Ser uma associação de referência na representação da classe e na contribuição técnica para a',
+    visionStrong: 'segurança da navegação aérea no Atlântico',
+    visionB: '.',
+    values: [
+      { title: 'Segurança', desc: 'O nosso compromisso inegociável.' },
+      { title: 'Excelência', desc: 'Rigor técnico em cada comunicação.' },
+      { title: 'União', desc: 'A força do coletivo acima do individual.' },
+      { title: 'Transparência', desc: 'Gestão clara e responsável.' },
+    ],
+  },
+  corpos: {
+    badge: 'Gestão Atual',
+    title: 'Corpos Sociais',
+    subtitle: 'Os órgãos sociais que dirigem e fiscalizam a associação',
+    error: 'Informação dos corpos sociais indisponível de momento.',
+    vacant: 'Vago',
+    photoAlt: 'Foto de {name} — {cargo}',
+  },
+  cta: {
+    title: 'Quer saber mais sobre a nossa atuação?',
+    subtitle: 'Entre em contacto connosco para esclarecer qualquer questão',
+    button: 'Fale Connosco',
+  },
+};

@@ -1,1 +1,24 @@
-export default {};
+export default {
+  meta: {
+    title: 'Nouveau mot de passe | ACCTA',
+    description: "Définissez un nouveau mot de passe d'accès au portail ACCTA.",
+  },
+  successToast: 'Mot de passe modifié avec succès !',
+  errorGeneric: 'Erreur lors de la réinitialisation du mot de passe',
+  missingTokenTitle: 'Jeton manquant',
+  missingTokenBody: 'Le lien de récupération est invalide ou ne contient pas de jeton.',
+  requestNewLink: 'Demander un nouveau lien',
+  backToLogin: 'Retour à la connexion',
+  title: 'Nouveau mot de passe',
+  subtitle: "Définissez votre nouveau mot de passe d'accès au portail.",
+  passwordLabel: 'Nouveau mot de passe',
+  passwordPlaceholder: 'Au moins 6 caractères',
+  hidePassword: 'Masquer le mot de passe',
+  showPassword: 'Afficher le mot de passe',
+  confirmLabel: 'Confirmer le mot de passe',
+  confirmPlaceholder: 'Répétez le mot de passe',
+  submit: 'Réinitialiser le mot de passe',
+  successTitle: 'Mot de passe modifié !',
+  successBody: 'Votre mot de passe a été réinitialisé avec succès. Vous pouvez désormais vous connecter avec votre nouveau mot de passe.',
+  goToLogin: 'Aller à la connexion',
+};
