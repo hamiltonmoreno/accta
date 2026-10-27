@@ -391,6 +391,15 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
+Active feature (planeada 2026-07-14): `specs/021-i18n-publico-en-fr/` — **Site público em EN e FR**.
+Plano: `specs/021-i18n-publico-en-fr/plan.md` (+ research R1–R15, data-model, contracts, quickstart).
+Frontend-only, zero deps: módulo próprio `src/i18n/` (`useI18n` → `t`/`lp`/`formatDate`;
+dicionários `locales/{pt,en,fr}.js`, EN/FR lazy), `PUBLIC_ROUTES` montadas em `''`/`/en`/`/fr`
+(slugs PT), detecção `navigator.languages` só sem prefixo e sem preferência (crawlers nunca
+redirecionados), `usePageMeta` (title/description/lang/hreflang), `LanguageSwitcher`, 404 só
+sob prefixo, aviso «conteúdo em português». Privado/emails/PDFs/backend em PT. F0 = emenda
+constitucional v1.2.0 (Princípio IV). Go-live = STOP após revisão humana EN/FR. Sem Via B.
+
 Last completed: `specs/020-dashboard-unificado-concluido/` — **Dashboard unificado para todos os
 sócios**. **RELEASED v0.5.60 (PR #429→main, `sha-836bd309ee91`) e DEPLOYED em prod Via B 2026-07-13; VALIDADO pelo dono em navegador 2026-07-14 (T033 ✓)**
 (rollback `sha-19f89e40c31c` v0.5.59). Uniformiza o Dashboard: mesmos widgets para todos os sócios,
