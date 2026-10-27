@@ -144,7 +144,9 @@ python scripts/seed_gallery.py  # Seed gallery data
     *communication* language and is **independent of the code** — "talk to me in
     Portuguese" never means "write code in Portuguese".
   - **User-facing text** (UI strings, HTTPException `detail`, notification
-    titles/bodies, emails): **PT**.
+    titles/bodies, emails): **PT**. Exceção (constituição v1.2.0, spec 021): o **site
+    público** também existe em EN/FR — strings em `frontend/src/i18n/locales/{pt,en,fr}/`,
+    PT canónico; alterar um texto PT ⇒ atualizar EN/FR no mesmo PR (teste de paridade).
   - **Identifiers** (functions, variables, jsonb fields): generic/technical names in
     **EN** (`create_transaction`, `update`, `status`, `amount`, `category`,
     `created_by`, `query`); **domain terms with no clean English equivalent stay PT**
@@ -393,8 +395,9 @@ this in-repo file is authoritative.
 <!-- SPECKIT START -->
 Active feature (planeada 2026-07-14): `specs/021-i18n-publico-en-fr/` — **Site público em EN e FR**.
 Plano: `specs/021-i18n-publico-en-fr/plan.md` (+ research R1–R15, data-model, contracts, quickstart).
-Frontend-only, zero deps: módulo próprio `src/i18n/` (`useI18n` → `t`/`lp`/`formatDate`;
-dicionários `locales/{pt,en,fr}.js`, EN/FR lazy), `PUBLIC_ROUTES` montadas em `''`/`/en`/`/fr`
+Frontend-only, zero deps: módulo próprio `src/i18n/` (`useI18n` → `t`/`lp`/`cta`,
+`useFormatDate` em `i18n/dates.js`; dicionários por namespace `locales/{pt,en,fr}/<ns>.js`,
+EN/FR lazy; `content/cta` espelhado em `locales/{en,fr}/cta.js` via `useCta()`), `PUBLIC_ROUTES` montadas em `''`/`/en`/`/fr`
 (slugs PT), detecção `navigator.languages` só sem prefixo e sem preferência (crawlers nunca
 redirecionados), `usePageMeta` (title/description/lang/hreflang), `LanguageSwitcher`, 404 só
 sob prefixo, aviso «conteúdo em português». Privado/emails/PDFs/backend em PT. F0 = emenda
