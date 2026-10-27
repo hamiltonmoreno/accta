@@ -42,6 +42,7 @@ export function usePageMeta(ns, vars) {
     return () => {
       document.title = previousTitle;
       if (previousDescription !== null) meta.setAttribute('content', previousDescription);
+      else meta.remove();
       links.forEach((link) => link.remove());
     };
   }, [title, description, pathname, locale]);
