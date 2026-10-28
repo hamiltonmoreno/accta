@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -15,6 +15,8 @@ import { queryClient } from './lib/queryClient';
 // Public pages — kept eager: small, fast TTI matters for landing pages.
 import { HomePage } from './pages/public/HomePage';
 import { LoginPage } from './pages/public/LoginPage';
+import { NotFoundPage } from './pages/public/NotFoundPage';
+import { I18nProvider, preferredLocale, withLocale, DEFAULT_LOCALE } from './i18n';
 import './App.css';
 
 // Public pages that aren't needed on first paint — lazy.
@@ -115,28 +117,53 @@ const ProtectedRoute = ({ children, allowedRoles = [], allowedPrivileges = [] })
   return children;
 };
 
+const PUBLIC_ROUTES = [
+  { path: '/', element: <HomePage />, layout: true },
+  { path: '/sobre', element: <SobrePage />, layout: true },
+  { path: '/profissao', element: <ProfissaoPage />, layout: true },
+  { path: '/noticias', element: <NoticiasPage />, layout: true },
+  { path: '/noticias/:slug', element: <NoticiaDetailPage />, layout: true },
+  { path: '/beneficios-publico', element: <BeneficiosPublicoPage />, layout: true },
+  { path: '/contactos', element: <ContactosPage />, layout: true },
+  { path: '/eventos-publico', element: <EventosPublicoPage />, layout: true },
+  { path: '/galeria', element: <GaleriaPage />, layout: true },
+  { path: '/publicacoes-publico', element: <PublicacoesPublicoPage />, layout: true },
+  { path: '/plataforma', element: <PlataformaPage />, layout: true },
+  { path: '/validador', element: <ValidadorPage />, layout: true },
+  { path: '/criar-conta', element: <CriarContaPage />, layout: true },
+  { path: '/login', element: <LoginPage /> },
+  { path: '/forgot-password', element: <ForgotPasswordPage /> },
+  { path: '/reset-password', element: <ResetPasswordPage /> },
+  { path: '/setup-account', element: <SetupAccountPage /> },
+];
+const LOCALE_PREFIXES = ['', '/en', '/fr'];
+
+// Rota pública sem prefixo: se o visitante preferir EN/FR, passa para a variante.
+const LocaleGate = ({ children }) => {
+  const location = useLocation();
+  const target = preferredLocale();
+  if (target !== DEFAULT_LOCALE) {
+    return <Navigate to={`${withLocale(location.pathname, target)}${location.search}${location.hash}`} replace />;
+  }
+  return children;
+};
+
 function AppRoutes() {
   return (
     <Suspense fallback={<RouteSpinner />}>
       <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<PublicLayout><HomePage /></PublicLayout>} />
-        <Route path="/sobre" element={<PublicLayout><SobrePage /></PublicLayout>} />
-        <Route path="/profissao" element={<PublicLayout><ProfissaoPage /></PublicLayout>} />
-        <Route path="/noticias" element={<PublicLayout><NoticiasPage /></PublicLayout>} />
-        <Route path="/noticias/:slug" element={<PublicLayout><NoticiaDetailPage /></PublicLayout>} />
-        <Route path="/beneficios-publico" element={<PublicLayout><BeneficiosPublicoPage /></PublicLayout>} />
-        <Route path="/contactos" element={<PublicLayout><ContactosPage /></PublicLayout>} />
-        <Route path="/eventos-publico" element={<PublicLayout><EventosPublicoPage /></PublicLayout>} />
-        <Route path="/galeria" element={<PublicLayout><GaleriaPage /></PublicLayout>} />
-        <Route path="/publicacoes-publico" element={<PublicLayout><PublicacoesPublicoPage /></PublicLayout>} />
-        <Route path="/plataforma" element={<PublicLayout><PlataformaPage /></PublicLayout>} />
-        <Route path="/validador" element={<PublicLayout><ValidadorPage /></PublicLayout>} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/setup-account" element={<SetupAccountPage />} />
-        <Route path="/criar-conta" element={<PublicLayout><CriarContaPage /></PublicLayout>} />
+        {/* Public Routes — PT sem prefixo (canónico), EN em /en, FR em /fr (spec 021) */}
+        {LOCALE_PREFIXES.flatMap((prefix) =>
+          PUBLIC_ROUTES.map(({ path, element, layout }) => {
+            const page = layout ? <PublicLayout>{element}</PublicLayout> : element;
+            const fullPath = prefix && path === '/' ? prefix : `${prefix}${path}`;
+            return (
+              <Route key={fullPath} path={fullPath} element={prefix ? page : <LocaleGate>{page}</LocaleGate>} />
+            );
+          }),
+        )}
+        <Route path="/en/*" element={<PublicLayout><NotFoundPage /></PublicLayout>} />
+        <Route path="/fr/*" element={<PublicLayout><NotFoundPage /></PublicLayout>} />
 
         {/* Private Routes */}
         <Route
@@ -468,7 +495,9 @@ function App() {
             <BrowserRouter>
               <ScrollToTop />
               <div className="App">
-                <AppRoutes />
+                <I18nProvider fallback={<RouteSpinner />}>
+                  <AppRoutes />
+                </I18nProvider>
                 <Toaster position="top-right" richColors />
                 <Analytics />
                 <SpeedInsights />

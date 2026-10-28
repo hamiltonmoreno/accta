@@ -1,0 +1,23 @@
+export default {
+  meta: {
+    title: 'Recover password | ACCTA',
+    description: 'Request a link to reset your ACCTA portal password.',
+  },
+  sentToast: 'Request sent!',
+  errorGeneric: 'Unable to process the request',
+  copiedToast: 'Link copied!',
+  backToLogin: 'Back to sign in',
+  title: 'Recover password',
+  subtitle: 'Enter the email linked to your account to receive recovery instructions.',
+  emailLabel: 'Email',
+  emailPlaceholder: 'you@email.cv',
+  submit: 'Send',
+  successTitle: 'Request received',
+  successBefore: 'If the account',
+  successAfter: 'exists, an email with recovery instructions will be sent shortly.',
+  demoLinkLabel: 'Recovery link (demo mode)',
+  copied: 'Copied',
+  copy: 'Copy',
+  resetNow: 'Reset password now',
+  tryAnother: 'Try another email',
+};

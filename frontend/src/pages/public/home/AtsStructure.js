@@ -1,21 +1,24 @@
 import React from 'react';
 import { Building2 } from 'lucide-react';
-import { camadas } from '../../../content/cta';
+import { useI18n } from '../../../i18n';
 import { ATS_ICONS } from './tokens';
 
-export const AtsStructure = () => (
+export const AtsStructure = () => {
+  const { t, cta } = useI18n();
+  const { camadas } = cta;
+  return (
   <section className="py-16 sm:py-24 bg-gray-50">
     <div className="max-w-7xl mx-auto px-5 sm:px-6">
       <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16 animate-fade-up">
         <span className="inline-block px-3 py-1.5 bg-grafite/5 text-grafite rounded-full text-xs uppercase tracking-wider font-semibold mb-4 sm:mb-6">
-          Estrutura do setor
+          {t('home.ats.badge')}
         </span>
         <h2 className="font-bold text-2xl sm:text-4xl lg:text-5xl text-grafite mb-3 sm:mb-4">
-          Quem é quem na{' '}
-          <span className="text-carmesim">aviação cabo-verdiana</span>
+          {t('home.ats.titleStart')}{' '}
+          <span className="text-carmesim">{t('home.ats.titleHighlight')}</span>
         </h2>
         <p className="text-sm sm:text-lg text-gray-600">
-          Quatro entidades sustentam a navegação aérea do arquipélago — cada uma com um papel distinto.
+          {t('home.ats.lead')}
         </p>
       </div>
 
@@ -35,4 +38,5 @@ export const AtsStructure = () => (
       </div>
     </div>
   </section>
-);
+  );
+};

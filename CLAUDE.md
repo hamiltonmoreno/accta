@@ -144,7 +144,9 @@ python scripts/seed_gallery.py  # Seed gallery data
     *communication* language and is **independent of the code** — "talk to me in
     Portuguese" never means "write code in Portuguese".
   - **User-facing text** (UI strings, HTTPException `detail`, notification
-    titles/bodies, emails): **PT**.
+    titles/bodies, emails): **PT**. Exceção (constituição v1.2.0, spec 021): o **site
+    público** também existe em EN/FR — strings em `frontend/src/i18n/locales/{pt,en,fr}/`,
+    PT canónico; alterar um texto PT ⇒ atualizar EN/FR no mesmo PR (teste de paridade).
   - **Identifiers** (functions, variables, jsonb fields): generic/technical names in
     **EN** (`create_transaction`, `update`, `status`, `amount`, `category`,
     `created_by`, `query`); **domain terms with no clean English equivalent stay PT**
@@ -391,23 +393,31 @@ skill on any conflict (the old "Aero-Swiss" legacy palette — Navy `#0A1F44` /
 this in-repo file is authoritative.
 
 <!-- SPECKIT START -->
-Feature ativa: `specs/020-dashboard-unificado/` — **Dashboard unificado para todos os sócios**
-(planeada 2026-07-13; plano em `specs/020-dashboard-unificado/plan.md`). Uniformizar o Dashboard:
-mesmos widgets para admin/financeiro/moderador/sócio comum, **incluindo evolução financeira
-agregada** (saldo, receitas×despesas mensal, resultado, quotas mês, pizza categorias) + KPIs de
-vida associativa (sócios activos, novos 90d, próximas AGAs, atos pendentes agregados, participação
-em votações). Decisões do dono (2026-07-13): **Q1 = Sweet-spot** (Grupo B finanças agregadas B.8–B.12
-+ Grupo A vida associativa A.1/A.2/A.3/A.5/A.7); **Q2 = universalizar RankingTopN** (Top-N com
-nomes a todos). `/financeiro` e drill-down **continuam gated** pelos privilégios existentes; widgets
-são read-only sem afordância de clique para quem não tem privilégio (US2). Diagnóstico do research
-(R1): 4 endpoints hoje rejeitam sócio comum com 403 (`/stats`, `/finances/summary`, `/finances/dre`,
-`/atos`) — logo entrega **não pode** ser frontend-only. **Abordagem (R2)**: 1 endpoint agregador
-`GET /api/dashboard/overview` (autenticado, sem role check) com `response_model` estrito
-(`DashboardOverview`) + tripwire PII, reutiliza `compute_financial_summary`/`compute_dre_report`
-já modulares. Endpoints antigos **inalterados**. Frontend: remove gate `hasFinance` no
-`DashboardPage.js`, widgets financeiros ficam read-only para quem não tem `hasFinance`. Zero deps
-novas, zero migração, zero campo novo em `users`. Toca `backend/` ⇒ release **Via B obrigatória**.
-Próximo: `/speckit-tasks`.
+Active feature (planeada 2026-07-14): `specs/021-i18n-publico-en-fr/` — **Site público em EN e FR**.
+Plano: `specs/021-i18n-publico-en-fr/plan.md` (+ research R1–R15, data-model, contracts, quickstart).
+Frontend-only, zero deps: módulo próprio `src/i18n/` (`useI18n` → `t`/`lp`/`cta`,
+`useFormatDate` em `i18n/dates.js`; dicionários por namespace `locales/{pt,en,fr}/<ns>.js`,
+EN/FR lazy; `content/cta` espelhado em `locales/{en,fr}/cta.js` via `useCta()`), `PUBLIC_ROUTES` montadas em `''`/`/en`/`/fr`
+(slugs PT), detecção `navigator.languages` só sem prefixo e sem preferência (crawlers nunca
+redirecionados), `usePageMeta` (title/description/lang/hreflang), `LanguageSwitcher`, 404 só
+sob prefixo, aviso «conteúdo em português». Privado/emails/PDFs/backend em PT. F0 = emenda
+constitucional v1.2.0 (Princípio IV). Go-live = STOP após revisão humana EN/FR. Sem Via B.
+
+Last completed: `specs/020-dashboard-unificado-concluido/` — **Dashboard unificado para todos os
+sócios**. **RELEASED v0.5.60 (PR #429→main, `sha-836bd309ee91`) e DEPLOYED em prod Via B 2026-07-13; VALIDADO pelo dono em navegador 2026-07-14 (T033 ✓)**
+(rollback `sha-19f89e40c31c` v0.5.59). Uniformiza o Dashboard: mesmos widgets para todos os sócios,
+incluindo evolução financeira agregada + KPIs de vida associativa. Decisões do dono aplicadas:
+Q1=Sweet-spot (B.8–B.12 finanças + A.1/A.2/A.3/A.5/A.7 vida associativa), Q2=universalizar
+RankingTopN (já era default `all_members` em prod, sem PATCH). Endpoint agregador
+`GET /api/dashboard/overview` (universal-authenticated, `response_model=DashboardOverview` +
+tripwire PII); reutiliza `compute_financial_summary`/`compute_dre_report`. Endpoints antigos
+inalterados. Frontend: `hasFinance` reintroduzido como flag de **afordância de clique** apenas
+(não visibilidade); `AdminStats` retirado (KPIs redistribuídos por VidaAssociativa/ProximasAssembleias/
+FinanceSummary). Backend tocado: `models.py` (+9 response models), `routes/dashboard.py` (novo, ~150L),
+`routes/__init__.py`. Zero deps novas, zero migração, zero campo novo. `pytest -m unit` 1692 passed
+(baseline 1683 + 9 novos: tripwire PII, paridade admin/sócio, mock-tracker anti-duplicação, matriz de
+acessos +universal). Teste decisivo em prod: `GET /api/dashboard/overview`→401 sem token, HEAD→405
+(endpoint vivo). Residual: validação em navegador (Princípio VII — dono).
 
 ---
 

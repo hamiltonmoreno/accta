@@ -1,0 +1,23 @@
+export default {
+  meta: {
+    title: 'Récupérer le mot de passe | ACCTA',
+    description: 'Demandez un lien pour réinitialiser le mot de passe du portail ACCTA.',
+  },
+  sentToast: 'Demande envoyée !',
+  errorGeneric: 'Erreur lors du traitement de la demande',
+  copiedToast: 'Lien copié !',
+  backToLogin: 'Retour à la connexion',
+  title: 'Récupérer le mot de passe',
+  subtitle: "Saisissez l'e-mail associé à votre compte pour recevoir les instructions de récupération.",
+  emailLabel: 'E-mail',
+  emailPlaceholder: 'vous@email.cv',
+  submit: 'Envoyer',
+  successTitle: 'Demande reçue',
+  successBefore: 'Si le compte',
+  successAfter: 'existe, un e-mail contenant les instructions de récupération sera envoyé sous peu.',
+  demoLinkLabel: 'Lien de récupération (mode démo)',
+  copied: 'Copié',
+  copy: 'Copier',
+  resetNow: 'Réinitialiser le mot de passe maintenant',
+  tryAnother: 'Essayer avec un autre e-mail',
+};

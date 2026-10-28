@@ -1,0 +1,23 @@
+export default {
+  meta: {
+    title: 'Ativar conta | ACCTA',
+    description: 'Defina a sua palavra-passe para ativar a conta no portal da ACCTA.',
+  },
+  successToast: 'Conta ativada com sucesso!',
+  errorGeneric: 'Erro ao ativar conta',
+  invalidTitle: 'Convite Inválido',
+  invalidBody: 'Este link de convite e invalido ou ja foi utilizado. Contacte o administrador da ACCTA.',
+  backToLogin: 'Voltar ao Login',
+  successTitle: 'Conta Ativada!',
+  redirecting: 'A redirecionar para o painel...',
+  welcome: 'Bem-vindo à ACCTA',
+  intro: '{name}, defina a sua palavra-passe para ativar a conta.',
+  passwordLabel: 'Palavra-passe',
+  passwordPlaceholder: 'Mínimo 6 caracteres',
+  hidePassword: 'Ocultar palavra-passe',
+  showPassword: 'Mostrar palavra-passe',
+  confirmLabel: 'Confirmar Palavra-passe',
+  confirmPlaceholder: 'Repetir a palavra-passe',
+  activating: 'A ativar...',
+  submit: 'Ativar Conta',
+};

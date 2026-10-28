@@ -46,14 +46,28 @@ Antes de começar, obtém o SHA do `main` na release (na tua máquina):
 git fetch origin main && git rev-parse --short=12 main
 ```
 
-**Valores atuais (v0.5.59 — identidade PDA nos emails + limpeza + hero copy / release #427):**
+**Valores atuais (v0.5.60 — Dashboard unificado para todos os sócios / release #429, spec 020):**
 
 | Variável | Valor |
 |----------|-------|
-| `TAG` (imagem nova) | `sha-19f89e40c31c` |
-| Tag git da release | `v0.5.59` (= `19f89e4`, HEAD de `main`, merge #427) |
-| Rollback (prod anterior, v0.5.58) | `sha-fb7064d8d031` |
-| Teste decisivo desta release | Sem rotas novas → imagem viva (`docker inspect accta-backend --format '{{.Config.Image}}'` = `…:sha-19f89e40c31c`) + arranque limpo + rotas admin da v0.5.58 continuam gated (`POST /api/admin/users/x/unlock` e `/send-reset` → **401**). Prova funcional dos emails com identidade PDA + logo = envio real a partir da UI (STOP do dono; templates só mudam **o próximo email enviado**). |
+| `TAG` (imagem nova) | `sha-836bd309ee91` |
+| Tag git da release | `v0.5.60` (= `836bd30`, HEAD de `main`, merge #429) |
+| Rollback (prod anterior, v0.5.59) | `sha-19f89e40c31c` |
+| Teste decisivo desta release | Rota nova viva e gated: `GET /api/dashboard/overview` sem token → **401**, `HEAD /api/dashboard/overview` → **405** (existe, só suporta GET). Confirmação da imagem: `docker inspect accta-backend --format '{{.Config.Image}}'` = `…:sha-836bd309ee91` + arranque limpo + rotas admin da v0.5.58 continuam gated. Prova funcional (paridade admin/sócio + widgets financeiros no Dashboard do sócio comum + menu Finanças escondido + `/financeiro` 403) = navegador autenticado, Princípio VII (dono). |
+
+> ℹ️ **Executado 2026-07-13 (v0.5.60)** — build no VPS OK (Dockerfile 100% cache até ao COPY do backend);
+> container Up (healthy) em `sha-836bd309ee91`; Etapa 2.3 toda verde: `/api/`→200, `openapi`/`docs`→404,
+> `/api/invoices`→404, `/api/finances/me/quotas`→401, `/api/events/nao-existe/expenses`→401,
+> `/api/events/nao-existe/receitas`→401, `/api/finances/me/quotas/pdf`→401, `/uploads/proofs/x.jpg`→404
+> (H1 sobreviveu), `POST /api/admin/users/x/unlock` e `/send-reset`→401 (v0.5.58 sobreviveu),
+> **rota nova `GET /api/dashboard/overview`→401 sem token, HEAD→405** (endpoint universal-authenticated
+> vivo), login sem Turnstile→403 (Turnstile ainda ON), arranque limpo (0 tracebacks, 0 "tuple concurrently
+> updated", audit trigger 2×, RLS trigger 2×, `overdue_atos_loop` iniciado 2×, pg_cron OK). `.env`
+> (`TURNSTILE_SECRET`/`VAPID_*`) preservado. Q2 (spec 020) confirmada em prod: `ranking_settings.visibility`
+> = `all_members` (default, não foi preciso PATCH — Top-N já era universal).
+> **Pós-deploy: nenhum obrigatório** (sem schema/migração; endpoint agregador read-only). Validação
+> funcional em navegador (Dashboard como sócio comum + `/financeiro` continua 403 + Top-N com nomes) fica
+> para o dono (Princípio VII).
 
 > ℹ️ **Executado 2026-07-13 (v0.5.59)** — build no VPS OK (Dockerfile 100% cache até ao COPY do backend);
 > container Up (healthy) em `sha-19f89e40c31c`; Etapa 2.3 toda verde: `/api/`→200, `openapi`/`docs`→404,
@@ -124,15 +138,15 @@ git fetch origin main && git rev-parse --short=12 main
 ```bash
 rm -rf /tmp/accta-build
 git clone https://github.com/hamiltonmoreno/accta.git /tmp/accta-build
-cd /tmp/accta-build && git checkout v0.5.59       # <- tag git da release
+cd /tmp/accta-build && git checkout v0.5.60       # <- tag git da release
 docker build -f backend/Dockerfile \
-  -t ghcr.io/hamiltonmoreno/accta-backend:sha-19f89e40c31c .   # <- TAG
+  -t ghcr.io/hamiltonmoreno/accta-backend:sha-836bd309ee91 .   # <- TAG
 ```
 
 ### 2.2 Arrancar via o compose canónico (só muda o TAG)
 ```bash
 cd /docker/accta
-export TAG=sha-19f89e40c31c
+export TAG=sha-836bd309ee91
 docker compose up -d --no-deps backend
 ```
 
@@ -174,7 +188,7 @@ docker compose logs --tail=200 backend 2>&1 | grep -E 'pg_cron not configured'  
 A imagem anterior continua no VPS; só se troca o `TAG`:
 ```bash
 cd /docker/accta
-export TAG=sha-fb7064d8d031        # <- rollback (v0.5.58, imagem que corria antes da v0.5.59)
+export TAG=sha-19f89e40c31c        # <- rollback (v0.5.59, imagem que corria antes da v0.5.60)
 docker compose up -d --no-deps backend
 ```
 

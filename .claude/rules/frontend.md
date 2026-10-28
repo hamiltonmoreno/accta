@@ -66,6 +66,7 @@ paths:
 - Public pages under `/pages/public/`, private under `/pages/private/`
 
 ## UI Text
-- All user-facing text in Portuguese (PT)
+- All user-facing text in Portuguese (PT) — except the public site, which is also
+  EN/FR via `src/i18n` (`t()`/`lp()`, PT canonical; constitution v1.2.0)
 - Use Sonner (toast) for success/error feedback
 - Loading states use Skeleton components

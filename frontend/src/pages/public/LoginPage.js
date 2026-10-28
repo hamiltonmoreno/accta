@@ -9,6 +9,10 @@ import { BrandLogo } from '../../components/BrandLogo';
 import { Turnstile } from '../../components/Turnstile';
 import { unsplashSrcSet } from '../../utils/unsplash';
 import { loginSchema } from '../../utils/authSchemas';
+import { LanguageSwitcher } from '../../components/LanguageSwitcher';
+import { useI18n } from '../../i18n';
+import { usePageMeta } from '../../i18n/usePageMeta';
+import { useValidationMessage } from '../../i18n/validation';
 
 // Helper: parse Retry-After header (segundos) e devolve estado de lock.
 // Backend devolve 423 + Retry-After quando 5+ falhas dentro de 15min (Sprint 4).
@@ -29,6 +33,9 @@ const formatRemaining = (ms) => {
 export const LoginPage = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { t, lp } = useI18n();
+  const tv = useValidationMessage();
+  usePageMeta('login');
   const [lockedUntil, setLockedUntil] = useState(null); // ms epoch
   const [now, setNow] = useState(Date.now());
   const [turnstileToken, setTurnstileToken] = useState('');
@@ -43,9 +50,9 @@ export const LoginPage = () => {
   useEffect(() => {
     if (!lockedUntil) return;
     const id = setInterval(() => {
-      const t = Date.now();
-      setNow(t);
-      if (t >= lockedUntil) {
+      const ts = Date.now();
+      setNow(ts);
+      if (ts >= lockedUntil) {
         setLockedUntil(null);
         clearInterval(id);
       }
@@ -59,7 +66,7 @@ export const LoginPage = () => {
   const onSubmit = async (data) => {
     try {
       const user = await login({ ...data, turnstile_token: turnstileToken });
-      toast.success(`Bem-vindo, ${user.name}!`);
+      toast.success(t('login.welcome', { name: user.name }));
       navigate('/dashboard');
     } catch (error) {
       // Token Turnstile é de uso único — renova-o para a próxima tentativa.
@@ -68,15 +75,18 @@ export const LoginPage = () => {
       const lockedUntilTs = parseLockedUntil(error);
       if (lockedUntilTs) {
         setLockedUntil(lockedUntilTs);
-        toast.error('Conta temporariamente bloqueada por excesso de tentativas');
+        toast.error(t('login.lockedToast'));
         return;
       }
-      toast.error(error.response?.data?.detail || 'Erro ao fazer login');
+      toast.error(error.response?.data?.detail || t('login.errorGeneric'));
     }
   };
 
   return (
     <div className="min-h-screen flex">
+      <div className="fixed top-4 right-4 z-20">
+        <LanguageSwitcher className="bg-white/90 border border-gray-200" />
+      </div>
       {/* Left: Visual Panel (hidden on mobile) */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-grafite overflow-hidden">
         <img
@@ -92,7 +102,7 @@ export const LoginPage = () => {
         <div className="absolute inset-0 bg-gradient-to-t from-grafite via-grafite/80 to-grafite/40" />
 
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
-          <Link to="/" className="inline-flex">
+          <Link to={lp('/')} className="inline-flex">
             <BrandLogo dark />
           </Link>
 
@@ -106,16 +116,16 @@ export const LoginPage = () => {
               </div>
             </div>
             <h2 className="font-bold text-4xl text-white mb-4 leading-tight">
-              Portal do<br />
-              <span className="text-white">Associado</span>
+              {t('login.panelTitleLine1')}<br />
+              <span className="text-white">{t('login.panelTitleLine2')}</span>
             </h2>
             <p className="text-white/60 text-lg max-w-sm leading-relaxed">
-              Aceda à sua carteira digital, votações, documentos e muito mais.
+              {t('login.panelSubtitle')}
             </p>
           </div>
 
           <p className="text-white/30 text-xs">
-            &copy; {new Date().getFullYear()} ACCTA - Cabo Verde
+            &copy; {new Date().getFullYear()} {t('login.copyright')}
           </p>
         </div>
       </div>
@@ -125,24 +135,24 @@ export const LoginPage = () => {
         <div className="w-full max-w-sm animate-fade-up">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
-            <Link to="/" className="inline-flex justify-center mb-5">
+            <Link to={lp('/')} className="inline-flex justify-center mb-5">
               <BrandLogo />
             </Link>
           </div>
 
           {/* Back Link */}
           <Link
-            to="/"
+            to={lp('/')}
             className="inline-flex items-center gap-1.5 text-sm text-[#6B7280] hover:text-grafite transition-colors mb-6"
             data-testid="back-to-home"
           >
             <ArrowLeft className="w-4 h-4" />
-            Voltar ao inicio
+            {t('login.backHome')}
           </Link>
 
           <div className="mb-6">
-            <h1 className="font-bold text-2xl text-grafite mb-1" data-testid="login-title">Entrar na conta</h1>
-            <p className="text-sm text-gray-500">Acesse o portal com as suas credenciais</p>
+            <h1 className="font-bold text-2xl text-grafite mb-1" data-testid="login-title">{t('login.title')}</h1>
+            <p className="text-sm text-gray-500">{t('login.subtitle')}</p>
           </div>
 
           {/* Lockout banner — visivel quando backend devolve 423 (5 falhas em 15min).
@@ -155,9 +165,9 @@ export const LoginPage = () => {
             >
               <Lock className="w-5 h-5 text-carmesim shrink-0 mt-0.5" aria-hidden="true" />
               <div className="text-sm">
-                <p className="font-semibold text-grafite mb-0.5">Conta temporariamente bloqueada</p>
+                <p className="font-semibold text-grafite mb-0.5">{t('login.lockedTitle')}</p>
                 <p className="text-gray-500">
-                  Demasiadas tentativas falhadas. Tente novamente em{' '}
+                  {t('login.lockedBody')}{' '}
                   <strong className="text-carmesim font-mono" data-testid="login-locked-countdown">
                     {formatRemaining(remainingMs)}
                   </strong>.
@@ -171,7 +181,7 @@ export const LoginPage = () => {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
               <div>
                 <label htmlFor="email" className="block text-xs uppercase tracking-widest text-[#6B7280] mb-2 font-semibold">
-                  Email
+                  {t('login.emailLabel')}
                 </label>
                 <input
                   id="email"
@@ -181,25 +191,25 @@ export const LoginPage = () => {
                   aria-invalid={errors.email ? 'true' : 'false'}
                   {...register('email')}
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 focus:border-carmesim/40 transition-all aria-[invalid=true]:border-carmesim/60"
-                  placeholder="seu@email.cv"
+                  placeholder={t('login.emailPlaceholder')}
                   data-testid="login-email"
                 />
                 {errors.email && (
-                  <p className="mt-1 text-xs text-[#B91C1C]" role="alert">{errors.email.message}</p>
+                  <p className="mt-1 text-xs text-[#B91C1C]" role="alert">{tv(errors.email.message)}</p>
                 )}
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label htmlFor="password" className="block text-xs uppercase tracking-widest text-[#6B7280] font-semibold">
-                    Palavra-passe
+                    {t('login.passwordLabel')}
                   </label>
                   <Link
-                    to="/forgot-password"
+                    to={lp('/forgot-password')}
                     className="text-xs text-carmesim hover:text-carmesim-dark transition-colors font-medium"
                     data-testid="forgot-password-link"
                   >
-                    Esqueceu a palavra-passe?
+                    {t('login.forgot')}
                   </Link>
                 </div>
                 <input
@@ -213,7 +223,7 @@ export const LoginPage = () => {
                   data-testid="login-password"
                 />
                 {errors.password && (
-                  <p className="mt-1 text-xs text-[#B91C1C]" role="alert">{errors.password.message}</p>
+                  <p className="mt-1 text-xs text-[#B91C1C]" role="alert">{tv(errors.password.message)}</p>
                 )}
               </div>
 
@@ -230,24 +240,24 @@ export const LoginPage = () => {
                 ) : isLocked ? (
                   <>
                     <Lock className="w-4 h-4" />
-                    Bloqueado · {formatRemaining(remainingMs)}
+                    {t('login.locked')} · {formatRemaining(remainingMs)}
                   </>
                 ) : (
                   <>
                     <LogIn className="w-4 h-4" />
-                    Entrar
+                    {t('login.submit')}
                   </>
                 )}
               </button>
 
               <p className="text-center text-sm text-[#6B7280] mt-4">
-                Ainda não é sócio?{' '}
+                {t('login.notMember')}{' '}
                 <Link
-                  to="/criar-conta"
+                  to={lp('/criar-conta')}
                   className="text-carmesim hover:text-carmesim-dark font-medium transition-colors"
                   data-testid="criar-conta-link"
                 >
-                  Criar conta
+                  {t('login.createAccount')}
                 </Link>
               </p>
             </form>
