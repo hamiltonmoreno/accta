@@ -1,0 +1,23 @@
+export default {
+  meta: {
+    title: 'Activer le compte | ACCTA',
+    description: 'Définissez votre mot de passe pour activer votre compte sur le portail ACCTA.',
+  },
+  successToast: 'Compte activé avec succès !',
+  errorGeneric: "Erreur lors de l'activation du compte",
+  invalidTitle: 'Invitation invalide',
+  invalidBody: "Ce lien d'invitation est invalide ou a déjà été utilisé. Veuillez contacter l'administrateur de l'ACCTA.",
+  backToLogin: 'Retour à la connexion',
+  successTitle: 'Compte activé !',
+  redirecting: 'Redirection vers le tableau de bord...',
+  welcome: "Bienvenue à l'ACCTA",
+  intro: '{name}, définissez votre mot de passe pour activer votre compte.',
+  passwordLabel: 'Mot de passe',
+  passwordPlaceholder: 'Au moins 6 caractères',
+  hidePassword: 'Masquer le mot de passe',
+  showPassword: 'Afficher le mot de passe',
+  confirmLabel: 'Confirmer le mot de passe',
+  confirmPlaceholder: 'Répétez le mot de passe',
+  activating: 'Activation...',
+  submit: 'Activer le compte',
+};

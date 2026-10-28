@@ -7,8 +7,12 @@ import { Link } from 'react-router-dom';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
 import { PageBanner } from '../../components/PageBanner';
+import { PortugueseContentNotice } from '../../components/PortugueseContentNotice';
+import { useI18n } from '../../i18n';
+import { usePageMeta } from '../../i18n/usePageMeta';
 
 const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
+  const { t } = useI18n();
   useBodyScrollLock(true);
   useEffect(() => {
     const handleKey = (e) => {
@@ -30,7 +34,7 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
       {/* Close */}
       <button
         onClick={onClose}
-        aria-label="Fechar"
+        aria-label={t('galeria.lightbox.close')}
         className="absolute top-4 right-4 z-50 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/70"
         data-testid="lightbox-close"
       >
@@ -46,7 +50,7 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
       {currentIndex > 0 && (
         <button
           onClick={(e) => { e.stopPropagation(); onPrev(); }}
-          aria-label="Foto anterior"
+          aria-label={t('galeria.lightbox.prev')}
           className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-50 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           data-testid="lightbox-prev"
         >
@@ -58,7 +62,7 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
       {currentIndex < photos.length - 1 && (
         <button
           onClick={(e) => { e.stopPropagation(); onNext(); }}
-          aria-label="Próxima foto"
+          aria-label={t('galeria.lightbox.next')}
           className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-50 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           data-testid="lightbox-next"
         >
@@ -80,7 +84,9 @@ const Lightbox = ({ photos, currentIndex, onClose, onPrev, onNext }) => {
   );
 };
 
-const AlbumCard = ({ album, onClick }) => (
+const AlbumCard = ({ album, onClick }) => {
+  const { t } = useI18n();
+  return (
   <button onClick={onClick}
     className="group text-left w-full animate-fade-up"
     data-testid={`album-${album.id}`}>
@@ -98,14 +104,17 @@ const AlbumCard = ({ album, onClick }) => (
         </h3>
         <div className="flex items-center gap-1.5 text-white/70 text-xs sm:text-sm">
           <Camera className="w-3.5 h-3.5" />
-          <span>{album.photo_count} foto{album.photo_count !== 1 ? 's' : ''}</span>
+          <span>{t(album.photo_count === 1 ? 'galeria.photoOne' : 'galeria.photoMany', { count: album.photo_count })}</span>
         </div>
       </div>
     </div>
   </button>
-);
+  );
+};
 
-const AlbumView = ({ album, photos, onBack, onOpenLightbox }) => (
+const AlbumView = ({ album, photos, onBack, onOpenLightbox }) => {
+  const { t } = useI18n();
+  return (
   <div>
     {/* Album Header */}
     <div className="relative h-48 sm:h-64 md:h-80 overflow-hidden rounded-xl mb-6 sm:mb-8">
@@ -122,7 +131,7 @@ const AlbumView = ({ album, photos, onBack, onOpenLightbox }) => (
           data-testid="album-back"
         >
           <ArrowLeft className="w-4 h-4" />
-          Voltar a galeria
+          {t('galeria.back')}
         </button>
         <h2 className="font-bold text-2xl sm:text-3xl md:text-4xl text-white mb-1">
           {album.title}
@@ -132,6 +141,8 @@ const AlbumView = ({ album, photos, onBack, onOpenLightbox }) => (
         </p>
       </div>
     </div>
+
+    {album.description && <PortugueseContentNotice className="mb-4" />}
 
     {/* Photo Grid */}
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
@@ -157,11 +168,14 @@ const AlbumView = ({ album, photos, onBack, onOpenLightbox }) => (
       ))}
     </div>
   </div>
-);
+  );
+};
 
 export const GaleriaPage = () => {
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [lightboxIndex, setLightboxIndex] = useState(-1);
+  const { t, lp } = useI18n();
+  usePageMeta('galeria');
 
   const { data: albums = [], isLoading: loadingAlbums } = useQuery({
     queryKey: ['publicAlbums'],
@@ -182,10 +196,10 @@ export const GaleriaPage = () => {
       {/* Hero Banner */}
       <PageBanner
         pageKey="galeria"
-        badge="Galeria"
+        badge={t('galeria.banner.badge')}
         icon={Camera}
-        title="Galeria de Fotos"
-        subtitle="Imagens dos aeroportos, torre de controlo, equipa e paisagens de Cabo Verde"
+        title={t('galeria.banner.title')}
+        subtitle={t('galeria.banner.subtitle')}
       />
 
       {/* Content */}
@@ -206,8 +220,8 @@ export const GaleriaPage = () => {
         ) : albums.length === 0 ? (
           <EmptyState
             icon={Images}
-            title="Nenhum álbum disponível"
-            description="Os álbuns de fotos serão publicados em breve."
+            title={t('galeria.empty.title')}
+            description={t('galeria.empty.description')}
             testId="no-albums"
           />
         ) : (
@@ -227,23 +241,23 @@ export const GaleriaPage = () => {
       <section className="bg-grafite py-12 sm:py-16">
         <div className="max-w-4xl mx-auto px-5 sm:px-6 text-center">
           <h2 className="font-bold text-2xl sm:text-3xl text-white mb-3">
-            Conheça a nossa <span className="text-white">história</span>
+            {t('galeria.cta.titleStart')}<span className="text-white">{t('galeria.cta.titleEmphasis')}</span>
           </h2>
           <p className="text-white/60 text-sm sm:text-base mb-6">
-            Descubra mais sobre a associação e a profissão de controlador de tráfego aéreo
+            {t('galeria.cta.subtitle')}
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-3">
             <Link
-              to="/sobre"
+              to={lp('/sobre')}
               className="inline-flex items-center justify-center gap-2 bg-floresta text-white px-6 py-3 rounded-lg font-bold text-sm hover:bg-floresta-dark transition-colors"
             >
-              Sobre a ACCTA
+              {t('galeria.cta.about')}
             </Link>
             <Link
-              to="/profissao"
+              to={lp('/profissao')}
               className="inline-flex items-center justify-center gap-2 bg-white/10 text-white border border-white/20 px-6 py-3 rounded-lg font-bold text-sm hover:bg-white/20 transition-colors"
             >
-              A Profissão
+              {t('galeria.cta.profession')}
             </Link>
           </div>
         </div>

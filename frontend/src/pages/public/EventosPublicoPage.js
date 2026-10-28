@@ -15,21 +15,27 @@ import {
   Megaphone
 } from 'lucide-react';
 import { format, isFuture, isPast } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/ui/skeleton';
 import { PageBanner } from '../../components/PageBanner';
+import { PortugueseContentNotice } from '../../components/PortugueseContentNotice';
+import { useI18n } from '../../i18n';
+import { useFormatDate } from '../../i18n/dates';
+import { usePageMeta } from '../../i18n/usePageMeta';
 
 const eventTypeConfig = {
-  assembleia: { icon: CalendarDays, label: 'Assembleia', color: 'bg-[#EFF6FF] text-[#1D4ED8]' },
-  formacao: { icon: GraduationCap, label: 'Formação', color: 'bg-[#F0FDF4] text-[#15803D]' },
-  social: { icon: PartyPopper, label: 'Evento Social', color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
-  reuniao: { icon: Handshake, label: 'Reunião', color: 'bg-[#FFFBEB] text-[#B45309]' },
-  outro: { icon: Megaphone, label: 'Outro', color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
+  assembleia: { icon: CalendarDays, color: 'bg-[#EFF6FF] text-[#1D4ED8]' },
+  formacao: { icon: GraduationCap, color: 'bg-[#F0FDF4] text-[#15803D]' },
+  social: { icon: PartyPopper, color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
+  reuniao: { icon: Handshake, color: 'bg-[#FFFBEB] text-[#B45309]' },
+  outro: { icon: Megaphone, color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
 };
 
 export const EventosPublicoPage = () => {
   const [filter, setFilter] = useState('upcoming'); // upcoming, past, all
+  const { t, lp } = useI18n();
+  const formatDate = useFormatDate();
+  usePageMeta('eventos');
 
   const { data: events = [], isLoading: loading } = useQuery({
     queryKey: ['publicEvents'],
@@ -51,9 +57,9 @@ export const EventosPublicoPage = () => {
       {/* Hero Section */}
       <PageBanner
         pageKey="eventos"
-        badge="Agenda"
-        title="Eventos da ACCTA"
-        subtitle="Assembleias, formações, encontros e mais. Fique por dentro da agenda da associação."
+        badge={t('eventos.banner.badge')}
+        title={t('eventos.banner.title')}
+        subtitle={t('eventos.banner.subtitle')}
       />
 
       {/* Stats */}
@@ -62,11 +68,11 @@ export const EventosPublicoPage = () => {
           <div className="flex justify-center gap-8">
             <div className="text-center">
               <div className="font-sans font-bold text-3xl text-grafite">{upcomingEvents.length}</div>
-              <div className="text-sm text-gray-500">Próximos Eventos</div>
+              <div className="text-sm text-gray-500">{t('eventos.stats.upcoming')}</div>
             </div>
             <div className="text-center">
               <div className="font-sans font-bold text-3xl text-[#6B7280]">{pastEvents.length}</div>
-              <div className="text-sm text-gray-500">Eventos Realizados</div>
+              <div className="text-sm text-gray-500">{t('eventos.stats.past')}</div>
             </div>
           </div>
         </div>
@@ -77,11 +83,7 @@ export const EventosPublicoPage = () => {
         <div className="max-w-7xl mx-auto px-6">
           {/* Filters */}
           <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mb-12">
-            {[
-              { value: 'upcoming', label: 'Próximos' },
-              { value: 'past', label: 'Realizados' },
-              { value: 'all', label: 'Todos' },
-            ].map((f) => (
+            {['upcoming', 'past', 'all'].map((value) => ({ value, label: t(`eventos.filters.${value}`) })).map((f) => (
               <button
                 key={f.value}
                 onClick={() => setFilter(f.value)}
@@ -106,10 +108,12 @@ export const EventosPublicoPage = () => {
           ) : filteredEvents.length === 0 ? (
             <EmptyState
               icon={Calendar}
-              title={filter === 'upcoming' ? 'Nenhum evento programado' : 'Nenhum evento encontrado'}
-              description="Os eventos públicos serão exibidos aqui quando disponíveis"
+              title={filter === 'upcoming' ? t('eventos.empty.upcoming') : t('eventos.empty.other')}
+              description={t('eventos.empty.description')}
             />
           ) : (
+            <>
+            <PortugueseContentNotice className="mb-6" />
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredEvents.map((event, index) => {
                 const typeConfig = eventTypeConfig[event.type] || eventTypeConfig.outro;
@@ -129,11 +133,11 @@ export const EventosPublicoPage = () => {
                             {format(eventDate, 'dd')}
                           </div>
                           <div className="text-white uppercase text-sm">
-                            {format(eventDate, 'MMM yyyy', { locale: ptBR })}
+                            {formatDate(eventDate, 'MMM yyyy')}
                           </div>
                         </div>
                         <div className={`px-3 py-1 rounded-full text-xs uppercase ${typeConfig.color}`}>
-                          {typeConfig.label}
+                          {t(`eventos.types.${eventTypeConfig[event.type] ? event.type : 'outro'}`)}
                         </div>
                       </div>
                     </div>
@@ -150,7 +154,7 @@ export const EventosPublicoPage = () => {
                       <div className="space-y-2 mb-4">
                         <div className="flex items-center gap-2 text-sm text-gray-500">
                           <Clock className="w-4 h-4" />
-                          <span>{format(eventDate, 'HH:mm', { locale: ptBR })}</span>
+                          <span>{formatDate(eventDate, 'HH:mm')}</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-500">
                           <MapPin className="w-4 h-4" />
@@ -160,14 +164,14 @@ export const EventosPublicoPage = () => {
 
                       {isPastEvent ? (
                         <span className="inline-flex items-center gap-2 text-[#6B7280] font-medium text-sm">
-                          Evento realizado
+                          {t('eventos.card.past')}
                         </span>
                       ) : (
                         <Link
-                          to="/login"
+                          to={lp('/login')}
                           className="inline-flex items-center gap-2 text-grafite font-semibold text-sm hover:text-carmesim transition-colors"
                         >
-                          Fazer login para inscrever-se
+                          {t('eventos.card.loginToRegister')}
                           <ChevronRight className="w-4 h-4" />
                         </Link>
                       )}
@@ -176,6 +180,7 @@ export const EventosPublicoPage = () => {
                 );
               })}
             </div>
+            </>
           )}
         </div>
       </section>
@@ -184,16 +189,16 @@ export const EventosPublicoPage = () => {
       <section className="py-16 bg-grafite">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="font-sans font-bold text-3xl text-white mb-6">
-            É associado? Aceda a todos os eventos
+            {t('eventos.cta.title')}
           </h2>
           <p className="text-lg text-white/80 mb-8">
-            Os sócios têm acesso a eventos exclusivos e podem inscrever-se diretamente pela plataforma
+            {t('eventos.cta.subtitle')}
           </p>
           <Link
-            to="/login"
+            to={lp('/login')}
             className="inline-flex items-center gap-2 bg-floresta text-white px-8 py-4 rounded-lg font-bold hover:bg-floresta-dark transition-all"
           >
-            Entrar na Área do Associado
+            {t('eventos.cta.button')}
             <ChevronRight className="w-5 h-5" />
           </Link>
         </div>

@@ -1,6 +1,17 @@
 <!--
 SYNC IMPACT REPORT
 ==================
+Version change: 1.1.0 → 1.2.0 (MINOR — materially expanded guidance in Principle IV)
+Modified principles:
+  - IV. Language Discipline: PT obrigatório passa a cobrir a área autenticada, emails,
+    notificações, PDFs e `detail`; o site público PODE oferecer EN/FR com PT canónico
+    (spec 021, pedido do dono 2026-07-14). Conteúdo administrado fica na língua original.
+Templates requiring updates:
+  ✅ CLAUDE.md §Conventions — reconciliado na mesma release
+  ✅ .claude/rules/frontend.md §UI Text — reconciliado na mesma release
+Deferred TODOs: none
+
+Previous report (1.1.0):
 Version change: 1.0.0 → 1.1.0 (MINOR — material change to a Stack & Data constraint;
   principles intact)
 Modified principles: none
@@ -68,8 +79,12 @@ auditability of writes is the minimum a member-owned organisation can accept.
 
 ### IV. Language Discipline: PT for Users, EN for Generics, Domain in PT
 
-User-facing text — UI strings, HTTPException `detail`, notification titles/bodies,
-emails, comunicados — MUST be in European Portuguese. Identifiers (functions,
+User-facing text — UI strings of the authenticated area, HTTPException `detail`,
+notification titles/bodies, emails, PDFs, comunicados — MUST be in European
+Portuguese. The **public site** (routes under `PublicLayout` and the public auth
+pages) MAY additionally be offered in English and French, with PT as the canonical
+source: every string originates in PT and EN/FR are reviewed projections (spec 021).
+Admin-authored content stays in the language it was written in. Identifiers (functions,
 variables, jsonb fields) MUST use generic/technical EN names (`create_transaction`,
 `status`, `amount`); domain terms with no clean English equivalent MUST stay PT
 (`joia`, `quota`, `socio`, `exercicio`, `balancete`, `assembleia`, `deliberacao`,
@@ -232,4 +247,4 @@ that updates.
   non-trivial feature to check cross-artifact consistency against this
   constitution.
 
-**Version**: 1.1.0 | **Ratified**: 2026-06-20 | **Last Amended**: 2026-07-03
+**Version**: 1.2.0 | **Ratified**: 2026-06-20 | **Last Amended**: 2026-07-14

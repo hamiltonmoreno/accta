@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { PageBanner } from '../../components/PageBanner';
 import { Skeleton } from '../../components/ui/skeleton';
-import { ASSOCIACAO_NOME_COMPLETO, fir, camadas } from '../../content/cta';
+import { PortugueseContentNotice } from '../../components/PortugueseContentNotice';
+import { useI18n, useCta } from '../../i18n';
+import { usePageMeta } from '../../i18n/usePageMeta';
 import { governanceAPI, mediaUrl } from '../../utils/api';
 import { queryKeys } from '../../lib/queryClient';
 import {
@@ -31,6 +33,7 @@ const initials = (name) =>
 
 // Cartão de um titular (foto + nome) ou estado "Vago".
 const TitularCard = ({ titular, cargoLabel, accent }) => {
+  const { t } = useI18n();
   const vago = !titular;
   const ring = accent ? 'bg-carmesim/5' : 'bg-gray-50';
   return (
@@ -45,7 +48,7 @@ const TitularCard = ({ titular, cargoLabel, accent }) => {
       ) : titular.photo_url ? (
         <img
           src={mediaUrl(titular.photo_url)}
-          alt={`Foto de ${titular.name} — ${cargoLabel}`}
+          alt={t('sobre.corpos.photoAlt', { name: titular.name, cargo: cargoLabel })}
           loading="lazy"
           className="w-10 h-10 shrink-0 rounded-full object-cover"
         />
@@ -62,7 +65,7 @@ const TitularCard = ({ titular, cargoLabel, accent }) => {
       <div className="min-w-0">
         <div className="font-semibold text-grafite truncate">{cargoLabel}</div>
         <div className="text-sm text-gray-600 truncate">
-          {vago ? <span className="text-gray-500">Vago</span> : titular.name}
+          {vago ? <span className="text-gray-500">{t('sobre.corpos.vacant')}</span> : titular.name}
         </div>
       </div>
     </div>
@@ -109,6 +112,13 @@ const OrgaoCard = ({ orgao, icon: Icon, accent }) => (
   </div>
 );
 
+const VALUE_STYLES = [
+  { icon: Shield, color: 'bg-carmesim/10 text-carmesim' },
+  { icon: Award, color: 'bg-grafite/10 text-grafite' },
+  { icon: Users, color: 'bg-grafite/10 text-grafite' },
+  { icon: Star, color: 'bg-grafite/10 text-grafite' },
+];
+
 const ORGAO_ICONS = {
   assembleia_geral: Building,
   direcao: Users,
@@ -116,6 +126,9 @@ const ORGAO_ICONS = {
 };
 
 export const SobrePage = () => {
+  const { t, lp } = useI18n();
+  const { ASSOCIACAO_NOME_COMPLETO, fir, camadas } = useCta();
+  usePageMeta('sobre');
   const asa = camadas.find((c) => c.sigla === 'ASA');
 
   const { data, isLoading, isError } = useQuery({
@@ -128,9 +141,9 @@ export const SobrePage = () => {
     <div className="min-h-screen bg-gray-50">
       <PageBanner
         pageKey="sobre"
-        badge="A Associação"
-        title="Quem Somos"
-        subtitle="A associação profissional dos controladores de tráfego aéreo de Cabo Verde"
+        badge={t('sobre.banner.badge')}
+        title={t('sobre.banner.title')}
+        subtitle={t('sobre.banner.subtitle')}
       />
 
       {/* Introdução */}
@@ -139,23 +152,18 @@ export const SobrePage = () => {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="animate-fade-up">
               <h2 className="font-sans font-bold text-4xl text-grafite mb-8">
-                Unidos pela <span className="text-carmesim">Segurança Aérea</span>
+                {t('sobre.intro.titleA')} <span className="text-carmesim">{t('sobre.intro.titleHighlight')}</span>
               </h2>
               <div className="space-y-6 text-lg text-gray-600 leading-relaxed">
                 <p>
-                  A{' '}
+                  {t('sobre.intro.p1a') && <>{t('sobre.intro.p1a')}{' '}</>}
                   <strong className="text-grafite">{ASSOCIACAO_NOME_COMPLETO}</strong>{' '}
-                  é a associação de representação profissional dos controladores
-                  de tráfego aéreo no arquipélago. Reúne os profissionais que
-                  asseguram a gestão de um dos espaços aéreos mais estratégicos
-                  do Atlântico, atuando na valorização da carreira, na promoção
-                  da excelência técnica e na cooperação com as autoridades
-                  nacionais e os parceiros do setor.
+                  {t('sobre.intro.p1b')}
                 </p>
                 <p>
-                  Mais do que uma estrutura associativa, somos um{' '}
-                  <span className="text-grafite font-semibold">parceiro técnico</span>{' '}
-                  no desenvolvimento da aviação civil nacional.
+                  {t('sobre.intro.p2a')}{' '}
+                  <span className="text-grafite font-semibold">{t('sobre.intro.p2Highlight')}</span>{' '}
+                  {t('sobre.intro.p2b')}
                 </p>
               </div>
             </div>
@@ -172,10 +180,7 @@ export const SobrePage = () => {
                   </div>
                 </div>
                 <p className="text-white/80 leading-relaxed">
-                  Os nossos profissionais atuam na {fir.nome}, uma das maiores
-                  regiões de informação de voo do Atlântico, coordenando voos
-                  entre a Europa, a África e as Américas. A prestação dos
-                  serviços de tráfego aéreo é operada pela {asa ? asa.nome : 'ASA'}.
+                  {t('sobre.intro.firText', { fir: fir.nome, asa: asa ? asa.nome : 'ASA' })}
                 </p>
               </div>
             </div>
@@ -188,10 +193,10 @@ export const SobrePage = () => {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
-              Os Nossos Pilares
+              {t('sobre.pillars.badge')}
             </span>
             <h2 className="font-sans font-bold text-4xl text-grafite">
-              Missão, Visão e Valores
+              {t('sobre.pillars.title')}
             </h2>
           </div>
 
@@ -202,14 +207,13 @@ export const SobrePage = () => {
                   <Target className="w-7 h-7 text-white" aria-hidden="true" />
                 </div>
                 <h3 className="font-sans font-bold text-2xl text-grafite">
-                  A Nossa Missão
+                  {t('sobre.pillars.missionTitle')}
                 </h3>
               </div>
               <p className="text-gray-600 text-lg leading-relaxed">
-                Representar e valorizar os controladores de tráfego aéreo,
-                promovendo a <strong>segurança operacional</strong>, o{' '}
-                <strong>desenvolvimento contínuo</strong> da profissão e o{' '}
-                <strong>bem-estar</strong> dos associados.
+                {t('sobre.pillars.missionA')} <strong>{t('sobre.pillars.missionS1')}</strong>{t('sobre.pillars.missionB')}{' '}
+                <strong>{t('sobre.pillars.missionS2')}</strong> {t('sobre.pillars.missionC')}{' '}
+                <strong>{t('sobre.pillars.missionS3')}</strong> {t('sobre.pillars.missionD')}
               </p>
             </div>
 
@@ -219,45 +223,19 @@ export const SobrePage = () => {
                   <Eye className="w-7 h-7 text-white" aria-hidden="true" />
                 </div>
                 <h3 className="font-sans font-bold text-2xl text-grafite">
-                  A Nossa Visão
+                  {t('sobre.pillars.visionTitle')}
                 </h3>
               </div>
               <p className="text-gray-600 text-lg leading-relaxed">
-                Ser uma associação de referência na representação da classe e na
-                contribuição técnica para a{' '}
-                <strong>segurança da navegação aérea no Atlântico</strong>.
+                {t('sobre.pillars.visionA')}{' '}
+                <strong>{t('sobre.pillars.visionStrong')}</strong>{t('sobre.pillars.visionB')}
               </p>
             </div>
           </div>
 
           {/* Valores — neutral-led, Carmesim só no valor-chave "Segurança" (U3) */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-                icon: Shield,
-                title: 'Segurança',
-                desc: 'O nosso compromisso inegociável.',
-                color: 'bg-carmesim/10 text-carmesim',
-              },
-              {
-                icon: Award,
-                title: 'Excelência',
-                desc: 'Rigor técnico em cada comunicação.',
-                color: 'bg-grafite/10 text-grafite',
-              },
-              {
-                icon: Users,
-                title: 'União',
-                desc: 'A força do coletivo acima do individual.',
-                color: 'bg-grafite/10 text-grafite',
-              },
-              {
-                icon: Star,
-                title: 'Transparência',
-                desc: 'Gestão clara e responsável.',
-                color: 'bg-grafite/10 text-grafite',
-              },
-            ].map((value, index) => (
+            {t('sobre.pillars.values').map((v, i) => ({ ...v, ...VALUE_STYLES[i] })).map((value, index) => (
               <div
                 key={index}
                 className="card-technical rounded-xl p-6 text-center hover:shadow-lg transition-shadow animate-fade-up"
@@ -282,14 +260,18 @@ export const SobrePage = () => {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-6">
-              Gestão Atual
+              {t('sobre.corpos.badge')}
             </span>
             <h2 className="font-sans font-bold text-4xl text-grafite mb-4">
-              Corpos Sociais
+              {t('sobre.corpos.title')}
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Os órgãos sociais que dirigem e fiscalizam a associação
+              {t('sobre.corpos.subtitle')}
             </p>
+          </div>
+
+          <div className="flex justify-center mb-8">
+            <PortugueseContentNotice />
           </div>
 
           {isLoading && (
@@ -309,7 +291,7 @@ export const SobrePage = () => {
 
           {isError && (
             <p className="text-center text-gray-600">
-              Informação dos corpos sociais indisponível de momento.
+              {t('sobre.corpos.error')}
             </p>
           )}
 
@@ -332,17 +314,17 @@ export const SobrePage = () => {
       <section className="py-12 sm:py-20 lg:py-24 bg-grafite">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="font-sans font-bold text-4xl text-white mb-6">
-            Quer saber mais sobre a nossa atuação?
+            {t('sobre.cta.title')}
           </h2>
           <p className="text-xl text-white/80 mb-10">
-            Entre em contacto connosco para esclarecer qualquer questão
+            {t('sobre.cta.subtitle')}
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link
-              to="/contactos"
+              to={lp('/contactos')}
               className="inline-flex items-center gap-2 bg-floresta text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-floresta-dark transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ring-offset-2 ring-offset-grafite"
             >
-              Fale Connosco
+              {t('sobre.cta.button')}
             </Link>
           </div>
         </div>

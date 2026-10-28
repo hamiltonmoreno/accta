@@ -16,9 +16,13 @@ import {
 } from 'lucide-react';
 import { PageBanner } from '../../components/PageBanner';
 import { Turnstile } from '../../components/Turnstile';
-import { faq, contactosUteis, notaContactos } from '../../content/cta';
+import { useI18n, useCta } from '../../i18n';
+import { usePageMeta } from '../../i18n/usePageMeta';
 
 export const ContactosPage = () => {
+  const { t } = useI18n();
+  const { faq, contactosUteis, notaContactos } = useCta();
+  usePageMeta('contactos');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -38,7 +42,7 @@ export const ContactosPage = () => {
     e.preventDefault();
 
     if (!formData.name || !formData.email || !formData.message) {
-      toast.error('Por favor, preencha todos os campos obrigatórios');
+      toast.error(t('contactos.form.requiredError'));
       return;
     }
 
@@ -46,7 +50,7 @@ export const ContactosPage = () => {
     try {
       await contactAPI.submit({ ...formData, turnstile_token: turnstileToken });
       setSent(true);
-      toast.success('Mensagem enviada com sucesso!');
+      toast.success(t('contactos.form.success'));
       setTimeout(() => {
         setFormData({ name: '', email: '', subject: 'geral', message: '' });
         setSent(false);
@@ -55,22 +59,22 @@ export const ContactosPage = () => {
       // Token Turnstile é de uso único — renova-o para a próxima tentativa.
       turnstileRef.current?.reset();
       setTurnstileToken('');
-      toast.error(error.response?.data?.detail || 'Erro ao enviar mensagem. Tente novamente.');
+      toast.error(error.response?.data?.detail || t('contactos.form.error'));
     } finally {
       setSending(false);
     }
   };
 
   const subjects = [
-    { value: 'geral', label: 'Geral', icon: MessageSquare },
-    { value: 'imprensa', label: 'Imprensa', icon: Newspaper },
-    { value: 'parcerias', label: 'Parcerias', icon: HandshakeIcon },
-    { value: 'duvidas', label: 'Dúvidas', icon: HelpCircle },
+    { value: 'geral', label: t('contactos.form.subjects.geral'), icon: MessageSquare },
+    { value: 'imprensa', label: t('contactos.form.subjects.imprensa'), icon: Newspaper },
+    { value: 'parcerias', label: t('contactos.form.subjects.parcerias'), icon: HandshakeIcon },
+    { value: 'duvidas', label: t('contactos.form.subjects.duvidas'), icon: HelpCircle },
   ];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <PageBanner pageKey="contactos" badge="Contactos" title="Fale Connosco" subtitle="Tem dúvidas sobre a associação, a profissão ou deseja propor uma parceria? Utilize os canais oficiais." />
+      <PageBanner pageKey="contactos" badge={t('contactos.banner.badge')} title={t('contactos.banner.title')} subtitle={t('contactos.banner.subtitle')} />
 
       {/* Contact Info & Form */}
       <section className="py-12 sm:py-20 lg:py-24">
@@ -79,7 +83,7 @@ export const ContactosPage = () => {
             {/* Contact Information */}
             <div className="animate-fade-up">
               <h2 className="font-sans font-bold text-3xl text-grafite mb-8">
-                Informações de Contacto
+                {t('contactos.info.title')}
               </h2>
 
               <div className="space-y-6 mb-12">
@@ -89,7 +93,7 @@ export const ContactosPage = () => {
                     <Mail className="w-7 h-7 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-sans font-semibold text-lg text-grafite mb-1">Email Geral</h3>
+                    <h3 className="font-sans font-semibold text-lg text-grafite mb-1">{t('contactos.info.generalEmail')}</h3>
                     <a href="mailto:secretariado@controlador.cv" className="text-carmesim hover:underline">
                       secretariado@controlador.cv
                     </a>
@@ -102,7 +106,7 @@ export const ContactosPage = () => {
                     <Newspaper className="w-7 h-7 text-grafite" />
                   </div>
                   <div>
-                    <h3 className="font-sans font-semibold text-lg text-grafite mb-1">Imprensa</h3>
+                    <h3 className="font-sans font-semibold text-lg text-grafite mb-1">{t('contactos.info.press')}</h3>
                     <a href="mailto:comunicacao@controlador.cv" className="text-carmesim hover:underline">
                       comunicacao@controlador.cv
                     </a>
@@ -116,7 +120,7 @@ export const ContactosPage = () => {
                   forem confirmados — sem placeholders (spec §5). */}
               <div>
                 <h3 className="font-sans font-bold text-2xl text-grafite mb-2">
-                  Contactos Úteis
+                  {t('contactos.useful.title')}
                 </h3>
                 <p className="text-sm text-gray-500 mb-6">{notaContactos}</p>
                 <ul className="space-y-4">
@@ -136,7 +140,7 @@ export const ContactosPage = () => {
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 text-sm text-grafite font-medium hover:text-carmesim transition-colors mt-1"
                           >
-                            Site oficial
+                            {t('contactos.useful.officialSite')}
                             <ExternalLink className="w-3.5 h-3.5" />
                           </a>
                         </div>
@@ -151,10 +155,10 @@ export const ContactosPage = () => {
             <div className="animate-fade-up">
               <div className="card-technical rounded-2xl p-8">
                 <h2 className="font-sans font-bold text-2xl text-grafite mb-2">
-                  Formulário de Contacto
+                  {t('contactos.form.title')}
                 </h2>
                 <p className="text-gray-600 mb-8">
-                  Preencha o formulário abaixo e entraremos em contacto o mais breve possível.
+                  {t('contactos.form.intro')}
                 </p>
 
                 {sent ? (
@@ -163,10 +167,10 @@ export const ContactosPage = () => {
                       <CheckCircle className="w-10 h-10 text-carmesim" />
                     </div>
                     <h3 className="font-sans font-semibold text-xl text-grafite mb-2">
-                      Mensagem Enviada!
+                      {t('contactos.form.sentTitle')}
                     </h3>
                     <p className="text-gray-600">
-                      Obrigado pelo seu contacto. Responderemos em breve.
+                      {t('contactos.form.sentBody')}
                     </p>
                   </div>
                 ) : (
@@ -174,7 +178,7 @@ export const ContactosPage = () => {
                     {/* Name */}
                     <div>
                       <label htmlFor="contact-name" className="block text-xs uppercase tracking-wider text-gray-500 mb-2">
-                        Nome *
+                        {t('contactos.form.name')}
                       </label>
                       <input
                         id="contact-name"
@@ -183,7 +187,7 @@ export const ContactosPage = () => {
                         autoComplete="name"
                         value={formData.name}
                         onChange={handleChange}
-                        placeholder="O seu nome completo"
+                        placeholder={t('contactos.form.namePlaceholder')}
                         className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 transition-all"
                         required
                         data-testid="contact-name"
@@ -193,7 +197,7 @@ export const ContactosPage = () => {
                     {/* Email */}
                     <div>
                       <label htmlFor="contact-email" className="block text-xs uppercase tracking-wider text-gray-500 mb-2">
-                        Email *
+                        {t('contactos.form.email')}
                       </label>
                       <input
                         id="contact-email"
@@ -203,7 +207,7 @@ export const ContactosPage = () => {
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        placeholder="seu.email@exemplo.com"
+                        placeholder={t('contactos.form.emailPlaceholder')}
                         className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 transition-all"
                         required
                         data-testid="contact-email"
@@ -213,7 +217,7 @@ export const ContactosPage = () => {
                     {/* Subject */}
                     <fieldset>
                       <legend className="block text-xs uppercase tracking-wider text-gray-500 mb-2">
-                        Assunto
+                        {t('contactos.form.subject')}
                       </legend>
                       <div className="grid grid-cols-2 gap-3">
                         {subjects.map((subject) => (
@@ -243,14 +247,14 @@ export const ContactosPage = () => {
                     {/* Message */}
                     <div>
                       <label htmlFor="contact-message" className="block text-xs uppercase tracking-wider text-gray-500 mb-2">
-                        Mensagem *
+                        {t('contactos.form.message')}
                       </label>
                       <textarea
                         id="contact-message"
                         name="message"
                         value={formData.message}
                         onChange={handleChange}
-                        placeholder="Escreva a sua mensagem aqui..."
+                        placeholder={t('contactos.form.messagePlaceholder')}
                         rows={5}
                         className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#C7202F]/40 focus-visible:ring-offset-2 transition-all resize-none"
                         required
@@ -270,12 +274,12 @@ export const ContactosPage = () => {
                       {sending ? (
                         <>
                           <Loader2 className="w-5 h-5 animate-spin" />
-                          A enviar...
+                          {t('contactos.form.sending')}
                         </>
                       ) : (
                         <>
                           <Send className="w-5 h-5" />
-                          Enviar Mensagem
+                          {t('contactos.form.submit')}
                         </>
                       )}
                     </button>
@@ -292,10 +296,10 @@ export const ContactosPage = () => {
         <div className="max-w-3xl mx-auto px-6">
           <div className="text-center mb-10">
             <h2 className="font-sans font-bold text-3xl text-grafite mb-3">
-              Perguntas Frequentes
+              {t('contactos.faq.title')}
             </h2>
             <p className="text-lg text-gray-600">
-              Respostas alinhadas à regulação aplicável (CV-CAR / decretos)
+              {t('contactos.faq.subtitle')}
             </p>
           </div>
 

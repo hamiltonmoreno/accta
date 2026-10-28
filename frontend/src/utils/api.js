@@ -23,8 +23,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
-    const currentPath = window.location.pathname;
-    const publicPaths = ['/login', '/validador', '/profissao', '/noticias', '/sobre', '/beneficios-publico', '/contactos', '/eventos-publico', '/galeria', '/publicacoes-publico', '/forgot-password', '/reset-password', '/criar-conta'];
+    // Variantes /en e /fr do site público contam como públicas (spec 021).
+    const currentPath = window.location.pathname.replace(/^\/(en|fr)(?=\/|$)/, '') || '/';
+    const publicPaths = ['/login', '/validador', '/profissao', '/noticias', '/sobre', '/beneficios-publico', '/contactos', '/eventos-publico', '/galeria', '/publicacoes-publico', '/forgot-password', '/reset-password', '/criar-conta', '/plataforma', '/setup-account'];
     const isPublic = currentPath === '/' || publicPaths.some(p => currentPath.startsWith(p));
 
     if (status === 401 && !isPublic) {

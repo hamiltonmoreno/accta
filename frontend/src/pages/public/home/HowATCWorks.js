@@ -1,22 +1,25 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Radio } from 'lucide-react';
-import { tiposControlo } from '../../../content/cta';
+import { useI18n } from '../../../i18n';
 import { CONTROL_ICONS } from './tokens';
 
-export const HowATCWorks = () => (
+export const HowATCWorks = () => {
+  const { t: tr, lp, cta } = useI18n();
+  const { tiposControlo } = cta;
+  return (
   <section className="py-16 sm:py-24 bg-white">
     <div className="max-w-7xl mx-auto px-5 sm:px-6">
       <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16 animate-fade-up">
         <span className="inline-block px-3 py-1.5 bg-carmesim/10 text-carmesim rounded-full text-xs uppercase tracking-wider font-semibold mb-4 sm:mb-6">
-          Como funciona
+          {tr('home.howAtc.badge')}
         </span>
         <h2 className="font-bold text-2xl sm:text-4xl lg:text-5xl text-grafite mb-3 sm:mb-4">
-          Três formas de{' '}
-          <span className="text-carmesim">controlar o tráfego</span>
+          {tr('home.howAtc.titleStart')}{' '}
+          <span className="text-carmesim">{tr('home.howAtc.titleHighlight')}</span>
         </h2>
         <p className="text-sm sm:text-lg text-gray-600">
-          Do solo ao cruzeiro sobre o Atlântico, cada voo passa por diferentes serviços de controlo.
+          {tr('home.howAtc.lead')}
         </p>
       </div>
 
@@ -44,13 +47,14 @@ export const HowATCWorks = () => (
 
       <div className="text-center mt-8 sm:mt-12 animate-fade-up">
         <Link
-          to="/profissao"
+          to={lp('/profissao')}
           className="inline-flex items-center gap-2 text-carmesim font-semibold hover:text-carmesim-dark transition-colors group text-sm sm:text-base"
         >
-          Explorar a profissão em detalhe
+          {tr('home.howAtc.link')}
           <ChevronRight className="w-4 sm:w-5 h-4 sm:h-5 group-hover:translate-x-1 transition-transform" />
         </Link>
       </div>
     </div>
   </section>
-);
+  );
+};

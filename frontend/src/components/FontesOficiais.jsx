@@ -1,24 +1,26 @@
 import React from 'react';
 import { ExternalLink } from 'lucide-react';
-import { instituicoes } from '../content/cta/instituicoes';
+import { useI18n, useCta } from '../i18n';
 
 // Bloco "Fontes oficiais" (sub-projeto C) — lista compacta das instituições
 // referidas na base de conhecimento, com link para o site oficial. Reutiliza o
 // registo único `instituicoes`. Fundo claro (links Carmesim — frontend-design).
 
-export const FontesOficiais = () => (
+export const FontesOficiais = () => {
+  const { t } = useI18n();
+  const { instituicoes } = useCta();
+  return (
   <section className="py-12 sm:py-16 bg-gray-50">
     <div className="max-w-5xl mx-auto px-6">
       <div className="text-center mb-8">
         <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-4">
-          Fontes oficiais
+          {t('profissao.fontes.badge')}
         </span>
         <h2 className="font-sans font-bold text-2xl sm:text-3xl text-grafite mb-2">
-          Instituições de referência
+          {t('profissao.fontes.title')}
         </h2>
         <p className="text-sm text-gray-500 max-w-2xl mx-auto">
-          Esta secção remete para as fontes oficiais. Confirme sempre
-          a informação vigente nas páginas das respetivas entidades.
+          {t('profissao.fontes.subtitle')}
         </p>
       </div>
 
@@ -44,6 +46,7 @@ export const FontesOficiais = () => (
       </ul>
     </div>
   </section>
-);
+  );
+};
 
 export default FontesOficiais;

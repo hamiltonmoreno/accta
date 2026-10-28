@@ -19,8 +19,12 @@ import {
 } from 'lucide-react';
 import { benefitsAPI, mediaUrl } from '../../utils/api';
 import { PageBanner } from '../../components/PageBanner';
+import { useI18n } from '../../i18n';
+import { usePageMeta } from '../../i18n/usePageMeta';
 
 export const BeneficiosPublicoPage = () => {
+  const { t, lp } = useI18n();
+  usePageMeta('beneficios');
   // Sprint 12 — fetch real partners. Antes: 8 cards genericos placeholder.
   // Endpoint /benefits/public retorna apenas active=true, sem auth.
   // staleTime 5min: este conteudo e quase estatico.
@@ -45,18 +49,19 @@ export const BeneficiosPublicoPage = () => {
   // safeWebsite: fonte única em utils/safeUrl (spec 019 M-HREF).
   const safeWebsite = safeUrl;
 
+  const categoryLabels = t('beneficios.categories');
   const partnerCategories = [
-    { icon: Hotel, label: 'Hotelaria', color: 'bg-[#EFF6FF] text-[#1D4ED8]' },
-    { icon: Dumbbell, label: 'Ginásios', color: 'bg-[#F0FDF4] text-[#15803D]' },
-    { icon: Stethoscope, label: 'Clínicas', color: 'bg-[#FEF2F2] text-[#B91C1C]' },
-    { icon: Shield, label: 'Seguros', color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
-    { icon: Car, label: 'Rent-a-Car', color: 'bg-[#FFFBEB] text-[#B45309]' },
-    { icon: Heart, label: 'Bem-Estar', color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
+    { icon: Hotel, label: categoryLabels[0], color: 'bg-[#EFF6FF] text-[#1D4ED8]' },
+    { icon: Dumbbell, label: categoryLabels[1], color: 'bg-[#F0FDF4] text-[#15803D]' },
+    { icon: Stethoscope, label: categoryLabels[2], color: 'bg-[#FEF2F2] text-[#B91C1C]' },
+    { icon: Shield, label: categoryLabels[3], color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
+    { icon: Car, label: categoryLabels[4], color: 'bg-[#FFFBEB] text-[#B45309]' },
+    { icon: Heart, label: categoryLabels[5], color: 'bg-[#F5F5F5] text-[#3A3A3A]' },
   ];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <PageBanner pageKey="beneficios" badge="Parcerias" title="Clube de Benefícios" subtitle="Vantagens exclusivas para os membros da ACCTA" />
+      <PageBanner pageKey="beneficios" badge={t('beneficios.banner.badge')} title={t('beneficios.banner.title')} subtitle={t('beneficios.banner.subtitle')} />
 
       {/* Introduction for Partners */}
       <section className="py-12 sm:py-20 lg:py-24">
@@ -64,17 +69,15 @@ export const BeneficiosPublicoPage = () => {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="animate-fade-up">
               <h2 className="font-sans font-bold text-4xl text-grafite mb-6">
-                Vantagens de ser{' '}
+                {t('beneficios.intro.titleBefore')}{' '}
                 <span className="text-carmesim">ACCTA</span>
               </h2>
               <p className="text-lg text-gray-600 leading-relaxed mb-6">
-                A nossa associação reúne um grupo seleto de <strong className="text-grafite">profissionais altamente qualificados</strong>. 
-                Através do Clube de Benefícios, estabelecemos parcerias com empresas de excelência que oferecem 
-                condições exclusivas aos nossos membros.
+                {t('beneficios.intro.p1Before')}<strong className="text-grafite">{t('beneficios.intro.p1Strong')}</strong>
+                {t('beneficios.intro.p1After')}
               </p>
               <p className="text-lg text-gray-600 leading-relaxed mb-8">
-                Hotéis, ginásios, clínicas, seguros, rent-a-car e muitos outros serviços com descontos especiais 
-                para quem faz parte da família ACCTA.
+                {t('beneficios.intro.p2')}
               </p>
               
               <div className="flex flex-wrap gap-3">
@@ -93,15 +96,9 @@ export const BeneficiosPublicoPage = () => {
             <div className="animate-fade-up">
               <div className="bg-gradient-to-br from-grafite to-grafite/60 rounded-2xl p-8 text-white">
                 <Gift className="w-12 h-12 text-white mb-6" />
-                <h3 className="font-sans font-bold text-2xl mb-4">Benefícios Exclusivos</h3>
+                <h3 className="font-sans font-bold text-2xl mb-4">{t('beneficios.exclusive.title')}</h3>
                 <ul className="space-y-4">
-                  {[
-                    'Descontos em estabelecimentos parceiros',
-                    'Validação digital via QR Code',
-                    'Acesso imediato aos benefícios',
-                    'Novos parceiros regularmente',
-                    'Condições especiais para família'
-                  ].map((item, index) => (
+                  {t('beneficios.exclusive.items').map((item, index) => (
                     <li key={index} className="flex items-start gap-3">
                       <CheckCircle className="w-5 h-5 text-white flex-shrink-0 mt-0.5" />
                       <span className="text-white/90">{item}</span>
@@ -119,37 +116,22 @@ export const BeneficiosPublicoPage = () => {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-2 bg-carmesim/10 text-carmesim rounded-full text-sm uppercase tracking-wider mb-6">
-              Simples e Rápido
+              {t('beneficios.how.badge')}
             </span>
             <h2 className="font-sans font-bold text-4xl text-grafite mb-4">
-              Como Funciona?
+              {t('beneficios.how.title')}
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Um processo totalmente digital e instantâneo
+              {t('beneficios.how.subtitle')}
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            {[
-              {
-                step: '01',
-                title: 'Carteira Digital',
-                desc: 'Os associados possuem uma Carteira Digital com validação via QR Code único.',
-                icon: QrCode
-              },
-              {
-                step: '02',
-                title: 'Apresentação',
-                desc: 'Ao chegar ao estabelecimento parceiro, o sócio apresenta o código da carteira.',
-                icon: Building2
-              },
-              {
-                step: '03',
-                title: 'Validação Instantânea',
-                desc: 'O código é validado em tempo real, garantindo acesso imediato ao desconto.',
-                icon: CheckCircle
-              }
-            ].map((item, index) => (
+            {t('beneficios.how.steps').map((step, index) => ({
+              ...step,
+              step: String(index + 1).padStart(2, '0'),
+              icon: [QrCode, Building2, CheckCircle][index],
+            })).map((item, index) => (
               <div key={index}
                 className="text-center animate-fade-up">
                 <div className="relative mb-6">
@@ -176,13 +158,13 @@ export const BeneficiosPublicoPage = () => {
           <div className="max-w-7xl mx-auto px-6">
             <div className="text-center mb-16">
               <span className="inline-block px-4 py-2 bg-grafite/5 text-grafite rounded-full text-sm uppercase tracking-wider mb-6">
-                Rede de Parceiros
+                {t('beneficios.partners.badge')}
               </span>
               <h2 className="font-sans font-bold text-4xl text-grafite mb-4">
-                Nossos Parceiros
+                {t('beneficios.partners.title')}
               </h2>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Empresas que confiam na ACCTA e oferecem condições especiais aos nossos membros
+                {t('beneficios.partners.subtitle')}
               </p>
             </div>
 
@@ -206,7 +188,7 @@ export const BeneficiosPublicoPage = () => {
                     href={website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label={`Visitar website de ${partner.name}`}
+                    aria-label={t('beneficios.partners.visitWebsite', { name: partner.name })}
                   >
                     {card}
                   </a>
@@ -226,23 +208,17 @@ export const BeneficiosPublicoPage = () => {
             <div className="animate-fade-up">
               <HandshakeIcon className="w-16 h-16 text-white mb-6" />
               <h2 className="font-sans font-bold text-4xl text-white mb-6">
-                Quer ser nosso parceiro?
+                {t('beneficios.become.title')}
               </h2>
               <p className="text-xl text-white/80 leading-relaxed">
-                Se a sua empresa deseja oferecer serviços aos Controladores de Tráfego Aéreo de Cabo Verde, 
-                entre em contacto connosco. Juntos podemos criar uma parceria de sucesso.
+                {t('beneficios.become.body')}
               </p>
             </div>
 
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 animate-fade-up">
-              <h3 className="font-sans font-semibold text-xl text-white mb-6">Vantagens para Parceiros</h3>
+              <h3 className="font-sans font-semibold text-xl text-white mb-6">{t('beneficios.become.advantagesTitle')}</h3>
               <ul className="space-y-4 mb-8">
-                {[
-                  'Acesso a profissionais qualificados',
-                  'Divulgação na nossa rede',
-                  'Selo de parceiro ACCTA',
-                  'Validação digital integrada'
-                ].map((item, index) => (
+                {t('beneficios.become.advantages').map((item, index) => (
                   <li key={index} className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-white flex-shrink-0 mt-0.5" />
                     <span className="text-white/90">{item}</span>
@@ -250,11 +226,11 @@ export const BeneficiosPublicoPage = () => {
                 ))}
               </ul>
               <Link
-                to="/contactos"
+                to={lp('/contactos')}
                 className="inline-flex items-center gap-2 bg-floresta text-white px-6 py-3 rounded-lg font-bold hover:bg-floresta-dark transition-all w-full justify-center"
               >
                 <Mail className="w-5 h-5" />
-                Contactar-nos
+                {t('beneficios.become.cta')}
               </Link>
             </div>
           </div>
@@ -266,16 +242,16 @@ export const BeneficiosPublicoPage = () => {
         <div className="max-w-4xl mx-auto px-6 text-center">
           <QrCode className="w-12 h-12 text-grafite mx-auto mb-4" />
           <h2 className="font-sans font-bold text-3xl text-grafite mb-4">
-            É um estabelecimento parceiro?
+            {t('beneficios.validator.title')}
           </h2>
           <p className="text-lg text-gray-600 mb-8">
-            Utilize o nosso validador online para verificar a carteira dos associados
+            {t('beneficios.validator.body')}
           </p>
           <Link
-            to="/validador"
+            to={lp('/validador')}
             className="inline-flex items-center gap-2 bg-grafite text-white px-8 py-4 rounded-lg font-bold hover:bg-grafite/90 transition-all"
           >
-            Aceder ao Validador
+            {t('beneficios.validator.cta')}
             <ArrowRight className="w-5 h-5" />
           </Link>
         </div>

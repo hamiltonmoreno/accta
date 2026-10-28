@@ -17,12 +17,3 @@ export const ATS_ICONS = {
   'Cabo Verde Airports': Building2,
   IPIAAM: Search,
 };
-
-// Resumo de uma linha por etapa — o detalhe completo vive em /profissao.
-export const CAMINHO_RESUMO = {
-  'Pré-requisitos': '21 anos, certificado médico Classe 3 e inglês ICAO nível 4.',
-  'Formação inicial': 'Curso teórico numa ATO aprovada pela AAC, com exame.',
-  'Formação operacional': 'Qualificação (ADI/APP/ACC) com tráfego real sob OJTI.',
-  'Ingresso numa unidade': 'Averbamento de órgão e autorização para a posição.',
-  'Manutenção': 'Revalidação periódica e recência operacional contínua.',
-};

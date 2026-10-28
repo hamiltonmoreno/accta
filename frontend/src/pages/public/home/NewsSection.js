@@ -1,24 +1,27 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Calendar, ChevronRight } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { useI18n } from '../../../i18n';
+import { useFormatDate } from '../../../i18n/dates';
 import { mediaUrl } from '../../../utils/api';
 import { NEWS_IMAGES } from './tokens';
 
-export const NewsSection = ({ news, loading }) => (
+export const NewsSection = ({ news, loading }) => {
+  const { t, lp } = useI18n();
+  const formatDate = useFormatDate();
+  return (
   <section className="py-16 sm:py-24 bg-white">
     <div className="max-w-7xl mx-auto px-5 sm:px-6">
       <div className="text-center mb-10 sm:mb-16">
         <span className="inline-block px-3 py-1.5 bg-grafite/5 text-grafite rounded-full text-xs uppercase tracking-wider font-semibold mb-4 sm:mb-6">
-          Últimas Notícias
+          {t('home.news.badge')}
         </span>
         <h2 className="font-bold text-2xl sm:text-4xl lg:text-5xl text-grafite mb-3 sm:mb-4">
-          Fique por dentro da{' '}
-          <span className="text-carmesim">Aviação em CV</span>
+          {t('home.news.titleStart')}{' '}
+          <span className="text-carmesim">{t('home.news.titleHighlight')}</span>
         </h2>
         <p className="text-sm sm:text-lg text-gray-600 max-w-2xl mx-auto">
-          Acompanhe as novidades da associação e do setor aeronáutico em Cabo Verde
+          {t('home.news.lead')}
         </p>
       </div>
 
@@ -28,7 +31,7 @@ export const NewsSection = ({ news, loading }) => (
         </div>
       ) : news.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-500 text-sm">Nenhuma notícia disponível no momento</p>
+          <p className="text-gray-500 text-sm">{t('home.news.empty')}</p>
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
@@ -47,17 +50,17 @@ export const NewsSection = ({ news, loading }) => (
                 <div className="p-4 sm:p-6">
                   <div className="flex items-center gap-2 text-xs text-gray-500 mb-2 sm:mb-3">
                     <Calendar className="w-3.5 h-3.5" />
-                    {format(new Date(post.created_at), "dd MMM yyyy", { locale: ptBR })}
+                    {formatDate(new Date(post.created_at), t('home.dateShort'))}
                   </div>
                   <h3 className="font-semibold text-base sm:text-lg text-grafite mb-2 sm:mb-3 group-hover:text-carmesim transition-colors">
                     {post.title}
                   </h3>
                   <p className="text-gray-600 text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 line-clamp-3">{post.excerpt || post.content}</p>
                   <Link
-                    to={`/noticias/${post.slug ?? post.id}`}
+                    to={lp(`/noticias/${post.slug ?? post.id}`)}
                     className="inline-flex items-center gap-2 text-xs sm:text-sm text-carmesim font-semibold hover:text-carmesim-dark transition-colors"
                   >
-                    Ler mais
+                    {t('home.news.readMore')}
                     <ChevronRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -69,13 +72,14 @@ export const NewsSection = ({ news, loading }) => (
 
       <div className="text-center mt-8 sm:mt-12">
         <Link
-          to="/noticias"
+          to={lp('/noticias')}
           className="inline-flex items-center gap-2 bg-grafite text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold text-sm hover:bg-grafite-dark transition-all"
         >
-          Ver Todas as Notícias
+          {t('home.news.seeAll')}
           <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5" />
         </Link>
       </div>
     </div>
   </section>
-);
+  );
+};
